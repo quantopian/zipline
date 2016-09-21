@@ -19,6 +19,7 @@ import logbook
 
 from six import iteritems
 
+import numpy as np
 import pandas as pd
 
 from . import risk
@@ -95,11 +96,11 @@ class RiskMetricsPeriod(object):
             raise Exception(message)
 
         self.num_trading_days = len(self.benchmark_returns)
-        self.trading_day_counts = pd.stats.moments.rolling_count(
-            self.algorithm_returns, self.num_trading_days)
 
-        self.mean_algorithm_returns = \
-            self.algorithm_returns.cumsum() / self.trading_day_counts
+        self.mean_algorithm_returns = (
+            self.algorithm_returns.cumsum() /
+            np.arange(1, self.num_trading_days + 1, dtype=np.float64)
+        )
 
         self.benchmark_volatility = annual_volatility(self.benchmark_returns)
         self.algorithm_volatility = annual_volatility(self.algorithm_returns)

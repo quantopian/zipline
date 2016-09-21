@@ -158,17 +158,17 @@ class TestFastStochasticOscillator(ZiplineTestCase):
         fso = FastStochasticOscillator()
 
         today = pd.Timestamp('2015')
-        assets = np.arange(3, dtype=np.float)
-        out = np.empty(shape=(3,), dtype=np.float)
+        assets = np.arange(3, dtype=np.float64)
+        out = np.empty(shape=(3,), dtype=np.float64)
 
-        highs = np.full((50, 3), 3)
-        lows = np.full((50, 3), 2)
-        closes = np.full((50, 3), 4)
+        highs = np.full((50, 3), 3, dtype=np.float64)
+        lows = np.full((50, 3), 2, dtype=np.float64)
+        closes = np.full((50, 3), 4, dtype=np.float64)
 
         fso.compute(today, assets, out, closes, lows, highs)
 
         # Expected %K
-        assert_equal(out, np.full((3,), 200))
+        assert_equal(out, np.full((3,), 200, dtype=np.float64))
 
     @parameter_space(seed=range(5))
     def test_fso_expected_with_talib(self, seed):
@@ -381,7 +381,7 @@ class TestLinearWeightedMovingAverage(ZiplineTestCase):
         today = pd.Timestamp('2015')
         assets = np.arange(5, dtype=np.int64)
 
-        data = np.arange(50, dtype=float).reshape((10, 5))
+        data = np.arange(50, dtype=np.float64).reshape((10, 5))
         out = np.zeros(data.shape[1])
 
         wma2.compute(today, assets, out, data)
@@ -397,9 +397,9 @@ class TestTrueRange(ZiplineTestCase):
         assets = np.arange(3, dtype=np.int64)
         out = np.empty(3, dtype=np.float64)
 
-        highs = np.full((2, 3), 3)
-        lows = np.full((2, 3), 2)
-        closes = np.full((2, 3), 1)
+        highs = np.full((2, 3), 3.)
+        lows = np.full((2, 3), 2.)
+        closes = np.full((2, 3), 1.)
 
         tr.compute(today, assets, out, highs, lows, closes)
-        assert_equal(out, np.full((3,), 2))
+        assert_equal(out, np.full((3,), 2.))

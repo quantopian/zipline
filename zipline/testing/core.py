@@ -49,7 +49,8 @@ from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils import security_list
 from zipline.utils.calendars import get_calendar
 from zipline.utils.input_validation import expect_dimensions
-from zipline.utils.numpy_utils import as_column
+from zipline.utils.numpy_utils import as_column, isnat
+from zipline.utils.pandas_utils import timedelta_to_integral_seconds
 from zipline.utils.sentinel import sentinel
 
 import numpy as np
@@ -78,7 +79,7 @@ def str_to_seconds(s):
     >>> str_to_seconds('2014-01-01')
     1388534400
     """
-    return int((pd.Timestamp(s, tz='UTC') - EPOCH).total_seconds())
+    return timedelta_to_integral_seconds(pd.Timestamp(s, tz='UTC') - EPOCH)
 
 
 def drain_zipline(test, zipline):
@@ -393,6 +394,18 @@ def check_arrays(x, y, err_msg='', verbose=True, check_dtypes=True):
         # ...then check the actual values as well.
         x = x.as_string_array()
         y = y.as_string_array()
+    elif x.dtype.kind in 'mM':
+        x_isnat = isnat(x)
+        y_isnat = isnat(y)
+        assert_array_equal(
+            x_isnat,
+            y_isnat,
+            err_msg="NaTs not equal",
+            verbose=verbose,
+        )
+        # Fill NaTs with zero for comparison.
+        x = np.where(x_isnat, np.zeros_like(x), x)
+        y = np.where(x_isnat, np.zeros_like(x), x)
 
     return assert_array_equal(x, y, err_msg=err_msg, verbose=verbose)
 
@@ -709,7 +722,7 @@ class FakeDataPortal(DataPortal):
             ]
 
             df = pd.DataFrame(
-                np.full((bar_count, len(assets)), 100),
+                np.full((bar_count, len(assets)), 100.0),
                 index=days,
                 columns=assets
             )

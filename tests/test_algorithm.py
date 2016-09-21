@@ -32,7 +32,7 @@ from testfixtures import TempDirectory
 import numpy as np
 import pandas as pd
 import pytz
-from pandas.io.common import PerformanceWarning
+from pandas.core.common import PerformanceWarning
 
 from zipline import run_algorithm
 from zipline import TradingAlgorithm
@@ -3476,7 +3476,7 @@ class TestOrderCancelation(WithDataPortal,
                 'high': minutes_arr + 2,
                 'low': minutes_arr - 1,
                 'close': minutes_arr,
-                'volume': np.full(minutes_count, 1),
+                'volume': np.full(minutes_count, 1.0),
             },
             index=asset_minutes,
         )
@@ -3485,11 +3485,11 @@ class TestOrderCancelation(WithDataPortal,
     def make_equity_daily_bar_data(cls):
         yield 1, pd.DataFrame(
             {
-                'open': np.full(3, 1),
-                'high': np.full(3, 1),
-                'low': np.full(3, 1),
-                'close': np.full(3, 1),
-                'volume': np.full(3, 1),
+                'open': np.full(3, 1, dtype=np.float64),
+                'high': np.full(3, 1, dtype=np.float64),
+                'low': np.full(3, 1, dtype=np.float64),
+                'close': np.full(3, 1, dtype=np.float64),
+                'volume': np.full(3, 1, dtype=np.float64),
             },
             index=cls.sim_params.sessions,
         )

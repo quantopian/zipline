@@ -44,6 +44,7 @@ from zipline.utils.math_utils import (
     nanstd
 )
 from zipline.utils.memoize import remember_last, weak_lru_cache
+from zipline.utils.pandas_utils import timedelta_to_integral_minutes
 from zipline.errors import (
     NoTradeDataAvailableTooEarly,
     NoTradeDataAvailableTooLate,
@@ -1106,44 +1107,63 @@ class DataPortal(object):
         else:
             return [assets] if isinstance(assets, Asset) else []
 
+    # cache size picked somewhat loosely.  this code exists purely to
+    # handle deprecated API.
     @weak_lru_cache(20)
     def _get_minute_count_for_transform(self, ending_minute, days_count):
-        # cache size picked somewhat loosely.  this code exists purely to
-        # handle deprecated API.
+        # This function works in three steps.
+        # Step 1. Count the minutes from ``ending_minute`` to the start of its
+        #         session.
+        # Step 2. Count the minutes from the prior ``days_count - 1`` sessions.
+        # Step 3. Return the sum of the results from steps (1) and (2).
 
-        # bars is the number of days desired.  we have to translate that
-        # into the number of minutes we want.
-        # we get all the minutes for the last (bars - 1) days, then add
-        # all the minutes so far today.  the +2 is to account for ignoring
-        # today, and the previous day, in doing the math.
-        session_for_minute = self.trading_calendar.minute_to_session_label(
-            ending_minute
-        )
-        previous_session = self.trading_calendar.previous_session_label(
-            session_for_minute
+        # Example (NYSE Calendar)
+        #     ending_minute = 2016-12-28 9:40 AM US/Eastern
+        #     days_count = 3
+        # Step 1. Calculate that there are 10 minutes in the ending session.
+        # Step 2. Calculate that there are 390 + 210 = 600 minutes in the prior
+        #         two sessions. (Prior sessions are 2015-12-23 and 2015-12-24.)
+        #         2015-12-24 is a half day.
+        # Step 3. Return 600 + 10 = 610.
+
+        cal = self.trading_calendar
+
+        ending_session = cal.minute_to_session_label(
+            ending_minute,
+            direction="none",  # It's an error to pass a non-trading minute.
         )
 
-        sessions = self.trading_calendar.sessions_in_range(
-            self.trading_calendar.sessions_window(previous_session,
-                                                  -days_count + 2)[0],
-            previous_session,
+        # Assume that calendar days are always full of contiguous minutes,
+        # which means we can just take 1 + (number of minutes between the last
+        # minute and the start of the session). We add one so that we include
+        # the ending minute in the total.
+        ending_session_minute_count = timedelta_to_integral_minutes(
+            ending_minute - cal.open_and_close_for_session(ending_session)[0]
+        ) + 1
+
+        if days_count == 1:
+            # We just need sessions for the active day.
+            return ending_session_minute_count
+
+        # XXX: We're subtracting 2 here to account for two offsets:
+        # 1. We only want ``days_count - 1`` sessions, since we've already
+        #    accounted for the ending session above.
+        # 2. The API of ``sessions_window`` is to return one more session than
+        #    the requested number.  I don't think any consumers actually want
+        #    that behavior, but it's the tested and documented behavior right
+        #    now, so we have to request one less session than we actually want.
+        completed_sessions = cal.sessions_window(
+            cal.previous_session_label(ending_session),
+            2 - days_count,
         )
 
-        minutes_count = \
+        completed_sessions_minute_count = (
             self.trading_calendar.minutes_count_for_sessions_in_range(
-                sessions[0],
-                sessions[-1]
+                completed_sessions[0],
+                completed_sessions[-1]
             )
-
-        # add the minutes for today
-        today_open = self.trading_calendar.open_and_close_for_session(
-            session_for_minute
-        )[0]
-
-        minutes_count += \
-            ((ending_minute - today_open).total_seconds() // 60) + 1
-
-        return minutes_count
+        )
+        return ending_session_minute_count + completed_sessions_minute_count
 
     def get_simple_transform(self, asset, transform_name, dt, data_frequency,
                              bars=None):

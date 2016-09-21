@@ -55,6 +55,9 @@ nosetests.xml
 # Built documentation
 docs/_build/*
 
+# Un-tarred example data input. We should only commit the tarball.
+tests/resources/example_data/*
+
 # database of vbench
 benchmarks.db
 

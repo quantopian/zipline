@@ -14,6 +14,7 @@
 # limitations under the License.
 from abc import ABCMeta, abstractproperty
 from lru import LRU
+import warnings
 
 from pandas.tseries.holiday import AbstractHolidayCalendar
 from six import with_metaclass
@@ -66,7 +67,14 @@ class TradingCalendar(with_metaclass(ABCMeta)):
     """
     def __init__(self, start=start_default, end=end_default):
         # Midnight in UTC for each trading day.
-        _all_days = date_range(start, end, freq=self.day, tz='UTC')
+
+        # In pandas 0.18.1, pandas calls into its own code here in a way that
+        # fires a warning. The calling code in pandas tries to suppress the
+        # warning, but does so incorrectly, causing it to bubble out here.
+        # Actually catch and suppress the warning here:
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            _all_days = date_range(start, end, freq=self.day, tz='UTC')
 
         # `DatetimeIndex`s of standard opens/closes for each day.
         self._opens = days_at_time(_all_days, self.open_time, self.tz,

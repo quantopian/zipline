@@ -3,7 +3,7 @@ import warnings
 from mock import patch
 import numpy as np
 import pandas as pd
-from pandas.io.common import PerformanceWarning
+from pandas.core.common import PerformanceWarning
 
 from zipline import TradingAlgorithm
 from zipline.finance.trading import SimulationParameters

@@ -1,6 +1,7 @@
 """
 Utilities for working with numpy arrays.
 """
+from collections import OrderedDict
 from datetime import datetime
 from warnings import (
     catch_warnings,
@@ -16,6 +17,7 @@ from numpy import (
     empty,
     flatnonzero,
     hstack,
+    isnan,
     nan,
     vectorize,
     where
@@ -60,12 +62,12 @@ _FILLVALUE_DEFAULTS = {
     object_dtype: None,
 }
 
-INT_DTYPES_BY_SIZE_BYTES = {
-    1: dtype('int8'),
-    2: dtype('int16'),
-    4: dtype('int32'),
-    8: dtype('int64'),
-}
+INT_DTYPES_BY_SIZE_BYTES = OrderedDict([
+    (1, dtype('int8')),
+    (2, dtype('int16')),
+    (4, dtype('int32')),
+    (8, dtype('int64')),
+])
 
 
 def int_dtype_with_size_in_bytes(size):
@@ -285,6 +287,28 @@ def rolling_window(array, length):
 
 # Sentinel value that isn't NaT.
 _notNaT = make_datetime64D(0)
+iNaT = NaTns.view(int64_dtype)
+assert iNaT == NaTD.view(int64_dtype), "iNaTns != iNaTD"
+
+
+def isnat(obj):
+    """
+    Check if a value is np.NaT.
+    """
+    if obj.dtype.kind not in ('m', 'M'):
+        raise ValueError("%s is not a numpy datetime or timedelta")
+    return obj.view(int64_dtype) == iNaT
+
+
+def is_missing(data, missing_value):
+    """
+    Generic is_missing function that handles NaN and NaT.
+    """
+    if is_float(data) and isnan(missing_value):
+        return isnan(data)
+    elif is_datetime(data) and isnat(missing_value):
+        return isnat(data)
+    return (data == missing_value)
 
 
 def busday_count_mask_NaT(begindates, enddates, out=None):
@@ -302,8 +326,8 @@ def busday_count_mask_NaT(begindates, enddates, out=None):
     if out is None:
         out = empty(broadcast(begindates, enddates).shape, dtype=float)
 
-    beginmask = (begindates == NaTD)
-    endmask = (enddates == NaTD)
+    beginmask = isnat(begindates)
+    endmask = isnat(enddates)
 
     out = busday_count(
         # Temporarily fill in non-NaT values.
