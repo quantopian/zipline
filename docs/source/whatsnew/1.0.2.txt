@@ -2,7 +2,7 @@ Release 1.0.2
 -------------
 
 :Release: 1.0.2
-:Date: TBD
+:Date: September 8, 2016
 
 Enhancements
 ~~~~~~~~~~~~
