@@ -213,12 +213,6 @@ class DataPortal(object):
             self.trading_calendar.all_sessions.get_loc(self._first_trading_day)
             if self._first_trading_day is not None else None
         )
-        self._first_trading_minute_loc = (
-            self.trading_calendar.all_minutes.get_loc(
-                self._first_trading_minute
-            )
-            if self._first_trading_minute is not None else None
-        )
 
     def _ensure_reader_aligned(self, reader):
         if reader is None:
@@ -703,10 +697,17 @@ class DataPortal(object):
 
             return daily_data
 
-    def _handle_history_out_of_bounds(self, bar_count):
+    def _handle_minute_history_out_of_bounds(self, bar_count):
+        first_trading_minute_loc = (
+            self.trading_calendar.all_minutes.get_loc(
+                self._first_trading_minute
+            )
+            if self._first_trading_minute is not None else None
+        )
+
         suggested_start_day = (
             self.trading_calendar.all_minutes[
-                self._first_trading_minute_loc + bar_count
+                first_trading_minute_loc + bar_count
             ] + self.trading_calendar.day
         ).date()
 
@@ -728,10 +729,10 @@ class DataPortal(object):
                 end_dt, -bar_count
             )
         except KeyError:
-            self._handle_history_out_of_bounds(bar_count)
+            self._handle_minute_history_out_of_bounds(bar_count)
 
         if minutes_for_window[0] < self._first_trading_minute:
-            self._handle_history_out_of_bounds(bar_count)
+            self._handle_minute_history_out_of_bounds(bar_count)
 
         asset_minute_data = self._get_minute_window_for_assets(
             assets,
