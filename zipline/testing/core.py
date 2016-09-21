@@ -49,14 +49,8 @@ from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils import security_list
 from zipline.utils.calendars import get_calendar
 from zipline.utils.input_validation import expect_dimensions
-<<<<<<< HEAD
 from zipline.utils.numpy_utils import as_column, isnat
 from zipline.utils.pandas_utils import timedelta_to_integral_seconds
-=======
-from zipline.utils.numpy_utils import (
-    as_column,
-)
->>>>>>> WIP
 from zipline.utils.sentinel import sentinel
 
 import numpy as np

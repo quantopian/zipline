@@ -58,8 +58,8 @@ class BlazeEventsLoader(PipelineLoader):
     """
 
     __doc__ = __doc__.format(SID_FIELD_NAME=SID_FIELD_NAME,
-                              TS_FIELD_NAME=TS_FIELD_NAME,
-                              EVENT_DATE_FIELD_NAME=EVENT_DATE_FIELD_NAME)
+                             TS_FIELD_NAME=TS_FIELD_NAME,
+                             EVENT_DATE_FIELD_NAME=EVENT_DATE_FIELD_NAME)
 
     @preprocess(data_query_tz=optionally(ensure_timezone))
     def __init__(self,

@@ -37,7 +37,7 @@ NORMALIZED_QUARTERS = 'normalized_quarters'
 PREVIOUS_FISCAL_QUARTER = 'previous_fiscal_quarter'
 PREVIOUS_FISCAL_YEAR = 'previous_fiscal_year'
 SHIFTED_NORMALIZED_QTRS = 'shifted_normalized_quarters'
-SIMULTATION_DATES = 'dates'
+SIMULATION_DATES = 'dates'
 
 
 def normalize_quarters(years, quarters):
@@ -95,7 +95,7 @@ class EarningsEstimatesLoader(PipelineLoader):
     """
     An abstract pipeline loader for estimates data that can load data a
     variable number of quarters forwards/backwards from calendar dates
-    depending on the `num_quarters` attribute of the columns' dataset.
+    depending on the `num_announcements` attribute of the columns' dataset.
 
     Parameters
     ----------
@@ -152,11 +152,11 @@ class EarningsEstimatesLoader(PipelineLoader):
         self.name_map = name_map
 
     @abstractmethod
-    def get_zeroth_quarter_idx(self, num_quarters, last, dates):
+    def get_zeroth_quarter_idx(self, num_announcements, last, dates):
         raise NotImplementedError('get_zeroth_quarter_idx')
 
     @abstractmethod
-    def get_shifted_qtrs(self, zero_qtrs, num_quarters):
+    def get_shifted_qtrs(self, zero_qtrs, num_announcements):
         raise NotImplementedError('get_shifted_qtrs')
 
     @abstractmethod
@@ -178,7 +178,7 @@ class EarningsEstimatesLoader(PipelineLoader):
                                    zero_qtr_data,
                                    zeroth_quarter_idx,
                                    stacked_last_per_qtr,
-                                   num_quarters,
+                                   num_announcements,
                                    dates):
         """
         Selects the requested data for each date.
@@ -212,7 +212,7 @@ class EarningsEstimatesLoader(PipelineLoader):
                     zeroth_quarter_idx.get_level_values(
                         NORMALIZED_QUARTERS,
                     ),
-                    num_quarters,
+                    num_announcements,
                 ),
             ],
             names=[
@@ -397,18 +397,19 @@ class EarningsEstimatesLoader(PipelineLoader):
 
     def load_adjusted_array(self, columns, dates, assets, mask):
         # Separate out getting the columns' datasets and the datasets'
-        # num_quarters attributes to ensure that we're catching the right
+        # num_announcements attributes to ensure that we're catching the right
         # AttributeError.
         col_to_datasets = {col: col.dataset for col in columns}
         try:
-            groups = groupby(lambda col: col_to_datasets[col].num_quarters,
+            groups = groupby(lambda col:
+                             col_to_datasets[col].num_announcements,
                              col_to_datasets)
         except AttributeError:
             raise AttributeError("Datasets loaded via the "
                                  "EarningsEstimatesLoader must define a "
-                                 "`num_quarters` attribute that defines how "
-                                 "many quarters out the loader should load "
-                                 "the data relative to `dates`.")
+                                 "`num_announcements` attribute that defines "
+                                 "how many quarters out the loader should load"
+                                 " the data relative to `dates`.")
         if any(num_qtr < 0 for num_qtr in groups):
             raise ValueError(
                 INVALID_NUM_QTRS_MESSAGE % ','.join(
@@ -430,12 +431,12 @@ class EarningsEstimatesLoader(PipelineLoader):
         zeroth_quarter_idx = self.get_zeroth_quarter_idx(stacked_last_per_qtr)
         zero_qtr_data = stacked_last_per_qtr.loc[zeroth_quarter_idx]
 
-        for num_quarters, columns in groups.items():
+        for num_announcements, columns in groups.items():
             requested_qtr_data = self.get_requested_quarter_data(
                 zero_qtr_data,
                 zeroth_quarter_idx,
                 stacked_last_per_qtr,
-                num_quarters,
+                num_announcements,
                 dates,
             )
 
@@ -523,7 +524,7 @@ class EarningsEstimatesLoader(PipelineLoader):
         )
         # Set date index name for ease of reference
         stacked_last_per_qtr.index.set_names(
-            SIMULTATION_DATES,
+            SIMULATION_DATES,
             level=0,
             inplace=True,
         )
@@ -560,8 +561,8 @@ class NextEarningsEstimatesLoader(EarningsEstimatesLoader):
             ].values[:next_qtr_start_idx],
         )
 
-    def get_shifted_qtrs(self, zero_qtrs, num_quarters):
-        return zero_qtrs + (num_quarters - 1)
+    def get_shifted_qtrs(self, zero_qtrs, num_announcements):
+        return zero_qtrs + (num_announcements - 1)
 
     def get_zeroth_quarter_idx(self, stacked_last_per_qtr):
         """
@@ -584,9 +585,9 @@ class NextEarningsEstimatesLoader(EarningsEstimatesLoader):
         """
         next_releases_per_date = stacked_last_per_qtr.loc[
             stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] >=
-            stacked_last_per_qtr.index.get_level_values(SIMULTATION_DATES)
+            stacked_last_per_qtr.index.get_level_values(SIMULATION_DATES)
         ].groupby(
-            level=[SIMULTATION_DATES, SID_FIELD_NAME],
+            level=[SIMULATION_DATES, SID_FIELD_NAME],
             as_index=False,
             # Here we take advantage of the fact that `stacked_last_per_qtr` is
             # sorted by event date.
@@ -612,8 +613,8 @@ class PreviousEarningsEstimatesLoader(EarningsEstimatesLoader):
             sid_idx,
         )
 
-    def get_shifted_qtrs(self, zero_qtrs, num_quarters):
-        return zero_qtrs - (num_quarters - 1)
+    def get_shifted_qtrs(self, zero_qtrs, num_announcements):
+        return zero_qtrs - (num_announcements - 1)
 
     def get_zeroth_quarter_idx(self, stacked_last_per_qtr):
         """
@@ -636,9 +637,9 @@ class PreviousEarningsEstimatesLoader(EarningsEstimatesLoader):
         """
         previous_releases_per_date = stacked_last_per_qtr.loc[
             stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] <=
-            stacked_last_per_qtr.index.get_level_values(SIMULTATION_DATES)
+            stacked_last_per_qtr.index.get_level_values(SIMULATION_DATES)
         ].groupby(
-            level=[SIMULTATION_DATES, SID_FIELD_NAME],
+            level=[SIMULATION_DATES, SID_FIELD_NAME],
             as_index=False,
             # Here we take advantage of the fact that `stacked_last_per_qtr` is
             # sorted by event date.

@@ -105,20 +105,22 @@ class BlazeEstimatesLoader(PipelineLoader):
         self._checkpoints = checkpoints
 
     def load_adjusted_array(self, columns, dates, assets, mask):
-        column_names = [column.name for column in columns]
+        # Only load requested columns.
+        requested_column_names = [self._columns[column.name]
+                                  for column in columns]
         raw = load_raw_data(
             assets,
             dates,
             self._data_query_time,
             self._data_query_tz,
-            self._expr[sorted(metadata_columns.union(column_names))],
+            self._expr[sorted(metadata_columns.union(requested_column_names))],
             self._odo_kwargs,
             checkpoints=self._checkpoints,
         )
 
         return self.loader(
             raw,
-            {k: self._columns[k] for k in column_names}
+            {column.name: self._columns[column.name] for column in columns}
         ).load_adjusted_array(
             columns,
             dates,

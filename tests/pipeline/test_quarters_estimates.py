@@ -3,6 +3,7 @@ import itertools
 from nose.tools import assert_true
 from nose_parameterized import parameterized
 import numpy as np
+from numpy.testing import assert_array_equal
 import pandas as pd
 from toolz import merge
 
@@ -44,9 +45,9 @@ class Estimates(DataSet):
     estimate = Column(dtype=float64_dtype)
 
 
-def QuartersEstimates(num_qtr):
+def QuartersEstimates(announcements_out):
     class QtrEstimates(Estimates):
-        num_quarters = num_qtr
+        num_announcements = announcements_out
         name = Estimates
     return QtrEstimates
 
@@ -123,11 +124,11 @@ class WithWrongLoaderDefinition(WithEstimates):
 
     Tests
     ------
-    test_wrong_num_quarters_passed()
+    test_wrong_num_announcements_passed()
         Tests that loading with an incorrect quarter number raises an error.
-    test_no_num_quarters_attr()
+    test_no_num_announcements_attr()
         Tests that the loader throws an AssertionError if the dataset being
-        loaded has no `num_quarters` attribute.
+        loaded has no `num_announcements` attribute.
     """
 
     @classmethod
@@ -141,7 +142,7 @@ class WithWrongLoaderDefinition(WithEstimates):
                                      'estimate'],
                             index=[0])
 
-    def test_wrong_num_quarters_passed(self):
+    def test_wrong_num_announcements_passed(self):
         bad_dataset1 = QuartersEstimates(-1)
         bad_dataset2 = QuartersEstimates(-2)
         good_dataset = QuartersEstimates(1)
@@ -150,7 +151,7 @@ class WithWrongLoaderDefinition(WithEstimates):
             self.trading_days,
             self.asset_finder,
         )
-        columns = {c.name + str(dataset.num_quarters): c.latest
+        columns = {c.name + str(dataset.num_announcements): c.latest
                    for dataset in (bad_dataset1,
                                    bad_dataset2,
                                    good_dataset)
@@ -165,7 +166,7 @@ class WithWrongLoaderDefinition(WithEstimates):
             )
             assert_raises_regex(e, INVALID_NUM_QTRS_MESSAGE % "-1,-2")
 
-    def test_no_num_quarters_attr(self):
+    def test_no_num_announcements_attr(self):
         dataset = QuartersEstimatesNoNumQuartersAttr(1)
         engine = SimplePipelineEngine(
             lambda x: self.loader,
@@ -657,6 +658,119 @@ class PreviousEstimateMultipleQuarters(
         return expected
 
 
+class WithVaryingNumEstimates(WithEstimates):
+    """
+    ZiplineTestCase mixin providing fixtures and a test to ensure that we
+    have the correct overwrites when the event date changes. We want to make
+    sure that if we have a quarter with an event date that gets pushed back,
+    we don't start overwriting for the next quarter early. Likewise,
+    if we have a quarter with an event date that gets pushed forward, we want
+    to make sure that we start applying adjustments at the appropriate, earlier
+    date, rather than the later date.
+
+    Methods
+    -------
+    assert_compute()
+        Defines how to determine that results computed for the `SomeFactor`
+        factor are correct.
+
+    Tests
+    -----
+    test_windows_with_varying_num_estimates()
+        Tests that we create the correct overwrites from 2015-01-13 to
+        2015-01-14 regardless of how event dates were updated for each
+        quarter for each sid.
+    """
+
+    @classmethod
+    def make_events(cls):
+        return pd.DataFrame({
+            SID_FIELD_NAME: [0] * 3 + [1] * 3,
+            TS_FIELD_NAME: [pd.Timestamp('2015-01-09'),
+                            pd.Timestamp('2015-01-12'),
+                            pd.Timestamp('2015-01-13')] * 2,
+            EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-12'),
+                                    pd.Timestamp('2015-01-13'),
+                                    pd.Timestamp('2015-01-20'),
+                                    pd.Timestamp('2015-01-13'),
+                                    pd.Timestamp('2015-01-12'),
+                                    pd.Timestamp('2015-01-20')],
+            'estimate': [11., 12., 21.] * 2,
+            FISCAL_QUARTER_FIELD_NAME: [1, 1, 2] * 2,
+            FISCAL_YEAR_FIELD_NAME: [2015] * 6
+        })
+
+    @classmethod
+    def assert_compute(cls, estimate, today):
+        raise NotImplementedError('assert_compute')
+
+    def test_windows_with_varying_num_estimates(self):
+        dataset = QuartersEstimates(1)
+        assert_compute = self.assert_compute
+
+        class SomeFactor(CustomFactor):
+            inputs = [dataset.estimate]
+            window_length = 3
+
+            def compute(self, today, assets, out, estimate):
+                assert_compute(estimate, today)
+
+        engine = SimplePipelineEngine(
+            lambda x: self.loader,
+            self.trading_days,
+            self.asset_finder,
+        )
+        engine.run_pipeline(
+            Pipeline({'est': SomeFactor()}),
+            start_date=pd.Timestamp('2015-01-13', tz='utc'),
+            # last event date we have
+            end_date=pd.Timestamp('2015-01-14', tz='utc'),
+        )
+
+
+class PreviousVaryingNumEstimates(
+    WithVaryingNumEstimates,
+    ZiplineTestCase
+):
+    def assert_compute(self, estimate, today):
+        if today == pd.Timestamp('2015-01-13', tz='utc'):
+            assert_array_equal(estimate[:, 0],
+                               np.array([np.NaN, np.NaN, 12]))
+            assert_array_equal(estimate[:, 1],
+                               np.array([np.NaN, 12, 12]))
+        else:
+            assert_array_equal(estimate[:, 0],
+                               np.array([np.NaN, 12, 12]))
+            assert_array_equal(estimate[:, 1],
+                               np.array([12, 12, 12]))
+
+    @classmethod
+    def make_loader(cls, events, columns):
+        return PreviousEarningsEstimatesLoader(events, columns)
+
+
+class NextVaryingNumEstimates(
+    WithVaryingNumEstimates,
+    ZiplineTestCase
+):
+
+    def assert_compute(self, estimate, today):
+        if today == pd.Timestamp('2015-01-13', tz='utc'):
+            assert_array_equal(estimate[:, 0],
+                               np.array([11, 12, 12]))
+            assert_array_equal(estimate[:, 1],
+                               np.array([np.NaN, np.NaN, 21]))
+        else:
+            assert_array_equal(estimate[:, 0],
+                               np.array([np.NaN, 21, 21]))
+            assert_array_equal(estimate[:, 1],
+                               np.array([np.NaN, 21, 21]))
+
+    @classmethod
+    def make_loader(cls, events, columns):
+        return NextEarningsEstimatesLoader(events, columns)
+
+
 class WithEstimateWindows(WithEstimates):
     """
     ZiplineTestCase mixin providing fixures and a test to test running a
@@ -761,8 +875,8 @@ class WithEstimateWindows(WithEstimates):
     @parameterized.expand(window_test_cases)
     def test_estimate_windows_at_quarter_boundaries(self,
                                                     start_idx,
-                                                    num_quarters_out):
-        dataset = QuartersEstimates(num_quarters_out)
+                                                    num_announcements_out):
+        dataset = QuartersEstimates(num_announcements_out)
         trading_days = self.trading_days
         timelines = self.timelines
         # The window length should be from the starting index back to the first
@@ -781,7 +895,7 @@ class WithEstimateWindows(WithEstimates):
             def compute(self, today, assets, out, estimate):
                 today_idx = trading_days.get_loc(today)
                 today_timeline = timelines[
-                    num_quarters_out
+                    num_announcements_out
                 ].loc[today].reindex(
                     trading_days[:today_idx + 1]
                 ).values
