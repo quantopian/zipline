@@ -992,7 +992,7 @@ class SQLiteAdjustmentWriter(object):
                     ratios[i] = ratio
                     # only assign effective_date when data is found
                     effective_dates[i] = ex_date
-            except NoDataOnDate:
+            except (NoDataOnDate, NoDataBeforeDate, NoDataAfterDate):
                 logger.warn("Couldn't compute ratio for dividend %s" % {
                     'sid': sid,
                     'ex_date': ex_date,
