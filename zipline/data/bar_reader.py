@@ -22,11 +22,11 @@ class NoDataOnDate(Exception):
     pass
 
 
-class NoDataBeforeDate(Exception):
+class NoDataBeforeDate(NoDataOnDate):
     pass
 
 
-class NoDataAfterDate(Exception):
+class NoDataAfterDate(NoDataOnDate):
     pass
 
 
