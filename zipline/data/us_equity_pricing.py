@@ -978,12 +978,20 @@ class SQLiteAdjustmentWriter(object):
         equity_daily_bar_reader = self._equity_daily_bar_reader
 
         effective_dates = full(len(amounts), -1, dtype=int64)
+
         calendar = self._calendar
+        day_locs = calendar.get_indexer(
+            DatetimeIndex(ex_dates, tz='UTC'),
+            method='bfill',
+        )
+
         for i, amount in enumerate(amounts):
             sid = sids[i]
             ex_date = ex_dates[i]
-            day_loc = calendar.get_loc(ex_date, method='bfill')
+            day_loc = day_locs[i]
+
             prev_close_date = calendar[day_loc - 1]
+
             try:
                 prev_close = equity_daily_bar_reader.get_value(
                     sid, prev_close_date, 'close')
