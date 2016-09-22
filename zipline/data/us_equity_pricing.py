@@ -959,7 +959,7 @@ class SQLiteAdjustmentWriter(object):
             - effective_date, the date in seconds on which to apply the ratio.
             - ratio, the ratio to apply to backwards looking pricing data.
         """
-        if dividends is None:
+        if dividends is None or dividends.empty:
             return DataFrame(np.array(
                 [],
                 dtype=[
@@ -978,12 +978,26 @@ class SQLiteAdjustmentWriter(object):
         equity_daily_bar_reader = self._equity_daily_bar_reader
 
         effective_dates = full(len(amounts), -1, dtype=int64)
+
         calendar = self._calendar
+
+        # Calculate locs against a tz-naive cal, as the ex_dates are tz-
+        # naive.
+        #
+        # TODO: A better approach here would be to localize ex_date to
+        # the tz of the calendar, but currently get_indexer does not
+        # preserve tz of the target when method='bfill', which throws
+        # off the comparison.
+        tz_naive_calendar = calendar.tz_localize(None)
+        day_locs = tz_naive_calendar.get_indexer(ex_dates, method='bfill')
+
         for i, amount in enumerate(amounts):
             sid = sids[i]
             ex_date = ex_dates[i]
-            day_loc = calendar.get_loc(ex_date, method='bfill')
+            day_loc = day_locs[i]
+
             prev_close_date = calendar[day_loc - 1]
+
             try:
                 prev_close = equity_daily_bar_reader.get_value(
                     sid, prev_close_date, 'close')
