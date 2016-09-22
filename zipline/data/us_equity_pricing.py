@@ -986,7 +986,8 @@ class SQLiteAdjustmentWriter(object):
         #
         # TODO: A better approach here would be to localize ex_date to
         # the tz of the calendar, but currently get_indexer does not
-        # preserve tz of the target, which throws of the comparison.
+        # preserve tz of the target when method='bfill', which throws
+        # off the comparison.
         tz_naive_calendar = calendar.tz_localize(None)
         day_locs = tz_naive_calendar.get_indexer(ex_dates, method='bfill')
 
