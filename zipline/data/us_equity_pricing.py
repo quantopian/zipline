@@ -959,7 +959,7 @@ class SQLiteAdjustmentWriter(object):
             - effective_date, the date in seconds on which to apply the ratio.
             - ratio, the ratio to apply to backwards looking pricing data.
         """
-        if dividends is None:
+        if dividends is None or dividends.empty:
             return DataFrame(np.array(
                 [],
                 dtype=[
