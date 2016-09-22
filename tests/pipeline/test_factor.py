@@ -1047,3 +1047,14 @@ class ShortReprTestCase(TestCase):
     def test_zscore(self):
         r = F().zscore().short_repr()
         self.assertEqual(r, "GroupedRowTransform('zscore')")
+
+
+class TestWindowSafety(TestCase):
+
+    def test_zscore_is_window_safe(self):
+        self.assertTrue(F().zscore().window_safe)
+
+    def test_demean_is_window_safe_if_input_is_window_safe(self):
+        self.assertFalse(F().demean().window_safe)
+        self.assertFalse(F(window_safe=False).demean().window_safe)
+        self.assertTrue(F(window_safe=True).demean().window_safe)
