@@ -3,6 +3,7 @@ from .factor import (
     Factor,
     Latest,
     RecarrayField,
+    Shift,
 )
 from .events import (
     BusinessDaysSincePreviousEvent,
@@ -59,6 +60,7 @@ __all__ = [
     'RollingSpearmanOfReturns',
     'RSI',
     'SimpleMovingAverage',
+    'Shift',
     'TrueRange',
     'VWAP',
     'WeightedAverageValue',

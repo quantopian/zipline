@@ -37,6 +37,7 @@ from zipline.pipeline.mixins import (
     LatestMixin,
     PositiveWindowLengthMixin,
     RestrictedDTypeMixin,
+    ShiftMixin,
     SingleInputMixin,
 )
 from zipline.pipeline.sentinels import NotSpecified, NotSpecifiedType
@@ -1510,10 +1511,16 @@ class Latest(LatestMixin, CustomFactor):
     The `.latest` attribute of DataSet columns returns an instance of this
     Factor.
     """
-    window_length = 1
 
-    def compute(self, today, assets, out, data):
-        out[:] = data[-1]
+
+class Shift(ShiftMixin, CustomFactor):
+    """
+    Factor producing the value known at the beginning of the window for
+    `inputs[0]` on each day.
+
+    The `.shift()` method of DataSet columns returns and instance of this
+    Factor.
+    """
 
 
 # Functions to be passed to GroupedRowTransform.  These aren't defined inline

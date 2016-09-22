@@ -240,6 +240,26 @@ class LatestMixin(SingleInputMixin):
             )
 
 
+class ShiftMixin(SingleInputMixin):
+    """
+    Mixin for behavior shared by Custom{Factor,Filter,Classifier}.
+    """
+    def compute(self, today, assets, out, data):
+        out[:] = data[0]
+
+    def _validate(self):
+        super(ShiftMixin, self)._validate()
+        if self.inputs[0].dtype != self.dtype:
+            raise TypeError(
+                "{name} expected an input of dtype {expected}, "
+                "but got {actual} instead.".format(
+                    name=type(self).__name__,
+                    expected=self.dtype,
+                    actual=self.inputs[0].dtype,
+                )
+            )
+
+
 class DownsampledMixin(StandardOutputs):
     """
     Mixin for behavior shared by Downsampled{Factor,Filter,Classifier}
