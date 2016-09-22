@@ -980,10 +980,11 @@ class SQLiteAdjustmentWriter(object):
         effective_dates = full(len(amounts), -1, dtype=int64)
 
         calendar = self._calendar
-        day_locs = calendar.get_indexer(
-            DatetimeIndex(ex_dates, tz='UTC'),
-            method='bfill',
-        )
+
+        # Calculate locs against a tz-naive cal, as the ex_dates are tz-
+        # naive.
+        tz_naive_calendar = calendar.tz_localize(None)
+        day_locs = tz_naive_calendar.get_indexer(ex_dates, method='bfill')
 
         for i, amount in enumerate(amounts):
             sid = sids[i]
