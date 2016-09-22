@@ -634,8 +634,6 @@ class BcolzDailyBarReader(SessionBarReader):
         while True:
             try:
                 ix = self.sid_day_index(asset, search_day)
-            except NoDataOnDate:
-                return None
             except NoDataBeforeDate:
                 return None
             except NoDataAfterDate:
@@ -643,6 +641,8 @@ class BcolzDailyBarReader(SessionBarReader):
                 if prev_day_ix > -1:
                     search_day = self.sessions[prev_day_ix]
                 continue
+            except NoDataOnDate:
+                return None
             if volumes[ix] != 0:
                 return search_day
             prev_day_ix = self.sessions.get_loc(search_day) - 1
@@ -965,7 +965,7 @@ class SQLiteAdjustmentWriter(object):
                 dtype=[
                     ('sid', uint32),
                     ('effective_date', uint32),
-                    ('ratio',  float64),
+                    ('ratio', float64),
                 ],
             ))
         ex_dates = dividends.ex_date.values
