@@ -983,6 +983,10 @@ class SQLiteAdjustmentWriter(object):
 
         # Calculate locs against a tz-naive cal, as the ex_dates are tz-
         # naive.
+        #
+        # TODO: A better approach here would be to localize ex_date to
+        # the tz of the calendar, but currently get_indexer does not
+        # preserve tz of the target, which throws of the comparison.
         tz_naive_calendar = calendar.tz_localize(None)
         day_locs = tz_naive_calendar.get_indexer(ex_dates, method='bfill')
 
