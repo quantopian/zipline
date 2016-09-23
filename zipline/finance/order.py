@@ -34,7 +34,8 @@ BUY = 1 << 1
 STOP = 1 << 2
 LIMIT = 1 << 3
 
-ORDER_FIELDS_TO_IGNORE = {'type', 'direction', '_status'}
+ORDER_FIELDS_TO_IGNORE = {'type', 'direction', '_status', 'stop_ghost',
+                          'stop_stage'}
 
 
 class Order(object):
@@ -42,7 +43,7 @@ class Order(object):
     # Order objects and we keep them all in memory, so it's worthwhile trying
     # to cut down on the memory footprint of this object.
     __slots__ = ["id", "dt", "reason", "created", "sid", "amount", "filled",
-                 "commission", "_status", "stop", "stop_ghost", "limit",
+                 "commission", "_status", "stop", "stop_ghost", "stop_stage", "limit",
                  "stop_reached", "limit_reached", "direction", "type",
                  "broker_order_id"]
 
@@ -109,7 +110,7 @@ class Order(object):
         self.stop_reached = stop_reached
         self.limit_reached = limit_reached
         if sl_stop_reached:
-            # limit can execute at stop_ghost in the same bar
+            # limit can execute at stop_ghost in the same bar_stage
             self.stop_ghost = self.stop
             # Change the STOP LIMIT order into a LIMIT order
             self.stop = None

@@ -27,7 +27,7 @@ from pandas.tslib import normalize_date
 from numpy import arange
 
 from zipline.finance.slippage import VolumeShareSlippage,\
-    ConservativeCloseSlippage
+    HLCVolumeSlippage, OHLVolumeSlippage
 
 from zipline.protocol import DATASOURCE_TYPE
 from zipline.finance.blotter import Order
@@ -821,7 +821,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                            self.sim_params.data_frequency)
 
         self.print_quotes(bar_data, open_orders[0])
-        orders_txns = list(slippage_model.simulate(
+        # enhance coverage with slippage_model() vs slippage_model.simulate()
+        orders_txns = list(slippage_model(
             bar_data,
             self.ASSET133,
             open_orders
@@ -830,26 +831,38 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
         self.assert_(txn['amount'] > 0 and
                      abs(txn['price'] - 3.5) < 0.01)
 
-    def testConservativeMulti(self):
-        slippage = ConservativeCloseSlippage()
-        templates = '+lLOCH.', '+LlOCHx', '-LOCHl.', '-LOClHx', '+LOCslHx', \
-            '-LOClsHx', '+LOClsH.', '-LOCslH.'
+    def testHLCVolumeSlippage(self):
+        slippage = HLCVolumeSlippage()
+        templates = (
+            '+LOCHxC', '+lLOCH.', '+LlOCHxl', '-LOCHl.', '-LOClHxl',
+            '+LOCslHxs',
+            # stop triggered by High, limit triggered at Close, executed at lmt
+            '+LOClsHxl',
+            '-LOCslH.',  # stop triggered, but limit not
+            '-LOClsHxs',
+            '+LOCsHxs', '-LsOCHxs', '-LOCHsxC', '+sLOCHxC'
+            )
         for t in templates:
             self.verifyTemplate(t, slippage)
 
-        t = '+LOCsHx'
-        txn = self.verifyTemplate(t, slippage)
-        prices = template_to_num(t)
-        print('impacted price %g' % txn.price)
-        assert prices['s'] < txn.price < prices['H'], \
-            'expect applied slippage at stop price'
-
-        t = '-LsOCHx'
-        txn = self.verifyTemplate(t, slippage)
-        prices = template_to_num(t)
-        print('impacted price %g' % txn.price)
-        assert prices['L'] < txn.price < prices['s'], \
-            'expect applied slippage at stop price'
+    def testOHLVolumeSlippage(self):
+        slippage = OHLVolumeSlippage()
+        templates = (
+            '+LOCHxO', '+lLOCH.', '+LlOCHxl', '+LOlCHxO', '+LOClHxO',
+            '+LOCHlxO',
+            '-LOCHl.', '-LOClHxl', '-LOlCHxl', '-LlOCHxO', '-lLOCHxO',
+            '+LOCslHxs',
+            # stop triggered on High, limit triggered at C, executed at limit
+            '+LOClsHxl',
+            '-LOCslHxl', '-LOClsHxl',
+            '+LOCsHxs', '-LsOCHxs', '-LOCHsxO', '-LOsCHxO',
+            '+sLOCHxO',
+            # stop triggered on open, limit triggered by low, execute at limit
+            '+LlsOCHxl',
+            '+LOlsCH.'
+            )
+        for t in templates:
+            self.verifyTemplate(t, slippage)
 
     def verifyTemplate(self, template, slippage):
         params = template_to_num(template)
@@ -867,6 +880,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
             order = Order(datetime.datetime.now(), self.ASSET133, amount,
                           limit=limit,
                           stop=stop)
+            if template == '+LOlsCH.':
+                pass  # debug break
             txns = list(slippage.simulate(data, self.ASSET133, [order]))
             if len(txns):
                 txn = txns[0][1]
@@ -886,24 +901,37 @@ def template_to_num(tmpl):
         '+' is discarded for numbers generation but later means a positive
                 amount (buy order)
         '-' is sell order
-        'x' - expected result is 'having a transaction'
-        '.' - extected result is 'no action, pass...'
+        'xC' - expected result is 'having a transaction' at Close price
+        '.' - expected result is 'no action, pass...'
     """
     step = 0.5
+    tmpl = tmpl.translate(None, '+.')
+    xi = tmpl.find('x')
+    if xi != -1:
+        tmpl = tmpl[:xi]
+
     return dict(zip(tmpl, arange(3, 3 + len(tmpl)*step, step)))
 
 
 def check_template(template, txn):
-    assert "+-".index(template[0]) >= 0, 'templace must match with + or -'
-    if template[-1] == 'x':
+    assert '+-'.index(template[0]) >= 0, 'templace must match with + or -'
+    if template[-2] == 'x':
         assert txn is not None, 'expected to have transation ' + template
         assert (txn.amount > 0) == (template[0] == '+'), \
             'unexpected transaction direction'
+        prices = template_to_num(template)
+        expected_price = prices[template[-1]]
+        assert abs(txn.price - expected_price) < 0.01, \
+            'expected price %g, got %g %s' % \
+            (expected_price, txn.price, template)
     else:
-        assert template[-1] == '.', 'only x or . accepted at end of template'
-        assert txn is None, 'no transaction expected'
+        assert template[-1] == '.', \
+            'only x[OHLC] or . accepted at end of template ' + template
+        assert txn is None, \
+            'no transaction expected %s %s' % (template, txn.price)
 
 if __name__ == '__main__':
     import nose
-    test = 'tests.finance.test_slippage:SlippageTestCase.testConservativeMulti'
+    test = 'tests.finance.test_slippage:SlippageTestCase'
+    # test += '.testHLCVolumeSlippage'  # .testOHLVolumeSlippage
     nose.run(argv=['nosetests', '-s', test])
