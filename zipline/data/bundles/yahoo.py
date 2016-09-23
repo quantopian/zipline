@@ -5,6 +5,7 @@ import pandas as pd
 from pandas_datareader.data import DataReader
 import requests
 
+from zipline.utils.calendars import register_calendar_alias
 from zipline.utils.cli import maybe_show_progress
 from .core import register
 
@@ -198,3 +199,5 @@ register(
         pd.Timestamp('2015-01-01', tz='utc'),
     ),
 )
+
+register_calendar_alias("YAHOO", "NYSE")

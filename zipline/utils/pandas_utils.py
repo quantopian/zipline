@@ -1,13 +1,19 @@
 """
 Utilities for working with pandas objects.
 """
+from contextlib import contextmanager
 from itertools import product
 import operator as op
+import warnings
 
 import pandas as pd
 from distutils.version import StrictVersion
 
 pandas_version = StrictVersion(pd.__version__)
+
+
+def july_5th_holiday_observance(datetime_index):
+    return datetime_index[datetime_index.year != 2013]
 
 
 def explode(df):
@@ -17,19 +23,6 @@ def explode(df):
     (df.index, df.columns, df.values)
     """
     return df.index, df.columns, df.values
-
-
-try:
-    # This branch is hit in pandas 17
-    sort_values = pd.DataFrame.sort_values
-except AttributeError:
-    # This branch is hit in pandas 16
-    sort_values = pd.DataFrame.sort
-
-if pandas_version >= StrictVersion('0.17.1'):
-    july_5th_holiday_observance = lambda dtix: dtix[dtix.year != 2013]
-else:
-    july_5th_holiday_observance = lambda dt: None if dt.year == 2013 else dt
 
 
 def _time_to_micros(time):
@@ -146,3 +139,30 @@ def nearest_unequal_elements(dts, dt):
     upper_value = dts[upper_ix] if upper_ix < len(dts) else None
 
     return lower_value, upper_value
+
+
+def timedelta_to_integral_seconds(delta):
+    """
+    Convert a pd.Timedelta to a number of seconds as an int.
+    """
+    return int(delta.total_seconds())
+
+
+def timedelta_to_integral_minutes(delta):
+    """
+    Convert a pd.Timedelta to a number of minutes as an int.
+    """
+    return timedelta_to_integral_seconds(delta) // 60
+
+
+@contextmanager
+def ignore_pandas_nan_categorical_warning():
+    with warnings.catch_warnings():
+        # Pandas >= 0.18 doesn't like null-ish values in catgories, but
+        # avoiding that requires a broader change to how missing values are
+        # handled in pipeline, so for now just silence the warning.
+        warnings.filterwarnings(
+            'ignore',
+            category=FutureWarning,
+        )
+        yield

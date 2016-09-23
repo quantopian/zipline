@@ -46,7 +46,6 @@ def handle_data(algo, data):
     m = algo.m
 
     x_tilde = np.zeros(m)
-    b = np.zeros(m)
 
     # find relative moving average price for each asset
     mavgs = data.history(algo.sids, 'price', algo.window_length, '1d').mean()

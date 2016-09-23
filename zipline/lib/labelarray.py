@@ -24,6 +24,7 @@ from zipline.utils.numpy_utils import (
     int_dtype_with_size_in_bytes,
     is_object,
 )
+from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning
 
 from ._factorize import (
     factorize_strings,
@@ -231,8 +232,9 @@ class LabelArray(ndarray):
            In this case, obj will be None.  We treat this as an error case and
            fail.
 
-        2. Someone (most likely our own __new__) calls
-           other_array.view(type=LabelArray).
+        2. Someone (most likely our own __new__) does::
+
+           >>> other_array.view(type=LabelArray)  # doctest: +SKIP
 
            In this case, `self` will be the new LabelArray instance, and
            ``obj` will be the array on which ``view`` is being called.
@@ -283,14 +285,16 @@ class LabelArray(ndarray):
         """
         if len(self.shape) > 1:
             raise ValueError("Can't convert a 2D array to a categorical.")
-        return pd.Categorical.from_codes(
-            self.as_int_array(),
-            # We need to make a copy because pandas >= 0.17 fails if this
-            # buffer isn't writeable.
-            self.categories.copy(),
-            ordered=False,
-            name=name,
-        )
+
+        with ignore_pandas_nan_categorical_warning():
+            return pd.Categorical.from_codes(
+                self.as_int_array(),
+                # We need to make a copy because pandas >= 0.17 fails if this
+                # buffer isn't writeable.
+                self.categories.copy(),
+                ordered=False,
+                name=name,
+            )
 
     def as_categorical_frame(self, index, columns, name=None):
         """
@@ -475,9 +479,6 @@ class LabelArray(ndarray):
     )
 
     def __repr__(self):
-        # This happens if you call a ufunc on a LabelArray that changes the
-        # dtype.  This is generally an indicator that the array has been used
-        # incorrectly, and it means we're no longer valid for anything.
         repr_lines = repr(self.as_string_array()).splitlines()
         repr_lines[0] = repr_lines[0].replace('array(', 'LabelArray(', 1)
         repr_lines[-1] = repr_lines[-1].rsplit(',', 1)[0] + ')'

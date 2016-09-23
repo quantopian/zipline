@@ -1,11 +1,11 @@
 package:
-  name: cachetools
-  version: "1.1.6"
+  name: lru-dict
+  version: "1.1.4"
 
 source:
-  fn: cachetools-1.1.6.tar.gz
-  url: https://pypi.python.org/packages/source/c/cachetools/cachetools-1.1.6.tar.gz
-  md5: 387d7f34effd9335ae55bd0762e77bfa
+  fn: lru-dict-1.1.4.tar.gz
+  url: https://files.pythonhosted.org/packages/c3/b7/4e5bcbdfdc2227001f897051d6f4c83f9d236fe89a9df74da07cc3d9bac8/lru-dict-1.1.4.tar.gz
+  md5: 95ed142416b32c4b03dd8e7dae924f38
 #  patches:
    # List any patch files here
    # - fix.patch
@@ -17,9 +17,9 @@ source:
     # Put any entry points (scripts to be generated automatically) here. The
     # syntax is module:function.  For example
     #
-    # - cachetools = cachetools:main
+    # - lru-dict = lru-dict:main
     #
-    # Would create an entry point called cachetools that calls cachetools.main()
+    # Would create an entry point called lru-dict that calls lru-dict.main()
 
 
   # If this is a new build for the same version, increment the build
@@ -37,7 +37,7 @@ requirements:
 test:
   # Python imports
   imports:
-    - cachetools
+    - lru
 
   # commands:
     # You can put test commands to be run here.  Use this to test that the
@@ -52,9 +52,9 @@ test:
     # - nose
 
 about:
-  home: https://github.com/tkem/cachetools
+  home: https://github.com/amitdev/lru-dict
   license: MIT License
-  summary: 'Extensible memoizing collections and decorators'
+  summary: 'A fast and memory efficient LRU cache.'
 
 # See
 # http://docs.continuum.io/conda/build.html for

@@ -1,6 +1,7 @@
 from zipline.errors import (
-    InvalidCalendarName,
     CalendarNameCollision,
+    CyclicCalendarAlias,
+    InvalidCalendarName,
 )
 from zipline.utils.calendars.exchange_calendar_cfe import CFEExchangeCalendar
 from zipline.utils.calendars.exchange_calendar_ice import ICEExchangeCalendar
@@ -13,38 +14,24 @@ from zipline.utils.calendars.us_futures_calendar import (
     QuantopianUSFuturesCalendar,
 )
 
-
-NYSE_CALENDAR_EXCHANGE_NAMES = frozenset([
-    "NYSE",
-    "NASDAQ",
-    "BATS",
-])
-CME_CALENDAR_EXCHANGE_NAMES = frozenset([
-    "CBOT",
-    "CME",
-    "COMEX",
-    "NYMEX",
-])
-ICE_CALENDAR_EXCHANGE_NAMES = frozenset([
-    "ICEUS",
-    "NYFE",
-])
-CFE_CALENDAR_EXCHANGE_NAMES = frozenset(["CFE"])
-BMF_CALENDAR_EXCHANGE_NAMES = frozenset(["BMF"])
-LSE_CALENDAR_EXCHANGE_NAMES = frozenset(["LSE"])
-TSX_CALENDAR_EXCHANGE_NAMES = frozenset(["TSX"])
-
-US_FUTURES_CALENDAR_NAMES = frozenset(["us_futures"])
-
 _default_calendar_factories = {
-    NYSE_CALENDAR_EXCHANGE_NAMES: NYSEExchangeCalendar,
-    CME_CALENDAR_EXCHANGE_NAMES: CMEExchangeCalendar,
-    ICE_CALENDAR_EXCHANGE_NAMES: ICEExchangeCalendar,
-    CFE_CALENDAR_EXCHANGE_NAMES: CFEExchangeCalendar,
-    BMF_CALENDAR_EXCHANGE_NAMES: BMFExchangeCalendar,
-    LSE_CALENDAR_EXCHANGE_NAMES: LSEExchangeCalendar,
-    TSX_CALENDAR_EXCHANGE_NAMES: TSXExchangeCalendar,
-    US_FUTURES_CALENDAR_NAMES: QuantopianUSFuturesCalendar,
+    'NYSE': NYSEExchangeCalendar,
+    'CME': CMEExchangeCalendar,
+    'ICE': ICEExchangeCalendar,
+    'CFE': CFEExchangeCalendar,
+    'BMF': BMFExchangeCalendar,
+    'LSE': LSEExchangeCalendar,
+    'TSX': TSXExchangeCalendar,
+    'us_futures': QuantopianUSFuturesCalendar,
+}
+_default_calendar_aliases = {
+    'NASDAQ': 'NYSE',
+    'BATS': 'NYSE',
+    'CBOT': 'CME',
+    'COMEX': 'CME',
+    'NYMEX': 'CME',
+    'ICEUS': 'ICE',
+    'NYFE': 'ICE',
 }
 
 
@@ -54,10 +41,20 @@ class TradingCalendarDispatcher(object):
 
     Methods of a global instance of this class are provided by
     zipline.utils.calendar_utils.
+
+    Parameters
+    ----------
+    calendars : dict[str -> TradingCalendar]
+        Initial set of calendars.
+    calendar_factories : dict[str -> function]
+        Factories for lazy calendar creation.
+    aliases : dict[str -> str]
+        Calendar name aliases.
     """
-    def __init__(self, calendar_factories):
-        self._calendars = {}
+    def __init__(self, calendars, calendar_factories, aliases):
+        self._calendars = calendars
         self._calendar_factories = calendar_factories
+        self._aliases = aliases
 
     def get_calendar(self, name):
         """
@@ -73,20 +70,33 @@ class TradingCalendarDispatcher(object):
         TradingCalendar
             The desired calendar.
         """
+        canonical_name = self.resolve_alias(name)
+
         try:
-            return self._calendars[name]
+            return self._calendars[canonical_name]
         except KeyError:
+            # We haven't loaded this calendar yet, so make a new one.
             pass
 
-        for names, factory in self._calendar_factories.items():
-            if name in names:
-                # Use the same calendar for all exchanges that share the same
-                # factory.
-                calendar = factory()
-                self._calendars.update({n: calendar for n in names})
-                return calendar
+        try:
+            factory = self._calendar_factories[canonical_name]
+        except KeyError:
+            # We don't have a factory registered for this name.  Barf.
+            raise InvalidCalendarName(calendar_name=name)
 
-        raise InvalidCalendarName(calendar_name=name)
+        # Cache the calendar for future use.
+        calendar = self._calendars[canonical_name] = factory()
+        return calendar
+
+    def has_calendar(self, name):
+        """
+        Do we have (or have the ability to make) a calendar with ``name``?
+        """
+        return (
+            name in self._calendars
+            or name in self._calendar_factories
+            or name in self._aliases
+        )
 
     def register_calendar(self, name, calendar, force=False):
         """
@@ -100,7 +110,8 @@ class TradingCalendarDispatcher(object):
             The calendar to be registered for retrieval.
         force : bool, optional
             If True, old calendars will be overwritten on a name collision.
-            If False, name collisions will raise an exception. Default: False.
+            If False, name collisions will raise an exception.
+            Default is False.
 
         Raises
         ------
@@ -110,7 +121,7 @@ class TradingCalendarDispatcher(object):
         if force:
             self.deregister_calendar(name)
 
-        if name in self._calendars or name in self._calendar_factories:
+        if self.has_calendar(name):
             raise CalendarNameCollision(calendar_name=name)
 
         self._calendars[name] = calendar
@@ -118,6 +129,9 @@ class TradingCalendarDispatcher(object):
     def register_calendar_type(self, name, calendar_type, force=False):
         """
         Registers a calendar by type.
+
+        This is useful for registering a new calendar to be lazily instantiated
+        at some future point in time.
 
         Parameters
         ----------
@@ -127,7 +141,8 @@ class TradingCalendarDispatcher(object):
             The type of the calendar to register.
         force : bool, optional
             If True, old calendars will be overwritten on a name collision.
-            If False, name collisions will raise an exception. Default: False.
+            If False, name collisions will raise an exception.
+            Default is False.
 
         Raises
         ------
@@ -135,12 +150,82 @@ class TradingCalendarDispatcher(object):
             If a calendar is already registered with the given calendar's name.
         """
         if force:
-            self._calendar_factories.pop(name, None)
+            self.deregister_calendar(name)
 
-        if name in self._calendars or name in self._calendar_factories:
+        if self.has_calendar(name):
             raise CalendarNameCollision(calendar_name=name)
 
         self._calendar_factories[name] = calendar_type
+
+    def register_calendar_alias(self, alias, real_name, force=False):
+        """
+        Register an alias for a calendar.
+
+        This is useful when multiple exchanges should share a calendar, or when
+        there are multiple ways to refer to the same exchange.
+
+        After calling ``register_alias('alias', 'real_name')``, subsequent
+        calls to ``get_calendar('alias')`` will return the same result as
+        ``get_calendar('real_name')``.
+
+        Parameters
+        ----------
+        alias : str
+            The name to be used to refer to a calendar.
+        real_name : str
+            The canonical name of the registered calendar.
+        force : bool, optional
+            If True, old calendars will be overwritten on a name collision.
+            If False, name collisions will raise an exception.
+            Default is False.
+        """
+        if force:
+            self.deregister_calendar(alias)
+
+        if self.has_calendar(alias):
+            raise CalendarNameCollision(calendar_name=alias)
+
+        self._aliases[alias] = real_name
+
+        # Ensure that the new alias doesn't create a cycle, and back it out if
+        # we did.
+        try:
+            self.resolve_alias(alias)
+        except CyclicCalendarAlias:
+            del self._aliases[alias]
+            raise
+
+    def resolve_alias(self, name):
+        """
+        Resolve a calendar alias for retrieval.
+
+        Parameters
+        ----------
+        name : str
+            The name of the requested calendar.
+
+        Returns
+        -------
+        canonical_name : str
+            The real name of the calendar to create/return.
+        """
+        # Use an OrderedDict as an ordered set so that we can return the order
+        # of aliases in the event of a cycle.
+        seen = []
+
+        while name in self._aliases:
+            seen.append(name)
+            name = self._aliases[name]
+
+            # This is O(N ** 2), but if there's an alias chain longer than 2,
+            # something strange has happened.
+            if name in seen:
+                seen.append(name)
+                raise CyclicCalendarAlias(
+                    cycle=" -> ".join(repr(k) for k in seen)
+                )
+
+        return name
 
     def deregister_calendar(self, name):
         """
@@ -153,6 +238,7 @@ class TradingCalendarDispatcher(object):
         """
         self._calendars.pop(name, None)
         self._calendar_factories.pop(name, None)
+        self._aliases.pop(name, None)
 
     def clear_calendars(self):
         """
@@ -160,13 +246,16 @@ class TradingCalendarDispatcher(object):
         """
         self._calendars.clear()
         self._calendar_factories.clear()
+        self._aliases.clear()
 
 
 # We maintain a global calendar dispatcher so that users can just do
 # `register_calendar('my_calendar', calendar) and then use `get_calendar`
 # without having to thread around a dispatcher.
 global_calendar_dispatcher = TradingCalendarDispatcher(
-    _default_calendar_factories
+    calendars={},
+    calendar_factories=_default_calendar_factories,
+    aliases=_default_calendar_aliases,
 )
 
 get_calendar = global_calendar_dispatcher.get_calendar
@@ -174,3 +263,4 @@ clear_calendars = global_calendar_dispatcher.clear_calendars
 deregister_calendar = global_calendar_dispatcher.deregister_calendar
 register_calendar = global_calendar_dispatcher.register_calendar
 register_calendar_type = global_calendar_dispatcher.register_calendar_type
+register_calendar_alias = global_calendar_dispatcher.register_calendar_alias

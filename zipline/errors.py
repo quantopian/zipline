@@ -680,6 +680,13 @@ class CalendarNameCollision(ZiplineError):
     )
 
 
+class CyclicCalendarAlias(ZiplineError):
+    """
+    Raised when calendar aliases form a cycle.
+    """
+    msg = "Cycle in calendar aliases: [{cycle}]"
+
+
 class ScheduleFunctionWithoutCalendar(ZiplineError):
     """
     Raised when schedule_function is called but there is not a calendar to be

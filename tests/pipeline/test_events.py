@@ -153,7 +153,7 @@ class EventIndexerTestCase(ZiplineTestCase):
     @classmethod
     def init_class_fixtures(cls):
         super(EventIndexerTestCase, cls).init_class_fixtures()
-        cls.events = make_events(add_nulls=False).sort('event_date')
+        cls.events = make_events(add_nulls=False).sort_values('event_date')
         cls.events.reset_index(inplace=True)
 
     def test_previous_event_indexer(self):
@@ -354,7 +354,7 @@ class EventsLoaderTestCase(WithAssetFinder,
         # from pandas won't be tz_localized.
         dates = self.trading_days.tz_localize(None)
 
-        for asset, asset_result in results.iterkv():
+        for asset, asset_result in results.iteritems():
             relevant_events = events[events.sid == asset.sid]
             self.assertEqual(len(relevant_events), 2)
 
@@ -397,7 +397,7 @@ class EventsLoaderTestCase(WithAssetFinder,
         # Remove timezone info from trading days, since the outputs
         # from pandas won't be tz_localized.
         dates = self.trading_days.tz_localize(None)
-        for asset, asset_result in results.iterkv():
+        for asset, asset_result in results.iteritems():
             relevant_events = events[events.sid == asset.sid]
             self.assertEqual(len(relevant_events), 2)
 

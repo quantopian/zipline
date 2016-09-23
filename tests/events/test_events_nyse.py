@@ -18,10 +18,12 @@ import pandas as pd
 from nose_parameterized import parameterized
 
 from zipline.testing import parameter_space
-from zipline.utils.events import NDaysBeforeLastTradingDayOfWeek, AfterOpen
+from zipline.utils.events import NDaysBeforeLastTradingDayOfWeek, AfterOpen, \
+    BeforeClose
 from zipline.utils.events import NthTradingDayOfWeek
 
-from test_events import StatelessRulesTests, StatefulRulesTests
+from test_events import StatelessRulesTests, StatefulRulesTests, \
+    minutes_for_days
 
 
 class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
@@ -139,6 +141,23 @@ class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
                 n_triggered += 1
 
         self.assertEqual(n_triggered, 1)
+
+    def test_offset_too_far(self):
+        minute_groups = minutes_for_days(self.cal, ordered_days=True)
+
+        # Neither rule should ever fire, since they are configured to fire
+        # 11+ hours after the open or before the close.  a NYSE session is
+        # never longer than 6.5 hours.
+        after_open_rule = AfterOpen(hours=11, minutes=11)
+        after_open_rule.cal = self.cal
+
+        before_close_rule = BeforeClose(hours=11, minutes=5)
+        before_close_rule.cal = self.cal
+
+        for session_minutes in minute_groups:
+            for minute in session_minutes:
+                self.assertFalse(after_open_rule.should_trigger(minute))
+                self.assertFalse(before_close_rule.should_trigger(minute))
 
 
 class TestStatefulRulesNYSE(StatefulRulesTests, TestCase):

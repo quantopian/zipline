@@ -82,7 +82,6 @@ from zipline.finance.slippage import (
 )
 from zipline.finance.cancel_policy import NeverCancel, CancelPolicy
 from zipline.assets import Asset, Future
-from zipline.assets.futures import FutureChain
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.pipeline import Pipeline
 from zipline.pipeline.engine import (
@@ -819,18 +818,24 @@ class TradingAlgorithm(object):
             else:
                 self.risk_report = perf
 
-        daily_dts = [np.datetime64(perf['period_close'], utc=True)
-                     for perf in daily_perfs]
+        daily_dts = pd.DatetimeIndex(
+            [p['period_close'] for p in daily_perfs], tz='UTC'
+        )
         daily_stats = pd.DataFrame(daily_perfs, index=daily_dts)
 
         return daily_stats
 
-    def calculate_capital_changes(self, dt, emission_rate, is_interday):
+    def calculate_capital_changes(self, dt, emission_rate, is_interday,
+                                  portfolio_value_adjustment=0.0):
         """
         If there is a capital change for a given dt, this means the the change
         occurs before `handle_data` on the given dt. In the case of the
         change being a target value, the change will be computed on the
         portfolio value according to prices at the given dt
+
+        `portfolio_value_adjustment`, if specified, will be removed from the
+        portfolio_value of the cumulative performance when calculating deltas
+        from target capital changes.
         """
         try:
             capital_change = self.capital_changes[dt]
@@ -852,13 +857,13 @@ class TradingAlgorithm(object):
                 False,
                 self.data_portal
             )
-
         self.perf_tracker.prepare_capital_change(is_interday)
 
         if capital_change['type'] == 'target':
             target = capital_change['value']
             capital_change_amount = target - \
-                self.updated_portfolio().portfolio_value
+                (self.updated_portfolio().portfolio_value -
+                 portfolio_value_adjustment)
             self.portfolio_needs_update = True
 
             log.info('Processing capital change to target %s at %s. Capital '
@@ -1240,43 +1245,6 @@ class TradingAlgorithm(object):
         """
         return self.asset_finder.lookup_future_symbol(symbol)
 
-    @api_method
-    @preprocess(root_symbol=ensure_upper_case)
-    def future_chain(self, root_symbol, as_of_date=None):
-        """Look up a future chain with the specified parameters.
-
-        Parameters
-        ----------
-        root_symbol : str
-            The root symbol of a future chain.
-        as_of_date : datetime.datetime or pandas.Timestamp or str, optional
-            Date at which the chain determination is rooted. I.e. the
-            existing contract whose notice date is first after this date is
-            the primary contract, etc.
-
-        Returns
-        -------
-        chain : FutureChain
-            The future chain matching the specified parameters.
-
-        Raises
-        ------
-        RootSymbolNotFound
-            If a future chain could not be found for the given root symbol.
-        """
-        if as_of_date:
-            try:
-                as_of_date = pd.Timestamp(as_of_date, tz='UTC')
-            except ValueError:
-                raise UnsupportedDatetimeFormat(input=as_of_date,
-                                                method='future_chain')
-        return FutureChain(
-            asset_finder=self.asset_finder,
-            get_datetime=self.get_datetime,
-            root_symbol=root_symbol,
-            as_of_date=as_of_date
-        )
-
     def _calculate_order_value_amount(self, asset, value):
         """
         Calculates how many shares/contracts to order based on the type of
@@ -1600,13 +1568,6 @@ class TradingAlgorithm(object):
         if tz is not None:
             dt = dt.astimezone(tz)
         return dt
-
-    def update_dividends(self, dividend_frame):
-        """
-        Set DataFrame used to process dividends.  DataFrame columns should
-        contain at least the entries in zp.DIVIDEND_FIELDS.
-        """
-        self.perf_tracker.update_dividends(dividend_frame)
 
     @api_method
     def set_slippage(self, slippage):

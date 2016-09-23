@@ -503,6 +503,97 @@ def expect_element(*_pos, **named):
     return preprocess(**valmap(_expect_element, named))
 
 
+def expect_bounded(**named):
+    """
+    Preprocessing decorator verifying that inputs fall between bounds.
+
+    Bounds should be passed as a pair of ``(min_value, max_value)``. Both
+    bounds are checked inclusively.
+
+    ``None`` may be passed as ``min_value`` or ``max_value`` to signify that
+    the input is only bounded above or below.
+
+    Usage
+    -----
+    >>> @expect_bounded(x=(1, 5))
+    ... def foo(x):
+    ...    return x + 1
+    ...
+    >>> foo(1)
+    2
+    >>> foo(5)
+    6
+    >>> foo(6)  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
+    Traceback (most recent call last):
+       ...
+    ValueError: ...foo() expected a value between 1 and 5 for argument 'x',
+    but got 6 instead.
+
+    >>> @expect_bounded(x=(2, None))
+    ... def foo(x):
+    ...    return x
+    ...
+    >>> foo(100000)
+    100000
+    >>> foo(1)  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
+    Traceback (most recent call last):
+       ...
+    ValueError: ...foo() expected a value greater than or equal to 2 for
+    argument 'x', but got 1 instead.
+
+    >>> @expect_bounded(x=(None, 5))
+    ... def foo(x):
+    ...    return x
+    ...
+    >>> foo(6)  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
+    Traceback (most recent call last):
+       ...
+    ValueError: ...foo() expected a value less than or equal to 5 for
+    argument 'x', but got 6 instead.
+    """
+    def valid_bounds(t):
+        return (
+            isinstance(t, tuple)
+            and len(t) == 2
+            and t != (None, None)
+        )
+
+    for name, bounds in iteritems(named):
+        if not valid_bounds(bounds):
+            raise TypeError(
+                "expect_bounded() expected a tuple of bounds for"
+                " argument '{name}', but got {bounds} instead.".format(
+                    name=name,
+                    bounds=bounds,
+                )
+            )
+
+    def _expect_bounded(bounds):
+        (lower, upper) = bounds
+        if lower is None:
+            should_fail = lambda value: value > upper
+            predicate_descr = "less than or equal to " + str(upper)
+        elif upper is None:
+            should_fail = lambda value: value < lower
+            predicate_descr = "greater than or equal to " + str(lower)
+        else:
+            should_fail = lambda value: not (lower <= value <= upper)
+            predicate_descr = "between %s and %s" % bounds
+
+        template = (
+            "%(funcname)s() expected a value {predicate}"
+            " for argument '%(argname)s', but got %(actual)s instead."
+        ).format(predicate=predicate_descr)
+
+        return make_check(
+            exc_type=ValueError,
+            template=template,
+            pred=should_fail,
+            actual=repr,
+        )
+    return preprocess(**valmap(_expect_bounded, named))
+
+
 def expect_dimensions(**dimensions):
     """
     Preprocessing decorator that verifies inputs are numpy arrays with a

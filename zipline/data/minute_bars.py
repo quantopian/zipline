@@ -11,19 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import ABCMeta, abstractmethod, abstractproperty
 import json
 import os
+import shutil
+from glob import glob
 from os.path import join
 from textwrap import dedent
 
-from cachetools import LRUCache
+from lru import LRU
 import bcolz
 from bcolz import ctable
 from intervaltree import IntervalTree
+import logbook
 import numpy as np
 import pandas as pd
-from six import with_metaclass
 from toolz import keymap, valmap
 
 from zipline.data._minute_bar_internal import (
@@ -33,9 +34,14 @@ from zipline.data._minute_bar_internal import (
 )
 
 from zipline.gens.sim_engine import NANOS_IN_MINUTE
+
+from zipline.data.bar_reader import BarReader, NoDataOnDate
 from zipline.utils.calendars import get_calendar
 from zipline.utils.cli import maybe_show_progress
 from zipline.utils.memoize import lazyval
+
+
+logger = logbook.Logger('MinuteBars')
 
 US_EQUITIES_MINUTES_PER_DAY = 390
 FUTURES_MINUTES_PER_DAY = 1440
@@ -53,106 +59,10 @@ class BcolzMinuteWriterColumnMismatch(Exception):
     pass
 
 
-class MinuteBarReader(with_metaclass(ABCMeta)):
-
-    _data_frequency = 'minute'
-
+class MinuteBarReader(BarReader):
     @property
     def data_frequency(self):
-        return self._data_frequency
-
-    @abstractproperty
-    def last_available_dt(self):
-        """
-        Returns
-        -------
-        dt : pd.Timestamp
-            The last minute for which the reader can provide data.
-        """
-        pass
-
-    @abstractproperty
-    def first_trading_day(self):
-        """
-        Returns
-        -------
-        dt : pd.Timestamp
-            The first trading day (session) for which the reader can provide
-            data.
-        """
-        pass
-
-    @abstractmethod
-    def get_value(self, sid, dt, field):
-        """
-        Retrieve the value at the given coordinates.
-
-        Parameters
-        ----------
-        sid : int
-            The asset identifier.
-        dt : pd.Timestamp
-            The minute label for the desired data point.
-        field : string
-            The OHLVC name for the desired data point.
-
-        Returns
-        -------
-        value : float|int
-            The value at the given coordinates, ``float`` for OHLC, ``int``
-            for 'volume'.
-        """
-        pass
-
-    @abstractmethod
-    def get_last_traded_dt(self, asset, dt):
-        """
-        Get the latest minute on or before ``dt`` in which ``asset`` traded.
-
-        If there are no trades on or before ``dt`` returns ``pd.NaT``
-
-        Parameters
-        ----------
-        asset : zipline.asset.Asset
-            The asset for which to get the last traded minute.
-        dt : pd.Timestamp
-            The minute at which to start searching for the last traded minute.
-
-        Returns
-        -------
-        last_traded : pd.Timestamp
-            The minute of the last trade for the given asset, using the input
-            dt as a vantage point.
-        """
-        pass
-
-    @abstractmethod
-    def load_raw_arrays(self, fields, start_dt, end_dt, sids):
-        """
-        Retrieve the arrays of pricing data for the given coordinates of
-        ``fields`` (OHLCV), minute range [``start_dt``, ``end_dt``] and sids.
-
-        Parameters
-        ----------
-        fields : iterable of str
-            The OHLCV fields ('open', 'high', 'low', 'close', 'volume') for
-            which to read data.
-        start_dt : pd.Timestamp
-            The first minute of the date range for which to read data.
-        end_dt : pd.Timestamp
-            The last minute of the date range for which to read data.
-        sids : iterable of int
-            The sid identifiers for which to retrieve data.
-
-        Returns
-        -------
-        raw_arrays : list of ndarray
-            A list where each item corresponds with the fields in the order
-            the fields are given.
-            Each item is a 2D array with a shape of (minutes_in_range, sids)
-            The OHLC arrays are floats; the 'volume' array is ints.
-        """
-        pass
+        return "minute"
 
 
 def _calc_minute_index(market_opens, minutes_per_day):
@@ -407,6 +317,10 @@ class BcolzMinuteBarWriter(object):
 
         Defaults to supporting 15 years of NYSE equity market data.
         see: http://bcolz.blosc.org/opt-tips.html#informing-about-the-length-of-your-carrays # noqa
+    write_metadata : bool, optional
+        If True, writes the minute bar metadata (on init of the writer).
+        If False, no metadata is written (existing metadata is
+        retained). Default is True.
 
     Notes
     -----
@@ -463,7 +377,8 @@ class BcolzMinuteBarWriter(object):
                  minutes_per_day,
                  default_ohlc_ratio=OHLC_RATIO,
                  ohlc_ratios_per_sid=None,
-                 expectedlen=DEFAULT_EXPECTEDLEN):
+                 expectedlen=DEFAULT_EXPECTEDLEN,
+                 write_metadata=True):
 
         self._rootdir = rootdir
         self._start_session = start_session
@@ -481,15 +396,16 @@ class BcolzMinuteBarWriter(object):
         self._minute_index = _calc_minute_index(
             self._schedule.market_open, self._minutes_per_day)
 
-        metadata = BcolzMinuteBarMetadata(
-            self._default_ohlc_ratio,
-            self._ohlc_ratios_per_sid,
-            self._calendar,
-            self._start_session,
-            self._end_session,
-            self._minutes_per_day,
-        )
-        metadata.write(self._rootdir)
+        if write_metadata:
+            metadata = BcolzMinuteBarMetadata(
+                self._default_ohlc_ratio,
+                self._ohlc_ratios_per_sid,
+                self._calendar,
+                self._start_session,
+                self._end_session,
+                self._minutes_per_day,
+            )
+            metadata.write(self._rootdir)
 
     @property
     def first_trading_day(self):
@@ -785,12 +701,12 @@ class BcolzMinuteBarWriter(object):
 
         all_minutes = self._minute_index
         # Get the latest minute we wish to write to the ctable
-        last_minute_to_write = dts[-1]
+        last_minute_to_write = pd.Timestamp(dts[-1], tz='UTC')
 
         # In the event that we've already written some minutely data to the
-        # ctable, guard against overwritting that data.
+        # ctable, guard against overwriting that data.
         if num_rec_mins > 0:
-            last_recorded_minute = np.datetime64(all_minutes[num_rec_mins - 1])
+            last_recorded_minute = all_minutes[num_rec_mins - 1]
             if last_minute_to_write <= last_recorded_minute:
                 raise BcolzMinuteOverlappingData(dedent("""
                 Data with last_date={0} already includes input start={1} for
@@ -834,6 +750,61 @@ class BcolzMinuteBarWriter(object):
             vol_col
         ])
         table.flush()
+
+    def data_len_for_day(self, day):
+        """
+        Return the number of data points up to and including the
+        provided day.
+        """
+        day_ix = self._session_labels.get_loc(day)
+        # Add one to the 0-indexed day_ix to get the number of days.
+        num_days = day_ix + 1
+        return num_days * self._minutes_per_day
+
+    def truncate(self, date):
+        """Truncate data beyond this date in all ctables."""
+        truncate_slice_end = self.data_len_for_day(date)
+
+        glob_path = os.path.join(self._rootdir, "*", "*", "*.bcolz")
+        sid_paths = glob(glob_path)
+
+        for sid_path in sid_paths:
+            file_name = os.path.basename(sid_path)
+
+            try:
+                table = bcolz.open(rootdir=sid_path)
+            except IOError:
+                continue
+            if table.len <= truncate_slice_end:
+                logger.info("{0} not past truncate date={1}.", file_name, date)
+                continue
+
+            logger.info(
+                "Truncting {0} back at end_date={1}", file_name, date.date()
+            )
+
+            new_table = table[:truncate_slice_end]
+            tmp_path = sid_path + '.bak'
+            shutil.move(sid_path, tmp_path)
+            try:
+                bcolz.ctable(new_table, rootdir=sid_path)
+                try:
+                    shutil.rmtree(tmp_path)
+                except Exception as err:
+                    logger.info(
+                        "Could not delete tmp_path={0}, err={1}", tmp_path, err
+                    )
+            except Exception as err:
+                # On any ctable write error, restore the original table.
+                logger.warn(
+                    "Could not write {0}, err={1}", file_name, err
+                )
+                shutil.move(tmp_path, sid_path)
+
+        # Update end session in metadata.
+        metadata = BcolzMinuteBarMetadata.read(self._rootdir)
+        metadata.end_session = date
+        metadata.write(self._rootdir)
 
 
 class BcolzMinuteBarReader(MinuteBarReader):
@@ -884,12 +855,20 @@ class BcolzMinuteBarReader(MinuteBarReader):
         self._minutes_per_day = metadata.minutes_per_day
 
         self._carrays = {
-            field: LRUCache(maxsize=sid_cache_size)
+            field: LRU(sid_cache_size)
             for field in self.FIELDS
         }
 
         self._last_get_value_dt_position = None
         self._last_get_value_dt_value = None
+
+        # This is to avoid any bad data or other performance-killing situation
+        # where there a consecutive streak of 0 (no volume) starting at an
+        # asset's start date.
+        # if asset 1 started on 2015-01-03 but its first trade is 2015-01-06
+        # 10:31 AM US/Eastern, this dict would store {1: 23675971},
+        # which is the minute epoch of that date.
+        self._known_zero_volume_dict = {}
 
     def _get_metadata(self):
         return BcolzMinuteBarMetadata.read(self._rootdir)
@@ -1052,7 +1031,11 @@ class BcolzMinuteBarReader(MinuteBarReader):
         if self._last_get_value_dt_value == dt.value:
             minute_pos = self._last_get_value_dt_position
         else:
-            minute_pos = self._find_position_of_minute(dt)
+            try:
+                minute_pos = self._find_position_of_minute(dt)
+            except ValueError:
+                raise NoDataOnDate()
+
             self._last_get_value_dt_value = dt.value
             self._last_get_value_dt_position = minute_pos
 
@@ -1078,20 +1061,40 @@ class BcolzMinuteBarReader(MinuteBarReader):
 
     def _find_last_traded_position(self, asset, dt):
         volumes = self._open_minute_file('volume', asset)
-        start_date_minutes = asset.start_date.value / NANOS_IN_MINUTE
-        dt_minutes = dt.value / NANOS_IN_MINUTE
+        start_date_minute = asset.start_date.value / NANOS_IN_MINUTE
+        dt_minute = dt.value / NANOS_IN_MINUTE
 
-        if dt_minutes < start_date_minutes:
+        try:
+            # if we know of a dt before which this asset has no volume,
+            # don't look before that dt
+            earliest_dt_to_search = self._known_zero_volume_dict[asset.sid]
+        except KeyError:
+            earliest_dt_to_search = start_date_minute
+
+        if dt_minute < earliest_dt_to_search:
             return -1
 
-        return find_last_traded_position_internal(
+        pos = find_last_traded_position_internal(
             self._market_open_values,
             self._market_close_values,
-            dt_minutes,
-            start_date_minutes,
+            dt_minute,
+            earliest_dt_to_search,
             volumes,
             self._minutes_per_day,
         )
+
+        if pos == -1:
+            # if we didn't find any volume before this dt, save it to avoid
+            # work in the future.
+            try:
+                self._known_zero_volume_dict[asset.sid] = max(
+                    dt_minute,
+                    self._known_zero_volume_dict[asset.sid]
+                )
+            except KeyError:
+                self._known_zero_volume_dict[asset.sid] = dt_minute
+
+        return pos
 
     def _pos_to_minute(self, pos):
         minute_epoch = minute_value(
@@ -1126,6 +1129,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
             self._market_close_values,
             minute_dt.value / NANOS_IN_MINUTE,
             self._minutes_per_day,
+            False,
         )
 
     def load_raw_arrays(self, fields, start_dt, end_dt, sids):

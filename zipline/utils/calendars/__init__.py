@@ -16,11 +16,19 @@
 from .trading_calendar import TradingCalendar
 from .calendar_utils import (
     get_calendar,
+    register_calendar_alias,
     register_calendar,
     register_calendar_type,
     deregister_calendar,
     clear_calendars
 )
 
-__all__ = ['get_calendar', 'TradingCalendar', 'register_calendar',
-           'register_calendar_type', 'deregister_calendar', 'clear_calendars']
+__all__ = [
+    'TradingCalendar',
+    'clear_calendars',
+    'deregister_calendar',
+    'get_calendar',
+    'register_calendar',
+    'register_calendar_alias',
+    'register_calendar_type',
+]

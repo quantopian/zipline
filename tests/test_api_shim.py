@@ -3,7 +3,7 @@ import warnings
 from mock import patch
 import numpy as np
 import pandas as pd
-from pandas.io.common import PerformanceWarning
+from pandas.core.common import PerformanceWarning
 
 from zipline import TradingAlgorithm
 from zipline.finance.trading import SimulationParameters
@@ -188,7 +188,9 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
         )[-1]
         bar_data = BarData(
             self.data_portal,
-            lambda: test_end_minute, "minute"
+            lambda: test_end_minute,
+            "minute",
+            self.trading_calendar
         )
         ohlcvp_fields = [
             "open",

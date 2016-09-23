@@ -509,6 +509,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             groupby=groupby,
             dtype=self.dtype,
             missing_value=self.missing_value,
+            window_safe=self.window_safe,
             mask=mask,
         )
 

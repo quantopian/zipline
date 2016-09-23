@@ -33,6 +33,8 @@ from zipline.lib.adjustment import Float64Multiply
 from zipline.assets.asset_writer import (
     SQLITE_MAX_VARIABLE_NUMBER as SQLITE_MAX_IN_STATEMENT,
 )
+from zipline.utils.pandas_utils import timedelta_to_integral_seconds
+
 
 _SID_QUERY_TEMPLATE = """
 SELECT DISTINCT sid FROM {0}
@@ -170,8 +172,8 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,  # sqlite3.Connection
         index.
     """
 
-    cdef int start_date = int((dates[0] - EPOCH).total_seconds())
-    cdef int end_date = int((dates[-1] - EPOCH).total_seconds())
+    cdef int start_date = timedelta_to_integral_seconds(dates[0] - EPOCH)
+    cdef int end_date = timedelta_to_integral_seconds(dates[-1] - EPOCH)
 
     cdef set split_sids = _get_split_sids(
         adjustments_db,

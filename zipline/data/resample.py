@@ -54,8 +54,7 @@ def minute_to_session(minute_frame, calendar):
     """
     how = OrderedDict((c, _MINUTE_TO_SESSION_OHCLV_HOW[c])
                       for c in minute_frame.columns)
-    return minute_frame.groupby(calendar.minute_to_session_label).agg(
-        how)
+    return minute_frame.groupby(calendar.minute_to_session_label).agg(how)
 
 
 class DailyHistoryAggregator(object):
@@ -246,7 +245,7 @@ class DailyHistoryAggregator(object):
                             dt,
                             [asset],
                         )[0].T
-                        val = max(last_max, np.nanmax(window))
+                        val = np.nanmax(np.append(window, last_max))
                         entries[asset] = (dt_value, val)
                         highs.append(val)
                         continue
@@ -310,11 +309,7 @@ class DailyHistoryAggregator(object):
                             dt,
                             [asset],
                         )[0].T
-                        window_min = np.nanmin(window)
-                        if pd.isnull(window_min):
-                            val = last_min
-                        else:
-                            val = min(last_min, window_min)
+                        val = np.nanmin(np.append(window, last_min))
                         entries[asset] = (dt_value, val)
                         lows.append(val)
                         continue
@@ -527,6 +522,9 @@ class MinuteResampleSessionBarReader(SessionBarReader):
     def first_trading_day(self):
         return self._minute_bar_reader.first_trading_day
 
+    def get_last_traded_dt(self, asset, dt):
+        return self._minute_bar_reader.get_last_traded_dt(asset, dt)
+
 
 class ReindexBarReader(with_metaclass(ABCMeta)):
     """
@@ -588,11 +586,11 @@ class ReindexBarReader(with_metaclass(ABCMeta)):
 
     @abstractmethod
     def _outer_dts(self, start_dt, end_dt):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def _inner_dts(self, start_dt, end_dt):
-        pass
+        raise NotImplementedError
 
     @property
     def trading_calendar(self):

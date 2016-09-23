@@ -394,5 +394,5 @@ class MaxLeverage(AccountControl):
         """
         Fail if the leverage is greater than the allowed leverage.
         """
-        if _account['leverage'] > self.max_leverage:
+        if _account.leverage > self.max_leverage:
             self.fail()

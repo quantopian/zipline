@@ -157,7 +157,7 @@ class YahooBundleTestCase(WithResponses, ZiplineTestCase):
         self.register(
             'bundle',
             yahoo_equities(self.symbols),
-            calendar=self.calendar,
+            calendar_name='NYSE',
             start_session=self.asset_start,
             end_session=self.asset_end,
         )

@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABCMeta, abstractproperty
+from lru import LRU
+import warnings
 
 from pandas.tseries.holiday import AbstractHolidayCalendar
 from six import with_metaclass
@@ -65,7 +67,14 @@ class TradingCalendar(with_metaclass(ABCMeta)):
     """
     def __init__(self, start=start_default, end=end_default):
         # Midnight in UTC for each trading day.
-        _all_days = date_range(start, end, freq=self.day, tz='UTC')
+
+        # In pandas 0.18.1, pandas calls into its own code here in a way that
+        # fires a warning. The calling code in pandas tries to suppress the
+        # warning, but does so incorrectly, causing it to bubble out here.
+        # Actually catch and suppress the warning here:
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            _all_days = date_range(start, end, freq=self.day, tz='UTC')
 
         # `DatetimeIndex`s of standard opens/closes for each day.
         self._opens = days_at_time(_all_days, self.open_time, self.tz,
@@ -94,6 +103,12 @@ class TradingCalendar(with_metaclass(ABCMeta)):
             },
             dtype='datetime64[ns]',
         )
+
+        # Simple cache to avoid recalculating the same minute -> session in
+        # "next" mode. Analysis of current zipline code paths show that
+        # `minute_to_session_label` is often called consecutively with the same
+        # inputs.
+        self._minute_to_session_label_cache = LRU(1)
 
         self.market_opens_nanos = self.schedule.market_open.values.\
             astype(np.int64)
@@ -141,6 +156,29 @@ class TradingCalendar(with_metaclass(ABCMeta)):
     @property
     def close_offset(self):
         return 0
+
+    @lazyval
+    def _minutes_per_session(self):
+        diff = self.schedule.market_close - self.schedule.market_open
+        diff = diff.astype('timedelta64[m]')
+        return diff + 1
+
+    def minutes_count_for_sessions_in_range(self, start_session, end_session):
+        """
+        Parameters
+        ----------
+        start_session: pd.Timestamp
+            The first session.
+
+        end_session: pd.Timestamp
+            The last session.
+
+        Returns
+        -------
+        int: The total number of minutes for the contiguous chunk of sessions.
+             between start_session and end_session, inclusive.
+        """
+        return int(self._minutes_per_session[start_session:end_session].sum())
 
     @property
     def regular_holidays(self):
@@ -422,29 +460,20 @@ class TradingCalendar(with_metaclass(ABCMeta)):
         pd.DateTimeIndex
             All the minutes for the given session.
         """
-        data = self.schedule.loc[session_label]
-        return self.all_minutes[
-            self.all_minutes.slice_indexer(
-                data.market_open,
-                data.market_close
-            )
-        ]
+        return self.minutes_in_range(*self.schedule.loc[session_label])
 
     def minutes_window(self, start_dt, count):
-        try:
-            start_idx = self.all_minutes.get_loc(start_dt)
-        except KeyError:
-            # if this is not a market minute, go to the previous session's
-            # close
-            previous_session = self.minute_to_session_label(
-                start_dt, direction="previous"
-            )
+        start_dt_nanos = start_dt.value
+        all_minutes_nanos = self._trading_minutes_nanos
+        start_idx = all_minutes_nanos.searchsorted(start_dt_nanos)
 
-            previous_close = self.open_and_close_for_session(
-                previous_session
-            )[1]
+        # searchsorted finds the index of the minute **on or after** start_dt.
+        # If the latter, push back to the prior minute.
+        if all_minutes_nanos[start_idx] != start_dt_nanos:
+            start_idx -= 1
 
-            start_idx = self.all_minutes.get_loc(previous_close)
+        if start_idx < 0 or start_idx >= len(all_minutes_nanos):
+            raise KeyError("Can't start minute window at {}".format(start_dt))
 
         end_idx = start_idx + count
 
@@ -690,11 +719,19 @@ class TradingCalendar(with_metaclass(ABCMeta)):
         pd.Timestamp (midnight UTC)
             The label of the containing session.
         """
+        if direction == "next":
+            try:
+                return self._minute_to_session_label_cache[dt]
+            except KeyError:
+                pass
 
         idx = searchsorted(self.market_closes_nanos, dt)
         current_or_next_session = self.schedule.index[idx]
+        self._minute_to_session_label_cache[dt] = current_or_next_session
 
-        if direction == "previous":
+        if direction == "next":
+            return current_or_next_session
+        elif direction == "previous":
             if not is_open(self.market_opens_nanos, self.market_closes_nanos,
                            dt):
                 # if the exchange is closed, use the previous session
@@ -704,7 +741,7 @@ class TradingCalendar(with_metaclass(ABCMeta)):
                            dt):
                 # if the exchange is closed, blow up
                 raise ValueError("The given dt is not an exchange minute!")
-        elif direction != "next":
+        else:
             # invalid direction
             raise ValueError("Invalid direction parameter: "
                              "{0}".format(direction))

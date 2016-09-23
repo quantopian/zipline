@@ -1,6 +1,7 @@
 from itertools import product
 from operator import eq, ne
 import numpy as np
+import warnings
 
 from zipline.lib.labelarray import LabelArray
 from zipline.testing import check_arrays, parameter_space, ZiplineTestCase
@@ -234,22 +235,35 @@ class LabelArrayTestCase(ZiplineTestCase):
         l = LabelArray(self.strs, '')
         ints = np.arange(len(l))
 
-        for func in all_ufuncs():
-            # Different ufuncs vary between returning NotImplemented and
-            # raising a TypeError when provided with unknown dtypes.
-            # This is a bit unfortunate, but still better than silently
-            # accepting an int array.
-            try:
-                if func.nin == 1:
-                    ret = func(l)
-                elif func.nin == 2:
-                    ret = func(l, ints)
+        with warnings.catch_warnings():
+            # Some ufuncs return NotImplemented, but warn that they will fail
+            # in the future.  Both outcomes are fine, so ignore the warnings.
+            warnings.filterwarnings(
+                'ignore',
+                message="unorderable dtypes.*",
+                category=DeprecationWarning,
+            )
+            warnings.filterwarnings(
+                'ignore',
+                message="elementwise comparison failed.*",
+                category=FutureWarning,
+            )
+            for func in all_ufuncs():
+                # Different ufuncs vary between returning NotImplemented and
+                # raising a TypeError when provided with unknown dtypes.
+                # This is a bit unfortunate, but still better than silently
+                # accepting an int array.
+                try:
+                    if func.nin == 1:
+                        ret = func(l)
+                    elif func.nin == 2:
+                        ret = func(l, ints)
+                    else:
+                        self.fail("Who added a ternary ufunc !?!")
+                except TypeError:
+                    pass
                 else:
-                    self.fail("Who added a ternary ufunc !?!")
-            except TypeError:
-                pass
-            else:
-                self.assertIs(ret, NotImplemented)
+                    self.assertIs(ret, NotImplemented)
 
     @parameter_space(
         __fail_fast=True,

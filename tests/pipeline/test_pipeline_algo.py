@@ -346,7 +346,7 @@ class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
     AAPL = 1
     MSFT = 2
     BRK_A = 3
-    assets = ASSET_FINDER_EQUITY_SIDS = AAPL, MSFT, BRK_A
+    ASSET_FINDER_EQUITY_SIDS = AAPL, MSFT, BRK_A
     ASSET_FINDER_EQUITY_SYMBOLS = 'AAPL', 'MSFT', 'BRK_A'
     START_DATE = Timestamp('2014')
     END_DATE = Timestamp('2015')
@@ -403,6 +403,9 @@ class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
         )
         cls.dates = cls.raw_data[cls.AAPL].index.tz_localize('UTC')
         cls.AAPL_split_date = Timestamp("2014-06-09", tz='UTC')
+        cls.assets = cls.asset_finder.retrieve_all(
+            cls.ASSET_FINDER_EQUITY_SIDS
+        )
 
     def compute_expected_vwaps(self, window_lengths):
         AAPL, MSFT, BRK_A = self.AAPL, self.MSFT, self.BRK_A
@@ -488,7 +491,7 @@ class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
         (False,),
     ])
     def test_handle_adjustment(self, set_screen):
-        AAPL, MSFT, BRK_A = assets = self.AAPL, self.MSFT, self.BRK_A
+        AAPL, MSFT, BRK_A = assets = self.assets
 
         window_lengths = [1, 2, 5, 10]
         vwaps = self.compute_expected_vwaps(window_lengths)

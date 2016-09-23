@@ -25,12 +25,8 @@ from pandas import (
     Categorical,
     DataFrame,
     date_range,
-    ewma,
-    ewmstd,
     Int64Index,
     MultiIndex,
-    rolling_apply,
-    rolling_mean,
     Series,
     Timestamp,
 )
@@ -1008,15 +1004,17 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
         # Shift back the raw inputs by a trading day because we expect our
         # computed results to be computed using values anchored on the
         # **previous** day's data.
-        expected_raw = rolling_mean(
+        expected_raw = DataFrame(
             expected_bar_values_2d(
                 dates - self.trading_calendar.day,
                 self.equity_info,
                 'close',
             ),
+        ).rolling(
             window_length,
             min_periods=1,
-        )
+        ).mean(
+        ).values
 
         expected = DataFrame(
             # Truncate off the extra rows needed to compute the SMAs.
@@ -1122,19 +1120,31 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
     def expected_ewma(self, window_length, decay_rate):
         alpha = 1 - decay_rate
         span = (2 / alpha) - 1
-        return rolling_apply(
-            self.raw_data,
-            window_length,
-            lambda window: ewma(window, span=span)[-1],
+
+        # XXX: This is a comically inefficient way to compute a windowed EWMA.
+        # Don't use it outside of testing.  We're using rolling-apply of an
+        # ewma (which is itself a rolling-window function) because we only want
+        # to look at ``window_length`` rows at a time.
+        return self.raw_data.rolling(window_length).apply(
+            lambda subarray: (DataFrame(subarray)
+                              .ewm(span=span)
+                              .mean()
+                              .values[-1])
         )[window_length:]
 
     def expected_ewmstd(self, window_length, decay_rate):
         alpha = 1 - decay_rate
         span = (2 / alpha) - 1
-        return rolling_apply(
-            self.raw_data,
-            window_length,
-            lambda window: ewmstd(window, span=span)[-1],
+
+        # XXX: This is a comically inefficient way to compute a windowed
+        # EWMSTD.  Don't use it outside of testing.  We're using rolling-apply
+        # of an ewma (which is itself a rolling-window function) because we
+        # only want to look at ``window_length`` rows at a time.
+        return self.raw_data.rolling(window_length).apply(
+            lambda subarray: (DataFrame(subarray)
+                              .ewm(span=span)
+                              .std()
+                              .values[-1])
         )[window_length:]
 
     @parameterized.expand([
@@ -1259,7 +1269,7 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
         expected_1 = (self.raw_data[5:] ** 2) * 2
         assert_frame_equal(results['dv1'].unstack(), expected_1)
 
-        expected_5 = rolling_mean((self.raw_data ** 2) * 2, window=5)[5:]
+        expected_5 = ((self.raw_data ** 2) * 2).rolling(5).mean()[5:]
         assert_frame_equal(results['dv5'].unstack(), expected_5)
 
         # The following two use USEquityPricing.open and .volume as inputs.
@@ -1269,9 +1279,11 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
                           * self.raw_data[5:] * 2).fillna(0)
         assert_frame_equal(results['dv1_nan'].unstack(), expected_1_nan)
 
-        expected_5_nan = rolling_mean((self.raw_data_with_nans
-                                       * self.raw_data * 2).fillna(0),
-                                      window=5)[5:]
+        expected_5_nan = ((self.raw_data_with_nans * self.raw_data * 2)
+                          .fillna(0)
+                          .rolling(5).mean()
+                          [5:])
+
         assert_frame_equal(results['dv5_nan'].unstack(), expected_5_nan)
 
 

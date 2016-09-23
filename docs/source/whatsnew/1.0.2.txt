@@ -2,7 +2,7 @@ Release 1.0.2
 -------------
 
 :Release: 1.0.2
-:Date: TBD
+:Date: September 8, 2016
 
 Enhancements
 ~~~~~~~~~~~~
@@ -40,6 +40,52 @@ Enhancements
   metric calculations between pyfolio and zipline. Empyrical adds custom
   annualization options for returns of custom frequencies. (:issue:`855`)
 
+- Add Aroon factor. (:issue:`1258`)
+
+- Add fast stochastic oscillator factor. (:issue:`1255`)
+
+- Add a Dockerfile. (:issue:`1254`)
+
+- New trading calendar which supports sessions which span across midnights, e.g.
+  24 hour 6:01PM-6:00PM sessions for futures trading.
+  `zipline.utils.tradingcalendar` is now deprecated. (:issue:`1138`) (:issue:`1312`)
+
+- Allow slicing a single column out of a Factor/Filter/Classifier. (:issue:`1267`)
+
+- Provide Ichimoku Cloud factor (:issue:`1263`)
+
+- Allow default parameters on Pipeline terms. (:issue:`1263`)
+
+- Provide rate of change percentage factor. (:issue:`1324`)
+
+- Provide linear weighted moving average factor. (:issue:`1325`)
+
+- Add ``NotNullFilter``. (:issue:`1345`)
+
+- Allow capital changes to be defined by a target value. (:issue:`1337`)
+
+- Add ``TrueRange`` factor. (:issue:`1348`)
+
+- Add point in time lookups to ``assets.db``. (:issue:`1361`)
+
+- Make ``can_trade`` aware of the asset's exchange . (:issue:`1346`)
+
+- Add ``downsample`` method to all computable terms. (:issue:`1394`)
+
+- Add `QuantopianUSFuturesCalendar`. (:issue:`1414`)
+
+- Enable publishing of old ``assets.db`` versions. (:issue:`1430`)
+
+- Enable ``schedule_function`` for Futures trading calendar. (:issue:`1442`)
+
+- Disallow regressions of length 1. (:issue:`1466`)
+
+Experimental
+~~~~~~~~~~~
+
+- Add support for comingled Future and Equity history windows, and enable other
+  Future data access via data portal. (:issue:`1435`) (:issue:`1432`)
+
 Bug Fixes
 ~~~~~~~~~
 
@@ -65,7 +111,57 @@ Bug Fixes
 
 - Alpha and sharpe ratio are now annualized. (:issue:`1322`)
 
+- Fix units during reading and writing of daily bar ``first_trading_day ``
+  attribute. (:issue:`1245`)
+
+- Optional dispatch modules, when missing, no longer cause a `NameError`.
+  (:issue:`1246`)
+
+- Treat ``schedule_function`` argument as a time rule when a time rule, but no
+  date rule is supplied. (:issue:`1221`)
+
+- Protect against boundary conditions at beginning and end trading day in
+  schedule function. (:issue:`1226`)
+
+- Apply adjustments to previous day when using history with a frequency of `1d`.
+  (:issue:`1256`)
+
+- Fail fast on invalid pipeline columns, instead of attempting to access the nonexistent column.
+  (:issue:`1280`)
+
+- Fix ``AverageDollarVolume`` NaN handling. (:issue:`1309`)
+
+  Performance
+~~~~~~~~~~~
+
+- Performance improvements to blaze core loader. (:issue:`1227`)
+
+- Allow concurrent blaze queries. (:issue:`1323`)
+
+- Prevent missing leading bcolz minute data from doing repeated unnecessary lookups. (:issue:`1451`)
+
+- Cache future chain lookups. (:issue:`1455`)
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Removed remaining mentions of ``add_history``. (:issue:`1287`)
+
 Documentation
 ~~~~~~~~~~~~~
 
-None
+Testing
+~~~~~~~~~~~
+
+- Add test fixture which sources daily pricing data from minute pricing data
+  fixtures. (:issue:`1243`)
+
+Data Format Changes
+~~~~~~~~~~~~~~~~
+
+- ``BcolzDailyBarReader`` and ``BcolzDailyBarWriter`` use trading calendar instance,
+  instead of trading days serialized to ``JSON``. (:issue:`1330`)
+
+- Change format of ``assets.db`` to support point in time lookups. (:issue:`1361`)
+
+- Change ``BcolzMinuteBarReader``and ``BcolzMinuteBarWriter`` to support varying tick sizes. (:issue:`1428`)

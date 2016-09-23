@@ -12,8 +12,10 @@ import pandas as pd
 import requests
 from six.moves.urllib.parse import urlencode
 
-from . import core as bundles
+from zipline.utils.calendars import register_calendar_alias
 from zipline.utils.cli import maybe_show_progress
+
+from . import core as bundles
 
 log = Logger(__name__)
 seconds_per_call = (pd.Timedelta('10 minutes') / 2000).total_seconds()
@@ -117,7 +119,7 @@ def fetch_symbol_metadata_frame(api_key,
             'name': 'asset_name',
             'oldest_available_date': 'start_date',
             'newest_available_date': 'end_date',
-        }).sort('symbol')
+        }).sort_values('symbol')
 
     data = data[~data.symbol.isin(excluded_symbols)]
     # cut out all the other stuff in the name column
@@ -402,3 +404,6 @@ def quantopian_quandl_bundle(environ,
         if show_progress:
             print("Writing data to %s." % output_dir)
         tar.extractall(output_dir)
+
+
+register_calendar_alias("QUANDL", "NYSE")

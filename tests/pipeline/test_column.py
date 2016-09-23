@@ -11,6 +11,7 @@ from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Pipeline
 from zipline.pipeline.data.testing import TestingDataSet as TDS
 from zipline.testing import chrange, temp_pipeline_engine
+from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning
 
 
 class LatestTestCase(TestCase):
@@ -71,6 +72,8 @@ class LatestTestCase(TestCase):
             dates_to_test[-1],
         )
         for column in columns:
-            col_result = result[column.name].unstack()
+            with ignore_pandas_nan_categorical_warning():
+                col_result = result[column.name].unstack()
+
             expected_col_result = self.expected_latest(column, cal_slice)
             assert_frame_equal(col_result, expected_col_result)

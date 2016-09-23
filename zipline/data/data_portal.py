@@ -44,6 +44,7 @@ from zipline.utils.math_utils import (
     nanstd
 )
 from zipline.utils.memoize import remember_last, weak_lru_cache
+from zipline.utils.pandas_utils import timedelta_to_integral_minutes
 from zipline.errors import (
     NoTradeDataAvailableTooEarly,
     NoTradeDataAvailableTooLate,
@@ -211,12 +212,6 @@ class DataPortal(object):
         self._first_trading_day_loc = (
             self.trading_calendar.all_sessions.get_loc(self._first_trading_day)
             if self._first_trading_day is not None else None
-        )
-        self._first_trading_minute_loc = (
-            self.trading_calendar.all_minutes.get_loc(
-                self._first_trading_minute
-            )
-            if self._first_trading_minute is not None else None
         )
 
     def _ensure_reader_aligned(self, reader):
@@ -533,9 +528,16 @@ class DataPortal(object):
 
     def _get_minute_spot_value(self, asset, column, dt, ffill=False):
         reader = self._get_pricing_reader('minute')
-        result = reader.get_value(
-            asset.sid, dt, column
-        )
+        try:
+            result = reader.get_value(
+                asset.sid, dt, column
+            )
+        except NoDataOnDate:
+            if not ffill:
+                if column == 'volume':
+                    return 0
+                else:
+                    return np.nan
 
         if not ffill:
             return result
@@ -695,10 +697,17 @@ class DataPortal(object):
 
             return daily_data
 
-    def _handle_history_out_of_bounds(self, bar_count):
+    def _handle_minute_history_out_of_bounds(self, bar_count):
+        first_trading_minute_loc = (
+            self.trading_calendar.all_minutes.get_loc(
+                self._first_trading_minute
+            )
+            if self._first_trading_minute is not None else None
+        )
+
         suggested_start_day = (
             self.trading_calendar.all_minutes[
-                self._first_trading_minute_loc + bar_count
+                first_trading_minute_loc + bar_count
             ] + self.trading_calendar.day
         ).date()
 
@@ -720,10 +729,10 @@ class DataPortal(object):
                 end_dt, -bar_count
             )
         except KeyError:
-            self._handle_history_out_of_bounds(bar_count)
+            self._handle_minute_history_out_of_bounds(bar_count)
 
         if minutes_for_window[0] < self._first_trading_minute:
-            self._handle_history_out_of_bounds(bar_count)
+            self._handle_minute_history_out_of_bounds(bar_count)
 
         asset_minute_data = self._get_minute_window_for_assets(
             assets,
@@ -858,73 +867,6 @@ class DataPortal(object):
                                                    field,
                                                    False)
 
-    def _apply_all_adjustments(self, data, asset, dts, field,
-                               price_adj_factor=1.0):
-        """
-        Internal method that applies all the necessary adjustments on the
-        given data array.
-
-        The adjustments are:
-        - splits
-        - if field != "volume":
-            - mergers
-            - dividends
-            - * 0.001
-            - any zero fields replaced with NaN
-        - all values rounded to 3 digits after the decimal point.
-
-        Parameters
-        ----------
-        data : np.array
-            The data to be adjusted.
-
-        asset: Asset
-            The asset whose data is being adjusted.
-
-        dts: pd.DateTimeIndex
-            The list of minutes or days representing the desired window.
-
-        field: string
-            The field whose values are in the data array.
-
-        price_adj_factor: float
-            Factor with which to adjust OHLC values.
-        Returns
-        -------
-        None.  The data array is modified in place.
-        """
-        self._apply_adjustments_to_window(
-            self._get_adjustment_list(
-                asset, self._splits_dict, "SPLITS"
-            ),
-            data,
-            dts,
-            field != 'volume'
-        )
-
-        if field != 'volume':
-            self._apply_adjustments_to_window(
-                self._get_adjustment_list(
-                    asset, self._mergers_dict, "MERGERS"
-                ),
-                data,
-                dts,
-                True
-            )
-
-            self._apply_adjustments_to_window(
-                self._get_adjustment_list(
-                    asset, self._dividends_dict, "DIVIDENDS"
-                ),
-                data,
-                dts,
-                True
-            )
-
-            if price_adj_factor is not None:
-                data *= price_adj_factor
-                np.around(data, 3, out=data)
-
     def _get_daily_window_for_sids(
             self, assets, field, days_in_window, extra_slot=True):
         """
@@ -979,39 +921,6 @@ class DataPortal(object):
             else:
                 return_array[:len(data)] = data
         return return_array
-
-    @staticmethod
-    def _apply_adjustments_to_window(adjustments_list, window_data,
-                                     dts_in_window, multiply):
-        if len(adjustments_list) == 0:
-            return
-
-        # advance idx to the correct spot in the adjustments list, based on
-        # when the window starts
-        idx = 0
-
-        while idx < len(adjustments_list) and dts_in_window[0] >\
-                adjustments_list[idx][0]:
-            idx += 1
-
-        # if we've advanced through all the adjustments, then there's nothing
-        # to do.
-        if idx == len(adjustments_list):
-            return
-
-        while idx < len(adjustments_list):
-            adjustment_to_apply = adjustments_list[idx]
-
-            if adjustment_to_apply[0] > dts_in_window[-1]:
-                break
-
-            range_end = dts_in_window.searchsorted(adjustment_to_apply[0])
-            if multiply:
-                window_data[0:range_end] *= adjustment_to_apply[1]
-            else:
-                window_data[0:range_end] /= adjustment_to_apply[1]
-
-            idx += 1
 
     def _get_adjustment_list(self, asset, adjustments_dict, table_name):
         """
@@ -1199,43 +1108,63 @@ class DataPortal(object):
         else:
             return [assets] if isinstance(assets, Asset) else []
 
+    # cache size picked somewhat loosely.  this code exists purely to
+    # handle deprecated API.
     @weak_lru_cache(20)
     def _get_minute_count_for_transform(self, ending_minute, days_count):
-        # cache size picked somewhat loosely.  this code exists purely to
-        # handle deprecated API.
+        # This function works in three steps.
+        # Step 1. Count the minutes from ``ending_minute`` to the start of its
+        #         session.
+        # Step 2. Count the minutes from the prior ``days_count - 1`` sessions.
+        # Step 3. Return the sum of the results from steps (1) and (2).
 
-        # bars is the number of days desired.  we have to translate that
-        # into the number of minutes we want.
-        # we get all the minutes for the last (bars - 1) days, then add
-        # all the minutes so far today.  the +2 is to account for ignoring
-        # today, and the previous day, in doing the math.
-        session_for_minute = self.trading_calendar.minute_to_session_label(
-            ending_minute
-        )
-        previous_session = self.trading_calendar.previous_session_label(
-            session_for_minute
-        )
+        # Example (NYSE Calendar)
+        #     ending_minute = 2016-12-28 9:40 AM US/Eastern
+        #     days_count = 3
+        # Step 1. Calculate that there are 10 minutes in the ending session.
+        # Step 2. Calculate that there are 390 + 210 = 600 minutes in the prior
+        #         two sessions. (Prior sessions are 2015-12-23 and 2015-12-24.)
+        #         2015-12-24 is a half day.
+        # Step 3. Return 600 + 10 = 610.
 
-        sessions = self.trading_calendar.sessions_in_range(
-            self.trading_calendar.sessions_window(previous_session,
-                                                  -days_count + 2)[0],
-            previous_session,
-        )
+        cal = self.trading_calendar
 
-        minutes_count = sum(
-            len(self.trading_calendar.minutes_for_session(session))
-            for session in sessions
+        ending_session = cal.minute_to_session_label(
+            ending_minute,
+            direction="none",  # It's an error to pass a non-trading minute.
         )
 
-        # add the minutes for today
-        today_open = self.trading_calendar.open_and_close_for_session(
-            session_for_minute
-        )[0]
+        # Assume that calendar days are always full of contiguous minutes,
+        # which means we can just take 1 + (number of minutes between the last
+        # minute and the start of the session). We add one so that we include
+        # the ending minute in the total.
+        ending_session_minute_count = timedelta_to_integral_minutes(
+            ending_minute - cal.open_and_close_for_session(ending_session)[0]
+        ) + 1
 
-        minutes_count += \
-            ((ending_minute - today_open).total_seconds() // 60) + 1
+        if days_count == 1:
+            # We just need sessions for the active day.
+            return ending_session_minute_count
 
-        return minutes_count
+        # XXX: We're subtracting 2 here to account for two offsets:
+        # 1. We only want ``days_count - 1`` sessions, since we've already
+        #    accounted for the ending session above.
+        # 2. The API of ``sessions_window`` is to return one more session than
+        #    the requested number.  I don't think any consumers actually want
+        #    that behavior, but it's the tested and documented behavior right
+        #    now, so we have to request one less session than we actually want.
+        completed_sessions = cal.sessions_window(
+            cal.previous_session_label(ending_session),
+            2 - days_count,
+        )
+
+        completed_sessions_minute_count = (
+            self.trading_calendar.minutes_count_for_sessions_in_range(
+                completed_sessions[0],
+                completed_sessions[-1]
+            )
+        )
+        return ending_session_minute_count + completed_sessions_minute_count
 
     def get_simple_transform(self, asset, transform_name, dt, data_frequency,
                              bars=None):

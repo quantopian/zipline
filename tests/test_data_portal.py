@@ -338,3 +338,39 @@ class TestDataPortal(WithDataPortal,
             390 + 390 + 210 + 31,
             self.data_portal._get_minute_count_for_transform(nov_30_dt, 4)
         )
+
+    def test_get_last_traded_dt_minute(self):
+        minutes = self.nyse_calendar.minutes_for_session(
+            self.trading_days[2])
+        equity = self.asset_finder.retrieve_asset(1)
+        result = self.data_portal.get_last_traded_dt(equity,
+                                                     minutes[3],
+                                                     'minute')
+        self.assertEqual(minutes[3], result,
+                         "Asset 1 had a trade on third minute, so should "
+                         "return that as the last trade on that dt.")
+
+        result = self.data_portal.get_last_traded_dt(equity,
+                                                     minutes[5],
+                                                     'minute')
+        self.assertEqual(minutes[4], result,
+                         "Asset 1 had a trade on fourth minute, so should "
+                         "return that as the last trade on the fifth.")
+
+        future = self.asset_finder.retrieve_asset(10000)
+        calendar = self.trading_calendars[future.exchange]
+        minutes = calendar.minutes_for_session(self.trading_days[3])
+        result = self.data_portal.get_last_traded_dt(future,
+                                                     minutes[3],
+                                                     'minute')
+
+        self.assertEqual(minutes[3], result,
+                         "Asset 10000 had a trade on the third minute, so "
+                         "return that as the last trade on that dt.")
+
+        result = self.data_portal.get_last_traded_dt(future,
+                                                     minutes[5],
+                                                     'minute')
+        self.assertEqual(minutes[4], result,
+                         "Asset 10000 had a trade on fourth minute, so should "
+                         "return that as the last trade on the fifth.")
