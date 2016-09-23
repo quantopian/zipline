@@ -66,7 +66,8 @@ class SimpleQuotes(tmp_bcolz_equity_minute_bar_reader):
         )
         return BarData(data_portal,
                        lambda: SlippageTestCase.minutes[0],
-                       SlippageTestCase.sim_params.data_frequency)
+                       SlippageTestCase.sim_params.data_frequency,
+                       SlippageTestCase.trading_calendar)
 
 
 class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
@@ -839,7 +840,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: self.minutes[1],
-                           self.sim_params.data_frequency)
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
 
         self.print_quotes(bar_data, open_orders[0])
         # enhance coverage with slippage_model() vs slippage_model.simulate()
