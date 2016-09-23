@@ -928,7 +928,10 @@ def template_to_num(tmpl):
         '.' - expected result is 'no action, pass...'
     """
     step = 0.5
-    tmpl = tmpl.translate(None, '+.')
+    import six
+    del_chars = '+.'
+    tmpl = tmpl.translate(None, del_chars) if six.PY2 \
+        else tmpl.translate(str.maketrans('', '', del_chars))
     xi = tmpl.find('x')
     if xi != -1:
         tmpl = tmpl[:xi]
