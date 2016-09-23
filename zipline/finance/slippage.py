@@ -235,9 +235,9 @@ class VolumeShareSlippage(SlippageModel):
                 return None, None
 
         use_limit_price = order.limit and (
-                                       order.stop_stage is not self.bar_stage
-                                       if order.stop_stage
-                                       else not self.bar_stage.limits_enhance)
+            order.stop_stage is not self.bar_stage
+            if order.stop_stage
+            else not self.bar_stage.limits_enhance)
         order.stop_ghost = None  # ignore for later bars
         return (
             order.limit if use_limit_price else impacted_price,

@@ -43,8 +43,8 @@ class Order(object):
     # Order objects and we keep them all in memory, so it's worthwhile trying
     # to cut down on the memory footprint of this object.
     __slots__ = ["id", "dt", "reason", "created", "sid", "amount", "filled",
-                 "commission", "_status", "stop", "stop_ghost", "stop_stage", "limit",
-                 "stop_reached", "limit_reached", "direction", "type",
+                 "commission", "_status", "stop", "stop_ghost", "stop_stage",
+                 "limit", "stop_reached", "limit_reached", "direction", "type",
                  "broker_order_id"]
 
     def __init__(self, dt, sid, amount, stop=None, limit=None, filled=0,
