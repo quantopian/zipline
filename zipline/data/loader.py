@@ -249,6 +249,7 @@ def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day):
         data.to_csv(path)
     except (OSError, IOError, HTTPError):
         logger.exception('failed to cache the new benchmark returns')
+        raise
     if not has_data_for_dates(data, first_date, last_date):
         logger.warn("Still don't have expected data after redownload!")
     return data
