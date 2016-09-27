@@ -55,8 +55,8 @@ RUN mkdir ${PROJECT_DIR} \
 WORKDIR /ta-lib
 
 RUN pip install 'numpy>=1.11.1,<2.0.0' \
-  && pip install scipy==0.15.1 \
-  && pip install pandas==0.16.1 \
+  && pip install 'scipy>=0.17.1,<1.0.0' \
+  && pip install 'pandas>=0.18.1,<1.0.0' \
   && ./configure --prefix=/usr \
   && make \
   && make install \
