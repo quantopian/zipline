@@ -3,7 +3,7 @@ from cpython cimport Py_EQ
 
 from pandas import isnull, Timestamp
 from numpy cimport float64_t, uint8_t, int64_t
-from numpy import datetime64, float64
+from numpy import asarray, datetime64, float64, int64
 # Purely for readability. There aren't C-level declarations for these types.
 ctypedef object Int64Index_t
 ctypedef object DatetimeIndex_t
@@ -364,6 +364,150 @@ cdef class Float64Overwrite(Float64Adjustment):
                 data[row, col] = value
 
 
+cdef class ArrayAdjustment(Adjustment):
+    """
+    Base class for ArrayAdjustments.
+
+    Subclasses should inherit and provide a `values` attribute and a `mutate`
+    method.
+    """
+    def __repr__(self):
+            return (
+                "%s(first_row=%d, last_row=%d,"
+                " first_col=%d, last_col=%d, values=%s)" % (
+                    type(self).__name__,
+                    self.first_row,
+                    self.last_row,
+                    self.first_col,
+                    self.last_col,
+                    asarray(self.values),
+                )
+            )
+
+cdef class Float641DArrayOverwrite(ArrayAdjustment):
+    """
+    An adjustment that overwrites subarrays with a value for each subarray.
+
+    Example
+    -------
+
+    >>> import numpy as np
+    >>> arr = np.arange(25, dtype=float).reshape(5, 5)
+    >>> arr
+    array([[  0.,   1.,   2.,   3.,   4.],
+           [  5.,   6.,   7.,   8.,   9.],
+           [ 10.,  11.,  12.,  13.,  14.],
+           [ 15.,  16.,  17.,  18.,  19.],
+           [ 20.,  21.,  22.,  23.,  24.]])
+    >>> adj = Float641DArrayOverwrite(
+    ...     row_start=0,
+    ...     row_end=3,
+    ...     column_start=0,
+    ...     column_end=0,
+    ...     values=np.array([1, 2, 3, 4]),
+    )
+    >>> adj.mutate(arr)
+    >>> arr
+    array([[  1.,   1.,   2.,   3.,   4.],
+           [  2.,   6.,   7.,   8.,   9.],
+           [ 3.,  11.,  12.,  13.,  14.],
+           [ 4.,  16.,  17.,  18.,  19.],
+           [ 20.,  21.,  22.,  23.,  24.]])
+    """
+    cdef:
+        readonly float64_t[:] values
+
+    def __init__(self,
+                 int64_t first_row,
+                 int64_t last_row,
+                 int64_t first_col,
+                 int64_t last_col,
+                 float64_t[:] values):
+        super(Float641DArrayOverwrite, self).__init__(
+            first_row=first_row,
+            last_row=last_row,
+            first_col=first_col,
+            last_col=last_col,
+        )
+        if last_row + 1 - first_row != len(values):
+            raise ValueError(
+                "Mismatch: got %d values for rows starting at index %d and "
+                "ending at index %d." % (len(values), first_row, last_row)
+            )
+        self.values = values
+
+    cpdef mutate(self, float64_t[:, :] data):
+        cdef Py_ssize_t fill_range, row, col
+        cdef float64_t[:] values = self.values
+        for col in range(self.first_col, self.last_col + 1):
+            for i, row in enumerate(range(self.first_row, self.last_row + 1)):
+                data[row, col] = values[i]
+
+
+cdef class Datetime641DArrayOverwrite(ArrayAdjustment):
+    """
+    An adjustment that overwrites subarrays with a value for each subarray.
+
+    Example
+    -------
+
+    >>> import numpy as np; import pandas as pd
+    >>> dts = pd.date_range('2014', freq='D', periods=9, tz='UTC')
+    >>> arr = dts.values.reshape(3, 3)
+    >>> arr == np.datetime64(0, 'ns')
+    array([[False, False, False],
+       [False, False, False],
+       [False, False, False]], dtype=bool)
+    >>> adj = Datetime641DArrayOverwrite(
+    ...           first_row=1,
+    ...           last_row=2,
+    ...           first_col=1,
+    ...           last_col=2,
+    ...           values=np.array([
+    ...               np.datetime64(0, 'ns'),
+    ...               np.datetime64(1, 'ns')
+    ...           ])
+    ...       )
+    >>> adj.mutate(arr.view(np.int64))
+    >>> arr == np.datetime64(0, 'ns')
+    array([[False, False, False],
+       [False,  True,  True],
+       [False, False, False]], dtype=bool)
+    >>> arr == np.datetime64(1, 'ns')
+    array([[False, False, False],
+       [False, False, False],
+       [False,  True,  True]], dtype=bool)
+    """
+    cdef:
+        readonly int64_t[:] values
+
+    def __init__(self,
+                 int64_t first_row,
+                 int64_t last_row,
+                 int64_t first_col,
+                 int64_t last_col,
+                 object values):
+        super(Datetime641DArrayOverwrite, self).__init__(
+            first_row=first_row,
+            last_row=last_row,
+            first_col=first_col,
+            last_col=last_col,
+        )
+        if last_row + 1 - first_row != len(values):
+            raise ValueError("Mismatch: got %d values for rows starting at"
+            " index %d and ending at index %d." % (
+                len(values), first_row, last_row)
+            )
+        self.values = asarray([datetime_to_int(value) for value in values])
+
+    cpdef mutate(self, int64_t[:, :] data):
+        cdef Py_ssize_t row, col
+        cdef int64_t[:] values = self.values
+        for col in range(self.first_col, self.last_col + 1):
+            for i, row in enumerate(range(self.first_row, self.last_row + 1)):
+                data[row, col] = values[i]
+
+
 cdef class Float64Add(Float64Adjustment):
     """
     An adjustment that adds a float.
@@ -458,7 +602,7 @@ cdef datetime_to_int(object datetimelike):
             datetimelike.dtype.name,
         )
 
-    return datetimelike.astype(int)
+    return datetimelike.astype(int64)
 
 
 cdef class Datetime64Adjustment(_Int64Adjustment):
