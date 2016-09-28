@@ -83,7 +83,7 @@ from zipline.finance.slippage import (
 )
 from zipline.finance.cancel_policy import NeverCancel, CancelPolicy
 from zipline.finance.restrictions import (
-    NoopRestrictions,
+    NoRestrictions,
     StaticRestrictions,
     SecurityListRestrictions,
 )
@@ -425,7 +425,7 @@ class TradingAlgorithm(object):
         # A dictionary of the actual capital change deltas, keyed by timestamp
         self.capital_change_deltas = {}
 
-        self.restrictions = NoopRestrictions()
+        self.restrictions = NoRestrictions()
 
     def init_engine(self, get_loader):
         """

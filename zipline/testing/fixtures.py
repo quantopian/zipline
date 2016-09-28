@@ -36,7 +36,7 @@ from ..utils.classproperty import classproperty
 from ..utils.final import FinalMeta, final
 from .core import tmp_asset_finder, make_simple_equity_info
 from zipline.assets import Equity, Future
-from zipline.finance.restrictions import NoopRestrictions
+from zipline.finance.restrictions import NoRestrictions
 from zipline.pipeline import SimplePipelineEngine
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.protocol import BarData
@@ -1333,5 +1333,5 @@ class WithCreateBarData(WithDataPortal):
             simulation_dt_func,
             self.CREATE_BARDATA_DATA_FREQUENCY,
             self.trading_calendar,
-            restrictions or NoopRestrictions()
+            restrictions or NoRestrictions()
         )

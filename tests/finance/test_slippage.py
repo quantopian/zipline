@@ -29,7 +29,7 @@ from zipline.finance.slippage import VolumeShareSlippage
 
 from zipline.protocol import DATASOURCE_TYPE, BarData
 from zipline.finance.blotter import Order
-from zipline.finance.restrictions import NoopRestrictions
+from zipline.finance.restrictions import NoRestrictions
 from zipline.data.data_portal import DataPortal
 from zipline.testing import tmp_bcolz_equity_minute_bar_reader
 from zipline.testing.fixtures import (
@@ -788,7 +788,7 @@ class OrdersStopTestCase(WithSimParams,
                     lambda: dt,
                     self.sim_params.data_frequency,
                     self.trading_calendar,
-                    NoopRestrictions(),
+                    NoRestrictions(),
                 )
 
                 _, txn = next(slippage_model.simulate(
