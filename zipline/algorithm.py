@@ -2206,8 +2206,12 @@ class TradingAlgorithm(object):
 
         Parameters
         ----------
-        restricted_list : container[Asset], SecurityList, Restrictions
-            The assets that cannot be ordered.
+        restricted_list : Restrictions
+            An object providing information about restricted assets.
+
+        See Also
+        --------
+        zipline.finance.restrictions.Restrictions
         """
         control = RestrictedListOrder(on_error, restrictions)
         self.register_trading_control(control)
