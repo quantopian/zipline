@@ -79,6 +79,7 @@ from zipline.finance.trading import SimulationParameters
 from zipline.finance.restrictions import (
     Restriction,
     HistoricalRestrictions,
+    StaticRestrictions,
     RESTRICTION_STATES,
 )
 from zipline.testing import (
@@ -127,6 +128,7 @@ from zipline.test_algorithms import (
     SetMaxOrderCountAlgorithm,
     SetMaxOrderSizeAlgorithm,
     SetDoNotOrderListAlgorithm,
+    SetAssetRestrictionsAlgorithm,
     SetMaxLeverageAlgorithm,
     api_algo,
     api_get_environment_algo,
@@ -2793,14 +2795,14 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
                                            env=self.env)
         self.check_algo_fails(algo, handle_data, 0)
 
-    def test_set_do_not_order_list(self):
+    def test_set_asset_restrictions(self):
 
         def handle_data(algo, data):
             algo.could_trade = data.can_trade(algo.sid(self.sid))
             algo.order(algo.sid(self.sid), 100)
             algo.order_count += 1
 
-        # set the restricted list to be one sid for the entire simulation,
+        # Set HistoricalRestrictions for one sid for the entire simulation,
         # and fail.
         rlm = HistoricalRestrictions([
             Restriction(
@@ -2808,20 +2810,20 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
                 self.sim_params.start_session,
                 RESTRICTION_STATES.FROZEN)
         ])
-        algo = SetDoNotOrderListAlgorithm(
+        algo = SetAssetRestrictionsAlgorithm(
             sid=self.sid,
-            restricted_list=rlm,
+            restrictions=rlm,
             sim_params=self.sim_params,
             env=self.env,
         )
         self.check_algo_fails(algo, handle_data, 0)
         self.assertFalse(algo.could_trade)
 
-        # if the restricted list is a static list, then use a shim.
-        rlm = [self.sid]
-        algo = SetDoNotOrderListAlgorithm(
+        # Set StaticRestrictions for one sid and fail.
+        rlm = StaticRestrictions([self.sid])
+        algo = SetAssetRestrictionsAlgorithm(
             sid=self.sid,
-            restricted_list=rlm,
+            restrictions=rlm,
             sim_params=self.sim_params,
             env=self.env,
         )
@@ -2829,9 +2831,9 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
         self.assertFalse(algo.could_trade)
 
         # just log an error on the violation if we choose not to fail.
-        algo = SetDoNotOrderListAlgorithm(
+        algo = SetAssetRestrictionsAlgorithm(
             sid=self.sid,
-            restricted_list=rlm,
+            restrictions=rlm,
             sim_params=self.sim_params,
             env=self.env,
             on_error='log'
@@ -2851,14 +2853,32 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
                 self.sim_params.start_session,
                 RESTRICTION_STATES.FROZEN) for sid in [134, 135, 136]
         ])
+        algo = SetAssetRestrictionsAlgorithm(
+            sid=self.sid,
+            restrictions=rlm,
+            sim_params=self.sim_params,
+            env=self.env,
+        )
+        self.check_algo_succeeds(algo, handle_data)
+        self.assertTrue(algo.could_trade)
+
+    def test_set_do_not_order_list(self):
+
+        def handle_data(algo, data):
+            algo.could_trade = data.can_trade(algo.sid(self.sid))
+            algo.order(algo.sid(self.sid), 100)
+            algo.order_count += 1
+
+        rlm = [self.sid]
         algo = SetDoNotOrderListAlgorithm(
             sid=self.sid,
             restricted_list=rlm,
             sim_params=self.sim_params,
             env=self.env,
         )
-        self.check_algo_succeeds(algo, handle_data)
-        self.assertTrue(algo.could_trade)
+
+        self.check_algo_fails(algo, handle_data, 0)
+        self.assertFalse(algo.could_trade)
 
     def test_set_max_order_size(self):
 

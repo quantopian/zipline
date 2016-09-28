@@ -2173,15 +2173,45 @@ class TradingAlgorithm(object):
         restricted_list : container[Asset], SecurityList
             The assets that cannot be ordered.
         """
+        if isinstance(restricted_list, SecurityList):
+            warnings.warn(
+                "`set_do_not_order_list(security_lists.leveraged_etf_list)` "
+                "is deprecated. Use `set_asset_restrictions("
+                "security_lists.restrict_leveraged_etfs)` instead.",
+                category=ZiplineDeprecationWarning,
+                stacklevel=2
+            )
+            restrictions = SecurityListRestrictions(restricted_list)
+        else:
+            warnings.warn(
+                "`set_do_not_order_list(container_of_assets)` is deprecated. "
+                "Create a zipline.finance.restrictions.StaticRestrictions "
+                "object with a container of assets and use "
+                "`set_asset_restrictions(StaticRestrictions("
+                "container_of_assets))` instead.",
+                category=ZiplineDeprecationWarning,
+                stacklevel=2
+            )
+            restrictions = StaticRestrictions(restricted_list)
 
-        if isinstance(restricted_list, (list, tuple, set)):
-            restricted_list = StaticRestrictions(restricted_list)
-        elif isinstance(restricted_list, SecurityList):
-            restricted_list = SecurityListRestrictions(restricted_list)
+        self.set_asset_restrictions(restrictions, on_error)
 
-        control = RestrictedListOrder(on_error, restricted_list)
+    @api_method
+    @expect_types(
+        restrictions=Restrictions,
+        on_error=str,
+    )
+    def set_asset_restrictions(self, restrictions, on_error='fail'):
+        """Set a restriction on which assets can be ordered.
+
+        Parameters
+        ----------
+        restricted_list : container[Asset], SecurityList, Restrictions
+            The assets that cannot be ordered.
+        """
+        control = RestrictedListOrder(on_error, restrictions)
         self.register_trading_control(control)
-        self.restrictions = restricted_list
+        self.restrictions = restrictions
 
     @api_method
     def set_long_only(self, on_error='fail'):

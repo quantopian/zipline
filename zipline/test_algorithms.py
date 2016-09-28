@@ -510,6 +510,12 @@ class SetDoNotOrderListAlgorithm(TradingAlgorithm):
         self.set_do_not_order_list(restricted_list, on_error)
 
 
+class SetAssetRestrictionsAlgorithm(TradingAlgorithm):
+    def initialize(self, sid=None, restrictions=None, on_error='fail'):
+        self.order_count = 0
+        self.set_asset_restrictions(restrictions, on_error)
+
+
 class SetMaxOrderCountAlgorithm(TradingAlgorithm):
     def initialize(self, count):
         self.order_count = 0

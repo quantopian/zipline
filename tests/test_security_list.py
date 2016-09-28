@@ -2,6 +2,7 @@ from datetime import timedelta
 
 import pandas as pd
 from testfixtures import TempDirectory
+from nose_parameterized import parameterized
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.errors import TradingControlViolation
@@ -29,7 +30,7 @@ LEVERAGED_ETFS = load_from_directory('leveraged_etf_list')
 class RestrictedAlgoWithCheck(TradingAlgorithm):
     def initialize(self, symbol):
         self.rl = SecurityListSet(self.get_datetime, self.asset_finder)
-        self.set_do_not_order_list(self.rl.leveraged_etf_list)
+        self.set_asset_restrictions(self.rl.restrict_leveraged_etfs)
         self.order_count = 0
         self.sid = self.symbol(symbol)
 
@@ -45,6 +46,18 @@ class RestrictedAlgoWithCheck(TradingAlgorithm):
 class RestrictedAlgoWithoutCheck(TradingAlgorithm):
     def initialize(self, symbol):
         self.rl = SecurityListSet(self.get_datetime, self.asset_finder)
+        self.set_asset_restrictions(self.rl.restrict_leveraged_etfs)
+        self.order_count = 0
+        self.sid = self.symbol(symbol)
+
+    def handle_data(self, data):
+        self.order(self.sid, 100)
+        self.order_count += 1
+
+
+class RestrictedAlgoWithoutCheckSetDoNotOrderList(TradingAlgorithm):
+    def initialize(self, symbol):
+        self.rl = SecurityListSet(self.get_datetime, self.asset_finder)
         self.set_do_not_order_list(self.rl.leveraged_etf_list)
         self.order_count = 0
         self.sid = self.symbol(symbol)
@@ -57,7 +70,7 @@ class RestrictedAlgoWithoutCheck(TradingAlgorithm):
 class IterateRLAlgo(TradingAlgorithm):
     def initialize(self, symbol):
         self.rl = SecurityListSet(self.get_datetime, self.asset_finder)
-        self.set_do_not_order_list(self.rl.leveraged_etf_list)
+        self.set_asset_restrictions(self.rl.restrict_leveraged_etfs)
         self.order_count = 0
         self.sid = self.symbol(symbol)
         self.found = False
@@ -213,10 +226,15 @@ class SecurityListTestCase(WithLogger, WithTradingCalendars, ZiplineTestCase):
                                           env=self.env)
         algo.run(self.data_portal)
 
-    def test_algo_with_rl_violation(self):
-        algo = RestrictedAlgoWithoutCheck(symbol='BZQ',
-                                          sim_params=self.sim_params,
-                                          env=self.env)
+    @parameterized.expand([
+        ('using_set_do_not_order_list',
+         RestrictedAlgoWithoutCheckSetDoNotOrderList),
+        ('using_set_restrictions', RestrictedAlgoWithoutCheck),
+    ])
+    def test_algo_with_rl_violation(self, name, algo_class):
+        algo = algo_class(symbol='BZQ',
+                          sim_params=self.sim_params,
+                          env=self.env)
         with self.assertRaises(TradingControlViolation) as ctx:
             algo.run(self.data_portal)
 

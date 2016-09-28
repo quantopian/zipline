@@ -8,6 +8,7 @@ import pytz
 import zipline
 
 from zipline.errors import SymbolNotFound
+from zipline.finance.restrictions import SecurityListRestrictions
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 
@@ -113,6 +114,10 @@ class SecurityListSet(object):
                 asset_finder=self.asset_finder
             )
         return self._leveraged_etf
+
+    @property
+    def restrict_leveraged_etfs(self):
+        return SecurityListRestrictions(self.leveraged_etf_list)
 
 
 def load_from_directory(list_name):
