@@ -24,13 +24,15 @@ from nose_parameterized import parameterized
 
 import pandas as pd
 from pandas.tslib import normalize_date
+from numpy import arange
 
-from zipline.finance.slippage import VolumeShareSlippage
+from zipline.finance.slippage import VolumeShareSlippage,\
+    HLCVolumeSlippage, OHLVolumeSlippage
 
 from zipline.protocol import DATASOURCE_TYPE
 from zipline.finance.blotter import Order
 
-from zipline.data.data_portal import DataPortal
+from zipline.data.data_portal import DataPortal, BASE_FIELDS
 from zipline.protocol import BarData
 from zipline.testing import tmp_bcolz_equity_minute_bar_reader
 from zipline.testing.fixtures import (
@@ -38,6 +40,34 @@ from zipline.testing.fixtures import (
     WithSimParams,
     ZiplineTestCase,
 )
+
+
+class SimpleQuotes(tmp_bcolz_equity_minute_bar_reader):
+    def __init__(self, ohlc):
+        dc = dict(zip(['open', 'high', 'low', 'close'], zip(ohlc)))
+        dc['volume'] = 200
+        assets = (
+            (133, pd.DataFrame(dc, index=[SlippageTestCase.minutes[0]],)),
+        )
+        days = pd.date_range(
+            start=normalize_date(SlippageTestCase.minutes[0]),
+            end=normalize_date(SlippageTestCase.minutes[-1])
+        )
+        super(SimpleQuotes, self). \
+            __init__(SlippageTestCase.trading_calendar, days, assets)
+
+    def __enter__(self):
+        reader = tmp_bcolz_equity_minute_bar_reader.__enter__(self)
+        data_portal = DataPortal(
+            SlippageTestCase.env.asset_finder,
+            SlippageTestCase.trading_calendar,
+            first_trading_day=reader.first_trading_day,
+            equity_minute_reader=reader
+        )
+        return BarData(data_portal,
+                       lambda: SlippageTestCase.minutes[0],
+                       SlippageTestCase.sim_params.data_frequency,
+                       SlippageTestCase.trading_calendar)
 
 
 class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
@@ -60,10 +90,10 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
     def make_equity_minute_bar_data(cls):
         yield 133, pd.DataFrame(
             {
-                'open': [3.0, 3.0, 3.5, 4.0, 3.5],
-                'high': [3.15, 3.15, 3.15, 3.15, 3.15],
-                'low': [2.85, 2.85, 2.85, 2.85, 2.85],
-                'close': [3.0, 3.5, 4.0, 3.5, 3.0],
+                'open':   [3.0,  3.0,  3.5,  4.0,  3.5],
+                'high':   [3.7,  3.7,  4.2,  4.2,  3.7],
+                'low':    [2.85, 2.85, 2.85, 2.85, 2.85],
+                'close':  [3.0,  3.5,  4.0,  3.5,  3.0],
                 'volume': [2000, 2000, 2000, 2000, 2000],
             },
             index=cls.minutes,
@@ -91,8 +121,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
             start=normalize_date(self.minutes[0]),
             end=normalize_date(self.minutes[-1])
         )
-        with tmp_bcolz_equity_minute_bar_reader(self.trading_calendar, days, assets) \
-                as reader:
+        with tmp_bcolz_equity_minute_bar_reader(self.trading_calendar, days,
+                                                assets) as reader:
             data_portal = DataPortal(
                 self.env.asset_finder, self.trading_calendar,
                 first_trading_day=reader.first_trading_day,
@@ -184,6 +214,7 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                            self.sim_params.data_frequency,
                            self.trading_calendar)
 
+        self.print_quotes(bar_data, open_orders[0])
         orders_txns = list(slippage_model.simulate(
             bar_data,
             self.ASSET133,
@@ -193,6 +224,7 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
         self.assertEquals(len(orders_txns), 0)
 
         # long, does not trade - impacted price worse than limit price
+        # TODO: this seems duplicate to above?
         open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
@@ -207,6 +239,7 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                            self.sim_params.data_frequency,
                            self.trading_calendar)
 
+        self.print_quotes(bar_data, open_orders[0])
         orders_txns = list(slippage_model.simulate(
             bar_data,
             self.ASSET133,
@@ -230,6 +263,7 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                            self.sim_params.data_frequency,
                            self.trading_calendar)
 
+        self.print_quotes(bar_data, open_orders[0])
         orders_txns = list(slippage_model.simulate(
             bar_data,
             self.ASSET133,
@@ -270,6 +304,7 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                            self.sim_params.data_frequency,
                            self.trading_calendar)
 
+        self.print_quotes(bar_data, open_orders[0])
         orders_txns = list(slippage_model.simulate(
             bar_data,
             self.ASSET133,
@@ -279,6 +314,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
         self.assertEquals(len(orders_txns), 0)
 
         # short, does not trade - impacted price worse than limit price
+        # TODO: this seems duplicate to above?
+
         open_orders = [
             Order(**{
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
@@ -293,6 +330,7 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                            self.sim_params.data_frequency,
                            self.trading_calendar)
 
+        self.print_quotes(bar_data, open_orders[0])
         orders_txns = list(slippage_model.simulate(
             bar_data,
             self.ASSET133,
@@ -316,6 +354,7 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                            self.sim_params.data_frequency,
                            self.trading_calendar)
 
+        self.print_quotes(bar_data, open_orders[0])
         orders_txns = list(slippage_model.simulate(
             bar_data,
             self.ASSET133,
@@ -489,8 +528,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
             start=normalize_date(self.minutes[0]),
             end=normalize_date(self.minutes[-1])
         )
-        with tmp_bcolz_equity_minute_bar_reader(self.trading_calendar, days, assets) \
-                as reader:
+        with tmp_bcolz_equity_minute_bar_reader(self.trading_calendar, days,
+                                                assets) as reader:
             data_portal = DataPortal(
                 self.env.asset_finder, self.trading_calendar,
                 first_trading_day=reader.first_trading_day,
@@ -521,6 +560,12 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                 for key, value in expected['transaction'].items():
                     self.assertEquals(value, txn[key])
 
+    def print_quotes(self, data, order):
+        qt = data.current(self.ASSET133, list(BASE_FIELDS))
+        print('order: qty %d stop %.2g limit %.2g' %
+              (order.amount, order.stop or 0, order.limit or 0) +
+              ', bar data OHLC: %(open)g %(high)g %(low)g %(close)g' % qt)
+
     def test_orders_stop_limit(self):
         slippage_model = VolumeShareSlippage()
         slippage_model.data_portal = self.data_portal
@@ -541,6 +586,7 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                            self.sim_params.data_frequency,
                            self.trading_calendar)
 
+        self.print_quotes(bar_data, open_orders[0])
         orders_txns = list(slippage_model.simulate(
             bar_data,
             self.ASSET133,
@@ -554,6 +600,7 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                            self.sim_params.data_frequency,
                            self.trading_calendar)
 
+        self.print_quotes(bar_data, open_orders[0])
         orders_txns = list(slippage_model.simulate(
             bar_data,
             self.ASSET133,
@@ -578,6 +625,7 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                            self.sim_params.data_frequency,
                            self.trading_calendar)
 
+        self.print_quotes(bar_data, open_orders[0])
         orders_txns = list(slippage_model.simulate(
             bar_data,
             self.ASSET133,
@@ -591,6 +639,7 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                            self.sim_params.data_frequency,
                            self.trading_calendar)
 
+        self.print_quotes(bar_data, open_orders[0])
         orders_txns = list(slippage_model.simulate(
             bar_data,
             self.ASSET133,
@@ -615,6 +664,7 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                            self.sim_params.data_frequency,
                            self.trading_calendar)
 
+        self.print_quotes(bar_data, open_orders[0])
         orders_txns = list(slippage_model.simulate(
             bar_data,
             self.ASSET133,
@@ -628,6 +678,7 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                            self.sim_params.data_frequency,
                            self.trading_calendar)
 
+        self.print_quotes(bar_data, open_orders[0])
         orders_txns = list(slippage_model.simulate(
             bar_data,
             self.ASSET133,
@@ -665,6 +716,7 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                            self.sim_params.data_frequency,
                            self.trading_calendar)
 
+        self.print_quotes(bar_data, open_orders[0])
         orders_txns = list(slippage_model.simulate(
             bar_data,
             self.ASSET133,
@@ -702,6 +754,7 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                            self.sim_params.data_frequency,
                            self.trading_calendar)
 
+        self.print_quotes(bar_data, open_orders[0])
         orders_txns = list(slippage_model.simulate(
             bar_data,
             self.ASSET133,
@@ -739,6 +792,7 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                            self.sim_params.data_frequency,
                            self.trading_calendar)
 
+        self.print_quotes(bar_data, open_orders[0])
         orders_txns = list(slippage_model.simulate(
             bar_data,
             self.ASSET133,
@@ -752,6 +806,7 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                            self.sim_params.data_frequency,
                            self.trading_calendar)
 
+        self.print_quotes(bar_data, open_orders[0])
         orders_txns = list(slippage_model.simulate(
             bar_data,
             self.ASSET133,
@@ -771,3 +826,138 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         for key, value in expected_txn.items():
             self.assertEquals(value, txn[key])
+
+        # test when limit can be executed in the same bar as stop
+        self.print_quotes(bar_data, open_orders[0])
+        open_orders = [
+            Order(**{
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'amount': 100,
+                'sid': self.ASSET133,
+                'stop': 3.1,
+                'limit': 3.6})
+        ]
+
+        bar_data = BarData(self.data_portal,
+                           lambda: self.minutes[1],
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
+
+        self.print_quotes(bar_data, open_orders[0])
+        # enhance coverage with slippage_model() vs slippage_model.simulate()
+        orders_txns = list(slippage_model(
+            bar_data,
+            self.ASSET133,
+            open_orders
+        ))
+        txn = orders_txns[0][1]
+        self.assert_(txn['amount'] > 0 and
+                     abs(txn['price'] - 3.5) < 0.01)
+
+    def testHLCVolumeSlippage(self):
+        slippage = HLCVolumeSlippage()
+        templates = (
+            '+LOCHxC', '+lLOCH.', '+LlOCHxl', '-LOCHl.', '-LOClHxl',
+            '+LOCslHxs',
+            # stop triggered by High, limit triggered at Close, executed at lmt
+            '+LOClsHxl',
+            '-LOCslH.',  # stop triggered, but limit not
+            '-LOClsHxs',
+            '+LOCsHxs', '-LsOCHxs', '-LOCHsxC', '+sLOCHxC'
+            )
+        for t in templates:
+            self.verifyTemplate(t, slippage)
+
+    def testOHLVolumeSlippage(self):
+        slippage = OHLVolumeSlippage()
+        templates = (
+            '+LOCHxO', '+lLOCH.', '+LlOCHxl', '+LOlCHxO', '+LOClHxO',
+            '+LOCHlxO',
+            '-LOCHl.', '-LOClHxl', '-LOlCHxl', '-LlOCHxO', '-lLOCHxO',
+            '+LOCslHxs',
+            # stop triggered on High, limit triggered at C, executed at limit
+            '+LOClsHxl',
+            '-LOCslHxl', '-LOClsHxl',
+            '+LOCsHxs', '-LsOCHxs', '-LOCHsxO', '-LOsCHxO',
+            '+sLOCHxO',
+            # stop triggered on open, limit triggered by low, execute at limit
+            '+LlsOCHxl',
+            '+LOlsCH.'
+            )
+        for t in templates:
+            self.verifyTemplate(t, slippage)
+
+    def verifyTemplate(self, template, slippage):
+        params = template_to_num(template)
+        ohlc = [params[f] for f in 'OHLC']
+        stop = params.get('s', None)
+        limit = params.get('l', None)
+
+        def _format(f):
+            return 'None' if f is None else '%g' % f
+        print(template + ' stop ' + _format(stop) + ' limit ' +
+              _format(limit) + ' quotes %s' % ohlc)
+        amount = (1 if template[0] == '+' else -1) * 100
+        with SimpleQuotes(ohlc) as data:
+            assert params['L'] <= params['H'], 'invalid bar: H < L'
+            order = Order(datetime.datetime.now(), self.ASSET133, amount,
+                          limit=limit,
+                          stop=stop)
+            if template == '+LOlsCH.':
+                pass  # debug break
+            txns = list(slippage.simulate(data, self.ASSET133, [order]))
+            if len(txns):
+                txn = txns[0][1]
+                print('executed txn', txn.amount)
+            else:
+                txn = None
+            check_template(template, txn)
+            return txn
+
+
+def template_to_num(tmpl):
+    """Produce real OHLC quotes from a testing template:
+        Order of characters does matter, latter chars produce higher numbers
+        'l' - order.limit
+        's' - order.stop
+        'O', 'H', 'L', 'C' - bar components
+        '+' is discarded for numbers generation but later means a positive
+                amount (buy order)
+        '-' is sell order
+        'xC' - expected result is 'having a transaction' at Close price
+        '.' - expected result is 'no action, pass...'
+    """
+    step = 0.5
+    import six
+    del_chars = '+.'
+    tmpl = tmpl.translate(None, del_chars) if six.PY2 \
+        else tmpl.translate(str.maketrans('', '', del_chars))
+    xi = tmpl.find('x')
+    if xi != -1:
+        tmpl = tmpl[:xi]
+
+    return dict(zip(tmpl, arange(3, 3 + len(tmpl)*step, step)))
+
+
+def check_template(template, txn):
+    assert '+-'.index(template[0]) >= 0, 'templace must match with + or -'
+    if template[-2] == 'x':
+        assert txn is not None, 'expected to have transation ' + template
+        assert (txn.amount > 0) == (template[0] == '+'), \
+            'unexpected transaction direction'
+        prices = template_to_num(template)
+        expected_price = prices[template[-1]]
+        assert abs(txn.price - expected_price) < 0.01, \
+            'expected price %g, got %g %s' % \
+            (expected_price, txn.price, template)
+    else:
+        assert template[-1] == '.', \
+            'only x[OHLC] or . accepted at end of template ' + template
+        assert txn is None, \
+            'no transaction expected %s %s' % (template, txn.price)
+
+if __name__ == '__main__':
+    import nose
+    test = 'tests.finance.test_slippage:SlippageTestCase'
+    # test += '.testHLCVolumeSlippage'  # .testOHLVolumeSlippage
+    nose.run(argv=['nosetests', '-s', test])
