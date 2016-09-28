@@ -48,7 +48,7 @@ class Restrictions(with_metaclass(abc.ABCMeta)):
         raise NotImplementedError('is_restricted')
 
 
-class NoopRestrictions(Restrictions):
+class NoRestrictions(Restrictions):
     """
     A no-op restrictions that contains no restrictions
     """

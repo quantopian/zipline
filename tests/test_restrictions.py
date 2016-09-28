@@ -11,7 +11,7 @@ from zipline.finance.restrictions import (
     HistoricalRestrictions,
     StaticRestrictions,
     SecurityListRestrictions,
-    NoopRestrictions,
+    NoRestrictions,
 )
 
 from zipline.testing import parameter_space
@@ -273,7 +273,7 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
         Test single- and multi-asset queries on no-op restrictions
         """
 
-        rl = NoopRestrictions()
+        rl = NoRestrictions()
         assert_not_restricted = partial(self.assert_not_restricted, rl)
         assert_all_restrictions = partial(self.assert_all_restrictions, rl)
 

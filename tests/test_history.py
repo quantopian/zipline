@@ -28,7 +28,7 @@ from zipline.errors import (
     HistoryWindowStartsBeforeData,
 )
 from zipline.finance.trading import SimulationParameters
-from zipline.finance.restrictions import NoopRestrictions
+from zipline.finance.restrictions import NoRestrictions
 from zipline.testing import (
     create_minute_df_for_asset,
     str_to_seconds,
@@ -806,7 +806,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
             data_portal=data_portal,
             simulation_dt_func=lambda: minutes[15],
             data_frequency='minute',
-            restrictions=NoopRestrictions(),
+            restrictions=NoRestrictions(),
             trading_calendar=self.trading_calendar,
         )
 
