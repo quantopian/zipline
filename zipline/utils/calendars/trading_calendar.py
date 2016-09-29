@@ -25,7 +25,6 @@ from pandas import (
     DataFrame,
     date_range,
     DatetimeIndex,
-    DateOffset
 )
 from pandas.tseries.offsets import CustomBusinessDay
 from zipline.utils.calendars._calendar_helpers import (
@@ -830,16 +829,13 @@ def days_at_time(days, t, tz, day_offset=0):
 
     # Offset days without tz to avoid timezone issues.
     days = DatetimeIndex(days).tz_localize(None)
-    days_offset = days + DateOffset(days=day_offset)
-
-    # Shift all days to the target time in the local timezone, then
-    # convert to UTC.
-
-    # FIXME: Once we're off Pandas 16, see if we can replace DateOffset with
-    # TimeDelta.
-    return days_offset.shift(
-        1, freq=DateOffset(hour=t.hour, minute=t.minute, second=t.second)
-    ).tz_localize(tz).tz_convert('UTC')
+    delta = pd.Timedelta(
+        days=day_offset,
+        hours=t.hour,
+        minutes=t.minute,
+        seconds=t.second,
+    )
+    return (days + delta).tz_localize(tz)
 
 
 def holidays_at_time(calendar, start, end, time, tz):
