@@ -820,7 +820,7 @@ def days_at_time(days, t, tz, day_offset=0):
     t : datetime.time
         The time to apply as an offset to each day in ``days``.
     tz : pytz.timezone
-        The timezone to use to interpret ``tz``.
+        The timezone to use to interpret ``t``.
     day_offset : int
         The number of days we want to offset @days by
 
