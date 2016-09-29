@@ -36,7 +36,7 @@ from ..utils.classproperty import classproperty
 from ..utils.final import FinalMeta, final
 from .core import tmp_asset_finder, make_simple_equity_info
 from zipline.assets import Equity, Future
-from zipline.finance.restrictions import NoRestrictions
+from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.pipeline import SimplePipelineEngine
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.protocol import BarData

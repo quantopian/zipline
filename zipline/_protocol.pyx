@@ -153,7 +153,7 @@ cdef class BarData:
     data_frequency : {'minute', 'daily'}
         The frequency of the bar data; i.e. whether the data is
         daily or minute bars
-    restrictions : zipline.finance.restrictions.Restrictions
+    restrictions : zipline.finance.asset_restrictions.Restrictions
         Object that combines and returns restricted list information from
         multiple sources
     universe_func : callable, optional

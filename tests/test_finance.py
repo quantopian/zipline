@@ -37,7 +37,7 @@ from zipline.data.minute_bars import BcolzMinuteBarReader
 from zipline.data.data_portal import DataPortal
 from zipline.data.us_equity_pricing import BcolzDailyBarWriter
 from zipline.finance.slippage import FixedSlippage
-from zipline.finance.restrictions import NoRestrictions
+from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.protocol import BarData
 from zipline.testing import (
     tmp_trading_env,

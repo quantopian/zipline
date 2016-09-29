@@ -28,7 +28,7 @@ from zipline.errors import (
     HistoryWindowStartsBeforeData,
 )
 from zipline.finance.trading import SimulationParameters
-from zipline.finance.restrictions import NoRestrictions
+from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.testing import (
     create_minute_df_for_asset,
     str_to_seconds,

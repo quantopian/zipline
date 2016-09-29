@@ -76,7 +76,7 @@ from zipline.finance.commission import PerShare
 from zipline.finance.execution import LimitOrder
 from zipline.finance.order import ORDER_STATUS
 from zipline.finance.trading import SimulationParameters
-from zipline.finance.restrictions import (
+from zipline.finance.asset_restrictions import (
     Restriction,
     HistoricalRestrictions,
     StaticRestrictions,

@@ -5,7 +5,7 @@ from functools import partial
 
 from toolz import groupby
 
-from zipline.finance.restrictions import (
+from zipline.finance.asset_restrictions import (
     RESTRICTION_STATES,
     Restriction,
     HistoricalRestrictions,

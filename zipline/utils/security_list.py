@@ -8,7 +8,7 @@ import pytz
 import zipline
 
 from zipline.errors import SymbolNotFound
-from zipline.finance.restrictions import SecurityListRestrictions
+from zipline.finance.asset_restrictions import SecurityListRestrictions
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 

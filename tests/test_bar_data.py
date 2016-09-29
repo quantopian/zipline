@@ -23,7 +23,7 @@ import pandas as pd
 
 from zipline._protocol import handle_non_market_minutes
 
-from zipline.finance.restrictions import (
+from zipline.finance.asset_restrictions import (
     Restriction,
     HistoricalRestrictions,
     RESTRICTION_STATES,

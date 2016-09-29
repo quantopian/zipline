@@ -29,7 +29,7 @@ from zipline.finance.slippage import VolumeShareSlippage
 
 from zipline.protocol import DATASOURCE_TYPE, BarData
 from zipline.finance.blotter import Order
-from zipline.finance.restrictions import NoRestrictions
+from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.data.data_portal import DataPortal
 from zipline.testing import tmp_bcolz_equity_minute_bar_reader
 from zipline.testing.fixtures import (

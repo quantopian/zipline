@@ -24,7 +24,7 @@ from zipline import TradingAlgorithm
 from zipline.gens.sim_engine import BEFORE_TRADING_START_BAR
 
 from zipline.finance.performance import PerformanceTracker
-from zipline.finance.restrictions import NoRestrictions
+from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.test_algorithms import NoopAlgorithm

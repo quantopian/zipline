@@ -76,13 +76,13 @@ from zipline.finance.execution import (
     StopOrder,
 )
 from zipline.finance.performance import PerformanceTracker
-from zipline.finance.restrictions import Restrictions
+from zipline.finance.asset_restrictions import Restrictions
 from zipline.finance.slippage import (
     VolumeShareSlippage,
     SlippageModel
 )
 from zipline.finance.cancel_policy import NeverCancel, CancelPolicy
-from zipline.finance.restrictions import (
+from zipline.finance.asset_restrictions import (
     NoRestrictions,
     StaticRestrictions,
     SecurityListRestrictions,
@@ -2185,8 +2185,8 @@ class TradingAlgorithm(object):
         else:
             warnings.warn(
                 "`set_do_not_order_list(container_of_assets)` is deprecated. "
-                "Create a zipline.finance.restrictions.StaticRestrictions "
-                "object with a container of assets and use "
+                "Create a zipline.finance.asset_restrictions."
+                "StaticRestrictions object with a container of assets and use "
                 "`set_asset_restrictions(StaticRestrictions("
                 "container_of_assets))` instead.",
                 category=ZiplineDeprecationWarning,
@@ -2211,7 +2211,7 @@ class TradingAlgorithm(object):
 
         See Also
         --------
-        zipline.finance.restrictions.Restrictions
+        zipline.finance.asset_restrictions.Restrictions
         """
         control = RestrictedListOrder(on_error, restrictions)
         self.register_trading_control(control)

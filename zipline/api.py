@@ -16,12 +16,11 @@
 # Note that part of the API is implemented in TradingAlgorithm as
 # methods (e.g. order). These are added to this namespace via the
 # decorator ``api_method`` inside of algorithm.py.
-from .finance.restrictions import (
+from .finance.asset_restrictions import (
     Restriction,
     StaticRestrictions,
     HistoricalRestrictions,
     RESTRICTION_STATES,
-    SecurityListRestrictions,
 )
 from .finance import commission, execution, slippage, cancel_policy
 from .finance.cancel_policy import (
@@ -47,7 +46,6 @@ __all__ = [
     'StaticRestrictions',
     'HistoricalRestrictions',
     'RESTRICTION_STATES',
-    'SecurityListRestrictions',
     'cancel_policy',
     'commission',
     'date_rules',
