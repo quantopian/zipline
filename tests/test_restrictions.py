@@ -12,6 +12,7 @@ from zipline.finance.asset_restrictions import (
     StaticRestrictions,
     SecurityListRestrictions,
     NoRestrictions,
+    _UnionRestrictions,
 )
 
 from zipline.testing import parameter_space
@@ -284,3 +285,138 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
             assert_not_restricted(self.ASSET2, dt)
             assert_not_restricted(self.ASSET3, dt)
             assert_all_restrictions([False, False, False], dt)
+
+    def test_union_restrictions(self):
+        """
+        Test that we appropriately union restrictions together, including
+        eliminating redundancy (ignoring NoRestrictions) and flattening out
+        the underlying sub-restrictions of _UnionRestrictions
+        """
+
+        no_restrictions_rl = NoRestrictions()
+
+        st_restrict_asset1 = StaticRestrictions([self.ASSET1])
+        st_restrict_asset2 = StaticRestrictions([self.ASSET2])
+        st_restricted_assets = [self.ASSET1, self.ASSET2]
+
+        before_frozen_dt = str_to_ts('2011-01-05')
+        freeze_dt_1 = str_to_ts('2011-01-06')
+        unfreeze_dt = str_to_ts('2011-01-06 16:00')
+        hist_restrict_asset3_1 = HistoricalRestrictions([
+            Restriction(self.ASSET3, freeze_dt_1, FROZEN),
+            Restriction(self.ASSET3, unfreeze_dt, ALLOWED)
+        ])
+
+        freeze_dt_2 = str_to_ts('2011-01-07')
+        hist_restrict_asset3_2 = HistoricalRestrictions([
+            Restriction(self.ASSET3, freeze_dt_2, FROZEN)
+        ])
+
+        # A union of a NoRestrictions with a non-trivial restriction should
+        # yield the original restriction
+        trivial_union_restrictions = no_restrictions_rl | st_restrict_asset1
+        self.assertIsInstance(trivial_union_restrictions, StaticRestrictions)
+
+        # A union of two non-trivial restrictions should yield a
+        # UnionRestrictions
+        st_union_restrictions = st_restrict_asset1 | st_restrict_asset2
+        self.assertIsInstance(st_union_restrictions, _UnionRestrictions)
+
+        arb_dt = str_to_ts('2011-01-04')
+        self.assert_is_restricted(st_restrict_asset1, self.ASSET1, arb_dt)
+        self.assert_not_restricted(st_restrict_asset1, self.ASSET2, arb_dt)
+        self.assert_not_restricted(st_restrict_asset2, self.ASSET1, arb_dt)
+        self.assert_is_restricted(st_restrict_asset2, self.ASSET2, arb_dt)
+        self.assert_is_restricted(st_union_restrictions, self.ASSET1, arb_dt)
+        self.assert_is_restricted(st_union_restrictions, self.ASSET2, arb_dt)
+        self.assert_many_restrictions(
+            st_restrict_asset1,
+            st_restricted_assets,
+            [True, False],
+            arb_dt
+        )
+        self.assert_many_restrictions(
+            st_restrict_asset2,
+            st_restricted_assets,
+            [False, True],
+            arb_dt
+        )
+        self.assert_many_restrictions(
+            st_union_restrictions,
+            st_restricted_assets,
+            [True, True],
+            arb_dt
+        )
+
+        # A union of a 2-sub-restriction UnionRestrictions and a
+        # non-trivial restrictions should yield a UnionRestrictions with
+        # 3 sub restrictions. Works with UnionRestrictions on both the left
+        # side or right side
+        for r1, r2 in [
+            (st_union_restrictions, hist_restrict_asset3_1),
+            (hist_restrict_asset3_1, st_union_restrictions)
+        ]:
+            union_or_hist_restrictions = r1 | r2
+            self.assertIsInstance(
+                union_or_hist_restrictions, _UnionRestrictions)
+            self.assertEqual(
+                len(union_or_hist_restrictions.sub_restrictions), 3)
+
+            # Includes the two static restrictions on ASSET1 and ASSET2,
+            # and the historical restriction on ASSET3 starting on freeze_dt_1
+            # and ending on unfreeze_dt
+            self.assert_all_restrictions(
+                union_or_hist_restrictions,
+                [True, True, False],
+                before_frozen_dt
+            )
+            self.assert_all_restrictions(
+                union_or_hist_restrictions,
+                [True, True, True],
+                freeze_dt_1
+            )
+            self.assert_all_restrictions(
+                union_or_hist_restrictions,
+                [True, True, False],
+                unfreeze_dt
+            )
+            self.assert_all_restrictions(
+                union_or_hist_restrictions,
+                [True, True, False],
+                freeze_dt_2
+            )
+
+        # A union of two 2-sub-restrictions UnionRestrictions should yield a
+        # UnionRestrictions with 4 sub restrictions.
+        hist_union_restrictions = \
+            hist_restrict_asset3_1 | hist_restrict_asset3_2
+        multi_union_restrictions = \
+            st_union_restrictions | hist_union_restrictions
+
+        self.assertIsInstance(multi_union_restrictions, _UnionRestrictions)
+        self.assertEqual(len(multi_union_restrictions.sub_restrictions), 4)
+
+        # Includes the two static restrictions on ASSET1 and ASSET2, the
+        # first historical restriction on ASSET3 starting on freeze_dt_1 and
+        # ending on unfreeze_dt, and the second historical restriction on
+        # ASSET3 starting on freeze_dt_2
+        self.assert_all_restrictions(
+            multi_union_restrictions,
+            [True, True, False],
+            before_frozen_dt
+        )
+        self.assert_all_restrictions(
+            multi_union_restrictions,
+            [True, True, True],
+            freeze_dt_1
+        )
+        self.assert_all_restrictions(
+            multi_union_restrictions,
+            [True, True, False],
+            unfreeze_dt
+        )
+        self.assert_all_restrictions(
+            multi_union_restrictions,
+            [True, True, True],
+            freeze_dt_2
+        )

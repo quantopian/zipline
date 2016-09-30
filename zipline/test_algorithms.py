@@ -516,6 +516,13 @@ class SetAssetRestrictionsAlgorithm(TradingAlgorithm):
         self.set_asset_restrictions(restrictions, on_error)
 
 
+class SetMultipleAssetRestrictionsAlgorithm(TradingAlgorithm):
+    def initialize(self, restrictions1, restrictions2, on_error='fail'):
+        self.order_count = 0
+        self.set_asset_restrictions(restrictions1, on_error)
+        self.set_asset_restrictions(restrictions2, on_error)
+
+
 class SetMaxOrderCountAlgorithm(TradingAlgorithm):
     def initialize(self, count):
         self.order_count = 0

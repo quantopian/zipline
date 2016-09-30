@@ -2215,7 +2215,7 @@ class TradingAlgorithm(object):
         """
         control = RestrictedListOrder(on_error, restrictions)
         self.register_trading_control(control)
-        self.restrictions = restrictions
+        self.restrictions |= restrictions
 
     @api_method
     def set_long_only(self, on_error='fail'):

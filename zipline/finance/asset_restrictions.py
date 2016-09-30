@@ -1,6 +1,7 @@
 import abc
 from numpy import vectorize
-from functools import partial
+from functools import partial, reduce
+import operator
 import pandas as pd
 from six import with_metaclass
 from collections import namedtuple
@@ -46,6 +47,68 @@ class Restrictions(with_metaclass(abc.ABCMeta)):
 
         """
         raise NotImplementedError('is_restricted')
+
+    def __or__(self, other_restriction):
+        """
+        Base implementation for combining two restrictions. If the right side
+        is a _UnionRestrictions, calls the overriding implementation with
+        _UnionRestrictions on the left side
+        """
+        if isinstance(other_restriction, _UnionRestrictions):
+            return _UnionRestrictions.__or__(other_restriction, self)
+        return _UnionRestrictions([self, other_restriction])
+
+
+class _UnionRestrictions(Restrictions):
+    """
+    A union of a number of sub restrictions
+
+    Parameters
+    ----------
+    sub_restrictions : iterable of Restrictions (but not _UnionRestrictions)
+        The Restrictions to be added together
+    """
+
+    def __new__(cls, sub_restrictions):
+        """
+        Returns a _UnionRestrictions defined by a list of sub_restrictions,
+        while dealing with trivial NoRestrictions cases
+        """
+        sub_restrictions = [
+            r for r in sub_restrictions if not isinstance(r, NoRestrictions)
+        ]
+        if len(sub_restrictions) == 0:
+            return NoRestrictions()
+        elif len(sub_restrictions) == 1:
+            return sub_restrictions[0]
+
+        new_instance = super(_UnionRestrictions, cls).__new__(cls)
+        new_instance.sub_restrictions = sub_restrictions
+        return new_instance
+
+    def __or__(self, other_restriction):
+        """
+        Overrides the base implementation if the left side is a
+        _UnionRestrictions. Extracts the underlying sub_restrictions from the
+        _UnionRestrictions
+        """
+        if isinstance(other_restriction, _UnionRestrictions):
+            new_sub_restrictions = \
+                self.sub_restrictions + other_restriction.sub_restrictions
+        else:
+            new_sub_restrictions = self.sub_restrictions + [other_restriction]
+
+        return _UnionRestrictions(new_sub_restrictions)
+
+    def is_restricted(self, assets, dt):
+        if isinstance(assets, Asset):
+            return any(
+                r.is_restricted(assets, dt) for r in self.sub_restrictions)
+
+        return reduce(
+            operator.or_,
+            (r.is_restricted(assets, dt) for r in self.sub_restrictions)
+        )
 
 
 class NoRestrictions(Restrictions):

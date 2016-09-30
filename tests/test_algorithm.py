@@ -129,6 +129,7 @@ from zipline.test_algorithms import (
     SetMaxOrderSizeAlgorithm,
     SetDoNotOrderListAlgorithm,
     SetAssetRestrictionsAlgorithm,
+    SetMultipleAssetRestrictionsAlgorithm,
     SetMaxLeverageAlgorithm,
     api_algo,
     api_get_environment_algo,
@@ -2861,6 +2862,30 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
         )
         self.check_algo_succeeds(algo, handle_data)
         self.assertTrue(algo.could_trade)
+
+    @parameterized.expand([
+        ('order_first_restricted_sid', 0),
+        ('order_second_restricted_sid', 1)
+    ])
+    def test_set_multiple_asset_restrictions(self, name, to_order_idx):
+
+        def handle_data(algo, data):
+            algo.could_trade1 = data.can_trade(algo.sid(self.sids[0]))
+            algo.could_trade2 = data.can_trade(algo.sid(self.sids[1]))
+            algo.order(algo.sid(self.sids[to_order_idx]), 100)
+            algo.order_count += 1
+
+        rl1 = StaticRestrictions([self.sids[0]])
+        rl2 = StaticRestrictions([self.sids[1]])
+        algo = SetMultipleAssetRestrictionsAlgorithm(
+            restrictions1=rl1,
+            restrictions2=rl2,
+            sim_params=self.sim_params,
+            env=self.env,
+        )
+        self.check_algo_fails(algo, handle_data, 0)
+        self.assertFalse(algo.could_trade1)
+        self.assertFalse(algo.could_trade2)
 
     def test_set_do_not_order_list(self):
 
