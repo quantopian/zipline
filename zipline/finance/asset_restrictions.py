@@ -25,7 +25,8 @@ RESTRICTION_STATES = enum(
 
 class Restrictions(with_metaclass(abc.ABCMeta)):
     """
-    Abstract restricted list interface
+    Abstract restricted list interface, representing a set of assets that an
+    algorithm is restricted from trading.
     """
 
     @abc.abstractmethod
@@ -49,31 +50,34 @@ class Restrictions(with_metaclass(abc.ABCMeta)):
         raise NotImplementedError('is_restricted')
 
     def __or__(self, other_restriction):
+        """Base implementation for combining two restrictions.
         """
-        Base implementation for combining two restrictions. If the right side
-        is a _UnionRestrictions, calls the overriding implementation with
-        _UnionRestrictions on the left side
-        """
+        # If the right side is a _UnionRestrictions, defers to the
+        # _UnionRestrictions implementation of `|`, which intelligently
+        # flattens restricted lists
         if isinstance(other_restriction, _UnionRestrictions):
-            return _UnionRestrictions.__or__(other_restriction, self)
+            return other_restriction | self
         return _UnionRestrictions([self, other_restriction])
 
 
 class _UnionRestrictions(Restrictions):
     """
-    A union of a number of sub restrictions
+    A union of a number of sub restrictions.
 
     Parameters
     ----------
     sub_restrictions : iterable of Restrictions (but not _UnionRestrictions)
         The Restrictions to be added together
+
+    Notes
+    -----
+    - Consumers should not construct instances of this class directly, but
+      instead use the `|` operator to combine restrictions
     """
 
     def __new__(cls, sub_restrictions):
-        """
-        Returns a _UnionRestrictions defined by a list of sub_restrictions,
-        while dealing with trivial NoRestrictions cases
-        """
+        # Filter out NoRestrictions and deal with resulting cases involving
+        # one or zero sub_restrictions
         sub_restrictions = [
             r for r in sub_restrictions if not isinstance(r, NoRestrictions)
         ]
@@ -88,10 +92,10 @@ class _UnionRestrictions(Restrictions):
 
     def __or__(self, other_restriction):
         """
-        Overrides the base implementation if the left side is a
-        _UnionRestrictions. Extracts the underlying sub_restrictions from the
-        _UnionRestrictions
+        Overrides the base implementation for combining two restrictions, of
+        which the left side is a _UnionRestrictions.
         """
+        # Flatten the underlying sub restrictions of _UnionRestrictions
         if isinstance(other_restriction, _UnionRestrictions):
             new_sub_restrictions = \
                 self.sub_restrictions + other_restriction.sub_restrictions
@@ -103,7 +107,8 @@ class _UnionRestrictions(Restrictions):
     def is_restricted(self, assets, dt):
         if isinstance(assets, Asset):
             return any(
-                r.is_restricted(assets, dt) for r in self.sub_restrictions)
+                r.is_restricted(assets, dt) for r in self.sub_restrictions
+            )
 
         return reduce(
             operator.or_,
@@ -113,18 +118,18 @@ class _UnionRestrictions(Restrictions):
 
 class NoRestrictions(Restrictions):
     """
-    A no-op restrictions that contains no restrictions
+    A no-op restrictions that contains no restrictions.
     """
     def is_restricted(self, assets, dt):
         if isinstance(assets, Asset):
             return False
-        return pd.Series(index=pd.Index(assets), data=[False]*len(assets))
+        return pd.Series(index=pd.Index(assets), data=False)
 
 
 class StaticRestrictions(Restrictions):
     """
     Static restrictions stored in memory that are constant regardless of dt
-    for each asset
+    for each asset.
 
     Parameters
     ----------
@@ -137,7 +142,7 @@ class StaticRestrictions(Restrictions):
 
     def is_restricted(self, assets, dt):
         """
-        An asset is restricted for all dts if it is in the static list
+        An asset is restricted for all dts if it is in the static list.
         """
         if isinstance(assets, Asset):
             return assets in self._restricted_set
@@ -150,7 +155,7 @@ class StaticRestrictions(Restrictions):
 class HistoricalRestrictions(Restrictions):
     """
     Historical restrictions stored in memory with effective dates for each
-    asset
+    asset.
 
     Parameters
     ----------
@@ -172,7 +177,7 @@ class HistoricalRestrictions(Restrictions):
     def is_restricted(self, assets, dt):
         """
         Returns whether or not an asset or iterable of assets is restricted
-        on a dt
+        on a dt.
         """
         if isinstance(assets, Asset):
             return self._is_restricted_for_asset(assets, dt)
@@ -194,7 +199,7 @@ class HistoricalRestrictions(Restrictions):
 
 class SecurityListRestrictions(Restrictions):
     """
-    Restrictions based on a security list
+    Restrictions based on a security list.
 
     Parameters
     ----------
