@@ -33,7 +33,7 @@ from pandas import (
 from pandas.compat.chainmap import ChainMap
 from pandas.util.testing import assert_frame_equal
 from six import iteritems, itervalues
-from toolz import merge
+from toolz import merge, assoc
 
 from zipline.assets.synthetic import make_rotating_equity_info
 from zipline.errors import NoFurtherDataError
@@ -163,14 +163,14 @@ class RollingSumSum(CustomFactor):
         out[:] = sum(inputs).sum(axis=0)
 
 
-class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
+class WithConstantInputs(WithTradingEnvironment):
     asset_ids = ASSET_FINDER_EQUITY_SIDS = 1, 2, 3, 4
     START_DATE = Timestamp('2014-01-01', tz='utc')
     END_DATE = Timestamp('2014-03-01', tz='utc')
 
     @classmethod
     def init_class_fixtures(cls):
-        super(ConstantInputTestCase, cls).init_class_fixtures()
+        super(WithConstantInputs, cls).init_class_fixtures()
         cls.constants = {
             # Every day, assume every stock starts at 2, goes down to 1,
             # goes up to 4, and finishes at 3.
@@ -192,6 +192,8 @@ class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
         )
         cls.assets = cls.asset_finder.retrieve_all(cls.asset_ids)
 
+
+class ConstantInputTestCase(WithConstantInputs, ZiplineTestCase):
     def test_bad_dates(self):
         loader = self.loader
         engine = SimplePipelineEngine(
@@ -1315,3 +1317,51 @@ class StringColumnTestCase(WithSeededRandomPipelineEngine,
             columns=self.asset_finder.retrieve_all(self.asset_finder.sids),
         )
         assert_frame_equal(result.c.unstack(), expected_final_result)
+
+
+class PopulateInitialWorkspaceTestCase(WithConstantInputs, ZiplineTestCase):
+    def make_engine(self, populate_initial_workspace):
+        return SimplePipelineEngine(
+            lambda column: self.loader,
+            self.dates,
+            self.asset_finder,
+            populate_initial_workspace=populate_initial_workspace,
+        )
+
+    def test_populate_default_workspace(self):
+        column = USEquityPricing.low
+        base_term = column.latest
+        term = base_term + 1
+        column_value = self.constants[column]
+        precomputed_value = -column_value
+
+        def populate_initial_workspace(initial_workspace,
+                                       root_mask_term,
+                                       execution_plan,
+                                       dates,
+                                       assets):
+            return assoc(
+                initial_workspace,
+                term,
+                full((len(dates), len(assets)), precomputed_value),
+            )
+
+        # I resisted the urge to use ``make_engine`` as a decorator here
+        # because Scott would have yelled at me.
+        engine = self.make_engine(populate_initial_workspace)
+
+        results = engine.run_pipeline(
+            Pipeline({
+                'term-in-initial-workspace': term,
+                'term-not-in-initial-workspace': base_term,
+            }),
+            self.dates[0],
+            self.dates[-1],
+        )
+
+        self.assertTrue(
+            (results['term-in-initial-workspace'] == precomputed_value).all(),
+        )
+        self.assertTrue(
+            (results['term-not-in-initial-workspace'] == column_value).all(),
+        )

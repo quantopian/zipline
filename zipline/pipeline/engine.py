@@ -81,6 +81,14 @@ class ExplodingPipelineEngine(PipelineEngine):
         )
 
 
+def _default_populate_initial_workspace(initial_workspace,
+                                        root_mask_term,
+                                        execution_plan,
+                                        dates,
+                                        assets):
+    return initial_workspace
+
+
 class SimplePipelineEngine(object):
     """
     PipelineEngine class that computes each term independently.
@@ -96,6 +104,12 @@ class SimplePipelineEngine(object):
     asset_finder : zipline.assets.AssetFinder
         An AssetFinder instance.  We depend on the AssetFinder to determine
         which assets are in the top-level universe at any point in time.
+    populate_initial_workspace : callable, optional
+        A function which will be used to populate the initial workspace when
+        computing a pipeline. This function will be passed the
+        initial_workspace, the root mask term, the execution_plan, the dates
+        being computed for, and the assets requested and should return a new
+        dictionary which will be used as the initial_workspace.
     """
     __slots__ = (
         '_get_loader',
@@ -103,16 +117,25 @@ class SimplePipelineEngine(object):
         '_finder',
         '_root_mask_term',
         '_root_mask_dates_term',
+        '_populate_initial_workspace',
         '__weakref__',
     )
 
-    def __init__(self, get_loader, calendar, asset_finder):
+    def __init__(self,
+                 get_loader,
+                 calendar,
+                 asset_finder,
+                 populate_initial_workspace=None):
         self._get_loader = get_loader
         self._calendar = calendar
         self._finder = asset_finder
 
         self._root_mask_term = AssetExists()
         self._root_mask_dates_term = InputDates()
+
+        self._populate_initial_workspace = (
+            populate_initial_workspace or _default_populate_initial_workspace
+        )
 
     def run_pipeline(self, pipeline, start_date, end_date):
         """
@@ -179,14 +202,22 @@ class SimplePipelineEngine(object):
         root_mask = self._compute_root_mask(start_date, end_date, extra_rows)
         dates, assets, root_mask_values = explode(root_mask)
 
+        initial_workspace = self._populate_initial_workspace(
+            {
+                self._root_mask_term: root_mask_values,
+                self._root_mask_dates_term: as_column(dates.values)
+            },
+            self._root_mask_term,
+            graph,
+            dates,
+            assets,
+        )
+
         results = self.compute_chunk(
             graph,
             dates,
             assets,
-            initial_workspace={
-                self._root_mask_term: root_mask_values,
-                self._root_mask_dates_term: as_column(dates.values)
-            },
+            initial_workspace,
         )
 
         return self._to_narrow(
@@ -254,21 +285,6 @@ class SimplePipelineEngine(object):
         shape = ret.shape
         assert shape[0] * shape[1] != 0, 'root mask cannot be empty'
         return ret
-
-    def _mask_and_dates_for_term(self, term, workspace, graph, all_dates):
-        """
-        Load mask and mask row labels for term.
-        """
-        mask = term.mask
-        mask_offset = graph.extra_rows[mask] - graph.extra_rows[term]
-
-        # This offset is computed against _root_mask_term because that is what
-        # determines the shape of the top-level dates array.
-        dates_offset = (
-            graph.extra_rows[self._root_mask_term] - graph.extra_rows[term]
-        )
-
-        return workspace[mask][mask_offset:], all_dates[dates_offset:]
 
     @staticmethod
     def _inputs_for_term(term, workspace, graph):
@@ -356,8 +372,11 @@ class SimplePipelineEngine(object):
 
             # Asset labels are always the same, but date labels vary by how
             # many extra rows are needed.
-            mask, mask_dates = self._mask_and_dates_for_term(
-                term, workspace, graph, dates
+            mask, mask_dates = graph.mask_and_dates_for_term(
+                term,
+                self._root_mask_term,
+                workspace,
+                dates,
             )
 
             if isinstance(term, LoadableTerm):
