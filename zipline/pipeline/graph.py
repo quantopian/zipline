@@ -375,3 +375,40 @@ class ExecutionPlan(TermGraph):
         """
         attrs = self.node[term]
         attrs['extra_rows'] = max(N, attrs.get('extra_rows', 0))
+
+    def mask_and_dates_for_term(self,
+                                term,
+                                root_mask_term,
+                                workspace,
+                                all_dates):
+        """
+        Load mask and mask row labels for term.
+
+        Parameters
+        ----------
+        term : Term
+            The term to load the mask and labels for.
+        root_mask_term : Term
+            The term that represents the root asset exists mask.
+        workspace : dict[Term, any]
+            The values that have been computed for each term.
+        all_dates : pd.DatetimeIndex
+            All of the dates that are being computed for in the pipeline.
+
+        Returns
+        -------
+        mask : np.ndarray
+            The correct mask for this term.
+        dates : np.ndarray
+            The slice of dates for this term.
+        """
+        mask = term.mask
+        mask_offset = self.extra_rows[mask] - self.extra_rows[term]
+
+        # This offset is computed against _root_mask_term because that is what
+        # determines the shape of the top-level dates array.
+        dates_offset = (
+            self.extra_rows[root_mask_term] - self.extra_rows[term]
+        )
+
+        return workspace[mask][mask_offset:], all_dates[dates_offset:]
