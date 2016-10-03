@@ -676,6 +676,31 @@ def coerce(from_, to, **to_kwargs):
     return preprocessor
 
 
+def coerce_types(**kwargs):
+    """
+    Preprocessing decorator that applies type coercions.
+
+    Parameters
+    ----------
+    **kwargs : dict[str -> (type, callable)]
+         Keyword arguments mapping function parameter names to pairs of
+         (from_type, to_type).
+
+    Usage
+    -----
+    >>> @coerce_types(x=(float, int), y=(int, str))
+    ... def func(x, y):
+    ...     return (x, y)
+    ...
+    >>> func(1.0, 3)
+    (1, '3')
+    """
+    def _coerce(types):
+        return coerce(*types)
+
+    return preprocess(**valmap(_coerce, kwargs))
+
+
 class error_keywords(object):
 
     def __init__(self, *args, **kwargs):
