@@ -20,13 +20,14 @@ from numpy import (
     rot90,
     where,
 )
-from numpy.random import randn, seed
+from numpy.random import randn, RandomState, seed
 
 from zipline.errors import UnknownRankMethod
 from zipline.lib.labelarray import LabelArray
 from zipline.lib.rank import masked_rankdata_2d
 from zipline.lib.normalize import naive_grouped_rowwise_apply as grouped_apply
 from zipline.pipeline import Classifier, Factor, Filter
+from zipline.pipeline.term import Alias
 from zipline.pipeline.factors import (
     Returns,
     RSI,
@@ -1058,3 +1059,23 @@ class TestWindowSafety(TestCase):
         self.assertFalse(F().demean().window_safe)
         self.assertFalse(F(window_safe=False).demean().window_safe)
         self.assertTrue(F(window_safe=True).demean().window_safe)
+
+
+class TestAlias(BasePipelineTestCase):
+
+    def test_alias_factor(self):
+        f = F()
+        a = Alias(f)
+
+        f_values = RandomState(5).randn(5, 5)
+
+        self.check_terms(
+            terms={
+                'f_alias': a,
+            },
+            expected={
+                'f_alias': f_values,
+            },
+            initial_workspace={f: f_values},
+            mask=self.build_mask(ones((5, 5))),
+        )

@@ -696,6 +696,26 @@ class Slice(ComputableTerm):
         )
 
 
+class Alias(ComputableTerm):
+    """An alias for another computed term."""
+
+    @expect_types(term=ComputableTerm)
+    def __new__(cls, term):
+        return super(Alias, cls).__new__(
+            cls,
+            window_length=0,
+            dtype=term.dtype,
+            missing_value=term.missing_value,
+            window_safe=term.window_safe,
+            ndim=term.ndim,
+            domain=term.domain,
+            inputs=(term,),
+        )
+
+    def _compute(self, inputs, dates, assets, mask):
+        return inputs[0]
+
+
 def validate_dtype(termname, dtype, missing_value):
     """
     Validate a `dtype` and `missing_value` passed to Term.__new__.
