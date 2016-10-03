@@ -590,6 +590,18 @@ class ComputableTerm(Term):
         """
         return data
 
+    def to_workspace_value(self, result, assets):
+        """
+        Called with the result of a pipeline. This needs to return an object
+        which can be put into the workspace to continue doing computations.
+
+        This is the inverse of :func:`~zipline.pipeline.term.Term.postprocess`.
+        """
+        return result.unstack().fillna(self.missing_value).reindex(
+            columns=assets,
+            fill_value=self.missing_value,
+        ).values
+
     def _downsampled_type(self):
         """
         The expression type to return from self.downsample().

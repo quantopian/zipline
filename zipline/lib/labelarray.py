@@ -197,6 +197,29 @@ class LabelArray(ndarray):
         ret._missing_value = missing_value
         return ret
 
+    @classmethod
+    def from_categorical(cls, categorical, missing_value=None):
+        """
+        Create a LabelArray from a pandas categorical.
+
+        Parameters
+        ----------
+        categorical : pd.Categorical
+            The categorical object to convert.
+        missing_value : bytes, unicode, or None, optional
+            The missing value to use for this LabelArray.
+
+        Returns
+        -------
+        la : LabelArray
+            The LabelArray representation of this categorical.
+        """
+        return LabelArray(
+            categorical,
+            missing_value,
+            categorical.categories,
+        )
+
     @property
     def categories(self):
         # This is a property because it should be immutable.

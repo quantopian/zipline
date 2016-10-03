@@ -6,6 +6,7 @@ import operator
 import re
 
 from numpy import where, isnan, nan, zeros
+import pandas as pd
 
 from zipline.lib.labelarray import LabelArray
 from zipline.lib.quantiles import quantiles
@@ -302,6 +303,21 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         if not isinstance(data, LabelArray):
             raise AssertionError("Expected a LabelArray, got %s." % type(data))
         return data.as_categorical()
+
+    def to_workspace_value(self, result, assets):
+        """
+        Called with the result of a pipeline. This needs to return an object
+        which can be put into the workspace to continue doing computations.
+
+        This is the inverse of :func:`~zipline.pipeline.term.Term.postprocess`.
+        """
+        data = super(Classifier, self).unprocess(result, assets)
+        if self.dtype == int64_dtype:
+            return data
+        assert isinstance(data, pd.Categorical), (
+            'Expected a Categorical, got %r.' % type(data).__name__
+        )
+        return LabelArray.from_categorical(data, self.missing_value)
 
     @classlazyval
     def _downsampled_type(self):
