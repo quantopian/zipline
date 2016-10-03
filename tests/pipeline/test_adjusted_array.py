@@ -202,6 +202,85 @@ def _gen_multiplicative_adjustment_cases(dtype):
     )
 
 
+def _gen_multiplicative_adjustment_cases_with_perpsective_offset(dtype):
+    """
+    Generate expected moving windows on a buffer with adjustments.
+
+    We proceed by constructing, at each row, the view of the array we expect in
+    in all windows anchored on that row.
+
+    In general, if we have an adjustment to be applied once we process the row
+    at index N, should see that adjustment applied to the underlying buffer for
+    any window containing the row at index N - 1.
+
+    We then build all legal windows over these buffers.
+    """
+    adjustment_type = {
+        float64_dtype: Float64Multiply,
+    }[dtype]
+
+    nrows, ncols = 6, 3
+    adjustments = {}
+    buffer_as_of = [None] * 6
+    baseline = full((nrows, ncols), 1, dtype=dtype)
+
+    # Note that row indices are inclusive!
+    adjustments[1] = [
+        adjustment_type(0, 0, 0, 0, coerce_to_dtype(dtype, 2)),
+    ]
+    buffer_as_of[0] = array([[2, 1, 1],
+                             [1, 1, 1],
+                             [1, 1, 1],
+                             [1, 1, 1],
+                             [1, 1, 1],
+                             [1, 1, 1]], dtype=dtype)
+
+    # No adjustment at index 2.
+    buffer_as_of[1] = buffer_as_of[0]
+
+    adjustments[3] = [
+        adjustment_type(1, 2, 1, 1, coerce_to_dtype(dtype, 3)),
+        adjustment_type(0, 1, 0, 0, coerce_to_dtype(dtype, 4)),
+    ]
+    buffer_as_of[2] = array([[8, 1, 1],
+                             [4, 3, 1],
+                             [1, 3, 1],
+                             [1, 1, 1],
+                             [1, 1, 1],
+                             [1, 1, 1]], dtype=dtype)
+
+    adjustments[4] = [
+        adjustment_type(0, 3, 2, 2, coerce_to_dtype(dtype, 5))
+    ]
+    buffer_as_of[3] = array([[8, 1, 5],
+                             [4, 3, 5],
+                             [1, 3, 5],
+                             [1, 1, 5],
+                             [1, 1, 1],
+                             [1, 1, 1]], dtype=dtype)
+
+    adjustments[5] = [
+        adjustment_type(0, 4, 1, 1, coerce_to_dtype(dtype, 6)),
+        adjustment_type(2, 2, 2, 2, coerce_to_dtype(dtype, 7)),
+    ]
+    buffer_as_of[4] = array([[8,  6,  5],
+                             [4, 18,  5],
+                             [1, 18, 35],
+                             [1,  6,  5],
+                             [1,  6,  1],
+                             [1,  1,  1]], dtype=dtype)
+
+    buffer_as_of[5] = buffer_as_of[4]
+
+    return _gen_expectations(
+        baseline,
+        default_missing_value_for_dtype(dtype),
+        adjustments,
+        buffer_as_of,
+        nrows,
+    )
+
+
 def _gen_overwrite_adjustment_cases(dtype):
     """
     Generate test cases for overwrite adjustments.
@@ -525,6 +604,23 @@ class AdjustedArrayTestCase(TestCase):
         for _ in range(2):  # Iterate 2x ensure adjusted_arrays are re-usable.
             window_iter = array.traverse(lookback)
             for yielded, expected_yield in zip_longest(window_iter, expected):
+                check_arrays(yielded, expected_yield)
+
+    @parameterized.expand(
+        _gen_multiplicative_adjustment_cases_with_perpsective_offset(
+            float64_dtype))
+    def test_multiplicative_adjustments_with_perspective_offset(self,
+                                                                name,
+                                                                data,
+                                                                lookback,
+                                                                adjustments,
+                                                                missing_value,
+                                                                expected):
+        array = AdjustedArray(data, NOMASK, adjustments, missing_value, 1)
+        for _ in range(2):  # Iterate 2x ensure adjusted_arrays are re-usable.
+            window_iter = array.traverse(lookback)
+            for yielded, expected_yield in zip_longest(window_iter, expected):
+                print yielded
                 check_arrays(yielded, expected_yield)
 
     @parameterized.expand(
