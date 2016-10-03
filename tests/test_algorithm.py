@@ -76,6 +76,12 @@ from zipline.finance.commission import PerShare
 from zipline.finance.execution import LimitOrder
 from zipline.finance.order import ORDER_STATUS
 from zipline.finance.trading import SimulationParameters
+from zipline.finance.asset_restrictions import (
+    Restriction,
+    HistoricalRestrictions,
+    StaticRestrictions,
+    RESTRICTION_STATES,
+)
 from zipline.testing import (
     FakeDataPortal,
     create_daily_df_for_asset,
@@ -122,6 +128,8 @@ from zipline.test_algorithms import (
     SetMaxOrderCountAlgorithm,
     SetMaxOrderSizeAlgorithm,
     SetDoNotOrderListAlgorithm,
+    SetAssetRestrictionsAlgorithm,
+    SetMultipleAssetRestrictionsAlgorithm,
     SetMaxLeverageAlgorithm,
     api_algo,
     api_get_environment_algo,
@@ -2788,34 +2796,114 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
                                            env=self.env)
         self.check_algo_fails(algo, handle_data, 0)
 
-    def test_set_do_not_order_list(self):
-        # set the restricted list to be the sid, and fail.
-        algo = SetDoNotOrderListAlgorithm(
-            sid=self.sid,
-            restricted_list=[self.sid],
-            sim_params=self.sim_params,
-            env=self.env,
-        )
+    def test_set_asset_restrictions(self):
 
         def handle_data(algo, data):
+            algo.could_trade = data.can_trade(algo.sid(self.sid))
             algo.order(algo.sid(self.sid), 100)
             algo.order_count += 1
 
+        # Set HistoricalRestrictions for one sid for the entire simulation,
+        # and fail.
+        rlm = HistoricalRestrictions([
+            Restriction(
+                self.sid,
+                self.sim_params.start_session,
+                RESTRICTION_STATES.FROZEN)
+        ])
+        algo = SetAssetRestrictionsAlgorithm(
+            sid=self.sid,
+            restrictions=rlm,
+            sim_params=self.sim_params,
+            env=self.env,
+        )
         self.check_algo_fails(algo, handle_data, 0)
+        self.assertFalse(algo.could_trade)
+
+        # Set StaticRestrictions for one sid and fail.
+        rlm = StaticRestrictions([self.sid])
+        algo = SetAssetRestrictionsAlgorithm(
+            sid=self.sid,
+            restrictions=rlm,
+            sim_params=self.sim_params,
+            env=self.env,
+        )
+        self.check_algo_fails(algo, handle_data, 0)
+        self.assertFalse(algo.could_trade)
+
+        # just log an error on the violation if we choose not to fail.
+        algo = SetAssetRestrictionsAlgorithm(
+            sid=self.sid,
+            restrictions=rlm,
+            sim_params=self.sim_params,
+            env=self.env,
+            on_error='log'
+        )
+        with make_test_handler(self) as log_catcher:
+            self.check_algo_succeeds(algo, handle_data)
+        logs = [r.message for r in log_catcher.records]
+        self.assertIn("Order for 100 shares of Equity(133 [A]) at "
+                      "2006-01-03 21:00:00+00:00 violates trading constraint "
+                      "RestrictedListOrder({})", logs)
+        self.assertFalse(algo.could_trade)
 
         # set the restricted list to exclude the sid, and succeed
+        rlm = HistoricalRestrictions([
+            Restriction(
+                sid,
+                self.sim_params.start_session,
+                RESTRICTION_STATES.FROZEN) for sid in [134, 135, 136]
+        ])
+        algo = SetAssetRestrictionsAlgorithm(
+            sid=self.sid,
+            restrictions=rlm,
+            sim_params=self.sim_params,
+            env=self.env,
+        )
+        self.check_algo_succeeds(algo, handle_data)
+        self.assertTrue(algo.could_trade)
+
+    @parameterized.expand([
+        ('order_first_restricted_sid', 0),
+        ('order_second_restricted_sid', 1)
+    ])
+    def test_set_multiple_asset_restrictions(self, name, to_order_idx):
+
+        def handle_data(algo, data):
+            algo.could_trade1 = data.can_trade(algo.sid(self.sids[0]))
+            algo.could_trade2 = data.can_trade(algo.sid(self.sids[1]))
+            algo.order(algo.sid(self.sids[to_order_idx]), 100)
+            algo.order_count += 1
+
+        rl1 = StaticRestrictions([self.sids[0]])
+        rl2 = StaticRestrictions([self.sids[1]])
+        algo = SetMultipleAssetRestrictionsAlgorithm(
+            restrictions1=rl1,
+            restrictions2=rl2,
+            sim_params=self.sim_params,
+            env=self.env,
+        )
+        self.check_algo_fails(algo, handle_data, 0)
+        self.assertFalse(algo.could_trade1)
+        self.assertFalse(algo.could_trade2)
+
+    def test_set_do_not_order_list(self):
+
+        def handle_data(algo, data):
+            algo.could_trade = data.can_trade(algo.sid(self.sid))
+            algo.order(algo.sid(self.sid), 100)
+            algo.order_count += 1
+
+        rlm = [self.sid]
         algo = SetDoNotOrderListAlgorithm(
             sid=self.sid,
-            restricted_list=[134, 135, 136],
+            restricted_list=rlm,
             sim_params=self.sim_params,
             env=self.env,
         )
 
-        def handle_data(algo, data):
-            algo.order(algo.sid(self.sid), 100)
-            algo.order_count += 1
-
-        self.check_algo_succeeds(algo, handle_data)
+        self.check_algo_fails(algo, handle_data, 0)
+        self.assertFalse(algo.could_trade)
 
     def test_set_max_order_size(self):
 

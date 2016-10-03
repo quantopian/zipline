@@ -505,9 +505,22 @@ class SetMaxOrderSizeAlgorithm(TradingAlgorithm):
 
 
 class SetDoNotOrderListAlgorithm(TradingAlgorithm):
-    def initialize(self, sid=None, restricted_list=None):
+    def initialize(self, sid=None, restricted_list=None, on_error='fail'):
         self.order_count = 0
-        self.set_do_not_order_list(restricted_list)
+        self.set_do_not_order_list(restricted_list, on_error)
+
+
+class SetAssetRestrictionsAlgorithm(TradingAlgorithm):
+    def initialize(self, sid=None, restrictions=None, on_error='fail'):
+        self.order_count = 0
+        self.set_asset_restrictions(restrictions, on_error)
+
+
+class SetMultipleAssetRestrictionsAlgorithm(TradingAlgorithm):
+    def initialize(self, restrictions1, restrictions2, on_error='fail'):
+        self.order_count = 0
+        self.set_asset_restrictions(restrictions1, on_error)
+        self.set_asset_restrictions(restrictions2, on_error)
 
 
 class SetMaxOrderCountAlgorithm(TradingAlgorithm):
@@ -529,7 +542,7 @@ class SetAssetDateBoundsAlgorithm(TradingAlgorithm):
     AssetDateBounds() trading control in place.
     """
     def initialize(self):
-        self.register_trading_control(AssetDateBounds())
+        self.register_trading_control(AssetDateBounds(on_error='fail'))
 
     def handle_data(algo, data):
         algo.order(algo.sid(999), 1)
