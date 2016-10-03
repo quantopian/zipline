@@ -17,10 +17,7 @@ from zipline.errors import (
     SymbolNotFound,
     ZiplineError
 )
-from zipline.protocol import (
-    DATASOURCE_TYPE,
-    Event
-)
+from zipline.protocol import Event
 from zipline.assets import Equity
 
 logger = Logger('Requests Source Logger')
@@ -441,7 +438,6 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
                     # it into an Equity.
                     event.sid = asset_cache[event.sid] = Equity(event.sid)
 
-            event.type = DATASOURCE_TYPE.CUSTOM
             event.source_id = self.namestring
             yield event
 

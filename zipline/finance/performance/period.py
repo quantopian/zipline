@@ -89,7 +89,6 @@ from six import itervalues, iteritems
 import zipline.protocol as zp
 
 log = logbook.Logger('Performance')
-TRADE_TYPE = zp.DATASOURCE_TYPE.TRADE
 
 
 PeriodStats = namedtuple('PeriodStats',

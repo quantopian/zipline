@@ -17,7 +17,6 @@ from __future__ import division
 from copy import copy
 
 from zipline.assets import Asset
-from zipline.protocol import DATASOURCE_TYPE
 
 
 class Transaction(object):
@@ -31,14 +30,12 @@ class Transaction(object):
         self.price = price
         self.order_id = order_id
         self.commission = commission
-        self.type = DATASOURCE_TYPE.TRANSACTION
 
     def __getitem__(self, name):
         return self.__dict__[name]
 
     def to_dict(self):
         py = copy(self.__dict__)
-        del py['type']
         return py
 
 

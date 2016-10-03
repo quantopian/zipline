@@ -21,9 +21,9 @@ import pandas as pd
 import numpy as np
 from datetime import timedelta, datetime
 
-from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.sources import SpecificEquityTrades
 from zipline.finance.trading import SimulationParameters
+from zipline.finance.transaction import Transaction
 from zipline.sources.test_source import create_trade
 from zipline.data.loader import (  # For backwards compatibility
     load_from_yahoo,
@@ -89,7 +89,7 @@ def get_next_trading_dt(current, interval, trading_calendar):
 
 
 def create_trade_history(sid, prices, amounts, interval, sim_params,
-                         trading_calendar, source_id="test_factory"):
+                         trading_calendar):
     trades = []
     current = sim_params.first_open
 
@@ -100,7 +100,7 @@ def create_trade_history(sid, prices, amounts, interval, sim_params,
             trade_dt = current.replace(hour=0, minute=0)
         else:
             trade_dt = current
-        trade = create_trade(sid, price, amount, trade_dt, source_id)
+        trade = create_trade(sid, price, amount, trade_dt)
         trades.append(trade)
         current = get_next_trading_dt(current, interval, trading_calendar)
 
@@ -108,57 +108,14 @@ def create_trade_history(sid, prices, amounts, interval, sim_params,
     return trades
 
 
-def create_dividend(sid, payment, declared_date, ex_date, pay_date):
-    div = Event({
-        'sid': sid,
-        'gross_amount': payment,
-        'net_amount': payment,
-        'payment_sid': None,
-        'ratio': None,
-        'declared_date': pd.tslib.normalize_date(declared_date),
-        'ex_date': pd.tslib.normalize_date(ex_date),
-        'pay_date': pd.tslib.normalize_date(pay_date),
-        'type': DATASOURCE_TYPE.DIVIDEND,
-        'source_id': 'MockDividendSource'
-    })
-    return div
-
-
-def create_stock_dividend(sid, payment_sid, ratio, declared_date,
-                          ex_date, pay_date):
-    return Event({
-        'sid': sid,
-        'payment_sid': payment_sid,
-        'ratio': ratio,
-        'net_amount': None,
-        'gross_amount': None,
-        'dt': pd.tslib.normalize_date(declared_date),
-        'ex_date': pd.tslib.normalize_date(ex_date),
-        'pay_date': pd.tslib.normalize_date(pay_date),
-        'type': DATASOURCE_TYPE.DIVIDEND,
-        'source_id': 'MockDividendSource'
-    })
-
-
-def create_split(sid, ratio, date):
-    return Event({
-        'sid': sid,
-        'ratio': ratio,
-        'dt': date.replace(hour=0, minute=0, second=0, microsecond=0),
-        'type': DATASOURCE_TYPE.SPLIT,
-        'source_id': 'MockSplitSource'
-    })
-
-
 def create_txn(sid, price, amount, datetime):
-    txn = Event({
-        'sid': sid,
-        'amount': amount,
-        'dt': datetime,
-        'price': price,
-        'type': DATASOURCE_TYPE.TRANSACTION,
-        'source_id': 'MockTransactionSource'
-    })
+    txn = Transaction(
+        sid=sid,
+        amount=amount,
+        dt=datetime,
+        price=price,
+        order_id=None,
+    )
     return txn
 
 
@@ -185,8 +142,7 @@ def create_returns_from_list(returns, sim_params):
                      data=returns)
 
 
-def create_daily_trade_source(sids, sim_params, env, trading_calendar,
-                              concurrent=False):
+def create_daily_trade_source(sids, sim_params, env, trading_calendar):
     """
     creates trade_count trades for each sid in sids list.
     first trade will be on sim_params.start_session, and daily
@@ -199,12 +155,11 @@ def create_daily_trade_source(sids, sim_params, env, trading_calendar,
         sim_params,
         env=env,
         trading_calendar=trading_calendar,
-        concurrent=concurrent,
     )
 
 
 def create_trade_source(sids, trade_time_increment, sim_params, env,
-                        trading_calendar, concurrent=False):
+                        trading_calendar):
 
     # If the sim_params define an end that is during market hours, that will be
     # used as the end of the data source
@@ -221,8 +176,6 @@ def create_trade_source(sids, trade_time_increment, sim_params, env,
         'start': sim_params.first_open,
         'end': end,
         'delta': trade_time_increment,
-        'filter': sids,
-        'concurrent': concurrent,
         'env': env,
         'trading_calendar': trading_calendar,
     }

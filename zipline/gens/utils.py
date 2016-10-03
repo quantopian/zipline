@@ -13,13 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-import pytz
-import numbers
-
 from hashlib import md5
-from datetime import datetime
-from zipline.protocol import DATASOURCE_TYPE
 
 from six import iteritems, b
 
@@ -34,29 +28,3 @@ def hash_args(*args, **kwargs):
     hasher = md5()
     hasher.update(b(combined))
     return hasher.hexdigest()
-
-
-def assert_datasource_protocol(event):
-    """Assert that an event meets the protocol for datasource outputs."""
-
-    assert event.type in DATASOURCE_TYPE
-
-    # Done packets have no dt.
-    if not event.type == DATASOURCE_TYPE.DONE:
-        assert isinstance(event.dt, datetime)
-        assert event.dt.tzinfo == pytz.utc
-
-
-def assert_trade_protocol(event):
-    """Assert that an event meets the protocol for datasource TRADE outputs."""
-    assert_datasource_protocol(event)
-
-    assert event.type == DATASOURCE_TYPE.TRADE
-    assert isinstance(event.price, numbers.Real)
-    assert isinstance(event.volume, numbers.Integral)
-    assert isinstance(event.dt, datetime)
-
-
-def assert_datasource_unframe_protocol(event):
-    """Assert that an event is valid output of zp.DATASOURCE_UNFRAME."""
-    assert event.type in DATASOURCE_TYPE

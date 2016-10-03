@@ -34,7 +34,7 @@ BUY = 1 << 1
 STOP = 1 << 2
 LIMIT = 1 << 3
 
-ORDER_FIELDS_TO_IGNORE = {'type', 'direction', '_status'}
+ORDER_FIELDS_TO_IGNORE = {'direction', '_status'}
 
 
 class Order(object):
@@ -43,7 +43,7 @@ class Order(object):
     # to cut down on the memory footprint of this object.
     __slots__ = ["id", "dt", "reason", "created", "sid", "amount", "filled",
                  "commission", "_status", "stop", "limit", "stop_reached",
-                 "limit_reached", "direction", "type", "broker_order_id"]
+                 "limit_reached", "direction", "broker_order_id"]
 
     def __init__(self, dt, sid, amount, stop=None, limit=None, filled=0,
                  commission=0, id=None):
@@ -72,7 +72,6 @@ class Order(object):
         self.stop_reached = False
         self.limit_reached = False
         self.direction = math.copysign(1, self.amount)
-        self.type = zp.DATASOURCE_TYPE.ORDER
         self.broker_order_id = None
 
     def make_id(self):

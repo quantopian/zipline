@@ -27,7 +27,6 @@ from pandas.tslib import normalize_date
 
 from zipline.finance.slippage import VolumeShareSlippage
 
-from zipline.protocol import DATASOURCE_TYPE
 from zipline.finance.blotter import Order
 
 from zipline.data.data_portal import DataPortal
@@ -131,7 +130,6 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                 'amount': int(5),
                 'sid': int(133),
                 'commission': None,
-                'type': DATASOURCE_TYPE.TRANSACTION,
                 'order_id': open_orders[0].id
             }
 

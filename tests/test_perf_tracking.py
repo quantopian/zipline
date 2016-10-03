@@ -1834,7 +1834,7 @@ shares in position"
         self.create_environment_stuff(num_days=8)
 
         history_args = (
-            1,
+            self.asset1,
             [10, 9, 11, 8, 9, 12, 13, 14],
             [200, -100, -100, 100, -300, 100, 500, 400],
             oneday,
