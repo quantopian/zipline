@@ -152,16 +152,22 @@ class AdjustedArray(object):
     missing_value : object
         A value to use to fill missing data in yielded windows.
         Should be a value coercible to `data.dtype`.
+    perspective_offset : int
+        The number of rows after the current end of the window, from which the
+        data is being viewed. This value is used so that adjustments that occur
+        between the end of the window and the vantage point are applied.
     """
     __slots__ = (
         '_data',
         '_view_kwargs',
         'adjustments',
         'missing_value',
+        'perspective_offset',
         '__weakref__',
     )
 
-    def __init__(self, data, mask, adjustments, missing_value):
+    def __init__(self, data, mask, adjustments, missing_value,
+                 perspective_offset=0):
         self._data, self._view_kwargs = _normalize_array(data, missing_value)
 
         self.adjustments = adjustments
@@ -176,6 +182,8 @@ class AdjustedArray(object):
                     (mask.shape, data.shape),
                 )
             self._data[~mask] = self.missing_value
+
+        self.perspective_offset = perspective_offset
 
     @lazyval
     def data(self):
@@ -220,6 +228,7 @@ class AdjustedArray(object):
             self.adjustments,
             offset,
             window_length,
+            self.perspective_offset
         )
 
     def inspect(self):

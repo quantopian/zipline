@@ -106,8 +106,7 @@ class HistoryLoader(with_metaclass(ABCMeta)):
     def _array(self, start, end, assets, field):
         pass
 
-    def _get_adjustments_in_range(self, asset, dts, field,
-                                  is_perspective_after):
+    def _get_adjustments_in_range(self, asset, dts, field):
         """
         Get the Float64Multiply objects to pass to an AdjustedArrayWindow.
 
@@ -153,11 +152,6 @@ class HistoryLoader(with_metaclass(ABCMeta)):
                 if start < dt <= end:
                     end_loc = dts.searchsorted(dt)
                     adj_loc = end_loc
-                    if is_perspective_after:
-                        # Set adjustment pop location so that it applies
-                        # to last value if adjustment occurs immediately after
-                        # the last slot.
-                        adj_loc -= 1
                     mult = Float64Multiply(0,
                                            end_loc - 1,
                                            0,
@@ -174,11 +168,6 @@ class HistoryLoader(with_metaclass(ABCMeta)):
                 if start < dt <= end:
                     end_loc = dts.searchsorted(dt)
                     adj_loc = end_loc
-                    if is_perspective_after:
-                        # Set adjustment pop location so that it applies
-                        # to last value if adjustment occurs immediately after
-                        # the last slot.
-                        adj_loc -= 1
                     mult = Float64Multiply(0,
                                            end_loc - 1,
                                            0,
@@ -199,11 +188,6 @@ class HistoryLoader(with_metaclass(ABCMeta)):
                     ratio = s[1]
                 end_loc = dts.searchsorted(dt)
                 adj_loc = end_loc
-                if is_perspective_after:
-                    # Set adjustment pop location so that it applies
-                    # to last value if adjustment occurs immediately after
-                    # the last slot.
-                    adj_loc -= 1
                 mult = Float64Multiply(0,
                                        end_loc - 1,
                                        0,
@@ -277,7 +261,7 @@ class HistoryLoader(with_metaclass(ABCMeta)):
             for i, asset in enumerate(needed_assets):
                 if self._adjustments_reader:
                     adjs = self._get_adjustments_in_range(
-                        asset, prefetch_dts, field, is_perspective_after)
+                        asset, prefetch_dts, field)
                 else:
                     adjs = {}
                 window = Float64Window(
@@ -285,7 +269,8 @@ class HistoryLoader(with_metaclass(ABCMeta)):
                     view_kwargs,
                     adjs,
                     offset,
-                    size
+                    size,
+                    int(is_perspective_after)
                 )
                 sliding_window = SlidingWindow(window, size, start_ix, offset)
                 asset_windows[asset] = sliding_window
