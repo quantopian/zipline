@@ -237,6 +237,7 @@ class TradingCalendar(with_metaclass(ABCMeta)):
 
     # -----
 
+    @property
     def opens(self):
         return self.schedule.market_open
 
