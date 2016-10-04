@@ -32,6 +32,7 @@ from zipline.pipeline.filters import (
     NullFilter,
 )
 from zipline.pipeline.mixins import (
+    AliasedMixin,
     CustomTermMixin,
     DownsampledMixin,
     LatestMixin,
@@ -1077,6 +1078,10 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
     @classlazyval
     def _downsampled_type(self):
         return DownsampledMixin.make_downsampled_type(Factor)
+
+    @classlazyval
+    def _aliased_type(self):
+        return AliasedMixin.make_aliased_type(Factor)
 
 
 class NumExprFactor(NumericalExpression, Factor):
