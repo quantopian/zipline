@@ -96,7 +96,7 @@ class AssetDispatchBarReader(with_metaclass(ABCMeta)):
 
         for i, asset in enumerate(assets):
             t = type(asset)
-            sid_groups[t].append(asset.sid)
+            sid_groups[t].append(asset)
             out_pos[t].append(i)
 
         batched_arrays = {
