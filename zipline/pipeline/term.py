@@ -39,6 +39,7 @@ from zipline.utils.numpy_utils import (
 )
 from zipline.utils.sharedoc import (
     templated_docstring,
+    PIPELINE_ALIAS_DOC,
     PIPELINE_DOWNSAMPLING_FREQUENCY_DOC,
 )
 
@@ -602,7 +603,7 @@ class ComputableTerm(Term):
             fill_value=self.missing_value,
         ).values
 
-    def _downsampled_type(self):
+    def _downsampled_type(self, *args, **kwargs):
         """
         The expression type to return from self.downsample().
         """
@@ -622,6 +623,35 @@ class ComputableTerm(Term):
         {frequency}
         """
         return self._downsampled_type(term=self, frequency=frequency)
+
+    def _aliased_type(self, *args, **kwargs):
+        """
+        The expression type to return from self.alias().
+        """
+        raise NotImplementedError(
+            "alias is not yet implemented "
+            "for instances of %s." % type(self).__name__
+        )
+
+    @templated_docstring(name=PIPELINE_ALIAS_DOC)
+    def alias(self, name):
+        """
+        Make a term from ``self`` that names the expression.
+
+        Parameters
+        ----------
+        {name}
+
+        Returns
+        -------
+        aliased : Aliased
+            ``self`` with a name.
+
+        Notes
+        -----
+        This is useful for giving a name to a numerical or boolean expression.
+        """
+        return self._aliased_type(term=self, name=name)
 
     def __repr__(self):
         return (
@@ -694,26 +724,6 @@ class Slice(ComputableTerm):
         raise NotImplementedError(
             'downsampling of slices is not yet supported'
         )
-
-
-class Alias(ComputableTerm):
-    """An alias for another computed term."""
-
-    @expect_types(term=ComputableTerm)
-    def __new__(cls, term):
-        return super(Alias, cls).__new__(
-            cls,
-            window_length=0,
-            dtype=term.dtype,
-            missing_value=term.missing_value,
-            window_safe=term.window_safe,
-            ndim=term.ndim,
-            domain=term.domain,
-            inputs=(term,),
-        )
-
-    def _compute(self, inputs, dates, assets, mask):
-        return inputs[0]
 
 
 def validate_dtype(termname, dtype, missing_value):
