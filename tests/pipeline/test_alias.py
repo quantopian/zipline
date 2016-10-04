@@ -29,8 +29,17 @@ class WithAlias(object):
     def test_repr(self):
         assert_equal(
             repr(self.Term().alias('ayy lmao')),
-            "Aliased%s(..., name='ayy lmao')" % self.Term.__base__.__name__,
+            "Aliased%s(Term(...), name='ayy lmao')" % (
+                self.Term.__base__.__name__,
+            ),
         )
+
+    def test_short_repr(self):
+        for name in ('a', 'b'):
+            assert_equal(
+                self.Term().alias(name).short_repr(),
+                name,
+            )
 
 
 class TestFactorAlias(WithAlias, BasePipelineTestCase):
