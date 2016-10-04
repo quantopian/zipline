@@ -272,10 +272,14 @@ class AliasedMixin(SingleInputMixin):
         return inputs[0]
 
     def __repr__(self):
-        return '{type}(..., name={name!r})'.format(
+        return '{type}({inner_type}(...), name={name!r})'.format(
             type=type(self).__name__,
+            inner_type=type(self.inputs[0]).__name__,
             name=self.name,
         )
+
+    def short_repr(self):
+        return self.name
 
     @classmethod
     def make_aliased_type(cls, other_base):
