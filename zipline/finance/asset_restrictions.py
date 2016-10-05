@@ -3,9 +3,9 @@ from numpy import vectorize
 from functools import partial, reduce
 import operator
 import pandas as pd
-from six import with_metaclass
+from six import with_metaclass, iteritems
 from collections import namedtuple
-from itertools import groupby
+from toolz import groupby
 
 from zipline.utils.enum import enum
 from zipline.utils.numpy_utils import vectorized_is_element
@@ -171,7 +171,7 @@ class HistoricalRestrictions(Restrictions):
                 restrictions_for_asset, key=lambda x: x.effective_date
             )
             for asset, restrictions_for_asset
-            in groupby(restrictions, lambda x: x.asset)
+            in iteritems(groupby(lambda x: x.asset, restrictions))
         }
 
     def is_restricted(self, assets, dt):
