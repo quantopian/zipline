@@ -68,4 +68,4 @@ intervaltree==2.1.0
 lru-dict==1.1.4
 
 # For financial risk calculations
-empyrical==0.2.0
+empyrical==0.2.1
