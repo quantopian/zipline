@@ -434,7 +434,7 @@ def _gen_expectations(baseline,
 
     for windowlen, perspective_offset in product(valid_window_lengths(nrows),
                                                  perspective_offsets):
-        # How long an an iterator of length-N windows on this buffer?
+        # How long is an iterator of length-N windows on this buffer?
         # For example, for a window of length 3 on a buffer of length 6, there
         # are four valid windows.
         num_legal_windows = num_windows_of_length_M_on_buffers_of_length_N(
