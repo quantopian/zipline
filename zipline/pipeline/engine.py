@@ -362,7 +362,7 @@ class SimplePipelineEngine(object):
 
         refcounts = graph.initial_refcounts(workspace)
 
-        for term in graph.ordered():
+        for term in graph.execution_order(refcounts):
             # `term` may have been supplied in `initial_workspace`, and in the
             # future we may pre-compute loadable terms coming from the same
             # dataset.  In either case, we will already have an entry for this
