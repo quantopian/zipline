@@ -17,7 +17,8 @@ from zipline.pipeline.loaders.earnings_estimates import (
     PreviousEarningsEstimatesLoader,
     required_estimates_fields,
     metadata_columns,
-)
+    PreviousSplitAdjustedEarningsEstimatesLoader,
+    NextSplitAdjustedEarningsEstimatesLoader)
 from zipline.pipeline.loaders.utils import (
     check_data_query_args,
 )
@@ -108,6 +109,7 @@ class BlazeEstimatesLoader(PipelineLoader):
         # Only load requested columns.
         requested_column_names = [self._columns[column.name]
                                   for column in columns]
+
         raw = load_raw_data(
             assets,
             dates,
@@ -120,7 +122,7 @@ class BlazeEstimatesLoader(PipelineLoader):
 
         return self.loader(
             raw,
-            {column.name: self._columns[column.name] for column in columns}
+            {column.name: self._columns[column.name] for column in columns},
         ).load_adjusted_array(
             columns,
             dates,
@@ -135,3 +137,65 @@ class BlazeNextEstimatesLoader(BlazeEstimatesLoader):
 
 class BlazePreviousEstimatesLoader(BlazeEstimatesLoader):
     loader = PreviousEarningsEstimatesLoader
+
+
+class BlazeSplitAdjustedEstimatesLoader(BlazeEstimatesLoader):
+    def __init__(self,
+                 expr,
+                 columns,
+                 split_adjustments_loader,
+                 split_adjusted_column_names,
+                 split_adjusted_asof,
+                 **kwargs):
+        self._split_adjustments = split_adjustments_loader
+        self._split_adjusted_column_names = split_adjusted_column_names
+        self._split_adjusted_asof = split_adjusted_asof
+        super(BlazeSplitAdjustedEstimatesLoader, self).__init__(
+            expr,
+            columns,
+            **kwargs
+        )
+
+    def load_adjusted_array(self, columns, dates, assets, mask):
+        # Only load requested columns.
+        requested_column_names = [self._columns[column.name]
+                                  for column in columns]
+
+        requested_spilt_adjusted_columns = [
+            column_name
+            for column_name in self._split_adjusted_column_names
+            if column_name in requested_column_names
+        ]
+
+        raw = load_raw_data(
+            assets,
+            dates,
+            self._data_query_time,
+            self._data_query_tz,
+            self._expr[sorted(metadata_columns.union(requested_column_names))],
+            self._odo_kwargs,
+            checkpoints=self._checkpoints,
+        )
+
+        return self.loader(
+            raw,
+            {column.name: self._columns[column.name] for column in columns},
+            self._split_adjustments,
+            requested_spilt_adjusted_columns,
+            self._split_adjusted_asof,
+        ).load_adjusted_array(
+            columns,
+            dates,
+            assets,
+            mask,
+        )
+
+
+class BlazeNextSplitAdjustedEstimatesLoader(BlazeSplitAdjustedEstimatesLoader):
+    loader = NextSplitAdjustedEarningsEstimatesLoader
+
+
+class BlazePreviousSplitAdjustedEstimatesLoader(
+    BlazeSplitAdjustedEstimatesLoader
+):
+    loader = PreviousSplitAdjustedEarningsEstimatesLoader
