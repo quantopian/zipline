@@ -67,7 +67,7 @@ cdef class AdjustedArrayWindow:
         if len(self.adjustment_indices) > 0:
             return self.adjustment_indices.pop()
         else:
-            return -1
+            return self.max_anchor + self.perspective_offset
 
     def __iter__(self):
         return self
@@ -86,9 +86,7 @@ cdef class AdjustedArrayWindow:
         # Apply any adjustments that occured before our current anchor.
         # Equivalently, apply any adjustments known **on or before** the date
         # for which we're calculating a window.
-        while (self.next_adj != -1
-               and
-               self.next_adj - self.perspective_offset < anchor):
+        while self.next_adj < anchor + self.perspective_offset:
 
             for adjustment in self.adjustments[self.next_adj]:
                 adjustment.mutate(self.data)
