@@ -61,9 +61,11 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
             pd.Timedelta('15 hours 5 minutes')
         ),
         check_unordered=(False, True),
+        check_mixed=(False, True),
         __fail_fast=True,
     )
-    def test_historical_restrictions(self, date_offset, check_unordered):
+    def test_historical_restrictions(self, date_offset, check_unordered,
+                                     check_mixed):
         """
         Test historical restrictions for both interday and intraday
         restrictions, as well as restrictions defined in/not in order, for both
@@ -79,6 +81,19 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
                 return rs
         else:
             maybe_scramble = lambda r: r
+
+        if check_mixed:
+            def maybe_mix_assets(rl):
+                # In the final restrictions list containing restrictions of
+                # both assets, swap the first and last restrictions so that
+                # the restrictions are not contiguous by asset
+                tmp = rl[0]
+                rl[0] = rl[-1]
+                rl[-1] = tmp
+                return rl
+        else:
+            def maybe_mix_assets(rl):
+                return rl
 
         def rdate(s):
             """Convert a date string into a restriction for that date."""
@@ -98,6 +113,7 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
                 Restriction(self.ASSET2, rdate('2011-01-07'), FROZEN),
             ])
         )
+        all_restrictions = maybe_mix_assets(all_restrictions)
         restrictions_by_asset = groupby(lambda r: r.asset, all_restrictions)
 
         rl = HistoricalRestrictions(all_restrictions)
