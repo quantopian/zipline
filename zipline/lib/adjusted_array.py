@@ -152,22 +152,16 @@ class AdjustedArray(object):
     missing_value : object
         A value to use to fill missing data in yielded windows.
         Should be a value coercible to `data.dtype`.
-    perspective_offset : int
-        The number of rows after the current end of the window, from which the
-        data is being viewed. This value is used so that adjustments that occur
-        between the end of the window and the vantage point are applied.
     """
     __slots__ = (
         '_data',
         '_view_kwargs',
         'adjustments',
         'missing_value',
-        'perspective_offset',
         '__weakref__',
     )
 
-    def __init__(self, data, mask, adjustments, missing_value,
-                 perspective_offset=0):
+    def __init__(self, data, mask, adjustments, missing_value):
         self._data, self._view_kwargs = _normalize_array(data, missing_value)
 
         self.adjustments = adjustments
@@ -182,8 +176,6 @@ class AdjustedArray(object):
                     (mask.shape, data.shape),
                 )
             self._data[~mask] = self.missing_value
-
-        self.perspective_offset = perspective_offset
 
     @lazyval
     def data(self):
@@ -208,7 +200,10 @@ class AdjustedArray(object):
             return LabelWindow
         return CONCRETE_WINDOW_TYPES[self._data.dtype]
 
-    def traverse(self, window_length, offset=0):
+    def traverse(self,
+                 window_length,
+                 offset=0,
+                 perspective_offset=0):
         """
         Produce an iterator rolling windows rows over our data.
         Each emitted window will have `window_length` rows.
@@ -218,7 +213,10 @@ class AdjustedArray(object):
         window_length : int
             The number of rows in each emitted window.
         offset : int, optional
-            Number of rows to skip before the first window.
+            Number of rows to skip before the first window.  Default is 0.
+        perspective_offset : int, optional
+            Number of rows past the end of the current window from which to
+            "view" the underlying data.
         """
         data = self._data.copy()
         _check_window_params(data, window_length)
@@ -228,7 +226,7 @@ class AdjustedArray(object):
             self.adjustments,
             offset,
             window_length,
-            self.perspective_offset
+            perspective_offset,
         )
 
     def inspect(self):
