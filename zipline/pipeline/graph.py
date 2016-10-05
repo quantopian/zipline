@@ -16,7 +16,7 @@ class CyclicDependency(Exception):
     pass
 
 
-class TermGraph(DiGraph):
+class TermGraph(object):
     """
     An abstract representation of Pipeline Term dependencies.
 
@@ -44,7 +44,7 @@ class TermGraph(DiGraph):
     ExecutionPlan
     """
     def __init__(self, terms):
-        super(TermGraph, self).__init__()
+        self.graph = DiGraph()
 
         self._frozen = False
         parents = set()
@@ -54,7 +54,6 @@ class TermGraph(DiGraph):
             assert not parents
 
         self._outputs = terms
-        self._ordered = topological_sort(self)
 
         # Mark that no more terms should be added to the graph.
         self._frozen = True
@@ -79,11 +78,11 @@ class TermGraph(DiGraph):
 
         parents.add(term)
 
-        self.add_node(term)
+        self.graph.add_node(term)
 
         for dependency in term.dependencies:
             self._add_to_graph(dependency, parents)
-            self.add_edge(dependency, term)
+            self.graph.add_edge(dependency, term)
 
         parents.remove(term)
 
@@ -94,15 +93,25 @@ class TermGraph(DiGraph):
         """
         return self._outputs
 
+    def execution_order(self, refcounts):
+        """
+        Return a topologically-sorted iterator over the terms in ``self`` which
+        need to be computed.
+        """
+        return iter(topological_sort(
+            self.graph.subgraph(
+                {term for term, refcount in refcounts.items() if refcount > 0},
+            ),
+        ))
+
     def ordered(self):
-        """
-        Return a topologically-sorted iterator over the terms in `self`.
-        """
-        return iter(self._ordered)
+        return iter(topological_sort(self.graph))
 
     @lazyval
     def loadable_terms(self):
-        return tuple(term for term in self if isinstance(term, LoadableTerm))
+        return tuple(
+            term for term in self.graph if isinstance(term, LoadableTerm)
+        )
 
     @lazyval
     def jpeg(self):
@@ -132,14 +141,27 @@ class TermGraph(DiGraph):
         nodes get one extra reference to ensure that they're still in the graph
         at the end of execution.
         """
-        refcounts = self.out_degree()
+        refcounts = self.graph.out_degree()
         for t in self.outputs.values():
             refcounts[t] += 1
 
         for t in initial_terms:
-            self.decref_dependencies(t, refcounts)
+            self._decref_recursive(t, refcounts, set())
 
         return refcounts
+
+    def _decref_recursive(self, term, refcounts, garbage):
+        """
+        Decrement terms recursivly to build the initial workspace.
+        """
+        # Edges are tuple of (from, to).
+        for parent, _ in self.graph.in_edges([term]):
+            refcounts[parent] -= 1
+            # No one else depends on this term. Remove it from the
+            # workspace to conserve memory.
+            if refcounts[parent] == 0:
+                garbage.add(parent)
+                self._decref_recursive(parent, refcounts, garbage)
 
     def decref_dependencies(self, term, refcounts):
         """
@@ -159,13 +181,16 @@ class TermGraph(DiGraph):
         """
         garbage = set()
         # Edges are tuple of (from, to).
-        for parent, _ in self.in_edges([term]):
+        for parent, _ in self.graph.in_edges([term]):
             refcounts[parent] -= 1
             # No one else depends on this term. Remove it from the
             # workspace to conserve memory.
             if refcounts[parent] == 0:
                 garbage.add(parent)
         return garbage
+
+    def __iter__(self):
+        return iter(self.graph)
 
 
 class ExecutionPlan(TermGraph):
@@ -326,7 +351,7 @@ class ExecutionPlan(TermGraph):
             # How much bigger is the array for ``dep`` compared to ``term``?
             # How much of that difference did I ask for.
             (term, dep): (extra[dep] - extra[term]) - requested_extra_rows
-            for term in self
+            for term in self.graph
             for dep, requested_extra_rows in term.dependencies.items()
         }
 
@@ -366,14 +391,14 @@ class ExecutionPlan(TermGraph):
         """
         return {
             term: attrs['extra_rows']
-            for term, attrs in iteritems(self.node)
+            for term, attrs in iteritems(self.graph.node)
         }
 
     def _ensure_extra_rows(self, term, N):
         """
         Ensure that we're going to compute at least N extra rows of `term`.
         """
-        attrs = self.node[term]
+        attrs = self.graph.node[term]
         attrs['extra_rows'] = max(N, attrs.get('extra_rows', 0))
 
     def mask_and_dates_for_term(self,
