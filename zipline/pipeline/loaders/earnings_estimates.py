@@ -280,6 +280,10 @@ class EarningsEstimatesLoader(PipelineLoader):
 
         sid_to_idx = dict(zip(assets, range(len(assets))))
 
+        for column in columns:
+            column_name = self.name_map[column.name]
+            col_to_overwrites[column_name] = defaultdict(list)
+
         def collect_adjustments(group):
             next_qtr_start_indices = dates.searchsorted(
                 group[EVENT_DATE_FIELD_NAME].values,
@@ -358,7 +362,7 @@ class EarningsEstimatesLoader(PipelineLoader):
             # overwrite all values going up to the starting index of
             # that quarter with estimates for that quarter.
             if requested_quarter in quarters_with_estimates_for_sid:
-                col_to_overwrites[column_name][next_qtr_start_idx] = [
+                col_to_overwrites[column_name][next_qtr_start_idx].extend([
                     self.create_overwrite_for_estimate(
                         col,
                         column_name,
@@ -368,19 +372,19 @@ class EarningsEstimatesLoader(PipelineLoader):
                         sid,
                         sid_idx
                     ),
-                ]
+                ])
             # There are no estimates for the quarter. Overwrite all
             # values going up to the starting index of that quarter
             # with the missing value for this column.
             else:
-                col_to_overwrites[column_name][next_qtr_start_idx] = [
+                col_to_overwrites[column_name][next_qtr_start_idx].extend([
                     self.overwrite_with_null(
                         col,
                         last_per_qtr.index,
                         next_qtr_start_idx,
                         sid_idx
                     ),
-                ]
+                ])
 
     def overwrite_with_null(self,
                             column,
