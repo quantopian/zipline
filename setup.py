@@ -80,6 +80,8 @@ class LazyBuildExtCommandClass(dict):
 
 ext_modules = [
     Extension('zipline.assets._assets', ['zipline/assets/_assets.pyx']),
+    Extension('zipline.assets.continuous_futures',
+              ['zipline/assets/continuous_futures.pyx']),
     Extension('zipline.lib.adjustment', ['zipline/lib/adjustment.pyx']),
     Extension('zipline.lib._factorize', ['zipline/lib/_factorize.pyx']),
     Extension(

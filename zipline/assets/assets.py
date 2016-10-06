@@ -13,9 +13,12 @@
 # limitations under the License.
 
 from abc import ABCMeta
+import array
+import binascii
 from collections import namedtuple
 from numbers import Integral
 from operator import itemgetter, attrgetter
+import struct
 
 from logbook import Logger
 import numpy as np
@@ -46,6 +49,7 @@ from zipline.errors import (
 from . import (
     Asset, Equity, Future,
 )
+from . continuous_futures import OrderedContracts, ContinuousFuture
 from .asset_writer import (
     check_version_info,
     split_delimited_symbol,
@@ -119,6 +123,41 @@ def _convert_asset_timestamp_fields(dict_):
     return dict_
 
 
+SID_TYPE_IDS = {
+    # Asset would be 0,
+    ContinuousFuture: 1,
+}
+
+CONTINUOUS_FUTURE_ROLL_STYLE_IDS = {
+    'calendar': 0
+}
+
+
+def _encode_continuous_future_sid(root_symbol, offset, roll_style):
+    s = struct.Struct("B 2B B B 3B")
+    # B - sid type
+    # 2B - root symbol
+    # B - offset (could be packed smaller since offsets of greater than 12 are
+    #             probably unneeded.)
+    # B - roll type
+    # 3B - empty space left for parameterized roll types
+
+    # The root symbol currently supports 2 characters.  If 3 char root symbols
+    # are needed, the size of the root symbol does not need to change, however
+    # writing the string directly will need to change to a scheme of writing
+    # the A-Z values in 5-bit chunks.
+    a = array.array('B', [0] * s.size)
+    rs = bytearray(root_symbol, 'ascii')
+    values = (SID_TYPE_IDS[ContinuousFuture],
+              rs[0],
+              rs[1],
+              offset,
+              CONTINUOUS_FUTURE_ROLL_STYLE_IDS[roll_style],
+              0, 0, 0,)
+    s.pack_into(a, 0, *values)
+    return int(binascii.hexlify(a), 16)
+
+
 class AssetFinder(object):
     """
     An AssetFinder is an interface to a database of Asset metadata written by
@@ -161,6 +200,8 @@ class AssetFinder(object):
         # The caches are read through, i.e. accessing an asset through
         # retrieve_asset will populate the cache on first retrieval.
         self._caches = (self._asset_cache, self._asset_type_cache) = {}, {}
+
+        self._ordered_contracts = {}
 
         # Populated on first call to `lifetimes`.
         self._asset_lifetimes = None
@@ -820,6 +861,63 @@ class AssetFinder(object):
         ))
 
         return sids
+
+    def _get_contract_info(self, root_symbol):
+        fc_cols = self.futures_contracts.c
+
+        fields = (fc_cols.sid, fc_cols.start_date, fc_cols.auto_close_date)
+
+        return list(sa.select(fields).where(
+            (fc_cols.root_symbol == root_symbol) &
+            (fc_cols.start_date != pd.NaT.value))
+            .order_by(fc_cols.auto_close_date).execute().fetchall())
+
+    def _get_root_symbol_exchange(self, root_symbol):
+        fc_cols = self.futures_root_symbols.c
+
+        fields = (fc_cols.exchange,)
+
+        return sa.select(fields).where(
+            fc_cols.root_symbol == root_symbol).execute().fetchone()[0]
+
+    def get_ordered_contracts(self, root_symbol):
+        try:
+            return self._ordered_contracts[root_symbol]
+        except KeyError:
+            contract_info = self._get_contract_info(root_symbol)
+            size = len(contract_info)
+            sids = np.full(size, 0, dtype=np.int64)
+            start_dates = np.full(size, 0, dtype=np.int64)
+            auto_close_dates = np.full(size, 0, dtype=np.int64)
+            self._size = size
+            for i, info in enumerate(contract_info):
+                sid, start_date, auto_close_date = info
+                sids[i] = sid
+                start_dates[i] = start_date
+                auto_close_dates[i] = auto_close_date
+            oc = OrderedContracts(root_symbol,
+                                  sids,
+                                  start_dates,
+                                  auto_close_dates)
+            self._ordered_contracts[root_symbol] = oc
+            return oc
+
+    def create_continuous_future(self, root_symbol, offset, roll_style):
+        oc = self.get_ordered_contracts(root_symbol)
+        start_date = self.retrieve_asset(oc.contract_sids[0]).start_date
+        end_date = self.retrieve_asset(oc.contract_sids[-1]).end_date
+        exchange = self._get_root_symbol_exchange(root_symbol)
+
+        sid = _encode_continuous_future_sid(root_symbol, offset, roll_style)
+        cf = ContinuousFuture(sid,
+                              root_symbol,
+                              offset,
+                              roll_style,
+                              start_date,
+                              end_date,
+                              exchange)
+        self._asset_cache[cf.sid] = cf
+        return cf
 
     def _make_sids(tblattr):
         def _(self):

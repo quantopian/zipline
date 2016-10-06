@@ -1186,6 +1186,33 @@ class TradingAlgorithm(object):
         )
 
     @api_method
+    @preprocess(root_symbol_str=ensure_upper_case)
+    def continuous_future(self, root_symbol_str, offset, roll):
+        """Create a specifier for a continuous contract.
+
+        Parameters
+        ----------
+        root_symbol_str : str
+            The root symbol for the future chain.
+
+        offset : int
+            The distance from the primary contract.
+
+        roll_style : str
+            How rolls are determined.
+
+        Returns
+        -------
+        continuous_future : ContinuousFuture
+            The continuous future specifier.
+        """
+        return self.asset_finder.create_continuous_future(
+            root_symbol_str,
+            offset,
+            roll,
+        )
+
+    @api_method
     def symbols(self, *args):
         """Lookup multuple Equities as a list.
 
