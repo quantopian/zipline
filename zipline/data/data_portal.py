@@ -104,6 +104,10 @@ class DataPortal(object):
     adjustment_reader : SQLiteAdjustmentWriter, optional
         The adjustment reader. This is used to apply splits, dividends, and
         other adjustment data to the raw data from the readers.
+    last_available_session : pd.Timestamp, optional
+        The last session to make available in session-level data.
+    last_available_minute : pd.Timestamp, optional
+        The last minute to make available in minute-level data.
     """
     def __init__(self,
                  asset_finder,
@@ -113,7 +117,9 @@ class DataPortal(object):
                  equity_minute_reader=None,
                  future_daily_reader=None,
                  future_minute_reader=None,
-                 adjustment_reader=None):
+                 adjustment_reader=None,
+                 last_available_session=None,
+                 last_available_minute=None):
 
         self.trading_calendar = trading_calendar
         self.asset_finder = asset_finder
@@ -169,12 +175,14 @@ class DataPortal(object):
             self.trading_calendar,
             self.asset_finder,
             aligned_minute_readers,
+            last_available_minute,
         )
 
         _dispatch_session_reader = AssetDispatchSessionBarReader(
             self.trading_calendar,
             self.asset_finder,
             aligned_session_readers,
+            last_available_session,
         )
 
         self._pricing_readers = {
