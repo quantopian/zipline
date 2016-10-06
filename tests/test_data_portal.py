@@ -23,13 +23,14 @@ from zipline.assets import Equity
 from zipline.testing.fixtures import (
     ZiplineTestCase,
     WithTradingSessions,
-    WithDataPortal
+    WithDataPortal,
+    alias,
 )
 
 
-class TestDataPortal(WithDataPortal,
-                     WithTradingSessions,
-                     ZiplineTestCase):
+class DataPortalTestBase(WithDataPortal,
+                         WithTradingSessions,
+                         ZiplineTestCase):
 
     ASSET_FINDER_EQUITY_SIDS = (1,)
     START_DATE = pd.Timestamp('2016-08-01')
@@ -374,3 +375,13 @@ class TestDataPortal(WithDataPortal,
         self.assertEqual(minutes[4], result,
                          "Asset 10000 had a trade on fourth minute, so should "
                          "return that as the last trade on the fifth.")
+
+
+class TestDataPortal(DataPortalTestBase):
+    DATA_PORTAL_LAST_AVAILABLE_SESSION = None
+    DATA_PORTAL_LAST_AVAILABLE_MINUTE = None
+
+
+class TestDataPortalExplicitLastAvailable(DataPortalTestBase):
+    DATA_PORTAL_LAST_AVAILABLE_SESSION = alias('START_DATE')
+    DATA_PORTAL_LAST_AVAILABLE_MINUTE = alias('END_DATE')

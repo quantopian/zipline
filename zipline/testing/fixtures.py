@@ -1265,6 +1265,9 @@ class WithDataPortal(WithAdjustmentReader,
 
     DATA_PORTAL_FIRST_TRADING_DAY = None
 
+    DATA_PORTAL_LAST_AVAILABLE_SESSION = None
+    DATA_PORTAL_LAST_AVAILABLE_MINUTE = None
+
     def make_data_portal(self):
         if self.DATA_PORTAL_FIRST_TRADING_DAY is None:
             if self.DATA_PORTAL_USE_MINUTE_DATA:
@@ -1300,6 +1303,8 @@ class WithDataPortal(WithAdjustmentReader,
                 if self.DATA_PORTAL_USE_MINUTE_DATA else
                 None
             ),
+            last_available_session=self.DATA_PORTAL_LAST_AVAILABLE_SESSION,
+            last_available_minute=self.DATA_PORTAL_LAST_AVAILABLE_MINUTE,
         )
 
     def init_instance_fixtures(self):
