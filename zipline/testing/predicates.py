@@ -519,6 +519,32 @@ def assert_timestamp_and_datetime_equal(result,
     )
 
 
+@assert_equal.register(slice, slice)
+def assert_slice_equal(result, expected, path=(), msg=''):
+    diff_start = (
+        ('starts are not equal: %s != %s' % (result.start, result.stop))
+        if result.start != expected.start else
+        ''
+    )
+    diff_stop = (
+        ('stops are not equal: %s != %s' % (result.stop, result.stop))
+        if result.stop != expected.stop else
+        ''
+    )
+    diff_step = (
+        ('steps are not equal: %s != %s' % (result.step, result.stop))
+        if result.step != expected.step else
+        ''
+    )
+    diffs = diff_start, diff_stop, diff_step
+
+    assert not any(diffs), '%s%s\n%s' % (
+        _fmt_msg(msg),
+        '\n'.join(filter(None, diffs)),
+        _fmt_path(path),
+    )
+
+
 def assert_isidentical(result, expected, msg=''):
     assert result.isidentical(expected), (
         '%s%s is not identical to %s' % (_fmt_msg(msg), result, expected)
