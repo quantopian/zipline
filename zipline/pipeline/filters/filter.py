@@ -4,11 +4,13 @@ filter.py
 from itertools import chain
 from operator import attrgetter
 
+import numpy as np
 from numpy import (
     float64,
     nan,
     nanpercentile,
 )
+import pandas as pd
 
 from zipline.errors import (
     BadPercentileBounds,
@@ -32,7 +34,7 @@ from zipline.pipeline.mixins import (
     SingleInputMixin,
 )
 from zipline.pipeline.term import ComputableTerm, Term
-from zipline.utils.input_validation import expect_types
+from zipline.utils.input_validation import coerce_types, expect_types
 from zipline.utils.memoize import classlazyval
 from zipline.utils.numpy_utils import bool_dtype, repeat_first_axis
 
@@ -494,3 +496,22 @@ class SingleAsset(Filter):
                 asset=self._asset, start_date=dates[0], end_date=dates[-1],
             )
         return out
+
+
+class SpecificAssets(Filter):
+    """
+    A Filter that computes True for a specific set of predetermined assets.
+    """
+    inputs = ()
+    window_length = 0
+    params = ('sids',)
+
+    @expect_types(assets=(list, tuple, np.ndarray))
+    @coerce_types(assets=((list, np.ndarray, pd.Series), list))
+    def __new__(cls, assets):
+        sids = frozenset(asset.sid for asset in assets)
+        return super(SpecificAssets, cls).__new__(cls, sids=sids)
+
+    def _compute(self, arrays, dates, sids, mask):
+        my_columns = sids.isin(self.params['sids'])
+        return repeat_first_axis(my_columns, len(mask)) & mask
