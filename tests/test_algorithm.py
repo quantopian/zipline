@@ -38,6 +38,7 @@ from zipline import run_algorithm
 from zipline import TradingAlgorithm
 from zipline.api import FixedSlippage
 from zipline.assets import Equity, Future, Asset
+from zipline.assets.continuous_futures import ContinuousFuture
 from zipline.assets.synthetic import (
     make_jagged_equity_info,
     make_simple_equity_info,
@@ -1431,8 +1432,12 @@ class TestAlgoScript(WithLogger,
     STRING_TYPE_NAMES = [s.__name__ for s in string_types]
     STRING_TYPE_NAMES_STRING = ', '.join(STRING_TYPE_NAMES)
     ASSET_TYPE_NAME = Asset.__name__
+    CONTINUOUS_FUTURE_NAME = ContinuousFuture.__name__
     ASSET_OR_STRING_TYPE_NAMES = ', '.join([ASSET_TYPE_NAME] +
                                            STRING_TYPE_NAMES)
+    ASSET_OR_STRING_OR_CF_TYPE_NAMES = ', '.join([ASSET_TYPE_NAME,
+                                                  CONTINUOUS_FUTURE_NAME] +
+                                                 STRING_TYPE_NAMES)
     ARG_TYPE_TEST_CASES = (
         ('history__assets', (bad_type_history_assets,
                              ASSET_OR_STRING_TYPE_NAMES,
@@ -1445,7 +1450,7 @@ class TestAlgoScript(WithLogger,
                                 STRING_TYPE_NAMES_STRING,
                                 False)),
         ('current__assets', (bad_type_current_assets,
-                             ASSET_OR_STRING_TYPE_NAMES,
+                             ASSET_OR_STRING_OR_CF_TYPE_NAMES,
                              True)),
         ('current__fields', (bad_type_current_fields,
                              STRING_TYPE_NAMES_STRING,
@@ -1465,7 +1470,9 @@ class TestAlgoScript(WithLogger,
         ('history_kwarg__frequency',
          (bad_type_history_frequency_kwarg, STRING_TYPE_NAMES_STRING, False)),
         ('current_kwarg__assets',
-         (bad_type_current_assets_kwarg, ASSET_OR_STRING_TYPE_NAMES, True)),
+         (bad_type_current_assets_kwarg,
+          ASSET_OR_STRING_OR_CF_TYPE_NAMES,
+          True)),
         ('current_kwarg__fields',
          (bad_type_current_fields_kwarg, STRING_TYPE_NAMES_STRING, True)),
     )

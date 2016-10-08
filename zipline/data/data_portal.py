@@ -23,6 +23,8 @@ from six import iteritems
 from six.moves import reduce
 
 from zipline.assets import Asset, Future, Equity
+from zipline.assets.continuous_futures import ContinuousFuture
+from zipline.assets.roll_finder import CalendarRollFinder
 from zipline.data.dispatch_bar_reader import (
     AssetDispatchMinuteBarReader,
     AssetDispatchSessionBarReader
@@ -54,7 +56,14 @@ from zipline.errors import (
 log = Logger('DataPortal')
 
 BASE_FIELDS = frozenset([
-    "open", "high", "low", "close", "volume", "price", "last_traded"
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "price",
+    "contract",
+    "last_traded",
 ])
 
 OHLCV_FIELDS = frozenset([
@@ -148,6 +157,11 @@ class DataPortal(object):
             self._last_trading_session = min(_last_sessions)
         else:
             self._last_trading_session = None
+
+        self._roll_finders = {
+            'calendar': CalendarRollFinder(self.trading_calendar,
+                                           self.asset_finder)
+        }
 
         aligned_equity_minute_reader = self._ensure_reader_aligned(
             equity_minute_reader)
@@ -350,7 +364,8 @@ class DataPortal(object):
         # at it if it's on something like palladium and not AAPL (since our
         # own price data always wins when dealing with assets).
 
-        return not (field in BASE_FIELDS and isinstance(asset, Asset))
+        return not (field in BASE_FIELDS and
+                    (isinstance(asset, (Asset, ContinuousFuture))))
 
     def _get_fetcher_value(self, asset, field, dt):
         day = normalize_date(dt)
@@ -405,6 +420,8 @@ class DataPortal(object):
                 return 0
             elif field != "last_traded":
                 return np.NaN
+            elif field == "contract":
+                return None
 
         if data_frequency == "daily":
             return self._get_daily_data(asset, field, session_label)
@@ -414,6 +431,8 @@ class DataPortal(object):
             elif field == "price":
                 return self._get_minute_spot_value(asset, "close", dt,
                                                    ffill=True)
+            elif field == "contract":
+                return self._get_current_contract(asset, dt)
             else:
                 return self._get_minute_spot_value(asset, field, dt)
 
@@ -1219,3 +1238,10 @@ class DataPortal(object):
                 ret = np.nan
 
             return ret
+
+    def _get_current_contract(self, continuous_future, dt):
+        rf = self._roll_finders[continuous_future.roll_style]
+        return self.asset_finder.retrieve_asset(
+            rf.get_contract_center(continuous_future.root_symbol,
+                                   dt,
+                                   continuous_future.offset))

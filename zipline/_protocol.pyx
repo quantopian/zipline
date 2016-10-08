@@ -25,6 +25,7 @@ from cpython cimport bool
 from collections import Iterable
 
 from zipline.assets import Asset, Future
+from zipline.assets.continuous_futures import ContinuousFuture
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 
@@ -254,7 +255,7 @@ cdef class BarData:
         return dt
 
     @check_parameters(('assets', 'fields'),
-                      ((Asset,) + string_types, string_types))
+                      ((Asset, ContinuousFuture) + string_types, string_types))
     def current(self, assets, fields):
         """
         Returns the current value of the given assets for the given fields
