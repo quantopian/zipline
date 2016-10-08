@@ -641,6 +641,24 @@ class ObjectIdentityTestCase(TestCase):
             # property of correctly handling `NaN`.
             self.assertIs(column.missing_value, column.latest.missing_value)
 
+    def test_shift_on_different_dtypes(self):
+        factor_dtypes = (float64_dtype, datetime64ns_dtype)
+        for column in TestingDataSet.columns:
+            if column.dtype == bool_dtype:
+                self.assertIsInstance(column.shift(1), Filter)
+            elif (column.dtype == int64_dtype
+                  or column.dtype.kind in ('O', 'S', 'U')):
+                self.assertIsInstance(column.shift(1), Classifier)
+            elif column.dtype in factor_dtypes:
+                self.assertIsInstance(column.shift(1), Factor)
+            else:
+                self.fail(
+                    "Unknown dtype %s for column %s" % (column.dtype, column)
+                )
+            # These should be the same value, plus this has the convenient
+            # property of correctly handling `NaN`.
+            self.assertIs(column.missing_value, column.shift(1).missing_value)
+
     def test_failure_timing_on_bad_dtypes(self):
 
         # Just constructing a bad column shouldn't fail.

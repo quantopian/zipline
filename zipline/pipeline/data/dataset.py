@@ -7,9 +7,21 @@ from six import (
     with_metaclass,
 )
 
-from zipline.pipeline.classifiers import Classifier, Latest as LatestClassifier
-from zipline.pipeline.factors import Factor, Latest as LatestFactor
-from zipline.pipeline.filters import Filter, Latest as LatestFilter
+from zipline.pipeline.classifiers import (
+    Classifier,
+    Latest as LatestClassifier,
+    Shift as ShiftClassifier,
+)
+from zipline.pipeline.factors import (
+    Factor,
+    Latest as LatestFactor,
+    Shift as ShiftFactor,
+)
+from zipline.pipeline.filters import (
+    Filter,
+    Latest as LatestFilter,
+    Shift as ShiftFilter,
+)
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import (
     AssetExists,
@@ -174,6 +186,40 @@ class BoundColumn(LoadableTerm):
 
         return Latest(
             inputs=(self,),
+            dtype=dtype,
+            missing_value=self.missing_value,
+            ndim=self.ndim,
+        )
+
+    def shift(self, by):
+        """
+        Shift the values of this column by some number of days.
+
+        Parameters
+        ----------
+        by : int
+            The number of trading days to shift the result by.
+
+        Returns
+        -------
+        shift : Filter, Classifier, or Factor
+            The shifted term, the type is based on the dtype of this column.
+        """
+        dtype = self.dtype
+        if dtype in Filter.ALLOWED_DTYPES:
+            Shift = ShiftFilter
+        elif dtype in Classifier.ALLOWED_DTYPES:
+            Shift = ShiftClassifier
+        else:
+            assert dtype in Factor.ALLOWED_DTYPES, "Unknown dtype %s." % dtype
+            Shift = ShiftFactor
+
+        if by < 1:
+            raise ValueError("'by' must be >= 1, got %s" % by)
+
+        return Shift(
+            inputs=(self,),
+            window_length=by + 1,
             dtype=dtype,
             missing_value=self.missing_value,
             ndim=self.ndim,

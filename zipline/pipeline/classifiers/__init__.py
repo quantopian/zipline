@@ -1,9 +1,10 @@
 from .classifier import (
     Classifier,
     CustomClassifier,
-    Quantiles,
     Everything,
     Latest,
+    Quantiles,
+    Shift,
 )
 
 __all__ = [
@@ -11,5 +12,6 @@ __all__ = [
     'CustomClassifier',
     'Everything',
     'Latest',
+    'Shift',
     'Quantiles',
 ]

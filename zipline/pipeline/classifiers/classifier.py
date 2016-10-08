@@ -29,6 +29,7 @@ from ..mixins import (
     PositiveWindowLengthMixin,
     RestrictedDTypeMixin,
     SingleInputMixin,
+    ShiftMixin,
     StandardOutputs,
 )
 
@@ -389,7 +390,19 @@ class Latest(LatestMixin, CustomClassifier):
     zipline.pipeline.factors.factor.Latest
     zipline.pipeline.filters.filter.Latest
     """
-    pass
+
+
+class Shift(ShiftMixin, CustomClassifier):
+    """
+    A classifier producing the value of an input known at the start of the
+    window.
+
+    See Also
+    --------
+    zipline.pipeline.data.dataset.BoundColumn.shift
+    zipline.pipeline.factors.factor.Shift
+    zipline.pipeline.filters.filter.Shift
+    """
 
 
 class InvalidClassifierComparison(TypeError):

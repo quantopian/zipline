@@ -29,6 +29,7 @@ from zipline.pipeline.mixins import (
     LatestMixin,
     PositiveWindowLengthMixin,
     RestrictedDTypeMixin,
+    ShiftMixin,
     SingleInputMixin,
 )
 from zipline.pipeline.term import ComputableTerm, Term
@@ -461,7 +462,13 @@ class Latest(LatestMixin, CustomFilter):
     """
     Filter producing the most recently-known value of `inputs[0]` on each day.
     """
-    pass
+
+
+class Shift(ShiftMixin, CustomFilter):
+    """
+    Filter producing the value of `inputs[0]` known at the start of the window
+    on each day.
+    """
 
 
 class SingleAsset(Filter):

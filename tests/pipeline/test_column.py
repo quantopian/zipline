@@ -11,17 +11,17 @@ from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Pipeline
 from zipline.pipeline.data.testing import TestingDataSet as TDS
 from zipline.testing import chrange, temp_pipeline_engine
+from zipline.testing.fixtures import ZiplineTestCase
 from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning
 
 
-class LatestTestCase(TestCase):
-
+class WithColumnSetup(object):
     @classmethod
-    def setUpClass(cls):
-        cls._stack = stack = ExitStack()
+    def init_class_fixtures(cls):
+        super(WithColumnSetup, cls).init_class_fixtures()
         cls.calendar = cal = date_range('2014', '2015', freq='D', tz='UTC')
         cls.sids = list(range(5))
-        cls.engine = stack.enter_context(
+        cls.engine = cls.enter_class_context(
             temp_pipeline_engine(
                 cal,
                 cls.sids,
@@ -31,10 +31,8 @@ class LatestTestCase(TestCase):
         )
         cls.assets = cls.engine._finder.retrieve_all(cls.sids)
 
-    @classmethod
-    def tearDownClass(cls):
-        cls._stack.close()
 
+class LatestTestCase(WithColumnSetup, ZiplineTestCase):
     def expected_latest(self, column, slice_):
         loader = self.engine.get_loader(column)
 
@@ -54,7 +52,7 @@ class LatestTestCase(TestCase):
 
         return DataFrame(
             loader.values(column.dtype, self.calendar, self.sids)[slice_],
-            index=self.calendar[slice_],
+            index=index,
             columns=self.assets,
         )
 
@@ -76,4 +74,54 @@ class LatestTestCase(TestCase):
                 col_result = result[column.name].unstack()
 
             expected_col_result = self.expected_latest(column, cal_slice)
+            assert_frame_equal(col_result, expected_col_result)
+
+
+class ShiftTestCase(WithColumnSetup, ZiplineTestCase):
+    def expected_shift(self, shift, column, slice_):
+        loader = self.engine.get_loader(column)
+
+        # the index uses the normal slice
+        index = self.calendar[slice_]
+
+        # everything else shifts the values back
+        slice_ = slice(slice_.start - shift, slice_.stop - shift)
+        columns = self.assets
+        values = loader.values(column.dtype, self.calendar, self.sids)[slice_]
+
+        if column.dtype.kind in ('O', 'S', 'U'):
+            # For string columns, we expect a categorical in the output.
+            return LabelArray(
+                values,
+                missing_value=column.missing_value,
+            ).as_categorical_frame(
+                index=index,
+                columns=columns,
+            )
+
+        return DataFrame(
+            loader.values(column.dtype, self.calendar, self.sids)[slice_],
+            index=index,
+            columns=self.assets,
+        )
+
+    def test_shift(self):
+        columns = TDS.columns
+        shift = 5
+        pipe = Pipeline(
+            columns={c.name: c.shift(shift) for c in columns},
+        )
+
+        cal_slice = slice(20, 40)
+        dates_to_test = self.calendar[cal_slice]
+        result = self.engine.run_pipeline(
+            pipe,
+            dates_to_test[0],
+            dates_to_test[-1],
+        )
+        for column in columns:
+            with ignore_pandas_nan_categorical_warning():
+                col_result = result[column.name].unstack()
+
+            expected_col_result = self.expected_shift(shift, column, cal_slice)
             assert_frame_equal(col_result, expected_col_result)
