@@ -501,13 +501,16 @@ class SingleAsset(Filter):
 class SpecificAssets(Filter):
     """
     A Filter that computes True for a specific set of predetermined assets.
+
+    Parameters
+    ----------
+    assets : iterable[Asset]
+        An iterable of assets for which to filter.
     """
     inputs = ()
     window_length = 0
     params = ('sids',)
 
-    @expect_types(assets=(list, tuple, np.ndarray))
-    @coerce_types(assets=((list, np.ndarray, pd.Series), list))
     def __new__(cls, assets):
         sids = frozenset(asset.sid for asset in assets)
         return super(SpecificAssets, cls).__new__(cls, sids=sids)
