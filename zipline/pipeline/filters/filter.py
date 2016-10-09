@@ -500,6 +500,10 @@ class SpecificAssets(Filter):
     """
     A Filter that computes True for a specific set of predetermined assets.
 
+    ``SpecificAssets`` is mostly useful for debugging or for interactively
+    computing pipeline terms for a fixed set of assets that are known ahead of
+    time.
+
     Parameters
     ----------
     assets : iterable[Asset]
