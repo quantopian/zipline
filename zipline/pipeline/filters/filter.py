@@ -4,13 +4,11 @@ filter.py
 from itertools import chain
 from operator import attrgetter
 
-import numpy as np
 from numpy import (
     float64,
     nan,
     nanpercentile,
 )
-import pandas as pd
 
 from zipline.errors import (
     BadPercentileBounds,
@@ -34,7 +32,7 @@ from zipline.pipeline.mixins import (
     SingleInputMixin,
 )
 from zipline.pipeline.term import ComputableTerm, Term
-from zipline.utils.input_validation import coerce_types, expect_types
+from zipline.utils.input_validation import expect_types
 from zipline.utils.memoize import classlazyval
 from zipline.utils.numpy_utils import bool_dtype, repeat_first_axis
 
