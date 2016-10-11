@@ -1239,6 +1239,27 @@ class DataPortal(object):
 
             return ret
 
+    def get_current_future_chain(self, continuous_future, dt):
+        """
+        Retrieves the future chain for the contract at the given `dt` according
+        the `continuous_future` specification.
+
+        Returns:
+        future_chain : list[Future]
+            A list of active futures, where the first index is the current
+            contract specified by the continuous future definition, the second
+            is the next upcoming contract and so on.
+        """
+        rf = self._roll_finders[continuous_future.roll_style]
+        session = self.trading_calendar.minute_to_session_label(dt)
+        contract_center = rf.get_contract_center(
+            continuous_future.root_symbol, session,
+            continuous_future.offset)
+        oc = self.asset_finder.get_ordered_contracts(
+            continuous_future.root_symbol)
+        chain = oc.active_chain(contract_center, session.value)
+        return self.asset_finder.retrieve_all(chain)
+
     def _get_current_contract(self, continuous_future, dt):
         rf = self._roll_finders[continuous_future.roll_style]
         return self.asset_finder.retrieve_asset(
