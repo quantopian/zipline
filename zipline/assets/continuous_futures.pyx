@@ -29,10 +29,9 @@ from cpython.object cimport (
 )
 from cpython cimport bool
 
-import numpy as np
+from numpy import empty
 from numpy cimport long_t, int64_t
 import warnings
-cimport numpy as np
 
 from zipline.utils.calendars import get_calendar
 
@@ -273,7 +272,7 @@ cdef class OrderedContracts(object):
         self.start_dates = start_dates
         self.auto_close_dates = auto_close_dates
     
-    cpdef long contract_before_auto_close(self, long_t dt_value):
+    cpdef long_t contract_before_auto_close(self, long_t dt_value):
         """
         Get the contract with next upcoming auto close date.
         """
@@ -283,7 +282,7 @@ cdef class OrderedContracts(object):
                 break
         return self.contract_sids[i]
 
-    cpdef long contract_at_offset(self, long_t sid, Py_ssize_t offset):
+    cpdef long_t contract_at_offset(self, long_t sid, Py_ssize_t offset):
         """
         Get the sid which is the given sid plus the offset distance.
         An offset of 0 should be reflexive.
@@ -294,3 +293,23 @@ cdef class OrderedContracts(object):
         for i in range(self._size):
             if sid == sids[i]:
                 return sids[i + offset]
+
+    cpdef long_t[:] active_chain(self, long_t starting_sid, long_t dt_value):
+        cdef Py_ssize_t left, right, i, j
+        cdef long_t[:] sids, start_dates
+        left = 0
+        right = self._size
+        sids = self.contract_sids
+        start_dates = self.start_dates
+
+        for i in range(self._size):
+            if starting_sid == sids[i]:
+                left = i
+                break
+
+        for j in range(i, self._size):
+            if start_dates[j] > dt_value:
+                right = j
+                break
+
+        return sids[left:right]
