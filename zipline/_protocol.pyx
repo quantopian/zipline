@@ -588,7 +588,8 @@ cdef class BarData:
 
     @check_parameters(('assets', 'fields', 'bar_count',
                        'frequency'),
-                      ((Asset,) + string_types, string_types, int,
+                      ((Asset, ContinuousFuture) + string_types, string_types,
+                       int,
                        string_types))
     def history(self, assets, fields, bar_count, frequency):
         """

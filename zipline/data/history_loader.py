@@ -24,6 +24,7 @@ from pandas.tslib import normalize_date
 
 from six import with_metaclass
 
+from zipline.lib._int64window import AdjustedArrayWindow as Int64Window
 from zipline.lib._float64window import AdjustedArrayWindow as Float64Window
 from zipline.lib.adjustment import Float64Multiply
 from zipline.utils.cache import ExpiringCache
@@ -82,7 +83,7 @@ class HistoryLoader(with_metaclass(ABCMeta)):
     adjustment_reader : SQLiteAdjustmentReader
         Reader for adjustment data.
     """
-    FIELDS = ('open', 'high', 'low', 'close', 'volume')
+    FIELDS = ('open', 'high', 'low', 'close', 'volume', 'sid')
 
     def __init__(self, trading_calendar, reader, adjustment_reader,
                  sid_cache_size=1000):
@@ -270,6 +271,12 @@ class HistoryLoader(with_metaclass(ABCMeta)):
             prefetch_dts = cal[start_ix:prefetch_end_ix + 1]
             prefetch_len = len(prefetch_dts)
             array = self._array(prefetch_dts, needed_assets, field)
+
+            if field == 'sid':
+                window_type = Int64Window
+            else:
+                window_type = Float64Window
+
             view_kwargs = {}
             if field == 'volume':
                 array = array.astype(float64_dtype)
@@ -280,7 +287,7 @@ class HistoryLoader(with_metaclass(ABCMeta)):
                         asset, prefetch_dts, field, is_perspective_after)
                 else:
                     adjs = {}
-                window = Float64Window(
+                window = window_type(
                     array[:, i].reshape(prefetch_len, 1),
                     view_kwargs,
                     adjs,

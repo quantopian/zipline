@@ -15,6 +15,8 @@
 from abc import ABCMeta, abstractmethod
 from six import with_metaclass
 
+from pandas import Timestamp
+
 
 class RollFinder(with_metaclass(ABCMeta, object)):
     """
@@ -42,6 +44,33 @@ class RollFinder(with_metaclass(ABCMeta, object)):
         """
         raise NotImplemented
 
+    @abstractmethod
+    def get_rolls(self, root_symbol, start, end, offset):
+        """
+        Get the rolls, i.e. the session at which to hop from contract to
+        contract in the chain.
+
+        Parameters
+        ----------
+        root_symbol : str
+            The root symbol for which to calculate rolls.
+        start : Timestamp
+            Start of the date range.
+        end : Timestamp
+            End of the date range.
+        offset : int
+            Offset from the primary.
+
+        Returns
+        -------
+        rolls - list[tuple(sid, roll_date)]
+            A list of rolls, where first value is the first active `sid`,
+        and the `roll_date` on which to hop to the next contract.
+            The last pair in the chain has a value of `None` since the roll
+            is after the range.
+        """
+        raise NotImplemented
+
 
 class CalendarRollFinder(RollFinder):
     """
@@ -61,3 +90,23 @@ class CalendarRollFinder(RollFinder):
         # Here is where a volume check would be.
         primary = primary_candidate
         return oc.contract_at_offset(primary, offset)
+
+    def get_rolls(self, root_symbol, start, end, offset):
+        oc = self.asset_finder.get_ordered_contracts(root_symbol)
+        primary_at_end = self.get_contract_center(root_symbol, end, 0)
+        for i, sid in enumerate(oc.contract_sids):
+            if sid == primary_at_end:
+                break
+        i += offset
+        first = oc.contract_sids[i]
+        rolls = [(first, None)]
+        i -= 1
+        auto_close_date = Timestamp(oc.auto_close_dates[i - offset], tz='UTC')
+        while auto_close_date > start and i > -1:
+            rolls.insert(0, (oc.contract_sids[i - offset],
+                             auto_close_date))
+            i -= 1
+            auto_close_date = Timestamp(oc.auto_close_dates[i - offset],
+                                        tz='UTC')
+
+        return rolls

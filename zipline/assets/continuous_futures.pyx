@@ -106,7 +106,7 @@ cdef class ContinuousFuture:
         Cython rich comparison method.  This is used in place of various
         equality checkers in pure python.
         """
-        cdef int x_as_int, y_as_int
+        cdef long_t x_as_int, y_as_int
 
         try:
             x_as_int = PyNumber_Index(x)
