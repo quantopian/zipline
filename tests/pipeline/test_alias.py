@@ -1,3 +1,4 @@
+from nose.tools import nottest
 import numpy as np
 
 from zipline.testing.predicates import assert_equal
@@ -7,7 +8,8 @@ from zipline.utils.numpy_utils import float64_dtype, int64_dtype
 from .base import BasePipelineTestCase
 
 
-class WithAlias(object):
+@nottest
+class BaseAliasTestCase(BasePipelineTestCase):
 
     def test_alias(self):
         f = self.Term()
@@ -42,20 +44,20 @@ class WithAlias(object):
             )
 
 
-class TestFactorAlias(WithAlias, BasePipelineTestCase):
+class TestFactorAlias(BaseAliasTestCase):
     class Term(Factor):
         dtype = float64_dtype
         inputs = ()
         window_length = 0
 
 
-class TestFilterAlias(WithAlias, BasePipelineTestCase):
+class TestFilterAlias(BaseAliasTestCase):
     class Term(Filter):
         inputs = ()
         window_length = 0
 
 
-class TestClassifierAlias(WithAlias, BasePipelineTestCase):
+class TestClassifierAlias(BaseAliasTestCase):
     class Term(Classifier):
         dtype = int64_dtype
         inputs = ()

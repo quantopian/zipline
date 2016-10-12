@@ -39,7 +39,7 @@ from zipline.utils.numpy_utils import (
 )
 from zipline.utils.sharedoc import (
     templated_docstring,
-    PIPELINE_ALIAS_DOC,
+    PIPELINE_ALIAS_NAME_DOC,
     PIPELINE_DOWNSAMPLING_FREQUENCY_DOC,
 )
 
@@ -633,7 +633,7 @@ class ComputableTerm(Term):
             "for instances of %s." % type(self).__name__
         )
 
-    @templated_docstring(name=PIPELINE_ALIAS_DOC)
+    @templated_docstring(name=PIPELINE_ALIAS_NAME_DOC)
     def alias(self, name):
         """
         Make a term from ``self`` that names the expression.

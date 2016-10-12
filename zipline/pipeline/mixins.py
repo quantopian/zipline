@@ -20,7 +20,7 @@ from zipline.utils.control_flow import nullctx
 from zipline.utils.input_validation import expect_types
 from zipline.utils.sharedoc import (
     format_docstring,
-    PIPELINE_ALIAS_DOC,
+    PIPELINE_ALIAS_NAME_DOC,
     PIPELINE_DOWNSAMPLING_FREQUENCY_DOC,
 )
 from zipline.utils.pandas_utils import nearest_unequal_elements
@@ -300,12 +300,12 @@ class AliasedMixin(SingleInputMixin):
         doc = format_docstring(
             owner_name=other_base.__name__,
             docstring=docstring,
-            formatters={'name': PIPELINE_ALIAS_DOC},
+            formatters={'name': PIPELINE_ALIAS_NAME_DOC},
         )
 
         return type(
             'Aliased' + other_base.__name__,
-            (cls, other_base,),
+            (cls, other_base),
             {'__doc__': doc,
              '__module__': other_base.__module__},
         )
