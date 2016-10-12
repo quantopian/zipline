@@ -24,6 +24,7 @@ from numpy import (
     sum as np_sum
 )
 from numpy.random import randn, seed as random_seed
+import pandas as pd
 
 from zipline.errors import BadPercentileBounds
 from zipline.pipeline import Filter, Factor, Pipeline
@@ -859,3 +860,38 @@ class SpecificAssetsTestCase(WithSeededRandomPipelineEngine,
         assert_equal(results.odds, (sids % 2).astype(bool))
         assert_equal(results.first_five, sids < 5)
         assert_equal(results.last_three, sids >= 7)
+
+
+class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
+    def test_reversability(self):
+        class F(Filter):
+            inputs = ()
+            window_length = 0
+            missing_value = False
+
+        f = F()
+        column_data = array(
+            [[True, f.missing_value],
+             [True, f.missing_value],
+             [True, True]],
+            dtype=bool,
+        )
+
+        assert_equal(f.postprocess(column_data.ravel()), column_data.ravel())
+
+        # only include the non-missing data
+        pipeline_output = pd.Series(
+            data=True,
+            index=pd.MultiIndex.from_arrays([
+                [pd.Timestamp('2014-01-01'),
+                 pd.Timestamp('2014-01-02'),
+                 pd.Timestamp('2014-01-03'),
+                 pd.Timestamp('2014-01-03')],
+                [0, 0, 0, 1],
+            ]),
+        )
+
+        assert_equal(
+            f.to_workspace_value(pipeline_output, pd.Index([0, 1])),
+            column_data,
+        )
