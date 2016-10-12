@@ -207,6 +207,27 @@ class PreprocessTestCase(TestCase):
             with self.assertRaises(TypeError):
                 foo(not_int(1), not_int(2), 3)
 
+    def test_expect_types_custom_funcname(self):
+
+        class Foo(object):
+            @expect_types(__funcname='ArgleBargle', a=int)
+            def __init__(self, a):
+                self.a = a
+
+        foo = Foo(1)
+        self.assertEqual(foo.a, 1)
+
+        for not_int in (str, float):
+            with self.assertRaises(TypeError) as e:
+                Foo(not_int(1))
+            self.assertEqual(
+                e.exception.args[0],
+                "ArgleBargle() expected a value of type "
+                "int for argument 'a', but got {t} instead.".format(
+                    t=not_int.__name__,
+                )
+            )
+
     def test_expect_types_with_tuple(self):
         @expect_types(a=(int, float))
         def foo(a):
@@ -269,6 +290,27 @@ class PreprocessTestCase(TestCase):
         )
         self.assertEqual(e.exception.args[0], expected_message)
 
+    def test_expect_element_custom_funcname(self):
+
+        set_ = {'a', 'b'}
+
+        class Foo(object):
+            @expect_element(__funcname='ArgleBargle', a=set_)
+            def __init__(self, a):
+                self.a = a
+
+        with self.assertRaises(ValueError) as e:
+            Foo('c')
+
+        expected_message = (
+            "ArgleBargle() expected a value in {set_!r}"
+            " for argument 'a', but got 'c' instead."
+        ).format(
+            # We special-case set to show a tuple instead of the set repr.
+            set_=tuple(sorted(set_)),
+        )
+        self.assertEqual(e.exception.args[0], expected_message)
+
     def test_expect_dtypes(self):
 
         @expect_dtypes(a=dtype(float), b=dtype('datetime64[ns]'))
@@ -324,6 +366,24 @@ class PreprocessTestCase(TestCase):
             "{qualname}() expected a value with dtype 'datetime64[ns]' "
             "or 'float64' for argument 'a', but got 'uint32' instead."
         ).format(qualname=qualname(foo))
+        self.assertEqual(e.exception.args[0], expected_message)
+
+    def test_expect_dtypes_custom_funcname(self):
+
+        allowed_dtypes = (dtype('datetime64[ns]'), dtype('float'))
+
+        class Foo(object):
+            @expect_dtypes(__funcname='Foo', a=allowed_dtypes)
+            def __init__(self, a):
+                self.a = a
+
+        with self.assertRaises(TypeError) as e:
+            Foo(arange(3, dtype='uint32'))
+
+        expected_message = (
+            "Foo() expected a value with dtype 'datetime64[ns]' "
+            "or 'float64' for argument 'a', but got 'uint32' instead."
+        )
         self.assertEqual(e.exception.args[0], expected_message)
 
     def test_ensure_timezone(self):
@@ -405,5 +465,20 @@ class PreprocessTestCase(TestCase):
         expected = (
             "{qualname}() expected a 2-D array for argument 'x', but got"
             " a scalar instead.".format(qualname=qualname(foo))
+        )
+        self.assertEqual(errmsg, expected)
+
+    def test_expect_dimensions_custom_name(self):
+
+        @expect_dimensions(__funcname='fizzbuzz', x=2)
+        def foo(x, y):
+            return x[0, 0]
+
+        with self.assertRaises(ValueError) as e:
+            foo(arange(1), 1)
+        errmsg = str(e.exception)
+        expected = (
+            "fizzbuzz() expected a 2-D array for argument 'x', but got"
+            " a 1-D array instead.".format(qualname=qualname(foo))
         )
         self.assertEqual(errmsg, expected)
