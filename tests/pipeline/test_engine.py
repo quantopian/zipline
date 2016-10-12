@@ -14,6 +14,7 @@ from numpy import (
     float32,
     float64,
     full,
+    full_like,
     log,
     nan,
     tile,
@@ -79,6 +80,7 @@ from zipline.testing.fixtures import (
     WithTradingEnvironment,
     ZiplineTestCase,
 )
+from zipline.testing.predicates import assert_equal
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import bool_dtype, datetime64ns_dtype
 
@@ -1322,30 +1324,58 @@ class StringColumnTestCase(WithSeededRandomPipelineEngine,
 
 class PopulateInitialWorkspaceTestCase(WithConstantInputs, ZiplineTestCase):
     def test_populate_default_workspace(self):
+        window_length = 5
         column = USEquityPricing.low
         base_term = column.latest
-        term = (base_term + 1).alias('term')
-        composed_term = term + 1
+        precomputed_term = (base_term + 1).alias('precomputed_term')
+        precomputed_term_with_window = SimpleMovingAverage(
+            inputs=(column,),
+            window_length=window_length,
+        ).alias('precomputed_term_with_window')
+        depends_on_precomputed_term = precomputed_term + 1
+        depends_on_precomputed_term_with_window = (
+            precomputed_term_with_window + 1
+        )
         column_value = self.constants[column]
-        precomputed_value = -column_value
+        precomputed_term_value = -column_value
+        precomputed_term_with_window_value = -(column_value + 1)
 
         def populate_initial_workspace(initial_workspace,
                                        root_mask_term,
                                        execution_plan,
                                        dates,
                                        assets):
-            return assoc(
+            ws = initial_workspace.copy()
+            _, precomputed_term_dates = execution_plan.mask_and_dates_for_term(
+                precomputed_term,
+                root_mask_term,
                 initial_workspace,
-                term,
-                full(
-                    (len(dates), len(assets)),
-                    precomputed_value,
-                    dtype=float64,
-                ),
+                dates,
+            )
+            ws[precomputed_term] = full(
+                (len(precomputed_term_dates), len(assets)),
+                precomputed_term_value,
+                dtype=float64,
+            )
+            (
+                _,
+                precomputed_term_with_window_dates,
+            ) = execution_plan.mask_and_dates_for_term(
+                precomputed_term,
+                root_mask_term,
+                initial_workspace,
+                dates,
             )
 
-        def dispatcher(column):
-            if column is base_term:
+            ws[precomputed_term_with_window] = full(
+                (len(precomputed_term_with_window_dates), len(assets)),
+                precomputed_term_with_window_value,
+                dtype=float64,
+            )
+            return ws
+
+        def dispatcher(c):
+            if c is column:
                 # the base_term should never be loaded, its initial refcount
                 # should be zero
                 return ExplodingObject()
@@ -1360,16 +1390,41 @@ class PopulateInitialWorkspaceTestCase(WithConstantInputs, ZiplineTestCase):
 
         results = engine.run_pipeline(
             Pipeline({
-                'term': term,
-                'composed_term': composed_term,
+                'precomputed_term': precomputed_term,
+                'precomputed_term_with_window': precomputed_term_with_window,
+                'depends_on_precomputed_term': depends_on_precomputed_term,
+                'depends_on_precomputed_term_with_window':
+                    depends_on_precomputed_term_with_window,
             }),
-            self.dates[0],
+            self.dates[window_length - 1],
             self.dates[-1],
         )
 
-        self.assertTrue(
-            (results['term'] == precomputed_value).all(),
+        assert_equal(
+            results['precomputed_term'].values,
+            full_like(
+                results['precomputed_term'],
+                precomputed_term_value,
+            ),
+        ),
+        assert_equal(
+            results['precomputed_term_with_window'].values,
+            full_like(
+                results['precomputed_term_with_window'],
+                precomputed_term_with_window_value,
+            ),
+        ),
+        assert_equal(
+            results['depends_on_precomputed_term'].values,
+            full_like(
+                results['depends_on_precomputed_term'],
+                precomputed_term_value + 1,
+            ),
         )
-        self.assertTrue(
-            (results['composed_term'] == (precomputed_value + 1)).all(),
+        assert_equal(
+            results['depends_on_precomputed_term_with_window'].values,
+            full_like(
+                results['depends_on_precomputed_term_with_window'],
+                precomputed_term_with_window_value + 1,
+            ),
         )

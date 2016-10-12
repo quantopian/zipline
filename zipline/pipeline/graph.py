@@ -146,13 +146,19 @@ class TermGraph(object):
             refcounts[t] += 1
 
         for t in initial_terms:
-            self._decref_recursive(t, refcounts, set())
+            self._decref_depencies_recursive(t, refcounts, set())
 
         return refcounts
 
-    def _decref_recursive(self, term, refcounts, garbage):
+    def _decref_depencies_recursive(self, term, refcounts, garbage):
         """
-        Decrement terms recursivly to build the initial workspace.
+        Decrement terms recursively.
+
+        Notes
+        -----
+        This should only be used to build the initial workspace, after that we
+        should use:
+        :meth:`~zipline.pipeline.graph.TermGraph.decref_dependencies`
         """
         # Edges are tuple of (from, to).
         for parent, _ in self.graph.in_edges([term]):
@@ -161,7 +167,7 @@ class TermGraph(object):
             # workspace to conserve memory.
             if refcounts[parent] == 0:
                 garbage.add(parent)
-                self._decref_recursive(parent, refcounts, garbage)
+                self._decref_depencies_recursive(parent, refcounts, garbage)
 
     def decref_dependencies(self, term, refcounts):
         """
@@ -430,7 +436,7 @@ class ExecutionPlan(TermGraph):
         mask = term.mask
         mask_offset = self.extra_rows[mask] - self.extra_rows[term]
 
-        # This offset is computed against _root_mask_term because that is what
+        # This offset is computed against root_mask_term because that is what
         # determines the shape of the top-level dates array.
         dates_offset = (
             self.extra_rows[root_mask_term] - self.extra_rows[term]

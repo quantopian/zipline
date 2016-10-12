@@ -312,7 +312,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
 
         This is the inverse of :func:`~zipline.pipeline.term.Term.postprocess`.
         """
-        data = super(Classifier, self).unprocess(result, assets)
+        data = super(Classifier, self).to_workspace_value(result, assets)
         if self.dtype == int64_dtype:
             return data
         assert isinstance(data, pd.Categorical), (
