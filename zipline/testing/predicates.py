@@ -100,6 +100,8 @@ def keywords(func):
     """
     if isinstance(func, type):
         return keywords(func.__init__)
+    elif isinstance(func, partial):
+        return keywords(func.func)
     return inspect.getargspec(func).args
 
 
