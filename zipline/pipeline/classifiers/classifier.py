@@ -312,13 +312,26 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
 
         This is the inverse of :func:`~zipline.pipeline.term.Term.postprocess`.
         """
-        data = super(Classifier, self).to_workspace_value(result, assets)
         if self.dtype == int64_dtype:
-            return data
-        assert isinstance(data, pd.Categorical), (
-            'Expected a Categorical, got %r.' % type(data).__name__
+            return super(Classifier, self).to_workspace_value(result, assets)
+
+        assert isinstance(result.values, pd.Categorical), (
+            'Expected a Categorical, got %r.' % type(result.values)
         )
-        return LabelArray.from_categorical(data, self.missing_value)
+        with_missing = pd.Series(
+            data=pd.Categorical(
+                result.values,
+                result.values.categories.union([self.missing_value]),
+            ),
+            index=result.index,
+        )
+        return LabelArray(
+            super(Classifier, self).to_workspace_value(
+                with_missing,
+                assets,
+            ),
+            self.missing_value,
+        )
 
     @classlazyval
     def _downsampled_type(self):

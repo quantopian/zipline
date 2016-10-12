@@ -21,6 +21,7 @@ from numpy import (
     where,
 )
 from numpy.random import randn, seed
+import pandas as pd
 
 from zipline.errors import UnknownRankMethod
 from zipline.lib.labelarray import LabelArray
@@ -37,6 +38,8 @@ from zipline.testing import (
     parameter_space,
     permute_rows,
 )
+from zipline.testing.fixtures import ZiplineTestCase
+from zipline.testing.predicates import assert_equal
 from zipline.utils.numpy_utils import (
     categorical_dtype,
     datetime64ns_dtype,
@@ -1058,3 +1061,39 @@ class TestWindowSafety(TestCase):
         self.assertFalse(F().demean().window_safe)
         self.assertFalse(F(window_safe=False).demean().window_safe)
         self.assertTrue(F(window_safe=True).demean().window_safe)
+
+
+class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
+    @parameter_space(dtype_=(float64_dtype, datetime64ns_dtype))
+    def test_reversability(self, dtype_):
+        class F(Factor):
+            inputs = ()
+            dtype = dtype_
+            window_length = 0
+
+        f = F()
+        column_data = array(
+            [[0, f.missing_value],
+             [1, f.missing_value],
+             [2, 3]],
+            dtype=dtype_,
+        )
+
+        assert_equal(f.postprocess(column_data.ravel()), column_data.ravel())
+
+        # only include the non-missing data
+        pipeline_output = pd.Series(
+            data=array([0, 1, 2, 3], dtype=dtype_),
+            index=pd.MultiIndex.from_arrays([
+                [pd.Timestamp('2014-01-01'),
+                 pd.Timestamp('2014-01-02'),
+                 pd.Timestamp('2014-01-03'),
+                 pd.Timestamp('2014-01-03')],
+                [0, 0, 0, 1],
+            ]),
+        )
+
+        assert_equal(
+            f.to_workspace_value(pipeline_output, pd.Index([0, 1])),
+            column_data,
+        )

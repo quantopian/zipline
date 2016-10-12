@@ -593,10 +593,23 @@ class ComputableTerm(Term):
 
     def to_workspace_value(self, result, assets):
         """
-        Called with the result of a pipeline. This needs to return an object
-        which can be put into the workspace to continue doing computations.
+        Called with a column of the result of a pipeline. This needs to put
+        the data into a format that can be used in a workspace to continue
+        doing computations.
 
-        This is the inverse of :func:`~zipline.pipeline.term.Term.postprocess`.
+        Parameters
+        ----------
+        result : pd.Series
+            A multiindexed series with (dates, assets) whose values are the
+            results of running this pipeline term over the dates.
+        assets : pd.Index
+            All of the assets being requested. This allows us to correctly
+            shape the workspace value.
+
+        Returns
+        -------
+        workspace_value : array-like
+            An array like value that the engine can consume.
         """
         return result.unstack().fillna(self.missing_value).reindex(
             columns=assets,
