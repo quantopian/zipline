@@ -1181,6 +1181,8 @@ def get_materialized_checkpoints(checkpoints, colnames, lower_dt, odo_kwargs):
             **odo_kwargs
         )
         if pd.isnull(checkpoints_ts):
+            # We don't have a checkpoint for before our start date so just
+            # don't constrain the lower date.
             materialized_checkpoints = pd.DataFrame(columns=colnames)
             lower = None
         else:
@@ -1192,7 +1194,7 @@ def get_materialized_checkpoints(checkpoints, colnames, lower_dt, odo_kwargs):
             lower = checkpoints_ts
     else:
         materialized_checkpoints = pd.DataFrame(columns=colnames)
-        lower = None
+        lower = None  # we don't have a good lower date constraint
     return lower, materialized_checkpoints
 
 
@@ -1229,23 +1231,28 @@ def ffill_query_in_range(expr,
     """
     odo_kwargs = odo_kwargs or {}
     computed_lower, materialized_checkpoints = get_materialized_checkpoints(
-        checkpoints, expr.fields, lower, odo_kwargs
+        checkpoints,
+        expr.fields,
+        lower,
+        odo_kwargs,
     )
-    if pd.isnull(computed_lower):
-        # If there is no lower date, just query for data in the date
-        # range. It must all be null anyways.
-        computed_lower = lower
+
+    pred = expr[ts_field] <= upper
+
+    if computed_lower is not None:
+        # only constrain the lower date if we computed a new lower date
+        pred &= expr[ts_field] >= computed_lower
 
     raw = pd.concat(
-        [materialized_checkpoints,
-         odo(
-             expr[
-                 (expr[ts_field] >= computed_lower) &
-                 (expr[ts_field] <= upper)
-             ],
-             pd.DataFrame,
-             **odo_kwargs
-         )]
+        (
+            materialized_checkpoints,
+            odo(
+                expr[pred],
+                pd.DataFrame,
+                **odo_kwargs
+            ),
+        ),
+        ignore_index=True,
     )
     raw.loc[:, ts_field] = raw.loc[:, ts_field].astype('datetime64[ns]')
     return raw
