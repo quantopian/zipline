@@ -492,7 +492,6 @@ assert_index_equal = _register_assert_equal_wrapper(
 )
 
 
-
 @assert_equal.register(pd.Categorical, pd.Categorical)
 def assert_categorical_equal(result, expected, path=(), msg='', **kwargs):
     assert_equal(

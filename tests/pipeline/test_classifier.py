@@ -520,7 +520,7 @@ class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
             missing_value = -1
 
         f = F()
-        column_data =np.array(
+        column_data = np.array(
             [[0, f.missing_value],
              [1, f.missing_value],
              [2, 3]],

@@ -195,9 +195,6 @@ class TermGraph(object):
                 garbage.add(parent)
         return garbage
 
-    def __iter__(self):
-        return iter(self.graph)
-
 
 class ExecutionPlan(TermGraph):
     """
