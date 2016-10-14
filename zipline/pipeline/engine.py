@@ -81,11 +81,36 @@ class ExplodingPipelineEngine(PipelineEngine):
         )
 
 
-def _default_populate_initial_workspace(initial_workspace,
-                                        root_mask_term,
-                                        execution_plan,
-                                        dates,
-                                        assets):
+def default_populate_initial_workspace(initial_workspace,
+                                       root_mask_term,
+                                       execution_plan,
+                                       dates,
+                                       assets):
+    """The default implementation for ``populate_initial_workspace``. This
+    function returns the ``initial_workspace`` argument without making any
+    modifications.
+
+    Parameters
+    ----------
+    initial_workspace : dict[array-like]
+        The initial workspace before we have populated it with any cached
+        terms.
+    root_mask_term : Term
+        The root mask term, normally ``AssetExists()``. This is needed to
+        compute the dates for individual terms.
+    execution_plan : ExecutionPlan
+        The execution plan for the pipeline being run.
+    dates : pd.DatetimeIndex
+        All of the dates being requested in this pipeline run including
+        the extra dates for look back windows.
+    assets : pd.Int64Index
+        All of the assets that exist for the window being computed.
+
+    Returns
+    -------
+    populated_initial_workspace : dict[term, array-like]
+        The workspace to begin computations with.
+    """
     return initial_workspace
 
 
@@ -106,10 +131,13 @@ class SimplePipelineEngine(object):
         which assets are in the top-level universe at any point in time.
     populate_initial_workspace : callable, optional
         A function which will be used to populate the initial workspace when
-        computing a pipeline. This function will be passed the
-        initial_workspace, the root mask term, the execution_plan, the dates
-        being computed for, and the assets requested and should return a new
-        dictionary which will be used as the initial_workspace.
+        computing a pipeline. See
+        :func:`zipline.pipeline.engine.default_populate_initial_workspace`
+        for more info.
+
+    See Also
+    --------
+    :func:`zipline.pipeline.engine.default_populate_initial_workspace`
     """
     __slots__ = (
         '_get_loader',
@@ -134,7 +162,7 @@ class SimplePipelineEngine(object):
         self._root_mask_dates_term = InputDates()
 
         self._populate_initial_workspace = (
-            populate_initial_workspace or _default_populate_initial_workspace
+            populate_initial_workspace or default_populate_initial_workspace
         )
 
     def run_pipeline(self, pipeline, start_date, end_date):
