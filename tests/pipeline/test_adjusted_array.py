@@ -1,7 +1,8 @@
 """
 Tests for chunked adjustments.
 """
-from itertools import chain
+from collections import namedtuple
+from itertools import chain, product
 from textwrap import dedent
 from unittest import TestCase
 
@@ -95,6 +96,20 @@ bytes_dtype = dtype('S3')
 unicode_dtype = dtype('U3')
 
 
+AdjustmentCase = namedtuple(
+    'AdjustmentCase',
+    [
+        'name',
+        'baseline',
+        'window_length',
+        'adjustments',
+        'missing_value',
+        'perspective_offset',
+        'expected_result',
+    ]
+)
+
+
 def _gen_unadjusted_cases(name,
                           make_input,
                           make_expected_output,
@@ -112,13 +127,14 @@ def _gen_unadjusted_cases(name,
             windowlen, nrows
         )
 
-        yield (
-            "%s_length_%d" % (name, windowlen),
-            input_array,
-            windowlen,
-            {},
-            missing_value,
-            [
+        yield AdjustmentCase(
+            name="%s_length_%d" % (name, windowlen),
+            baseline=input_array,
+            window_length=windowlen,
+            adjustments={},
+            missing_value=missing_value,
+            perspective_offset=0,
+            expected_result=[
                 expected_output_array[offset:offset + windowlen]
                 for offset in range(num_legal_windows)
             ],
@@ -199,6 +215,7 @@ def _gen_multiplicative_adjustment_cases(dtype):
         adjustments,
         buffer_as_of,
         nrows,
+        perspective_offsets=(0, 1),
     )
 
 
@@ -301,6 +318,7 @@ def _gen_overwrite_adjustment_cases(dtype):
         adjustments,
         buffer_as_of,
         nrows=6,
+        perspective_offsets=(0, 1),
     )
 
 
@@ -397,13 +415,13 @@ def _gen_overwrite_1d_array_adjustment_case(dtype):
                                            [2, 4, 5],
                                            [2, 5, 2],
                                            [2, 2, 2]])
-
     return _gen_expectations(
         baseline,
         missing_value,
         adjustments,
         buffer_as_of,
         nrows=6,
+        perspective_offsets=(0, 1),
     )
 
 
@@ -411,30 +429,63 @@ def _gen_expectations(baseline,
                       missing_value,
                       adjustments,
                       buffer_as_of,
-                      nrows):
+                      nrows,
+                      perspective_offsets):
 
-    for windowlen in valid_window_lengths(nrows):
-
+    for windowlen, perspective_offset in product(valid_window_lengths(nrows),
+                                                 perspective_offsets):
+        # How long is an iterator of length-N windows on this buffer?
+        # For example, for a window of length 3 on a buffer of length 6, there
+        # are four valid windows.
         num_legal_windows = num_windows_of_length_M_on_buffers_of_length_N(
             windowlen, nrows
         )
 
-        yield (
-            "dtype_%s_length_%d" % (baseline.dtype, windowlen),
-            baseline,
+        # Build the sequence of regions in the underlying buffer we expect to
+        # see. For example, with a window length of 3 on a buffer of length 6,
+        # we expect to see:
+        #  (buffer[0:3], buffer[1:4], buffer[2:5], buffer[3:6])
+        #
+        slices = [slice(i, i + windowlen) for i in range(num_legal_windows)]
+
+        # The sequence of perspectives we expect to take on the underlying
+        # data. For example, with a window length of 3 and a perspective offset
+        # of 1, we expect to see:
+        #  (buffer_as_of[3], buffer_as_of[4], buffer_as_of[5], buffer_as_of[5])
+        #
+        initial_perspective = windowlen + perspective_offset - 1
+        perspectives = range(
+            initial_perspective,
+            initial_perspective + num_legal_windows
+        )
+
+        def as_of(p):
+            # perspective_offset can push us past the end of the underlying
+            # buffer/adjustments. When it does, we should always see the latest
+            # version of the buffer.
+            if p >= len(buffer_as_of):
+                return buffer_as_of[-1]
+            return buffer_as_of[p]
+
+        expected_iterator_results = [
+            as_of(perspective)[slice_]
+            for slice_, perspective in zip(slices, perspectives)
+        ]
+
+        test_name = "dtype_{}_length_{}_perpective_offset_{}".format(
+            baseline.dtype,
             windowlen,
-            adjustments,
-            missing_value,
-            [
-                # This is a nasty expression...
-                #
-                # Reading from right to left: we want a slice of length
-                # 'windowlen', starting at 'offset', from the buffer on which
-                # we've applied all adjustments corresponding to the last row
-                # of the data, which will be (offset + windowlen - 1).
-                buffer_as_of[offset + windowlen - 1][offset:offset + windowlen]
-                for offset in range(num_legal_windows)
-            ],
+            perspective_offset,
+        )
+
+        yield AdjustmentCase(
+            name=test_name,
+            baseline=baseline,
+            window_length=windowlen,
+            adjustments=adjustments,
+            missing_value=missing_value,
+            perspective_offset=perspective_offset,
+            expected_result=expected_iterator_results
         )
 
 
@@ -504,6 +555,7 @@ class AdjustedArrayTestCase(TestCase):
                             lookback,
                             adjustments,
                             missing_value,
+                            perspective_offset,
                             expected_output):
 
         array = AdjustedArray(data, NOMASK, adjustments, missing_value)
@@ -519,11 +571,15 @@ class AdjustedArrayTestCase(TestCase):
                                         lookback,
                                         adjustments,
                                         missing_value,
+                                        perspective_offset,
                                         expected):
 
         array = AdjustedArray(data, NOMASK, adjustments, missing_value)
         for _ in range(2):  # Iterate 2x ensure adjusted_arrays are re-usable.
-            window_iter = array.traverse(lookback)
+            window_iter = array.traverse(
+                lookback,
+                perspective_offset=perspective_offset,
+            )
             for yielded, expected_yield in zip_longest(window_iter, expected):
                 check_arrays(yielded, expected_yield)
 
@@ -584,14 +640,19 @@ class AdjustedArrayTestCase(TestCase):
     )
     def test_overwrite_adjustment_cases(self,
                                         name,
-                                        data,
+                                        baseline,
                                         lookback,
                                         adjustments,
                                         missing_value,
+                                        perspective_offset,
                                         expected):
-        array = AdjustedArray(data, NOMASK, adjustments, missing_value)
+        array = AdjustedArray(baseline, NOMASK, adjustments, missing_value)
+
         for _ in range(2):  # Iterate 2x ensure adjusted_arrays are re-usable.
-            window_iter = array.traverse(lookback)
+            window_iter = array.traverse(
+                lookback,
+                perspective_offset=perspective_offset,
+            )
             for yielded, expected_yield in zip_longest(window_iter, expected):
                 check_arrays(yielded, expected_yield)
 
