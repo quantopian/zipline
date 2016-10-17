@@ -229,8 +229,6 @@ class ContinuousFutureMinuteBarReader(SessionBarReader):
         # Get partitions
         partitions_by_asset = {}
         for asset in assets:
-            rolls_by_asset[asset] = rf.get_rolls(
-                asset.root_symbol, start_date, end_date, asset.offset)
             partitions = []
             partitions_by_asset[asset] = partitions
             rolls = rolls_by_asset[asset]
