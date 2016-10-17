@@ -229,12 +229,16 @@ class DataPortal(object):
         self._history_loader = DailyHistoryLoader(
             self.trading_calendar,
             _dispatch_session_reader,
-            self._adjustment_reader
+            self._adjustment_reader,
+            self.asset_finder,
+            self._roll_finders,
         )
         self._minute_history_loader = MinuteHistoryLoader(
             self.trading_calendar,
             _dispatch_minute_reader,
-            self._adjustment_reader
+            self._adjustment_reader,
+            self.asset_finder,
+            self._roll_finders,
         )
 
         self._first_trading_day = first_trading_day

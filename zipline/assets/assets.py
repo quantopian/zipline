@@ -132,15 +132,25 @@ CONTINUOUS_FUTURE_ROLL_STYLE_IDS = {
     'calendar': 0
 }
 
+CONTINUOUS_FUTURE_ADJUSTMENT_STYLE_IDS = {
+    None: 0,
+    'div': 1,
+    'add': 2,
+}
 
-def _encode_continuous_future_sid(root_symbol, offset, roll_style):
-    s = struct.Struct("B 2B B B 3B")
+
+def _encode_continuous_future_sid(root_symbol,
+                                  offset,
+                                  roll_style,
+                                  adjustment_style):
+    s = struct.Struct("B 2B B B B 2B")
     # B - sid type
     # 2B - root symbol
     # B - offset (could be packed smaller since offsets of greater than 12 are
     #             probably unneeded.)
     # B - roll type
-    # 3B - empty space left for parameterized roll types
+    # B - adjustment
+    # 2B - empty space left for parameterized roll types
 
     # The root symbol currently supports 2 characters.  If 3 char root symbols
     # are needed, the size of the root symbol does not need to change, however
@@ -153,7 +163,8 @@ def _encode_continuous_future_sid(root_symbol, offset, roll_style):
               rs[1],
               offset,
               CONTINUOUS_FUTURE_ROLL_STYLE_IDS[roll_style],
-              0, 0, 0,)
+              CONTINUOUS_FUTURE_ADJUSTMENT_STYLE_IDS[adjustment_style],
+              0, 0)
     s.pack_into(a, 0, *values)
     return int(binascii.hexlify(a), 16)
 
@@ -908,15 +919,45 @@ class AssetFinder(object):
         end_date = self.retrieve_asset(oc.contract_sids[-1]).end_date
         exchange = self._get_root_symbol_exchange(root_symbol)
 
-        sid = _encode_continuous_future_sid(root_symbol, offset, roll_style)
+        sid = _encode_continuous_future_sid(root_symbol, offset,
+                                            roll_style,
+                                            None)
+        mul_sid = _encode_continuous_future_sid(root_symbol, offset,
+                                                roll_style,
+                                                'div')
+        add_sid = _encode_continuous_future_sid(root_symbol, offset,
+                                                roll_style,
+                                                'add')
+        mul_cf = ContinuousFuture(mul_sid,
+                                  root_symbol,
+                                  offset,
+                                  roll_style,
+                                  start_date,
+                                  end_date,
+                                  exchange,
+                                  'mul')
+        add_cf = ContinuousFuture(add_sid,
+                                  root_symbol,
+                                  offset,
+                                  roll_style,
+                                  start_date,
+                                  end_date,
+                                  exchange,
+                                  'add')
         cf = ContinuousFuture(sid,
                               root_symbol,
                               offset,
                               roll_style,
                               start_date,
                               end_date,
-                              exchange)
+                              exchange,
+                              adjustment_children={
+                                  'mul': mul_cf,
+                                  'add': add_cf
+                              })
         self._asset_cache[cf.sid] = cf
+        self._asset_cache[add_cf.sid] = add_cf
+        self._asset_cache[mul_cf.sid] = mul_cf
         return cf
 
     def _make_sids(tblattr):
