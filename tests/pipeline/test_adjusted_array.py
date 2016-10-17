@@ -215,7 +215,7 @@ def _gen_multiplicative_adjustment_cases(dtype):
         adjustments,
         buffer_as_of,
         nrows,
-        perspective_offsets=(0, 1, 2, 1000),
+        perspective_offsets=(0, 1),
     )
 
 
@@ -318,7 +318,7 @@ def _gen_overwrite_adjustment_cases(dtype):
         adjustments,
         buffer_as_of,
         nrows=6,
-        perspective_offsets=(0, 1, 2, 1000),
+        perspective_offsets=(0, 1),
     )
 
 
@@ -421,7 +421,7 @@ def _gen_overwrite_1d_array_adjustment_case(dtype):
         adjustments,
         buffer_as_of,
         nrows=6,
-        perspective_offsets=(0, 1, 2, 1000),
+        perspective_offsets=(0, 1),
     )
 
 
