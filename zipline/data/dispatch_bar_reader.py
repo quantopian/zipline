@@ -17,7 +17,7 @@ from abc import ABCMeta, abstractmethod
 from numpy import (
     full,
     nan,
-    uint32,
+    int64,
     zeros
 )
 from six import iteritems, with_metaclass
@@ -70,10 +70,10 @@ class AssetDispatchBarReader(with_metaclass(ABCMeta)):
         return self._dt_window_size(start_dt, end_dt), num_sids
 
     def _make_raw_array_out(self, field, shape):
-        if field != 'volume':
+        if field != 'volume' and field != 'sid':
             out = full(shape, nan)
         else:
-            out = zeros(shape, dtype=uint32)
+            out = zeros(shape, dtype=int64)
         return out
 
     @property
@@ -94,7 +94,7 @@ class AssetDispatchBarReader(with_metaclass(ABCMeta)):
     def get_value(self, sid, dt, field):
         asset = self._asset_finder.retrieve_asset(sid)
         r = self._readers[type(asset)]
-        return r.get_value(sid, dt, field)
+        return r.get_value(asset, dt, field)
 
     def get_last_traded_dt(self, asset, dt):
         r = self._readers[type(asset)]

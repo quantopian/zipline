@@ -17,6 +17,7 @@ from operator import mul
 from logbook import Logger
 
 import numpy as np
+from numpy import float64, int64
 import pandas as pd
 from pandas.tslib import normalize_date
 from six import iteritems
@@ -24,6 +25,10 @@ from six.moves import reduce
 
 from zipline.assets import Asset, Future, Equity
 from zipline.assets.continuous_futures import ContinuousFuture
+from zipline.data.continuous_future_reader import (
+    ContinuousFutureSessionBarReader,
+    ContinuousFutureMinuteBarReader
+)
 from zipline.assets.roll_finder import CalendarRollFinder
 from zipline.data.dispatch_bar_reader import (
     AssetDispatchMinuteBarReader,
@@ -63,6 +68,7 @@ BASE_FIELDS = frozenset([
     "volume",
     "price",
     "contract",
+    "sid",
     "last_traded",
 ])
 
@@ -182,8 +188,19 @@ class DataPortal(object):
 
         if aligned_future_minute_reader is not None:
             aligned_minute_readers[Future] = aligned_future_minute_reader
+            aligned_minute_readers[ContinuousFuture] = \
+                ContinuousFutureMinuteBarReader(
+                    aligned_future_minute_reader,
+                    self._roll_finders,
+                )
+
         if aligned_future_session_reader is not None:
             aligned_session_readers[Future] = aligned_future_session_reader
+            aligned_session_readers[ContinuousFuture] = \
+                ContinuousFutureSessionBarReader(
+                    aligned_future_session_reader,
+                    self._roll_finders,
+                )
 
         _dispatch_minute_reader = AssetDispatchMinuteBarReader(
             self.trading_calendar,
@@ -718,6 +735,10 @@ class DataPortal(object):
             elif field_to_use == 'volume':
                 minute_value = self._daily_aggregator.volumes(
                     assets, end_dt)
+            elif field_to_use == 'sid':
+                minute_value = [
+                    int(self._get_current_contract(asset, end_dt))
+                    for asset in assets]
 
             # append the partial day.
             daily_data[-1] = minute_value
@@ -801,7 +822,7 @@ class DataPortal(object):
         -------
         A dataframe containing the requested data.
         """
-        if field not in OHLCVP_FIELDS:
+        if field not in OHLCVP_FIELDS and field != 'sid':
             raise ValueError("Invalid field: {0}".format(field))
 
         if frequency == "1d":
@@ -929,10 +950,11 @@ class DataPortal(object):
         """
         bar_count = len(days_in_window)
         # create an np.array of size bar_count
+        dtype = float64 if field != 'sid' else int64
         if extra_slot:
-            return_array = np.zeros((bar_count + 1, len(assets)))
+            return_array = np.zeros((bar_count + 1, len(assets)), dtype=dtype)
         else:
-            return_array = np.zeros((bar_count, len(assets)))
+            return_array = np.zeros((bar_count, len(assets)), dtype=dtype)
 
         if field != "volume":
             # volumes default to 0, so we don't need to put NaNs in the array

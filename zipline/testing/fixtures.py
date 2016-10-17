@@ -14,7 +14,10 @@ from .core import (
     tmp_dir,
 )
 from ..data.data_portal import DataPortal
-from ..data.resample import minute_to_session
+from ..data.resample import (
+    minute_to_session,
+    MinuteResampleSessionBarReader
+)
 from ..data.us_equity_pricing import (
     SQLiteAdjustmentReader,
     SQLiteAdjustmentWriter,
@@ -1302,6 +1305,12 @@ class WithDataPortal(WithAdjustmentReader,
                 self.bcolz_future_minute_bar_reader
                 if self.DATA_PORTAL_USE_MINUTE_DATA else
                 None
+            ),
+            future_daily_reader=(
+                MinuteResampleSessionBarReader(
+                    self.bcolz_future_minute_bar_reader.trading_calendar,
+                    self.bcolz_future_minute_bar_reader)
+                if self.DATA_PORTAL_USE_MINUTE_DATA else None
             ),
             last_available_session=self.DATA_PORTAL_LAST_AVAILABLE_SESSION,
             last_available_minute=self.DATA_PORTAL_LAST_AVAILABLE_MINUTE,
