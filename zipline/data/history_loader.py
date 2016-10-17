@@ -37,7 +37,7 @@ class HistoryCompatibleUSEquityAdjustmentReader(object):
     def __init__(self, adjustment_reader):
         self._adjustments_reader = adjustment_reader
 
-    def load_adjustments(self, columns, dts, assets, output_offset=0):
+    def load_adjustments(self, columns, dts, assets):
         """
         Returns
         -------
