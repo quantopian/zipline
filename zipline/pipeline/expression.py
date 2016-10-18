@@ -187,6 +187,7 @@ class NumericalExpression(ComputableTerm):
             inputs=binds,
             expr=expr,
             dtype=dtype,
+            window_safe=all(t.window_safe for t in binds),
         )
 
     def _init(self, expr, *args, **kwargs):
