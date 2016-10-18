@@ -255,6 +255,7 @@ class AliasedMixin(SingleInputMixin):
             dtype=term.dtype,
             missing_value=term.missing_value,
             ndim=term.ndim,
+            window_safe=term.window_safe,
         )
 
     def _init(self, name, *args, **kwargs):
