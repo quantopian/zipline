@@ -21,6 +21,7 @@ from numpy import (
     int64,
     full,
     repeat,
+    tile,
 )
 from numpy.testing import assert_almost_equal
 import pandas as pd
@@ -101,28 +102,44 @@ class ContinuousFuturesTestCase(WithCreateBarData,
         end = pd.Timestamp('2016-04-29', tz='UTC')
         dts = tc.minutes_for_sessions_in_range(start, end)
         sessions = tc.sessions_in_range(start, end)
-        # Generate values in the .0XX space such that the first session
-        # has 0.001 added to all values, the second session has 0.002,
-        # etc.
-        markers = repeat(
-            arange(0.001, 0.001 * (len(sessions) + 1), 0.001),
+        # Generate values in the XXY.YYY space, with XX representing the
+        # session and Y.YYY representing the minute within the session.
+        # e.g. the close of the 23rd session would be 231.440.
+        r = 10.0
+        day_markers = repeat(
+            arange(r, r * len(sessions) + r, r),
             FUTURES_MINUTES_PER_DAY)
-        vol_markers = repeat(
-            arange(1, (len(sessions) + 1), 1, dtype=int64),
+        r = 0.001
+        min_markers = tile(
+            arange(r, r * FUTURES_MINUTES_PER_DAY + r, r),
+            len(sessions))
+
+        markers = day_markers + min_markers
+
+        # Volume uses a similar scheme as above but times 1000.
+        r = 10.0 * 1000
+        vol_day_markers = repeat(
+            arange(r, r * len(sessions) + r, r, dtype=int64),
             FUTURES_MINUTES_PER_DAY)
+        r = 0.001 * 1000
+        vol_min_markers = tile(
+            arange(r, r * FUTURES_MINUTES_PER_DAY + r, r, dtype=int64),
+            len(sessions))
+        vol_markers = vol_day_markers + vol_min_markers
+
         base_df = pd.DataFrame(
             {
-                'open': full(len(dts), 100.2) + markers,
-                'high': full(len(dts), 100.9) + markers,
-                'low': full(len(dts), 100.1) + markers,
-                'close': full(len(dts), 100.5) + markers,
-                'volume': full(len(dts), 1000, dtype=int64) + vol_markers,
+                'open': full(len(dts), 102000.0) + markers,
+                'high': full(len(dts), 109000.0) + markers,
+                'low': full(len(dts), 101000.0) + markers,
+                'close': full(len(dts), 105000.0) + markers,
+                'volume': full(len(dts), 10000, dtype=int64) + vol_markers,
             },
             index=dts)
         # Add the sid to the ones place of the prices, so that the ones
         # place can be used to eyeball the source contract.
         for i in range(5):
-            yield i, base_df + i
+            yield i, base_df + i * 10000
 
     def test_create_continuous_future(self):
         cf_primary = self.asset_finder.create_continuous_future(
@@ -424,17 +441,17 @@ def record_current_contract(algo, data):
 
         assert_almost_equal(
             window.loc['2016-01-26', cf],
-            101.501,
+            115011.440,
             err_msg="At beginning of window, should be FOG16's first value.")
 
         assert_almost_equal(
             window.loc['2016-02-26', cf],
-            102.524,
+            125241.440,
             err_msg="On session with roll, should be FOH16's 24th value.")
 
         assert_almost_equal(
             window.loc['2016-02-29', cf],
-            102.525,
+            125251.440,
             err_msg="After roll, Should be FOH16's 25th value.")
 
         # Advance the window a month.
@@ -443,27 +460,27 @@ def record_current_contract(algo, data):
 
         assert_almost_equal(
             window.loc['2016-02-24', cf],
-            101.522,
+            115221.440,
             err_msg="At beginning of window, should be FOG16's 22nd value.")
 
         assert_almost_equal(
             window.loc['2016-02-26', cf],
-            102.524,
+            125241.440,
             err_msg="On session with roll, should be FOH16's 24th value.")
 
         assert_almost_equal(
             window.loc['2016-02-29', cf],
-            102.525,
+            125251.440,
             err_msg="On session after roll, should be FOH16's 25th value.")
 
         assert_almost_equal(
             window.loc['2016-03-24', cf],
-            103.543,
+            135431.440,
             err_msg="On session with roll, should be FOJ16's 43rd value.")
 
         assert_almost_equal(
             window.loc['2016-03-28', cf],
-            103.544,
+            135441.440,
             err_msg="On session after roll, Should be FOJ16's 44th value.")
 
     def test_history_close_minute(self):
@@ -475,16 +492,16 @@ def record_current_contract(algo, data):
             30, '1m', 'close')
 
         self.assertEqual(window.loc['2016-02-25 22:32', cf],
-                         101.523,
+                         115231.412,
                          "Should be FOG16 at beginning of window. A minute "
                          "which is in the 02-25 session, before the roll.")
 
         self.assertEqual(window.loc['2016-02-25 23:00', cf],
-                         101.523,
+                         115231.440,
                          "Should be FOG16 on on minute before roll minute.")
 
         self.assertEqual(window.loc['2016-02-25 23:01', cf],
-                         102.524,
+                         125240.001,
                          "Should be FOH16 on minute after roll.")
 
         # Advance the window a session.
@@ -494,11 +511,11 @@ def record_current_contract(algo, data):
             30, '1m', 'close')
 
         self.assertEqual(window.loc['2016-02-26 22:32', cf],
-                         102.524,
+                         125241.412,
                          "Should be FOH16 at beginning of window.")
 
         self.assertEqual(window.loc['2016-02-28 23:01', cf],
-                         102.525,
+                         125250.001,
                          "Should remain FOH16 on next session.")
 
 
