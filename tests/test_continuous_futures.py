@@ -486,56 +486,34 @@ def record_current_contract(algo, data):
     def test_history_close_session_adjusted(self):
         cf = self.data_portal.asset_finder.create_continuous_future(
             'FO', 0, 'calendar')
-        cf_mul = self.data_portal.asset_finder.create_continuous_future(
-            'FO', 0, 'calendar').adj('mul')
-        cf_add = self.data_portal.asset_finder.create_continuous_future(
-            'FO', 0, 'calendar').adj('add')
         window = self.data_portal.get_history_window(
-            [cf, cf_mul, cf_add],
-            Timestamp('2016-03-06', tz='UTC'), 30, '1d', 'close')
+            [cf],
+            Timestamp('2016-03-06', tz='UTC'), 30, '1d', 'price')
 
         # Unadjusted value is: 115011.44
         # Adjustment is based on hop from 115231.44 to 122240.001
         # a ratio of ~1.06
         assert_almost_equal(
-            window.loc['2016-01-26', cf_mul],
+            window.loc['2016-01-26', cf],
             122006.62,
             err_msg="At beginning of window, should be FOG16's first value, "
             "adjusted.")
 
-        # Difference of 7008.561
         assert_almost_equal(
-            window.loc['2016-01-26', cf_add],
-            122020.001,
-            err_msg="At beginning of window, should be FOG16's first value, "
-            "adjusted.")
-
-        assert_almost_equal(
-            window.loc['2016-02-26', cf_mul],
+            window.loc['2016-02-26', cf],
             125241.440,
             err_msg="On session with roll, should be FOH16's 24th value, "
             "unadjusted.")
 
         assert_almost_equal(
-            window.loc['2016-02-26', cf_add],
-            125241.440,
-            err_msg="On session with roll, should be FOH16's 24th value, "
-            "unadjusted.")
-
-        assert_almost_equal(
-            window.loc['2016-02-29', cf_mul],
-            125251.440,
-            err_msg="After roll, Should be FOH16's 25th value, unadjusted.")
-
-        assert_almost_equal(
-            window.loc['2016-02-29', cf_add],
+            window.loc['2016-02-29', cf],
             125251.440,
             err_msg="After roll, Should be FOH16's 25th value, unadjusted.")
 
         # Advance the window a month.
         window = self.data_portal.get_history_window(
-            [cf, cf_mul, cf_add],
-            Timestamp('2016-04-06', tz='UTC'), 30, '1d', 'close')
+            [cf],
+            Timestamp('2016-04-06', tz='UTC'), 30, '1d', 'price')
 
         # Unadjusted value: 115221.44
         # Adjustments based on hops:
@@ -549,63 +527,35 @@ def record_current_contract(algo, data):
         # ratio: ~1.056
         # difference: 7008.56
         assert_almost_equal(
-            window.loc['2016-02-24', cf_mul],
+            window.loc['2016-02-24', cf],
             129059.581,
             err_msg="At beginning of window, should be FOG16's 22nd value, "
             "with two adjustments.")
 
-        assert_almost_equal(
-            window.loc['2016-02-24', cf_add],
-            129238.561,
-            err_msg="At beginning of window, should be FOG16's 22nd value, "
-            "with two adjustments")
-
         # Unadjusted: 125241.44
         assert_almost_equal(
-            window.loc['2016-02-26', cf_mul],
+            window.loc['2016-02-26', cf],
             132239.942,
-            err_msg="On session with roll, should be FOH16's 24th value, "
-            "with one adjustment.")
-
-        assert_almost_equal(
-            window.loc['2016-02-26', cf_add],
-            132250.0,
             err_msg="On session with roll, should be FOH16's 24th value, "
             "with one adjustment.")
 
         # Unadjusted: 125251.44
         assert_almost_equal(
-            window.loc['2016-02-29', cf_mul],
+            window.loc['2016-02-29', cf],
             132250.500,
             err_msg="On session after roll, should be FOH16's 25th value, "
             "with one adjustment.")
 
-        assert_almost_equal(
-            window.loc['2016-02-29', cf_add],
-            132260.000,
-            err_msg="On session after roll, should be FOH16's 25th value, "
-            "unadjusted.")
-
         # Unadjusted: 135431.44
         assert_almost_equal(
-            window.loc['2016-03-24', cf_mul],
+            window.loc['2016-03-24', cf],
             135431.44,
             err_msg="On session with roll, should be FOJ16's 43rd value, "
             "unadjusted.")
 
-        assert_almost_equal(
-            window.loc['2016-03-24', cf_add],
-            135431.44,
-            err_msg="On session with roll, should be FOJ16's 43rd value.")
-
         # Unadjusted: 135441.44
         assert_almost_equal(
-            window.loc['2016-03-28', cf_mul],
-            135441.44,
-            err_msg="On session after roll, Should be FOJ16's 44th value.")
-
-        assert_almost_equal(
-            window.loc['2016-03-28', cf_add],
+            window.loc['2016-03-28', cf],
             135441.44,
             err_msg="On session after roll, Should be FOJ16's 44th value.")
 
@@ -647,14 +597,10 @@ def record_current_contract(algo, data):
     def test_history_close_minute_adjusted(self):
         cf = self.data_portal.asset_finder.create_continuous_future(
             'FO', 0, 'calendar')
-        cf_mul = self.data_portal.asset_finder.create_continuous_future(
-            'FO', 0, 'calendar').adj('mul')
-        cf_add = self.data_portal.asset_finder.create_continuous_future(
-            'FO', 0, 'calendar').adj('add')
         window = self.data_portal.get_history_window(
-            [cf, cf_mul, cf_add],
+            [cf],
             Timestamp('2016-02-25 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1m', 'close')
+            30, '1m', 'price')
 
         # Unadjusted: 115231.412
         # Adjustment based on roll:
@@ -662,48 +608,34 @@ def record_current_contract(algo, data):
         # 2016-02-25 23:01:00+00:00    122240.001
         # Ratio: ~1.061
         # Difference: 7008.561
-        self.assertEqual(window.loc['2016-02-25 22:32', cf_mul],
+        self.assertEqual(window.loc['2016-02-25 22:32', cf],
                          122239.971,
-                         "Should be FOG16 at beginning of window. A minute "
-                         "which is in the 02-25 session, before the roll.")
-
-        self.assertEqual(window.loc['2016-02-25 22:32', cf_add],
-                         122239.973,
                          "Should be FOG16 at beginning of window. A minute "
                          "which is in the 02-25 session, before the roll.")
 
         # Unadjusted: 115231.44
         # Should use same ratios as above.
-        self.assertEqual(window.loc['2016-02-25 23:00', cf_mul],
+        self.assertEqual(window.loc['2016-02-25 23:00', cf],
                          122240.001,
                          "Should be FOG16 on on minute before roll minute, "
                          "adjusted.")
 
-        self.assertEqual(window.loc['2016-02-25 23:00', cf_add],
-                         122240.001,
-                         "Should be FOG16 on on minute before roll minute, "
-                         "adjusted.")
-
-        self.assertEqual(window.loc['2016-02-25 23:01', cf_mul],
-                         125240.001,
-                         "Should be FOH16 on minute after roll, unadjusted.")
-
-        self.assertEqual(window.loc['2016-02-25 23:01', cf_add],
+        self.assertEqual(window.loc['2016-02-25 23:01', cf],
                          125240.001,
                          "Should be FOH16 on minute after roll, unadjusted.")
 
         # Advance the window a session.
         window = self.data_portal.get_history_window(
-            [cf, cf_mul, cf_add],
+            [cf],
             Timestamp('2016-02-28 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1m', 'close')
+            30, '1m', 'price')
 
         # No adjustments in this window.
-        self.assertEqual(window.loc['2016-02-26 22:32', cf_mul],
+        self.assertEqual(window.loc['2016-02-26 22:32', cf],
                          125241.412,
                          "Should be FOH16 at beginning of window.")
 
-        self.assertEqual(window.loc['2016-02-28 23:01', cf_mul],
+        self.assertEqual(window.loc['2016-02-28 23:01', cf],
                          125250.001,
                          "Should remain FOH16 on next session.")
 

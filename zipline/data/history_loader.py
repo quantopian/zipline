@@ -210,8 +210,6 @@ class ContinuousFutureAdjustmentReader(object):
     def _get_adjustments_in_range(self, cf, dts, field):
         if field == 'volume' or field == 'sid':
             return {}
-        if cf.adjustment is None:
-            return {}
         rf = self._roll_finders[cf.roll_style]
         partitions = []
 
@@ -250,7 +248,7 @@ class ContinuousFutureAdjustmentReader(object):
                 right_sid, last_right_dt, 'open')
             adj_loc = dts.searchsorted(right_dt)
             end_loc = adj_loc - 1
-            adj = self._make_adjustment(cf.adjustment,
+            adj = self._make_adjustment('mul',
                                         left_close,
                                         right_open,
                                         end_loc)
@@ -312,7 +310,7 @@ class HistoryLoader(with_metaclass(ABCMeta)):
     adjustment_reader : SQLiteAdjustmentReader
         Reader for adjustment data.
     """
-    FIELDS = ('open', 'high', 'low', 'close', 'volume', 'sid')
+    FIELDS = ('open', 'high', 'low', 'close', 'price', 'volume', 'sid')
 
     def __init__(self, trading_calendar, reader, equity_adjustment_reader,
                  asset_finder,
@@ -391,6 +389,11 @@ class HistoryLoader(with_metaclass(ABCMeta)):
 
         assets = self._asset_finder.retrieve_all(assets)
 
+        adjust_cont_futures = False
+        if field == 'price':
+            field = 'close'
+            adjust_cont_futures = True
+
         for asset in assets:
             try:
                 asset_windows[asset] = self._window_blocks[field].get(
@@ -424,8 +427,15 @@ class HistoryLoader(with_metaclass(ABCMeta)):
             for i, asset in enumerate(needed_assets):
                 try:
                     adj_reader = self._adjustment_readers[type(asset)]
-                    adjs = adj_reader.load_adjustments(
-                        [field], prefetch_dts, [asset])[0]
+                    if (
+                        isinstance(asset, ContinuousFuture)
+                        and
+                        not adjust_cont_futures
+                    ):
+                        adjs = {}
+                    else:
+                        adjs = adj_reader.load_adjustments(
+                            [field], prefetch_dts, [asset])[0]
                 except KeyError:
                     adjs = {}
                 window = window_type(

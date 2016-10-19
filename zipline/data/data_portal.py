@@ -830,19 +830,11 @@ class DataPortal(object):
             raise ValueError("Invalid field: {0}".format(field))
 
         if frequency == "1d":
-            if field == "price":
-                df = self._get_history_daily_window(assets, end_dt, bar_count,
-                                                    "close")
-            else:
-                df = self._get_history_daily_window(assets, end_dt, bar_count,
-                                                    field)
+            df = self._get_history_daily_window(assets, end_dt, bar_count,
+                                                field)
         elif frequency == "1m":
-            if field == "price":
-                df = self._get_history_minute_window(assets, end_dt, bar_count,
-                                                     "close")
-            else:
-                df = self._get_history_minute_window(assets, end_dt, bar_count,
-                                                     field)
+            df = self._get_history_minute_window(assets, end_dt, bar_count,
+                                                 field)
         else:
             raise ValueError("Invalid frequency: {0}".format(frequency))
 
