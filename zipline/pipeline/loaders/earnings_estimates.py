@@ -424,7 +424,6 @@ class EarningsEstimatesLoader(PipelineLoader):
         out = {}
         # To optimize performance, only work below on assets that are
         # actually in the raw data.
-        import pdb; pdb.set_trace()
         assets_with_data = set(assets) & set(self.estimates[SID_FIELD_NAME])
         last_per_qtr, stacked_last_per_qtr = self.get_last_data_per_qtr(
             assets_with_data,
@@ -452,7 +451,7 @@ class EarningsEstimatesLoader(PipelineLoader):
                 requested_qtr_data,
                 last_per_qtr,
                 dates,
-                requested_qtr_data.columns.levels[1],
+                assets,
                 columns
             )
 
