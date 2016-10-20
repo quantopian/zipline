@@ -457,7 +457,10 @@ class SimplePipelineEngine(object):
 
         return DataFrame(
             data=final_columns,
-            index=MultiIndex.from_arrays([dates_kept, assets_kept]),
+            index=MultiIndex.from_arrays(
+                [dates_kept, assets_kept],
+                names=['date', 'asset'],
+            ),
         ).tz_localize('UTC', level=0)
 
     def _validate_compute_chunk_params(self, dates, assets, initial_workspace):

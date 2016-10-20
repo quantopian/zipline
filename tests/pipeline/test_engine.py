@@ -192,23 +192,18 @@ class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
         )
         cls.assets = cls.asset_finder.retrieve_all(cls.asset_ids)
 
-    def test_bad_dates(self):
-        loader = self.loader
-        engine = SimplePipelineEngine(
-            lambda column: loader, self.dates, self.asset_finder,
+        cls.default_engine = SimplePipelineEngine(
+            lambda column: cls.loader, cls.dates, cls.asset_finder,
         )
 
+    def test_bad_dates(self):
         p = Pipeline()
-
         msg = "start_date must be before or equal to end_date .*"
         with self.assertRaisesRegexp(ValueError, msg):
-            engine.run_pipeline(p, self.dates[2], self.dates[1])
+            self.default_engine.run_pipeline(p, self.dates[2], self.dates[1])
 
     def test_fail_usefully_on_insufficient_data(self):
-        loader = self.loader
-        engine = SimplePipelineEngine(
-            lambda column: loader, self.dates, self.asset_finder,
-        )
+        engine = self.default_engine
 
         class SomeFactor(CustomFactor):
             inputs = [USEquityPricing.close]
@@ -228,10 +223,7 @@ class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
             engine.run_pipeline(p, self.dates[8], self.dates[8])
 
     def test_input_dates_provided_by_default(self):
-        loader = self.loader
-        engine = SimplePipelineEngine(
-            lambda column: loader, self.dates, self.asset_finder,
-        )
+        engine = self.default_engine
 
         class TestFactor(CustomFactor):
             inputs = [InputDates(), USEquityPricing.close]
@@ -252,10 +244,8 @@ class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
         check_arrays(column, self.dates[:2].values)
 
     def test_same_day_pipeline(self):
-        loader = self.loader
-        engine = SimplePipelineEngine(
-            lambda column: loader, self.dates, self.asset_finder,
-        )
+        engine = self.default_engine
+
         factor = AssetID()
         asset = self.asset_ids[0]
         p = Pipeline(columns={'f': factor}, screen=factor <= asset)
@@ -267,12 +257,10 @@ class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
         self.assertEqual(result['f'][0], 1.0)
 
     def test_screen(self):
-        loader = self.loader
         finder = self.asset_finder
+        engine = self.default_engine
         asset_ids = array(self.asset_ids)
-        engine = SimplePipelineEngine(
-            lambda column: loader, self.dates, self.asset_finder,
-        )
+
         num_dates = 5
         dates = self.dates[10:10 + num_dates]
 
@@ -290,6 +278,22 @@ class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
             )
 
             assert_frame_equal(result, expected_result)
+
+    def test_pipeline_result_index_names(self):
+        engine = self.default_engine
+        result = engine.run_pipeline(
+            Pipeline({'id': AssetID()}),
+            self.dates[-5],
+            self.dates[-1],
+        )
+
+        # Index should be multi-index with names ('date', 'asset').
+        self.assertIsInstance(result.index, MultiIndex)
+        import nose.tools; nose.tools.set_trace()
+        self.assertEqual(list(result.index.names), ['date', 'asset'])
+
+        # Columns shouldn't have a name.
+        self.assertIs(result.columns.name, None)
 
     def test_single_factor(self):
         loader = self.loader
