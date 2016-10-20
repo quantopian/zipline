@@ -103,6 +103,10 @@ ext_modules = [
         'zipline.utils.calendars._calendar_helpers',
         ['zipline/utils/calendars/_calendar_helpers.pyx']
     ),
+    Extension(
+        'zipline.data._resample',
+        ['zipline/data/_resample.pyx']
+    ),
 ]
 
 
