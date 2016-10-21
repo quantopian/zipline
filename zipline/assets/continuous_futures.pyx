@@ -297,7 +297,7 @@ cdef class OrderedContracts(object):
                 break
         return self.contract_sids[i]
 
-    cpdef long_t contract_at_offset(self, long_t sid, Py_ssize_t offset):
+    cpdef contract_at_offset(self, long_t sid, Py_ssize_t offset, int64_t start_cap):
         """
         Get the sid which is the given sid plus the offset distance.
         An offset of 0 should be reflexive.
@@ -305,9 +305,13 @@ cdef class OrderedContracts(object):
         cdef Py_ssize_t i
         cdef long_t[:] sids
         sids = self.contract_sids
+        start_dates = self.start_dates
         for i in range(self._size):
             if sid == sids[i]:
-                return sids[i + offset]
+                if start_dates[i + offset] < start_cap:
+                    return sids[i + offset]
+                else:
+                    return None
 
     cpdef long_t[:] active_chain(self, long_t starting_sid, long_t dt_value):
         cdef Py_ssize_t left, right, i, j
