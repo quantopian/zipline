@@ -65,6 +65,9 @@ cdef class ContinuousFuture:
 
     cdef readonly object exchange
 
+    cdef readonly object adjustment
+    cdef readonly object _adjustment_children
+
     _kwargnames = frozenset({
         'sid',
         'root_symbol',
@@ -81,7 +84,9 @@ cdef class ContinuousFuture:
                  object roll_style,
                  object start_date,
                  object end_date,
-                 object exchange):
+                 object exchange,
+                 object adjustment=None,
+                 dict adjustment_children=None):
 
         self.sid = sid
         self.sid_hash = hash(sid)
@@ -91,6 +96,9 @@ cdef class ContinuousFuture:
         self.exchange = exchange
         self.start_date = start_date
         self.end_date = end_date
+        self.adjustment = adjustment
+        self._adjustment_children = adjustment_children
+
 
     def __int__(self):
         return self.sid
@@ -138,16 +146,17 @@ cdef class ContinuousFuture:
             raise AssertionError('%d is not an operator' % op)
 
     def __str__(self):
-        return '%s(%d [%s, %s, %s])' % (
+        return '%s(%d [%s, %s, %s, %s])' % (
             type(self).__name__,
             self.sid,
             self.root_symbol,
             self.offset,
-            self.roll_style
+            self.roll_style,
+            self.adjustment,
         )
 
     def __repr__(self):
-        attrs = ('root_symbol', 'offset', 'roll_style')
+        attrs = ('root_symbol', 'offset', 'roll_style', 'adjustment')
         tuples = ((attr, repr(getattr(self, attr, None)))
                   for attr in attrs)
         strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
@@ -225,6 +234,12 @@ cdef class ContinuousFuture:
         """
         calendar = get_calendar(self.exchange)
         return calendar.is_open_on_minute(dt_minute)
+
+    def adj(self, style):
+        try:
+            return self._adjustment_children[style]
+        except KeyError:
+            return None
 
 
 cdef class OrderedContracts(object):
