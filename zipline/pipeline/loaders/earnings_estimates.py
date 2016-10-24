@@ -446,12 +446,14 @@ class EarningsEstimatesLoader(PipelineLoader):
 
             # Calculate all adjustments for the given quarter and accumulate
             # them for each column.
-            col_to_adjustments = self.get_adjustments(zero_qtr_data,
-                                                      requested_qtr_data,
-                                                      last_per_qtr,
-                                                      dates,
-                                                      assets_with_data,
-                                                      columns)
+            col_to_adjustments = self.get_adjustments(
+                zero_qtr_data,
+                requested_qtr_data,
+                last_per_qtr,
+                dates,
+                assets,
+                columns
+            )
 
             # Lookup the asset indexer once, this is so we can reindex
             # the assets returned into the assets requested for each column.
