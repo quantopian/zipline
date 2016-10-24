@@ -16,9 +16,15 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 import pandas as pd
-from pandas import DataFrame
 from six import with_metaclass
 
+from zipline.data._resample import (
+    _minute_to_session_open,
+    _minute_to_session_high,
+    _minute_to_session_low,
+    _minute_to_session_close,
+    _minute_to_session_volume,
+)
 from zipline.data.minute_bars import MinuteBarReader
 from zipline.data.session_bars import SessionBarReader
 from zipline.utils.memoize import lazyval
@@ -32,7 +38,8 @@ _MINUTE_TO_SESSION_OHCLV_HOW = OrderedDict((
 ))
 
 
-def minute_to_session(minute_frame, calendar):
+def minute_frame_to_session_frame(minute_frame, calendar):
+
     """
     Resample a DataFrame with minute data into the frame expected by a
     BcolzDailyBarWriter.
@@ -55,6 +62,40 @@ def minute_to_session(minute_frame, calendar):
     how = OrderedDict((c, _MINUTE_TO_SESSION_OHCLV_HOW[c])
                       for c in minute_frame.columns)
     return minute_frame.groupby(calendar.minute_to_session_label).agg(how)
+
+
+def minute_to_session(column, close_locs, data, out):
+    """
+    Resample an array with minute data into an array with session data.
+
+    This function assumes that the minute data is the exact length of all
+    minutes in the sessions in the output.
+
+    Parameters
+    ----------
+    column : str
+        The `open`, `high`, `low`, `close`, or `volume` column.
+    close_locs : array[intp]
+        The locations in `data` which are the market close minutes.
+    data : array[float64|uint32]
+        The minute data to be sampled into session data.
+        The first value should align with the market open of the first session,
+        containing values for all minutes for all sessions. With the last value
+        being the market close of the last session.
+    out : array[float64|uint32]
+        The output array into which to write the sampled sessions.
+    """
+    if column == 'open':
+        _minute_to_session_open(close_locs, data, out)
+    elif column == 'high':
+        _minute_to_session_high(close_locs, data, out)
+    elif column == 'low':
+        _minute_to_session_low(close_locs, data, out)
+    elif column == 'close':
+        _minute_to_session_close(close_locs, data, out)
+    elif column == 'volume':
+        _minute_to_session_volume(close_locs, data, out)
+    return out
 
 
 class DailyHistoryAggregator(object):
@@ -462,38 +503,37 @@ class MinuteResampleSessionBarReader(SessionBarReader):
     def _get_resampled(self, columns, start_dt, end_dt, assets):
         minute_data = self._minute_bar_reader.load_raw_arrays(
             columns, start_dt, end_dt, assets)
-        dts = self._calendar.minutes_in_range(start_dt, end_dt)
-        frames = []
-        for i, _ in enumerate(assets):
-            minute_frame = DataFrame((d.T[i] for d in minute_data),
-                                     index=columns, columns=dts).T
-            df = minute_to_session(minute_frame, self._calendar)
-            frames.append(df)
-        return frames
-
-    @property
-    def trading_calendar(self):
-        return self._calendar
-
-    def load_raw_arrays(self, columns, start_dt, end_dt, sids):
+        dts = self._calendar.minutes_in_range(start_dt, end_dt).values
         sessions = self._calendar.sessions_in_range(start_dt, end_dt)
-        range_open, _ = self._calendar.open_and_close_for_session(
-            start_dt)
-        _, range_close = self._calendar.open_and_close_for_session(
-            end_dt)
-        shape = len(sessions), len(sids)
+        m_closes = np.zeros(len(sessions), dtype=np.dtype('datetime64[ns]'))
+        for i, s in enumerate(sessions):
+            close = self._calendar.open_and_close_for_session(s)[1]
+            m_closes[i] = close.value
+        m_locs = np.searchsorted(dts, m_closes)
         results = []
+        shape = (len(sessions), len(assets))
         for col in columns:
             if col != 'volume':
                 out = np.full(shape, np.nan)
             else:
                 out = np.zeros(shape, dtype=np.uint32)
             results.append(out)
-        frames = self._get_resampled(columns, range_open, range_close, sids)
-        for i, result in enumerate(results):
-            for j, frame in enumerate(frames):
-                result[:, j] = frame.values[:, i]
+        for i in range(len(assets)):
+            for j, column in enumerate(columns):
+                data = minute_data[j][:, i]
+                minute_to_session(column, m_locs, data, results[j][:, i])
         return results
+
+    @property
+    def trading_calendar(self):
+        return self._calendar
+
+    def load_raw_arrays(self, columns, start_dt, end_dt, sids):
+        range_open, _ = self._calendar.open_and_close_for_session(
+            start_dt)
+        _, range_close = self._calendar.open_and_close_for_session(
+            end_dt)
+        return self._get_resampled(columns, range_open, range_close, sids)
 
     def get_value(self, sid, session, colname):
         # WARNING: This will need caching or other optimization if used in a
@@ -501,8 +541,7 @@ class MinuteResampleSessionBarReader(SessionBarReader):
         # This was developed to complete interface, but has not been tuned
         # for real world use.
         start, end = self._calendar.open_and_close_for_session(session)
-        frame = self._get_resampled([colname], start, end, [sid])[0]
-        return frame.loc[session, colname]
+        return self._get_resampled([colname], start, end, [sid])[0]
 
     @lazyval
     def sessions(self):

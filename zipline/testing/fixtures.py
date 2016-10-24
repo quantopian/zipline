@@ -15,7 +15,7 @@ from .core import (
 )
 from ..data.data_portal import DataPortal
 from ..data.resample import (
-    minute_to_session,
+    minute_frame_to_session_frame,
     MinuteResampleSessionBarReader
 )
 from ..data.us_equity_pricing import (
@@ -679,8 +679,9 @@ class WithEquityDailyBarData(WithTradingEnvironment):
         assets = cls.asset_finder.retrieve_all(cls.asset_finder.equities_sids)
         minute_data = dict(cls.make_equity_minute_bar_data())
         for asset in assets:
-            yield asset.sid, minute_to_session(minute_data[asset.sid],
-                                               cls.trading_calendars[Equity])
+            yield asset.sid, minute_frame_to_session_frame(
+                minute_data[asset.sid],
+                cls.trading_calendars[Equity])
 
     @classmethod
     def make_equity_daily_bar_data(cls):

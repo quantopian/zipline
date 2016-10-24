@@ -23,7 +23,7 @@ from six import iteritems
 
 from zipline.data.bar_reader import NoDataOnDate
 from zipline.data.resample import (
-    minute_to_session,
+    minute_frame_to_session_frame,
     DailyHistoryAggregator,
     MinuteResampleSessionBarReader,
     ReindexMinuteBarReader,
@@ -501,7 +501,7 @@ class TestMinuteToSession(WithEquityMinuteBarData,
         for sid in self.ASSET_FINDER_EQUITY_SIDS:
             frame = self.equity_frames[sid]
             expected = EXPECTED_SESSIONS[sid]
-            result = minute_to_session(frame, self.nyse_calendar)
+            result = minute_frame_to_session_frame(frame, self.nyse_calendar)
             assert_almost_equal(expected.values,
                                 result.values,
                                 err_msg='sid={0}'.format(sid))
@@ -557,7 +557,8 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
                 OHLCV, first, last, [sid])
             for i, field in enumerate(OHLCV):
                 assert_almost_equal(
-                    result[i], EXPECTED_SESSIONS[sid][[field]],
+                    EXPECTED_SESSIONS[sid][[field]],
+                    result[i],
                     err_msg="sid={0} field={1}".format(sid, field))
 
     def test_sessions(self):
@@ -588,7 +589,8 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
                 dt = pd.Timestamp(dt_str, tz='UTC')
                 for col in OHLCV:
                     result = session_bar_reader.get_value(sid, dt, col)
-                    assert_almost_equal(values[col], result,
+                    assert_almost_equal(result,
+                                        values[col],
                                         err_msg="sid={0} col={1} dt={2}".
                                         format(sid, col, dt))
 
