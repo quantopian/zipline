@@ -415,11 +415,15 @@ class HistoryLoader(with_metaclass(ABCMeta)):
                 array = array.astype(float64_dtype)
 
             for i, asset in enumerate(needed_assets):
+                adj_reader = None
                 try:
                     adj_reader = self._adjustment_readers[type(asset)]
+                except KeyError:
+                    adj_reader = None
+                if adj_reader is not None:
                     adjs = adj_reader.load_adjustments(
                         [field], prefetch_dts, [asset])[0]
-                except KeyError:
+                else:
                     adjs = {}
                 window = window_type(
                     array[:, i].reshape(prefetch_len, 1),
