@@ -604,9 +604,7 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
         )
 
         self.assertEqual(
-            self.trading_calendar.open_and_close_for_session(
-                self.trading_calendar.previous_session_label(self.END_DATE)
-            )[1],
+            self.trading_calendar.previous_session_label(self.END_DATE),
             self.session_bar_reader.get_last_traded_dt(future, self.END_DATE)
         )
 

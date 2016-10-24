@@ -562,7 +562,8 @@ class MinuteResampleSessionBarReader(SessionBarReader):
         return self._minute_bar_reader.first_trading_day
 
     def get_last_traded_dt(self, asset, dt):
-        return self._minute_bar_reader.get_last_traded_dt(asset, dt)
+        return self.trading_calendar.minute_to_session_label(
+            self._minute_bar_reader.get_last_traded_dt(asset, dt))
 
 
 class ReindexBarReader(with_metaclass(ABCMeta)):
