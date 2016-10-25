@@ -46,8 +46,8 @@ class ContinuousFuturesTestCase(WithCreateBarData,
     START_DATE = pd.Timestamp('2015-01-05', tz='UTC')
     END_DATE = pd.Timestamp('2016-10-19', tz='UTC')
 
-    SIM_PARAMS_START = pd.Timestamp('2016-01-25', tz='UTC')
-    SIM_PARAMS_END = pd.Timestamp('2016-01-27', tz='UTC')
+    SIM_PARAMS_START = pd.Timestamp('2016-01-26', tz='UTC')
+    SIM_PARAMS_END = pd.Timestamp('2016-01-28', tz='UTC')
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
     TRADING_CALENDAR_STRS = ('us_futures',)
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
@@ -75,17 +75,17 @@ class ContinuousFuturesTestCase(WithCreateBarData,
                          Timestamp('2016-10-19', tz='UTC'),
                          Timestamp('2016-11-19', tz='UTC'),
                          Timestamp('2022-08-19', tz='UTC')],
-            'notice_date': [Timestamp('2016-01-26', tz='UTC'),
+            'notice_date': [Timestamp('2016-01-27', tz='UTC'),
                             Timestamp('2016-02-26', tz='UTC'),
                             Timestamp('2016-03-24', tz='UTC'),
                             Timestamp('2016-04-26', tz='UTC'),
                             Timestamp('2022-01-26', tz='UTC')],
-            'expiration_date': [Timestamp('2016-01-26', tz='UTC'),
+            'expiration_date': [Timestamp('2016-01-27', tz='UTC'),
                                 Timestamp('2016-02-26', tz='UTC'),
                                 Timestamp('2016-03-24', tz='UTC'),
                                 Timestamp('2016-04-26', tz='UTC'),
                                 Timestamp('2022-01-26', tz='UTC')],
-            'auto_close_date': [Timestamp('2016-01-26', tz='UTC'),
+            'auto_close_date': [Timestamp('2016-01-27', tz='UTC'),
                                 Timestamp('2016-02-26', tz='UTC'),
                                 Timestamp('2016-03-24', tz='UTC'),
                                 Timestamp('2016-04-26', tz='UTC'),
@@ -172,13 +172,13 @@ class ContinuousFuturesTestCase(WithCreateBarData,
         cf_primary = self.asset_finder.create_continuous_future(
             'FO', 0, 'calendar')
         bar_data = self.create_bardata(
-            lambda: pd.Timestamp('2016-01-25', tz='UTC'))
+            lambda: pd.Timestamp('2016-01-26', tz='UTC'))
         contract = bar_data.current(cf_primary, 'contract')
 
         self.assertEqual(contract.symbol, 'FOF16')
 
         bar_data = self.create_bardata(
-            lambda: pd.Timestamp('2016-01-26', tz='UTC'))
+            lambda: pd.Timestamp('2016-01-27', tz='UTC'))
         contract = bar_data.current(cf_primary, 'contract')
 
         self.assertEqual(contract.symbol, 'FOG16',
@@ -349,20 +349,20 @@ def record_current_contract(algo, data):
             'FO', 0, 'calendar')
         window = self.data_portal.get_history_window(
             [cf],
-            Timestamp('2016-03-03 18:01', tz='US/Eastern').tz_convert('UTC'),
+            Timestamp('2016-03-04 18:01', tz='US/Eastern').tz_convert('UTC'),
             30, '1d', 'sid')
 
-        self.assertEqual(window.loc['2016-01-25', cf],
+        self.assertEqual(window.loc['2016-01-26', cf],
                          0,
                          "Should be FOF16 at beginning of window.")
 
-        self.assertEqual(window.loc['2016-01-26', cf],
+        self.assertEqual(window.loc['2016-01-27', cf],
                          1,
                          "Should be FOG16 after first roll.")
 
         self.assertEqual(window.loc['2016-02-25', cf],
                          1,
-                         "Should be FOF16 on session before roll.")
+                         "Should be FOG16 on session before roll.")
 
         self.assertEqual(window.loc['2016-02-26', cf],
                          2,
@@ -403,33 +403,33 @@ def record_current_contract(algo, data):
             'FO', 0, 'calendar')
         window = self.data_portal.get_history_window(
             [cf.sid],
-            Timestamp('2016-01-25 18:01', tz='US/Eastern').tz_convert('UTC'),
+            Timestamp('2016-01-26 18:01', tz='US/Eastern').tz_convert('UTC'),
             30, '1m', 'sid')
 
-        self.assertEqual(window.loc['2016-01-25 22:32', cf],
+        self.assertEqual(window.loc['2016-01-26 22:32', cf],
                          0,
                          "Should be FOF16 at beginning of window. A minute "
-                         "which is in the 01-25 session, before the roll.")
+                         "which is in the 01-26 session, before the roll.")
 
-        self.assertEqual(window.loc['2016-01-25 23:00', cf],
+        self.assertEqual(window.loc['2016-01-26 23:00', cf],
                          0,
                          "Should be FOF16 on on minute before roll minute.")
 
-        self.assertEqual(window.loc['2016-01-25 23:01', cf],
+        self.assertEqual(window.loc['2016-01-26 23:01', cf],
                          1,
                          "Should be FOG16 on minute after roll.")
 
         # Advance the window a day.
         window = self.data_portal.get_history_window(
             [cf],
-            Timestamp('2016-01-26 18:01', tz='US/Eastern').tz_convert('UTC'),
+            Timestamp('2016-01-27 18:01', tz='US/Eastern').tz_convert('UTC'),
             30, '1m', 'sid')
 
-        self.assertEqual(window.loc['2016-01-26 22:32', cf],
+        self.assertEqual(window.loc['2016-01-27 22:32', cf],
                          1,
                          "Should be FOG16 at beginning of window.")
 
-        self.assertEqual(window.loc['2016-01-26 23:01', cf],
+        self.assertEqual(window.loc['2016-01-27 23:01', cf],
                          1,
                          "Should remain FOG16 on next session.")
 
@@ -441,7 +441,7 @@ def record_current_contract(algo, data):
 
         assert_almost_equal(
             window.loc['2016-01-26', cf],
-            115011.440,
+            105011.440,
             err_msg="At beginning of window, should be FOG16's first value.")
 
         assert_almost_equal(
@@ -499,14 +499,14 @@ def record_current_contract(algo, data):
         # a ratio of ~1.06
         assert_almost_equal(
             window.loc['2016-01-26', cf_mul],
-            122006.62,
+            118833.237,
             err_msg="At beginning of window, should be FOG16's first value, "
             "adjusted.")
 
         # Difference of 7008.561
         assert_almost_equal(
             window.loc['2016-01-26', cf_add],
-            122020.001,
+            119028.562,
             err_msg="At beginning of window, should be FOG16's first value, "
             "adjusted.")
 
