@@ -166,3 +166,24 @@ def ignore_pandas_nan_categorical_warning():
             category=FutureWarning,
         )
         yield
+
+
+def ensure_keys(series, keys, default_value):
+    """
+    Create a new series from ``series`` that contains all entries in ``keys``.
+
+    Any entries not already in ``series`` are set to ``default_value``.
+    This is equivalent to::
+
+        series.combine_first(pd.Series(index=keys, data=default_value))
+
+    Parameters
+    ----------
+    series : pd.Series
+        The base series to update.
+    keys : iterable
+        Additional keys to add to ``series``.
+    default_value : object
+        Value to use for keys not already in series.
+    """
+    return series.combine_first(pd.Series(index=keys, data=default_value))

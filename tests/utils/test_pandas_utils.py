@@ -4,7 +4,8 @@ Tests for zipline/utils/pandas_utils.py
 import pandas as pd
 
 from zipline.testing import parameter_space, ZiplineTestCase
-from zipline.utils.pandas_utils import nearest_unequal_elements
+from zipline.testing.predicates import assert_equal
+from zipline.utils.pandas_utils import nearest_unequal_elements, ensure_keys
 
 
 class TestNearestUnequalElements(ZiplineTestCase):
@@ -76,4 +77,20 @@ class TestNearestUnequalElements(ZiplineTestCase):
         self.assertEqual(
             str(e.exception),
             'dts must be sorted in increasing order',
+        )
+
+    @parameter_space(default_value=[1000.0, 0.0, 1.0])
+    def test_ensure_keys(self, default_value):
+        s = pd.Series({'a': 1, 'b': 2, 'c': 3})
+        result = ensure_keys(s, ['z', 'a', 'd', 'c'], default_value)
+
+        assert_equal(
+            result,
+            pd.Series({
+                'a': 1.0,
+                'b': 2.0,
+                'c': 3.0,
+                'd': default_value,
+                'z': default_value,
+            })
         )
