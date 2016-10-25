@@ -23,8 +23,10 @@ class RollFinder(with_metaclass(ABCMeta, object)):
     Abstract base class for calculating when futures contracts are the active
     contract.
     """
-
     @abstractmethod
+    def _active_contract(self, oc, front, back, dt):
+        raise NotImplementedError
+
     def get_contract_center(self, root_symbol, dt, offset):
         """
         Parameters
@@ -42,9 +44,16 @@ class RollFinder(with_metaclass(ABCMeta, object)):
         Future
             The active future contract at the given dt.
         """
-        raise NotImplemented
+        oc = self.asset_finder.get_ordered_contracts(root_symbol)
+        session = self.trading_calendar.minute_to_session_label(dt)
+        front = oc.contract_before_auto_close(session.value)
+        back = oc.contract_at_offset(front, 1, dt.value)
+        if back is None:
+            return front
+        session = self.trading_calendar.minute_to_session_label(dt)
+        primary = self._active_contract(oc, front, back, session)
+        return oc.contract_at_offset(primary, offset, session.value)
 
-    @abstractmethod
     def get_rolls(self, root_symbol, start, end, offset):
         """
         Get the rolls, i.e. the session at which to hop from contract to
@@ -69,7 +78,39 @@ class RollFinder(with_metaclass(ABCMeta, object)):
             The last pair in the chain has a value of `None` since the roll
             is after the range.
         """
-        raise NotImplemented
+        oc = self.asset_finder.get_ordered_contracts(root_symbol)
+        front = self.get_contract_center(root_symbol, end, offset)
+        back = oc.contract_at_offset(front, 1, end.value)
+        if back is not None:
+            first = self._active_contract(oc, front, back, end)
+        else:
+            first = front
+        for i, sid in enumerate(oc.contract_sids):
+            if sid == first:
+                break
+        rolls = [(first, None)]
+        sessions = self.trading_calendar.sessions_in_range(start, end)
+        if first == front:
+            i -= 1
+        else:
+            i -= 2
+        auto_close_date = Timestamp(oc.auto_close_dates[i], tz='UTC')
+        while auto_close_date > start and i > -1:
+            session_loc = sessions.searchsorted(auto_close_date)
+            front = oc.contract_sids[i]
+            back = oc.contract_sids[i + 1]
+            while session_loc > -1:
+                session = sessions[session_loc]
+                if back != self._active_contract(oc, front, back, session):
+                    break
+                session_loc -= 1
+            roll_session = sessions[session_loc + 1]
+            if roll_session > start:
+                rolls.insert(0, (front, roll_session))
+            i -= 1
+            auto_close_date = Timestamp(oc.auto_close_dates[i],
+                                        tz='UTC')
+        return rolls
 
 
 class CalendarRollFinder(RollFinder):
@@ -82,31 +123,30 @@ class CalendarRollFinder(RollFinder):
         self.trading_calendar = trading_calendar
         self.asset_finder = asset_finder
 
-    def get_contract_center(self, root_symbol, dt, offset):
-        oc = self.asset_finder.get_ordered_contracts(root_symbol)
-        session = self.trading_calendar.minute_to_session_label(dt)
-        primary_candidate = oc.contract_before_auto_close(session.value)
-
-        # Here is where a volume check would be.
-        primary = primary_candidate
-        return oc.contract_at_offset(primary, offset)
-
-    def get_rolls(self, root_symbol, start, end, offset):
-        oc = self.asset_finder.get_ordered_contracts(root_symbol)
-        primary_at_end = self.get_contract_center(root_symbol, end, 0)
+    def _active_contract(self, oc, front, back, dt):
         for i, sid in enumerate(oc.contract_sids):
-            if sid == primary_at_end:
+            if sid == front:
                 break
-        i += offset
-        first = oc.contract_sids[i]
-        rolls = [(first, None)]
-        i -= 1
-        auto_close_date = Timestamp(oc.auto_close_dates[i - offset], tz='UTC')
-        while auto_close_date > start and i > -1:
-            rolls.insert(0, (oc.contract_sids[i - offset],
-                             auto_close_date))
-            i -= 1
-            auto_close_date = Timestamp(oc.auto_close_dates[i - offset],
-                                        tz='UTC')
+        auto_close_date = Timestamp(oc.auto_close_dates[i], tz='UTC')
+        before_auto_close = dt < auto_close_date
+        return front if before_auto_close else back
 
-        return rolls
+
+class VolumeRollFinder(RollFinder):
+    """
+    The CalendarRollFinder calculates contract rolls based on when
+    volume activity transfers from one contract to another.
+    """
+
+    THRESHOLD = 0.10
+
+    def __init__(self, trading_calendar, asset_finder, session_reader):
+        self.trading_calendar = trading_calendar
+        self.asset_finder = asset_finder
+        self.session_reader = session_reader
+
+    def _active_contract(self, oc, front, back, dt):
+        # FIXME: Possible vector for look ahead bias.
+        front_vol = self.session_reader.get_value(front, dt, 'volume')
+        back_vol = self.session_reader.get_value(back, dt, 'volume')
+        return back if back_vol > front_vol else front

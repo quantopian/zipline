@@ -129,7 +129,8 @@ SID_TYPE_IDS = {
 }
 
 CONTINUOUS_FUTURE_ROLL_STYLE_IDS = {
-    'calendar': 0
+    'calendar': 0,
+    'volume': 1,
 }
 
 CONTINUOUS_FUTURE_ADJUSTMENT_STYLE_IDS = {
