@@ -36,6 +36,7 @@ from numpy import (
     uint32,
 )
 from pandas import (
+    isnull,
     DataFrame,
     read_csv,
     Timestamp,
@@ -706,10 +707,11 @@ class BcolzDailyBarReader(SessionBarReader):
         """
         ix = self.sid_day_index(sid, dt)
         price = self._spot_col(field)[ix]
-        if price == 0:
-            return -1
         if field != 'volume':
-            return price * 0.001
+            if price == 0:
+                return nan
+            else:
+                return price * 0.001
         else:
             return price
 
@@ -1001,7 +1003,7 @@ class SQLiteAdjustmentWriter(object):
             try:
                 prev_close = equity_daily_bar_reader.get_value(
                     sid, prev_close_date, 'close')
-                if prev_close != 0.0:
+                if not isnull(prev_close):
                     ratio = 1.0 - amount / prev_close
                     ratios[i] = ratio
                     # only assign effective_date when data is found

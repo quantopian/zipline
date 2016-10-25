@@ -19,6 +19,7 @@ from logbook import Logger
 import numpy as np
 from numpy import float64, int64
 import pandas as pd
+from pandas import isnull
 from pandas.tslib import normalize_date
 from six import iteritems
 from six.moves import reduce
@@ -632,14 +633,7 @@ class DataPortal(object):
         elif column in OHLCV_FIELDS:
             # don't forward fill
             try:
-                val = reader.get_value(asset, dt, column)
-                if val == -1:
-                    if column == "volume":
-                        return 0
-                    else:
-                        return np.nan
-                else:
-                    return val
+                return reader.get_value(asset, dt, column)
             except NoDataOnDate:
                 return np.nan
         elif column == "price":
@@ -649,7 +643,7 @@ class DataPortal(object):
                     value = reader.get_value(
                         asset, found_dt, "close"
                     )
-                    if value != -1:
+                    if not isnull(value):
                         if dt == found_dt:
                             return value
                         else:

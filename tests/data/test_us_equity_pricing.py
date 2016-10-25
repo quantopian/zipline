@@ -18,6 +18,7 @@ from nose_parameterized import parameterized
 from numpy import (
     arange,
     datetime64,
+    nan,
 )
 from numpy.testing import (
     assert_array_equal,
@@ -340,7 +341,7 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, ZiplineTestCase):
             reader._spot_col('close')[zero_ix] = 0
 
             close = reader.get_value(zero_sid, zero_day, 'close')
-            self.assertEqual(-1, close)
+            assert_array_equal(nan, close)
         finally:
             reader._spot_col('close')[zero_ix] = old
 
