@@ -617,18 +617,18 @@ def record_current_contract(algo, data):
             Timestamp('2016-03-06', tz='UTC'), 30, '1d', 'close')
 
         # Unadjusted value is: 115011.44
-        # Adjustment is based on hop from 115231.44 to 122240.001
-        # a ratio of ~1.06
+        # Adjustment is based on hop from 115231.44 to 125231.44
+        # a ratio of ~0.920
         assert_almost_equal(
             window.loc['2016-01-26', cf_mul],
-            118833.237,
+            124992.348,
             err_msg="At beginning of window, should be FOG16's first value, "
             "adjusted.")
 
         # Difference of 7008.561
         assert_almost_equal(
             window.loc['2016-01-26', cf_add],
-            119028.562,
+            125011.44,
             err_msg="At beginning of window, should be FOG16's first value, "
             "adjusted.")
 
@@ -661,50 +661,52 @@ def record_current_contract(algo, data):
 
         # Unadjusted value: 115221.44
         # Adjustments based on hops:
-        # 2016-02-25 00:00:00+00:00    115231.440
-        # 2016-02-26 00:00:00+00:00    122240.001
-        # ratio: ~1.061
-        # difference: 7008.561
+        # 2016-02-25 00:00:00+00:00
+        # front 115231.440
+        # back  125231.440
+        # ratio: ~0.920
+        # difference: 10000.0
         # and
-        # 2016-03-23 00:00:00+00:00    125421.440
-        # 2016-03-24 00:00:00+00:00    132430.001
-        # ratio: ~1.056
-        # difference: 7008.56
+        # 2016-03-23 00:00:00+00:00
+        # front 125421.440
+        # back  135421.440
+        # ratio: ~1.080
+        # difference: 10000.00
         assert_almost_equal(
             window.loc['2016-02-24', cf_mul],
-            129090.459,
+            135236.905,
             err_msg="At beginning of window, should be FOG16's 22nd value, "
             "with two adjustments.")
 
         assert_almost_equal(
             window.loc['2016-02-24', cf_add],
-            129268.561,
+            135251.44,
             err_msg="At beginning of window, should be FOG16's 22nd value, "
             "with two adjustments")
 
         # Unadjusted: 125241.44
         assert_almost_equal(
             window.loc['2016-02-26', cf_mul],
-            132271.58,
+            135259.442,
             err_msg="On session with roll, should be FOH16's 24th value, "
             "with one adjustment.")
 
         assert_almost_equal(
             window.loc['2016-02-26', cf_add],
-            132280.0,
+            135271.44,
             err_msg="On session with roll, should be FOH16's 24th value, "
             "with one adjustment.")
 
         # Unadjusted: 125251.44
         assert_almost_equal(
             window.loc['2016-02-29', cf_mul],
-            132282.141,
+            135270.241,
             err_msg="On session after roll, should be FOH16's 25th value, "
             "with one adjustment.")
 
         assert_almost_equal(
             window.loc['2016-02-29', cf_add],
-            132290.00,
+            135281.44,
             err_msg="On session after roll, should be FOH16's 25th value, "
             "unadjusted.")
 
@@ -780,29 +782,30 @@ def record_current_contract(algo, data):
 
         # Unadjusted: 115231.412
         # Adjustment based on roll:
-        # 2016-02-25 23:00:00+00:00    115231.440
-        # 2016-02-25 23:01:00+00:00    122240.001
-        # Ratio: ~1.061
-        # Difference: 7008.561
+        # 2016-02-25 23:00:00+00:00
+        # front: 115231.440
+        # back:  125231.440
+        # Ratio: ~0.920
+        # Difference: 10000.00
         self.assertEqual(window.loc['2016-02-25 22:32', cf_mul],
-                         122239.971,
+                         125231.41,
                          "Should be FOG16 at beginning of window. A minute "
                          "which is in the 02-25 session, before the roll.")
 
         self.assertEqual(window.loc['2016-02-25 22:32', cf_add],
-                         122239.973,
+                         125231.412,
                          "Should be FOG16 at beginning of window. A minute "
                          "which is in the 02-25 session, before the roll.")
 
         # Unadjusted: 115231.44
         # Should use same ratios as above.
         self.assertEqual(window.loc['2016-02-25 23:00', cf_mul],
-                         122240.001,
+                         125231.44,
                          "Should be FOG16 on on minute before roll minute, "
                          "adjusted.")
 
         self.assertEqual(window.loc['2016-02-25 23:00', cf_add],
-                         122240.001,
+                         125231.44,
                          "Should be FOG16 on on minute before roll minute, "
                          "adjusted.")
 
