@@ -17,7 +17,7 @@ from operator import mul
 from logbook import Logger
 
 import numpy as np
-from numpy import float64, int64
+from numpy import float64, int64, nan
 import pandas as pd
 from pandas import isnull
 from pandas.tslib import normalize_date
@@ -857,33 +857,32 @@ class DataPortal(object):
                 raise Exception(
                     "Only 1d and 1m are supported for forward-filling.")
 
-            dt_to_fill = df.index[0]
+            assets_with_leading_nan = np.where(isnull(df.iloc[0]))[0]
 
             perspective_dt = df.index[-1]
-            assets_with_leading_nan = np.where(pd.isnull(df.iloc[0]))[0]
-            for missing_loc in assets_with_leading_nan:
-                asset = assets[missing_loc]
-                previous_dt = self.get_last_traded_dt(
-                    asset, dt_to_fill, data_frequency)
-                if pd.isnull(previous_dt):
-                    continue
-                previous_value = self.get_adjusted_value(
+            initial_values = np.array([
+                self.get_adjusted_value(
                     asset,
                     field,
-                    previous_dt,
+                    self.get_last_traded_dt(
+                        asset,
+                        perspective_dt,
+                        data_frequency,
+                    ),
                     perspective_dt,
                     data_frequency,
                 )
-                df.iloc[0, missing_loc] = previous_value
+                for asset in df.columns[assets_with_leading_nan]
+            ], dtype=float64)
 
+            df.ix[0, assets_with_leading_nan] = initial_values
             df.fillna(method='ffill', inplace=True)
 
             for asset in df.columns:
                 if df.index[-1] >= asset.end_date:
                     # if the window extends past the asset's end date, set
                     # all post-end-date values to NaN in that asset's series
-                    series = df[asset]
-                    series[series.index.normalize() > asset.end_date] = np.NaN
+                    df.loc[df.index.normalize() > asset.end_date, asset] = nan
 
         return df
 
