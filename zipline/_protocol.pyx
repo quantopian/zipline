@@ -378,15 +378,15 @@ cdef class BarData:
                 # assume assets is iterable
                 # return a Series indexed by asset
                 if not self._adjust_minutes:
-                    return pd.Series(data={
-                        asset: self.data_portal.get_spot_value(
-                                    asset,
-                                    field,
-                                    self._get_current_minute(),
-                                    self.data_frequency
-                               )
-                        for asset in assets
-                        }, index=assets, name=fields)
+                    ret = self.data_portal.get_history_window(
+                        assets,
+                        self._get_current_minute(),
+                        1,
+                        '1m',
+                        field,
+                    ).iloc[0]
+                    ret.name = field
+                    return ret
                 else:
                     return pd.Series(data={
                         asset: self.data_portal.get_adjusted_value(
