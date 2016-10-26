@@ -859,23 +859,32 @@ class DataPortal(object):
 
             assets_with_leading_nan = np.where(isnull(df.iloc[0]))[0]
 
-            perspective_dt = df.index[-1]
-            initial_values = np.array([
-                self.get_adjusted_value(
+            history_start, history_end = df.index[[0, -1]]
+            initial_values = []
+            for asset in df.columns[assets_with_leading_nan]:
+                last_traded = self.get_last_traded_dt(
                     asset,
-                    field,
-                    self.get_last_traded_dt(
-                        asset,
-                        perspective_dt,
-                        data_frequency,
-                    ),
-                    perspective_dt,
+                    history_start,
                     data_frequency,
                 )
-                for asset in df.columns[assets_with_leading_nan]
-            ], dtype=float64)
+                if isnull(last_traded):
+                    initial_values.append(nan)
+                else:
+                    initial_values.append(
+                        self.get_adjusted_value(
+                            asset,
+                            field,
+                            dt=last_traded,
+                            perspective_dt=history_end,
+                            data_frequency=data_frequency,
+                        )
+                    )
 
-            df.ix[0, assets_with_leading_nan] = initial_values
+            # Set leading values for assets that were missing data, then ffill.
+            df.ix[0, assets_with_leading_nan] = np.array(
+                initial_values,
+                dtype=np.float64
+            )
             df.fillna(method='ffill', inplace=True)
 
             for asset in df.columns:
@@ -883,7 +892,6 @@ class DataPortal(object):
                     # if the window extends past the asset's end date, set
                     # all post-end-date values to NaN in that asset's series
                     df.loc[df.index.normalize() > asset.end_date, asset] = nan
-
         return df
 
     def _get_minute_window_for_assets(self, assets, field, minutes_for_window):
