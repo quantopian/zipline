@@ -395,9 +395,16 @@ class HistoryLoader(with_metaclass(ABCMeta)):
             start = dts[0]
 
             offset = 0
-            start_ix = self._calendar.get_loc(start)
-            end_ix = self._calendar.get_loc(end)
-
+            try:
+                start_ix = self._calendar.get_loc(start)
+            except KeyError:
+                raise KeyError("{0} not in calendar [{1}...{2}]".format(
+                    start, self._calendar[0], self._calendar[-1]))
+            try:
+                end_ix = self._calendar.get_loc(end)
+            except KeyError:
+                raise KeyError("{0} not in calendar [{1}...{2}]".format(
+                    end, self._calendar[0], self._calendar[-1]))
             cal = self._calendar
             prefetch_end_ix = min(end_ix + self._prefetch_length, len(cal) - 1)
             prefetch_end = cal[prefetch_end_ix]
