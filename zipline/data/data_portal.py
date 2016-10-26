@@ -19,6 +19,7 @@ from logbook import Logger
 import numpy as np
 from numpy import float64, int64
 import pandas as pd
+from pandas import isnull
 from pandas.tslib import normalize_date
 from six import iteritems
 from six.moves import reduce
@@ -625,7 +626,7 @@ class DataPortal(object):
         if column == "last_traded":
             last_traded_dt = reader.get_last_traded_dt(asset, dt)
 
-            if pd.isnull(last_traded_dt):
+            if isnull(last_traded_dt):
                 return pd.NaT
             else:
                 return last_traded_dt
