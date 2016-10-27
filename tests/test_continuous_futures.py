@@ -456,6 +456,60 @@ def record_current_contract(algo, data):
                          3,
                          "Should be FOJ16 on session after roll.")
 
+    def test_history_sid_session_secondary(self):
+        cf = self.data_portal.asset_finder.create_continuous_future(
+            'FO', 1, 'calendar')
+        window = self.data_portal.get_history_window(
+            [cf],
+            Timestamp('2016-03-04 18:01', tz='US/Eastern').tz_convert('UTC'),
+            30, '1d', 'sid')
+
+        self.assertEqual(window.loc['2016-01-26', cf],
+                         1,
+                         "Should be FOG16 at beginning of window.")
+
+        self.assertEqual(window.loc['2016-01-27', cf],
+                         2,
+                         "Should be FOH16 after first roll.")
+
+        self.assertEqual(window.loc['2016-02-25', cf],
+                         2,
+                         "Should be FOH16 on session before roll.")
+
+        self.assertEqual(window.loc['2016-02-26', cf],
+                         3,
+                         "Should be FOJ16 on session with roll.")
+
+        self.assertEqual(window.loc['2016-02-29', cf],
+                         3,
+                         "Should be FOJ16 on session after roll.")
+
+        # Advance the window a month.
+        window = self.data_portal.get_history_window(
+            [cf],
+            Timestamp('2016-04-06 18:01', tz='US/Eastern').tz_convert('UTC'),
+            30, '1d', 'sid')
+
+        self.assertEqual(window.loc['2016-02-25', cf],
+                         2,
+                         "Should be FOH16 at beginning of window.")
+
+        self.assertEqual(window.loc['2016-02-26', cf],
+                         3,
+                         "Should be FOJ16 on session with roll.")
+
+        self.assertEqual(window.loc['2016-02-29', cf],
+                         3,
+                         "Should be FOJ16 on session after roll.")
+
+        self.assertEqual(window.loc['2016-03-24', cf],
+                         4,
+                         "Should be FOK16 on session with roll.")
+
+        self.assertEqual(window.loc['2016-03-28', cf],
+                         4,
+                         "Should be FOK16 on session after roll.")
+
     def test_history_sid_session_volume_roll(self):
         cf = self.data_portal.asset_finder.create_continuous_future(
             'FO', 0, 'volume')
