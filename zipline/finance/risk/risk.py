@@ -59,10 +59,7 @@ Risk Report
 """
 
 import logbook
-import math
 import numpy as np
-
-import zipline.utils.math_utils as zp_math
 
 log = logbook.Logger('Risk')
 
@@ -83,110 +80,6 @@ def check_entry(key, value):
         return False
 
 
-############################
-# Risk Metric Calculations #
-############################
-
-
-def sharpe_ratio(algorithm_volatility, algorithm_return, treasury_return):
-    """
-    http://en.wikipedia.org/wiki/Sharpe_ratio
-
-    Args:
-        algorithm_volatility (float): Algorithm volatility.
-        algorithm_return (float): Algorithm return percentage.
-        treasury_return (float): Treasury return percentage.
-
-    Returns:
-        float. The Sharpe ratio.
-    """
-    if zp_math.tolerant_equals(algorithm_volatility, 0):
-        return np.nan
-
-    return (algorithm_return - treasury_return) / algorithm_volatility
-
-
-def downside_risk(algorithm_returns, mean_returns, normalization_factor):
-    rets = algorithm_returns.round(8)
-    mar = mean_returns.round(8)
-    mask = rets < mar
-    downside_diff = rets[mask] - mar[mask]
-    if len(downside_diff) <= 1:
-        return 0.0
-    return np.std(downside_diff, ddof=1) * math.sqrt(normalization_factor)
-
-
-def sortino_ratio(algorithm_period_return, treasury_period_return, mar):
-    """
-    http://en.wikipedia.org/wiki/Sortino_ratio
-
-    Args:
-        algorithm_returns (np.array-like):
-            Returns from algorithm lifetime.
-        algorithm_period_return (float):
-            Algorithm return percentage from latest period.
-        mar (float): Minimum acceptable return.
-
-    Returns:
-        float. The Sortino ratio.
-    """
-    if zp_math.tolerant_equals(mar, 0):
-        return 0.0
-
-    return (algorithm_period_return - treasury_period_return) / mar
-
-
-def information_ratio(algorithm_returns, benchmark_returns):
-    """
-    http://en.wikipedia.org/wiki/Information_ratio
-
-    Args:
-        algorithm_returns (np.array-like):
-            All returns during algorithm lifetime.
-        benchmark_returns (np.array-like):
-            All benchmark returns during algo lifetime.
-
-    Returns:
-        float. Information ratio.
-    """
-    relative_returns = algorithm_returns - benchmark_returns
-
-    relative_deviation = relative_returns.std(ddof=1)
-
-    if zp_math.tolerant_equals(relative_deviation, 0) or \
-       np.isnan(relative_deviation):
-        return 0.0
-
-    return np.mean(relative_returns) / relative_deviation
-
-
-def alpha(algorithm_period_return, treasury_period_return,
-          benchmark_period_returns, beta):
-    """
-    http://en.wikipedia.org/wiki/Alpha_(investment)
-
-    Args:
-        algorithm_period_return (float):
-            Return percentage from algorithm period.
-        treasury_period_return (float):
-            Return percentage for treasury period.
-        benchmark_period_return (float):
-            Return percentage for benchmark period.
-        beta (float):
-            beta value for the same period as all other values
-
-    Returns:
-        float. The alpha of the algorithm.
-    """
-    return algorithm_period_return - \
-        (treasury_period_return + beta *
-         (benchmark_period_returns - treasury_period_return))
-
-###########################
-# End Risk Metric Section #
-###########################
-
-
 def get_treasury_rate(treasury_curves, treasury_duration, day):
     rate = None
 
@@ -200,14 +93,6 @@ def get_treasury_rate(treasury_curves, treasury_duration, day):
             break
 
     return rate
-
-
-def search_day_distance(end_date, dt, env):
-    tdd = env.trading_day_distance(dt, end_date)
-    if tdd is None:
-        return None
-    assert tdd >= 0
-    return tdd
 
 
 def select_treasury_duration(start_date, end_date):
@@ -236,8 +121,8 @@ def select_treasury_duration(start_date, end_date):
     return treasury_duration
 
 
-def choose_treasury(select_treasury, treasury_curves, start_date, end_date,
-                    env, compound=True):
+def choose_treasury(select_treasury, treasury_curves, start_session,
+                    end_session, trading_calendar, compound=True):
     """
     Find the latest known interest rate for a given duration within a date
     range.
@@ -245,46 +130,47 @@ def choose_treasury(select_treasury, treasury_curves, start_date, end_date,
     If we find one but it's more than a trading day ago from the date we're
     looking for, then we log a warning
     """
-    treasury_duration = select_treasury(start_date, end_date)
-    end_day = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+    treasury_duration = select_treasury(start_session, end_session)
     search_day = None
 
-    if end_day in treasury_curves.index:
+    if end_session in treasury_curves.index:
         rate = get_treasury_rate(treasury_curves,
                                  treasury_duration,
-                                 end_day)
+                                 end_session)
         if rate is not None:
-            search_day = end_day
+            search_day = end_session
 
     if not search_day:
         # in case end date is not a trading day or there is no treasury
         # data, search for the previous day with an interest rate.
         search_days = treasury_curves.index
 
-        # Find rightmost value less than or equal to end_day
-        i = search_days.searchsorted(end_day)
+        # Find rightmost value less than or equal to end_session
+        i = search_days.searchsorted(end_session)
         for prev_day in search_days[i - 1::-1]:
             rate = get_treasury_rate(treasury_curves,
                                      treasury_duration,
                                      prev_day)
             if rate is not None:
                 search_day = prev_day
-                search_dist = search_day_distance(end_date, prev_day, env)
+                search_dist = trading_calendar.session_distance(
+                    end_session, prev_day
+                )
                 break
 
         if search_day:
             if (search_dist is None or search_dist > 1) and \
-                    search_days[0] <= end_day <= search_days[-1]:
+                    search_days[0] <= end_session <= search_days[-1]:
                 message = "No rate within 1 trading day of end date = \
 {dt} and term = {term}. Using {search_day}. Check that date doesn't exceed \
 treasury history range."
-                message = message.format(dt=end_date,
+                message = message.format(dt=end_session,
                                          term=treasury_duration,
                                          search_day=search_day)
                 log.warn(message)
 
     if search_day:
-        td = end_date - start_date
+        td = end_session - start_session
         if compound:
             return rate * (td.days + 1) / 365
         else:
@@ -293,7 +179,7 @@ treasury history range."
     message = "No rate for end date = {dt} and term = {term}. Check \
 that date doesn't exceed treasury history range."
     message = message.format(
-        dt=end_date,
+        dt=end_session,
         term=treasury_duration
     )
     raise Exception(message)

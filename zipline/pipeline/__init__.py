@@ -6,7 +6,7 @@ from .engine import SimplePipelineEngine
 from .factors import Factor, CustomFactor
 from .filters import Filter, CustomFilter
 from .term import Term
-from .graph import TermGraph
+from .graph import ExecutionPlan, TermGraph
 from .pipeline import Pipeline
 from .loaders import USEquityPricingLoader
 
@@ -35,9 +35,6 @@ def engine_from_files(daily_bar_path,
         memory consumption.  Default is False
     """
     loader = USEquityPricingLoader.from_files(daily_bar_path, adjustments_path)
-
-    if not asset_db_path.startswith("sqlite:"):
-        asset_db_path = "sqlite:///" + asset_db_path
     asset_finder = AssetFinder(asset_db_path)
     if warmup_assets:
         results = asset_finder.retrieve_all(asset_finder.sids)
@@ -56,6 +53,7 @@ __all__ = (
     'CustomFilter',
     'CustomClassifier',
     'engine_from_files',
+    'ExecutionPlan',
     'Factor',
     'Filter',
     'Pipeline',

@@ -80,6 +80,8 @@ class LazyBuildExtCommandClass(dict):
 
 ext_modules = [
     Extension('zipline.assets._assets', ['zipline/assets/_assets.pyx']),
+    Extension('zipline.assets.continuous_futures',
+              ['zipline/assets/continuous_futures.pyx']),
     Extension('zipline.lib.adjustment', ['zipline/lib/adjustment.pyx']),
     Extension('zipline.lib._factorize', ['zipline/lib/_factorize.pyx']),
     Extension(
@@ -96,7 +98,15 @@ ext_modules = [
     Extension(
         'zipline.data._minute_bar_internal',
         ['zipline/data/_minute_bar_internal.pyx']
-    )
+    ),
+    Extension(
+        'zipline.utils.calendars._calendar_helpers',
+        ['zipline/utils/calendars/_calendar_helpers.pyx']
+    ),
+    Extension(
+        'zipline.data._resample',
+        ['zipline/data/_resample.pyx']
+    ),
 ]
 
 
@@ -144,7 +154,7 @@ def _filter_requirements(lines_iter, filter_names=None,
 
 REQ_UPPER_BOUNDS = {
     'bcolz': '<1',
-    'pandas': '<0.18',
+    'pandas': '<0.19',
 }
 
 

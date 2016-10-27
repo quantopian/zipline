@@ -13,15 +13,19 @@
 # limitations under the License.
 import json
 import os
+import shutil
+from glob import glob
 from os.path import join
 from textwrap import dedent
 
-from cachetools import LRUCache
+from lru import LRU
 import bcolz
 from bcolz import ctable
 from intervaltree import IntervalTree
+import logbook
 import numpy as np
 import pandas as pd
+from toolz import keymap, valmap
 
 from zipline.data._minute_bar_internal import (
     minute_value,
@@ -30,10 +34,17 @@ from zipline.data._minute_bar_internal import (
 )
 
 from zipline.gens.sim_engine import NANOS_IN_MINUTE
+
+from zipline.data.bar_reader import BarReader, NoDataOnDate
+from zipline.utils.calendars import get_calendar
 from zipline.utils.cli import maybe_show_progress
 from zipline.utils.memoize import lazyval
 
+
+logger = logbook.Logger('MinuteBars')
+
 US_EQUITIES_MINUTES_PER_DAY = 390
+FUTURES_MINUTES_PER_DAY = 1440
 
 DEFAULT_EXPECTEDLEN = US_EQUITIES_MINUTES_PER_DAY * 252 * 15
 
@@ -46,6 +57,12 @@ class BcolzMinuteOverlappingData(Exception):
 
 class BcolzMinuteWriterColumnMismatch(Exception):
     pass
+
+
+class MinuteBarReader(BarReader):
+    @property
+    def data_frequency(self):
+        return "minute"
 
 
 def _calc_minute_index(market_opens, minutes_per_day):
@@ -96,19 +113,19 @@ class BcolzMinuteBarMetadata(object):
     """
     Parameters
     ----------
-    first_trading_day : datetime-like
-        UTC midnight of the first day available in the dataset.
-    minute_index : pd.DatetimeIndex
-        The minutes which act as an index into the corresponding values
-        written into each sid's ctable.
-    market_opens : pd.DatetimeIndex
-        The market opens for each day in the data set. (Not yet required.)
-    market_closes : pd.DatetimeIndex
-        The market closes for each day in the data set. (Not yet required.)
     ohlc_ratio : int
          The factor by which the pricing data is multiplied so that the
          float data can be stored as an integer.
+    calendar :  zipline.utils.calendars.trading_calendar.TradingCalendar
+        The TradingCalendar on which the minute bars are based.
+    start_session : datetime
+        The first trading session in the data set.
+    end_session : datetime
+        The last trading session in the data set.
+    minutes_per_day : int
+        The number of minutes per each period.
     """
+    FORMAT_VERSION = 3
 
     METADATA_FILENAME = 'metadata.json'
 
@@ -122,53 +139,140 @@ class BcolzMinuteBarMetadata(object):
         with open(path) as fp:
             raw_data = json.load(fp)
 
-            first_trading_day = pd.Timestamp(
-                raw_data['first_trading_day'], tz='UTC')
-            market_opens = pd.to_datetime(raw_data['market_opens'],
-                                          unit='m',
-                                          utc=True)
-            market_closes = pd.to_datetime(raw_data['market_closes'],
-                                           unit='m',
-                                           utc=True)
-            ohlc_ratio = raw_data['ohlc_ratio']
-            return cls(first_trading_day,
-                       market_opens,
-                       market_closes,
-                       ohlc_ratio)
+            try:
+                version = raw_data['version']
+            except KeyError:
+                # Version was first written with version 1, assume 0,
+                # if version does not match.
+                version = 0
 
-    def __init__(self, first_trading_day,
-                 market_opens,
-                 market_closes,
-                 ohlc_ratio):
-        self.first_trading_day = first_trading_day
-        self.market_opens = market_opens
-        self.market_closes = market_closes
-        self.ohlc_ratio = ohlc_ratio
+            default_ohlc_ratio = raw_data['ohlc_ratio']
+
+            if version >= 1:
+                minutes_per_day = raw_data['minutes_per_day']
+            else:
+                # version 0 always assumed US equities.
+                minutes_per_day = US_EQUITIES_MINUTES_PER_DAY
+
+            if version >= 2:
+                calendar = get_calendar(raw_data['calendar_name'])
+                start_session = pd.Timestamp(
+                    raw_data['start_session'], tz='UTC')
+                end_session = pd.Timestamp(raw_data['end_session'], tz='UTC')
+            else:
+                # No calendar info included in older versions, so
+                # default to NYSE.
+                calendar = get_calendar('NYSE')
+
+                start_session = pd.Timestamp(
+                    raw_data['first_trading_day'], tz='UTC')
+                end_session = calendar.minute_to_session_label(
+                    pd.Timestamp(
+                        raw_data['market_closes'][-1], unit='m', tz='UTC')
+                )
+
+            if version >= 3:
+                ohlc_ratios_per_sid = raw_data['ohlc_ratios_per_sid']
+                if ohlc_ratios_per_sid is not None:
+                    ohlc_ratios_per_sid = keymap(int, ohlc_ratios_per_sid)
+            else:
+                ohlc_ratios_per_sid = None
+
+            return cls(
+                default_ohlc_ratio,
+                ohlc_ratios_per_sid,
+                calendar,
+                start_session,
+                end_session,
+                minutes_per_day,
+                version=version,
+            )
+
+    def __init__(
+        self,
+        default_ohlc_ratio,
+        ohlc_ratios_per_sid,
+        calendar,
+        start_session,
+        end_session,
+        minutes_per_day,
+        version=FORMAT_VERSION,
+    ):
+        self.calendar = calendar
+        self.start_session = start_session
+        self.end_session = end_session
+        self.default_ohlc_ratio = default_ohlc_ratio
+        self.ohlc_ratios_per_sid = ohlc_ratios_per_sid
+        self.minutes_per_day = minutes_per_day
+        self.version = version
 
     def write(self, rootdir):
         """
         Write the metadata to a JSON file in the rootdir.
 
         Values contained in the metadata are:
+
+        version : int
+            The value of FORMAT_VERSION of this class.
+        ohlc_ratio : int
+            The default ratio by which to multiply the pricing data to
+            convert the floats from floats to an integer to fit within
+            the np.uint32. If ohlc_ratios_per_sid is None or does not
+            contain a mapping for a given sid, this ratio is used.
+        ohlc_ratios_per_sid : dict
+             A dict mapping each sid in the output to the factor by
+             which the pricing data is multiplied so that the float data
+             can be stored as an integer.
+        minutes_per_day : int
+            The number of minutes per each period.
+        calendar_name : str
+            The name of the TradingCalendar on which the minute bars are
+            based.
+        start_session : datetime
+            'YYYY-MM-DD' formatted representation of the first trading
+            session in the data set.
+        end_session : datetime
+            'YYYY-MM-DD' formatted representation of the last trading
+            session in the data set.
+
+        Deprecated, but included for backwards compatibility:
+
         first_trading_day : string
             'YYYY-MM-DD' formatted representation of the first trading day
              available in the dataset.
-        minute_index : list of integers
-             nanosecond integer representation of the minutes, the enumeration
-             of which corresponds to the values in each bcolz carray.
-        ohlc_ratio : int
-             The factor by which the pricing data is multiplied so that the
-             float data can be stored as an integer.
+        market_opens : list
+            List of int64 values representing UTC market opens as
+            minutes since epoch.
+        market_closes : list
+            List of int64 values representing UTC market closes as
+            minutes since epoch.
         """
+
+        calendar = self.calendar
+        slicer = calendar.schedule.index.slice_indexer(
+            self.start_session,
+            self.end_session,
+        )
+        schedule = calendar.schedule[slicer]
+        market_opens = schedule.market_open
+        market_closes = schedule.market_close
+
         metadata = {
-            'first_trading_day': str(self.first_trading_day.date()),
-            'market_opens': self.market_opens.values.
-            astype('datetime64[m]').
-            astype(np.int64).tolist(),
-            'market_closes': self.market_closes.values.
-            astype('datetime64[m]').
-            astype(np.int64).tolist(),
-            'ohlc_ratio': self.ohlc_ratio,
+            'version': self.version,
+            'ohlc_ratio': self.default_ohlc_ratio,
+            'ohlc_ratios_per_sid': self.ohlc_ratios_per_sid,
+            'minutes_per_day': self.minutes_per_day,
+            'calendar_name': self.calendar.name,
+            'start_session': str(self.start_session.date()),
+            'end_session': str(self.end_session.date()),
+            # Write these values for backwards compatibility
+            'first_trading_day': str(self.start_session.date()),
+            'market_opens': (
+                market_opens.values.astype('datetime64[m]').
+                astype(np.int64).tolist()),
+            'market_closes': (
+                market_closes.values.astype('datetime64[m]').
+                astype(np.int64).tolist()),
         }
         with open(self.metadata_path(rootdir), 'w+') as fp:
             json.dump(metadata, fp)
@@ -180,41 +284,30 @@ class BcolzMinuteBarWriter(object):
 
     Parameters
     ----------
-    first_trading_day : datetime
-        The first trading day in the data set.
     rootdir : string
         Path to the root directory into which to write the metadata and
         bcolz subdirectories.
-    market_opens : pd.Series
-        The market opens used as a starting point for each periodic span of
-        minutes in the index.
-
-        The index of the series is expected to be a DatetimeIndex of the
-        UTC midnight of each trading day.
-
-        The values are datetime64-like UTC market opens for each day in the
-        index.
-    market_closes : pd.Series
-        The market closes that correspond with the market opens,
-
-        The index of the series is expected to be a DatetimeIndex of the
-        UTC midnight of each trading day.
-
-        The values are datetime64-like UTC market opens for each day in the
-        index.
-
-        The closes are written so that the reader can filter out non-market
-        minutes even though the tail end of early closes are written in
-        the data arrays to keep a regular shape.
+    calendar : zipline.utils.calendars.trading_calendar.TradingCalendar
+        The trading calendar on which to base the minute bars. Used to
+        get the market opens used as a starting point for each periodic
+        span of minutes in the index, and the market closes that
+        correspond with the market opens.
     minutes_per_day : int
         The number of minutes per each period. Defaults to 390, the mode
         of minutes in NYSE trading days.
-    ohlc_ratio : int, optional
-        The ratio by which to multiply the pricing data to convert the
-        floats from floats to an integer to fit within the np.uint32.
-
-        The default is 1000 to support pricing data which comes in to the
-        thousands place.
+    start_session : datetime
+        The first trading session in the data set.
+    end_session : datetime
+        The last trading session in the data set.
+    default_ohlc_ratio : int, optional
+        The default ratio by which to multiply the pricing data to
+        convert from floats to integers that fit within np.uint32. If
+        ohlc_ratios_per_sid is None or does not contain a mapping for a
+        given sid, this ratio is used. Default is OHLC_RATIO (1000).
+    ohlc_ratios_per_sid : dict, optional
+        A dict mapping each sid in the output to the ratio by which to
+        multiply the pricing data to convert the floats from floats to
+        an integer to fit within the np.uint32.
     expectedlen : int, optional
         The expected length of the dataset, used when creating the initial
         bcolz ctable.
@@ -224,6 +317,10 @@ class BcolzMinuteBarWriter(object):
 
         Defaults to supporting 15 years of NYSE equity market data.
         see: http://bcolz.blosc.org/opt-tips.html#informing-about-the-length-of-your-carrays # noqa
+    write_metadata : bool, optional
+        If True, writes the minute bar metadata (on init of the writer).
+        If False, no metadata is written (existing metadata is
+        retained). Default is True.
 
     Notes
     -----
@@ -273,38 +370,57 @@ class BcolzMinuteBarWriter(object):
     COL_NAMES = ('open', 'high', 'low', 'close', 'volume')
 
     def __init__(self,
-                 first_trading_day,
                  rootdir,
-                 market_opens,
-                 market_closes,
+                 calendar,
+                 start_session,
+                 end_session,
                  minutes_per_day,
-                 ohlc_ratio=OHLC_RATIO,
-                 expectedlen=DEFAULT_EXPECTEDLEN):
+                 default_ohlc_ratio=OHLC_RATIO,
+                 ohlc_ratios_per_sid=None,
+                 expectedlen=DEFAULT_EXPECTEDLEN,
+                 write_metadata=True):
+
         self._rootdir = rootdir
-        self._first_trading_day = first_trading_day
-        self._market_opens = market_opens[
-            market_opens.index.slice_indexer(start=self._first_trading_day)]
-        self._market_closes = market_closes[
-            market_closes.index.slice_indexer(start=self._first_trading_day)]
-        self._trading_days = market_opens.index
+        self._start_session = start_session
+        self._end_session = end_session
+        self._calendar = calendar
+        slicer = (
+            calendar.schedule.index.slice_indexer(start_session, end_session))
+        self._schedule = calendar.schedule[slicer]
+        self._session_labels = self._schedule.index
         self._minutes_per_day = minutes_per_day
         self._expectedlen = expectedlen
-        self._ohlc_ratio = ohlc_ratio
+        self._default_ohlc_ratio = default_ohlc_ratio
+        self._ohlc_ratios_per_sid = ohlc_ratios_per_sid
 
         self._minute_index = _calc_minute_index(
-            self._market_opens, self._minutes_per_day)
+            self._schedule.market_open, self._minutes_per_day)
 
-        metadata = BcolzMinuteBarMetadata(
-            self._first_trading_day,
-            self._market_opens,
-            self._market_closes,
-            self._ohlc_ratio,
-        )
-        metadata.write(self._rootdir)
+        if write_metadata:
+            metadata = BcolzMinuteBarMetadata(
+                self._default_ohlc_ratio,
+                self._ohlc_ratios_per_sid,
+                self._calendar,
+                self._start_session,
+                self._end_session,
+                self._minutes_per_day,
+            )
+            metadata.write(self._rootdir)
 
     @property
     def first_trading_day(self):
-        return self._first_trading_day
+        return self._start_session
+
+    def ohlc_ratio_for_sid(self, sid):
+        if self._ohlc_ratios_per_sid is not None:
+            try:
+                return self._ohlc_ratios_per_sid[sid]
+            except KeyError:
+                pass
+
+        # If no ohlc_ratios_per_sid dict is passed, or if the specified
+        # sid is not in the dict, fallback to the general ohlc_ratio.
+        return self._default_ohlc_ratio
 
     def sidpath(self, sid):
         """
@@ -344,7 +460,7 @@ class BcolzMinuteBarWriter(object):
         if num_days == 0:
             # empty container
             return pd.NaT
-        return self._trading_days[num_days - 1]
+        return self._session_labels[num_days - 1]
 
     def _init_ctable(self, path):
         """
@@ -426,7 +542,7 @@ class BcolzMinuteBarWriter(object):
 
         last_date = self.last_date_in_output_for_sid(sid)
 
-        tds = self._trading_days
+        tds = self._session_labels
 
         if date <= last_date or date < tds[0]:
             # No need to pad.
@@ -569,9 +685,9 @@ class BcolzMinuteBarWriter(object):
         """
         table = self._ensure_ctable(sid)
 
-        tds = self._trading_days
-        input_first_day = pd.Timestamp(dts[0].astype('datetime64[D]'),
-                                       tz='UTC')
+        tds = self._session_labels
+        input_first_day = self._calendar.minute_to_session_label(
+            pd.Timestamp(dts[0]))
 
         last_date = self.last_date_in_output_for_sid(sid)
 
@@ -585,12 +701,12 @@ class BcolzMinuteBarWriter(object):
 
         all_minutes = self._minute_index
         # Get the latest minute we wish to write to the ctable
-        last_minute_to_write = dts[-1]
+        last_minute_to_write = pd.Timestamp(dts[-1], tz='UTC')
 
         # In the event that we've already written some minutely data to the
-        # ctable, guard against overwritting that data.
+        # ctable, guard against overwriting that data.
         if num_rec_mins > 0:
-            last_recorded_minute = np.datetime64(all_minutes[num_rec_mins - 1])
+            last_recorded_minute = all_minutes[num_rec_mins - 1]
             if last_minute_to_write <= last_recorded_minute:
                 raise BcolzMinuteOverlappingData(dedent("""
                 Data with last_date={0} already includes input start={1} for
@@ -613,7 +729,7 @@ class BcolzMinuteBarWriter(object):
         dt_ixs = np.searchsorted(all_minutes_in_window.values,
                                  dts.astype('datetime64[ns]'))
 
-        ohlc_ratio = self._ohlc_ratio
+        ohlc_ratio = self.ohlc_ratio_for_sid(sid)
 
         def convert_col(col):
             """Adapt float column into a uint32 column.
@@ -635,8 +751,63 @@ class BcolzMinuteBarWriter(object):
         ])
         table.flush()
 
+    def data_len_for_day(self, day):
+        """
+        Return the number of data points up to and including the
+        provided day.
+        """
+        day_ix = self._session_labels.get_loc(day)
+        # Add one to the 0-indexed day_ix to get the number of days.
+        num_days = day_ix + 1
+        return num_days * self._minutes_per_day
 
-class BcolzMinuteBarReader(object):
+    def truncate(self, date):
+        """Truncate data beyond this date in all ctables."""
+        truncate_slice_end = self.data_len_for_day(date)
+
+        glob_path = os.path.join(self._rootdir, "*", "*", "*.bcolz")
+        sid_paths = glob(glob_path)
+
+        for sid_path in sid_paths:
+            file_name = os.path.basename(sid_path)
+
+            try:
+                table = bcolz.open(rootdir=sid_path)
+            except IOError:
+                continue
+            if table.len <= truncate_slice_end:
+                logger.info("{0} not past truncate date={1}.", file_name, date)
+                continue
+
+            logger.info(
+                "Truncting {0} back at end_date={1}", file_name, date.date()
+            )
+
+            new_table = table[:truncate_slice_end]
+            tmp_path = sid_path + '.bak'
+            shutil.move(sid_path, tmp_path)
+            try:
+                bcolz.ctable(new_table, rootdir=sid_path)
+                try:
+                    shutil.rmtree(tmp_path)
+                except Exception as err:
+                    logger.info(
+                        "Could not delete tmp_path={0}, err={1}", tmp_path, err
+                    )
+            except Exception as err:
+                # On any ctable write error, restore the original table.
+                logger.warn(
+                    "Could not write {0}, err={1}", file_name, err
+                )
+                shutil.move(tmp_path, sid_path)
+
+        # Update end session in metadata.
+        metadata = BcolzMinuteBarMetadata.read(self._rootdir)
+        metadata.end_session = date
+        metadata.write(self._rootdir)
+
+
+class BcolzMinuteBarReader(MinuteBarReader):
     """
     Reader for data written by BcolzMinuteBarWriter
 
@@ -657,35 +828,74 @@ class BcolzMinuteBarReader(object):
 
         metadata = self._get_metadata()
 
-        self._first_trading_day = metadata.first_trading_day
+        self._start_session = metadata.start_session
+        self._end_session = metadata.end_session
 
-        self._market_opens = metadata.market_opens
-        self._market_open_values = metadata.market_opens.values.\
+        self.calendar = metadata.calendar
+        slicer = self.calendar.schedule.index.slice_indexer(
+            self._start_session,
+            self._end_session,
+        )
+        self._schedule = self.calendar.schedule[slicer]
+        self._market_opens = self._schedule.market_open
+        self._market_open_values = self._market_opens.values.\
             astype('datetime64[m]').astype(np.int64)
-        self._market_closes = metadata.market_closes
-        self._market_close_values = metadata.market_closes.values.\
+        self._market_closes = self._schedule.market_close
+        self._market_close_values = self._market_closes.values.\
             astype('datetime64[m]').astype(np.int64)
 
-        self._ohlc_inverse = 1.0 / metadata.ohlc_ratio
+        self._default_ohlc_inverse = 1.0 / metadata.default_ohlc_ratio
+        ohlc_ratios = metadata.ohlc_ratios_per_sid
+        if ohlc_ratios:
+            self._ohlc_inverses_per_sid = (
+                valmap(lambda x: 1.0 / x, ohlc_ratios))
+        else:
+            self._ohlc_inverses_per_sid = None
+
+        self._minutes_per_day = metadata.minutes_per_day
 
         self._carrays = {
-            field: LRUCache(maxsize=sid_cache_size)
+            field: LRU(sid_cache_size)
             for field in self.FIELDS
         }
 
         self._last_get_value_dt_position = None
         self._last_get_value_dt_value = None
 
+        # This is to avoid any bad data or other performance-killing situation
+        # where there a consecutive streak of 0 (no volume) starting at an
+        # asset's start date.
+        # if asset 1 started on 2015-01-03 but its first trade is 2015-01-06
+        # 10:31 AM US/Eastern, this dict would store {1: 23675971},
+        # which is the minute epoch of that date.
+        self._known_zero_volume_dict = {}
+
     def _get_metadata(self):
         return BcolzMinuteBarMetadata.read(self._rootdir)
 
+    @property
+    def trading_calendar(self):
+        return self.calendar
+
     @lazyval
     def last_available_dt(self):
-        return self._market_closes[-1]
+        _, close = self.calendar.open_and_close_for_session(self._end_session)
+        return close
 
     @property
     def first_trading_day(self):
-        return self._first_trading_day
+        return self._start_session
+
+    def _ohlc_ratio_inverse_for_sid(self, sid):
+        if self._ohlc_inverses_per_sid is not None:
+            try:
+                return self._ohlc_inverses_per_sid[sid]
+            except KeyError:
+                pass
+
+        # If we can not get a sid-specific OHLC inverse for this sid,
+        # fallback to the default.
+        return self._default_ohlc_inverse
 
     def _minutes_to_exclude(self):
         """
@@ -703,7 +913,7 @@ class BcolzMinuteBarReader(object):
         market_closes = self._market_closes.values.astype('datetime64[m]')
         minutes_per_day = (market_closes - market_opens).astype(np.int64)
         early_indices = np.where(
-            minutes_per_day != US_EQUITIES_MINUTES_PER_DAY - 1)[0]
+            minutes_per_day != self._minutes_per_day - 1)[0]
         early_opens = self._market_opens[early_indices]
         early_closes = self._market_closes[early_indices]
         minutes = [(market_open, early_close)
@@ -735,7 +945,7 @@ class BcolzMinuteBarReader(object):
             end_pos = (
                 self._find_position_of_minute(market_open)
                 +
-                US_EQUITIES_MINUTES_PER_DAY
+                self._minutes_per_day
                 -
                 1
             )
@@ -777,6 +987,10 @@ class BcolzMinuteBarReader(object):
 
         return carray
 
+    def table_len(self, sid):
+        """Returns the length of the underlying table for this sid."""
+        return len(self._open_minute_file('close', sid))
+
     def get_sid_attr(self, sid, name):
         sid_subdir = _sid_subdir_path(sid)
         sid_path = os.path.join(self._rootdir, sid_subdir)
@@ -817,7 +1031,11 @@ class BcolzMinuteBarReader(object):
         if self._last_get_value_dt_value == dt.value:
             minute_pos = self._last_get_value_dt_position
         else:
-            minute_pos = self._find_position_of_minute(dt)
+            try:
+                minute_pos = self._find_position_of_minute(dt)
+            except ValueError:
+                raise NoDataOnDate()
+
             self._last_get_value_dt_value = dt.value
             self._last_get_value_dt_position = minute_pos
 
@@ -830,8 +1048,9 @@ class BcolzMinuteBarReader(object):
                 return 0
             else:
                 return np.nan
+
         if field != 'volume':
-            value *= self._ohlc_inverse
+            value *= self._ohlc_ratio_inverse_for_sid(sid)
         return value
 
     def get_last_traded_dt(self, asset, dt):
@@ -842,26 +1061,46 @@ class BcolzMinuteBarReader(object):
 
     def _find_last_traded_position(self, asset, dt):
         volumes = self._open_minute_file('volume', asset)
-        start_date_minutes = asset.start_date.value / NANOS_IN_MINUTE
-        dt_minutes = dt.value / NANOS_IN_MINUTE
+        start_date_minute = asset.start_date.value / NANOS_IN_MINUTE
+        dt_minute = dt.value / NANOS_IN_MINUTE
 
-        if dt_minutes < start_date_minutes:
+        try:
+            # if we know of a dt before which this asset has no volume,
+            # don't look before that dt
+            earliest_dt_to_search = self._known_zero_volume_dict[asset.sid]
+        except KeyError:
+            earliest_dt_to_search = start_date_minute
+
+        if dt_minute < earliest_dt_to_search:
             return -1
 
-        return find_last_traded_position_internal(
+        pos = find_last_traded_position_internal(
             self._market_open_values,
             self._market_close_values,
-            dt_minutes,
-            start_date_minutes,
+            dt_minute,
+            earliest_dt_to_search,
             volumes,
-            US_EQUITIES_MINUTES_PER_DAY
+            self._minutes_per_day,
         )
+
+        if pos == -1:
+            # if we didn't find any volume before this dt, save it to avoid
+            # work in the future.
+            try:
+                self._known_zero_volume_dict[asset.sid] = max(
+                    dt_minute,
+                    self._known_zero_volume_dict[asset.sid]
+                )
+            except KeyError:
+                self._known_zero_volume_dict[asset.sid] = dt_minute
+
+        return pos
 
     def _pos_to_minute(self, pos):
         minute_epoch = minute_value(
             self._market_open_values,
             pos,
-            US_EQUITIES_MINUTES_PER_DAY
+            self._minutes_per_day
         )
 
         return pd.Timestamp(minute_epoch, tz='UTC', unit="m")
@@ -889,7 +1128,8 @@ class BcolzMinuteBarReader(object):
             self._market_open_values,
             self._market_close_values,
             minute_dt.value / NANOS_IN_MINUTE,
-            US_EQUITIES_MINUTES_PER_DAY,
+            self._minutes_per_day,
+            False,
         )
 
     def load_raw_arrays(self, fields, start_dt, end_dt, sids):
@@ -942,11 +1182,15 @@ class BcolzMinuteBarReader(object):
                         excl_slice = np.s_[
                             excl_start - start_idx:excl_stop - start_idx + 1]
                         values = np.delete(values, excl_slice)
+
                 where = values != 0
                 # first slice down to len(where) because we might not have
                 # written data for all the minutes requested
-                out[:len(where), i][where] = values[where]
-            if field != 'volume':
-                out *= self._ohlc_inverse
+                if field != 'volume':
+                    out[:len(where), i][where] = (
+                        values[where] * self._ohlc_ratio_inverse_for_sid(sid))
+                else:
+                    out[:len(where), i][where] = values[where]
+
             results.append(out)
         return results

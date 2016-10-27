@@ -2,6 +2,8 @@
 Technical Analysis Factors
 --------------------------
 """
+from __future__ import division
+
 from numbers import Number
 from numpy import (
     abs,
@@ -9,6 +11,7 @@ from numpy import (
     average,
     clip,
     diff,
+    dstack,
     exp,
     fmax,
     full,
@@ -16,25 +19,23 @@ from numpy import (
     isnan,
     log,
     NINF,
-    searchsorted,
     sqrt,
     sum as np_sum,
 )
 from numexpr import evaluate
-from scipy.stats import linregress, pearsonr, spearmanr
 
 from zipline.pipeline.data import USEquityPricing
-from zipline.pipeline.filters import SingleAsset
 from zipline.pipeline.mixins import SingleInputMixin
-from zipline.pipeline.term import AssetExists, NotSpecified
 from zipline.utils.numpy_utils import ignore_nanwarnings
 from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import (
     nanargmax,
+    nanargmin,
     nanmax,
     nanmean,
     nanstd,
     nansum,
+    nanmin,
 )
 from .factor import CustomFactor
 
@@ -156,306 +157,7 @@ class AverageDollarVolume(CustomFactor):
     inputs = [USEquityPricing.close, USEquityPricing.volume]
 
     def compute(self, today, assets, out, close, volume):
-        out[:] = nanmean(close * volume, axis=0)
-
-
-class _RollingCorrelationOfReturns(CustomFactor, SingleInputMixin):
-    """
-    Base class for factors computing a rolling correlation over a window of
-    Returns.
-
-    Parameters
-    ----------
-    target : zipline.assets.Asset
-        The asset to correlate with all other assets.
-    returns_length : int >= 2
-        Length of the lookback window over which to compute returns. Daily
-        returns require a window length of 2.
-    correlation_length : int >= 1
-        Length of the lookback window over which to compute each correlation
-        coefficient.
-    """
-    params = ['target']
-
-    def __new__(cls,
-                target,
-                returns_length,
-                correlation_length,
-                mask=NotSpecified,
-                **kwargs):
-        if mask is NotSpecified:
-            mask = AssetExists()
-
-        # Make sure we do not filter out the asset of interest.
-        mask = mask | SingleAsset(asset=target)
-
-        return super(_RollingCorrelationOfReturns, cls).__new__(
-            cls,
-            target=target,
-            inputs=[Returns(window_length=returns_length)],
-            window_length=correlation_length,
-            mask=mask,
-            **kwargs
-        )
-
-
-class RollingPearsonOfReturns(_RollingCorrelationOfReturns):
-    """
-    Calculates the Pearson product-moment correlation coefficient of the
-    returns of the given asset with the returns of all other assets.
-
-    Pearson correlation is what most people mean when they say "correlation
-    coefficient" or "R-value".
-
-    Parameters
-    ----------
-    target : zipline.assets.Asset
-        The asset to correlate with all other assets.
-    returns_length : int >= 2
-        Length of the lookback window over which to compute returns. Daily
-        returns require a window length of 2.
-    correlation_length : int >= 1
-        Length of the lookback window over which to compute each correlation
-        coefficient.
-    mask : zipline.pipeline.Filter, optional
-        A Filter describing which assets should have their correlation with the
-        target asset computed each day.
-
-    Note
-    ----
-    Computing this factor over many assets can be time consuming. It is
-    recommended that a mask be used in order to limit the number of assets over
-    which correlations are computed.
-
-    Example
-    -------
-    Let the following be example 10-day returns for three different assets::
-
-                       SPY    MSFT     FB
-        2017-03-13    -.03     .03    .04
-        2017-03-14    -.02    -.03    .02
-        2017-03-15    -.01     .02    .01
-        2017-03-16       0    -.02    .01
-        2017-03-17     .01     .04   -.01
-        2017-03-20     .02    -.03   -.02
-        2017-03-21     .03     .01   -.02
-        2017-03-22     .04    -.02   -.02
-
-    Suppose we are interested in SPY's rolling returns correlation with each
-    stock from 2017-03-17 to 2017-03-22, using a 5-day look back window (that
-    is, we calculate each correlation coefficient over 5 days of data). We can
-    achieve this by doing::
-
-        rolling_correlations = RollingPearsonOfReturns(
-            target=Equity(8554),
-            returns_length=10,
-            correlation_length=5,
-        )
-
-    The result of computing ``rolling_correlations`` from 2017-03-17 to
-    2017-03-22 gives::
-
-                       SPY   MSFT     FB
-        2017-03-17       1    .15   -.96
-        2017-03-20       1    .10   -.96
-        2017-03-21       1   -.16   -.94
-        2017-03-22       1   -.16   -.85
-
-    Note that the column for SPY is all 1's, as the correlation of any data
-    series with itself is always 1. To understand how each of the other values
-    were calculated, take for example the .15 in MSFT's column. This is the
-    correlation coefficient between SPY's returns looking back from 2017-03-17
-    (-.03, -.02, -.01, 0, .01) and MSFT's returns (.03, -.03, .02, -.02, .04).
-
-    See Also
-    --------
-    :class:`zipline.pipeline.factors.technical.RollingSpearmanOfReturns`
-    :class:`zipline.pipeline.factors.technical.RollingLinearRegressionOfReturns`
-    """
-    def compute(self, today, assets, out, data, target):
-        target_col = data[:, searchsorted(assets.values, target.sid)]
-        for i in range(len(out)):
-            # pearsonr returns the R-value and the P-value.
-            out[i] = pearsonr(data[:, i], target_col)[0]
-
-
-class RollingSpearmanOfReturns(_RollingCorrelationOfReturns):
-    """
-    Calculates the Spearman rank correlation coefficient of the returns of the
-    given asset with the returns of all other assets.
-
-    Parameters
-    ----------
-    target : zipline.assets.Asset
-        The asset to correlate with all other assets.
-    returns_length : int >= 2
-        Length of the lookback window over which to compute returns. Daily
-        returns require a window length of 2.
-    correlation_length : int >= 1
-        Length of the lookback window over which to compute each correlation
-        coefficient.
-    mask : zipline.pipeline.Filter, optional
-        A Filter describing which assets should have their correlation with the
-        target asset computed each day.
-
-    Note
-    ----
-    Computing this factor over many assets can be time consuming. It is
-    recommended that a mask be used in order to limit the number of assets over
-    which correlations are computed.
-
-    See Also
-    --------
-    :class:`zipline.pipeline.factors.technical.RollingPearsonOfReturns`
-    :class:`zipline.pipeline.factors.technical.RollingLinearRegressionOfReturns`
-    """
-    def compute(self, today, assets, out, data, target):
-        target_col = data[:, searchsorted(assets.values, target.sid)]
-        for i in range(len(out)):
-            # spearmanr returns the R-value and the P-value.
-            out[i] = spearmanr(data[:, i], target_col)[0]
-
-
-class RollingLinearRegressionOfReturns(CustomFactor, SingleInputMixin):
-    """
-    Perform an ordinary least-squares regression predicting the returns of all
-    other assets on the given asset.
-
-    Parameters
-    ----------
-    target : zipline.assets.Asset
-        The asset to regress against all other assets.
-    returns_length : int >= 2
-        Length of the lookback window over which to compute returns. Daily
-        returns require a window length of 2.
-    regression_length : int >= 1
-        Length of the lookback window over which to compute each regression.
-    mask : zipline.pipeline.Filter, optional
-        A Filter describing which assets should be regressed against the target
-        asset each day.
-
-    Notes
-    -----
-    Computing this factor over many assets can be time consuming. It is
-    recommended that a mask be used in order to limit the number of assets over
-    which regressions are computed.
-
-    This factor is designed to return five outputs:
-
-    - alpha, a factor that computes the intercepts of each regression.
-    - beta, a factor that computes the slopes of each regression.
-    - r_value, a factor that computes the correlation coefficient of each
-      regression.
-    - p_value, a factor that computes, for each regression, the two-sided
-      p-value for a hypothesis test whose null hypothesis is that the slope is
-      zero.
-    - stderr, a factor that computes the standard error of the estimate of each
-      regression.
-
-    For more help on factors with multiple outputs, see
-    :class:`zipline.pipeline.factors.CustomFactor`.
-
-    Example
-    -------
-    Let the following be example 10-day returns for three different assets::
-
-                       SPY    MSFT     FB
-        2017-03-13    -.03     .03    .04
-        2017-03-14    -.02    -.03    .02
-        2017-03-15    -.01     .02    .01
-        2017-03-16       0    -.02    .01
-        2017-03-17     .01     .04   -.01
-        2017-03-20     .02    -.03   -.02
-        2017-03-21     .03     .01   -.02
-        2017-03-22     .04    -.02   -.02
-
-    Suppose we are interested in predicting each stock's returns from SPY's
-    over rolling 5-day look back windows. We can compute rolling regression
-    coefficients (alpha and beta) from 2017-03-17 to 2017-03-22 by doing::
-
-        regression_factor = RollingRegressionOfReturns(
-            target=Equity(8554),
-            returns_length=10,
-            regression_length=5,
-        )
-        alpha = regression_factor.alpha
-        beta = regression_factor.beta
-
-    The result of computing ``alpha`` from 2017-03-17 to 2017-03-22 gives::
-
-                       SPY    MSFT     FB
-        2017-03-17       0    .011   .003
-        2017-03-20       0   -.004   .004
-        2017-03-21       0    .007   .006
-        2017-03-22       0    .002   .008
-
-    And the result of computing ``beta`` from 2017-03-17 to 2017-03-22 gives::
-
-                       SPY    MSFT     FB
-        2017-03-17       1      .3   -1.1
-        2017-03-20       1      .2     -1
-        2017-03-21       1     -.3     -1
-        2017-03-22       1     -.3    -.9
-
-    Note that SPY's column for alpha is all 0's and for beta is all 1's, as the
-    regression line of SPY with itself is simply the function y = x.
-
-    To understand how each of the other values were calculated, take for
-    example MSFT's ``alpha`` and ``beta`` values on 2017-03-17 (.011 and .3,
-    respectively). These values are the result of running a linear regression
-    predicting MSFT's returns from SPY's returns, using values starting at
-    2017-03-17 and looking back 5 days. That is, the regression was run with
-    x = [-.03, -.02, -.01, 0, .01] and y = [.03, -.03, .02, -.02, .04], and it
-    produced a slope of .3 and an intercept of .011.
-
-    See Also
-    --------
-    :class:`zipline.pipeline.factors.technical.RollingPearsonOfReturns`
-    :class:`zipline.pipeline.factors.technical.RollingSpearmanOfReturns`
-    """
-    outputs = ['alpha', 'beta', 'r_value', 'p_value', 'stderr']
-    params = ['target']
-
-    def __new__(cls,
-                target,
-                returns_length,
-                regression_length,
-                mask=NotSpecified,
-                **kwargs):
-        if mask is NotSpecified:
-            mask = AssetExists()
-
-        # Make sure we do not filter out the asset of interest.
-        mask = mask | SingleAsset(asset=target)
-
-        return super(RollingLinearRegressionOfReturns, cls).__new__(
-            cls,
-            target=target,
-            inputs=[Returns(window_length=returns_length)],
-            window_length=regression_length,
-            mask=mask,
-            **kwargs
-        )
-
-    def compute(self, today, assets, out, returns, target):
-        asset_col = searchsorted(assets.values, target.sid)
-        my_asset = returns[:, asset_col]
-
-        alpha = out.alpha
-        beta = out.beta
-        r_value = out.r_value
-        p_value = out.p_value
-        stderr = out.stderr
-        for i in range(len(out)):
-            other_asset = returns[:, i]
-            regr_results = linregress(y=other_asset, x=my_asset)
-            # `linregress` returns its results in the following order:
-            # slope, intercept, r-value, p-value, stderr
-            alpha[i] = regr_results[1]
-            beta[i] = regr_results[0]
-            r_value[i] = regr_results[2]
-            p_value[i] = regr_results[3]
-            stderr[i] = regr_results[4]
+        out[:] = nansum(close * volume, axis=0) / len(close)
 
 
 class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
@@ -499,7 +201,7 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
 
     @classmethod
     @expect_types(span=Number)
-    def from_span(cls, inputs, window_length, span):
+    def from_span(cls, inputs, window_length, span, **kwargs):
         """
         Convenience constructor for passing `decay_rate` in terms of `span`.
 
@@ -540,11 +242,12 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
             inputs=inputs,
             window_length=window_length,
             decay_rate=decay_rate,
+            **kwargs
         )
 
     @classmethod
     @expect_types(halflife=Number)
-    def from_halflife(cls, inputs, window_length, halflife):
+    def from_halflife(cls, inputs, window_length, halflife, **kwargs):
         """
         Convenience constructor for passing ``decay_rate`` in terms of half
         life.
@@ -585,10 +288,15 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
             inputs=inputs,
             window_length=window_length,
             decay_rate=decay_rate,
+            **kwargs
         )
 
     @classmethod
-    def from_center_of_mass(cls, inputs, window_length, center_of_mass):
+    def from_center_of_mass(cls,
+                            inputs,
+                            window_length,
+                            center_of_mass,
+                            **kwargs):
         """
         Convenience constructor for passing `decay_rate` in terms of center of
         mass.
@@ -622,6 +330,7 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
             inputs=inputs,
             window_length=window_length,
             decay_rate=(1.0 - (1.0 / (1.0 + center_of_mass))),
+            **kwargs
         )
 
 
@@ -661,6 +370,35 @@ class ExponentialWeightedMovingAverage(_ExponentialWeightedFactor):
             axis=0,
             weights=self.weights(len(data), decay_rate),
         )
+
+
+class LinearWeightedMovingAverage(CustomFactor, SingleInputMixin):
+    """
+    Weighted Average Value of an arbitrary column
+
+    **Default Inputs**: None
+
+    **Default Window Length**: None
+    """
+    # numpy's nan functions throw warnings when passed an array containing only
+    # nans, but they still returns the desired value (nan), so we ignore the
+    # warning.
+    ctx = ignore_nanwarnings()
+
+    def compute(self, today, assets, out, data):
+        num_days = data.shape[0]
+
+        # Initialize weights array
+        weights = arange(1, num_days + 1, dtype=float).reshape(num_days, 1)
+
+        # Compute normalizer
+        normalizer = (num_days * (num_days + 1)) / 2
+
+        # Weight the data
+        weighted_data = data * weights
+
+        # Compute weighted averages
+        out[:] = nansum(weighted_data, axis=0) / normalizer
 
 
 class ExponentialWeightedMovingStdDev(_ExponentialWeightedFactor):
@@ -739,3 +477,209 @@ class BollingerBands(CustomFactor):
         out.middle = middle = nanmean(close, axis=0)
         out.upper = middle + difference
         out.lower = middle - difference
+
+
+class Aroon(CustomFactor):
+    """
+    Aroon technical indicator.
+    https://www.fidelity.com/learning-center/trading-investing/technical-analysis/technical-indicator-guide/aroon-indicator  # noqa
+
+    **Defaults Inputs:** USEquityPricing.low, USEquityPricing.high
+
+    Parameters
+    ----------
+    window_length : int > 0
+        Length of the lookback window over which to compute the Aroon
+        indicator.
+    """
+
+    inputs = (USEquityPricing.low, USEquityPricing.high)
+    outputs = ('down', 'up')
+
+    def compute(self, today, assets, out, lows, highs):
+        wl = self.window_length
+        high_date_index = nanargmax(highs, axis=0)
+        low_date_index = nanargmin(lows, axis=0)
+        evaluate(
+            '(100 * high_date_index) / (wl - 1)',
+            local_dict={
+                'high_date_index': high_date_index,
+                'wl': wl,
+            },
+            out=out.up,
+        )
+        evaluate(
+            '(100 * low_date_index) / (wl - 1)',
+            local_dict={
+                'low_date_index': low_date_index,
+                'wl': wl,
+            },
+            out=out.down,
+        )
+
+
+class FastStochasticOscillator(CustomFactor):
+    """
+    Fast Stochastic Oscillator Indicator [%K, Momentum Indicator]
+    https://wiki.timetotrade.eu/Stochastic
+
+    This stochastic is considered volatile, and varies a lot when used in
+    market analysis. It is recommended to use the slow stochastic oscillator
+    or a moving average of the %K [%D].
+
+    **Default Inputs:** :data: `zipline.pipeline.data.USEquityPricing.close`
+                        :data: `zipline.pipeline.data.USEquityPricing.low`
+                        :data: `zipline.pipeline.data.USEquityPricing.high`
+
+    **Default Window Length:** 14
+
+    Returns
+    -------
+    out: %K oscillator
+    """
+    inputs = (USEquityPricing.close, USEquityPricing.low, USEquityPricing.high)
+    window_safe = True
+    window_length = 14
+
+    def compute(self, today, assets, out, closes, lows, highs):
+
+        highest_highs = nanmax(highs, axis=0)
+        lowest_lows = nanmin(lows, axis=0)
+        today_closes = closes[-1]
+
+        evaluate(
+            '((tc - ll) / (hh - ll)) * 100',
+            local_dict={
+                'tc': today_closes,
+                'll': lowest_lows,
+                'hh': highest_highs,
+            },
+            global_dict={},
+            out=out,
+        )
+
+
+class IchimokuKinkoHyo(CustomFactor):
+    """Compute the various metrics for the Ichimoku Kinko Hyo (Ichimoku Cloud).
+    http://stockcharts.com/school/doku.php?id=chart_school:technical_indicators:ichimoku_cloud  # noqa
+
+    **Default Inputs:** :data:`zipline.pipeline.data.USEquityPricing.high`
+                        :data:`zipline.pipeline.data.USEquityPricing.low`
+                        :data:`zipline.pipeline.data.USEquityPricing.close`
+    **Default Window Length:** 52
+
+    Parameters
+    ----------
+    window_length : int > 0
+        The length the the window for the senkou span b.
+    tenkan_sen_length : int >= 0, <= window_length
+        The length of the window for the tenkan-sen.
+    kijun_sen_length : int >= 0, <= window_length
+        The length of the window for the kijou-sen.
+    chikou_span_length : int >= 0, <= window_length
+        The lag for the chikou span.
+    """
+
+    params = {
+        'tenkan_sen_length': 9,
+        'kijun_sen_length': 26,
+        'chikou_span_length': 26,
+    }
+    inputs = USEquityPricing.high, USEquityPricing.close
+    outputs = (
+        'tenkan_sen',
+        'kijun_sen',
+        'senkou_span_a',
+        'senkou_span_b',
+        'chikou_span',
+    )
+    window_length = 52
+
+    def _validate(self):
+        super(IchimokuKinkoHyo, self)._validate()
+        for k, v in self.params.items():
+            if v > self.window_length:
+                raise ValueError(
+                    '%s must be <= the window_length: %s > %s' % (
+                        k, v, self.window_length,
+                    ),
+                )
+
+    def compute(self,
+                today,
+                assets,
+                out,
+                high,
+                low,
+                close,
+                tenkan_sen_length,
+                kijun_sen_length,
+                chikou_span_length):
+
+        out.tenkan_sen = tenkan_sen = (
+            high[-tenkan_sen_length:].max(axis=0) +
+            low[-tenkan_sen_length:].min(axis=0)
+        ) / 2
+        out.kijun_sen = kijun_sen = (
+            high[-kijun_sen_length:].max(axis=0) +
+            low[-kijun_sen_length:].min(axis=0)
+        ) / 2
+        out.senkou_span_a = (tenkan_sen + kijun_sen) / 2
+        out.senkou_span_b = (high.max(axis=0) + low.min(axis=0)) / 2
+        out.chikou_span = close[chikou_span_length]
+
+
+class RateOfChangePercentage(CustomFactor):
+    """
+    Rate of change Percentage
+    ROC measures the percentage change in price from one period to the next.
+    The ROC calculation compares the current price with the price `n`
+    periods ago.
+    Formula for calculation: ((price - prevPrice) / prevPrice) * 100
+    price - the current price
+    prevPrice - the price n days ago, equals window length
+    """
+    def compute(self, today, assets, out, close):
+        today_close = close[-1]
+        prev_close = close[0]
+        evaluate('((tc - pc) / pc) * 100',
+                 local_dict={
+                     'tc': today_close,
+                     'pc': prev_close
+                 },
+                 global_dict={},
+                 out=out,
+                 )
+
+
+class TrueRange(CustomFactor):
+    """
+    True Range
+
+    A technical indicator originally developed by J. Welles Wilder, Jr.
+    Indicates the true degree of daily price change in an underlying.
+
+    **Default Inputs:** :data:`zipline.pipeline.data.USEquityPricing.high`
+                        :data:`zipline.pipeline.data.USEquityPricing.low`
+                        :data:`zipline.pipeline.data.USEquityPricing.close`
+    **Default Window Length:** 2
+    """
+    inputs = (
+        USEquityPricing.high,
+        USEquityPricing.low,
+        USEquityPricing.close,
+    )
+    window_length = 2
+
+    def compute(self, today, assets, out, highs, lows, closes):
+        high_to_low = highs[1:] - lows[1:]
+        high_to_prev_close = abs(highs[1:] - closes[:-1])
+        low_to_prev_close = abs(lows[1:] - closes[:-1])
+        out[:] = nanmax(
+            dstack((
+                high_to_low,
+                high_to_prev_close,
+                low_to_prev_close,
+            )),
+            2
+        )

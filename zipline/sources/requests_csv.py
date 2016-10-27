@@ -26,14 +26,14 @@ from zipline.assets import Equity
 logger = Logger('Requests Source Logger')
 
 
-def roll_dts_to_midnight(dts, env):
+def roll_dts_to_midnight(dts, trading_day):
     if len(dts) == 0:
         return dts
 
     return pd.DatetimeIndex(
         (dts.tz_convert('US/Eastern') - pd.Timedelta(hours=16)).date,
         tz='UTC',
-    ) + env.trading_day
+    ) + trading_day
 
 
 class FetcherEvent(Event):
@@ -144,7 +144,8 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
     def __init__(self,
                  pre_func,
                  post_func,
-                 env,
+                 asset_finder,
+                 trading_day,
                  start_date,
                  end_date,
                  date_column,
@@ -175,8 +176,8 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
 
         self.symbol = symbol
 
-        self.env = env
-        self.finder = env.asset_finder
+        self.finder = asset_finder
+        self.trading_day = trading_day
 
         self.pre_func = pre_func
         self.post_func = post_func
@@ -194,7 +195,7 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
 
     @staticmethod
     def parse_date_str_series(format_str, tz, date_str_series, data_frequency,
-                              env):
+                              trading_day):
         """
         Efficient parsing for a 1d Pandas/numpy object containing string
         representations of dates.
@@ -223,17 +224,17 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
                 date_str_series.values,
                 format=format_str,
                 utc=True,
-                coerce=True,
+                errors='coerce',
             )
         else:
             parsed = pd.to_datetime(
                 date_str_series.values,
                 format=format_str,
-                coerce=True,
+                errors='coerce',
             ).tz_localize(tz_str).tz_convert('UTC')
 
         if data_frequency == 'daily':
-            parsed = roll_dts_to_midnight(parsed, env)
+            parsed = roll_dts_to_midnight(parsed, trading_day)
         return parsed
 
     def mask_pandas_args(self, kwargs):
@@ -290,7 +291,7 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
             self.timezone,
             df[self.date_column],
             self.data_frequency,
-            self.env
+            self.trading_day,
         ).values
 
         # ignore rows whose dates we couldn't parse
@@ -300,7 +301,7 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
             df['sid'] = self.symbol
         elif self.finder:
 
-            df.sort(self.symbol_column)
+            df.sort_values(by=self.symbol_column, inplace=True)
 
             # Pop the 'sid' column off of the DataFrame, just in case the user
             # has assigned it, and throw a warning
@@ -456,7 +457,8 @@ class PandasRequestsCSV(PandasCSV):
                  url,
                  pre_func,
                  post_func,
-                 env,
+                 asset_finder,
+                 trading_day,
                  start_date,
                  end_date,
                  date_column,
@@ -488,7 +490,8 @@ class PandasRequestsCSV(PandasCSV):
         super(PandasRequestsCSV, self).__init__(
             pre_func,
             post_func,
-            env,
+            asset_finder,
+            trading_day,
             start_date,
             end_date,
             date_column,

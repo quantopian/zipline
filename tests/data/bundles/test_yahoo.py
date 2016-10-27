@@ -1,3 +1,5 @@
+from __future__ import division
+
 import numpy as np
 import pandas as pd
 from six.moves.urllib.parse import urlparse, parse_qs
@@ -5,12 +7,12 @@ from toolz import flip, identity
 from toolz.curried import merge_with, operator as op
 
 from zipline.data.bundles.core import _make_bundle_core
-from zipline.data.bundles import yahoo_equities, load
+from zipline.data.bundles import yahoo_equities
 from zipline.lib.adjustment import Float64Multiply
 from zipline.testing import test_resource_path, tmp_dir, read_compressed
 from zipline.testing.fixtures import WithResponses, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
-from zipline.utils.tradingcalendar import trading_days
+from zipline.utils.calendars import get_calendar
 
 
 class YahooBundleTestCase(WithResponses, ZiplineTestCase):
@@ -18,10 +20,8 @@ class YahooBundleTestCase(WithResponses, ZiplineTestCase):
     columns = 'open', 'high', 'low', 'close', 'volume'
     asset_start = pd.Timestamp('2014-01-02', tz='utc')
     asset_end = pd.Timestamp('2014-12-31', tz='utc')
-    calendar = trading_days[
-        (trading_days >= asset_start) &
-        (trading_days <= asset_end)
-    ]
+    calendar = get_calendar('NYSE')
+    sessions = calendar.sessions_in_range(asset_start, asset_end)
 
     @classmethod
     def init_class_fixtures(cls):
@@ -29,7 +29,9 @@ class YahooBundleTestCase(WithResponses, ZiplineTestCase):
         (cls.bundles,
          cls.register,
          cls.unregister,
-         cls.ingest) = map(staticmethod, _make_bundle_core())
+         cls.ingest,
+         cls.load,
+         cls.clean) = map(staticmethod, _make_bundle_core())
 
     def _expected_data(self):
         sids = 0, 1, 2
@@ -152,11 +154,12 @@ class YahooBundleTestCase(WithResponses, ZiplineTestCase):
                 adjustments_callback,
             )
 
-        cal = self.calendar
         self.register(
             'bundle',
             yahoo_equities(self.symbols),
-            calendar=cal,
+            calendar_name='NYSE',
+            start_session=self.asset_start,
+            end_session=self.asset_end,
         )
 
         zipline_root = self.enter_instance_context(tmp_dir()).path
@@ -164,8 +167,8 @@ class YahooBundleTestCase(WithResponses, ZiplineTestCase):
             'ZIPLINE_ROOT': zipline_root,
         }
 
-        self.ingest('bundle', environ=environ)
-        bundle = load('bundle', environ=environ)
+        self.ingest('bundle', environ=environ, show_progress=False)
+        bundle = self.load('bundle', environ=environ)
 
         sids = 0, 1, 2
         equities = bundle.asset_finder.retrieve_all(sids)
@@ -176,10 +179,11 @@ class YahooBundleTestCase(WithResponses, ZiplineTestCase):
             assert_equal(equity.start_date, self.asset_start, msg=equity)
             assert_equal(equity.end_date, self.asset_end, msg=equity)
 
-        actual = bundle.daily_bar_reader.load_raw_arrays(
+        sessions = self.sessions
+        actual = bundle.equity_daily_bar_reader.load_raw_arrays(
             self.columns,
-            cal[cal.get_loc(self.asset_start, 'bfill')],
-            cal[cal.get_loc(self.asset_end, 'ffill')],
+            sessions[sessions.get_loc(self.asset_start, 'bfill')],
+            sessions[sessions.get_loc(self.asset_end, 'ffill')],
             sids,
         )
         expected_pricing, expected_adjustments = self._expected_data()
@@ -187,7 +191,7 @@ class YahooBundleTestCase(WithResponses, ZiplineTestCase):
 
         adjustments_for_cols = bundle.adjustment_reader.load_adjustments(
             self.columns,
-            cal,
+            self.sessions,
             pd.Index(sids),
         )
 
@@ -198,4 +202,5 @@ class YahooBundleTestCase(WithResponses, ZiplineTestCase):
                 adjustments,
                 expected,
                 msg=column,
+                decimal=4,
             )

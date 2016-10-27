@@ -1,0 +1,167 @@
+Release 1.0.2
+-------------
+
+:Release: 1.0.2
+:Date: September 8, 2016
+
+Enhancements
+~~~~~~~~~~~~
+
+- Adds forward fill checkpoint tables for the blaze core loader. This allow the
+  loader to more efficiently forward fill the data by capping the lower date it
+  must search for when querying data. The checkpoints should have novel deltas
+  applied (:issue:`1276`).
+
+- Updated VagrantFile to include all dev requirements and use a newer image
+  (:issue:`1310`).
+
+- Allow correlations and regressions to be computed between two 2D factors by
+  doing computations asset-wise (:issue:`1307`).
+
+- Filters have been made window_safe by default. Now they can be passed in as
+  arguments to other Filters, Factors and Classifiers (:issue:`1338`).
+
+- Added an optional ``groupby`` parameter to
+  :meth:`~zipline.pipeline.factors.Factor.rank`,
+  :meth:`~zipline.pipeline.factors.Factor.top`, and
+  :meth:`~zipline.pipeline.factors.Factor.bottom`. (:issue:`1349`).
+
+- Added new pipeline filters, :class:`~zipline.pipeline.filters.All` and
+  :class:`~zipline.pipeline.filters.Any`, which takes another filter and
+  returns True if an asset produced a True for any/all days in the previous
+  ``window_length`` days (:issue:`1358`).
+
+- Added new pipeline filter :class:`~zipline.pipeline.filters.AtLeastN`,
+  which takes another filter and an int N and returns True if an asset
+  produced a True on N or more days in the previous ``window_length``
+  days (:issue:`1367`).
+
+- Use external library empyrical for risk calculations. Empyrical unifies risk
+  metric calculations between pyfolio and zipline. Empyrical adds custom
+  annualization options for returns of custom frequencies. (:issue:`855`)
+
+- Add Aroon factor. (:issue:`1258`)
+
+- Add fast stochastic oscillator factor. (:issue:`1255`)
+
+- Add a Dockerfile. (:issue:`1254`)
+
+- New trading calendar which supports sessions which span across midnights, e.g.
+  24 hour 6:01PM-6:00PM sessions for futures trading.
+  `zipline.utils.tradingcalendar` is now deprecated. (:issue:`1138`) (:issue:`1312`)
+
+- Allow slicing a single column out of a Factor/Filter/Classifier. (:issue:`1267`)
+
+- Provide Ichimoku Cloud factor (:issue:`1263`)
+
+- Allow default parameters on Pipeline terms. (:issue:`1263`)
+
+- Provide rate of change percentage factor. (:issue:`1324`)
+
+- Provide linear weighted moving average factor. (:issue:`1325`)
+
+- Add ``NotNullFilter``. (:issue:`1345`)
+
+- Allow capital changes to be defined by a target value. (:issue:`1337`)
+
+- Add ``TrueRange`` factor. (:issue:`1348`)
+
+- Add point in time lookups to ``assets.db``. (:issue:`1361`)
+
+- Make ``can_trade`` aware of the asset's exchange . (:issue:`1346`)
+
+- Add ``downsample`` method to all computable terms. (:issue:`1394`)
+
+- Add `QuantopianUSFuturesCalendar`. (:issue:`1414`)
+
+- Enable publishing of old ``assets.db`` versions. (:issue:`1430`)
+
+- Enable ``schedule_function`` for Futures trading calendar. (:issue:`1442`)
+
+- Disallow regressions of length 1. (:issue:`1466`)
+
+Experimental
+~~~~~~~~~~~
+
+- Add support for comingled Future and Equity history windows, and enable other
+  Future data access via data portal. (:issue:`1435`) (:issue:`1432`)
+
+Bug Fixes
+~~~~~~~~~
+
+- Changes :class:`~zipline.pipeline.factors.AverageDollarVolume` built-in
+  factor to treat missing close or volume values as 0. Previously, NaNs were
+  simply discarded before averaging, giving the remaining values too much
+  weight (:issue:`1309`).
+
+- Remove risk-free rate from sharpe ratio calculation. The ratio is now the
+  average of risk adjusted returns over violatility of adjusted
+  returns. (:issue:`853`)
+
+- Sortino ratio will return calculation instead of np.nan when required returns
+  are equal to zero. The ratio now returns the average of risk adjusted returns
+  over downside risk. Fixed mislabeled API by converting `mar` to
+  `downside_risk`. (:issue:`747`)
+
+- Downside risk now returns the square root of the mean of downside
+  difference squares. (:issue:`747`)
+
+- Information ratio updated to return mean of risk adjusted returns over
+  standard deviation of risk adjusted returns. (:issue:`1322`)
+
+- Alpha and sharpe ratio are now annualized. (:issue:`1322`)
+
+- Fix units during reading and writing of daily bar ``first_trading_day ``
+  attribute. (:issue:`1245`)
+
+- Optional dispatch modules, when missing, no longer cause a `NameError`.
+  (:issue:`1246`)
+
+- Treat ``schedule_function`` argument as a time rule when a time rule, but no
+  date rule is supplied. (:issue:`1221`)
+
+- Protect against boundary conditions at beginning and end trading day in
+  schedule function. (:issue:`1226`)
+
+- Apply adjustments to previous day when using history with a frequency of `1d`.
+  (:issue:`1256`)
+
+- Fail fast on invalid pipeline columns, instead of attempting to access the nonexistent column.
+  (:issue:`1280`)
+
+- Fix ``AverageDollarVolume`` NaN handling. (:issue:`1309`)
+
+  Performance
+~~~~~~~~~~~
+
+- Performance improvements to blaze core loader. (:issue:`1227`)
+
+- Allow concurrent blaze queries. (:issue:`1323`)
+
+- Prevent missing leading bcolz minute data from doing repeated unnecessary lookups. (:issue:`1451`)
+
+- Cache future chain lookups. (:issue:`1455`)
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Removed remaining mentions of ``add_history``. (:issue:`1287`)
+
+Documentation
+~~~~~~~~~~~~~
+
+Testing
+~~~~~~~~~~~
+
+- Add test fixture which sources daily pricing data from minute pricing data
+  fixtures. (:issue:`1243`)
+
+Data Format Changes
+~~~~~~~~~~~~~~~~
+
+- ``BcolzDailyBarReader`` and ``BcolzDailyBarWriter`` use trading calendar instance,
+  instead of trading days serialized to ``JSON``. (:issue:`1330`)
+
+- Change format of ``assets.db`` to support point in time lookups. (:issue:`1361`)
+
+- Change ``BcolzMinuteBarReader``and ``BcolzMinuteBarWriter`` to support varying tick sizes. (:issue:`1428`)

@@ -18,20 +18,21 @@ from nose_parameterized import parameterized
 from numpy import (
     arange,
     datetime64,
+    nan,
 )
 from numpy.testing import (
     assert_array_equal,
 )
 from pandas import (
     DataFrame,
-    DatetimeIndex,
     Timestamp,
 )
 from pandas.util.testing import assert_index_equal
 
 from zipline.data.us_equity_pricing import (
     BcolzDailyBarReader,
-    NoDataOnDate,
+    NoDataBeforeDate,
+    NoDataAfterDate,
 )
 from zipline.pipeline.loaders.synthetic import (
     OHLCV,
@@ -43,9 +44,10 @@ from zipline.pipeline.loaders.synthetic import (
 )
 from zipline.testing import seconds_to_timestamp
 from zipline.testing.fixtures import (
-    WithBcolzDailyBarReader,
+    WithBcolzEquityDailyBarReader,
     ZiplineTestCase,
 )
+from zipline.utils.calendars import get_calendar
 
 TEST_CALENDAR_START = Timestamp('2015-06-01', tz='UTC')
 TEST_CALENDAR_STOP = Timestamp('2015-06-30', tz='UTC')
@@ -74,40 +76,40 @@ EQUITY_INFO = DataFrame(
     index=arange(1, 7),
     columns=['start_date', 'end_date'],
 ).astype(datetime64)
+EQUITY_INFO['symbol'] = [chr(ord('A') + n) for n in range(len(EQUITY_INFO))]
 
 TEST_QUERY_ASSETS = EQUITY_INFO.index
 
 
-class BcolzDailyBarTestCase(WithBcolzDailyBarReader, ZiplineTestCase):
-    BCOLZ_DAILY_BAR_START_DATE = TEST_CALENDAR_START
-    BCOLZ_DAILY_BAR_END_DATE = TEST_CALENDAR_STOP
+class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, ZiplineTestCase):
+    EQUITY_DAILY_BAR_START_DATE = TEST_CALENDAR_START
+    EQUITY_DAILY_BAR_END_DATE = TEST_CALENDAR_STOP
 
     @classmethod
     def make_equity_info(cls):
         return EQUITY_INFO
 
     @classmethod
-    def make_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls):
         return make_bar_data(
             EQUITY_INFO,
-            cls.bcolz_daily_bar_days,
+            cls.equity_daily_bar_days,
         )
 
     @classmethod
     def init_class_fixtures(cls):
         super(BcolzDailyBarTestCase, cls).init_class_fixtures()
-        all_trading_days = cls.env.trading_days
-        cls.trading_days = all_trading_days[
-            all_trading_days.get_loc(TEST_CALENDAR_START):
-            all_trading_days.get_loc(TEST_CALENDAR_STOP) + 1
-        ]
+        cls.sessions = cls.trading_calendar.sessions_in_range(
+            cls.trading_calendar.minute_to_session_label(TEST_CALENDAR_START),
+            cls.trading_calendar.minute_to_session_label(TEST_CALENDAR_STOP)
+        )
 
     @property
     def assets(self):
         return EQUITY_INFO.index
 
     def trading_days_between(self, start, end):
-        return self.trading_days[self.trading_days.slice_indexer(start, end)]
+        return self.sessions[self.sessions.slice_indexer(start, end)]
 
     def asset_start(self, asset_id):
         return asset_start(EQUITY_INFO, asset_id)
@@ -181,13 +183,24 @@ class BcolzDailyBarTestCase(WithBcolzDailyBarReader, ZiplineTestCase):
             result.attrs['calendar_offset'],
             expected_calendar_offset,
         )
+        cal = get_calendar(result.attrs['calendar_name'])
+        first_session = Timestamp(result.attrs['start_session_ns'], tz='UTC')
+        end_session = Timestamp(result.attrs['end_session_ns'], tz='UTC')
+        sessions = cal.sessions_in_range(first_session, end_session)
+
         assert_index_equal(
-            self.trading_days,
-            DatetimeIndex(result.attrs['calendar'], tz='UTC'),
+            self.sessions,
+            sessions
+        )
+
+    def test_read_first_trading_day(self):
+        self.assertEqual(
+            self.bcolz_equity_daily_bar_reader.first_trading_day,
+            self.sessions[0],
         )
 
     def _check_read_results(self, columns, assets, start_date, end_date):
-        results = self.bcolz_daily_bar_reader.load_raw_arrays(
+        results = self.bcolz_equity_daily_bar_reader.load_raw_arrays(
             columns,
             start_date,
             end_date,
@@ -229,7 +242,7 @@ class BcolzDailyBarTestCase(WithBcolzDailyBarReader, ZiplineTestCase):
                 columns,
                 self.assets,
                 start_date=self.asset_start(asset),
-                end_date=self.trading_days[-1],
+                end_date=self.sessions[-1],
             )
 
     def test_start_on_asset_end(self):
@@ -243,7 +256,7 @@ class BcolzDailyBarTestCase(WithBcolzDailyBarReader, ZiplineTestCase):
                 columns,
                 self.assets,
                 start_date=self.asset_end(asset),
-                end_date=self.trading_days[-1],
+                end_date=self.sessions[-1],
             )
 
     def test_end_on_asset_start(self):
@@ -256,7 +269,7 @@ class BcolzDailyBarTestCase(WithBcolzDailyBarReader, ZiplineTestCase):
             self._check_read_results(
                 columns,
                 self.assets,
-                start_date=self.trading_days[0],
+                start_date=self.sessions[0],
                 end_date=self.asset_start(asset),
             )
 
@@ -270,50 +283,50 @@ class BcolzDailyBarTestCase(WithBcolzDailyBarReader, ZiplineTestCase):
             self._check_read_results(
                 columns,
                 self.assets,
-                start_date=self.trading_days[0],
+                start_date=self.sessions[0],
                 end_date=self.asset_end(asset),
             )
 
-    def test_unadjusted_spot_price(self):
-        reader = self.bcolz_daily_bar_reader
+    def test_unadjusted_get_value(self):
+        reader = self.bcolz_equity_daily_bar_reader
         # At beginning
-        price = reader.spot_price(1, Timestamp('2015-06-01', tz='UTC'),
-                                  'close')
+        price = reader.get_value(1, Timestamp('2015-06-01', tz='UTC'),
+                                 'close')
         # Synthetic writes price for date.
         self.assertEqual(108630.0, price)
 
         # Middle
-        price = reader.spot_price(1, Timestamp('2015-06-02', tz='UTC'),
-                                  'close')
+        price = reader.get_value(1, Timestamp('2015-06-02', tz='UTC'),
+                                 'close')
         self.assertEqual(108631.0, price)
         # End
-        price = reader.spot_price(1, Timestamp('2015-06-05', tz='UTC'),
-                                  'close')
+        price = reader.get_value(1, Timestamp('2015-06-05', tz='UTC'),
+                                 'close')
         self.assertEqual(108634.0, price)
 
         # Another sid at beginning.
-        price = reader.spot_price(2, Timestamp('2015-06-22', tz='UTC'),
-                                  'close')
+        price = reader.get_value(2, Timestamp('2015-06-22', tz='UTC'),
+                                 'close')
         self.assertEqual(208651.0, price)
 
         # Ensure that volume does not have float adjustment applied.
-        volume = reader.spot_price(1, Timestamp('2015-06-02', tz='UTC'),
-                                   'volume')
+        volume = reader.get_value(1, Timestamp('2015-06-02', tz='UTC'),
+                                  'volume')
         self.assertEqual(109631, volume)
 
-    def test_unadjusted_spot_price_no_data(self):
+    def test_unadjusted_get_value_no_data(self):
         table = self.bcolz_daily_bar_ctable
         reader = BcolzDailyBarReader(table)
         # before
-        with self.assertRaises(NoDataOnDate):
-            reader.spot_price(2, Timestamp('2015-06-08', tz='UTC'), 'close')
+        with self.assertRaises(NoDataBeforeDate):
+            reader.get_value(2, Timestamp('2015-06-08', tz='UTC'), 'close')
 
         # after
-        with self.assertRaises(NoDataOnDate):
-            reader.spot_price(4, Timestamp('2015-06-16', tz='UTC'), 'close')
+        with self.assertRaises(NoDataAfterDate):
+            reader.get_value(4, Timestamp('2015-06-16', tz='UTC'), 'close')
 
-    def test_unadjusted_spot_price_empty_value(self):
-        reader = self.bcolz_daily_bar_reader
+    def test_unadjusted_get_value_empty_value(self):
+        reader = self.bcolz_equity_daily_bar_reader
 
         # A sid, day and corresponding index into which to overwrite a zero.
         zero_sid = 1
@@ -327,8 +340,8 @@ class BcolzDailyBarTestCase(WithBcolzDailyBarReader, ZiplineTestCase):
             # This a little hacky, in lieu of changing the synthetic data set.
             reader._spot_col('close')[zero_ix] = 0
 
-            close = reader.spot_price(zero_sid, zero_day, 'close')
-            self.assertEqual(-1, close)
+            close = reader.get_value(zero_sid, zero_day, 'close')
+            assert_array_equal(nan, close)
         finally:
             reader._spot_col('close')[zero_ix] = old
 

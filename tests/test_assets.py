@@ -17,7 +17,8 @@
 Tests for the zipline.assets package
 """
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import timedelta
+from functools import partial
 import pickle
 import sys
 from types import GetSetDescriptorType
@@ -25,12 +26,11 @@ from unittest import TestCase
 import uuid
 import warnings
 
-from nose.tools import raises
 from nose_parameterized import parameterized
 from numpy import full, int32, int64
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
-from six import PY2
+from six import PY2, viewkeys
 import sqlalchemy as sa
 
 from zipline.assets import (
@@ -39,7 +39,6 @@ from zipline.assets import (
     Future,
     AssetDBWriter,
     AssetFinder,
-    AssetFinderCachedEquities,
 )
 from zipline.assets.synthetic import (
     make_commodity_future_info,
@@ -49,15 +48,11 @@ from zipline.assets.synthetic import (
 from six import itervalues, integer_types
 from toolz import valmap
 
-from zipline.assets.futures import (
-    cme_code_to_month,
-    FutureChain,
-    month_to_cme_code
-)
 from zipline.assets.asset_writer import (
     check_version_info,
     write_version_info,
     _futures_defaults,
+    SQLITE_MAX_VARIABLE_NUMBER,
 )
 from zipline.assets.asset_db_schema import ASSET_DB_VERSION
 from zipline.assets.asset_db_migrations import (
@@ -67,7 +62,6 @@ from zipline.errors import (
     EquitiesNotFound,
     FutureContractsNotFound,
     MultipleSymbolsFound,
-    RootSymbolNotFound,
     AssetDBVersionError,
     SidsNotFound,
     SymbolNotFound,
@@ -82,8 +76,9 @@ from zipline.testing.predicates import assert_equal
 from zipline.testing.fixtures import (
     WithAssetFinder,
     ZiplineTestCase,
+    WithTradingCalendars,
 )
-from zipline.utils.tradingcalendar import trading_day
+from zipline.utils.range import range
 
 
 @contextmanager
@@ -109,21 +104,21 @@ def build_lookup_generic_cases(asset_finder_type):
                 'symbol': 'duplicated',
                 'start_date': dupe_0_start.value,
                 'end_date': dupe_0_end.value,
-                'exchange': '',
+                'exchange': 'TEST',
             },
             {
                 'sid': 1,
                 'symbol': 'duplicated',
                 'start_date': dupe_1_start.value,
                 'end_date': dupe_1_end.value,
-                'exchange': '',
+                'exchange': 'TEST',
             },
             {
                 'sid': 2,
                 'symbol': 'unique',
                 'start_date': unique_start.value,
                 'end_date': unique_end.value,
-                'exchange': '',
+                'exchange': 'TEST',
             },
         ],
         index='sid')
@@ -193,15 +188,21 @@ class AssetTestCase(TestCase):
         exchange='THE MOON',
     )
 
+    asset3 = Asset(3, exchange="test")
+    asset4 = Asset(4, exchange="test")
+    asset5 = Asset(5, exchange="still testing")
+
     def test_asset_object(self):
-        self.assertEquals({5061: 'foo'}[Asset(5061)], 'foo')
-        self.assertEquals(Asset(5061), 5061)
-        self.assertEquals(5061, Asset(5061))
+        the_asset = Asset(5061, exchange="bar")
 
-        self.assertEquals(Asset(5061), Asset(5061))
-        self.assertEquals(int(Asset(5061)), 5061)
+        self.assertEquals({5061: 'foo'}[the_asset], 'foo')
+        self.assertEquals(the_asset, 5061)
+        self.assertEquals(5061, the_asset)
 
-        self.assertEquals(str(Asset(5061)), 'Asset(5061)')
+        self.assertEquals(the_asset, the_asset)
+        self.assertEquals(int(the_asset), 5061)
+
+        self.assertEquals(str(the_asset), 'Asset(5061)')
 
     def test_to_and_from_dict(self):
         asset_from_dict = Asset.from_dict(self.asset.to_dict())
@@ -219,8 +220,8 @@ class AssetTestCase(TestCase):
 
     def test_asset_comparisons(self):
 
-        s_23 = Asset(23)
-        s_24 = Asset(24)
+        s_23 = Asset(23, exchange="test")
+        s_24 = Asset(24, exchange="test")
 
         self.assertEqual(s_23, s_23)
         self.assertEqual(s_23, 23)
@@ -249,39 +250,39 @@ class AssetTestCase(TestCase):
         self.assertGreater(s_24, s_23)
 
     def test_lt(self):
-        self.assertTrue(Asset(3) < Asset(4))
-        self.assertFalse(Asset(4) < Asset(4))
-        self.assertFalse(Asset(5) < Asset(4))
+        self.assertTrue(self.asset3 < self.asset4)
+        self.assertFalse(self.asset4 < self.asset4)
+        self.assertFalse(self.asset5 < self.asset4)
 
     def test_le(self):
-        self.assertTrue(Asset(3) <= Asset(4))
-        self.assertTrue(Asset(4) <= Asset(4))
-        self.assertFalse(Asset(5) <= Asset(4))
+        self.assertTrue(self.asset3 <= self.asset4)
+        self.assertTrue(self.asset4 <= self.asset4)
+        self.assertFalse(self.asset5 <= self.asset4)
 
     def test_eq(self):
-        self.assertFalse(Asset(3) == Asset(4))
-        self.assertTrue(Asset(4) == Asset(4))
-        self.assertFalse(Asset(5) == Asset(4))
+        self.assertFalse(self.asset3 == self.asset4)
+        self.assertTrue(self.asset4 == self.asset4)
+        self.assertFalse(self.asset5 == self.asset4)
 
     def test_ge(self):
-        self.assertFalse(Asset(3) >= Asset(4))
-        self.assertTrue(Asset(4) >= Asset(4))
-        self.assertTrue(Asset(5) >= Asset(4))
+        self.assertFalse(self.asset3 >= self.asset4)
+        self.assertTrue(self.asset4 >= self.asset4)
+        self.assertTrue(self.asset5 >= self.asset4)
 
     def test_gt(self):
-        self.assertFalse(Asset(3) > Asset(4))
-        self.assertFalse(Asset(4) > Asset(4))
-        self.assertTrue(Asset(5) > Asset(4))
+        self.assertFalse(self.asset3 > self.asset4)
+        self.assertFalse(self.asset4 > self.asset4)
+        self.assertTrue(self.asset5 > self.asset4)
 
     def test_type_mismatch(self):
         if sys.version_info.major < 3:
-            self.assertIsNotNone(Asset(3) < 'a')
-            self.assertIsNotNone('a' < Asset(3))
+            self.assertIsNotNone(self.asset3 < 'a')
+            self.assertIsNotNone('a' < self.asset3)
         else:
             with self.assertRaises(TypeError):
-                Asset(3) < 'a'
+                self.asset3 < 'a'
             with self.assertRaises(TypeError):
-                'a' < Asset(3)
+                'a' < self.asset3
 
 
 class TestFuture(WithAssetFinder, ZiplineTestCase):
@@ -297,6 +298,7 @@ class TestFuture(WithAssetFinder, ZiplineTestCase):
                     'auto_close_date': pd.Timestamp('2014-01-18', tz='UTC'),
                     'tick_size': .01,
                     'multiplier': 500.0,
+                    'exchange': "TEST",
                 },
                 0: {
                     'symbol': 'CLG06',
@@ -305,6 +307,7 @@ class TestFuture(WithAssetFinder, ZiplineTestCase):
                     'notice_date': pd.Timestamp('2005-12-20', tz='UTC'),
                     'expiration_date': pd.Timestamp('2006-01-20', tz='UTC'),
                     'multiplier': 1.0,
+                    'exchange': 'TEST',
                 },
             },
             orient='index',
@@ -341,7 +344,6 @@ class TestFuture(WithAssetFinder, ZiplineTestCase):
         self.assertIn("tick_size=0.01", reprd)
         self.assertIn("multiplier=500", reprd)
 
-    @raises(AssertionError)
     def test_reduce(self):
         assert_equal(
             pickle.loads(pickle.dumps(self.future)).to_dict(),
@@ -396,7 +398,7 @@ class TestFuture(WithAssetFinder, ZiplineTestCase):
             TestFuture.asset_finder.lookup_future_symbol('XXX99')
 
 
-class AssetFinderTestCase(ZiplineTestCase):
+class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
     asset_finder_type = AssetFinder
 
     def write_assets(self, **kwargs):
@@ -408,6 +410,29 @@ class AssetFinderTestCase(ZiplineTestCase):
         conn = self.enter_instance_context(empty_assets_db())
         self._asset_writer = AssetDBWriter(conn)
         self.asset_finder = self.asset_finder_type(conn)
+
+    def test_blocked_lookup_symbol_query(self):
+        # we will try to query for more variables than sqlite supports
+        # to make sure we are properly chunking on the client side
+        as_of = pd.Timestamp('2013-01-01', tz='UTC')
+        # we need more sids than we can query from sqlite
+        nsids = SQLITE_MAX_VARIABLE_NUMBER + 10
+        sids = range(nsids)
+        frame = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': sid,
+                    'symbol':  'TEST.%d' % sid,
+                    'start_date': as_of.value,
+                    'end_date': as_of.value,
+                    'exchange': uuid.uuid4().hex
+                }
+                for sid in sids
+            ]
+        )
+        self.write_assets(equities=frame)
+        assets = self.asset_finder.retrieve_equities(sids)
+        assert_equal(viewkeys(assets), set(sids))
 
     def test_lookup_symbol_delimited(self):
         as_of = pd.Timestamp('2013-01-01', tz='UTC')
@@ -449,9 +474,9 @@ class AssetFinderTestCase(ZiplineTestCase):
 
     def test_lookup_symbol_fuzzy(self):
         metadata = pd.DataFrame.from_records([
-            {'symbol': 'PRTY_HRD'},
-            {'symbol': 'BRKA'},
-            {'symbol': 'BRK_A'},
+            {'symbol': 'PRTY_HRD', 'exchange': "TEST"},
+            {'symbol': 'BRKA', 'exchange': "TEST"},
+            {'symbol': 'BRK_A', 'exchange': "TEST"},
         ])
         self.write_assets(equities=metadata)
         finder = self.asset_finder
@@ -484,6 +509,119 @@ class AssetFinderTestCase(ZiplineTestCase):
         self.assertEqual(2, finder.lookup_symbol('BRK_A', dt))
         self.assertEqual(2, finder.lookup_symbol('BRK_A', None, fuzzy=True))
         self.assertEqual(2, finder.lookup_symbol('BRK_A', dt, fuzzy=True))
+
+    def test_lookup_symbol_change_ticker(self):
+        T = partial(pd.Timestamp, tz='utc')
+        metadata = pd.DataFrame.from_records(
+            [
+                # sid 0
+                {
+                    'symbol': 'A',
+                    'asset_name': 'Asset A',
+                    'start_date': T('2014-01-01'),
+                    'end_date': T('2014-01-05'),
+                    'exchange': "TEST",
+                },
+                {
+                    'symbol': 'B',
+                    'asset_name': 'Asset B',
+                    'start_date': T('2014-01-06'),
+                    'end_date': T('2014-01-10'),
+                    'exchange': "TEST",
+                },
+
+                # sid 1
+                {
+                    'symbol': 'C',
+                    'asset_name': 'Asset C',
+                    'start_date': T('2014-01-01'),
+                    'end_date': T('2014-01-05'),
+                    'exchange': "TEST",
+                },
+                {
+                    'symbol': 'A',  # claiming the unused symbol 'A'
+                    'asset_name': 'Asset A',
+                    'start_date': T('2014-01-06'),
+                    'end_date': T('2014-01-10'),
+                    'exchange': "TEST",
+                },
+            ],
+            index=[0, 0, 1, 1],
+        )
+        self.write_assets(equities=metadata)
+        finder = self.asset_finder
+
+        # note: these assertions walk forward in time, starting at assertions
+        # about ownership before the start_date and ending with assertions
+        # after the end_date; new assertions should be inserted in the correct
+        # locations
+
+        # no one held 'A' before 01
+        with self.assertRaises(SymbolNotFound):
+            finder.lookup_symbol('A', T('2013-12-31'))
+
+        # no one held 'C' before 01
+        with self.assertRaises(SymbolNotFound):
+            finder.lookup_symbol('C', T('2013-12-31'))
+
+        for asof in pd.date_range('2014-01-01', '2014-01-05', tz='utc'):
+            # from 01 through 05 sid 0 held 'A'
+            A_result = finder.lookup_symbol('A', asof)
+            assert_equal(
+                A_result,
+                finder.retrieve_asset(0),
+                msg=str(asof),
+            )
+            # The symbol and asset_name should always be the last held values
+            assert_equal(A_result.symbol, 'B')
+            assert_equal(A_result.asset_name, 'Asset B')
+
+            # from 01 through 05 sid 1 held 'C'
+            C_result = finder.lookup_symbol('C', asof)
+            assert_equal(
+                C_result,
+                finder.retrieve_asset(1),
+                msg=str(asof),
+            )
+            # The symbol and asset_name should always be the last held values
+            assert_equal(C_result.symbol, 'A')
+            assert_equal(C_result.asset_name, 'Asset A')
+
+        # no one held 'B' before 06
+        with self.assertRaises(SymbolNotFound):
+            finder.lookup_symbol('B', T('2014-01-05'))
+
+        # no one held 'C' after 06, however, no one has claimed it yet
+        # so it still maps to sid 1
+        assert_equal(
+            finder.lookup_symbol('C', T('2014-01-07')),
+            finder.retrieve_asset(1),
+        )
+
+        for asof in pd.date_range('2014-01-06', '2014-01-11', tz='utc'):
+            # from 06 through 10 sid 0 held 'B'
+            # we test through the 11th because sid 1 is the last to hold 'B'
+            # so it should ffill
+            B_result = finder.lookup_symbol('B', asof)
+            assert_equal(
+                B_result,
+                finder.retrieve_asset(0),
+                msg=str(asof),
+            )
+            assert_equal(B_result.symbol, 'B')
+            assert_equal(B_result.asset_name, 'Asset B')
+
+            # from 06 through 10 sid 1 held 'A'
+            # we test through the 11th because sid 1 is the last to hold 'A'
+            # so it should ffill
+            A_result = finder.lookup_symbol('A', asof)
+            assert_equal(
+                A_result,
+                finder.retrieve_asset(1),
+                msg=str(asof),
+            )
+            assert_equal(A_result.symbol, 'A')
+            assert_equal(A_result.asset_name, 'Asset A')
 
     def test_lookup_symbol(self):
 
@@ -519,27 +657,7 @@ class AssetFinderTestCase(ZiplineTestCase):
                 self.assertEqual(result.symbol, 'EXISTING')
                 self.assertEqual(result.sid, i)
 
-    def test_lookup_symbol_from_multiple_valid(self):
-        # This test asserts that we resolve conflicts in accordance with the
-        # following rules when we have multiple assets holding the same symbol
-        # at the same time:
-
-        # If multiple SIDs exist for symbol S at time T, return the candidate
-        # SID whose start_date is highest. (200 cases)
-
-        # If multiple SIDs exist for symbol S at time T, the best candidate
-        # SIDs share the highest start_date, return the SID with the highest
-        # end_date. (34 cases)
-
-        # It is the opinion of the author (ssanderson) that we should consider
-        # this malformed input and fail here.  But this is the current indended
-        # behavior of the code, and I accidentally broke it while refactoring.
-        # These will serve as regression tests until the time comes that we
-        # decide to enforce this as an error.
-
-        # See https://github.com/quantopian/zipline/issues/837 for more
-        # details.
-
+    def test_fail_to_write_overlapping_data(self):
         df = pd.DataFrame.from_records(
             [
                 {
@@ -568,22 +686,22 @@ class AssetFinderTestCase(ZiplineTestCase):
             ]
         )
 
-        self.write_assets(equities=df)
+        with self.assertRaises(ValueError) as e:
+            self.write_assets(equities=df)
 
-        def check(expected_sid, date):
-            result = self.asset_finder.lookup_symbol(
-                'MULTIPLE', date,
-            )
-            self.assertEqual(result.symbol, 'MULTIPLE')
-            self.assertEqual(result.sid, expected_sid)
-
-        # Sids 1 and 2 are eligible here.  We should get asset 2 because it
-        # has the later end_date.
-        check(2, pd.Timestamp('2010-12-31'))
-
-        # Sids 1, 2, and 3 are eligible here.  We should get sid 3 because
-        # it has a later start_date
-        check(3, pd.Timestamp('2011-01-01'))
+        self.assertEqual(
+            str(e.exception),
+            "Ambiguous ownership for 1 symbol, multiple assets held the"
+            " following symbols:\n"
+            "MULTIPLE:\n"
+            "  intersections: (('2010-01-01 00:00:00', '2012-01-01 00:00:00'),"
+            " ('2011-01-01 00:00:00', '2012-01-01 00:00:00'))\n"
+            "      start_date   end_date\n"
+            "  sid                      \n"
+            "  1   2010-01-01 2012-01-01\n"
+            "  2   2010-01-01 2013-01-01\n"
+            "  3   2011-01-01 2012-01-01"
+        )
 
     def test_lookup_generic(self):
         """
@@ -596,6 +714,93 @@ class AssetFinderTestCase(ZiplineTestCase):
                 self.assertEqual(results, expected)
                 self.assertEqual(missing, [])
 
+    def test_lookup_none_raises(self):
+        """
+        If lookup_symbol is vectorized across multiple symbols, and one of them
+        is None, want to raise a TypeError.
+        """
+
+        with self.assertRaises(TypeError):
+            self.asset_finder.lookup_symbol(None, pd.Timestamp('2013-01-01'))
+
+    def test_lookup_mult_are_one(self):
+        """
+        Ensure that multiple symbols that return the same sid are collapsed to
+        a single returned asset.
+        """
+
+        date = pd.Timestamp('2013-01-01', tz='UTC')
+
+        df = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': 1,
+                    'symbol': symbol,
+                    'start_date': date.value,
+                    'end_date': (date + timedelta(days=30)).value,
+                    'exchange': 'NYSE',
+                }
+                for symbol in ('FOOB', 'FOO_B')
+            ]
+        )
+        self.write_assets(equities=df)
+        finder = self.asset_finder
+
+        # If we are able to resolve this with any result, means that we did not
+        # raise a MultipleSymbolError.
+        result = finder.lookup_symbol('FOO/B', date + timedelta(1), fuzzy=True)
+        self.assertEqual(result.sid, 1)
+
+    def test_endless_multiple_resolves(self):
+        """
+        Situation:
+        1. Asset 1 w/ symbol FOOB changes to FOO_B, and then is delisted.
+        2. Asset 2 is listed with symbol FOO_B.
+
+        If someone asks for FOO_B with fuzzy matching after 2 has been listed,
+        they should be able to correctly get 2.
+        """
+
+        date = pd.Timestamp('2013-01-01', tz='UTC')
+
+        df = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': 1,
+                    'symbol': 'FOOB',
+                    'start_date': date.value,
+                    'end_date': date.max.value,
+                    'exchange': 'NYSE',
+                },
+                {
+                    'sid': 1,
+                    'symbol': 'FOO_B',
+                    'start_date': (date + timedelta(days=31)).value,
+                    'end_date': (date + timedelta(days=60)).value,
+                    'exchange': 'NYSE',
+                },
+                {
+                    'sid': 2,
+                    'symbol': 'FOO_B',
+                    'start_date': (date + timedelta(days=61)).value,
+                    'end_date': date.max.value,
+                    'exchange': 'NYSE',
+                },
+
+            ]
+        )
+        self.write_assets(equities=df)
+        finder = self.asset_finder
+
+        # If we are able to resolve this with any result, means that we did not
+        # raise a MultipleSymbolError.
+        result = finder.lookup_symbol(
+            'FOO/B',
+            date + timedelta(days=90),
+            fuzzy=True
+        )
+        self.assertEqual(result.sid, 2)
+
     def test_lookup_generic_handle_missing(self):
         data = pd.DataFrame.from_records(
             [
@@ -604,14 +809,14 @@ class AssetFinderTestCase(ZiplineTestCase):
                     'symbol': 'real',
                     'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
                     'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
-                    'exchange': '',
+                    'exchange': 'TEST',
                 },
                 {
                     'sid': 1,
                     'symbol': 'also_real',
                     'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
                     'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
-                    'exchange': '',
+                    'exchange': 'TEST',
                 },
                 # Sid whose end date is before our query date.  We should
                 # still correctly find it.
@@ -620,7 +825,7 @@ class AssetFinderTestCase(ZiplineTestCase):
                     'symbol': 'real_but_old',
                     'start_date': pd.Timestamp('2002-1-1', tz='UTC'),
                     'end_date': pd.Timestamp('2003-1-1', tz='UTC'),
-                    'exchange': '',
+                    'exchange': 'TEST',
                 },
                 # Sid whose start_date is **after** our query date.  We should
                 # **not** find it.
@@ -656,7 +861,8 @@ class AssetFinderTestCase(ZiplineTestCase):
 
         # Build an asset with an end_date
         eq_end = pd.Timestamp('2012-01-01', tz='UTC')
-        equity_asset = Equity(1, symbol="TESTEQ", end_date=eq_end)
+        equity_asset = Equity(1, symbol="TESTEQ", end_date=eq_end,
+                              exchange="TEST")
 
         # Catch all warnings
         with warnings.catch_warnings(record=True) as w:
@@ -671,96 +877,14 @@ class AssetFinderTestCase(ZiplineTestCase):
                 self.assertTrue(issubclass(warning.category,
                                            DeprecationWarning))
 
-    def test_lookup_future_chain(self):
-        metadata = pd.DataFrame.from_records([
-            # Notice day is today, so should be valid.
-            {
-                'symbol': 'ADN15',
-                'root_symbol': 'AD',
-                'notice_date': pd.Timestamp('2015-06-14', tz='UTC'),
-                'expiration_date': pd.Timestamp('2015-08-14', tz='UTC'),
-                'start_date': pd.Timestamp('2015-01-01', tz='UTC')
-            },
-            {
-                'symbol': 'ADV15',
-                'root_symbol': 'AD',
-                'notice_date': pd.Timestamp('2015-05-14', tz='UTC'),
-                'expiration_date': pd.Timestamp('2015-09-14', tz='UTC'),
-                'start_date': pd.Timestamp('2015-01-01', tz='UTC')
-            },
-            # Starts trading today, so should be valid.
-            {
-                'symbol': 'ADF16',
-                'root_symbol': 'AD',
-                'notice_date': pd.Timestamp('2015-11-16', tz='UTC'),
-                'expiration_date': pd.Timestamp('2015-12-16', tz='UTC'),
-                'start_date': pd.Timestamp('2015-05-14', tz='UTC')
-            },
-            # Starts trading in August, so not valid.
-            {
-                'symbol': 'ADX16',
-                'root_symbol': 'AD',
-                'notice_date': pd.Timestamp('2015-11-16', tz='UTC'),
-                'expiration_date': pd.Timestamp('2015-12-16', tz='UTC'),
-                'start_date': pd.Timestamp('2015-08-01', tz='UTC')
-            },
-            # Notice date comes after expiration
-            {
-                'symbol': 'ADZ16',
-                'root_symbol': 'AD',
-                'notice_date': pd.Timestamp('2016-11-25', tz='UTC'),
-                'expiration_date': pd.Timestamp('2016-11-16', tz='UTC'),
-                'start_date': pd.Timestamp('2015-08-01', tz='UTC')
-            },
-            # This contract has no start date and also this contract should be
-            # last in all chains
-            {
-                'symbol': 'ADZ20',
-                'root_symbol': 'AD',
-                'notice_date': pd.Timestamp('2020-11-25', tz='UTC'),
-                'expiration_date': pd.Timestamp('2020-11-16', tz='UTC')
-            },
-        ])
-        self.write_assets(futures=metadata)
-        finder = self.asset_finder
-        dt = pd.Timestamp('2015-05-14', tz='UTC')
-        dt_2 = pd.Timestamp('2015-10-14', tz='UTC')
-        dt_3 = pd.Timestamp('2016-11-17', tz='UTC')
-
-        # Check that we get the expected number of contracts, in the
-        # right order
-        ad_contracts = finder.lookup_future_chain('AD', dt)
-        self.assertEqual(len(ad_contracts), 6)
-        self.assertEqual(ad_contracts[0].sid, 1)
-        self.assertEqual(ad_contracts[1].sid, 0)
-        self.assertEqual(ad_contracts[5].sid, 5)
-
-        # Check that, when some contracts have expired, the chain has advanced
-        # properly to the next contracts
-        ad_contracts = finder.lookup_future_chain('AD', dt_2)
-        self.assertEqual(len(ad_contracts), 4)
-        self.assertEqual(ad_contracts[0].sid, 2)
-        self.assertEqual(ad_contracts[3].sid, 5)
-
-        # Check that when the expiration_date has passed but the
-        # notice_date hasn't, contract is still considered invalid.
-        ad_contracts = finder.lookup_future_chain('AD', dt_3)
-        self.assertEqual(len(ad_contracts), 1)
-        self.assertEqual(ad_contracts[0].sid, 5)
-
-        # Check that pd.NaT for as_of_date gives the whole chain
-        ad_contracts = finder.lookup_future_chain('AD', pd.NaT)
-        self.assertEqual(len(ad_contracts), 6)
-        self.assertEqual(ad_contracts[5].sid, 5)
-
     def test_map_identifier_index_to_sids(self):
         # Build an empty finder and some Assets
         dt = pd.Timestamp('2014-01-01', tz='UTC')
         finder = self.asset_finder
-        asset1 = Equity(1, symbol="AAPL")
-        asset2 = Equity(2, symbol="GOOG")
-        asset200 = Future(200, symbol="CLK15")
-        asset201 = Future(201, symbol="CLM15")
+        asset1 = Equity(1, symbol="AAPL", exchange="TEST")
+        asset2 = Equity(2, symbol="GOOG", exchange="TEST")
+        asset200 = Future(200, symbol="CLK15", exchange="TEST")
+        asset201 = Future(201, symbol="CLM15", exchange="TEST")
 
         # Check for correct mapping and types
         pre_map = [asset1, asset2, asset200, asset201]
@@ -776,6 +900,7 @@ class AssetFinderTestCase(ZiplineTestCase):
 
     def test_compute_lifetimes(self):
         num_assets = 4
+        trading_day = self.trading_calendar.day
         first_start = pd.Timestamp('2015-04-01', tz='UTC')
 
         frame = make_rotating_equity_info(
@@ -999,254 +1124,6 @@ class AssetFinderTestCase(ZiplineTestCase):
             )
 
 
-class AssetFinderCachedEquitiesTestCase(AssetFinderTestCase):
-    asset_finder_type = AssetFinderCachedEquities
-
-    def write_assets(self, **kwargs):
-        super(AssetFinderCachedEquitiesTestCase, self).write_assets(**kwargs)
-        self.asset_finder.rehash_equities()
-
-
-class TestFutureChain(WithAssetFinder, ZiplineTestCase):
-    @classmethod
-    def make_futures_info(cls):
-        return pd.DataFrame.from_records([
-            {
-                'symbol': 'CLG06',
-                'root_symbol': 'CL',
-                'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
-                'notice_date': pd.Timestamp('2005-12-20', tz='UTC'),
-                'expiration_date': pd.Timestamp('2006-01-20', tz='UTC'),
-            },
-            {
-                'root_symbol': 'CL',
-                'symbol': 'CLK06',
-                'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
-                'notice_date': pd.Timestamp('2006-03-20', tz='UTC'),
-                'expiration_date': pd.Timestamp('2006-04-20', tz='UTC'),
-            },
-            {
-                'symbol': 'CLQ06',
-                'root_symbol': 'CL',
-                'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
-                'notice_date': pd.Timestamp('2006-06-20', tz='UTC'),
-                'expiration_date': pd.Timestamp('2006-07-20', tz='UTC'),
-            },
-            {
-                'symbol': 'CLX06',
-                'root_symbol': 'CL',
-                'start_date': pd.Timestamp('2006-02-01', tz='UTC'),
-                'notice_date': pd.Timestamp('2006-09-20', tz='UTC'),
-                'expiration_date': pd.Timestamp('2006-10-20', tz='UTC'),
-            }
-        ])
-
-    def test_len(self):
-        """ Test the __len__ method of FutureChain.
-        """
-        # Sids 0, 1, & 2 have started, 3 has not yet started, but all are in
-        # the chain
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
-        self.assertEqual(len(cl), 4)
-
-        # Sid 0 is still valid on its notice date.
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-20', 'CL')
-        self.assertEqual(len(cl), 4)
-
-        # Sid 0 is now invalid, leaving Sids 1 & 2 valid (and 3 not started).
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-21', 'CL')
-        self.assertEqual(len(cl), 3)
-
-        # Sid 3 has started, so 1, 2, & 3 are now valid.
-        cl = FutureChain(self.asset_finder, lambda: '2006-02-01', 'CL')
-        self.assertEqual(len(cl), 3)
-
-        # All contracts are no longer valid.
-        cl = FutureChain(self.asset_finder, lambda: '2006-09-21', 'CL')
-        self.assertEqual(len(cl), 0)
-
-    def test_getitem(self):
-        """ Test the __getitem__ method of FutureChain.
-        """
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
-        self.assertEqual(cl[0], 0)
-        self.assertEqual(cl[1], 1)
-        self.assertEqual(cl[2], 2)
-
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-20', 'CL')
-        self.assertEqual(cl[0], 0)
-
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-21', 'CL')
-        self.assertEqual(cl[0], 1)
-
-        cl = FutureChain(self.asset_finder, lambda: '2006-02-01', 'CL')
-        self.assertEqual(cl[-1], 3)
-
-    def test_iter(self):
-        """ Test the __iter__ method of FutureChain.
-        """
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
-        for i, contract in enumerate(cl):
-            self.assertEqual(contract, i)
-
-        # First contract is now invalid, so sids will be offset by one
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-21', 'CL')
-        for i, contract in enumerate(cl):
-            self.assertEqual(contract, i + 1)
-
-    def test_root_symbols(self):
-        """ Test that different variations on root symbols are handled
-        as expected.
-        """
-        # Make sure this successfully gets the chain for CL.
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
-        self.assertEqual(cl.root_symbol, 'CL')
-
-        # These root symbols don't exist, so RootSymbolNotFound should
-        # be raised immediately.
-        with self.assertRaises(RootSymbolNotFound):
-            FutureChain(self.asset_finder, lambda: '2005-12-01', 'CLZ')
-
-        with self.assertRaises(RootSymbolNotFound):
-            FutureChain(self.asset_finder, lambda: '2005-12-01', '')
-
-    def test_repr(self):
-        """ Test the __repr__ method of FutureChain.
-        """
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
-        cl_feb = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL',
-                             as_of_date=pd.Timestamp('2006-02-01', tz='UTC'))
-
-        # The default chain should not include the as of date.
-        self.assertEqual(repr(cl), "FutureChain(root_symbol='CL')")
-
-        # An explicit as of date should show up in the repr.
-        self.assertEqual(
-            repr(cl_feb),
-            ("FutureChain(root_symbol='CL', "
-             "as_of_date='2006-02-01 00:00:00+00:00')")
-        )
-
-    def test_as_of(self):
-        """ Test the as_of method of FutureChain.
-        """
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
-
-        # Test that the as_of_date is set correctly to the future
-        feb = pd.Timestamp('2006-02-01', tz='UTC')
-        cl_feb = cl.as_of(feb)
-        self.assertEqual(
-            cl_feb.as_of_date,
-            pd.Timestamp(feb, tz='UTC')
-        )
-
-        # Test that the as_of_date is set correctly to the past, with
-        # args of str, datetime.datetime, and pd.Timestamp.
-        feb_prev = pd.Timestamp('2005-02-01', tz='UTC')
-        cl_feb_prev = cl.as_of(feb_prev)
-        self.assertEqual(
-            cl_feb_prev.as_of_date,
-            pd.Timestamp(feb_prev, tz='UTC')
-        )
-
-        feb_prev = pd.Timestamp(datetime(year=2005, month=2, day=1), tz='UTC')
-        cl_feb_prev = cl.as_of(feb_prev)
-        self.assertEqual(
-            cl_feb_prev.as_of_date,
-            pd.Timestamp(feb_prev, tz='UTC')
-        )
-
-        feb_prev = pd.Timestamp('2005-02-01', tz='UTC')
-        cl_feb_prev = cl.as_of(feb_prev)
-        self.assertEqual(
-            cl_feb_prev.as_of_date,
-            pd.Timestamp(feb_prev, tz='UTC')
-        )
-
-        # Test that the as_of() method works with str args
-        feb_str = '2006-02-01'
-        cl_feb = cl.as_of(feb_str)
-        self.assertEqual(
-            cl_feb.as_of_date,
-            pd.Timestamp(feb, tz='UTC')
-        )
-
-        # The chain as of the current dt should always be the same as
-        # the defualt chain.
-        self.assertEqual(cl[0], cl.as_of(pd.Timestamp('2005-12-01'))[0])
-
-    def test_offset(self):
-        """ Test the offset method of FutureChain.
-        """
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
-
-        # Test that an offset forward sets as_of_date as expected
-        self.assertEqual(
-            cl.offset('3 days').as_of_date,
-            cl.as_of_date + pd.Timedelta(days=3)
-        )
-
-        # Test that an offset backward sets as_of_date as expected, with
-        # time delta given as str, datetime.timedelta, and pd.Timedelta.
-        self.assertEqual(
-            cl.offset('-1000 days').as_of_date,
-            cl.as_of_date + pd.Timedelta(days=-1000)
-        )
-        self.assertEqual(
-            cl.offset(timedelta(days=-1000)).as_of_date,
-            cl.as_of_date + pd.Timedelta(days=-1000)
-        )
-        self.assertEqual(
-            cl.offset(pd.Timedelta('-1000 days')).as_of_date,
-            cl.as_of_date + pd.Timedelta(days=-1000)
-        )
-
-        # An offset of zero should give the original chain.
-        self.assertEqual(cl[0], cl.offset(0)[0])
-        self.assertEqual(cl[0], cl.offset("0 days")[0])
-
-        # A string that doesn't represent a time delta should raise a
-        # ValueError.
-        with self.assertRaises(ValueError):
-            cl.offset("blah")
-
-    def test_cme_code_to_month(self):
-        codes = {
-            'F': 1,   # January
-            'G': 2,   # February
-            'H': 3,   # March
-            'J': 4,   # April
-            'K': 5,   # May
-            'M': 6,   # June
-            'N': 7,   # July
-            'Q': 8,   # August
-            'U': 9,   # September
-            'V': 10,  # October
-            'X': 11,  # November
-            'Z': 12   # December
-        }
-        for key in codes:
-            self.assertEqual(codes[key], cme_code_to_month(key))
-
-    def test_month_to_cme_code(self):
-        codes = {
-            1: 'F',   # January
-            2: 'G',   # February
-            3: 'H',   # March
-            4: 'J',   # April
-            5: 'K',   # May
-            6: 'M',   # June
-            7: 'N',   # July
-            8: 'Q',   # August
-            9: 'U',   # September
-            10: 'V',  # October
-            11: 'X',  # November
-            12: 'Z',  # December
-        }
-        for key in codes:
-            self.assertEqual(codes[key], month_to_cme_code(key))
-
-
 class TestAssetDBVersioning(ZiplineTestCase):
 
     def init_instance_fixtures(self):
@@ -1258,15 +1135,23 @@ class TestAssetDBVersioning(ZiplineTestCase):
         version_table = self.metadata.tables['version_info']
 
         # This should not raise an error
-        check_version_info(version_table, ASSET_DB_VERSION)
+        check_version_info(self.engine, version_table, ASSET_DB_VERSION)
 
         # This should fail because the version is too low
         with self.assertRaises(AssetDBVersionError):
-            check_version_info(version_table, ASSET_DB_VERSION - 1)
+            check_version_info(
+                self.engine,
+                version_table,
+                ASSET_DB_VERSION - 1,
+            )
 
         # This should fail because the version is too high
         with self.assertRaises(AssetDBVersionError):
-            check_version_info(version_table, ASSET_DB_VERSION + 1)
+            check_version_info(
+                self.engine,
+                version_table,
+                ASSET_DB_VERSION + 1,
+            )
 
     def test_write_version(self):
         version_table = self.metadata.tables['version_info']
@@ -1278,24 +1163,24 @@ class TestAssetDBVersioning(ZiplineTestCase):
         # This should fail because the table has no version info and is,
         # therefore, consdered v0
         with self.assertRaises(AssetDBVersionError):
-            check_version_info(version_table, -2)
+            check_version_info(self.engine, version_table, -2)
 
         # This should not raise an error because the version has been written
-        write_version_info(version_table, -2)
-        check_version_info(version_table, -2)
+        write_version_info(self.engine, version_table, -2)
+        check_version_info(self.engine, version_table, -2)
 
         # Assert that the version is in the table and correct
         self.assertEqual(sa.select((version_table.c.version,)).scalar(), -2)
 
         # Assert that trying to overwrite the version fails
         with self.assertRaises(sa.exc.IntegrityError):
-            write_version_info(version_table, -3)
+            write_version_info(self.engine, version_table, -3)
 
     def test_finder_checks_version(self):
         version_table = self.metadata.tables['version_info']
         version_table.delete().execute()
-        write_version_info(version_table, -2)
-        check_version_info(version_table, -2)
+        write_version_info(self.engine, version_table, -2)
+        check_version_info(self.engine, version_table, -2)
 
         # Assert that trying to build a finder with a bad db raises an error
         with self.assertRaises(AssetDBVersionError):
@@ -1303,8 +1188,8 @@ class TestAssetDBVersioning(ZiplineTestCase):
 
         # Change the version number of the db to the correct version
         version_table.delete().execute()
-        write_version_info(version_table, ASSET_DB_VERSION)
-        check_version_info(version_table, ASSET_DB_VERSION)
+        write_version_info(self.engine, version_table, ASSET_DB_VERSION)
+        check_version_info(self.engine, version_table, ASSET_DB_VERSION)
 
         # Now that the versions match, this Finder should succeed
         AssetFinder(engine=self.engine)
@@ -1312,13 +1197,22 @@ class TestAssetDBVersioning(ZiplineTestCase):
     def test_downgrade(self):
         # Attempt to downgrade a current assets db all the way down to v0
         conn = self.engine.connect()
+
+        # first downgrade to v3
+        downgrade(self.engine, 3)
+        metadata = sa.MetaData(conn)
+        metadata.reflect()
+        check_version_info(conn, metadata.tables['version_info'], 3)
+        self.assertFalse('exchange_full' in metadata.tables)
+
+        # now go all the way to v0
         downgrade(self.engine, 0)
 
         # Verify that the db version is now 0
         metadata = sa.MetaData(conn)
-        metadata.reflect(bind=self.engine)
+        metadata.reflect()
         version_table = metadata.tables['version_info']
-        check_version_info(version_table, 0)
+        check_version_info(conn, version_table, 0)
 
         # Check some of the v1-to-v0 downgrades
         self.assertTrue('futures_contracts' in metadata.tables)
@@ -1333,3 +1227,36 @@ class TestAssetDBVersioning(ZiplineTestCase):
         # higher-than-current version
         with self.assertRaises(AssetDBImpossibleDowngrade):
             downgrade(self.engine, ASSET_DB_VERSION + 5)
+
+    def test_v5_to_v4_selects_most_recent_ticker(self):
+        T = pd.Timestamp
+        AssetDBWriter(self.engine).write(
+            equities=pd.DataFrame(
+                [['A', 'A', T('2014-01-01'), T('2014-01-02')],
+                 ['B', 'B', T('2014-01-01'), T('2014-01-02')],
+                 # these two are both ticker sid 2
+                 ['B', 'C', T('2014-01-03'), T('2014-01-04')],
+                 ['C', 'C', T('2014-01-01'), T('2014-01-02')]],
+                index=[0, 1, 2, 2],
+                columns=['symbol', 'asset_name', 'start_date', 'end_date'],
+            ),
+        )
+
+        downgrade(self.engine, 4)
+        metadata = sa.MetaData(self.engine)
+        metadata.reflect()
+
+        def select_fields(r):
+            return r.sid, r.symbol, r.asset_name, r.start_date, r.end_date
+
+        expected_data = {
+            (0, 'A', 'A', T('2014-01-01').value, T('2014-01-02').value),
+            (1, 'B', 'B', T('2014-01-01').value, T('2014-01-02').value),
+            (2, 'B', 'C', T('2014-01-01').value, T('2014-01-04').value),
+        }
+        actual_data = set(map(
+            select_fields,
+            sa.select(metadata.tables['equities'].c).execute(),
+        ))
+
+        assert_equal(expected_data, actual_data)

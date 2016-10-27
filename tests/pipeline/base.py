@@ -1,27 +1,28 @@
 """
-Base class for Pipeline API  unittests.
+Base class for Pipeline API unit tests.
 """
 from functools import wraps
-from unittest import TestCase
 
 import numpy as np
 from numpy import arange, prod
-from pandas import date_range, Int64Index, DataFrame
+from pandas import DataFrame, Timestamp
 from six import iteritems
 
-from zipline.assets.synthetic import make_simple_equity_info
 from zipline.pipeline.engine import SimplePipelineEngine
-from zipline.pipeline import TermGraph
-from zipline.pipeline.term import AssetExists
+from zipline.pipeline import ExecutionPlan
+from zipline.pipeline.term import AssetExists, InputDates
 from zipline.testing import (
     check_arrays,
     ExplodingObject,
-    tmp_asset_finder,
+)
+from zipline.testing.fixtures import (
+    WithAssetFinder,
+    WithTradingSessions,
+    ZiplineTestCase,
 )
 
 from zipline.utils.functional import dzip_exact
 from zipline.utils.pandas_utils import explode
-from zipline.utils.tradingcalendar import trading_day
 
 
 def with_defaults(**default_funcs):
@@ -51,33 +52,26 @@ def with_defaults(**default_funcs):
 with_default_shape = with_defaults(shape=lambda self: self.default_shape)
 
 
-class BasePipelineTestCase(TestCase):
+class BasePipelineTestCase(WithTradingSessions,
+                           WithAssetFinder,
+                           ZiplineTestCase):
+    START_DATE = Timestamp('2014', tz='UTC')
+    END_DATE = Timestamp('2014-12-31', tz='UTC')
+    ASSET_FINDER_EQUITY_SIDS = list(range(20))
 
     @classmethod
-    def setUpClass(cls):
-        cls.__calendar = date_range('2014', '2015', freq=trading_day)
-        cls.__assets = assets = Int64Index(arange(1, 20))
-        cls.__tmp_finder_ctx = tmp_asset_finder(
-            equities=make_simple_equity_info(
-                assets,
-                cls.__calendar[0],
-                cls.__calendar[-1],
-            )
-        )
-        cls.__finder = cls.__tmp_finder_ctx.__enter__()
-        cls.__mask = cls.__finder.lifetimes(
-            cls.__calendar[-30:],
+    def init_class_fixtures(cls):
+        super(BasePipelineTestCase, cls).init_class_fixtures()
+
+        cls.default_asset_exists_mask = cls.asset_finder.lifetimes(
+            cls.nyse_sessions[-30:],
             include_start_date=False,
         )
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.__tmp_finder_ctx.__exit__()
 
     @property
     def default_shape(self):
         """Default shape for methods that build test data."""
-        return self.__mask.shape
+        return self.default_asset_exists_mask.shape
 
     def run_graph(self, graph, initial_workspace, mask=None):
         """
@@ -102,14 +96,17 @@ class BasePipelineTestCase(TestCase):
         """
         engine = SimplePipelineEngine(
             lambda column: ExplodingObject(),
-            self.__calendar,
-            self.__finder,
+            self.nyse_sessions,
+            self.asset_finder,
         )
         if mask is None:
-            mask = self.__mask
+            mask = self.default_asset_exists_mask
 
         dates, assets, mask_values = explode(mask)
+
         initial_workspace.setdefault(AssetExists(), mask_values)
+        initial_workspace.setdefault(InputDates(), dates)
+
         return engine.compute_chunk(
             graph,
             dates,
@@ -117,15 +114,29 @@ class BasePipelineTestCase(TestCase):
             initial_workspace,
         )
 
-    def check_terms(self, terms, expected, initial_workspace, mask):
+    def check_terms(self,
+                    terms,
+                    expected,
+                    initial_workspace,
+                    mask,
+                    check=check_arrays):
         """
         Compile the given terms into a TermGraph, compute it with
         initial_workspace, and compare the results with ``expected``.
         """
-        graph = TermGraph(terms)
+        start_date, end_date = mask.index[[0, -1]]
+        graph = ExecutionPlan(
+            terms,
+            all_dates=self.nyse_sessions,
+            start_date=start_date,
+            end_date=end_date,
+        )
+
         results = self.run_graph(graph, initial_workspace, mask)
         for key, (res, exp) in dzip_exact(results, expected).items():
-            check_arrays(res, exp)
+            check(res, exp)
+
+        return results
 
     def build_mask(self, array):
         """
@@ -137,13 +148,13 @@ class BasePipelineTestCase(TestCase):
             array,
             # Use the **last** N dates rather than the first N so that we have
             # space for lookbacks.
-            index=self.__calendar[-ndates:],
-            columns=self.__assets[:nassets],
+            index=self.nyse_sessions[-ndates:],
+            columns=self.ASSET_FINDER_EQUITY_SIDS[:nassets],
             dtype=bool,
         )
 
     @with_default_shape
-    def arange_data(self, shape, dtype=float):
+    def arange_data(self, shape, dtype=np.float64):
         """
         Build a block of testing data from numpy.arange.
         """

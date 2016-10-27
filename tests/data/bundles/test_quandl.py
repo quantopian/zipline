@@ -5,6 +5,7 @@ import pandas as pd
 from toolz import merge
 import toolz.curried.operator as op
 
+from zipline import get_calendar
 from zipline.data.bundles import ingest, load, bundles
 from zipline.data.bundles.quandl import (
     format_wiki_url,
@@ -27,9 +28,10 @@ class QuandlBundleTestCase(ZiplineTestCase):
     symbols = 'AAPL', 'BRK_A', 'MSFT', 'ZEN'
     asset_start = pd.Timestamp('2014-01', tz='utc')
     asset_end = pd.Timestamp('2015-01', tz='utc')
-    calendar = bundles['quandl'].calendar
-    start_date = calendar[0]
-    end_date = calendar[-1]
+    bundle = bundles['quandl']
+    calendar = get_calendar(bundle.calendar_name)
+    start_date = calendar.first_session
+    end_date = calendar.last_session
     api_key = 'ayylmao'
     columns = 'open', 'high', 'low', 'close', 'volume'
 
@@ -87,7 +89,9 @@ class QuandlBundleTestCase(ZiplineTestCase):
                 yield vs
 
         # the first index our written data will appear in the files on disk
-        start_idx = self.calendar.get_loc(self.asset_start, 'ffill') + 1
+        start_idx = (
+            self.calendar.all_sessions.get_loc(self.asset_start, 'ffill') + 1
+        )
 
         # convert an index into the raw dataframe into an index into the
         # final data
@@ -215,11 +219,11 @@ class QuandlBundleTestCase(ZiplineTestCase):
             assert_equal(equity.start_date, self.asset_start, msg=equity)
             assert_equal(equity.end_date, self.asset_end, msg=equity)
 
-        cal = self.calendar
-        actual = bundle.daily_bar_reader.load_raw_arrays(
+        sessions = self.calendar.all_sessions
+        actual = bundle.equity_daily_bar_reader.load_raw_arrays(
             self.columns,
-            cal[cal.get_loc(self.asset_start, 'bfill')],
-            cal[cal.get_loc(self.asset_end, 'ffill')],
+            sessions[sessions.get_loc(self.asset_start, 'bfill')],
+            sessions[sessions.get_loc(self.asset_end, 'ffill')],
             sids,
         )
         expected_pricing, expected_adjustments = self._expected_data(
@@ -229,7 +233,7 @@ class QuandlBundleTestCase(ZiplineTestCase):
 
         adjustments_for_cols = bundle.adjustment_reader.load_adjustments(
             self.columns,
-            cal,
+            sessions,
             pd.Index(sids),
         )
 

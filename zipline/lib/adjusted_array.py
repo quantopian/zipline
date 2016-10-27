@@ -200,7 +200,10 @@ class AdjustedArray(object):
             return LabelWindow
         return CONCRETE_WINDOW_TYPES[self._data.dtype]
 
-    def traverse(self, window_length, offset=0):
+    def traverse(self,
+                 window_length,
+                 offset=0,
+                 perspective_offset=0):
         """
         Produce an iterator rolling windows rows over our data.
         Each emitted window will have `window_length` rows.
@@ -210,7 +213,10 @@ class AdjustedArray(object):
         window_length : int
             The number of rows in each emitted window.
         offset : int, optional
-            Number of rows to skip before the first window.
+            Number of rows to skip before the first window.  Default is 0.
+        perspective_offset : int, optional
+            Number of rows past the end of the current window from which to
+            "view" the underlying data.
         """
         data = self._data.copy()
         _check_window_params(data, window_length)
@@ -220,6 +226,7 @@ class AdjustedArray(object):
             self.adjustments,
             offset,
             window_length,
+            perspective_offset,
         )
 
     def inspect(self):

@@ -17,6 +17,10 @@ Enhancements
 - Added support for non-float columns to Blaze-backed Pipeline
   datasets (:issue:`1201`).
 
+- Added :class:`zipline.pipeline.slice.Slice`, a new pipeline term designed to
+  extract a single column from another term. Slices can be created by indexing
+  into a term, keyed by asset. (:issue:`1267`)
+
 Bug Fixes
 ~~~~~~~~~
 

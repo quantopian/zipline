@@ -4,7 +4,15 @@ Tests for our testing utilities.
 from itertools import product
 from unittest import TestCase
 
-from zipline.testing import parameter_space
+from numpy import array, empty
+
+from zipline.testing import (
+    check_arrays,
+    make_alternating_boolean_array,
+    make_cascading_boolean_array,
+    parameter_space,
+)
+from zipline.utils.numpy_utils import bool_dtype
 
 
 class TestParameterSpace(TestCase):
@@ -38,3 +46,66 @@ class TestParameterSpace(TestCase):
         # our {setUp,tearDown}Class won't be called if, for example,
         # `parameter_space` returns None.
         pass
+
+
+class TestMakeBooleanArray(TestCase):
+
+    def test_make_alternating_boolean_array(self):
+        check_arrays(
+            make_alternating_boolean_array((3, 3)),
+            array(
+                [[True,  False,  True],
+                 [False,  True, False],
+                 [True,  False,  True]]
+            ),
+        )
+        check_arrays(
+            make_alternating_boolean_array((3, 3), first_value=False),
+            array(
+                [[False,  True, False],
+                 [True,  False,  True],
+                 [False,  True, False]]
+            ),
+        )
+        check_arrays(
+            make_alternating_boolean_array((1, 3)),
+            array([[True, False, True]]),
+        )
+        check_arrays(
+            make_alternating_boolean_array((3, 1)),
+            array([[True], [False], [True]]),
+        )
+        check_arrays(
+            make_alternating_boolean_array((3, 0)),
+            empty((3, 0), dtype=bool_dtype),
+        )
+
+    def test_make_cascading_boolean_array(self):
+        check_arrays(
+            make_cascading_boolean_array((3, 3)),
+            array(
+                [[True,   True, False],
+                 [True,  False, False],
+                 [False, False, False]]
+            ),
+        )
+        check_arrays(
+            make_cascading_boolean_array((3, 3), first_value=False),
+            array(
+                [[False, False, True],
+                 [False,  True, True],
+                 [True,   True, True]]
+            ),
+        )
+        check_arrays(
+            make_cascading_boolean_array((1, 3)),
+            array([[True, True, False]]),
+        )
+        check_arrays(
+            make_cascading_boolean_array((3, 1)),
+            array([[False], [False], [False]]),
+        )
+        check_arrays(
+            make_cascading_boolean_array((3, 0)),
+            empty((3, 0), dtype=bool_dtype),
+        )

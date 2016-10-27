@@ -5,7 +5,9 @@ import pandas as pd
 from pandas_datareader.data import DataReader
 import requests
 
+from zipline.utils.calendars import register_calendar_alias
 from zipline.utils.cli import maybe_show_progress
+from .core import register
 
 
 def _cachpath(symbol, type_):
@@ -60,6 +62,8 @@ def yahoo_equities(symbols, start=None, end=None):
                daily_bar_writer,
                adjustment_writer,
                calendar,
+               start_session,
+               end_session,
                cache,
                show_progress,
                output_dir,
@@ -67,7 +71,7 @@ def yahoo_equities(symbols, start=None, end=None):
                start=start,
                end=end):
         if start is None:
-            start = calendar[0]
+            start = start_session
         if end is None:
             end = None
 
@@ -119,9 +123,14 @@ def yahoo_equities(symbols, start=None, end=None):
                     yield sid, df
                     sid += 1
 
-        daily_bar_writer.write(_pricing_iter(), show_progress=True)
+        daily_bar_writer.write(_pricing_iter(), show_progress=show_progress)
 
         symbol_map = pd.Series(metadata.symbol.index, metadata.symbol)
+
+        # Hardcode the exchange to "YAHOO" for all assets and (elsewhere)
+        # register "YAHOO" to resolve to the NYSE calendar, because these are
+        # all equities and thus can use the NYSE calendar.
+        metadata['exchange'] = "YAHOO"
         asset_db_writer.write(equities=metadata)
 
         adjustments = []
@@ -169,3 +178,26 @@ def yahoo_equities(symbols, start=None, end=None):
         adjustment_writer.write(splits=splits, dividends=dividends)
 
     return ingest
+
+
+# bundle used when creating test data
+register(
+    '.test',
+    yahoo_equities(
+        (
+            'AMD',
+            'CERN',
+            'COST',
+            'DELL',
+            'GPS',
+            'INTC',
+            'MMM',
+            'AAPL',
+            'MSFT',
+        ),
+        pd.Timestamp('2004-01-02', tz='utc'),
+        pd.Timestamp('2015-01-01', tz='utc'),
+    ),
+)
+
+register_calendar_alias("YAHOO", "NYSE")

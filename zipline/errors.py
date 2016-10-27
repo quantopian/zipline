@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from textwrap import dedent
 
 from zipline.utils.memoize import lazyval
 
@@ -281,7 +282,7 @@ Multiple symbols with the name '{symbol}' found. Use the
 as_of_date' argument to to specify when the date symbol-lookup
 should be valid.
 
-Possible options:{options}
+Possible options: {options}
     """.strip()
 
 
@@ -583,6 +584,29 @@ class NoFurtherDataError(ZiplineError):
     # that can be usefully templated.
     msg = '{msg}'
 
+    @classmethod
+    def from_lookback_window(cls,
+                             initial_message,
+                             first_date,
+                             lookback_start,
+                             lookback_length):
+        return cls(
+            msg=dedent(
+                """
+                {initial_message}
+
+                lookback window started at {lookback_start}
+                earliest known date was {first_date}
+                {lookback_length} extra rows of data were required
+                """
+            ).format(
+                initial_message=initial_message,
+                first_date=first_date,
+                lookback_start=lookback_start,
+                lookback_length=lookback_length,
+            )
+        )
+
 
 class UnsupportedDatetimeFormat(ZiplineError):
     """
@@ -634,4 +658,72 @@ class NonExistentAssetInTimeFrame(ZiplineError):
     msg = (
         "The target asset '{asset}' does not exist for the entire timeframe "
         "between {start_date} and {end_date}."
+    )
+
+
+class InvalidCalendarName(ZiplineError):
+    """
+    Raised when a calendar with an invalid name is requested.
+    """
+    msg = (
+        "The requested TradingCalendar, {calendar_name}, does not exist."
+    )
+
+
+class CalendarNameCollision(ZiplineError):
+    """
+    Raised when the static calendar registry already has a calendar with a
+    given name.
+    """
+    msg = (
+        "A calendar with the name {calendar_name} is already registered."
+    )
+
+
+class CyclicCalendarAlias(ZiplineError):
+    """
+    Raised when calendar aliases form a cycle.
+    """
+    msg = "Cycle in calendar aliases: [{cycle}]"
+
+
+class ScheduleFunctionWithoutCalendar(ZiplineError):
+    """
+    Raised when schedule_function is called but there is not a calendar to be
+    used in the construction of an event rule.
+    """
+    # TODO update message when new TradingSchedules are built
+    msg = (
+        "To use schedule_function, the TradingAlgorithm must be running on an "
+        "ExchangeTradingSchedule, rather than {schedule}."
+    )
+
+
+class UnsupportedPipelineOutput(ZiplineError):
+    """
+    Raised when a 1D term is added as a column to a pipeline.
+    """
+    msg = (
+        "Cannot add column {column_name!r} with term {term}. Adding slices or "
+        "single-column-output terms as pipeline columns is not currently "
+        "supported."
+    )
+
+
+class NonSliceableTerm(ZiplineError):
+    """
+    Raised when attempting to index into a non-sliceable term, e.g. instances
+    of `zipline.pipeline.term.LoadableTerm`.
+    """
+    msg = "Taking slices of {term} is not currently supported."
+
+
+class IncompatibleTerms(ZiplineError):
+    """
+    Raised when trying to compute correlations/regressions between two 2D
+    factors with different masks.
+    """
+    msg = (
+        "{term_1} and {term_2} must have the same mask in order to compute "
+        "correlations and regressions asset-wise."
     )

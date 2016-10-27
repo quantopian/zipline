@@ -57,8 +57,10 @@ from zipline.testing.fixtures import (
     WithSimParams,
     WithTmpDir,
     WithTradingEnvironment,
+    WithTradingCalendars,
     ZiplineTestCase,
 )
+from zipline.utils.calendars import get_calendar
 
 logger = logging.getLogger('Test Perf Tracking')
 
@@ -109,26 +111,26 @@ def check_account(account,
     # so net and gross leverage are equal.
 
     np.testing.assert_allclose(settled_cash,
-                               account['settled_cash'], rtol=1e-3)
+                               account.settled_cash, rtol=1e-3)
     np.testing.assert_allclose(equity_with_loan,
-                               account['equity_with_loan'], rtol=1e-3)
+                               account.equity_with_loan, rtol=1e-3)
     np.testing.assert_allclose(total_positions_value,
-                               account['total_positions_value'], rtol=1e-3)
+                               account.total_positions_value, rtol=1e-3)
     np.testing.assert_allclose(total_positions_exposure,
-                               account['total_positions_exposure'], rtol=1e-3)
+                               account.total_positions_exposure, rtol=1e-3)
     np.testing.assert_allclose(regt_equity,
-                               account['regt_equity'], rtol=1e-3)
+                               account.regt_equity, rtol=1e-3)
     np.testing.assert_allclose(available_funds,
-                               account['available_funds'], rtol=1e-3)
+                               account.available_funds, rtol=1e-3)
     np.testing.assert_allclose(excess_liquidity,
-                               account['excess_liquidity'], rtol=1e-3)
+                               account.excess_liquidity, rtol=1e-3)
     np.testing.assert_allclose(cushion,
-                               account['cushion'], rtol=1e-3)
-    np.testing.assert_allclose(leverage, account['leverage'], rtol=1e-3)
+                               account.cushion, rtol=1e-3)
+    np.testing.assert_allclose(leverage, account.leverage, rtol=1e-3)
     np.testing.assert_allclose(net_leverage,
-                               account['net_leverage'], rtol=1e-3)
+                               account.net_leverage, rtol=1e-3)
     np.testing.assert_allclose(net_liquidation,
-                               account['net_liquidation'], rtol=1e-3)
+                               account.net_liquidation, rtol=1e-3)
 
 
 def create_txn(asset, dt, price, amount):
@@ -175,11 +177,13 @@ def calculate_results(sim_params,
     splits = splits or {}
     commissions = commissions or {}
 
-    perf_tracker = perf.PerformanceTracker(sim_params, env)
+    perf_tracker = perf.PerformanceTracker(
+        sim_params, get_calendar("NYSE"), env
+    )
 
     results = []
 
-    for date in sim_params.trading_days:
+    for date in sim_params.sessions:
         for txn in filter(lambda txn: txn.dt == date, txns):
             # Process txns for this date.
             perf_tracker.process_transaction(txn)
@@ -212,7 +216,7 @@ def check_perf_tracker_serialization(perf_tracker):
         'txn_count',
         'market_open',
         'last_close',
-        'period_start',
+        'start_session',
         'day_count',
         'capital_base',
         'market_close',
@@ -239,8 +243,10 @@ def setup_env_data(env, sim_params, sids, futures_sids=[]):
     data = {}
     for sid in sids:
         data[sid] = {
-            "start_date": sim_params.trading_days[0],
-            "end_date": env.next_trading_day(sim_params.trading_days[-1])
+            "start_date": sim_params.sessions[0],
+            "end_date": get_calendar("NYSE").next_session_label(
+                sim_params.sessions[-1]
+            )
         }
 
     env.write_data(equities_data=data)
@@ -248,8 +254,11 @@ def setup_env_data(env, sim_params, sids, futures_sids=[]):
     futures_data = {}
     for future_sid in futures_sids:
         futures_data[future_sid] = {
-            "start_date": sim_params.trading_days[0],
-            "end_date": env.next_trading_day(sim_params.trading_days[-1]),
+            "start_date": sim_params.sessions[0],
+            # (obviously) FIXME once we have a future calendar
+            "end_date": get_calendar("NYSE").next_session_label(
+                sim_params.sessions[-1]
+            ),
             "multiplier": 100
         }
 
@@ -271,7 +280,9 @@ class TestSplitPerformance(WithSimParams, WithTmpDir, ZiplineTestCase):
     def test_multiple_splits(self):
         # if multiple positions all have splits at the same time, verify that
         # the total leftover cash is correct
-        perf_tracker = perf.PerformanceTracker(self.sim_params, self.env)
+        perf_tracker = perf.PerformanceTracker(self.sim_params,
+                                               self.trading_calendar,
+                                               self.env)
 
         asset1 = self.asset_finder.retrieve_asset(1)
         asset2 = self.asset_finder.retrieve_asset(2)
@@ -300,13 +311,14 @@ class TestSplitPerformance(WithSimParams, WithTmpDir, ZiplineTestCase):
             [100, 100],
             oneday,
             self.sim_params,
-            env=self.env
+            trading_calendar=self.trading_calendar,
         )
 
         # set up a long position in sid 1
         # 100 shares at $20 apiece = $2000 position
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
+            self.trading_calendar,
             self.tmpdir,
             self.sim_params,
             {1: events},
@@ -356,28 +368,28 @@ class TestSplitPerformance(WithSimParams, WithTmpDir, ZiplineTestCase):
 
         # Validate that the account attributes were updated.
         account = results[1]['account']
-        self.assertEqual(float('inf'), account['day_trades_remaining'])
+        self.assertEqual(float('inf'), account.day_trades_remaining)
         # this is a long only portfolio that is only partially invested
         # so net and gross leverage are equal.
-        np.testing.assert_allclose(0.198, account['leverage'], rtol=1e-3)
-        np.testing.assert_allclose(0.198, account['net_leverage'], rtol=1e-3)
-        np.testing.assert_allclose(8020, account['regt_equity'], rtol=1e-3)
-        self.assertEqual(float('inf'), account['regt_margin'])
-        np.testing.assert_allclose(8020, account['available_funds'], rtol=1e-3)
-        self.assertEqual(0, account['maintenance_margin_requirement'])
+        np.testing.assert_allclose(0.198, account.leverage, rtol=1e-3)
+        np.testing.assert_allclose(0.198, account.net_leverage, rtol=1e-3)
+        np.testing.assert_allclose(8020, account.regt_equity, rtol=1e-3)
+        self.assertEqual(float('inf'), account.regt_margin)
+        np.testing.assert_allclose(8020, account.available_funds, rtol=1e-3)
+        self.assertEqual(0, account.maintenance_margin_requirement)
         np.testing.assert_allclose(10000,
-                                   account['equity_with_loan'], rtol=1e-3)
-        self.assertEqual(float('inf'), account['buying_power'])
-        self.assertEqual(0, account['initial_margin_requirement'])
-        np.testing.assert_allclose(8020, account['excess_liquidity'],
+                                   account.equity_with_loan, rtol=1e-3)
+        self.assertEqual(float('inf'), account.buying_power)
+        self.assertEqual(0, account.initial_margin_requirement)
+        np.testing.assert_allclose(8020, account.excess_liquidity,
                                    rtol=1e-3)
-        np.testing.assert_allclose(8020, account['settled_cash'], rtol=1e-3)
-        np.testing.assert_allclose(10000, account['net_liquidation'],
+        np.testing.assert_allclose(8020, account.settled_cash, rtol=1e-3)
+        np.testing.assert_allclose(10000, account.net_liquidation,
                                    rtol=1e-3)
-        np.testing.assert_allclose(0.802, account['cushion'], rtol=1e-3)
-        np.testing.assert_allclose(1980, account['total_positions_value'],
+        np.testing.assert_allclose(0.802, account.cushion, rtol=1e-3)
+        np.testing.assert_allclose(1980, account.total_positions_value,
                                    rtol=1e-3)
-        self.assertEqual(0, account['accrued_interest'])
+        self.assertEqual(0, account.accrued_interest)
 
         for i, result in enumerate(results):
             for perf_kind in ('daily_perf', 'cumulative_perf'):
@@ -411,7 +423,7 @@ class TestDividendPerformance(WithSimParams,
         after = factory.get_next_trading_dt(
             before,
             timedelta(days=1),
-            self.env,
+            self.trading_calendar,
         )
         self.assertEqual(after.hour, 13)
 
@@ -423,7 +435,7 @@ class TestDividendPerformance(WithSimParams,
             [100, 100, 100, 100, 100, 100],
             oneday,
             self.sim_params,
-            env=self.env
+            trading_calendar=self.trading_calendar,
         )
 
         dbpath = self.instance_tmpdir.getpath('adjustments.sqlite')
@@ -431,7 +443,7 @@ class TestDividendPerformance(WithSimParams,
         writer = SQLiteAdjustmentWriter(
             dbpath,
             MockDailyBarReader(),
-            self.env.trading_days,
+            self.trading_calendar.all_sessions,
         )
         splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
@@ -445,7 +457,8 @@ class TestDividendPerformance(WithSimParams,
         writer.write(splits, mergers, dividends)
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
+            self.trading_calendar,
             self.instance_tmpdir,
             self.sim_params,
             {1: events},
@@ -488,7 +501,7 @@ class TestDividendPerformance(WithSimParams,
                 [100, 100, 100, 100, 100, 100],
                 oneday,
                 self.sim_params,
-                env=self.env
+                trading_calendar=self.trading_calendar,
             )
 
         dbpath = self.instance_tmpdir.getpath('adjustments.sqlite')
@@ -496,7 +509,7 @@ class TestDividendPerformance(WithSimParams,
         writer = SQLiteAdjustmentWriter(
             dbpath,
             MockDailyBarReader(),
-            self.env.trading_days,
+            self.trading_calendar.all_sessions
         )
         splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
@@ -521,7 +534,8 @@ class TestDividendPerformance(WithSimParams,
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
+            self.trading_calendar,
             self.instance_tmpdir,
             self.sim_params,
             events,
@@ -562,7 +576,7 @@ class TestDividendPerformance(WithSimParams,
             [100, 100, 100, 100, 100, 100],
             oneday,
             self.sim_params,
-            env=self.env
+            trading_calendar=self.trading_calendar
         )
 
         dbpath = self.instance_tmpdir.getpath('adjustments.sqlite')
@@ -570,7 +584,7 @@ class TestDividendPerformance(WithSimParams,
         writer = SQLiteAdjustmentWriter(
             dbpath,
             MockDailyBarReader(),
-            self.env.trading_days,
+            self.trading_calendar.all_sessions
         )
         splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
@@ -585,7 +599,8 @@ class TestDividendPerformance(WithSimParams,
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
+            self.trading_calendar,
             self.instance_tmpdir,
             self.sim_params,
             {1: events},
@@ -623,7 +638,7 @@ class TestDividendPerformance(WithSimParams,
             [100, 100, 100, 100, 100, 100],
             oneday,
             self.sim_params,
-            env=self.env
+            trading_calendar=self.trading_calendar,
         )
 
         dbpath = self.instance_tmpdir.getpath('adjustments.sqlite')
@@ -631,7 +646,7 @@ class TestDividendPerformance(WithSimParams,
         writer = SQLiteAdjustmentWriter(
             dbpath,
             MockDailyBarReader(),
-            self.env.trading_days,
+            self.trading_calendar.all_sessions,
         )
         splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
@@ -646,7 +661,8 @@ class TestDividendPerformance(WithSimParams,
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
+            self.trading_calendar,
             self.instance_tmpdir,
             self.sim_params,
             {1: events},
@@ -678,6 +694,8 @@ class TestDividendPerformance(WithSimParams,
                          [-1000, -1000, 0, 1000, 1000, 1000])
 
     def test_buy_and_sell_before_ex(self):
+        # need a six-day simparam
+
         # post some trades in the market
         events = factory.create_trade_history(
             self.asset1,
@@ -685,14 +703,14 @@ class TestDividendPerformance(WithSimParams,
             [100, 100, 100, 100, 100, 100],
             oneday,
             self.sim_params,
-            env=self.env
+            trading_calendar=self.trading_calendar,
         )
         dbpath = self.instance_tmpdir.getpath('adjustments.sqlite')
 
         writer = SQLiteAdjustmentWriter(
             dbpath,
             MockDailyBarReader(),
-            self.env.trading_days,
+            self.trading_calendar.all_sessions,
         )
         splits = mergers = create_empty_splits_mergers_frame()
 
@@ -708,7 +726,8 @@ class TestDividendPerformance(WithSimParams,
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
+            self.trading_calendar,
             self.instance_tmpdir,
             self.sim_params,
             {1: events},
@@ -745,20 +764,21 @@ class TestDividendPerformance(WithSimParams,
             [100, 100, 100, 100, 100, 100],
             oneday,
             self.sim_params,
-            env=self.env
+            trading_calendar=self.trading_calendar,
         )
 
         pay_date = self.sim_params.first_open
         # find pay date that is much later.
         for i in range(30):
-            pay_date = factory.get_next_trading_dt(pay_date, oneday, self.env)
+            pay_date = factory.get_next_trading_dt(pay_date, oneday,
+                                                   self.trading_calendar)
 
         dbpath = self.instance_tmpdir.getpath('adjustments.sqlite')
 
         writer = SQLiteAdjustmentWriter(
             dbpath,
             MockDailyBarReader(),
-            self.env.trading_days,
+            self.trading_calendar.all_sessions,
         )
         splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
@@ -773,7 +793,8 @@ class TestDividendPerformance(WithSimParams,
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
+            self.trading_calendar,
             self.instance_tmpdir,
             self.sim_params,
             {1: events},
@@ -811,7 +832,7 @@ class TestDividendPerformance(WithSimParams,
             [100, 100, 100, 100, 100, 100],
             oneday,
             self.sim_params,
-            env=self.env
+            trading_calendar=self.trading_calendar,
         )
 
         dbpath = self.instance_tmpdir.getpath('adjustments.sqlite')
@@ -819,7 +840,7 @@ class TestDividendPerformance(WithSimParams,
         writer = SQLiteAdjustmentWriter(
             dbpath,
             MockDailyBarReader(),
-            self.env.trading_days,
+            self.trading_calendar.all_sessions,
         )
         splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
@@ -834,7 +855,8 @@ class TestDividendPerformance(WithSimParams,
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
+            self.trading_calendar,
             self.instance_tmpdir,
             self.sim_params,
             {1: events},
@@ -869,7 +891,7 @@ class TestDividendPerformance(WithSimParams,
             [100, 100, 100, 100, 100, 100],
             oneday,
             self.sim_params,
-            env=self.env
+            trading_calendar=self.trading_calendar,
         )
 
         dbpath = self.instance_tmpdir.getpath('adjustments.sqlite')
@@ -877,7 +899,7 @@ class TestDividendPerformance(WithSimParams,
         writer = SQLiteAdjustmentWriter(
             dbpath,
             MockDailyBarReader(),
-            self.env.trading_days,
+            self.trading_calendar.all_sessions,
         )
         splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
@@ -892,7 +914,8 @@ class TestDividendPerformance(WithSimParams,
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
+            self.trading_calendar,
             self.instance_tmpdir,
             self.sim_params,
             {1: events},
@@ -921,11 +944,11 @@ class TestDividendPerformance(WithSimParams,
         # post some trades in the market
         events = factory.create_trade_history(
             self.asset1,
-            [10, 10, 10, 10, 10],
-            [100, 100, 100, 100, 100],
+            [10, 10, 10, 10, 10, 10],
+            [100, 100, 100, 100, 100, 100],
             oneday,
             self.sim_params,
-            env=self.env
+            trading_calendar=self.trading_calendar,
         )
 
         dbpath = self.instance_tmpdir.getpath('adjustments.sqlite')
@@ -933,7 +956,7 @@ class TestDividendPerformance(WithSimParams,
         writer = SQLiteAdjustmentWriter(
             dbpath,
             MockDailyBarReader(),
-            self.env.trading_days,
+            self.trading_calendar.all_sessions,
         )
         splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
@@ -942,8 +965,13 @@ class TestDividendPerformance(WithSimParams,
             'declared_date': np.array([events[-3].dt], dtype='datetime64[ns]'),
             'ex_date': np.array([events[-2].dt], dtype='datetime64[ns]'),
             'record_date': np.array([events[0].dt], dtype='datetime64[ns]'),
-            'pay_date': np.array([self.env.next_trading_day(events[-1].dt)],
-                                 dtype='datetime64[ns]'),
+            'pay_date': np.array(
+                [self.trading_calendar.next_session_label(
+                    self.trading_calendar.minute_to_session_label(
+                        events[-1].dt
+                    )
+                )],
+                dtype='datetime64[ns]'),
         })
         writer.write(splits, mergers, dividends)
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
@@ -952,15 +980,18 @@ class TestDividendPerformance(WithSimParams,
         sim_params = create_simulation_parameters(
             num_days=6,
             capital_base=10e3,
-            start=self.sim_params.period_start,
-            end=self.sim_params.period_end
+            start=self.sim_params.start_session,
+            end=self.sim_params.end_session
         )
 
-        sim_params.period_end = events[-1].dt
-        sim_params.update_internal_from_env(self.env)
+        sim_params = sim_params.create_new(
+            sim_params.start_session,
+            events[-1].dt
+        )
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
+            self.trading_calendar,
             self.instance_tmpdir,
             sim_params,
             {1: events},
@@ -975,18 +1006,18 @@ class TestDividendPerformance(WithSimParams,
             txns=txns,
         )
 
-        self.assertEqual(len(results), 5)
+        self.assertEqual(len(results), 6)
         cumulative_returns = \
             [event['cumulative_perf']['returns'] for event in results]
-        self.assertEqual(cumulative_returns, [0.0, 0.0, 0.0, 0.0, 0.0])
+        self.assertEqual(cumulative_returns, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         daily_returns = [event['daily_perf']['returns'] for event in results]
-        self.assertEqual(daily_returns, [0.0, 0.0, 0.0, 0.0, 0.0])
+        self.assertEqual(daily_returns, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         cash_flows = [event['daily_perf']['capital_used'] for event in results]
-        self.assertEqual(cash_flows, [-1000, 0, 0, 0, 0])
+        self.assertEqual(cash_flows, [-1000, 0, 0, 0, 0, 0])
         cumulative_cash_flows = \
             [event['cumulative_perf']['capital_used'] for event in results]
         self.assertEqual(cumulative_cash_flows,
-                         [-1000, -1000, -1000, -1000, -1000])
+                         [-1000, -1000, -1000, -1000, -1000, -1000])
 
 
 class TestDividendPerformanceHolidayStyle(TestDividendPerformance):
@@ -1000,7 +1031,9 @@ class TestDividendPerformanceHolidayStyle(TestDividendPerformance):
     END_DATE = pd.Timestamp('2003-12-08', tz='utc')
 
 
-class TestPositionPerformance(WithInstanceTmpDir, ZiplineTestCase):
+class TestPositionPerformance(WithInstanceTmpDir, WithTradingCalendars,
+                              ZiplineTestCase):
+
     def create_environment_stuff(self,
                                  num_days=4,
                                  sids=[1, 2],
@@ -1014,6 +1047,7 @@ class TestPositionPerformance(WithInstanceTmpDir, ZiplineTestCase):
                     'start_date': start,
                     'end_date': end,
                     'multiplier': 100,
+                    'exchange': "TEST",
                 }
                 for sid in futures_sids
             },
@@ -1049,7 +1083,7 @@ class TestPositionPerformance(WithInstanceTmpDir, ZiplineTestCase):
             [100, 100, 100, 100],
             oneday,
             self.sim_params,
-            env=self.env
+            trading_calendar=self.trading_calendar,
         )
 
         trades_2 = factory.create_trade_history(
@@ -1058,11 +1092,12 @@ class TestPositionPerformance(WithInstanceTmpDir, ZiplineTestCase):
             [100, 100, 100, 100],
             oneday,
             self.sim_params,
-            env=self.env
+            trading_calendar=self.trading_calendar,
         )
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
+            self.trading_calendar,
             self.instance_tmpdir,
             self.sim_params,
             {1: trades_1, 2: trades_2}
@@ -1154,11 +1189,12 @@ class TestPositionPerformance(WithInstanceTmpDir, ZiplineTestCase):
             [100, 100, 100, 100],
             oneday,
             self.sim_params,
-            env=self.env
+            trading_calendar=self.trading_calendar,
         )
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
+            self.trading_calendar,
             self.instance_tmpdir,
             self.sim_params,
             {1: trades})
@@ -1245,11 +1281,12 @@ class TestPositionPerformance(WithInstanceTmpDir, ZiplineTestCase):
             [100, 100, 100, 100],
             oneday,
             self.sim_params,
-            env=self.env
+            trading_calendar=self.trading_calendar,
         )
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
+            self.trading_calendar,
             self.instance_tmpdir,
             self.sim_params,
             {1: trades})
@@ -1258,8 +1295,8 @@ class TestPositionPerformance(WithInstanceTmpDir, ZiplineTestCase):
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                     self.sim_params.data_frequency,
-                                    period_open=self.sim_params.period_start,
-                                    period_close=self.sim_params.period_end)
+                                    period_open=self.sim_params.start_session,
+                                    period_close=self.sim_params.end_session)
         pp.position_tracker = pt
 
         pt.execute_transaction(txn)
@@ -1309,10 +1346,10 @@ class TestPositionPerformance(WithInstanceTmpDir, ZiplineTestCase):
 
         self.assertEqual(
             pp.positions[1].last_sale_price,
-            trades[-1]['price'],
+            trades[-1].price,
             "last sale should be same as last trade. \
             expected {exp} actual {act}".format(
-                exp=trades[-1]['price'],
+                exp=trades[-1].price,
                 act=pp.positions[1].last_sale_price)
         )
 
@@ -1360,13 +1397,14 @@ single short-sale transaction"""
             [100, 100, 100, 100, 100, 100],
             oneday,
             self.sim_params,
-            env=self.env
+            trading_calendar=self.trading_calendar,
         )
 
         trades_1 = trades[:-2]
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
+            self.trading_calendar,
             self.instance_tmpdir,
             self.sim_params,
             {1: trades})
@@ -1418,7 +1456,7 @@ single short-sale transaction"""
 
         self.assertEqual(
             pp.positions[1].last_sale_price,
-            trades_1[-1]['price'],
+            trades_1[-1].price,
             "last sale should be price of last trade"
         )
 
@@ -1577,374 +1615,6 @@ cost of sole txn in test"
                       net_leverage=-0.8181,
                       net_liquidation=1100.0)
 
-    def test_long_future_position(self):
-        """
-            verify that the performance period calculates properly for a
-            single buy transaction
-        """
-        self.create_environment_stuff()
-        sim_params = copy.copy(self.sim_params)
-        sim_params.data_frequency = 'minute'
-
-        # post some trades in the market
-        trades = factory.create_trade_history(
-            self.asset3,
-            [10, 10, 10, 11],
-            [100, 100, 100, 100],
-            oneday,
-            sim_params,
-            env=self.env
-        )
-
-        data_portal = create_data_portal_from_trade_history(
-            self.env,
-            self.instance_tmpdir,
-            self.sim_params,
-            {3: trades}
-        )
-
-        txn = create_txn(self.asset3, trades[1].dt, 10.0, 1)
-        pt = perf.PositionTracker(self.env.asset_finder,
-                                  self.sim_params.data_frequency)
-        pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
-                                    self.sim_params.data_frequency)
-        pp.position_tracker = pt
-
-        pt.execute_transaction(txn)
-        pp.handle_execution(txn)
-
-        # This verifies that the last sale price is being correctly
-        # set in the positions. If this is not the case then returns can
-        # incorrectly show as sharply dipping if a transaction arrives
-        # before a trade. This is caused by returns being based on holding
-        # stocks with a last sale price of 0.
-        self.assertEqual(pp.positions[3].last_sale_price, 10.0)
-
-        pt.sync_last_sale_prices(trades[-1].dt, False, data_portal)
-        pp.calculate_performance()
-
-        self.assertEqual(
-            pp.cash_flow,
-            0,
-            "there should be no cash flow on a futures txn"
-        )
-
-        self.assertEqual(
-            len(pp.positions),
-            1,
-            "should be just one position")
-
-        self.assertEqual(
-            pp.positions[3].sid,
-            txn.sid,
-            "position should be in security with id 1")
-
-        self.assertEqual(
-            pp.positions[3].amount,
-            txn.amount,
-            "should have a position of {sharecount} shares".format(
-                sharecount=txn.amount
-            )
-        )
-
-        self.assertEqual(
-            pp.positions[3].cost_basis,
-            txn.price,
-            "should have a cost basis of 10"
-        )
-
-        self.assertEqual(
-            pp.positions[3].last_sale_price,
-            trades[-1]['price'],
-            "last sale should be same as last trade. \
-            expected {exp} actual {act}".format(
-                exp=trades[-1]['price'],
-                act=pp.positions[3].last_sale_price)
-        )
-
-        self.assertEqual(
-            pp.ending_value,
-            0,
-            "ending value should be 0 because only futures are held"
-        )
-
-        self.assertEqual(
-            pp.ending_exposure,
-            1100,
-            "ending exposure should be price of last trade times number of \
-            contracts in position")
-
-        self.assertEqual(pp.pnl, 100, "gain of 1 on 1 100x contract should be "
-                                      "100")
-
-        check_perf_period(
-            pp,
-            gross_leverage=1.0,
-            net_leverage=1.0,
-            long_exposure=1100.0,
-            longs_count=1,
-            short_exposure=0.0,
-            shorts_count=0)
-
-        # Validate that the account attributes were updated.
-        account = pp.as_account()
-        check_account(account,
-                      settled_cash=1100.0,
-                      equity_with_loan=1100.0,
-                      total_positions_value=0.0,
-                      total_positions_exposure=1100.0,
-                      regt_equity=1100.0,
-                      available_funds=1100.0,
-                      excess_liquidity=1100.0,
-                      cushion=1.0,
-                      leverage=1.0,
-                      net_leverage=1.0,
-                      net_liquidation=1100.0)
-
-    def test_short_future_position(self):
-        """verify that the performance period calculates properly for a \
-single short-sale transaction"""
-        self.create_environment_stuff(num_days=6)
-
-        trades = factory.create_trade_history(
-            self.asset3,
-            [10, 10, 10, 11, 10, 9],
-            [100, 100, 100, 100, 100, 100],
-            oneday,
-            self.sim_params,
-            env=self.env
-        )
-
-        data_portal = create_data_portal_from_trade_history(
-            self.env,
-            self.instance_tmpdir,
-            self.sim_params,
-            {3: trades}
-        )
-        trades_1 = trades[:-2]
-
-        txn = create_txn(self.asset3, trades[0].dt, 10.0, -1)
-        pt = perf.PositionTracker(self.env.asset_finder,
-                                  self.sim_params.data_frequency)
-        pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
-                                    self.sim_params.data_frequency)
-        pp.position_tracker = pt
-
-        pt.execute_transaction(txn)
-        pp.handle_execution(txn)
-
-        pt.sync_last_sale_prices(trades[-3].dt, False, data_portal)
-        pp.calculate_performance()
-
-        self.assertEqual(
-            pp.cash_flow,
-            0,
-            "there should be no cash flow on a futures txn"
-        )
-
-        self.assertEqual(
-            len(pp.positions),
-            1,
-            "should be just one position")
-
-        self.assertEqual(
-            pp.positions[3].sid,
-            txn.sid,
-            "position should be in future from the transaction"
-        )
-
-        self.assertEqual(
-            pp.positions[3].amount,
-            -1,
-            "should have a position of -1 contract"
-        )
-
-        self.assertEqual(
-            pp.positions[3].cost_basis,
-            txn.price,
-            "should have a cost basis of 10"
-        )
-
-        self.assertEqual(
-            pp.positions[3].last_sale_price,
-            trades_1[-1]['price'],
-            "last sale should be price of last trade"
-        )
-
-        self.assertEqual(
-            pp.ending_value,
-            0,
-            "ending value should be 0 because only futures are held"
-        )
-
-        self.assertEqual(
-            pp.ending_exposure,
-            -1100,
-            "ending exposure should be price of last trade times number of \
-            contracts in position")
-
-        self.assertEqual(pp.pnl, -100, "gain of 1 on 1 100x contract should be"
-                                       " 100")
-
-        # simulate additional trades, and ensure that the position value
-        # reflects the new price
-        trades_2 = trades[-2:]
-
-        # simulate a rollover to a new period
-        pp.rollover()
-
-        pt.sync_last_sale_prices(trades_2[-1].dt, False, data_portal)
-        pp.calculate_performance()
-
-        self.assertEqual(
-            pp.cash_flow,
-            0,
-            "capital used should be zero, there were no transactions in \
-            performance period"
-        )
-
-        self.assertEqual(
-            len(pp.positions),
-            1,
-            "should be just one position"
-        )
-
-        self.assertEqual(
-            pp.positions[3].sid,
-            txn.sid,
-            "position should be in future from the transaction"
-        )
-
-        self.assertEqual(
-            pp.positions[3].amount,
-            -1,
-            "should have a position of -1 contract"
-        )
-
-        self.assertEqual(
-            pp.positions[3].cost_basis,
-            txn.price,
-            "should have a cost basis of 10"
-        )
-
-        self.assertEqual(
-            pp.positions[3].last_sale_price,
-            trades_2[-1].price,
-            "last sale should be price of last trade"
-        )
-
-        self.assertEqual(
-            pp.ending_value,
-            0,
-            "ending value should be 0 because only futures are held")
-
-        self.assertEqual(
-            pp.ending_exposure,
-            -900,
-            "ending exposure should be price of last trade times number of \
-            shares in position")
-
-        self.assertEqual(
-            pp.pnl,
-            200,
-            "drop of 2 on -1 100x contract should be 200"
-        )
-
-        # now run a performance period encompassing the entire trade sample.
-        ptTotal = perf.PositionTracker(self.env.asset_finder,
-                                       self.sim_params.data_frequency)
-        ppTotal = perf.PerformancePeriod(1000.0, self.env.asset_finder,
-                                         self.sim_params.data_frequency)
-        ppTotal.position_tracker = ptTotal
-
-        for trade in trades_1:
-            ptTotal.sync_last_sale_prices(trade.dt, False, data_portal)
-
-        ptTotal.execute_transaction(txn)
-        ppTotal.handle_execution(txn)
-
-        for trade in trades_2:
-            ptTotal.sync_last_sale_prices(trade.dt, False, data_portal)
-
-        ppTotal.calculate_performance()
-
-        self.assertEqual(
-            ppTotal.cash_flow,
-            0,
-            "capital used should be equal to the opposite of the transaction \
-cost of sole txn in test"
-        )
-
-        self.assertEqual(
-            len(ppTotal.positions),
-            1,
-            "should be just one position"
-        )
-        self.assertEqual(
-            ppTotal.positions[3].sid,
-            txn.sid,
-            "position should be in security from the transaction"
-        )
-
-        self.assertEqual(
-            ppTotal.positions[3].amount,
-            -1,
-            "should have a position of -1 contract"
-        )
-
-        self.assertEqual(
-            ppTotal.positions[3].cost_basis,
-            txn.price,
-            "should have a cost basis of 10"
-        )
-
-        self.assertEqual(
-            ppTotal.positions[3].last_sale_price,
-            trades_2[-1].price,
-            "last sale should be price of last trade"
-        )
-
-        self.assertEqual(
-            pp.ending_value,
-            0,
-            "ending value should be 0 because only futures are held")
-
-        self.assertEqual(
-            pp.ending_exposure,
-            -900,
-            "ending exposure should be price of last trade times number of \
-            shares in position")
-
-        self.assertEqual(
-            ppTotal.pnl,
-            100,
-            "drop of 1 on -1 100x contract should be 100"
-        )
-
-        check_perf_period(
-            pp,
-            gross_leverage=0.8181,
-            net_leverage=-0.8181,
-            long_exposure=0.0,
-            longs_count=0,
-            short_exposure=-900.0,
-            shorts_count=1)
-
-        # Validate that the account attributes.
-        account = ppTotal.as_account()
-        check_account(account,
-                      settled_cash=1100.0,
-                      equity_with_loan=1100.0,
-                      total_positions_value=0.0,
-                      total_positions_exposure=-900.0,
-                      regt_equity=1100.0,
-                      available_funds=1100.0,
-                      excess_liquidity=1100.0,
-                      cushion=1.0,
-                      leverage=0.8181,
-                      net_leverage=-0.8181,
-                      net_liquidation=1100.0)
-
     def test_covering_short(self):
         """verify performance where short is bought and covered, and shares \
 trade after cover"""
@@ -1956,11 +1626,12 @@ trade after cover"""
             [100, 100, 100, 100, 100, 100, 100, 100, 100, 100],
             oneday,
             self.sim_params,
-            env=self.env
+            trading_calendar=self.trading_calendar,
         )
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
+            self.trading_calendar,
             self.instance_tmpdir,
             self.sim_params,
             {1: trades})
@@ -2042,13 +1713,14 @@ shares in position"
             [100, 100, 100, 100, 100],
             oneday,
             self.sim_params,
-            self.env
+            self.trading_calendar,
         )
         trades = factory.create_trade_history(*history_args)
         transactions = factory.create_txn_history(*history_args)[:4]
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
+            self.trading_calendar,
             self.instance_tmpdir,
             self.sim_params,
             {1: trades})
@@ -2059,8 +1731,8 @@ shares in position"
             1000.0,
             self.env.asset_finder,
             self.sim_params.data_frequency,
-            period_open=self.sim_params.period_start,
-            period_close=self.sim_params.trading_days[-1]
+            period_open=self.sim_params.start_session,
+            period_close=self.sim_params.sessions[-1]
         )
         pp.position_tracker = pt
 
@@ -2167,7 +1839,7 @@ shares in position"
             [200, -100, -100, 100, -300, 100, 500, 400],
             oneday,
             self.sim_params,
-            self.env
+            self.trading_calendar,
         )
         cost_bases = [10, 10, 0, 8, 9, 9, 13, 13.5]
 
@@ -2203,11 +1875,12 @@ shares in position"
             [100, 100, 100, 100],
             oneday,
             self.sim_params,
-            env=self.env
+            trading_calendar=self.trading_calendar,
         )
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
+            self.trading_calendar,
             self.instance_tmpdir,
             self.sim_params,
             {1: trades})
@@ -2216,19 +1889,18 @@ shares in position"
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                     self.sim_params.data_frequency,
-                                    period_open=self.sim_params.period_start,
-                                    period_close=self.sim_params.period_end)
+                                    period_open=self.sim_params.start_session,
+                                    period_close=self.sim_params.end_session)
         pp.position_tracker = pt
 
         pt.execute_transaction(txn)
         pp.handle_execution(txn)
 
-        # sync prices and calculate performance before we introduce a capital
-        # change
+        # sync prices before we introduce a capital change
         pt.sync_last_sale_prices(trades[2].dt, False, data_portal)
-        pp.calculate_performance()
 
-        pp.subdivide_period(1000.0)
+        pp.initialize_subperiod_divider()
+        pp.set_current_subperiod_starting_values(1000.0)
 
         pt.sync_last_sale_prices(trades[-1].dt, False, data_portal)
         pp.calculate_performance()
@@ -2247,11 +1919,12 @@ shares in position"
             [100, 100, 100, 100],
             oneday,
             self.sim_params,
-            env=self.env
+            trading_calendar=self.trading_calendar,
         )
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
+            self.trading_calendar,
             self.instance_tmpdir,
             self.sim_params,
             {1: trades})
@@ -2260,8 +1933,8 @@ shares in position"
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                     self.sim_params.data_frequency,
-                                    period_open=self.sim_params.period_start,
-                                    period_close=self.sim_params.period_end)
+                                    period_open=self.sim_params.start_session,
+                                    period_close=self.sim_params.end_session)
         pp.position_tracker = pt
 
         pt.execute_transaction(txn)
@@ -2304,9 +1977,9 @@ class TestPositionTracker(WithTradingEnvironment,
     def make_futures_info(cls):
         return pd.DataFrame.from_dict(
             {
-                3: {'multiplier': 1000},
-                4: {'multiplier': 1000},
-                1032201401: {'multiplier': 50},
+                3: {'multiplier': 1000, 'exchange': 'TEST'},
+                4: {'multiplier': 1000, 'exchange': 'TEST'},
+                1032201401: {'multiplier': 50, 'exchange': 'TEST'},
             },
             orient='index',
         )
@@ -2318,9 +1991,7 @@ class TestPositionTracker(WithTradingEnvironment,
         Originally this bug was due to np.dot([], []) returning
         np.bool_(False)
         """
-        sim_params = factory.create_simulation_parameters(
-            num_days=4, env=self.env
-        )
+        sim_params = factory.create_simulation_parameters(num_days=4)
 
         pt = perf.PositionTracker(self.env.asset_finder,
                                   sim_params.data_frequency)

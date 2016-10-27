@@ -46,7 +46,6 @@ def handle_data(algo, data):
     m = algo.m
 
     x_tilde = np.zeros(m)
-    b = np.zeros(m)
 
     # find relative moving average price for each asset
     mavgs = data.history(algo.sids, 'price', algo.window_length, '1d').mean()
@@ -122,7 +121,7 @@ def simplex_projection(v, b=1):
 
     :Example:
     >>> proj = simplex_projection([.4 ,.3, -.4, .5])
-    >>> print(proj)
+    >>> proj  # doctest: +NORMALIZE_WHITESPACE
     array([ 0.33333333, 0.23333333, 0. , 0.43333333])
     >>> print(proj.sum())
     1.0

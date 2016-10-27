@@ -25,9 +25,9 @@ def delimit(delimiters, content):
     """
     Surround `content` with the first and last characters of `delimiters`.
 
-    >>> delimit('[]', "foo")
-    [foo]
-    >>> delimit('""', "foo")
+    >>> delimit('[]', "foo")  # doctest: +SKIP
+    '[foo]'
+    >>> delimit('""', "foo")  # doctest: +SKIP
     '"foo"'
     """
     if len(delimiters) != 2:
@@ -220,7 +220,7 @@ def format_attrs(attrs):
 
     Example
     -------
-    >>> format_attrs({'key1': 'value1', 'key2': 'value2'})
+    >>> format_attrs({'key1': 'value1', 'key2': 'value2'})  # doctest: +SKIP
     '[key1=value1, key2=value2]'
     """
     if not attrs:

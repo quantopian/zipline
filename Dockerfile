@@ -26,6 +26,11 @@ FROM python:2.7
 #
 # set up environment
 #
+ENV TINI_VERSION v0.10.0
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+RUN chmod +x /tini
+ENTRYPOINT ["/tini", "--"]
+
 ENV PROJECT_DIR=/projects \
     NOTEBOOK_PORT=8888 \
     SSL_CERT_PEM=/root/.jupyter/jupyter.pem \
@@ -49,13 +54,14 @@ RUN mkdir ${PROJECT_DIR} \
 
 WORKDIR /ta-lib
 
-RUN pip install numpy==1.9.2 \
-  && pip install scipy==0.15.1 \
-  && pip install pandas==0.16.1 \
+RUN pip install 'numpy>=1.11.1,<2.0.0' \
+  && pip install 'scipy>=0.17.1,<1.0.0' \
+  && pip install 'pandas>=0.18.1,<1.0.0' \
   && ./configure --prefix=/usr \
   && make \
   && make install \
   && pip install TA-Lib \
+  && pip install matplotlib \
   && pip install jupyter
 
 #

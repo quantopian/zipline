@@ -14,7 +14,6 @@ from numpy import (
     float32,
     float64,
     full,
-    full_like,
     log,
     nan,
     tile,
@@ -26,24 +25,18 @@ from pandas import (
     Categorical,
     DataFrame,
     date_range,
-    ewma,
-    ewmstd,
     Int64Index,
     MultiIndex,
-    rolling_apply,
-    rolling_mean,
     Series,
     Timestamp,
 )
 from pandas.compat.chainmap import ChainMap
 from pandas.util.testing import assert_frame_equal
-from scipy.stats.stats import linregress, pearsonr, spearmanr
 from six import iteritems, itervalues
 from toolz import merge
 
-from zipline.assets import Equity
 from zipline.assets.synthetic import make_rotating_equity_info
-from zipline.errors import NonExistentAssetInTimeFrame
+from zipline.errors import NoFurtherDataError
 from zipline.lib.adjustment import MULTIPLY
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import CustomFactor, Pipeline
@@ -57,10 +50,6 @@ from zipline.pipeline.factors import (
     ExponentialWeightedMovingAverage,
     ExponentialWeightedMovingStdDev,
     MaxDrawdown,
-    Returns,
-    RollingLinearRegressionOfReturns,
-    RollingPearsonOfReturns,
-    RollingSpearmanOfReturns,
     SimpleMovingAverage,
 )
 from zipline.pipeline.loaders.equity_pricing_loader import (
@@ -72,10 +61,15 @@ from zipline.pipeline.loaders.synthetic import (
     make_bar_data,
     expected_bar_values_2d,
 )
-from zipline.pipeline.term import NotSpecified
+from zipline.pipeline.sentinels import NotSpecified
+from zipline.pipeline.term import InputDates
 from zipline.testing import (
+    AssetID,
+    AssetIDPlusDay,
     check_arrays,
-    parameter_space,
+    make_alternating_boolean_array,
+    make_cascading_boolean_array,
+    OpenPrice,
     product_upper_triangle,
 )
 from zipline.testing.fixtures import (
@@ -85,6 +79,7 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
 )
 from zipline.utils.memoize import lazyval
+from zipline.utils.numpy_utils import bool_dtype, datetime64ns_dtype
 
 
 class RollingSumDifference(CustomFactor):
@@ -93,38 +88,6 @@ class RollingSumDifference(CustomFactor):
 
     def compute(self, today, assets, out, open, close):
         out[:] = (open - close).sum(axis=0)
-
-
-class AssetID(CustomFactor):
-    """
-    CustomFactor that returns the AssetID of each asset.
-
-    Useful for providing a Factor that produces a different value for each
-    asset.
-    """
-    window_length = 1
-    # HACK: We currently decide whether to load or compute a Term based on the
-    # length of its inputs.  This means we have to provide a dummy input.
-    inputs = [USEquityPricing.close]
-
-    def compute(self, today, assets, out, close):
-        out[:] = assets
-
-
-class AssetIDPlusDay(CustomFactor):
-    window_length = 1
-    inputs = [USEquityPricing.close]
-
-    def compute(self, today, assets, out, close):
-        out[:] = assets + today.day
-
-
-class OpenPrice(CustomFactor):
-    window_length = 1
-    inputs = [USEquityPricing.open]
-
-    def compute(self, today, assets, out, open):
-        out[:] = open
 
 
 class MultipleOutputs(CustomFactor):
@@ -240,6 +203,53 @@ class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
         msg = "start_date must be before or equal to end_date .*"
         with self.assertRaisesRegexp(ValueError, msg):
             engine.run_pipeline(p, self.dates[2], self.dates[1])
+
+    def test_fail_usefully_on_insufficient_data(self):
+        loader = self.loader
+        engine = SimplePipelineEngine(
+            lambda column: loader, self.dates, self.asset_finder,
+        )
+
+        class SomeFactor(CustomFactor):
+            inputs = [USEquityPricing.close]
+            window_length = 10
+
+            def compute(self, today, assets, out, closes):
+                pass
+
+        p = Pipeline(columns={'t': SomeFactor()})
+
+        # self.dates[9] is the earliest date we should be able to compute.
+        engine.run_pipeline(p, self.dates[9], self.dates[9])
+
+        # We shouldn't be able to compute dates[8], since we only know about 8
+        # prior dates, and we need a window length of 10.
+        with self.assertRaises(NoFurtherDataError):
+            engine.run_pipeline(p, self.dates[8], self.dates[8])
+
+    def test_input_dates_provided_by_default(self):
+        loader = self.loader
+        engine = SimplePipelineEngine(
+            lambda column: loader, self.dates, self.asset_finder,
+        )
+
+        class TestFactor(CustomFactor):
+            inputs = [InputDates(), USEquityPricing.close]
+            window_length = 10
+            dtype = datetime64ns_dtype
+
+            def compute(self, today, assets, out, dates, closes):
+                first, last = dates[[0, -1], 0]
+                assert last == today.asm8
+                assert len(dates) == len(closes) == self.window_length
+                out[:] = first
+
+        p = Pipeline(columns={'t': TestFactor()})
+        results = engine.run_pipeline(p, self.dates[9], self.dates[10])
+
+        # All results are the same, so just grab one column.
+        column = results.unstack().iloc[:, 0].values
+        check_arrays(column, self.dates[:2].values)
 
     def test_same_day_pipeline(self):
         loader = self.loader
@@ -421,6 +431,8 @@ class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
         assets = self.assets
         asset_ids = self.asset_ids
         constants = self.constants
+        num_dates = len(dates)
+        num_assets = len(assets)
         open = USEquityPricing.open
         close = USEquityPricing.close
         engine = SimplePipelineEngine(
@@ -435,19 +447,13 @@ class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
             return DataFrame(expected_values, index=dates, columns=assets)
 
         cascading_mask = AssetIDPlusDay() < (asset_ids[-1] + dates[0].day)
-        expected_cascading_mask_result = array(
-            [[True,  True,  True, False],
-             [True,  True, False, False],
-             [True, False, False, False]],
-            dtype=bool,
+        expected_cascading_mask_result = make_cascading_boolean_array(
+            shape=(num_dates, num_assets),
         )
 
         alternating_mask = (AssetIDPlusDay() % 2).eq(0)
-        expected_alternating_mask_result = array(
-            [[False,  True, False,  True],
-             [True,  False,  True, False],
-             [False,  True, False,  True]],
-            dtype=bool,
+        expected_alternating_mask_result = make_alternating_boolean_array(
+            shape=(num_dates, num_assets), first_value=False,
         )
 
         masks = cascading_mask, alternating_mask
@@ -592,6 +598,8 @@ class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
         assets = self.assets
         asset_ids = self.asset_ids
         constants = self.constants
+        num_dates = len(dates)
+        num_assets = len(assets)
         open = USEquityPricing.open
         close = USEquityPricing.close
         engine = SimplePipelineEngine(
@@ -603,32 +611,17 @@ class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
             return DataFrame(expected_values, index=dates, columns=assets)
 
         cascading_mask = AssetIDPlusDay() < (asset_ids[-1] + dates[0].day)
-        expected_cascading_mask_result = array(
-            [[True,   True,  True, False],
-             [True,   True, False, False],
-             [True,  False, False, False],
-             [False, False, False, False],
-             [False, False, False, False]],
-            dtype=bool,
+        expected_cascading_mask_result = make_cascading_boolean_array(
+            shape=(num_dates, num_assets),
         )
 
         alternating_mask = (AssetIDPlusDay() % 2).eq(0)
-        expected_alternating_mask_result = array(
-            [[False,  True, False,  True],
-             [True,  False,  True, False],
-             [False,  True, False,  True],
-             [True,  False,  True, False],
-             [False,  True, False,  True]],
-            dtype=bool,
+        expected_alternating_mask_result = make_alternating_boolean_array(
+            shape=(num_dates, num_assets), first_value=False,
         )
 
-        expected_no_mask_result = array(
-            [[True, True, True, True],
-             [True, True, True, True],
-             [True, True, True, True],
-             [True, True, True, True],
-             [True, True, True, True]],
-            dtype=bool,
+        expected_no_mask_result = full(
+            shape=(num_dates, num_assets), fill_value=True, dtype=bool_dtype,
         )
 
         masks = cascading_mask, alternating_mask, NotSpecified
@@ -826,7 +819,7 @@ class FrameInputTestCase(WithTradingEnvironment, ZiplineTestCase):
         cls.dates = date_range(
             cls.start,
             cls.end,
-            freq=cls.env.trading_day,
+            freq=cls.trading_calendar.day,
             tz='UTC',
         )
         cls.assets = cls.asset_finder.retrieve_all(cls.asset_ids)
@@ -930,17 +923,17 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
         cls.equity_info = ret = make_rotating_equity_info(
             num_assets=6,
             first_start=cls.first_asset_start,
-            frequency=cls.TRADING_ENV_TRADING_CALENDAR.trading_day,
+            frequency=cls.trading_calendar.day,
             periods_between_starts=4,
             asset_lifetime=8,
         )
         return ret
 
     @classmethod
-    def make_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls):
         return make_bar_data(
             cls.equity_info,
-            cls.bcolz_daily_bar_days,
+            cls.equity_daily_bar_days,
         )
 
     @classmethod
@@ -949,7 +942,7 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
         cls.all_asset_ids = cls.asset_finder.sids
         cls.last_asset_end = cls.equity_info['end_date'].max()
         cls.pipeline_loader = USEquityPricingLoader(
-            cls.bcolz_daily_bar_reader,
+            cls.bcolz_equity_daily_bar_reader,
             cls.adjustment_reader,
         )
 
@@ -985,15 +978,15 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
     def test_SMA(self):
         engine = SimplePipelineEngine(
             lambda column: self.pipeline_loader,
-            self.env.trading_days,
+            self.trading_calendar.all_sessions,
             self.asset_finder,
         )
         window_length = 5
         asset_ids = self.all_asset_ids
         dates = date_range(
-            self.first_asset_start + self.env.trading_day,
+            self.first_asset_start + self.trading_calendar.day,
             self.last_asset_end,
-            freq=self.env.trading_day,
+            freq=self.trading_calendar.day,
         )
         dates_to_test = dates[window_length:]
 
@@ -1011,15 +1004,17 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
         # Shift back the raw inputs by a trading day because we expect our
         # computed results to be computed using values anchored on the
         # **previous** day's data.
-        expected_raw = rolling_mean(
+        expected_raw = DataFrame(
             expected_bar_values_2d(
-                dates - self.env.trading_day,
+                dates - self.trading_calendar.day,
                 self.equity_info,
                 'close',
             ),
+        ).rolling(
             window_length,
             min_periods=1,
-        )
+        ).mean(
+        ).values
 
         expected = DataFrame(
             # Truncate off the extra rows needed to compute the SMAs.
@@ -1039,15 +1034,15 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
         # valuable.
         engine = SimplePipelineEngine(
             lambda column: self.pipeline_loader,
-            self.env.trading_days,
+            self.trading_calendar.all_sessions,
             self.asset_finder,
         )
         window_length = 5
         asset_ids = self.all_asset_ids
         dates = date_range(
-            self.first_asset_start + self.env.trading_day,
+            self.first_asset_start + self.trading_calendar.day,
             self.last_asset_end,
-            freq=self.env.trading_day,
+            freq=self.trading_calendar.day,
         )
         dates_to_test = dates[window_length:]
 
@@ -1083,7 +1078,7 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
     @classmethod
     def init_class_fixtures(cls):
         super(ParameterizedFactorTestCase, cls).init_class_fixtures()
-        day = cls.env.trading_day
+        day = cls.trading_calendar.day
 
         cls.dates = dates = date_range(
             '2015-02-01',
@@ -1100,7 +1095,12 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
             index=dates,
             columns=cls.asset_finder.retrieve_all(sids),
         )
+        cls.raw_data_with_nans = cls.raw_data.where((cls.raw_data % 2) != 0)
 
+        open_loader = DataFrameLoader(
+            USEquityPricing.open,
+            cls.raw_data_with_nans,
+        )
         close_loader = DataFrameLoader(USEquityPricing.close, cls.raw_data)
         volume_loader = DataFrameLoader(
             USEquityPricing.volume,
@@ -1109,6 +1109,7 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
 
         cls.engine = SimplePipelineEngine(
             {
+                USEquityPricing.open: open_loader,
                 USEquityPricing.close: close_loader,
                 USEquityPricing.volume: volume_loader,
             }.__getitem__,
@@ -1119,19 +1120,31 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
     def expected_ewma(self, window_length, decay_rate):
         alpha = 1 - decay_rate
         span = (2 / alpha) - 1
-        return rolling_apply(
-            self.raw_data,
-            window_length,
-            lambda window: ewma(window, span=span)[-1],
+
+        # XXX: This is a comically inefficient way to compute a windowed EWMA.
+        # Don't use it outside of testing.  We're using rolling-apply of an
+        # ewma (which is itself a rolling-window function) because we only want
+        # to look at ``window_length`` rows at a time.
+        return self.raw_data.rolling(window_length).apply(
+            lambda subarray: (DataFrame(subarray)
+                              .ewm(span=span)
+                              .mean()
+                              .values[-1])
         )[window_length:]
 
     def expected_ewmstd(self, window_length, decay_rate):
         alpha = 1 - decay_rate
         span = (2 / alpha) - 1
-        return rolling_apply(
-            self.raw_data,
-            window_length,
-            lambda window: ewmstd(window, span=span)[-1],
+
+        # XXX: This is a comically inefficient way to compute a windowed
+        # EWMSTD.  Don't use it outside of testing.  We're using rolling-apply
+        # of an ewma (which is itself a rolling-window function) because we
+        # only want to look at ``window_length`` rows at a time.
+        return self.raw_data.rolling(window_length).apply(
+            lambda subarray: (DataFrame(subarray)
+                              .ewm(span=span)
+                              .std()
+                              .values[-1])
         )[window_length:]
 
     @parameterized.expand([
@@ -1239,6 +1252,14 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
                 columns={
                     'dv1': AverageDollarVolume(window_length=1),
                     'dv5': AverageDollarVolume(window_length=5),
+                    'dv1_nan': AverageDollarVolume(
+                        window_length=1,
+                        inputs=[USEquityPricing.open, USEquityPricing.volume],
+                    ),
+                    'dv5_nan': AverageDollarVolume(
+                        window_length=5,
+                        inputs=[USEquityPricing.open, USEquityPricing.volume],
+                    ),
                 }
             ),
             self.dates[5],
@@ -1248,243 +1269,22 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
         expected_1 = (self.raw_data[5:] ** 2) * 2
         assert_frame_equal(results['dv1'].unstack(), expected_1)
 
-        expected_5 = rolling_mean((self.raw_data ** 2) * 2, window=5)[5:]
+        expected_5 = ((self.raw_data ** 2) * 2).rolling(5).mean()[5:]
         assert_frame_equal(results['dv5'].unstack(), expected_5)
 
-    @parameter_space(returns_length=[2, 3], correlation_length=[3, 4])
-    def test_correlation_factors(self, returns_length, correlation_length):
-        """
-        Tests for the built-in factors `RollingPearsonOfReturns` and
-        `RollingSpearmanOfReturns`.
-        """
-        my_asset_column = 0
-        start_date_index = 6
-        end_date_index = 10
+        # The following two use USEquityPricing.open and .volume as inputs.
+        # The former uses self.raw_data_with_nans, and the latter uses
+        # .raw_data * 2.  Thus we multiply instead of squaring as above.
+        expected_1_nan = (self.raw_data_with_nans[5:]
+                          * self.raw_data[5:] * 2).fillna(0)
+        assert_frame_equal(results['dv1_nan'].unstack(), expected_1_nan)
 
-        assets = self.asset_finder.retrieve_all(self.sids)
-        my_asset = assets[my_asset_column]
-        my_asset_filter = (AssetID() != (my_asset_column + 1))
-        num_days = end_date_index - start_date_index + 1
+        expected_5_nan = ((self.raw_data_with_nans * self.raw_data * 2)
+                          .fillna(0)
+                          .rolling(5).mean()
+                          [5:])
 
-        # Our correlation factors require that their target asset is not
-        # filtered out, so make sure that masking out our target asset does not
-        # take effect. That is, a filter which filters out only our target
-        # asset should produce the same result as if no mask was passed at all.
-        for mask in (NotSpecified, my_asset_filter):
-            pearson_factor = RollingPearsonOfReturns(
-                target=my_asset,
-                returns_length=returns_length,
-                correlation_length=correlation_length,
-                mask=mask,
-            )
-            spearman_factor = RollingSpearmanOfReturns(
-                target=my_asset,
-                returns_length=returns_length,
-                correlation_length=correlation_length,
-                mask=mask,
-            )
-
-            results = self.engine.run_pipeline(
-                Pipeline(
-                    columns={
-                        'pearson_factor': pearson_factor,
-                        'spearman_factor': spearman_factor,
-                    },
-                ),
-                self.dates[start_date_index],
-                self.dates[end_date_index],
-            )
-            pearson_results = results['pearson_factor'].unstack()
-            spearman_results = results['spearman_factor'].unstack()
-
-            # Run a separate pipeline that calculates returns starting
-            # (correlation_length - 1) days prior to our start date. This is
-            # because we need (correlation_length - 1) extra days of returns to
-            # compute our expected correlations.
-            returns = Returns(window_length=returns_length)
-            results = self.engine.run_pipeline(
-                Pipeline(columns={'returns': returns}),
-                self.dates[start_date_index - (correlation_length - 1)],
-                self.dates[end_date_index],
-            )
-            returns_results = results['returns'].unstack()
-
-            # On each day, calculate the expected correlation coefficients
-            # between the asset we are interested in and each other asset. Each
-            # correlation is calculated over `correlation_length` days.
-            expected_pearson_results = full_like(pearson_results, nan)
-            expected_spearman_results = full_like(spearman_results, nan)
-            for day in range(num_days):
-                todays_returns = returns_results.iloc[
-                    day:day + correlation_length
-                ]
-                my_asset_returns = todays_returns.iloc[:, my_asset_column]
-                for asset, other_asset_returns in todays_returns.iteritems():
-                    asset_column = int(asset) - 1
-                    expected_pearson_results[day, asset_column] = pearsonr(
-                        my_asset_returns, other_asset_returns,
-                    )[0]
-                    expected_spearman_results[day, asset_column] = spearmanr(
-                        my_asset_returns, other_asset_returns,
-                    )[0]
-
-            assert_frame_equal(
-                pearson_results,
-                DataFrame(
-                    expected_pearson_results,
-                    index=self.dates[start_date_index:end_date_index + 1],
-                    columns=assets,
-                ),
-            )
-            assert_frame_equal(
-                spearman_results,
-                DataFrame(
-                    expected_spearman_results,
-                    index=self.dates[start_date_index:end_date_index + 1],
-                    columns=assets,
-                ),
-            )
-
-    @parameter_space(returns_length=[2, 3], regression_length=[3, 4])
-    def test_regression_of_returns_factor(self,
-                                          returns_length,
-                                          regression_length):
-        """
-        Tests for the built-in factor `RollingLinearRegressionOfReturns`.
-        """
-        my_asset_column = 0
-        start_date_index = 6
-        end_date_index = 10
-
-        assets = self.asset_finder.retrieve_all(self.sids)
-        my_asset = assets[my_asset_column]
-        my_asset_filter = (AssetID() != (my_asset_column + 1))
-        num_days = end_date_index - start_date_index + 1
-
-        # The order of these is meant to align with the output of `linregress`.
-        outputs = ['beta', 'alpha', 'r_value', 'p_value', 'stderr']
-
-        # Our regression factor requires that its target asset is not filtered
-        # out, so make sure that masking out our target asset does not take
-        # effect. That is, a filter which filters out only our target asset
-        # should produce the same result as if no mask was passed at all.
-        for mask in (NotSpecified, my_asset_filter):
-            regression_factor = RollingLinearRegressionOfReturns(
-                target=my_asset,
-                returns_length=returns_length,
-                regression_length=regression_length,
-                mask=mask,
-            )
-            results = self.engine.run_pipeline(
-                Pipeline(
-                    columns={
-                        output: getattr(regression_factor, output)
-                        for output in outputs
-                    },
-                ),
-                self.dates[start_date_index],
-                self.dates[end_date_index],
-            )
-            output_results = {}
-            expected_output_results = {}
-            for output in outputs:
-                output_results[output] = results[output].unstack()
-                expected_output_results[output] = full_like(
-                    output_results[output], nan,
-                )
-
-            # Run a separate pipeline that calculates returns starting 2 days
-            # prior to our start date. This is because we need
-            # (regression_length - 1) extra days of returns to compute our
-            # expected regressions.
-            returns = Returns(window_length=returns_length)
-            results = self.engine.run_pipeline(
-                Pipeline(columns={'returns': returns}),
-                self.dates[start_date_index - (regression_length - 1)],
-                self.dates[end_date_index],
-            )
-            returns_results = results['returns'].unstack()
-
-            # On each day, calculate the expected regression results for Y ~ X
-            # where Y is the asset we are interested in and X is each other
-            # asset. Each regression is calculated over `regression_length`
-            # days of data.
-            for day in range(num_days):
-                todays_returns = returns_results.iloc[
-                    day:day + regression_length
-                ]
-                my_asset_returns = todays_returns.iloc[:, my_asset_column]
-                for asset, other_asset_returns in todays_returns.iteritems():
-                    asset_column = int(asset) - 1
-                    expected_regression_results = linregress(
-                        y=other_asset_returns, x=my_asset_returns,
-                    )
-                    for i, output in enumerate(outputs):
-                        expected_output_results[output][day, asset_column] = \
-                            expected_regression_results[i]
-
-            for output in outputs:
-                assert_frame_equal(
-                    output_results[output],
-                    DataFrame(
-                        expected_output_results[output],
-                        index=self.dates[start_date_index:end_date_index + 1],
-                        columns=assets,
-                    ),
-                )
-
-    def test_correlation_and_regression_with_bad_asset(self):
-        """
-        Test that `RollingPearsonOfReturns`, `RollingSpearmanOfReturns` and
-        `RollingLinearRegressionOfReturns` raise the proper exception when
-        given a nonexistent target asset.
-        """
-        start_date_index = 6
-        end_date_index = 10
-        my_asset = Equity(0)
-
-        # This filter is arbitrary; the important thing is that we test each
-        # factor both with and without a specified mask.
-        my_asset_filter = AssetID().eq(1)
-
-        for mask in (NotSpecified, my_asset_filter):
-            pearson_factor = RollingPearsonOfReturns(
-                target=my_asset,
-                returns_length=3,
-                correlation_length=3,
-                mask=mask,
-            )
-            spearman_factor = RollingSpearmanOfReturns(
-                target=my_asset,
-                returns_length=3,
-                correlation_length=3,
-                mask=mask,
-            )
-            regression_factor = RollingLinearRegressionOfReturns(
-                target=my_asset,
-                returns_length=3,
-                regression_length=3,
-                mask=mask,
-            )
-
-            with self.assertRaises(NonExistentAssetInTimeFrame):
-                self.engine.run_pipeline(
-                    Pipeline(columns={'pearson_factor': pearson_factor}),
-                    self.dates[start_date_index],
-                    self.dates[end_date_index],
-                )
-            with self.assertRaises(NonExistentAssetInTimeFrame):
-                self.engine.run_pipeline(
-                    Pipeline(columns={'spearman_factor': spearman_factor}),
-                    self.dates[start_date_index],
-                    self.dates[end_date_index],
-                )
-            with self.assertRaises(NonExistentAssetInTimeFrame):
-                self.engine.run_pipeline(
-                    Pipeline(columns={'regression_factor': regression_factor}),
-                    self.dates[start_date_index],
-                    self.dates[end_date_index],
-                )
+        assert_frame_equal(results['dv5_nan'].unstack(), expected_5_nan)
 
 
 class StringColumnTestCase(WithSeededRandomPipelineEngine,

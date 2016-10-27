@@ -23,7 +23,6 @@ from ._assets import (
 from .assets import (
     AssetFinder,
     AssetConvertible,
-    AssetFinderCachedEquities
 )
 from .asset_db_schema import ASSET_DB_VERSION
 from .asset_writer import AssetDBWriter
@@ -35,7 +34,6 @@ __all__ = [
     'Equity',
     'Future',
     'AssetFinder',
-    'AssetFinderCachedEquities',
     'AssetConvertible',
     'make_asset_array',
     'CACHE_FILE_TEMPLATE'

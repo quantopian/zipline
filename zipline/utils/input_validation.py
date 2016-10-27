@@ -26,6 +26,19 @@ from zipline.utils.functional import getattrs
 from zipline.utils.preprocess import call, preprocess
 
 
+if PY3:
+    _qualified_name = attrgetter('__qualname__')
+else:
+    def _qualified_name(obj):
+        """
+        Return the fully-qualified name (ignoring inner classes) of a type.
+        """
+        module = obj.__module__
+        if module in ('__builtin__', '__main__', 'builtins'):
+            return obj.__name__
+        return '.'.join([module, obj.__name__])
+
+
 def verify_indices_all_unique(obj):
     """
     Check that all axes of a pandas object are unique.
@@ -203,23 +216,25 @@ def ensure_timestamp(func, argname, arg):
         )
 
 
-def expect_dtypes(**named):
+def expect_dtypes(__funcname=_qualified_name, **named):
     """
     Preprocessing decorator that verifies inputs have expected numpy dtypes.
 
     Usage
     -----
-    >>> from numpy import dtype, arange
-    >>> @expect_dtypes(x=dtype(int))
+    >>> from numpy import dtype, arange, int8, float64
+    >>> @expect_dtypes(x=dtype(int8))
     ... def foo(x, y):
     ...    return x, y
     ...
-    >>> foo(arange(3), 'foo')
-    (array([0, 1, 2]), 'foo')
-    >>> foo(arange(3, dtype=float), 'foo')
+    >>> foo(arange(3, dtype=int8), 'foo')
+    (array([0, 1, 2], dtype=int8), 'foo')
+    >>> foo(arange(3, dtype=float64), 'foo')  # doctest: +NORMALIZE_WHITESPACE
+    ...                                       # doctest: +ELLIPSIS
     Traceback (most recent call last):
        ...
-    TypeError: foo() expected an argument with dtype 'int64' for argument 'x', but got dtype 'float64' instead.  # noqa
+    TypeError: ...foo() expected a value with dtype 'int8' for argument 'x',
+    but got 'float64' instead.
     """
     for name, type_ in iteritems(named):
         if not isinstance(type_, (dtype, tuple)):
@@ -229,6 +244,11 @@ def expect_dtypes(**named):
                     name=name, dtype=dtype,
                 )
             )
+
+    if isinstance(__funcname, str):
+        get_funcname = lambda _: __funcname
+    else:
+        get_funcname = __funcname
 
     @preprocess(dtypes=call(lambda x: x if isinstance(x, tuple) else (x,)))
     def _expect_dtype(dtypes):
@@ -247,7 +267,7 @@ def expect_dtypes(**named):
                 "{funcname}() expected a value with dtype {dtype_str} "
                 "for argument {argname!r}, but got {value!r} instead."
             ).format(
-                funcname=_qualified_name(func),
+                funcname=get_funcname(func),
                 dtype_str=' or '.join(repr(d.name) for d in dtypes),
                 argname=argname,
                 value=value_to_show,
@@ -278,10 +298,11 @@ def expect_kinds(**named):
     2
     >>> foo(int32(2))
     2
-    >>> foo(float32(2))
+    >>> foo(float32(2))  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
     Traceback (most recent call last):
-       ...n
-    TypeError: foo() expected a numpy object of kind 'i' for argument 'x', but got 'f' instead.  # noqa
+       ...
+    TypeError: ...foo() expected a numpy object of kind 'i' for argument 'x',
+    but got 'f' instead.
     """
     for name, kind in iteritems(named):
         if not isinstance(kind, (str, tuple)):
@@ -325,7 +346,7 @@ def expect_kinds(**named):
     return preprocess(**valmap(_expect_kind, named))
 
 
-def expect_types(*_pos, **named):
+def expect_types(__funcname=_qualified_name, **named):
     """
     Preprocessing decorator that verifies inputs have expected types.
 
@@ -337,14 +358,19 @@ def expect_types(*_pos, **named):
     ...
     >>> foo(2, '3')
     (2, '3')
-    >>> foo(2.0, '3')
+    >>> foo(2.0, '3')  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
     Traceback (most recent call last):
        ...
-    TypeError: foo() expected an argument of type 'int' for argument 'x', but got float instead.  # noqa
-    """
-    if _pos:
-        raise TypeError("expect_types() only takes keyword arguments.")
+    TypeError: ...foo() expected a value of type int for argument 'x',
+    but got float instead.
 
+    Notes
+    -----
+    A special argument, __funcname, can be provided as a string to override the
+    function name shown in error messages.  This is most often used on __init__
+    or __new__ methods to make errors refer to the class name instead of the
+    function name.
+    """
     for name, type_ in iteritems(named):
         if not isinstance(type_, (type, tuple)):
             raise TypeError(
@@ -368,29 +394,17 @@ def expect_types(*_pos, **named):
             template = _template.format(type_or_types=_qualified_name(type_))
 
         return make_check(
-            TypeError,
-            template,
-            lambda v: not isinstance(v, type_),
-            compose(_qualified_name, type),
+            exc_type=TypeError,
+            template=template,
+            pred=lambda v: not isinstance(v, type_),
+            actual=compose(_qualified_name, type),
+            funcname=__funcname,
         )
 
     return preprocess(**valmap(_expect_type, named))
 
 
-if PY3:
-    _qualified_name = attrgetter('__qualname__')
-else:
-    def _qualified_name(obj):
-        """
-        Return the fully-qualified name (ignoring inner classes) of a type.
-        """
-        module = obj.__module__
-        if module in ('__builtin__', '__main__', 'builtins'):
-            return obj.__name__
-        return '.'.join([module, obj.__name__])
-
-
-def make_check(exc_type, template, pred, actual):
+def make_check(exc_type, template, pred, actual, funcname):
     """
     Factory for making preprocessing functions that check a predicate on the
     input value.
@@ -409,13 +423,22 @@ def make_check(exc_type, template, pred, actual):
     actual : function[object -> object]
         A function to call on bad values to produce the value to display in the
         error message.
+    funcname : str or callable
+        Name to use in error messages, or function to call on decorated
+        functions to produce a name.  Passing an explicit name is useful when
+        creating checks for __init__ or __new__ methods when you want the error
+        to refer to the class name instead of the method name.
     """
+    if isinstance(funcname, str):
+        get_funcname = lambda _: funcname
+    else:
+        get_funcname = funcname
 
     def _check(func, argname, argvalue):
         if pred(argvalue):
             raise exc_type(
                 template % {
-                    'funcname': _qualified_name(func),
+                    'funcname': get_funcname(func),
                     'argname': argname,
                     'actual': actual(argvalue),
                 },
@@ -448,7 +471,7 @@ def optional(type_):
     return (type_, type(None))
 
 
-def expect_element(*_pos, **named):
+def expect_element(__funcname=_qualified_name, **named):
     """
     Preprocessing decorator that verifies inputs are elements of some
     expected collection.
@@ -463,35 +486,138 @@ def expect_element(*_pos, **named):
     'A'
     >>> foo('b')
     'B'
-    >>> foo('c')
+    >>> foo('c')  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
     Traceback (most recent call last):
        ...
-    ValueError: foo() expected a value in ('a', 'b') for argument 'x', but got 'c' instead.  # noqa
+    ValueError: ...foo() expected a value in ('a', 'b') for argument 'x',
+    but got 'c' instead.
 
     Notes
     -----
+    A special argument, __funcname, can be provided as a string to override the
+    function name shown in error messages.  This is most often used on __init__
+    or __new__ methods to make errors refer to the class name instead of the
+    function name.
+
     This uses the `in` operator (__contains__) to make the containment check.
     This allows us to use any custom container as long as the object supports
     the container protocol.
     """
-    if _pos:
-        raise TypeError("expect_element() only takes keyword arguments.")
-
     def _expect_element(collection):
+        if isinstance(collection, (set, frozenset)):
+            # Special case the error message for set and frozen set to make it
+            # less verbose.
+            collection_for_error_message = tuple(sorted(collection))
+        else:
+            collection_for_error_message = collection
+
         template = (
             "%(funcname)s() expected a value in {collection} "
             "for argument '%(argname)s', but got %(actual)s instead."
-        ).format(collection=collection)
+        ).format(collection=collection_for_error_message)
         return make_check(
             ValueError,
             template,
             complement(op.contains(collection)),
             repr,
+            funcname=__funcname,
         )
     return preprocess(**valmap(_expect_element, named))
 
 
-def expect_dimensions(**dimensions):
+def expect_bounded(__funcname=_qualified_name, **named):
+    """
+    Preprocessing decorator verifying that inputs fall between bounds.
+
+    Bounds should be passed as a pair of ``(min_value, max_value)``. Both
+    bounds are checked inclusively.
+
+    ``None`` may be passed as ``min_value`` or ``max_value`` to signify that
+    the input is only bounded above or below.
+
+    Usage
+    -----
+    >>> @expect_bounded(x=(1, 5))
+    ... def foo(x):
+    ...    return x + 1
+    ...
+    >>> foo(1)
+    2
+    >>> foo(5)
+    6
+    >>> foo(6)  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
+    Traceback (most recent call last):
+       ...
+    ValueError: ...foo() expected a value between 1 and 5 for argument 'x',
+    but got 6 instead.
+
+    >>> @expect_bounded(x=(2, None))
+    ... def foo(x):
+    ...    return x
+    ...
+    >>> foo(100000)
+    100000
+    >>> foo(1)  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
+    Traceback (most recent call last):
+       ...
+    ValueError: ...foo() expected a value greater than or equal to 2 for
+    argument 'x', but got 1 instead.
+
+    >>> @expect_bounded(x=(None, 5))
+    ... def foo(x):
+    ...    return x
+    ...
+    >>> foo(6)  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
+    Traceback (most recent call last):
+       ...
+    ValueError: ...foo() expected a value less than or equal to 5 for
+    argument 'x', but got 6 instead.
+    """
+    def valid_bounds(t):
+        return (
+            isinstance(t, tuple)
+            and len(t) == 2
+            and t != (None, None)
+        )
+
+    for name, bounds in iteritems(named):
+        if not valid_bounds(bounds):
+            raise TypeError(
+                "expect_bounded() expected a tuple of bounds for"
+                " argument '{name}', but got {bounds} instead.".format(
+                    name=name,
+                    bounds=bounds,
+                )
+            )
+
+    def _expect_bounded(bounds):
+        (lower, upper) = bounds
+        if lower is None:
+            should_fail = lambda value: value > upper
+            predicate_descr = "less than or equal to " + str(upper)
+        elif upper is None:
+            should_fail = lambda value: value < lower
+            predicate_descr = "greater than or equal to " + str(lower)
+        else:
+            should_fail = lambda value: not (lower <= value <= upper)
+            predicate_descr = "between %s and %s" % bounds
+
+        template = (
+            "%(funcname)s() expected a value {predicate}"
+            " for argument '%(argname)s', but got %(actual)s instead."
+        ).format(predicate=predicate_descr)
+
+        return make_check(
+            exc_type=ValueError,
+            template=template,
+            pred=should_fail,
+            actual=repr,
+            funcname=__funcname,
+        )
+    return preprocess(**valmap(_expect_bounded, named))
+
+
+def expect_dimensions(__funcname=_qualified_name, **dimensions):
     """
     Preprocessing decorator that verifies inputs are numpy arrays with a
     specific dimensionality.
@@ -505,14 +631,20 @@ def expect_dimensions(**dimensions):
     ...
     >>> foo(array([1, 1]), array([[1, 1], [2, 2]]))
     2
-    >>> foo(array([1, 1], array([1, 1])))
+    >>> foo(array([1, 1]), array([1, 1]))  # doctest: +NORMALIZE_WHITESPACE
+    ...                                    # doctest: +ELLIPSIS
     Traceback (most recent call last):
        ...
-    TypeError: foo() expected a 2-D array for argument 'y', but got a 1-D array instead.  # noqa
+    ValueError: ...foo() expected a 2-D array for argument 'y',
+    but got a 1-D array instead.
     """
+    if isinstance(__funcname, str):
+        get_funcname = lambda _: __funcname
+    else:
+        get_funcname = __funcname
+
     def _expect_dimension(expected_ndim):
         def _check(func, argname, argvalue):
-            funcname = _qualified_name(func)
             actual_ndim = argvalue.ndim
             if actual_ndim != expected_ndim:
                 if actual_ndim == 0:
@@ -523,7 +655,7 @@ def expect_dimensions(**dimensions):
                     "{func}() expected a {expected:d}-D array"
                     " for argument {argname!r}, but got a {actual}"
                     " instead.".format(
-                        func=funcname,
+                        func=get_funcname(func),
                         expected=expected_ndim,
                         argname=argname,
                         actual=actual_repr,
@@ -569,6 +701,31 @@ def coerce(from_, to, **to_kwargs):
             return to(arg, **to_kwargs)
         return arg
     return preprocessor
+
+
+def coerce_types(**kwargs):
+    """
+    Preprocessing decorator that applies type coercions.
+
+    Parameters
+    ----------
+    **kwargs : dict[str -> (type, callable)]
+         Keyword arguments mapping function parameter names to pairs of
+         (from_type, to_type).
+
+    Usage
+    -----
+    >>> @coerce_types(x=(float, int), y=(int, str))
+    ... def func(x, y):
+    ...     return (x, y)
+    ...
+    >>> func(1.0, 3)
+    (1, '3')
+    """
+    def _coerce(types):
+        return coerce(*types)
+
+    return preprocess(**valmap(_coerce, kwargs))
 
 
 class error_keywords(object):

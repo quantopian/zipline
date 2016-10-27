@@ -2,6 +2,7 @@ import zipline.utils.factory as factory
 from zipline.testing.core import create_data_portal_from_trade_history
 
 from zipline.test_algorithms import TestAlgorithm
+from zipline.utils.calendars import get_calendar
 
 
 def create_test_zipline(**config):
@@ -37,16 +38,9 @@ def create_test_zipline(**config):
                             "argument 'sid_list' or 'sid'")
 
     concurrent_trades = config.get('concurrent_trades', False)
-
-    if 'order_count' in config:
-        order_count = config['order_count']
-    else:
-        order_count = 100
-
-    if 'order_amount' in config:
-        order_amount = config['order_amount']
-    else:
-        order_amount = 100
+    order_count = config.get('order_count', 100)
+    order_amount = config.get('order_amount', 100)
+    trading_calendar = config.get('trading_calendar', get_calendar("NYSE"))
 
     # -------------------
     # Create the Algo
@@ -60,6 +54,7 @@ def create_test_zipline(**config):
             order_count,
             sim_params=config.get('sim_params',
                                   factory.create_simulation_parameters()),
+            trading_calendar=trading_calendar,
             slippage=config.get('slippage'),
             identifiers=sid_list
         )
@@ -75,6 +70,7 @@ def create_test_zipline(**config):
                 sid_list,
                 test_algo.sim_params,
                 test_algo.trading_environment,
+                trading_calendar,
                 concurrent=concurrent_trades,
             )
 
@@ -86,7 +82,8 @@ def create_test_zipline(**config):
             trades_by_sid[trade.sid].append(trade)
 
         data_portal = create_data_portal_from_trade_history(
-            config['env'],
+            config['env'].asset_finder,
+            trading_calendar,
             config['tempdir'],
             config['sim_params'],
             trades_by_sid

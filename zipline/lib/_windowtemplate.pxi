@@ -35,6 +35,7 @@ cdef class AdjustedArrayWindow:
         readonly dict view_kwargs
         readonly Py_ssize_t window_length
         Py_ssize_t anchor, next_anchor, max_anchor, next_adj
+        Py_ssize_t perspective_offset
         dict adjustments
         list adjustment_indices
         ndarray last_out
@@ -44,14 +45,24 @@ cdef class AdjustedArrayWindow:
                   dict view_kwargs not None,
                   dict adjustments not None,
                   Py_ssize_t offset,
-                  Py_ssize_t window_length):
-
+                  Py_ssize_t window_length,
+                  Py_ssize_t perspective_offset):
         self.data = data
         self.view_kwargs = view_kwargs
         self.adjustments = adjustments
         self.adjustment_indices = sorted(adjustments, reverse=True)
         self.window_length = window_length
         self.anchor = window_length + offset
+        if perspective_offset > 1:
+            # Limit perspective_offset to 1.
+            # To support an offset greater than 1, work must be done to
+            # ensure that adjustments are retrieved for the datetimes between
+            # the end of the window and the vantage point defined by the
+            # perspective offset.
+            raise Exception("perspective_offset should not exceed 1, value "
+                            "is perspective_offset={0}".format(
+                                perspective_offset))
+        self.perspective_offset = perspective_offset
         self.next_anchor = self.anchor
         self.max_anchor = data.shape[0]
 
@@ -65,7 +76,7 @@ cdef class AdjustedArrayWindow:
         if len(self.adjustment_indices) > 0:
             return self.adjustment_indices.pop()
         else:
-            return self.max_anchor
+            return self.max_anchor + self.perspective_offset
 
     def __iter__(self):
         return self
@@ -84,7 +95,7 @@ cdef class AdjustedArrayWindow:
         # Apply any adjustments that occured before our current anchor.
         # Equivalently, apply any adjustments known **on or before** the date
         # for which we're calculating a window.
-        while self.next_adj < anchor:
+        while self.next_adj < anchor + self.perspective_offset:
 
             for adjustment in self.adjustments[self.next_adj]:
                 adjustment.mutate(self.data)

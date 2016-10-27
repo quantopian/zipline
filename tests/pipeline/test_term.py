@@ -5,6 +5,10 @@ from collections import Counter
 from itertools import product
 from unittest import TestCase
 
+from toolz import assoc
+import pandas as pd
+
+from zipline.assets import Asset
 from zipline.errors import (
     DTypeNotSpecified,
     InvalidOutputName,
@@ -21,15 +25,22 @@ from zipline.pipeline import (
     CustomFactor,
     Factor,
     Filter,
-    TermGraph,
+    ExecutionPlan,
 )
 from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.data.testing import TestingDataSet
-from zipline.pipeline.factors import RecarrayField
-from zipline.pipeline.term import AssetExists, NotSpecified
 from zipline.pipeline.expression import NUMEXPR_MATH_FUNCS
+from zipline.pipeline.factors import RecarrayField
+from zipline.pipeline.sentinels import NotSpecified
+from zipline.pipeline.term import AssetExists, Slice
 from zipline.testing import parameter_space
-from zipline.testing.predicates import assert_equal, assert_raises
+from zipline.testing.fixtures import WithTradingSessions, ZiplineTestCase
+from zipline.testing.predicates import (
+    assert_equal,
+    assert_raises,
+    assert_raises_regex,
+    assert_regex,
+)
 from zipline.utils.numpy_utils import (
     bool_dtype,
     categorical_dtype,
@@ -96,6 +107,18 @@ class MultipleOutputs(CustomFactor):
         return
 
 
+class GenericFilter(Filter):
+    dtype = bool_dtype
+    window_length = 0
+    inputs = []
+
+
+class GenericClassifier(Classifier):
+    dtype = categorical_dtype
+    window_length = 0
+    inputs = []
+
+
 def gen_equivalent_factors():
     """
     Return an iterator of SomeFactor instances that should all be the same
@@ -125,13 +148,20 @@ def to_dict(l):
 
     Example
     -------
-    >>> to_dict([2, 3, 4])
+    >>> to_dict([2, 3, 4])  # doctest: +SKIP
     {'0': 2, '1': 3, '2': 4}
     """
     return dict(zip(map(str, range(len(l))), l))
 
 
-class DependencyResolutionTestCase(TestCase):
+class DependencyResolutionTestCase(WithTradingSessions, ZiplineTestCase):
+
+    TRADING_CALENDAR_STRS = ('NYSE',)
+    START_DATE = pd.Timestamp('2014-01-02', tz='UTC')
+    END_DATE = pd.Timestamp('2014-12-31', tz='UTC')
+
+    execution_plan_start = pd.Timestamp('2014-06-01', tz='UTC')
+    execution_plan_end = pd.Timestamp('2014-06-30', tz='UTC')
 
     def check_dependency_order(self, ordered_terms):
         seen = set()
@@ -141,6 +171,14 @@ class DependencyResolutionTestCase(TestCase):
                 self.assertIn(dep, seen)
 
             seen.add(term)
+
+    def make_execution_plan(self, terms):
+        return ExecutionPlan(
+            terms,
+            self.nyse_sessions,
+            self.execution_plan_start,
+            self.execution_plan_end,
+        )
 
     def test_single_factor(self):
         """
@@ -161,7 +199,7 @@ class DependencyResolutionTestCase(TestCase):
             self.assertEqual(graph.node[SomeDataSet.bar]['extra_rows'], 4)
 
         for foobar in gen_equivalent_factors():
-            check_output(TermGraph(to_dict([foobar])))
+            check_output(self.make_execution_plan(to_dict([foobar])))
 
     def test_single_factor_instance_args(self):
         """
@@ -169,7 +207,9 @@ class DependencyResolutionTestCase(TestCase):
         the constructor.
         """
         bar, buzz = SomeDataSet.bar, SomeDataSet.buzz
-        graph = TermGraph(to_dict([SomeFactor([bar, buzz], window_length=5)]))
+
+        factor = SomeFactor([bar, buzz], window_length=5)
+        graph = self.make_execution_plan(to_dict([factor]))
 
         resolution_order = list(graph.ordered())
 
@@ -193,7 +233,7 @@ class DependencyResolutionTestCase(TestCase):
         f1 = SomeFactor([SomeDataSet.foo, SomeDataSet.bar])
         f2 = SomeOtherFactor([SomeDataSet.bar, SomeDataSet.buzz])
 
-        graph = TermGraph(to_dict([f1, f2]))
+        graph = self.make_execution_plan(to_dict([f1, f2]))
         resolution_order = list(graph.ordered())
 
         # bar should only appear once.
@@ -267,6 +307,21 @@ class ObjectIdentityTestCase(TestCase):
         alpha, beta = MultipleOutputs()
         self.assertIs(alpha, multiple_outputs.alpha)
         self.assertIs(beta, multiple_outputs.beta)
+
+    def test_instance_caching_of_slices(self):
+        my_asset = Asset(1, exchange="TEST")
+
+        f = GenericCustomFactor()
+        f_slice = f[my_asset]
+        self.assertIs(f_slice, Slice(GenericCustomFactor(), my_asset))
+
+        f = GenericFilter()
+        f_slice = f[my_asset]
+        self.assertIs(f_slice, Slice(GenericFilter(), my_asset))
+
+        c = GenericClassifier()
+        c_slice = c[my_asset]
+        self.assertIs(c_slice, Slice(GenericClassifier(), my_asset))
 
     def test_instance_non_caching(self):
 
@@ -364,6 +419,17 @@ class ObjectIdentityTestCase(TestCase):
             method = getattr(f, funcname)
             self.assertIs(method(), method())
 
+    def test_instance_caching_grouped_transforms(self):
+        f = SomeFactor()
+        c = GenericClassifier()
+        m = GenericFilter()
+
+        for meth in f.demean, f.zscore, f.rank:
+            self.assertIs(meth(), meth())
+            self.assertIs(meth(groupby=c), meth(groupby=c))
+            self.assertIs(meth(mask=m), meth(mask=m))
+            self.assertIs(meth(groupby=c, mask=m), meth(groupby=c, mask=m))
+
     class SomeFactorParameterized(SomeFactor):
         params = ('a', 'b')
 
@@ -404,10 +470,50 @@ class ObjectIdentityTestCase(TestCase):
 
         with assert_raises(TypeError) as e:
             self.SomeFactorParameterized(a=[], b=[])
-        assert_equal(
+        assert_regex(
             str(e.exception),
-            "SomeFactorParameterized expected a hashable value for parameter"
-            " 'a', but got [] instead.",
+            r"SomeFactorParameterized expected a hashable value for parameter"
+            r" '(a|b)', but got \[\] instead\.",
+        )
+
+    def test_parameterized_term_default_value(self):
+        defaults = {'a': 'default for a', 'b': 'default for b'}
+
+        class F(Factor):
+            params = defaults
+
+            inputs = (SomeDataSet.foo,)
+            dtype = 'f8'
+            window_length = 5
+
+        assert_equal(F().params, defaults)
+        assert_equal(F(a='new a').params, assoc(defaults, 'a', 'new a'))
+        assert_equal(F(b='new b').params, assoc(defaults, 'b', 'new b'))
+        assert_equal(
+            F(a='new a', b='new b').params,
+            {'a': 'new a', 'b': 'new b'},
+        )
+
+    def test_parameterized_term_default_value_with_not_specified(self):
+        defaults = {'a': 'default for a', 'b': NotSpecified}
+
+        class F(Factor):
+            params = defaults
+
+            inputs = (SomeDataSet.foo,)
+            dtype = 'f8'
+            window_length = 5
+
+        pattern = r"F expected a keyword parameter 'b'\."
+        with assert_raises_regex(TypeError, pattern):
+            F()
+        with assert_raises_regex(TypeError, pattern):
+            F(a='new a')
+
+        assert_equal(F(b='new b').params, assoc(defaults, 'b', 'new b'))
+        assert_equal(
+            F(a='new a', b='new b').params,
+            {'a': 'new a', 'b': 'new b'},
         )
 
     def test_bad_input(self):

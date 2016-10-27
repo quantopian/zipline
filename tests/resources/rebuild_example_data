@@ -167,8 +167,12 @@ def main(ctx, rebuild_input):
             shutil.rmtree(expected_perf_path)
             shutil.copytree(new_perf_path, expected_perf_path)
 
-            with tarfile.open(example_path, 'w|gz') as tar:
-                tar.add(d.getpath('example_data'), 'example_data')
+        # Clear out all the temporary new perf so it doesn't get added to the
+        # tarball.
+        shutil.rmtree(d.getpath('example_data/new_perf/'))
+
+        with tarfile.open(example_path, 'w|gz') as tar:
+            tar.add(d.getpath('example_data'), 'example_data')
 
 
 if __name__ == '__main__':

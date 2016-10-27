@@ -7,6 +7,8 @@ from zipline import run_algorithm
 
 
 # These are used by test_examples.py to discover the examples to run.
+from zipline.utils.calendars import register_calendar, get_calendar
+
 EXAMPLE_MODULES = {}
 for f in os.listdir(os.path.dirname(__file__)):
     if not f.endswith('.py') or f == '__init__.py':
@@ -65,6 +67,9 @@ def run_example(example_name, environ):
     Run an example module from zipline.examples.
     """
     mod = EXAMPLE_MODULES[example_name]
+
+    register_calendar("YAHOO", get_calendar("NYSE"), force=True)
+
     return run_algorithm(
         initialize=getattr(mod, 'initialize', None),
         handle_data=getattr(mod, 'handle_data', None),
