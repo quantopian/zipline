@@ -18,8 +18,8 @@ from abc import (
     abstractproperty,
 )
 
+from numpy import concatenate
 from lru import LRU
-from numpy import hstack
 from pandas import isnull
 from pandas.tslib import normalize_date
 from toolz import sliding_window
@@ -522,7 +522,11 @@ class HistoryLoader(with_metaclass(ABCMeta)):
                                              field,
                                              is_perspective_after)
         end_ix = self._calendar.get_loc(dts[-1])
-        return hstack([window.get(end_ix) for window in block]).round(3)
+
+        return concatenate(
+            [window.get(end_ix) for window in block],
+            axis=1,
+        ).round(3)
 
 
 class DailyHistoryLoader(HistoryLoader):
