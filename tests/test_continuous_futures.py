@@ -835,6 +835,28 @@ def record_current_contract(algo, data):
 
 class OrderedContractsTestCase(ZiplineTestCase):
 
+    def test_contract_at_offset(self):
+        contract_sids = array([1, 2, 3, 4], dtype=int64)
+        start_dates = pd.date_range('2015-01-01', periods=4, tz="UTC")
+        auto_close_dates = pd.date_range('2016-04-01', periods=4, tz="UTC")
+
+        oc = OrderedContracts('FO',
+                              contract_sids,
+                              start_dates.astype('int64'),
+                              auto_close_dates.astype('int64'))
+
+        self.assertEquals(1,
+                          oc.contract_at_offset(1, 0, start_dates[-1].value),
+                          "Offset of 0 should return provided sid")
+
+        self.assertEquals(2,
+                          oc.contract_at_offset(1, 1, start_dates[-1].value),
+                          "Offset of 1 should return next sid in chain.")
+
+        self.assertEquals(None,
+                          oc.contract_at_offset(4, 1, start_dates[-1].value),
+                          "Offset at end of chain should not crash.")
+
     def test_active_chain(self):
         contract_sids = array([1, 2, 3, 4], dtype=int64)
         start_dates = pd.date_range('2015-01-01', periods=4, tz="UTC")
