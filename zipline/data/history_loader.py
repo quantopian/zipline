@@ -184,15 +184,15 @@ class ContinuousFutureAdjustmentReader(object):
 
     def _make_adjustment(self,
                          adjustment_type,
-                         left_close,
-                         right_open,
+                         front_close,
+                         back_close,
                          end_loc):
-        adj_base = left_close - right_open
+        adj_base = back_close - front_close
         if adjustment_type == 'mul':
-            adj_value = 1.0 - adj_base / left_close
+            adj_value = 1.0 + adj_base / front_close
             adj_class = Float64Multiply
         elif adjustment_type == 'add':
-            adj_value = -adj_base
+            adj_value = adj_base
             adj_class = Float64Add
         return adj_class(0,
                          end_loc,
@@ -215,37 +215,34 @@ class ContinuousFutureAdjustmentReader(object):
 
         adjs = {}
 
-        for left, right in sliding_window(2, rolls):
-            left_sid, right_dt = left
-            right_sid = right[0]
-            left_dt = tc.previous_session_label(right_dt)
+        for front, back in sliding_window(2, rolls):
+            front_sid, roll_dt = front
+            back_sid = back[0]
+            dt = tc.previous_session_label(roll_dt)
             if self._frequency == 'minute':
-                _, left_dt = tc.open_and_close_for_session(left_dt)
-                right_dt, _ = tc.open_and_close_for_session(right_dt)
-            partitions.append((left_sid,
-                               right_sid,
-                               left_dt,
-                               right_dt))
-
+                dt = tc.open_and_close_for_session(dt)[1]
+                roll_dt = tc.open_and_close_for_session(roll_dt)[0]
+            partitions.append((front_sid,
+                               back_sid,
+                               dt,
+                               roll_dt))
         for partition in partitions:
-            left_sid, right_sid, left_dt, right_dt = partition
-            last_left_dt = self._bar_reader.get_last_traded_dt(
-                self._asset_finder.retrieve_asset(left_sid),
-                left_dt)
-            last_right_dt = self._bar_reader.get_last_traded_dt(
-                self._asset_finder.retrieve_asset(right_sid),
-                right_dt)
-            if isnull(last_left_dt) or isnull(last_right_dt):
+            front_sid, back_sid, dt, roll_dt = partition
+            last_front_dt = self._bar_reader.get_last_traded_dt(
+                self._asset_finder.retrieve_asset(front_sid), dt)
+            last_back_dt = self._bar_reader.get_last_traded_dt(
+                self._asset_finder.retrieve_asset(back_sid), dt)
+            if isnull(last_front_dt) or isnull(last_back_dt):
                 continue
-            left_close = self._bar_reader.get_value(
-                left_sid, last_left_dt, 'close')
-            right_open = self._bar_reader.get_value(
-                right_sid, last_right_dt, 'open')
-            adj_loc = dts.searchsorted(right_dt)
+            front_close = self._bar_reader.get_value(
+                front_sid, last_front_dt, 'close')
+            back_close = self._bar_reader.get_value(
+                back_sid, last_back_dt, 'close')
+            adj_loc = dts.searchsorted(roll_dt)
             end_loc = adj_loc - 1
             adj = self._make_adjustment(cf.adjustment,
-                                        left_close,
-                                        right_open,
+                                        front_close,
+                                        back_close,
                                         end_loc)
             try:
                 adjs[adj_loc].append(adj)
