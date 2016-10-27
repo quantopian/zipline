@@ -887,11 +887,15 @@ class DataPortal(object):
             )
             df.fillna(method='ffill', inplace=True)
 
+            # forward-filling will incorrectly produce values after the end of
+            # an asset's lifetime, so write NaNs back over the asset's
+            # end_date.
+            normed_index = df.index.normalize()
             for asset in df.columns:
-                if df.index[-1] >= asset.end_date:
+                if history_end >= asset.end_date:
                     # if the window extends past the asset's end date, set
                     # all post-end-date values to NaN in that asset's series
-                    df.loc[df.index.normalize() > asset.end_date, asset] = nan
+                    df.loc[normed_index > asset.end_date, asset] = nan
         return df
 
     def _get_minute_window_for_assets(self, assets, field, minutes_for_window):
