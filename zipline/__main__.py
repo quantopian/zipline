@@ -251,6 +251,12 @@ def run(ctx,
 def zipline_magic(line, cell=None):
     """The zipline IPython cell magic.
     """
+    load_extensions(
+        default=True,
+        extensions=[],
+        strict=True,
+        environ=os.environ,
+    )
     try:
         return run.main(
             # put our overrides at the start of the parameter list so that
