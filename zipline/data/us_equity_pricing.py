@@ -636,21 +636,21 @@ class BcolzDailyBarReader(SessionBarReader):
             try:
                 ix = self.sid_day_index(asset, search_day)
             except NoDataBeforeDate:
-                return None
+                return NaT
             except NoDataAfterDate:
                 prev_day_ix = self.sessions.get_loc(search_day) - 1
                 if prev_day_ix > -1:
                     search_day = self.sessions[prev_day_ix]
                 continue
             except NoDataOnDate:
-                return None
+                return NaT
             if volumes[ix] != 0:
                 return search_day
             prev_day_ix = self.sessions.get_loc(search_day) - 1
             if prev_day_ix > -1:
                 search_day = self.sessions[prev_day_ix]
             else:
-                return None
+                return NaT
 
     def sid_day_index(self, sid, day):
         """

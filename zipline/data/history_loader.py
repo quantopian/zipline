@@ -18,8 +18,8 @@ from abc import (
     abstractproperty,
 )
 
+from numpy import concatenate
 from lru import LRU
-from numpy import around, hstack
 from pandas import isnull
 from pandas.tslib import normalize_date
 from toolz import sliding_window
@@ -268,7 +268,7 @@ class SlidingWindow(object):
     def __init__(self, window, size, cal_start, offset):
         self.window = window
         self.cal_start = cal_start
-        self.current = around(next(window), 3)
+        self.current = next(window)
         self.offset = offset
         self.most_recent_ix = self.cal_start + size
 
@@ -283,7 +283,7 @@ class SlidingWindow(object):
             return self.current
 
         target = end_ix - self.cal_start - self.offset + 1
-        self.current = around(self.window.seek(target), 3)
+        self.current = self.window.seek(target)
 
         self.most_recent_ix = end_ix
         return self.current
@@ -526,7 +526,11 @@ class HistoryLoader(with_metaclass(ABCMeta)):
                                              field,
                                              is_perspective_after)
         end_ix = self._calendar.get_loc(dts[-1])
-        return hstack([window.get(end_ix) for window in block])
+
+        return concatenate(
+            [window.get(end_ix) for window in block],
+            axis=1,
+        ).round(3)
 
 
 class DailyHistoryLoader(HistoryLoader):

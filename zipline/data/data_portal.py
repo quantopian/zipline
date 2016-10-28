@@ -17,7 +17,7 @@ from operator import mul
 from logbook import Logger
 
 import numpy as np
-from numpy import float64, int64
+from numpy import float64, int64, nan
 import pandas as pd
 from pandas import isnull
 from pandas.tslib import normalize_date
@@ -634,7 +634,7 @@ class DataPortal(object):
         if column == "last_traded":
             last_traded_dt = reader.get_last_traded_dt(asset, dt)
 
-            if pd.isnull(last_traded_dt):
+            if isnull(last_traded_dt):
                 return pd.NaT
             else:
                 return last_traded_dt
@@ -858,34 +858,45 @@ class DataPortal(object):
                 raise Exception(
                     "Only 1d and 1m are supported for forward-filling.")
 
-            dt_to_fill = df.index[0]
+            assets_with_leading_nan = np.where(isnull(df.iloc[0]))[0]
 
-            perspective_dt = df.index[-1]
-            assets_with_leading_nan = np.where(pd.isnull(df.iloc[0]))[0]
-            for missing_loc in assets_with_leading_nan:
-                asset = assets[missing_loc]
-                previous_dt = self.get_last_traded_dt(
-                    asset, dt_to_fill, data_frequency)
-                if pd.isnull(previous_dt):
-                    continue
-                previous_value = self.get_adjusted_value(
+            history_start, history_end = df.index[[0, -1]]
+            initial_values = []
+            for asset in df.columns[assets_with_leading_nan]:
+                last_traded = self.get_last_traded_dt(
                     asset,
-                    field,
-                    previous_dt,
-                    perspective_dt,
+                    history_start,
                     data_frequency,
                 )
-                df.iloc[0, missing_loc] = previous_value
+                if isnull(last_traded):
+                    initial_values.append(nan)
+                else:
+                    initial_values.append(
+                        self.get_adjusted_value(
+                            asset,
+                            field,
+                            dt=last_traded,
+                            perspective_dt=history_end,
+                            data_frequency=data_frequency,
+                        )
+                    )
 
+            # Set leading values for assets that were missing data, then ffill.
+            df.ix[0, assets_with_leading_nan] = np.array(
+                initial_values,
+                dtype=np.float64
+            )
             df.fillna(method='ffill', inplace=True)
 
+            # forward-filling will incorrectly produce values after the end of
+            # an asset's lifetime, so write NaNs back over the asset's
+            # end_date.
+            normed_index = df.index.normalize()
             for asset in df.columns:
-                if df.index[-1] >= asset.end_date:
+                if history_end >= asset.end_date:
                     # if the window extends past the asset's end date, set
                     # all post-end-date values to NaN in that asset's series
-                    series = df[asset]
-                    series[series.index.normalize() > asset.end_date] = np.NaN
-
+                    df.loc[normed_index > asset.end_date, asset] = nan
         return df
 
     def _get_minute_window_for_assets(self, assets, field, minutes_for_window):
@@ -912,10 +923,6 @@ class DataPortal(object):
         -------
         A numpy array with requested values.
         """
-        return self._get_minute_window_data(assets, field, minutes_for_window)
-
-    def _get_minute_window_data(
-            self, assets, field, minutes_for_window):
         return self._minute_history_loader.history(assets,
                                                    minutes_for_window,
                                                    field,
