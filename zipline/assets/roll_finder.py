@@ -79,7 +79,7 @@ class RollFinder(with_metaclass(ABCMeta, object)):
             is after the range.
         """
         oc = self.asset_finder.get_ordered_contracts(root_symbol)
-        front = self.get_contract_center(root_symbol, end, offset)
+        front = self.get_contract_center(root_symbol, end, 0)
         back = oc.contract_at_offset(front, 1, end.value)
         if back is not None:
             first = self._active_contract(oc, front, back, end)
@@ -106,7 +106,8 @@ class RollFinder(with_metaclass(ABCMeta, object)):
                 session_loc -= 1
             roll_session = sessions[session_loc + 1]
             if roll_session > start:
-                rolls.insert(0, (front, roll_session))
+                rolls.insert(0, (oc.contract_sids[i + offset],
+                                 roll_session))
             i -= 1
             auto_close_date = Timestamp(oc.auto_close_dates[i],
                                         tz='UTC')
