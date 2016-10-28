@@ -364,7 +364,10 @@ class AssetFinder(object):
         Retrieve the Asset for a given sid.
         """
         try:
-            return self._asset_cache[sid]
+            asset = self._asset_cache[sid]
+            if asset is None and not default_none:
+                raise SidsNotFound(sids=[sid])
+            return asset
         except KeyError:
             return self.retrieve_all((sid,), default_none=default_none)[0]
 
