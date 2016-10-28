@@ -748,6 +748,9 @@ class FetcherDataPortal(DataPortal):
         # otherwise just return a fixed value
         return int(asset)
 
+    # XXX: These aren't actually the methods that are used by the superclasses,
+    # so these don't do anything, and this class will likely produce unexpected
+    # results for history().
     def _get_daily_window_for_sid(self, asset, field, days_in_window,
                                   extra_slot=True):
         return np.arange(days_in_window, dtype=np.float64)
