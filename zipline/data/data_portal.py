@@ -708,7 +708,7 @@ class DataPortal(object):
                                        days_for_window,
                                        end_dt,
                                        field_to_use):
-        ends_at_midnight = (0 == end_dt.hour == end_dt.minute)
+        ends_at_midnight = (end_dt.hour == end_dt.minute == 0)
 
         if ends_at_midnight:
             # two cases where we use daily data for the whole range:
