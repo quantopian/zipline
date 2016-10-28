@@ -1,11 +1,15 @@
 """
 Tests for zipline/utils/pandas_utils.py
 """
+import numpy as np
 import pandas as pd
 
 from zipline.testing import parameter_space, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
-from zipline.utils.pandas_utils import nearest_unequal_elements, ensure_keys
+from zipline.utils.pandas_utils import (
+    ensure_keys,
+    nearest_unequal_elements,
+)
 
 
 class TestNearestUnequalElements(ZiplineTestCase):

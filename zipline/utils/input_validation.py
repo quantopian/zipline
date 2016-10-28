@@ -743,3 +743,29 @@ class error_keywords(object):
 
 
 coerce_string = partial(coerce, string_types)
+
+
+def check_series_notnull(s, err_template, err_type=ValueError):
+    """
+    Assert that a Series contains all non-null entries.
+
+    If there are null entries (determined by ``s.isnull()``), an
+    instance of ``err_type`` is raised with a message generated from
+    ``err_template.format(keys=<list of nan keys>)``.
+
+    Parameters
+    ----------
+    s : pd.Series
+    err_template : object
+        An object with a ``format()`` method producing a error message string.
+    err_type : type, optional
+        The type of error to raise. Default is ValueError.
+
+    Returns
+    -------
+    None
+    """
+    nan_index = s.index[s.isnull().values]
+    if len(nan_index):
+        msg = err_template.format(keys=sorted(nan_index))
+        raise err_type(msg)
