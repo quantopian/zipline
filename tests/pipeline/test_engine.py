@@ -40,7 +40,6 @@ from zipline.assets.synthetic import make_rotating_equity_info
 from zipline.errors import NoFurtherDataError
 from zipline.lib.adjustment import MULTIPLY
 from zipline.lib.labelarray import LabelArray
-from zipline.lib.rank import masked_rankdata_2d
 from zipline.pipeline import CustomFactor, Pipeline
 from zipline.pipeline.data import Column, DataSet, USEquityPricing
 from zipline.pipeline.data.testing import TestingDataSet
@@ -1498,4 +1497,3 @@ class PopulateInitialWorkspaceTestCase(WithConstantInputs, ZiplineTestCase):
                 precomputed_term_value,
             ),
         )
-
