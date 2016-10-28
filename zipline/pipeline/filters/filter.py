@@ -24,6 +24,7 @@ from zipline.pipeline.expression import (
     NumericalExpression,
 )
 from zipline.pipeline.mixins import (
+    AliasedMixin,
     CustomTermMixin,
     DownsampledMixin,
     LatestMixin,
@@ -206,6 +207,10 @@ class Filter(RestrictedDTypeMixin, ComputableTerm):
     @classlazyval
     def _downsampled_type(self):
         return DownsampledMixin.make_downsampled_type(Filter)
+
+    @classlazyval
+    def _aliased_type(self):
+        return AliasedMixin.make_aliased_type(Filter)
 
 
 class NumExprFilter(NumericalExpression, Filter):

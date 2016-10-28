@@ -6,6 +6,7 @@ import operator
 import re
 
 from numpy import where, isnan, nan, zeros
+import pandas as pd
 
 from zipline.lib.labelarray import LabelArray
 from zipline.lib.quantiles import quantiles
@@ -23,6 +24,7 @@ from zipline.utils.numpy_utils import (
 
 from ..filters import ArrayPredicate, NotNullFilter, NullFilter, NumExprFilter
 from ..mixins import (
+    AliasedMixin,
     CustomTermMixin,
     DownsampledMixin,
     LatestMixin,
@@ -303,9 +305,41 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             raise AssertionError("Expected a LabelArray, got %s." % type(data))
         return data.as_categorical()
 
+    def to_workspace_value(self, result, assets):
+        """
+        Called with the result of a pipeline. This needs to return an object
+        which can be put into the workspace to continue doing computations.
+
+        This is the inverse of :func:`~zipline.pipeline.term.Term.postprocess`.
+        """
+        if self.dtype == int64_dtype:
+            return super(Classifier, self).to_workspace_value(result, assets)
+
+        assert isinstance(result.values, pd.Categorical), (
+            'Expected a Categorical, got %r.' % type(result.values)
+        )
+        with_missing = pd.Series(
+            data=pd.Categorical(
+                result.values,
+                result.values.categories.union([self.missing_value]),
+            ),
+            index=result.index,
+        )
+        return LabelArray(
+            super(Classifier, self).to_workspace_value(
+                with_missing,
+                assets,
+            ),
+            self.missing_value,
+        )
+
     @classlazyval
     def _downsampled_type(self):
         return DownsampledMixin.make_downsampled_type(Classifier)
+
+    @classlazyval
+    def _aliased_type(self):
+        return AliasedMixin.make_aliased_type(Classifier)
 
 
 class Everything(Classifier):

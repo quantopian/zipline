@@ -18,6 +18,13 @@ PIPELINE_DOWNSAMPLING_FREQUENCY_DOC = dedent(
     """
 )
 
+PIPELINE_ALIAS_NAME_DOC = dedent(
+    """\
+    name : str
+        The name to alias this term as.
+    """,
+)
+
 
 def pad_lines_after_first(prefix, s):
     """Apply a prefix to each line in s after the first."""

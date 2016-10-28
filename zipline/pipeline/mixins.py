@@ -20,6 +20,7 @@ from zipline.utils.control_flow import nullctx
 from zipline.utils.input_validation import expect_types
 from zipline.utils.sharedoc import (
     format_docstring,
+    PIPELINE_ALIAS_NAME_DOC,
     PIPELINE_DOWNSAMPLING_FREQUENCY_DOC,
 )
 from zipline.utils.pandas_utils import nearest_unequal_elements
@@ -238,6 +239,77 @@ class LatestMixin(SingleInputMixin):
                     actual=self.inputs[0].dtype,
                 )
             )
+
+
+class AliasedMixin(SingleInputMixin):
+    """
+    Mixin for aliased terms.
+    """
+    def __new__(cls, term, name):
+        return super(AliasedMixin, cls).__new__(
+            cls,
+            inputs=(term,),
+            outputs=term.outputs,
+            window_length=0,
+            name=name,
+            dtype=term.dtype,
+            missing_value=term.missing_value,
+            ndim=term.ndim,
+            window_safe=term.window_safe,
+        )
+
+    def _init(self, name, *args, **kwargs):
+        self.name = name
+        return super(AliasedMixin, self)._init(*args, **kwargs)
+
+    @classmethod
+    def _static_identity(cls, name, *args, **kwargs):
+        return (
+            super(AliasedMixin, cls)._static_identity(*args, **kwargs),
+            name,
+        )
+
+    def _compute(self, inputs, dates, assets, mask):
+        return inputs[0]
+
+    def __repr__(self):
+        return '{type}({inner_type}(...), name={name!r})'.format(
+            type=type(self).__name__,
+            inner_type=type(self.inputs[0]).__name__,
+            name=self.name,
+        )
+
+    def short_repr(self):
+        return self.name
+
+    @classmethod
+    def make_aliased_type(cls, other_base):
+        """
+        Factory for making Aliased{Filter,Factor,Classifier}.
+        """
+        docstring = dedent(
+            """
+            A {t} that names another {t}.
+
+            Parameters
+            ----------
+            term : {t}
+            {{name}}
+            """
+        ).format(t=other_base.__name__)
+
+        doc = format_docstring(
+            owner_name=other_base.__name__,
+            docstring=docstring,
+            formatters={'name': PIPELINE_ALIAS_NAME_DOC},
+        )
+
+        return type(
+            'Aliased' + other_base.__name__,
+            (cls, other_base),
+            {'__doc__': doc,
+             '__module__': other_base.__module__},
+        )
 
 
 class DownsampledMixin(StandardOutputs):

@@ -2,10 +2,13 @@ from functools import reduce
 from operator import or_
 
 import numpy as np
+import pandas as pd
 
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Classifier
 from zipline.testing import parameter_space
+from zipline.testing.fixtures import ZiplineTestCase
+from zipline.testing.predicates import assert_equal
 from zipline.utils.numpy_utils import (
     categorical_dtype,
     int64_dtype,
@@ -464,3 +467,81 @@ class ClassifierTestCase(BasePipelineTestCase):
             "TypeError(\"unhashable type: 'dict'\",)."
         )
         self.assertEqual(errmsg, expected)
+
+
+class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
+    def test_reversability_categorical(self):
+        class F(Classifier):
+            inputs = ()
+            window_length = 0
+            dtype = categorical_dtype
+            missing_value = '<missing>'
+
+        f = F()
+        column_data = LabelArray(
+            np.array(
+                [['a', f.missing_value],
+                 ['b', f.missing_value],
+                 ['c', 'd']],
+            ),
+            missing_value=f.missing_value,
+        )
+
+        assert_equal(
+            f.postprocess(column_data.ravel()),
+            pd.Categorical(
+                ['a', f.missing_value, 'b', f.missing_value, 'c', 'd'],
+            ),
+        )
+
+        # only include the non-missing data
+        pipeline_output = pd.Series(
+            data=['a', 'b', 'c', 'd'],
+            index=pd.MultiIndex.from_arrays([
+                [pd.Timestamp('2014-01-01'),
+                 pd.Timestamp('2014-01-02'),
+                 pd.Timestamp('2014-01-03'),
+                 pd.Timestamp('2014-01-03')],
+                [0, 0, 0, 1],
+            ]),
+            dtype='category',
+        )
+
+        assert_equal(
+            f.to_workspace_value(pipeline_output, pd.Index([0, 1])),
+            column_data,
+        )
+
+    def test_reversability_int64(self):
+        class F(Classifier):
+            inputs = ()
+            window_length = 0
+            dtype = int64_dtype
+            missing_value = -1
+
+        f = F()
+        column_data = np.array(
+            [[0, f.missing_value],
+             [1, f.missing_value],
+             [2, 3]],
+        )
+
+        assert_equal(f.postprocess(column_data.ravel()), column_data.ravel())
+
+        # only include the non-missing data
+        pipeline_output = pd.Series(
+            data=[0, 1, 2, 3],
+            index=pd.MultiIndex.from_arrays([
+                [pd.Timestamp('2014-01-01'),
+                 pd.Timestamp('2014-01-02'),
+                 pd.Timestamp('2014-01-03'),
+                 pd.Timestamp('2014-01-03')],
+                [0, 0, 0, 1],
+            ]),
+            dtype=int64_dtype,
+        )
+
+        assert_equal(
+            f.to_workspace_value(pipeline_output, pd.Index([0, 1])),
+            column_data,
+        )
