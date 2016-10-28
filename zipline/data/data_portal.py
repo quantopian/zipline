@@ -454,7 +454,7 @@ class DataPortal(object):
                 return None
 
         if data_frequency == "daily":
-            return self._get_daily_data(asset, field, session_label)
+            return self._get_daily_spot_value(asset, field, session_label)
         else:
             if field == "last_traded":
                 return self.get_last_traded_dt(asset, dt, 'minute')
@@ -629,7 +629,7 @@ class DataPortal(object):
             dt, "minute", spot_value=result
         )
 
-    def _get_daily_data(self, asset, column, dt):
+    def _get_daily_spot_value(self, asset, column, dt):
         reader = self._get_pricing_reader('daily')
         if column == "last_traded":
             last_traded_dt = reader.get_last_traded_dt(asset, dt)
@@ -703,16 +703,19 @@ class DataPortal(object):
             columns=assets
         )
 
-    def _get_history_daily_window_data(
-            self, assets, days_for_window, end_dt, field_to_use):
-        ends_at_midnight = end_dt.hour == 0 and end_dt.minute == 0
+    def _get_history_daily_window_data(self,
+                                       assets,
+                                       days_for_window,
+                                       end_dt,
+                                       field_to_use):
+        ends_at_midnight = (0 == end_dt.hour == end_dt.minute)
 
         if ends_at_midnight:
             # two cases where we use daily data for the whole range:
             # 1) the history window ends at midnight utc.
             # 2) the last desired day of the window is after the
             # last trading day, use daily data for the whole range.
-            return self._get_daily_window_for_sids(
+            return self._get_daily_window_data(
                 assets,
                 field_to_use,
                 days_for_window,
@@ -720,7 +723,7 @@ class DataPortal(object):
             )
         else:
             # minute mode, requesting '1d'
-            daily_data = self._get_daily_window_for_sids(
+            daily_data = self._get_daily_window_data(
                 assets,
                 field_to_use,
                 days_for_window[0:-1]
@@ -788,7 +791,7 @@ class DataPortal(object):
         if minutes_for_window[0] < self._first_trading_minute:
             self._handle_minute_history_out_of_bounds(bar_count)
 
-        asset_minute_data = self._get_minute_window_for_assets(
+        asset_minute_data = self._get_minute_window_data(
             assets,
             field_to_use,
             minutes_for_window,
@@ -899,7 +902,7 @@ class DataPortal(object):
                     df.loc[normed_index > asset.end_date, asset] = nan
         return df
 
-    def _get_minute_window_for_assets(self, assets, field, minutes_for_window):
+    def _get_minute_window_data(self, assets, field, minutes_for_window):
         """
         Internal method that gets a window of adjusted minute data for an asset
         and specified date range.  Used to support the history API method for
@@ -909,8 +912,8 @@ class DataPortal(object):
 
         Parameters
         ----------
-        asset : Asset
-            The asset whose data is desired.
+        assets : iterable[Asset]
+            The assets whose data is desired.
 
         field: string
             The specific field to return.  "open", "high", "close_price", etc.
@@ -928,8 +931,11 @@ class DataPortal(object):
                                                    field,
                                                    False)
 
-    def _get_daily_window_for_sids(
-            self, assets, field, days_in_window, extra_slot=True):
+    def _get_daily_window_data(self,
+                               assets,
+                               field,
+                               days_in_window,
+                               extra_slot=True):
         """
         Internal method that gets a window of adjusted daily data for a sid
         and specified date range.  Used to support the history API method for
