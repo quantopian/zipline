@@ -75,6 +75,8 @@ class RollingPearson(_RollingCorrelation):
     Most users should call Factor.pearsonr rather than directly construct an
     instance of this class.
     """
+    window_safe = True
+
     def compute(self, today, assets, out, base_data, target_data):
         # If `target_data` is a Slice or single column of data, broadcast it
         # out to the same shape as `base_data`, then compute column-wise. This
@@ -119,6 +121,8 @@ class RollingSpearman(_RollingCorrelation):
     Most users should call Factor.spearmanr rather than directly construct an
     instance of this class.
     """
+    window_safe = True
+
     def compute(self, today, assets, out, base_data, target_data):
         # If `target_data` is a Slice or single column of data, broadcast it
         # out to the same shape as `base_data`, then compute column-wise. This
