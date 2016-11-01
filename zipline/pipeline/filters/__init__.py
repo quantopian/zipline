@@ -8,7 +8,7 @@ from .filter import (
     NumExprFilter,
     PercentileFilter,
     SingleAsset,
-    SpecificAssets,
+    StaticAssets,
 )
 from .smoothing import All, Any, AtLeastN
 
@@ -25,5 +25,5 @@ __all__ = [
     'NumExprFilter',
     'PercentileFilter',
     'SingleAsset',
-    'SpecificAssets',
+    'StaticAssets',
 ]

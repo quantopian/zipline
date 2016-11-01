@@ -501,11 +501,11 @@ class SingleAsset(Filter):
         return out
 
 
-class SpecificAssets(Filter):
+class StaticAssets(Filter):
     """
     A Filter that computes True for a specific set of predetermined assets.
 
-    ``SpecificAssets`` is mostly useful for debugging or for interactively
+    ``StaticAssets`` is mostly useful for debugging or for interactively
     computing pipeline terms for a fixed set of assets that are known ahead of
     time.
 
@@ -520,7 +520,7 @@ class SpecificAssets(Filter):
 
     def __new__(cls, assets):
         sids = frozenset(asset.sid for asset in assets)
-        return super(SpecificAssets, cls).__new__(cls, sids=sids)
+        return super(StaticAssets, cls).__new__(cls, sids=sids)
 
     def _compute(self, arrays, dates, sids, mask):
         my_columns = sids.isin(self.params['sids'])
