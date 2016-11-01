@@ -30,7 +30,7 @@ from zipline.errors import BadPercentileBounds
 from zipline.pipeline import Filter, Factor, Pipeline
 from zipline.pipeline.classifiers import Classifier
 from zipline.pipeline.factors import CustomFactor
-from zipline.pipeline.filters import All, Any, AtLeastN, SpecificAssets
+from zipline.pipeline.filters import All, Any, AtLeastN, StaticAssets
 from zipline.testing import parameter_space, permute_rows, ZiplineTestCase
 from zipline.testing.fixtures import WithSeededRandomPipelineEngine
 from zipline.testing.predicates import assert_equal
@@ -844,10 +844,10 @@ class SpecificAssetsTestCase(WithSeededRandomPipelineEngine,
         pipe = Pipeline(
             columns={
                 'sid': SidFactor(),
-                'evens': SpecificAssets(assets[::2]),
-                'odds': SpecificAssets(assets[1::2]),
-                'first_five': SpecificAssets(assets[:5]),
-                'last_three': SpecificAssets(assets[-3:]),
+                'evens': StaticAssets(assets[::2]),
+                'odds': StaticAssets(assets[1::2]),
+                'first_five': StaticAssets(assets[:5]),
+                'last_three': StaticAssets(assets[-3:]),
             },
         )
 
