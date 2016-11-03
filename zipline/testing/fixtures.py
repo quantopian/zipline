@@ -13,7 +13,11 @@ from .core import (
     create_minute_bar_data,
     tmp_dir,
 )
-from ..data.data_portal import DataPortal
+from ..data.data_portal import (
+    DataPortal,
+    DEFAULT_MINUTE_HISTORY_PREFETCH,
+    DEFAULT_DAILY_HISTORY_PREFETCH,
+)
 from ..data.resample import (
     minute_frame_to_session_frame,
     MinuteResampleSessionBarReader
@@ -1272,6 +1276,9 @@ class WithDataPortal(WithAdjustmentReader,
     DATA_PORTAL_LAST_AVAILABLE_SESSION = None
     DATA_PORTAL_LAST_AVAILABLE_MINUTE = None
 
+    DATA_PORTAL_MINUTE_HISTORY_PREFETCH = DEFAULT_MINUTE_HISTORY_PREFETCH
+    DATA_PORTAL_DAILY_HISTORY_PREFETCH = DEFAULT_DAILY_HISTORY_PREFETCH
+
     def make_data_portal(self):
         if self.DATA_PORTAL_FIRST_TRADING_DAY is None:
             if self.DATA_PORTAL_USE_MINUTE_DATA:
@@ -1315,6 +1322,10 @@ class WithDataPortal(WithAdjustmentReader,
             ),
             last_available_session=self.DATA_PORTAL_LAST_AVAILABLE_SESSION,
             last_available_minute=self.DATA_PORTAL_LAST_AVAILABLE_MINUTE,
+            minute_history_prefetch_length=self.
+            DATA_PORTAL_MINUTE_HISTORY_PREFETCH,
+            daily_history_prefetch_length=self.
+            DATA_PORTAL_DAILY_HISTORY_PREFETCH,
         )
 
     def init_instance_fixtures(self):

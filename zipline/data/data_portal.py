@@ -86,6 +86,12 @@ OHLCVP_FIELDS = frozenset([
 
 HISTORY_FREQUENCIES = set(["1m", "1d"])
 
+DEFAULT_MINUTE_HISTORY_PREFETCH = 1560
+DEFAULT_DAILY_HISTORY_PREFETCH = 40
+
+_DEF_M_HIST_PREFETCH = DEFAULT_MINUTE_HISTORY_PREFETCH
+_DEF_D_HIST_PREFETCH = DEFAULT_DAILY_HISTORY_PREFETCH
+
 
 class DataPortal(object):
     """Interface to all of the data that a zipline simulation needs.
@@ -138,7 +144,9 @@ class DataPortal(object):
                  future_minute_reader=None,
                  adjustment_reader=None,
                  last_available_session=None,
-                 last_available_minute=None):
+                 last_available_minute=None,
+                 minute_history_prefetch_length=_DEF_M_HIST_PREFETCH,
+                 daily_history_prefetch_length=_DEF_D_HIST_PREFETCH):
 
         self.trading_calendar = trading_calendar
         self.asset_finder = asset_finder
@@ -241,6 +249,7 @@ class DataPortal(object):
             self._adjustment_reader,
             self.asset_finder,
             self._roll_finders,
+            prefetch_length=daily_history_prefetch_length,
         )
         self._minute_history_loader = MinuteHistoryLoader(
             self.trading_calendar,
@@ -248,6 +257,7 @@ class DataPortal(object):
             self._adjustment_reader,
             self.asset_finder,
             self._roll_finders,
+            prefetch_length=minute_history_prefetch_length,
         )
 
         self._first_trading_day = first_trading_day
