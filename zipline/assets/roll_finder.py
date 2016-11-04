@@ -88,8 +88,10 @@ class RollFinder(with_metaclass(ABCMeta, object)):
         for i, sid in enumerate(oc.contract_sids):
             if sid == first:
                 break
-        rolls = [(first, None)]
-        sessions = self.trading_calendar.sessions_in_range(start, end)
+        rolls = [(first + offset, None)]
+        tc = self.trading_calendar
+        sessions = tc.sessions_in_range(tc.minute_to_session_label(start),
+                                        tc.minute_to_session_label(end))
         if first == front:
             i -= 1
         else:

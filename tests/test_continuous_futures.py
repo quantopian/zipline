@@ -972,3 +972,8 @@ class OrderedContractsTestCase(ZiplineTestCase):
         chain = oc.active_chain(4, pd.Timestamp('2015-01-04', tz='UTC').value)
         self.assertEquals([4], list(chain),
                           "[4] should be active beginning at its start date.")
+
+
+class NoPrefetchContinuousFuturesTestCase(ContinuousFuturesTestCase):
+    DATA_PORTAL_MINUTE_HISTORY_PREFETCH = 0
+    DATA_PORTAL_DAILY_HISTORY_PREFETCH = 0

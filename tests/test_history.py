@@ -1351,6 +1351,11 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                                            format(field, minute))
 
 
+class NoPrefetchMinuteEquityHistoryTestCase(MinuteEquityHistoryTestCase):
+    DATA_PORTAL_MINUTE_HISTORY_PREFETCH = 0
+    DATA_PORTAL_DAILY_HISTORY_PREFETCH = 0
+
+
 class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     CREATE_BARDATA_DATA_FREQUENCY = 'daily'
 
@@ -1755,3 +1760,8 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                                        window_2[self.ASSET1].values)
         np.testing.assert_almost_equal(window_1[self.ASSET2].values,
                                        window_2[self.ASSET2].values)
+
+
+class NoPrefetchDailyEquityHistoryTestCase(DailyEquityHistoryTestCase):
+    DATA_PORTAL_MINUTE_HISTORY_PREFETCH = 0
+    DATA_PORTAL_DAILY_HISTORY_PREFETCH = 0
