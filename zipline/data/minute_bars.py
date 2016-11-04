@@ -13,7 +13,6 @@
 # limitations under the License.
 import json
 import os
-import shutil
 from glob import glob
 from os.path import join
 from textwrap import dedent
@@ -780,26 +779,10 @@ class BcolzMinuteBarWriter(object):
                 continue
 
             logger.info(
-                "Truncting {0} back at end_date={1}", file_name, date.date()
+                "Truncating {0} at end_date={1}", file_name, date.date()
             )
 
-            new_table = table[:truncate_slice_end]
-            tmp_path = sid_path + '.bak'
-            shutil.move(sid_path, tmp_path)
-            try:
-                bcolz.ctable(new_table, rootdir=sid_path)
-                try:
-                    shutil.rmtree(tmp_path)
-                except Exception as err:
-                    logger.info(
-                        "Could not delete tmp_path={0}, err={1}", tmp_path, err
-                    )
-            except Exception as err:
-                # On any ctable write error, restore the original table.
-                logger.warn(
-                    "Could not write {0}, err={1}", file_name, err
-                )
-                shutil.move(tmp_path, sid_path)
+            table.resize(truncate_slice_end)
 
         # Update end session in metadata.
         metadata = BcolzMinuteBarMetadata.read(self._rootdir)
