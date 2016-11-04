@@ -16,7 +16,7 @@
 from datetime import time
 from itertools import chain
 
-from pandas.tseries.holiday import(
+from pandas.tseries.holiday import (
     GoodFriday,
     USLaborDay,
     USPresidentsDay,

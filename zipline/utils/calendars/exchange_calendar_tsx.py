@@ -1,5 +1,5 @@
 from datetime import time
-from pandas.tseries.holiday import(
+from pandas.tseries.holiday import (
     Holiday,
     DateOffset,
     MO,
