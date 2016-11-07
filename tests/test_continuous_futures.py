@@ -222,11 +222,6 @@ class ContinuousFuturesTestCase(WithCreateBarData,
                          'Auto close at beginning of session so FOG16 is now '
                          'the current contract.')
 
-        bar_data = self.create_bardata(
-            lambda: pd.Timestamp('2016-01-27', tz='UTC'))
-        contract = bar_data.current(cf_primary, 'contract')
-        self.assertEqual(contract.symbol, 'FOG16')
-
     def test_get_spot_value_contract_daily(self):
         cf_primary = self.asset_finder.create_continuous_future(
             'FO', 0, 'calendar')
