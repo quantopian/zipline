@@ -464,7 +464,10 @@ class DataPortal(object):
                 return None
 
         if data_frequency == "daily":
-            return self._get_daily_spot_value(asset, field, session_label)
+            if field == "contract":
+                return self._get_current_contract(asset, session_label)
+            else:
+                return self._get_daily_spot_value(asset, field, session_label)
         else:
             if field == "last_traded":
                 return self.get_last_traded_dt(asset, dt, 'minute')
