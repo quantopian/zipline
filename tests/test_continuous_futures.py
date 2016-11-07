@@ -32,6 +32,7 @@ from zipline.assets.continuous_futures import OrderedContracts
 from zipline.data.minute_bars import FUTURES_MINUTES_PER_DAY
 from zipline.testing.fixtures import (
     WithCreateBarData,
+    WithDataPortal,
     WithBcolzFutureMinuteBarReader,
     WithSimParams,
     ZiplineTestCase,
@@ -39,6 +40,7 @@ from zipline.testing.fixtures import (
 
 
 class ContinuousFuturesTestCase(WithCreateBarData,
+                                WithDataPortal,
                                 WithSimParams,
                                 WithBcolzFutureMinuteBarReader,
                                 ZiplineTestCase):
@@ -224,6 +226,30 @@ class ContinuousFuturesTestCase(WithCreateBarData,
             lambda: pd.Timestamp('2016-01-27', tz='UTC'))
         contract = bar_data.current(cf_primary, 'contract')
         self.assertEqual(contract.symbol, 'FOG16')
+
+    def test_get_spot_value_contract_daily(self):
+        cf_primary = self.asset_finder.create_continuous_future(
+            'FO', 0, 'calendar')
+
+        contract = self.data_portal.get_spot_value(
+            cf_primary,
+            'contract',
+            pd.Timestamp('2016-01-26', tz='UTC'),
+            'daily',
+        )
+
+        self.assertEqual(contract.symbol, 'FOF16')
+
+        contract = self.data_portal.get_spot_value(
+            cf_primary,
+            'contract',
+            pd.Timestamp('2016-01-27', tz='UTC'),
+            'daily',
+        )
+
+        self.assertEqual(contract.symbol, 'FOG16',
+                         'Auto close at beginning of session so FOG16 is now '
+                         'the current contract.')
 
     def test_current_contract_volume_roll(self):
         cf_primary = self.asset_finder.create_continuous_future(
