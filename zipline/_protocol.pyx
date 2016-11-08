@@ -24,7 +24,7 @@ from six import iteritems, PY2, string_types
 from cpython cimport bool
 from collections import Iterable
 
-from zipline.assets import Asset, Future
+from zipline.assets import Asset, AssetConvertible, Future
 from zipline.assets.continuous_futures import ContinuousFuture
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
@@ -637,7 +637,7 @@ cdef class BarData:
         last market close instead.
         """
         if isinstance(fields, string_types):
-            single_asset = isinstance(assets, Asset)
+            single_asset = isinstance(assets, AssetConvertible)
 
             if single_asset:
                 asset_list = [assets]
@@ -670,7 +670,7 @@ cdef class BarData:
                 # columns are the assets, indexed by dt.
                 return df
         else:
-            if isinstance(assets, Asset):
+            if isinstance(assets, AssetConvertible):
                 # one asset, multiple fields. for now, just make multiple
                 # history calls, one per field, then stitch together the
                 # results. this can definitely be optimized!

@@ -1218,6 +1218,7 @@ class AssetConvertible(with_metaclass(ABCMeta)):
 
 AssetConvertible.register(Integral)
 AssetConvertible.register(Asset)
+AssetConvertible.register(ContinuousFuture)
 # Use six.string_types for Python2/3 compatibility
 for _type in string_types:
     AssetConvertible.register(_type)
