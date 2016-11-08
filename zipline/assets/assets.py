@@ -1218,7 +1218,6 @@ class AssetConvertible(with_metaclass(ABCMeta)):
 
 AssetConvertible.register(Integral)
 AssetConvertible.register(Asset)
-AssetConvertible.register(ContinuousFuture)
 # Use six.string_types for Python2/3 compatibility
 for _type in string_types:
     AssetConvertible.register(_type)
@@ -1226,6 +1225,19 @@ for _type in string_types:
 
 class NotAssetConvertible(ValueError):
     pass
+
+
+class PricingDataAssociable(with_metaclass(ABCMeta)):
+    """
+    ABC for types that can be associated with pricing data.
+
+    Includes Asset, Future, ContinuousFuture
+    """
+    pass
+
+PricingDataAssociable.register(Asset)
+PricingDataAssociable.register(Future)
+PricingDataAssociable.register(ContinuousFuture)
 
 
 def was_active(reference_date_value, asset):
