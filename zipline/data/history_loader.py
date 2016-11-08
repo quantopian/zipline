@@ -379,12 +379,26 @@ class HistoryLoader(with_metaclass(ABCMeta)):
 
         assets = self._asset_finder.retrieve_all(assets)
 
+        try:
+            end_ix = self._calendar.get_loc(end)
+        except KeyError:
+            raise KeyError("{0} not in calendar [{1}...{2}]".format(
+                end, self._calendar[0], self._calendar[-1]))
+
         for asset in assets:
             try:
-                asset_windows[asset] = self._window_blocks[field].get(
+                window = self._window_blocks[field].get(
                     (asset, size, is_perspective_after), end)
             except KeyError:
                 needed_assets.append(asset)
+            else:
+                if end_ix < window.most_recent_ix:
+                    # Window needs reset. Requested end index occurs before the
+                    # end index from the previous history call for this window.
+                    # Grab new window instead of rewinding adjustments.
+                    needed_assets.append(asset)
+                else:
+                    asset_windows[asset] = window
 
         if needed_assets:
             start = dts[0]
@@ -395,11 +409,6 @@ class HistoryLoader(with_metaclass(ABCMeta)):
             except KeyError:
                 raise KeyError("{0} not in calendar [{1}...{2}]".format(
                     start, self._calendar[0], self._calendar[-1]))
-            try:
-                end_ix = self._calendar.get_loc(end)
-            except KeyError:
-                raise KeyError("{0} not in calendar [{1}...{2}]".format(
-                    end, self._calendar[0], self._calendar[-1]))
             cal = self._calendar
             prefetch_end_ix = min(end_ix + self._prefetch_length, len(cal) - 1)
             prefetch_end = cal[prefetch_end_ix]

@@ -1761,6 +1761,64 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         np.testing.assert_almost_equal(window_1[self.ASSET2].values,
                                        window_2[self.ASSET2].values)
 
+    def test_history_window_out_of_order_dates(self):
+        """
+        Use a history window with non-monotonically increasing dates.
+        A scenario which does not occur during simulations, but useful
+        for using a history loader in a notebook.
+        """
+
+        window_1 = self.data_portal.get_history_window(
+            [self.ASSET1],
+            pd.Timestamp('2014-02-07', tz='UTC'),
+            4,
+            "1d",
+            "close"
+        )
+
+        window_2 = self.data_portal.get_history_window(
+            [self.ASSET1],
+            pd.Timestamp('2014-02-05', tz='UTC'),
+            4,
+            "1d",
+            "close"
+        )
+
+        window_3 = self.data_portal.get_history_window(
+            [self.ASSET1],
+            pd.Timestamp('2014-02-07', tz='UTC'),
+            4,
+            "1d",
+            "close"
+        )
+
+        window_4 = self.data_portal.get_history_window(
+            [self.ASSET1],
+            pd.Timestamp('2014-01-22', tz='UTC'),
+            4,
+            "1d",
+            "close"
+        )
+
+        # Calling 02-07 after resetting the window should not affect the
+        # results.
+        np.testing.assert_almost_equal(window_1.values, window_3.values)
+
+        offsets = np.arange(4)
+
+        def assert_window_prices(window, starting_price):
+            np.testing.assert_almost_equal(window.loc[:, self.ASSET1],
+                                           starting_price + offsets)
+
+        # Window 1 starts on the 23rd day of data for ASSET 1.
+        assert_window_prices(window_1, 23)
+        # Window 2 starts on the 21st day of data for ASSET 1.
+        assert_window_prices(window_2, 21)
+        # Window 3 starts on the 23rd day of data for ASSET 1.
+        assert_window_prices(window_3, 23)
+        # Window 4 starts on the 11th day of data for ASSET 1.
+        assert_window_prices(window_4, 11)
+
 
 class NoPrefetchDailyEquityHistoryTestCase(DailyEquityHistoryTestCase):
     DATA_PORTAL_MINUTE_HISTORY_PREFETCH = 0
