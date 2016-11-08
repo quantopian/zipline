@@ -135,7 +135,7 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
             If the given dt is not a valid market minute (in minute mode) or
             session (in daily mode) according to this reader's tradingcalendar.
         """
-        rf = self._roll_finders[continuous_future.roll]
+        rf = self._roll_finders[continuous_future.roll_style]
         sid = (rf.get_contract_center(continuous_future.root_symbol,
                                       dt,
                                       continuous_future.offset))
