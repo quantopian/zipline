@@ -541,7 +541,7 @@ class MinuteResampleSessionBarReader(SessionBarReader):
         # This was developed to complete interface, but has not been tuned
         # for real world use.
         start, end = self._calendar.open_and_close_for_session(session)
-        return self._get_resampled([colname], start, end, [sid])[0]
+        return self._get_resampled([colname], start, end, [sid])[0][0][0]
 
     @lazyval
     def sessions(self):

@@ -222,7 +222,7 @@ class ContinuousFuturesTestCase(WithCreateBarData,
                          'Auto close at beginning of session so FOG16 is now '
                          'the current contract.')
 
-    def test_get_spot_value_contract_daily(self):
+    def test_get_value_contract_daily(self):
         cf_primary = self.asset_finder.create_continuous_future(
             'FO', 0, 'calendar')
 
@@ -243,6 +243,30 @@ class ContinuousFuturesTestCase(WithCreateBarData,
         )
 
         self.assertEqual(contract.symbol, 'FOG16',
+                         'Auto close at beginning of session so FOG16 is now '
+                         'the current contract.')
+
+    def test_get_value_close_daily(self):
+        cf_primary = self.asset_finder.create_continuous_future(
+            'FO', 0, 'calendar')
+
+        value = self.data_portal.get_spot_value(
+            cf_primary,
+            'close',
+            pd.Timestamp('2016-01-26', tz='UTC'),
+            'daily',
+        )
+
+        self.assertEqual(value, 105011.44)
+
+        value = self.data_portal.get_spot_value(
+            cf_primary,
+            'close',
+            pd.Timestamp('2016-01-27', tz='UTC'),
+            'daily',
+        )
+
+        self.assertEqual(value, 115021.44,
                          'Auto close at beginning of session so FOG16 is now '
                          'the current contract.')
 
