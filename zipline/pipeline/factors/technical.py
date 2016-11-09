@@ -718,12 +718,22 @@ class MovingAverageConvergenceDivergence(CustomFactor):
     hist: Difference between MACD and signal. (Divergence series)
     """
     inputs = [USEquityPricing.close]
-
-    params = {'fast_period': 12,
-              'slow_period': 26,
-              'signal_period': 9}
-
+    params = ('fast_period', 'slow_period', 'signal_period')
     outputs = ('MACD', 'signal', 'hist')
+
+    def __new__(cls,
+                fast_period=12,
+                slow_period=26,
+                signal_period=9,
+                *args,
+                **kwargs):
+        return super(MovingAverageConvergenceDivergence, cls).__new__(
+            fast_period=fast_period,
+            slow_period=slow_period,
+            signal_period=signal_period,
+            window_length=slow_period + signal_period,
+            *args, **kwargs
+        )
 
     def calculate_macd(self, col, fast, slow, signal):
         try:
