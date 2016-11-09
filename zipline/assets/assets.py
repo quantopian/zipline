@@ -922,8 +922,9 @@ class AssetFinder(object):
 
     def create_continuous_future(self, root_symbol, offset, roll_style):
         oc = self.get_ordered_contracts(root_symbol)
-        start_date = self.retrieve_asset(oc.contract_sids[0]).start_date
-        end_date = self.retrieve_asset(oc.contract_sids[-1]).end_date
+        contracts = self.retrieve_all(oc.contract_sids)
+        start_date = min(c.start_date for c in contracts)
+        end_date = max(c.end_date for c in contracts)
         exchange = self._get_root_symbol_exchange(root_symbol)
 
         sid = _encode_continuous_future_sid(root_symbol, offset,
