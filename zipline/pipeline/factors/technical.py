@@ -21,6 +21,7 @@ from numpy import (
     NINF,
     sqrt,
     sum as np_sum,
+    nan
 )
 from numexpr import evaluate
 
@@ -38,6 +39,8 @@ from zipline.utils.math_utils import (
     nanmin,
 )
 from .factor import CustomFactor
+
+from talib import MACD
 
 
 class Returns(CustomFactor):
@@ -683,3 +686,79 @@ class TrueRange(CustomFactor):
             )),
             2
         )
+
+
+
+class MovingAverageConvergenceDivergence(CustomFactor):
+    """
+    Moving Average Convergence/Divergence (MACD)
+    https://en.wikipedia.org/wiki/MACD
+
+    A technical indicator originally developed by Gerald Appel in the late
+    1970's. MACD shows the relationship between two moving averages and
+    reveals changes in the strength, direction, momentum, and duration of a
+    trend in a stock's price.
+
+    **Default Inputs:** :data:`zipline.pipeline.data.USEquityPricing.close`
+    **Default Window Length:** None
+
+    Parameters
+    ----------
+    fast_period : int >= 0, <= window_length
+        The window length for the "fast" EMA.
+    slow_period : int >= 0, <= window_length
+        The window length for the "slow" EMA.
+    signal_period' : int >= 0, <= slow_period
+        The window length for the signal line.
+
+    Returns
+    -------
+    MACD: The difference between "fast" EMA and "slow" EMA.
+    signal: The signal_period length period EMA of the MACD line.
+    hist: Difference between MACD and signal. (Divergence series)
+    """
+    inputs = [USEquityPricing.close]
+
+    params = {'fast_period': 12,
+              'slow_period': 26,
+              'signal_period': 9}
+
+    outputs = ('MACD', 'signal', 'hist')
+
+    def calculate_macd(self, col, fast, slow, signal):
+        try:
+            macd, sig, hist = MACD(col,
+                                   fastperiod=fast,
+                                   slowperiod=slow,
+                                   signalperiod=signal)
+            return macd[-1], sig[-1], hist[-1]
+        except:
+            return nan, nan, nan
+
+    def compute(self, today, assets, out, close, fast_period, slow_period,
+                signal_period):
+        n = len(close)
+        macd, sig, hist = zip(*map(self.calculate_macd,
+                                   close.T,
+                                   [fast_period]*n,
+                                   [slow_period]*n,
+                                   [signal_period]*n))
+        out.MACD[:] = macd
+        out.signal[:] = sig
+        out.hist[:] = hist
+
+
+class AnnualVolatility(CustomFactor):
+    """
+    Volatility
+    https://en.wikipedia.org/wiki/Volatility_(finance)
+
+    The degree of variation of a series over time as measured by the standard
+    deviation of the data over the course of a year.
+
+    **Default Inputs:** :data:`zipline.pipeline.data.USEquityPricing.close`
+    """
+    inputs = [USEquityPricing.close]
+
+    def compute(self, today, assets, out, closes):
+        out[:] = nanstd(closes, ddof=1, axis=0) * (252 ** 0.5)
