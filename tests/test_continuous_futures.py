@@ -64,42 +64,54 @@ class ContinuousFuturesTestCase(WithCreateBarData,
     @classmethod
     def make_futures_info(self):
         return DataFrame({
-            'symbol': ['FOF16', 'FOG16', 'FOH16', 'FOJ16', 'FOK16', 'FOF22'],
-            'root_symbol': ['FO'] * 6,
-            'asset_name': ['Foo'] * 6,
+            'symbol': ['FOF16', 'FOG16', 'FOH16', 'FOJ16', 'FOK16', 'FOF22',
+                       'FOG22'],
+            'root_symbol': ['FO'] * 7,
+            'asset_name': ['Foo'] * 7,
             'start_date': [Timestamp('2015-01-05', tz='UTC'),
                            Timestamp('2015-02-05', tz='UTC'),
                            Timestamp('2015-03-05', tz='UTC'),
                            Timestamp('2015-04-05', tz='UTC'),
                            Timestamp('2015-05-05', tz='UTC'),
-                           Timestamp('2021-01-05', tz='UTC')],
+                           Timestamp('2021-01-05', tz='UTC'),
+                           Timestamp('2015-01-05', tz='UTC')],
             'end_date': [Timestamp('2016-08-19', tz='UTC'),
                          Timestamp('2016-09-19', tz='UTC'),
                          Timestamp('2016-10-19', tz='UTC'),
                          Timestamp('2016-11-19', tz='UTC'),
                          Timestamp('2016-12-19', tz='UTC'),
-                         Timestamp('2022-08-19', tz='UTC')],
+                         Timestamp('2022-08-19', tz='UTC'),
+                         # Set the last contract's end date (which is the last
+                         # date for which there is data to a value that is
+                         # within the range of the dates being tested.  This
+                         # models real life scenarios where the end date of the
+                         # furthest out contract is not necessarily the
+                         # greatest end date all contracts in the chain.
+                         Timestamp('2015-02-05', tz='UTC')],
             'notice_date': [Timestamp('2016-01-27', tz='UTC'),
                             Timestamp('2016-02-26', tz='UTC'),
                             Timestamp('2016-03-24', tz='UTC'),
                             Timestamp('2016-04-26', tz='UTC'),
                             Timestamp('2016-05-26', tz='UTC'),
-                            Timestamp('2022-01-26', tz='UTC')],
+                            Timestamp('2022-01-26', tz='UTC'),
+                            Timestamp('2022-02-26', tz='UTC')],
             'expiration_date': [Timestamp('2016-01-27', tz='UTC'),
                                 Timestamp('2016-02-26', tz='UTC'),
                                 Timestamp('2016-03-24', tz='UTC'),
                                 Timestamp('2016-04-26', tz='UTC'),
                                 Timestamp('2016-05-26', tz='UTC'),
-                                Timestamp('2022-01-26', tz='UTC')],
+                                Timestamp('2022-01-26', tz='UTC'),
+                                Timestamp('2022-02-26', tz='UTC')],
             'auto_close_date': [Timestamp('2016-01-27', tz='UTC'),
                                 Timestamp('2016-02-26', tz='UTC'),
                                 Timestamp('2016-03-24', tz='UTC'),
                                 Timestamp('2016-04-26', tz='UTC'),
                                 Timestamp('2016-05-26', tz='UTC'),
-                                Timestamp('2022-01-26', tz='UTC')],
-            'tick_size': [0.001] * 6,
-            'multiplier': [1000.0] * 6,
-            'exchange': ['CME'] * 6,
+                                Timestamp('2022-01-26', tz='UTC'),
+                                Timestamp('2022-02-26', tz='UTC')],
+            'tick_size': [0.001] * 7,
+            'multiplier': [1000.0] * 7,
+            'exchange': ['CME'] * 7,
         })
 
     @classmethod
@@ -185,6 +197,10 @@ class ContinuousFuturesTestCase(WithCreateBarData,
         self.assertEqual(cf_primary.root_symbol, 'FO')
         self.assertEqual(cf_primary.offset, 0)
         self.assertEqual(cf_primary.roll_style, 'calendar')
+        self.assertEqual(cf_primary.start_date,
+                         Timestamp('2015-01-05', tz='UTC'))
+        self.assertEqual(cf_primary.end_date,
+                         Timestamp('2022-08-19', tz='UTC'))
 
         retrieved_primary = self.asset_finder.retrieve_asset(
             cf_primary.sid)
@@ -197,6 +213,10 @@ class ContinuousFuturesTestCase(WithCreateBarData,
         self.assertEqual(cf_secondary.root_symbol, 'FO')
         self.assertEqual(cf_secondary.offset, 1)
         self.assertEqual(cf_secondary.roll_style, 'calendar')
+        self.assertEqual(cf_primary.start_date,
+                         Timestamp('2015-01-05', tz='UTC'))
+        self.assertEqual(cf_primary.end_date,
+                         Timestamp('2022-08-19', tz='UTC'))
 
         retrieved = self.asset_finder.retrieve_asset(
             cf_secondary.sid)
@@ -269,6 +289,20 @@ class ContinuousFuturesTestCase(WithCreateBarData,
         self.assertEqual(value, 115021.44,
                          'Auto close at beginning of session so FOG16 is now '
                          'the current contract.')
+
+        # Check a value which occurs after the end date of the last known
+        # contract, to prevent a regression where the end date of the last
+        # contract was used instead of the max date of all contracts.
+        value = self.data_portal.get_spot_value(
+            cf_primary,
+            'close',
+            pd.Timestamp('2016-03-26', tz='UTC'),
+            'daily',
+        )
+
+        self.assertEqual(value, 135441.44,
+                         'Value should be for FOJ16, even though last '
+                         'contract ends before query date.')
 
     def test_current_contract_volume_roll(self):
         cf_primary = self.asset_finder.create_continuous_future(
