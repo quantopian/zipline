@@ -6,8 +6,16 @@ python:
   - 3.4
 env:
   global:
-    # ANACONDA_TOKEN with api:write
-    - secure: "RJJjjQloUjCSkhII93QM+YAsr6YYq7hPFvlbnT07ogn1NeUPsVCyJ97oiZfKtPgdbd24hdQP/CHfB0HgTTES8n996tN3QWc4hZj0e10kFyIlas9qnkrRYRR1jxGShBDXrLdx/tGh8z1qnnCm1fy+fDhAF7Zerouwy4EA2YEzxdE="
+    # 1. Generated a token for travis at https://anaconda.org/quantopian/settings/access with scope api:write.
+    #   Can also be done via anaconda CLI with
+    #     $ TOKEN=$(anaconda auth --create --name my_travis_token)
+    # 2. Generated secure env var below with travis gem via
+    #     $ travis encrypt ANACONDA_TOKEN=$TOKEN
+    #   See https://github.com/travis-ci/travis.rb#installation.
+    #   If authenticating travis gem with github, a github token with the following scopes
+    #   is sufficient: ["read:org", "user:email", "repo_deployment", "repo:status", "write:repo_hook"]
+    #   See https://docs.travis-ci.com/api#external-apis.
+    - secure: "iVr5iE75CPUZLX3ucgth0QA8y0JQJm+p3YrHwnCYZ5d+qTJA1eWGeA7k5+6Fhx1opCXkG+MkU8fNrSkqIA55mcAHoCINquQeQ4lfpDBgwjbjs+/2gB08Jm6ZQ78QG8cy6hEoSMDXAs27PMKyBuMkZKrIJWB8v5dWIDBz8cntBHs="
   matrix:
     - NUMPY_VERSION=1.11.1 SCIPY_VERSION=0.17.1
 cache:
