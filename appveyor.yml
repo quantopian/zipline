@@ -8,7 +8,11 @@ environment:
     # See: http://stackoverflow.com/a/13751649/163740
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\ci\\appveyor\\run_with_env.cmd"
 
-    # with api:write
+    # 1. Generated a token for appveyor at https://anaconda.org/quantopian/settings/access with scope api:write.
+    #   Can also be done via anaconda CLI with
+    #     $ anaconda auth --create --name my_appveyor_token
+    # 2. Generated secure env var below via appveyor's Encrypt data tool at https://ci.appveyor.com/tools/encrypt.
+    #   See https://www.appveyor.com/docs/build-configuration/#secure-variables.
     ANACONDA_TOKEN:
       secure: "u3oPlANiKY5g1yMtcK+2MQfb4ViKGEap3TcBtvS7Y1InyeWs80Ko3/PsP7Lp6qwq"
 
