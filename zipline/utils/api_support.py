@@ -48,7 +48,13 @@ def api_method(f):
     @wraps(f)
     def wrapped(*args, **kwargs):
         # Get the instance and call the method
-        return getattr(get_algo_instance(), f.__name__)(*args, **kwargs)
+        algo_instance = get_algo_instance()
+        if algo_instance is None:
+            raise RuntimeError(
+                'zipline api method %s must be called during a simulation.'
+                % f.__name__
+            )
+        return getattr(algo_instance, f.__name__)(*args, **kwargs)
     # Add functor to zipline.api
     setattr(zipline.api, f.__name__, wrapped)
     zipline.api.__all__.append(f.__name__)
