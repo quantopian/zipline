@@ -573,8 +573,9 @@ class MinuteHistoryLoader(HistoryLoader):
     @lazyval
     def _calendar(self):
         mm = self.trading_calendar.all_minutes
-        return mm[mm.slice_indexer(start=self._reader.first_trading_day,
-                                   end=self._reader.last_available_dt)]
+        start = mm.searchsorted(self._reader.first_trading_day)
+        end = mm.searchsorted(self._reader.last_available_dt, side='right')
+        return mm[start:end]
 
     def _array(self, dts, assets, field):
         return self._reader.load_raw_arrays(
