@@ -91,7 +91,7 @@ class Blotter(object):
         """
         if amount == 0:
             # Don't bother placing orders for 0 shares.
-            return
+            return None
         elif amount > self.max_shares:
             # Arbitrary limit of 100 billion (US) shares will never be
             # exceeded except by a buggy algorithm.
