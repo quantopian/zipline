@@ -114,6 +114,9 @@ class Blotter(object):
 
         return order.id
 
+    def order_batch(self, orders):
+        return [self.order(*order) for order in orders]
+
     def cancel(self, order_id, relay_status=True):
         if order_id not in self.orders:
             return
