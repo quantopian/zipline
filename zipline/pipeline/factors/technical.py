@@ -21,7 +21,6 @@ from numpy import (
     NINF,
     sqrt,
     sum as np_sum,
-    nan
 )
 from numexpr import evaluate
 
@@ -38,9 +37,8 @@ from zipline.utils.math_utils import (
     nansum,
     nanmin,
 )
+from zipline.utils.numpy_utils import rolling_window
 from .factor import CustomFactor
-
-from talib import MACD
 
 
 class Returns(CustomFactor):
@@ -448,11 +446,6 @@ class ExponentialWeightedMovingStdDev(_ExponentialWeightedFactor):
         out[:] = sqrt(variance * bias_correction)
 
 
-# Convenience aliases.
-EWMA = ExponentialWeightedMovingAverage
-EWMSTD = ExponentialWeightedMovingStdDev
-
-
 class BollingerBands(CustomFactor):
     """
     Bollinger Bands technical indicator.
@@ -688,8 +681,7 @@ class TrueRange(CustomFactor):
         )
 
 
-
-class MovingAverageConvergenceDivergence(CustomFactor):
+class MovingAverageConvergenceDivergence(_ExponentialWeightedFactor):
     """
     Moving Average Convergence/Divergence (MACD)
     https://en.wikipedia.org/wiki/MACD
@@ -700,21 +692,22 @@ class MovingAverageConvergenceDivergence(CustomFactor):
     trend in a stock's price.
 
     **Default Inputs:** :data:`zipline.pipeline.data.USEquityPricing.close`
-    **Default Window Length:** None
+    **Default Window Length:** Window length is automatically calculated as the
+    sum of slow_period and signal_period.
 
     Parameters
     ----------
     fast_period : int >= 0, <= window_length
-        The window length for the "fast" EMA.
+        The window length for the "fast" EWMA. Default is 12.
     slow_period : int >= 0, <= window_length
-        The window length for the "slow" EMA.
+        The window length for the "slow" EWMA. Default is 26.
     signal_period' : int >= 0, <= slow_period
-        The window length for the signal line.
+        The window length for the signal line. Default is 9.
 
     Returns
     -------
-    MACD: The difference between "fast" EMA and "slow" EMA.
-    signal: The signal_period length period EMA of the MACD line.
+    MACD: The difference between "fast" EWMA and "slow" EWMA.
+    signal: The EWMA of the MACD line using `signal_period` as span.
     hist: Difference between MACD and signal. (Divergence series)
     """
     inputs = [USEquityPricing.close]
@@ -728,47 +721,73 @@ class MovingAverageConvergenceDivergence(CustomFactor):
                 *args,
                 **kwargs):
         return super(MovingAverageConvergenceDivergence, cls).__new__(
+            cls,
             fast_period=fast_period,
             slow_period=slow_period,
             signal_period=signal_period,
-            window_length=slow_period + signal_period,
+            window_length=slow_period + signal_period - 1,
             *args, **kwargs
         )
 
-    def calculate_macd(self, col, fast, slow, signal):
-        try:
-            macd, sig, hist = MACD(col,
-                                   fastperiod=fast,
-                                   slowperiod=slow,
-                                   signalperiod=signal)
-            return macd[-1], sig[-1], hist[-1]
-        except:
-            return nan, nan, nan
+    def calculate_ewma(self, data, length):
+        decay_rate = 1.0 - (2.0 / (1.0 + length))
+        return average(data,
+                       axis=1,
+                       weights=self.weights(length, decay_rate))
+
+    def calculate_macd(self, col):
+        slow_EWMA = self.calculate_ewma(
+            rolling_window(
+                col,
+                self.params['slow_period']
+            ),
+            self.params['slow_period'])
+        fast_EWMA = self.calculate_ewma(
+            rolling_window(
+                col,
+                self.params['fast_period']
+            )[-self.params['signal_period']:],
+            self.params['fast_period'])
+        macd = fast_EWMA - slow_EWMA
+        signal_line = self.calculate_ewma(
+            macd.reshape(-1, self.params['signal_period']),
+            self.params['signal_period'])
+        hist = macd[-1] - signal_line
+        return macd[-1], signal_line[-1], hist[-1]
 
     def compute(self, today, assets, out, close, fast_period, slow_period,
                 signal_period):
-        n = len(close)
-        macd, sig, hist = zip(*map(self.calculate_macd,
-                                   close.T,
-                                   [fast_period]*n,
-                                   [slow_period]*n,
-                                   [signal_period]*n))
-        out.MACD[:] = macd
+        macd, sig, hist = zip(*map(self.calculate_macd, close.T))
+        out.macd[:] = macd
         out.signal[:] = sig
         out.hist[:] = hist
 
 
-class AnnualVolatility(CustomFactor):
+class AnnualizedVolatility(CustomFactor):
     """
     Volatility
     https://en.wikipedia.org/wiki/Volatility_(finance)
 
     The degree of variation of a series over time as measured by the standard
-    deviation of the data over the course of a year.
+    deviation of returns.
 
-    **Default Inputs:** :data:`zipline.pipeline.data.USEquityPricing.close`
+    **Default Inputs:**
+        :data:`zipline.pipeline.factors.Returns(window_length=2)`
+
+    Parameters
+    ----------
+    annualization_factor :
+        The number of time units per year. Defaults to average number of NYSE
+        trading days per year, 252.
     """
-    inputs = [USEquityPricing.close]
+    inputs = [Returns(window_length=2)]
+    params = {'annualization_factor': 252}
+    window_length = 252
 
-    def compute(self, today, assets, out, closes):
-        out[:] = nanstd(closes, ddof=1, axis=0) * (252 ** 0.5)
+    def compute(self, today, assets, out, returns, annualization_factor):
+        out[:] = nanstd(returns, ddof=0, axis=0) * (annualization_factor ** .5)
+
+# Convenience aliases.
+EWMA = ExponentialWeightedMovingAverage
+EWMSTD = ExponentialWeightedMovingStdDev
+MACD = MovingAverageConvergenceDivergence

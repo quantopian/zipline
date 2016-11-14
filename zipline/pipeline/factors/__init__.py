@@ -32,6 +32,9 @@ from .technical import (
     TrueRange,
     VWAP,
     WeightedAverageValue,
+    MovingAverageConvergenceDivergence,
+    MACD,
+    AnnualizedVolatility,
 )
 
 __all__ = [
@@ -62,4 +65,7 @@ __all__ = [
     'TrueRange',
     'VWAP',
     'WeightedAverageValue',
+    'MovingAverageConvergenceDivergence',
+    'MACD',
+    'AnnualizedVolatility',
 ]

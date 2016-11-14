@@ -5,6 +5,7 @@ from six.moves import range
 import numpy as np
 import pandas as pd
 import talib
+from numpy.random import random_integers
 
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.pipeline.data import USEquityPricing
@@ -16,6 +17,7 @@ from zipline.pipeline.factors import (
     LinearWeightedMovingAverage,
     RateOfChangePercentage,
     TrueRange,
+    MovingAverageConvergenceDivergence
 )
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import ZiplineTestCase
@@ -403,3 +405,78 @@ class TestTrueRange(ZiplineTestCase):
 
         tr.compute(today, assets, out, highs, lows, closes)
         assert_equal(out, np.full((3,), 2.))
+
+
+class MovingAverageConvergenceDivergenceCase(ZiplineTestCase):
+    def test_MACD_window_length_generation(self):
+        signal_period = random_integers(1, 90)
+        fast_period = random_integers(signal_period+1, signal_period+100)
+        slow_period = random_integers(fast_period+1, fast_period+100)
+        ewma = MovingAverageConvergenceDivergence(
+            fast_period=fast_period,
+            slow_period=slow_period,
+            signal_period=signal_period,
+        )
+        assert_equal(
+            ewma.window_length,
+            slow_period+signal_period-1,
+        )
+
+    def test_moving_average_convergence_divergence(self):
+        fast_period = 3
+        slow_period = 8
+        signal_period = 2
+
+        macd = MovingAverageConvergenceDivergence(
+            fast_period=fast_period,
+            slow_period=slow_period,
+            signal_period=signal_period,
+        )
+
+        today = pd.Timestamp('2016', tz='utc')
+        nassets = macd.window_length
+        assets = pd.Index(np.arange(nassets))
+        days_col = np.arange(start=-.05,
+                             stop=.01*nassets-.05,
+                             step=.01)[:, np.newaxis]
+        close = np.logspace(start=.01, stop=.10, num=nassets) - 1 + days_col
+
+        dtype = [
+            ('macd', 'f8'),
+            ('signal', 'f8'),
+            ('hist', 'f8'),
+        ]
+        out = np.recarray(
+            shape=(nassets,),
+            dtype=dtype,
+            buf=np.empty(shape=(nassets,), dtype=dtype),
+        )
+        macd.compute(
+            today,
+            assets,
+            out,
+            close,
+            fast_period,
+            slow_period,
+            signal_period,
+        )
+
+        expected_macd = np.array([0.01691553] * nassets)
+        expected_signal = np.array([0.01691553] * nassets)
+        expected_hist = np.array([0] * nassets)
+
+        np.testing.assert_almost_equal(
+            out.macd,
+            expected_macd,
+            decimal=8
+        )
+        np.testing.assert_almost_equal(
+            out.signal,
+            expected_signal,
+            decimal=8
+        )
+        np.testing.assert_almost_equal(
+            out.hist,
+            expected_hist,
+            decimal=8
+        )
