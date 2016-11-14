@@ -453,10 +453,6 @@ class WithEstimatesTimeZero(WithEstimates):
             SID_FIELD_NAME: sid,
         })
 
-    @classmethod
-    def init_class_fixtures(cls):
-        super(WithEstimatesTimeZero, cls).init_class_fixtures()
-
     def get_expected_estimate(self,
                               q1_knowledge,
                               q2_knowledge,
