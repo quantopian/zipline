@@ -51,6 +51,12 @@ class BlotterTestCase(WithCreateBarData,
     ASSET_FINDER_EQUITY_SIDS = 24, 25
 
     @classmethod
+    def init_class_fixtures(cls):
+        super(BlotterTestCase, cls).init_class_fixtures()
+        cls.asset_24 = cls.asset_finder.retrieve_asset(24)
+        cls.asset_25 = cls.asset_finder.retrieve_asset(25)
+
+    @classmethod
     def make_equity_daily_bar_data(cls):
         yield 24, pd.DataFrame(
             {
@@ -83,64 +89,59 @@ class BlotterTestCase(WithCreateBarData,
                            (StopLimitOrder(10, 20), 10, 20)])
     def test_blotter_order_types(self, style_obj, expected_lmt, expected_stp):
 
-        blotter = Blotter('daily', self.env.asset_finder)
+        blotter = Blotter('daily', self.asset_finder)
 
-        asset_24 = blotter.asset_finder.retrieve_asset(24)
-        blotter.order(asset_24, 100, style_obj)
-        result = blotter.open_orders[asset_24][0]
+        blotter.order(self.asset_24, 100, style_obj)
+        result = blotter.open_orders[self.asset_24][0]
 
         self.assertEqual(result.limit, expected_lmt)
         self.assertEqual(result.stop, expected_stp)
 
     def test_cancel(self):
-        blotter = Blotter('daily', self.env.asset_finder)
+        blotter = Blotter('daily', self.asset_finder)
 
-        asset_24 = blotter.asset_finder.retrieve_asset(24)
-        asset_25 = blotter.asset_finder.retrieve_asset(25)
-
-        oid_1 = blotter.order(asset_24, 100, MarketOrder())
-        oid_2 = blotter.order(asset_24, 200, MarketOrder())
-        oid_3 = blotter.order(asset_24, 300, MarketOrder())
+        oid_1 = blotter.order(self.asset_24, 100, MarketOrder())
+        oid_2 = blotter.order(self.asset_24, 200, MarketOrder())
+        oid_3 = blotter.order(self.asset_24, 300, MarketOrder())
 
         # Create an order for another asset to verify that we don't remove it
         # when we do cancel_all on 24.
-        blotter.order(asset_25, 150, MarketOrder())
+        blotter.order(self.asset_25, 150, MarketOrder())
 
         self.assertEqual(len(blotter.open_orders), 2)
-        self.assertEqual(len(blotter.open_orders[asset_24]), 3)
+        self.assertEqual(len(blotter.open_orders[self.asset_24]), 3)
         self.assertEqual(
-            [o.amount for o in blotter.open_orders[asset_24]],
+            [o.amount for o in blotter.open_orders[self.asset_24]],
             [100, 200, 300],
         )
 
         blotter.cancel(oid_2)
         self.assertEqual(len(blotter.open_orders), 2)
-        self.assertEqual(len(blotter.open_orders[asset_24]), 2)
+        self.assertEqual(len(blotter.open_orders[self.asset_24]), 2)
         self.assertEqual(
-            [o.amount for o in blotter.open_orders[asset_24]],
+            [o.amount for o in blotter.open_orders[self.asset_24]],
             [100, 300],
         )
         self.assertEqual(
-            [o.id for o in blotter.open_orders[asset_24]],
+            [o.id for o in blotter.open_orders[self.asset_24]],
             [oid_1, oid_3],
         )
 
-        blotter.cancel_all_orders_for_asset(asset_24)
+        blotter.cancel_all_orders_for_asset(self.asset_24)
         self.assertEqual(len(blotter.open_orders), 1)
-        self.assertEqual(list(blotter.open_orders), [asset_25])
+        self.assertEqual(list(blotter.open_orders), [self.asset_25])
 
     def test_blotter_eod_cancellation(self):
-        blotter = Blotter('minute', self.env.asset_finder,
+        blotter = Blotter('minute', self.asset_finder,
                           cancel_policy=EODCancel())
-        asset_24 = blotter.asset_finder.retrieve_asset(24)
 
         # Make two orders for the same sid, so we can test that we are not
         # mutating the orders list as we are cancelling orders
-        blotter.order(asset_24, 100, MarketOrder())
-        blotter.order(asset_24, -100, MarketOrder())
+        blotter.order(self.asset_24, 100, MarketOrder())
+        blotter.order(self.asset_24, -100, MarketOrder())
 
         self.assertEqual(len(blotter.new_orders), 2)
-        order_ids = [order.id for order in blotter.open_orders[asset_24]]
+        order_ids = [order.id for order in blotter.open_orders[self.asset_24]]
 
         self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
         self.assertEqual(blotter.new_orders[1].status, ORDER_STATUS.OPEN)
@@ -155,11 +156,10 @@ class BlotterTestCase(WithCreateBarData,
             self.assertEqual(order.status, ORDER_STATUS.CANCELLED)
 
     def test_blotter_never_cancel(self):
-        blotter = Blotter('minute', self.env.asset_finder,
+        blotter = Blotter('minute', self.asset_finder,
                           cancel_policy=NeverCancel())
 
-        blotter.order(blotter.asset_finder.retrieve_asset(24), 100,
-                      MarketOrder())
+        blotter.order(self.asset_24, 100, MarketOrder())
 
         self.assertEqual(len(blotter.new_orders), 1)
         self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
@@ -172,8 +172,7 @@ class BlotterTestCase(WithCreateBarData,
 
     def test_order_rejection(self):
         blotter = Blotter(self.sim_params.data_frequency,
-                          self.env.asset_finder)
-        asset_24 = blotter.asset_finder.retrieve_asset(24)
+                          self.asset_finder)
 
         # Reject a nonexistent order -> no order appears in new_order,
         # no exceptions raised out
@@ -181,10 +180,10 @@ class BlotterTestCase(WithCreateBarData,
         self.assertEqual(blotter.new_orders, [])
 
         # Basic tests of open order behavior
-        open_order_id = blotter.order(asset_24, 100, MarketOrder())
-        second_order_id = blotter.order(asset_24, 50, MarketOrder())
-        self.assertEqual(len(blotter.open_orders[asset_24]), 2)
-        open_order = blotter.open_orders[asset_24][0]
+        open_order_id = blotter.order(self.asset_24, 100, MarketOrder())
+        second_order_id = blotter.order(self.asset_24, 50, MarketOrder())
+        self.assertEqual(len(blotter.open_orders[self.asset_24]), 2)
+        open_order = blotter.open_orders[self.asset_24][0]
         self.assertEqual(open_order.status, ORDER_STATUS.OPEN)
         self.assertEqual(open_order.id, open_order_id)
         self.assertIn(open_order, blotter.new_orders)
@@ -192,7 +191,7 @@ class BlotterTestCase(WithCreateBarData,
         # Reject that order immediately (same bar, i.e. still in new_orders)
         blotter.reject(open_order_id)
         self.assertEqual(len(blotter.new_orders), 2)
-        self.assertEqual(len(blotter.open_orders[asset_24]), 1)
+        self.assertEqual(len(blotter.open_orders[self.asset_24]), 1)
         still_open_order = blotter.new_orders[0]
         self.assertEqual(still_open_order.id, second_order_id)
         self.assertEqual(still_open_order.status, ORDER_STATUS.OPEN)
@@ -203,9 +202,9 @@ class BlotterTestCase(WithCreateBarData,
         # Do it again, but reject it at a later time (after tradesimulation
         # pulls it from new_orders)
         blotter = Blotter(self.sim_params.data_frequency,
-                          self.env.asset_finder)
-        new_open_id = blotter.order(asset_24, 10, MarketOrder())
-        new_open_order = blotter.open_orders[asset_24][0]
+                          self.asset_finder)
+        new_open_id = blotter.order(self.asset_24, 10, MarketOrder())
+        new_open_order = blotter.open_orders[self.asset_24][0]
         self.assertEqual(new_open_id, new_open_order.id)
         # Pretend that the trade simulation did this.
         blotter.new_orders = []
@@ -220,9 +219,9 @@ class BlotterTestCase(WithCreateBarData,
         # You can't reject a filled order.
         # Reset for paranoia
         blotter = Blotter(self.sim_params.data_frequency,
-                          self.env.asset_finder)
+                          self.asset_finder)
         blotter.slippage_func = FixedSlippage()
-        filled_id = blotter.order(asset_24, 100, MarketOrder())
+        filled_id = blotter.order(self.asset_24, 100, MarketOrder())
         filled_order = None
         blotter.current_dt = self.sim_params.sessions[-1]
         bar_data = self.create_bardata(
@@ -236,7 +235,7 @@ class BlotterTestCase(WithCreateBarData,
         self.assertEqual(filled_order.id, filled_id)
         self.assertIn(filled_order, blotter.new_orders)
         self.assertEqual(filled_order.status, ORDER_STATUS.FILLED)
-        self.assertNotIn(filled_order, blotter.open_orders[asset_24])
+        self.assertNotIn(filled_order, blotter.open_orders[self.asset_24])
 
         blotter.reject(filled_id)
         updated_order = blotter.orders[filled_id]
@@ -249,27 +248,25 @@ class BlotterTestCase(WithCreateBarData,
         status to OPEN/FILLED as necessary
         """
         blotter = Blotter(self.sim_params.data_frequency,
-                          self.env.asset_finder)
+                          self.asset_finder)
         # Nothing happens on held of a non-existent order
         blotter.hold(56)
         self.assertEqual(blotter.new_orders, [])
 
-        asset_24 = blotter.asset_finder.retrieve_asset(24)
-
-        open_id = blotter.order(asset_24, 100, MarketOrder())
-        open_order = blotter.open_orders[asset_24][0]
+        open_id = blotter.order(self.asset_24, 100, MarketOrder())
+        open_order = blotter.open_orders[self.asset_24][0]
         self.assertEqual(open_order.id, open_id)
 
         blotter.hold(open_id)
         self.assertEqual(len(blotter.new_orders), 1)
-        self.assertEqual(len(blotter.open_orders[asset_24]), 1)
+        self.assertEqual(len(blotter.open_orders[self.asset_24]), 1)
         held_order = blotter.new_orders[0]
         self.assertEqual(held_order.status, ORDER_STATUS.HELD)
         self.assertEqual(held_order.reason, '')
 
         blotter.cancel(held_order.id)
         self.assertEqual(len(blotter.new_orders), 1)
-        self.assertEqual(len(blotter.open_orders[asset_24]), 0)
+        self.assertEqual(len(blotter.open_orders[self.asset_24]), 0)
         cancelled_order = blotter.new_orders[0]
         self.assertEqual(cancelled_order.id, held_order.id)
         self.assertEqual(cancelled_order.status, ORDER_STATUS.CANCELLED)
@@ -288,10 +285,9 @@ class BlotterTestCase(WithCreateBarData,
                 ORDER_STATUS.FILLED
 
             blotter = Blotter(self.sim_params.data_frequency,
-                              self.env.asset_finder)
-            open_id = blotter.order(blotter.asset_finder.retrieve_asset(24),
-                                    order_size, MarketOrder())
-            open_order = blotter.open_orders[asset_24][0]
+                              self.asset_finder)
+            open_id = blotter.order(self.asset_24, order_size, MarketOrder())
+            open_order = blotter.open_orders[self.asset_24][0]
             self.assertEqual(open_id, open_order.id)
             blotter.hold(open_id)
             held_order = blotter.new_orders[0]
@@ -312,26 +308,23 @@ class BlotterTestCase(WithCreateBarData,
 
     def test_prune_orders(self):
         blotter = Blotter(self.sim_params.data_frequency,
-                          self.env.asset_finder)
+                          self.asset_finder)
 
-        asset_24 = blotter.asset_finder.retrieve_asset(24)
-        asset_25 = blotter.asset_finder.retrieve_asset(25)
-
-        blotter.order(asset_24, 100, MarketOrder())
-        open_order = blotter.open_orders[asset_24][0]
+        blotter.order(self.asset_24, 100, MarketOrder())
+        open_order = blotter.open_orders[self.asset_24][0]
 
         blotter.prune_orders([])
-        self.assertEqual(1, len(blotter.open_orders[asset_24]))
+        self.assertEqual(1, len(blotter.open_orders[self.asset_24]))
 
         blotter.prune_orders([open_order])
-        self.assertEqual(0, len(blotter.open_orders[asset_24]))
+        self.assertEqual(0, len(blotter.open_orders[self.asset_24]))
 
         # prune an order that isn't in our our open orders list, make sure
         # nothing blows up
 
         other_order = Order(
             dt=blotter.current_dt,
-            sid=asset_25,
+            sid=self.asset_25,
             amount=1
         )
 
