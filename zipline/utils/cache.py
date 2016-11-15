@@ -1,7 +1,7 @@
 """
 Caching utilities for zipline
 """
-from collections import namedtuple, MutableMapping
+from collections import MutableMapping
 import errno
 import os
 import pickle
@@ -20,7 +20,7 @@ class Expired(Exception):
     """
 
 
-class CachedObject(namedtuple("_CachedObject", "value expires")):
+class CachedObject(object):
     """
     A simple struct for maintaining a cached object with an expiration date.
 
@@ -47,6 +47,9 @@ class CachedObject(namedtuple("_CachedObject", "value expires")):
         ...
     Expired: 2014-01-01 00:00:00+00:00
     """
+    def __init__(self, value, expires):
+        self.value = value
+        self.expires = expires
 
     def unwrap(self, dt):
         """

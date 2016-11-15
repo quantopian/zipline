@@ -166,3 +166,25 @@ def ignore_pandas_nan_categorical_warning():
             category=FutureWarning,
         )
         yield
+
+
+def clear_dataframe_indexer_caches(df):
+    """
+    Clear cached attributes from a pandas DataFrame.
+
+    By default pandas memoizes `iloc`, `loc` objects on DataFrames, resulting
+    in refcycles that can lead to unexpectedly long-lived DataFrames.  This
+    function attempts to clear those cycles.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+    """
+    if df is None:
+        return
+
+    for attr in ('_loc', '_iloc'):
+        try:
+            delattr(df, attr)
+        except AttributeError:
+            pass

@@ -22,6 +22,7 @@ import pandas as pd
 from contextlib2 import ExitStack
 from pandas.tseries.tools import normalize_date
 import numpy as np
+import sys
 
 from itertools import chain, repeat
 from numbers import Integral
@@ -125,6 +126,7 @@ from zipline.utils.math_utils import (
     tolerant_equals,
     round_if_near_integer
 )
+from zipline.utils.pandas_utils import clear_dataframe_indexer_caches
 from zipline.utils.preprocess import preprocess
 from zipline.utils.security_list import SecurityList
 
@@ -2344,6 +2346,10 @@ class TradingAlgorithm(object):
         try:
             data = self._pipeline_cache.unwrap(today)
         except Expired:
+            sys.exc_clear()
+            clear_dataframe_indexer_caches(self._pipeline_cache.value)
+            self._pipeline_cache = None
+
             data, valid_until = self._run_pipeline(
                 pipeline, today, next(chunks),
             )
