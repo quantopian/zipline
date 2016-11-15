@@ -329,3 +329,37 @@ class BlotterTestCase(WithCreateBarData,
         )
 
         blotter.prune_orders([other_order])
+
+    def test_order_batch_matches_multi_order(self):
+        """
+        Ensure the effect of order_batch is the same as multiple calls to
+        order.
+        """
+        blotter1 = Blotter(self.sim_params.data_frequency,
+                           self.asset_finder)
+        blotter2 = Blotter(self.sim_params.data_frequency,
+                           self.asset_finder)
+        for i in range(1, 4):
+            order_args = [
+                (self.asset_24, i * 100, MarketOrder()),
+                (self.asset_25, i * 100, LimitOrder(i * 100 + 1)),
+            ]
+
+            order_batch_ids = blotter1.order_batch(order_args)
+            order_ids = []
+            for order_arg in order_args:
+                order_ids.append(blotter2.order(*order_arg))
+            self.assertEqual(len(order_batch_ids), len(order_ids))
+
+            self.assertEqual(len(blotter1.open_orders),
+                             len(blotter2.open_orders))
+
+            for (asset, _, _), order_batch_id, order_id in zip(
+                    order_args, order_batch_ids, order_ids
+            ):
+                self.assertEqual(len(blotter1.open_orders[asset]),
+                                 len(blotter2.open_orders[asset]))
+                self.assertEqual(order_batch_id,
+                                 blotter1.open_orders[asset][i-1].id)
+                self.assertEqual(order_id,
+                                 blotter2.open_orders[asset][i-1].id)
