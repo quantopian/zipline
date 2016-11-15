@@ -124,7 +124,7 @@ def find_last_traded_position_internal(
     -------
     int: The position of the last traded minute, starting from `minute_val`
     """
-    cdef Py_ssize_t minute_pos, current_minute
+    cdef Py_ssize_t minute_pos, current_minute, q
 
     minute_pos = int_min(
         find_position_of_minute(market_opens, market_closes, end_minute,
@@ -136,6 +136,15 @@ def find_last_traded_position_internal(
         current_minute = minute_value(
             market_opens, minute_pos, minutes_per_day
         )
+
+        q = cython.cdiv(minute_pos, minutes_per_day)
+        if current_minute > market_closes[q]:
+            minute_pos = find_position_of_minute(market_opens,
+                                                 market_closes,
+                                                 market_closes[q],
+                                                 minutes_per_day,
+                                                 False)
+            continue
 
         if current_minute < start_minute:
             return -1

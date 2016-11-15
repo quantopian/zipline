@@ -46,6 +46,7 @@ from zipline.data.minute_bars import (
 )
 
 from zipline.testing.fixtures import (
+    WithAssetFinder,
     WithInstanceTmpDir,
     WithTradingCalendars,
     ZiplineTestCase,
@@ -59,8 +60,11 @@ TEST_CALENDAR_STOP = Timestamp('2015-12-31', tz='UTC')
 
 
 class BcolzMinuteBarTestCase(WithTradingCalendars,
+                             WithAssetFinder,
                              WithInstanceTmpDir,
                              ZiplineTestCase):
+
+    ASSET_FINDER_EQUITY_SIDS = 1, 2
 
     @classmethod
     def init_class_fixtures(cls):
@@ -1040,3 +1044,64 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         _, last_close = cal.open_and_close_for_session(
             self.test_calendar_start)
         self.assertEqual(self.reader.last_available_dt, last_close)
+
+    def test_early_market_close(self):
+        # Date to test is 2015-11-30 9:31
+        # Early close is 2015-11-27 18:00
+        friday_after_tday = Timestamp('2015-11-27', tz='UTC')
+        friday_after_tday_close = self.market_closes[friday_after_tday]
+
+        before_early_close = friday_after_tday_close - timedelta(minutes=8)
+        after_early_close = friday_after_tday_close + timedelta(minutes=8)
+
+        monday_after_tday = Timestamp('2015-11-30', tz='UTC')
+        minute = self.market_opens[monday_after_tday]
+
+        # Test condition where there is data written after the market
+        # close (ideally, this should not occur in datasets, but guards
+        # against consumers of the minute bar writer, which do not filter
+        # out after close minutes.
+        minutes = [
+            before_early_close,
+            after_early_close,
+            minute,
+        ]
+        sid = 1
+        data = DataFrame(
+            data={
+                'open': [10.0, 11.0, nan],
+                'high': [20.0, 21.0, nan],
+                'low': [30.0, 31.0, nan],
+                'close': [40.0, 41.0, nan],
+                'volume': [50, 51, 0]
+            },
+            index=[minutes])
+        self.writer.write_sid(sid, data)
+
+        open_price = self.reader.get_value(sid, minute, 'open')
+
+        assert_almost_equal(nan, open_price)
+
+        high_price = self.reader.get_value(sid, minute, 'high')
+
+        assert_almost_equal(nan, high_price)
+
+        low_price = self.reader.get_value(sid, minute, 'low')
+
+        assert_almost_equal(nan, low_price)
+
+        close_price = self.reader.get_value(sid, minute, 'close')
+
+        assert_almost_equal(nan, close_price)
+
+        volume = self.reader.get_value(sid, minute, 'volume')
+
+        self.assertEquals(0, volume)
+
+        asset = self.asset_finder.retrieve_asset(sid)
+        last_traded_dt = self.reader.get_last_traded_dt(asset, minute)
+
+        self.assertEquals(last_traded_dt, before_early_close,
+                          "The last traded dt should be before the early "
+                          "close, even when data is written between the early "
+                          "close and the next open.")
