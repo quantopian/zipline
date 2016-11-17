@@ -125,7 +125,7 @@ class ContinuousFuturesTestCase(WithCreateBarData,
             'sid': range(7, 10),
             'start_date': [Timestamp('2005-04-01', tz='UTC'),
                            Timestamp('2010-04-21', tz='UTC'),
-                           Timestamp('2010-06-21', tz='UTC')],
+                           Timestamp('2005-06-21', tz='UTC')],
             'end_date': [Timestamp('2016-08-19', tz='UTC'),
                          Timestamp('2016-09-19', tz='UTC'),
                          Timestamp('2016-10-19', tz='UTC')],
@@ -259,6 +259,23 @@ class ContinuousFuturesTestCase(WithCreateBarData,
     def test_current_contract(self):
         cf_primary = self.asset_finder.create_continuous_future(
             'FO', 0, 'calendar')
+        bar_data = self.create_bardata(
+            lambda: pd.Timestamp('2016-01-26', tz='UTC'))
+        contract = bar_data.current(cf_primary, 'contract')
+
+        self.assertEqual(contract.symbol, 'FOF16')
+
+        bar_data = self.create_bardata(
+            lambda: pd.Timestamp('2016-01-27', tz='UTC'))
+        contract = bar_data.current(cf_primary, 'contract')
+
+        self.assertEqual(contract.symbol, 'FOG16',
+                         'Auto close at beginning of session so FOG16 is now '
+                         'the current contract.')
+
+    def test_current_contract_quarterly(self):
+        cf_primary = self.asset_finder.create_continuous_future(
+            'BA', 0, 'calendar')
         bar_data = self.create_bardata(
             lambda: pd.Timestamp('2016-01-26', tz='UTC'))
         contract = bar_data.current(cf_primary, 'contract')
