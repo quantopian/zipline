@@ -124,7 +124,7 @@ class ContinuousFuturesTestCase(WithCreateBarData,
             'asset_name': ['Bar'] * 3,
             'sid': range(7, 10),
             'start_date': [Timestamp('2005-04-01', tz='UTC'),
-                           Timestamp('2010-04-21', tz='UTC'),
+                           Timestamp('2016-04-21', tz='UTC'),
                            Timestamp('2005-06-21', tz='UTC')],
             'end_date': [Timestamp('2016-08-19', tz='UTC'),
                          Timestamp('2016-09-19', tz='UTC'),
@@ -259,23 +259,6 @@ class ContinuousFuturesTestCase(WithCreateBarData,
     def test_current_contract(self):
         cf_primary = self.asset_finder.create_continuous_future(
             'FO', 0, 'calendar')
-        bar_data = self.create_bardata(
-            lambda: pd.Timestamp('2016-01-26', tz='UTC'))
-        contract = bar_data.current(cf_primary, 'contract')
-
-        self.assertEqual(contract.symbol, 'FOF16')
-
-        bar_data = self.create_bardata(
-            lambda: pd.Timestamp('2016-01-27', tz='UTC'))
-        contract = bar_data.current(cf_primary, 'contract')
-
-        self.assertEqual(contract.symbol, 'FOG16',
-                         'Auto close at beginning of session so FOG16 is now '
-                         'the current contract.')
-
-    def test_current_contract_quarterly(self):
-        cf_primary = self.asset_finder.create_continuous_future(
-            'BA', 0, 'calendar')
         bar_data = self.create_bardata(
             lambda: pd.Timestamp('2016-01-26', tz='UTC'))
         contract = bar_data.current(cf_primary, 'contract')
@@ -582,6 +565,27 @@ def record_current_contract(algo, data):
         self.assertEqual(window.loc['2016-03-28', cf],
                          3,
                          "Should be FOJ16 on session after roll.")
+
+    def test_history_sid_session_quarter_rolls(self):
+        cf = self.data_portal.asset_finder.create_continuous_future(
+            'BA', 0, 'calendar')
+        window = self.data_portal.get_history_window(
+            [cf],
+            Timestamp('2016-03-13 18:01', tz='US/Eastern').tz_convert('UTC'),
+            3, '1d', 'sid')
+
+        self.assertEqual(window.loc['2016-03-10', cf],
+                         7,
+                         "Should be BAH16 at beginning of window.")
+
+        self.assertEqual(window.loc['2016-03-11', cf],
+                         9,
+                         "Should be BAM16 after first roll, having skipped "
+                         "over BAK16.")
+
+        self.assertEqual(window.loc['2016-03-14', cf],
+                         9,
+                         "Should have remained BAM16")
 
     def test_history_sid_session_secondary(self):
         cf = self.data_portal.asset_finder.create_continuous_future(
