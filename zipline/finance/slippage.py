@@ -18,6 +18,8 @@ import abc
 import math
 from six import with_metaclass
 
+from pandas import isnull
+
 from zipline.finance.transaction import create_transaction
 
 SELL = 1 << 0
@@ -75,6 +77,14 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
         # can use the close price, since we verified there's volume in this
         # bar.
         price = data.current(asset, "close")
+
+        # BEGIN
+        #
+        # Remove this block after fixing data to ensure volume always has
+        # corresponding price.
+        if isnull(price):
+            return
+        # END
         dt = data.current_dt
 
         for order in orders_for_asset:
@@ -158,6 +168,14 @@ class VolumeShareSlippage(SlippageModel):
                            self.volume_limit)
 
         price = data.current(order.asset, "close")
+
+        # BEGIN
+        #
+        # Remove this block after fixing data to ensure volume always has
+        # corresponding price.
+        if isnull(price):
+            return
+        # END
 
         simulated_impact = volume_share ** 2 \
             * math.copysign(self.price_impact, order.direction) \
