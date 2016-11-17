@@ -57,15 +57,16 @@ class ContinuousFuturesTestCase(WithCreateBarData,
     @classmethod
     def make_root_symbols_info(self):
         return pd.DataFrame({
-            'root_symbol': ['FO'],
-            'root_symbol_id': [1],
-            'exchange': ['CME']})
+            'root_symbol': ['FO', 'BA'],
+            'root_symbol_id': [1, 2],
+            'exchange': ['CME', 'CME']})
 
     @classmethod
     def make_futures_info(self):
-        return DataFrame({
+        fo_frame = DataFrame({
             'symbol': ['FOF16', 'FOG16', 'FOH16', 'FOJ16', 'FOK16', 'FOF22',
                        'FOG22'],
+            'sid': range(0, 7),
             'root_symbol': ['FO'] * 7,
             'asset_name': ['Foo'] * 7,
             'start_date': [Timestamp('2015-01-05', tz='UTC'),
@@ -113,6 +114,36 @@ class ContinuousFuturesTestCase(WithCreateBarData,
             'multiplier': [1000.0] * 7,
             'exchange': ['CME'] * 7,
         })
+
+        # BA is set up to test a quarterly roll, to test Eurodollar-like
+        # behavior
+        # The roll should go from BAH16 -> BAM16
+        ba_frame = DataFrame({
+            'symbol': ['BAH16', 'BAK16', 'BAM16'],
+            'root_symbol': ['BA'] * 3,
+            'asset_name': ['Bar'] * 3,
+            'sid': range(7, 10),
+            'start_date': [Timestamp('2005-04-01', tz='UTC'),
+                           Timestamp('2010-04-21', tz='UTC'),
+                           Timestamp('2010-06-21', tz='UTC')],
+            'end_date': [Timestamp('2016-08-19', tz='UTC'),
+                         Timestamp('2016-09-19', tz='UTC'),
+                         Timestamp('2016-10-19', tz='UTC')],
+            'notice_date': [Timestamp('2016-03-11', tz='UTC'),
+                            Timestamp('2016-05-13', tz='UTC'),
+                            Timestamp('2016-06-10', tz='UTC')],
+            'expiration_date': [Timestamp('2016-03-11', tz='UTC'),
+                                Timestamp('2016-05-13', tz='UTC'),
+                                Timestamp('2016-06-10', tz='UTC')],
+            'auto_close_date': [Timestamp('2016-03-11', tz='UTC'),
+                                Timestamp('2016-05-13', tz='UTC'),
+                                Timestamp('2016-06-10', tz='UTC')],
+            'tick_size': [0.001] * 3,
+            'multiplier': [1000.0] * 3,
+            'exchange': ['CME'] * 3,
+        })
+
+        return pd.concat([fo_frame, ba_frame])
 
     @classmethod
     def make_future_minute_bar_data(cls):

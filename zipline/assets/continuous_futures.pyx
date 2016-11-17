@@ -310,12 +310,17 @@ cdef class OrderedContracts(object):
         j = i + offset
         while j < self._size:
             if sid == sids[i]:
-                if start_dates[j] < start_cap:
+                if start_dates[j] <= start_cap:
                     return sids[j]
                 else:
-                    return None
+                    break
             i += 1
             j += 1
+        while j < self._size:
+            if start_dates[j] <= start_cap:
+                j += 1
+            else:
+                return sids[j]
 
     cpdef long_t[:] active_chain(self, long_t starting_sid, long_t dt_value):
         cdef Py_ssize_t left, right, i, j
