@@ -35,6 +35,7 @@ from zipline.data._minute_bar_internal import (
 from zipline.gens.sim_engine import NANOS_IN_MINUTE
 
 from zipline.data.bar_reader import BarReader, NoDataOnDate
+from zipline.data.us_equity_pricing import check_uint32_safe
 from zipline.utils.calendars import get_calendar
 from zipline.utils.cli import maybe_show_progress
 from zipline.utils.memoize import lazyval
@@ -106,6 +107,73 @@ def _sid_subdir_path(sid):
         padded_sid[2:4],
         "{0}.bcolz".format(str(padded_sid))
     )
+
+
+def convert_cols(cols, scale_factor, sid, invalid_data_behavior):
+    """Adapt OHLCV columns into uint32 columns.
+
+    Parameters
+    ----------
+    cols : dict
+        A dict mapping each column name (open, high, low, close, volume)
+        to a float column to convert to uint32.
+    scale_factor : int
+        Factor to use to scale float values before converting to uint32.
+    sid : int
+        Sid of the relevant asset, for logging.
+    invalid_data_behavior : str
+        Specifies behavior when data cannot be converted to uint32.
+        If 'raise', raises an exception.
+        If 'warn', logs a warning and filters out incompatible values.
+        If 'ignore', silently filters out incompatible values.
+    """
+    scaled_opens = np.nan_to_num(cols['open']) * scale_factor
+    scaled_highs = np.nan_to_num(cols['high']) * scale_factor
+    scaled_lows = np.nan_to_num(cols['low']) * scale_factor
+    scaled_closes = np.nan_to_num(cols['close']) * scale_factor
+
+    exclude_mask = np.zeros_like(scaled_opens, dtype=bool)
+
+    for col_name, scaled_col in [
+        ('open', scaled_opens),
+        ('high', scaled_highs),
+        ('low', scaled_lows),
+        ('close', scaled_closes),
+    ]:
+        max_val = scaled_col.max()
+
+        try:
+            check_uint32_safe(max_val, col_name)
+        except ValueError:
+            if invalid_data_behavior == 'raise':
+                raise
+
+            if invalid_data_behavior == 'warn':
+                logger.warn(
+                    'Values for sid={}, col={} contain some too large for '
+                    'uint32 (max={}), filtering them out',
+                    sid, col_name, max_val,
+                )
+
+            # We want to exclude all rows that have an unsafe value in
+            # this column.
+            exclude_mask &= (scaled_col >= np.iinfo(np.uint32).max)
+
+    # Convert all cols to uint32.
+    opens = scaled_opens.astype(np.uint32)
+    highs = scaled_highs.astype(np.uint32)
+    lows = scaled_lows.astype(np.uint32)
+    closes = scaled_closes.astype(np.uint32)
+    volumes = cols['volume'].astype(np.uint32)
+
+    # Exclude rows with unsafe values by setting to zero.
+    opens[exclude_mask] = 0
+    highs[exclude_mask] = 0
+    lows[exclude_mask] = 0
+    closes[exclude_mask] = 0
+    volumes[exclude_mask] = 0
+
+    return opens, highs, lows, closes, volumes
 
 
 class BcolzMinuteBarMetadata(object):
@@ -569,7 +637,7 @@ class BcolzMinuteBarWriter(object):
         for k, v in kwargs.items():
             table.attrs[k] = v
 
-    def write(self, data, show_progress=False):
+    def write(self, data, show_progress=False, invalid_data_behavior='warn'):
         """Write a stream of minute data.
 
         Parameters
@@ -598,9 +666,9 @@ class BcolzMinuteBarWriter(object):
         write_sid = self.write_sid
         with ctx as it:
             for e in it:
-                write_sid(*e)
+                write_sid(*e, invalid_data_behavior=invalid_data_behavior)
 
-    def write_sid(self, sid, df):
+    def write_sid(self, sid, df, invalid_data_behavior='warn'):
         """
         Write the OHLCV data for the given sid.
         If there is no bcolz ctable yet created for the sid, create it.
@@ -631,9 +699,9 @@ class BcolzMinuteBarWriter(object):
         dts = df.index.values
         # Call internal method, since DataFrame has already ensured matching
         # index and value lengths.
-        self._write_cols(sid, dts, cols)
+        self._write_cols(sid, dts, cols, invalid_data_behavior)
 
-    def write_cols(self, sid, dts, cols):
+    def write_cols(self, sid, dts, cols, invalid_data_behavior='warn'):
         """
         Write the OHLCV data for the given sid.
         If there is no bcolz ctable yet created for the sid, create it.
@@ -661,9 +729,9 @@ class BcolzMinuteBarWriter(object):
                     len(dts),
                     " ".join("{0}={1}".format(name, len(cols[name]))
                              for name in self.COL_NAMES)))
-        self._write_cols(sid, dts, cols)
+        self._write_cols(sid, dts, cols, invalid_data_behavior)
 
-    def _write_cols(self, sid, dts, cols):
+    def _write_cols(self, sid, dts, cols, invalid_data_behavior):
         """
         Internal method for `write_cols` and `write`.
 
@@ -730,16 +798,13 @@ class BcolzMinuteBarWriter(object):
 
         ohlc_ratio = self.ohlc_ratio_for_sid(sid)
 
-        def convert_col(col):
-            """Adapt float column into a uint32 column.
-            """
-            return (np.nan_to_num(col) * ohlc_ratio).astype(np.uint32)
-
-        open_col[dt_ixs] = convert_col(cols['open'])
-        high_col[dt_ixs] = convert_col(cols['high'])
-        low_col[dt_ixs] = convert_col(cols['low'])
-        close_col[dt_ixs] = convert_col(cols['close'])
-        vol_col[dt_ixs] = cols['volume'].astype(np.uint32)
+        (
+            open_col[dt_ixs],
+            high_col[dt_ixs],
+            low_col[dt_ixs],
+            close_col[dt_ixs],
+            vol_col[dt_ixs],
+        ) = convert_cols(cols, ohlc_ratio, sid, invalid_data_behavior)
 
         table.append([
             open_col,
