@@ -96,23 +96,21 @@ class RollFinder(with_metaclass(ABCMeta, object)):
             i -= 1
         else:
             i -= 2
-        auto_close_date = Timestamp(oc.auto_close_dates[i], tz='UTC')
-        while auto_close_date > start and i > -1:
-            session_loc = sessions.searchsorted(auto_close_date)
+        curr = sessions[-1]
+        while curr > start and i > -1:
+            session_loc = sessions.searchsorted(curr)
             front = oc.contract_sids[i]
             back = oc.contract_sids[i + 1]
-            while session_loc > -1:
+            while session_loc > 0:
                 session = sessions[session_loc]
-                if back != self._active_contract(oc, front, back, session):
+                prev = sessions[session_loc - 1]
+                if back != self._active_contract(oc, front, back, prev):
+                    rolls.insert(0, (oc.contract_sids[i + offset], session))
                     break
                 session_loc -= 1
-            roll_session = sessions[session_loc + 1]
-            if roll_session > start:
-                rolls.insert(0, (oc.contract_sids[i + offset],
-                                 roll_session))
             i -= 1
-            auto_close_date = Timestamp(oc.auto_close_dates[i],
-                                        tz='UTC')
+            curr = Timestamp(oc.auto_close_dates[i],
+                             tz='UTC')
         return rolls
 
 
@@ -131,8 +129,8 @@ class CalendarRollFinder(RollFinder):
             if sid == front:
                 break
         auto_close_date = Timestamp(oc.auto_close_dates[i], tz='UTC')
-        before_auto_close = dt < auto_close_date
-        return front if before_auto_close else back
+        auto_closed = dt >= auto_close_date
+        return back if auto_closed else front
 
 
 class VolumeRollFinder(RollFinder):
@@ -149,7 +147,15 @@ class VolumeRollFinder(RollFinder):
         self.session_reader = session_reader
 
     def _active_contract(self, oc, front, back, dt):
-        # FIXME: Possible vector for look ahead bias.
-        front_vol = self.session_reader.get_value(front, dt, 'volume')
-        back_vol = self.session_reader.get_value(back, dt, 'volume')
-        return back if back_vol > front_vol else front
+        prev = dt - self.trading_calendar.day
+        front_vol = self.session_reader.get_value(front, prev, 'volume')
+        back_vol = self.session_reader.get_value(back, prev, 'volume')
+        if back_vol > front_vol:
+            return back
+        else:
+            for i, sid in enumerate(oc.contract_sids):
+                if sid == front:
+                    break
+            auto_close_date = Timestamp(oc.auto_close_dates[i], tz='UTC')
+            auto_closed = dt >= auto_close_date
+            return back if auto_closed else front
