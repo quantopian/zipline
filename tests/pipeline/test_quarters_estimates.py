@@ -1,9 +1,14 @@
+from __future__ import division
+
+from datetime import timedelta
+from functools import partial
+
 import blaze as bz
 import itertools
 from nose.tools import assert_true
 from nose_parameterized import parameterized
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_almost_equal
 import pandas as pd
 from toolz import merge
 
@@ -19,21 +24,25 @@ from zipline.pipeline.data import DataSet
 from zipline.pipeline.data import Column
 from zipline.pipeline.loaders.blaze.estimates import (
     BlazeNextEstimatesLoader,
-    BlazePreviousEstimatesLoader
-)
+    BlazePreviousEstimatesLoader,
+    BlazeNextSplitAdjustedEstimatesLoader,
+    BlazePreviousSplitAdjustedEstimatesLoader)
 from zipline.pipeline.loaders.earnings_estimates import (
     INVALID_NUM_QTRS_MESSAGE,
     NextEarningsEstimatesLoader,
+    NextSplitAdjustedEarningsEstimatesLoader,
     normalize_quarters,
     PreviousEarningsEstimatesLoader,
+    PreviousSplitAdjustedEarningsEstimatesLoader,
     split_normalized_quarters,
 )
 from zipline.testing.fixtures import (
-    WithAssetFinder,
+    WithAdjustmentReader,
     WithTradingSessions,
     ZiplineTestCase,
 )
 from zipline.testing.predicates import assert_equal, assert_raises_regex
+from zipline.testing.predicates import assert_frame_equal
 from zipline.utils.numpy_utils import datetime64ns_dtype
 from zipline.utils.numpy_utils import float64_dtype
 
@@ -45,8 +54,23 @@ class Estimates(DataSet):
     estimate = Column(dtype=float64_dtype)
 
 
+class MultipleColumnsEstimates(DataSet):
+    event_date = Column(dtype=datetime64ns_dtype)
+    fiscal_quarter = Column(dtype=float64_dtype)
+    fiscal_year = Column(dtype=float64_dtype)
+    estimate1 = Column(dtype=float64_dtype)
+    estimate2 = Column(dtype=float64_dtype)
+
+
 def QuartersEstimates(announcements_out):
     class QtrEstimates(Estimates):
+        num_announcements = announcements_out
+        name = Estimates
+    return QtrEstimates
+
+
+def MultipleColumnsQuartersEstimates(announcements_out):
+    class QtrEstimates(MultipleColumnsEstimates):
         num_announcements = announcements_out
         name = Estimates
     return QtrEstimates
@@ -58,7 +82,35 @@ def QuartersEstimatesNoNumQuartersAttr(num_qtr):
     return QtrEstimates
 
 
-class WithEstimates(WithTradingSessions, WithAssetFinder):
+def create_expected_df_for_factor_compute(start_date,
+                                          sids,
+                                          tuples,
+                                          end_date):
+    """
+    Given a list of tuples of new data we get for each sid on each critical
+    date (when information changes), create a DataFrame that fills that
+    data through a date range ending at `end_date`.
+    """
+    df = pd.DataFrame(tuples,
+                      columns=[SID_FIELD_NAME,
+                               'estimate',
+                               'knowledge_date'])
+    df = df.pivot_table(columns=SID_FIELD_NAME,
+                        values='estimate',
+                        index='knowledge_date')
+    df = df.reindex(
+        pd.date_range(start_date, end_date)
+    )
+    # Index name is lost during reindex.
+    df.index = df.index.rename('knowledge_date')
+    df['at_date'] = end_date.tz_localize('utc')
+    df = df.set_index(['at_date', df.index.tz_localize('utc')]).ffill()
+    new_sids = set(sids) - set(df.columns)
+    df = df.reindex(columns=df.columns.union(new_sids))
+    return df
+
+
+class WithEstimates(WithTradingSessions, WithAdjustmentReader):
     """
     ZiplineTestCase mixin providing cls.loader and cls.events as class
     level fixtures.
@@ -74,6 +126,9 @@ class WithEstimates(WithTradingSessions, WithAssetFinder):
         columns : dict[str -> str]
             The dictionary mapping the names of BoundColumns to the
             associated column name in the events DataFrame.
+    make_columns() -> dict[BoundColumn -> str]
+       Method which returns a dictionary of BoundColumns mapped to the
+       associated column names in the raw data.
     """
 
     # Short window defined in order for test to run faster.
@@ -93,22 +148,40 @@ class WithEstimates(WithTradingSessions, WithAssetFinder):
         return cls.events[SID_FIELD_NAME].unique()
 
     @classmethod
-    def init_class_fixtures(cls):
-        cls.events = cls.make_events()
-        cls.ASSET_FINDER_EQUITY_SIDS = cls.get_sids()
-        cls.columns = {
+    def make_columns(cls):
+        return {
             Estimates.event_date: 'event_date',
             Estimates.fiscal_quarter: 'fiscal_quarter',
             Estimates.fiscal_year: 'fiscal_year',
             Estimates.estimate: 'estimate'
         }
-        cls.loader = cls.make_loader(cls.events, {column.name: val for
-                                                  column, val in
-                                                  cls.columns.items()})
+
+    @classmethod
+    def init_class_fixtures(cls):
+        cls.events = cls.make_events()
+        cls.ASSET_FINDER_EQUITY_SIDS = cls.get_sids()
         cls.ASSET_FINDER_EQUITY_SYMBOLS = [
             's' + str(n) for n in cls.ASSET_FINDER_EQUITY_SIDS
         ]
+        # We need to instantiate certain constants needed by supers of
+        # `WithEstimates` before we call their `init_class_fixtures`.
         super(WithEstimates, cls).init_class_fixtures()
+        cls.columns = cls.make_columns()
+        # Some tests require `WithAdjustmentReader` to be set up by the time we
+        # make the loader.
+        cls.loader = cls.make_loader(cls.events, {column.name: val for
+                                                  column, val in
+                                                  cls.columns.items()})
+
+
+dummy_df = pd.DataFrame({SID_FIELD_NAME: 0},
+                        columns=[SID_FIELD_NAME,
+                                 TS_FIELD_NAME,
+                                 EVENT_DATE_FIELD_NAME,
+                                 FISCAL_QUARTER_FIELD_NAME,
+                                 FISCAL_YEAR_FIELD_NAME,
+                                 'estimate'],
+                        index=[0])
 
 
 class WithWrongLoaderDefinition(WithEstimates):
@@ -133,14 +206,7 @@ class WithWrongLoaderDefinition(WithEstimates):
 
     @classmethod
     def make_events(cls):
-        return pd.DataFrame({SID_FIELD_NAME: 0},
-                            columns=[SID_FIELD_NAME,
-                                     TS_FIELD_NAME,
-                                     EVENT_DATE_FIELD_NAME,
-                                     FISCAL_QUARTER_FIELD_NAME,
-                                     FISCAL_YEAR_FIELD_NAME,
-                                     'estimate'],
-                            index=[0])
+        return dummy_df
 
     def test_wrong_num_announcements_passed(self):
         bad_dataset1 = QuartersEstimates(-1)
@@ -203,6 +269,47 @@ class NextWithWrongNumQuarters(WithWrongLoaderDefinition,
     @classmethod
     def make_loader(cls, events, columns):
         return NextEarningsEstimatesLoader(events, columns)
+
+
+options = ["split_adjustments_loader",
+           "split_adjusted_column_names",
+           "split_adjusted_asof"]
+
+
+class WrongSplitsLoaderDefinition(WithEstimates, ZiplineTestCase):
+    """
+    Test class that tests that loaders break correctly when incorrectly
+    instantiated.
+
+    Tests
+    -----
+    test_extra_splits_columns_passed(SplitAdjustedEstimatesLoader)
+        A test that checks that the loader correctly breaks when an
+        unexpected column is passed in the list of split-adjusted columns.
+    """
+    @classmethod
+    def init_class_fixtures(cls):
+        super(WithEstimates, cls).init_class_fixtures()
+
+    @parameterized.expand(itertools.product(
+        (NextSplitAdjustedEarningsEstimatesLoader,
+         PreviousSplitAdjustedEarningsEstimatesLoader),
+    ))
+    def test_extra_splits_columns_passed(self, loader):
+        columns = {
+            Estimates.event_date: 'event_date',
+            Estimates.fiscal_quarter: 'fiscal_quarter',
+            Estimates.fiscal_year: 'fiscal_year',
+            Estimates.estimate: 'estimate'
+        }
+
+        with self.assertRaises(ValueError):
+            loader(dummy_df,
+                   {column.name: val for column, val in
+                    columns.items()},
+                   split_adjustments_loader=self.adjustment_reader,
+                   split_adjusted_column_names=["estimate", "extra_col"],
+                   split_adjusted_asof=pd.Timestamp("2015-01-01"))
 
 
 class WithEstimatesTimeZero(WithEstimates):
@@ -618,6 +725,15 @@ class NextEstimateMultipleQuarters(
         return expected
 
 
+class BlazeNextEstimateMultipleQuarters(NextEstimateMultipleQuarters):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return BlazeNextEstimatesLoader(
+            bz.data(events),
+            columns,
+        )
+
+
 class PreviousEstimateMultipleQuarters(
     WithEstimateMultipleQuarters,
     ZiplineTestCase
@@ -656,6 +772,15 @@ class PreviousEstimateMultipleQuarters(
             FISCAL_YEAR_FIELD_NAME + '2'
         ].loc[pd.Timestamp('2015-01-20'):] = 2015
         return expected
+
+
+class BlazePreviousEstimateMultipleQuarters(PreviousEstimateMultipleQuarters):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return BlazePreviousEstimatesLoader(
+            bz.data(events),
+            columns,
+        )
 
 
 class WithVaryingNumEstimates(WithEstimates):
@@ -749,6 +874,15 @@ class PreviousVaryingNumEstimates(
         return PreviousEarningsEstimatesLoader(events, columns)
 
 
+class BlazePreviousVaryingNumEstimates(PreviousVaryingNumEstimates):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return BlazePreviousEstimatesLoader(
+            bz.data(events),
+            columns,
+        )
+
+
 class NextVaryingNumEstimates(
     WithVaryingNumEstimates,
     ZiplineTestCase
@@ -769,6 +903,15 @@ class NextVaryingNumEstimates(
     @classmethod
     def make_loader(cls, events, columns):
         return NextEarningsEstimatesLoader(events, columns)
+
+
+class BlazeNextVaryingNumEstimates(NextVaryingNumEstimates):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return BlazeNextEstimatesLoader(
+            bz.data(events),
+            columns,
+        )
 
 
 class WithEstimateWindows(WithEstimates):
@@ -797,60 +940,69 @@ class WithEstimateWindows(WithEstimates):
         Tests that we overwrite values with the correct quarter's estimate at
         the correct dates when we have a factor that asks for a window of data.
     """
-
+    END_DATE = pd.Timestamp('2015-02-10')
     window_test_start_date = pd.Timestamp('2015-01-05')
     critical_dates = [pd.Timestamp('2015-01-09', tz='utc'),
-                      pd.Timestamp('2015-01-12', tz='utc'),
                       pd.Timestamp('2015-01-15', tz='utc'),
-                      pd.Timestamp('2015-01-20', tz='utc')]
-    # window length, starting date, num quarters out, timeline. Parameterizes
-    # over number of quarters out.
+                      pd.Timestamp('2015-01-20', tz='utc'),
+                      pd.Timestamp('2015-01-26', tz='utc'),
+                      pd.Timestamp('2015-02-05', tz='utc'),
+                      pd.Timestamp('2015-02-10', tz='utc')]
+    # Starting date, number of announcements out.
     window_test_cases = list(itertools.product(critical_dates, (1, 2)))
 
     @classmethod
     def make_events(cls):
+        # Typical case: 2 consecutive quarters.
         sid_0_timeline = pd.DataFrame({
-            TS_FIELD_NAME: [pd.Timestamp('2015-01-05'),
-                            pd.Timestamp('2015-01-07'),
-                            pd.Timestamp('2015-01-05'),
-                            pd.Timestamp('2015-01-17')],
+            TS_FIELD_NAME: [cls.window_test_start_date,
+                            pd.Timestamp('2015-01-20'),
+                            pd.Timestamp('2015-01-12'),
+                            pd.Timestamp('2015-02-10'),
+                            # We want a case where we get info for a later
+                            # quarter before the current quarter is over but
+                            # after the split_asof_date to make sure that
+                            # we choose the correct date to overwrite until.
+                            pd.Timestamp('2015-01-18')],
             EVENT_DATE_FIELD_NAME:
-                [pd.Timestamp('2015-01-10'),
-                 pd.Timestamp('2015-01-10'),
+                [pd.Timestamp('2015-01-20'),
                  pd.Timestamp('2015-01-20'),
-                 pd.Timestamp('2015-01-20')],
-            'estimate': [100., 101.] + [200., 201.],
-            FISCAL_QUARTER_FIELD_NAME: [1] * 2 + [2] * 2,
+                 pd.Timestamp('2015-02-10'),
+                 pd.Timestamp('2015-02-10'),
+                 pd.Timestamp('2015-04-01')],
+            'estimate': [100., 101.] + [200., 201.] + [400],
+            FISCAL_QUARTER_FIELD_NAME: [1] * 2 + [2] * 2 + [4],
             FISCAL_YEAR_FIELD_NAME: 2015,
             SID_FIELD_NAME: 0,
         })
 
+        # We want a case where we skip a quarter. We never find out about Q2.
         sid_10_timeline = pd.DataFrame({
             TS_FIELD_NAME: [pd.Timestamp('2015-01-09'),
                             pd.Timestamp('2015-01-12'),
                             pd.Timestamp('2015-01-09'),
                             pd.Timestamp('2015-01-15')],
             EVENT_DATE_FIELD_NAME:
-                [pd.Timestamp('2015-01-12'), pd.Timestamp('2015-01-12'),
-                 pd.Timestamp('2015-01-15'), pd.Timestamp('2015-01-15')],
+                [pd.Timestamp('2015-01-22'), pd.Timestamp('2015-01-22'),
+                 pd.Timestamp('2015-02-05'), pd.Timestamp('2015-02-05')],
             'estimate': [110., 111.] + [310., 311.],
             FISCAL_QUARTER_FIELD_NAME: [1] * 2 + [3] * 2,
             FISCAL_YEAR_FIELD_NAME: 2015,
             SID_FIELD_NAME: 10
         })
 
-        # Extra sid to make sure we have correct overwrites when sid quarter
-        # boundaries collide.
+        # We want to make sure we have correct overwrites when sid quarter
+        # boundaries collide. This sid's quarter boundaries collide with sid 0.
         sid_20_timeline = pd.DataFrame({
-            TS_FIELD_NAME: [pd.Timestamp('2015-01-05'),
+            TS_FIELD_NAME: [cls.window_test_start_date,
                             pd.Timestamp('2015-01-07'),
-                            pd.Timestamp('2015-01-05'),
+                            cls.window_test_start_date,
                             pd.Timestamp('2015-01-17')],
             EVENT_DATE_FIELD_NAME:
-                [pd.Timestamp('2015-01-10'),
-                 pd.Timestamp('2015-01-10'),
+                [pd.Timestamp('2015-01-20'),
                  pd.Timestamp('2015-01-20'),
-                 pd.Timestamp('2015-01-20')],
+                 pd.Timestamp('2015-02-10'),
+                 pd.Timestamp('2015-02-10')],
             'estimate': [120., 121.] + [220., 221.],
             FISCAL_QUARTER_FIELD_NAME: [1] * 2 + [2] * 2,
             FISCAL_YEAR_FIELD_NAME: 2015,
@@ -877,36 +1029,16 @@ class WithEstimateWindows(WithEstimates):
     @classmethod
     def init_class_fixtures(cls):
         super(WithEstimateWindows, cls).init_class_fixtures()
-        cls.timelines = cls.make_expected_timelines()
-
-    @classmethod
-    def create_expected_df(cls, tuples, end_date):
-        """
-        Given a list of tuples of new data we get for each sid on each critical
-        date (when information changes), create a DataFrame that fills that
-        data through a date range ending at `end_date`.
-        """
-        df = pd.DataFrame(tuples,
-                          columns=[SID_FIELD_NAME,
-                                   'estimate',
-                                   'knowledge_date'])
-        df = df.pivot_table(columns=SID_FIELD_NAME,
-                            values='estimate',
-                            index='knowledge_date')
-        df = df.reindex(
-            pd.date_range(cls.window_test_start_date, end_date)
+        cls.create_expected_df_for_factor_compute = partial(
+            create_expected_df_for_factor_compute,
+            cls.window_test_start_date,
+            cls.get_sids()
         )
-        # Index name is lost during reindex.
-        df.index = df.index.rename('knowledge_date')
-        df['at_date'] = end_date.tz_localize('utc')
-        df = df.set_index(['at_date', df.index.tz_localize('utc')]).ffill()
-        new_sids = set(cls.get_sids()) - set(df.columns)
-        df = df.reindex(columns=df.columns.union(new_sids))
-        return df
+        cls.timelines = cls.make_expected_timelines()
 
     @parameterized.expand(window_test_cases)
     def test_estimate_windows_at_quarter_boundaries(self,
-                                                    start_idx,
+                                                    start_date,
                                                     num_announcements_out):
         dataset = QuartersEstimates(num_announcements_out)
         trading_days = self.trading_days
@@ -916,7 +1048,7 @@ class WithEstimateWindows(WithEstimates):
         # progress through the timeline, all data we got, starting from that
         # first date, is correctly overwritten.
         window_len = (
-            self.trading_days.get_loc(start_idx) -
+            self.trading_days.get_loc(start_date) -
             self.trading_days.get_loc(self.window_test_start_date) + 1
         )
 
@@ -932,8 +1064,9 @@ class WithEstimateWindows(WithEstimates):
                     trading_days[:today_idx + 1]
                 ).values
                 timeline_start_idx = (len(today_timeline) - window_len)
-                assert_equal(estimate,
-                             today_timeline[timeline_start_idx:])
+                assert_almost_equal(estimate,
+                                    today_timeline[timeline_start_idx:])
+
         engine = SimplePipelineEngine(
             lambda x: self.loader,
             self.trading_days,
@@ -941,9 +1074,9 @@ class WithEstimateWindows(WithEstimates):
         )
         engine.run_pipeline(
             Pipeline({'est': SomeFactor()}),
-            start_date=start_idx,
+            start_date=start_date,
             # last event date we have
-            end_date=pd.Timestamp('2015-01-20', tz='utc'),
+            end_date=pd.Timestamp('2015-02-10', tz='utc'),
         )
 
 
@@ -955,68 +1088,77 @@ class PreviousEstimateWindows(WithEstimateWindows, ZiplineTestCase):
     @classmethod
     def make_expected_timelines(cls):
         oneq_previous = pd.concat([
-            cls.create_expected_df(
-                [(0, np.NaN, cls.window_test_start_date),
-                 (10, np.NaN, cls.window_test_start_date),
-                 (20, np.NaN, cls.window_test_start_date)],
-                pd.Timestamp('2015-01-09')
-            ),
-            cls.create_expected_df(
-                [(0, 101, pd.Timestamp('2015-01-10')),
-                 (10, 111, pd.Timestamp('2015-01-12')),
-                 (20, 121, pd.Timestamp('2015-01-10'))],
-                pd.Timestamp('2015-01-12')
-            ),
-            cls.create_expected_df(
-                [(0, 101, pd.Timestamp('2015-01-10')),
-                 (10, 111, pd.Timestamp('2015-01-12')),
-                 (20, 121, pd.Timestamp('2015-01-10'))],
-                pd.Timestamp('2015-01-13')
-            ),
-            cls.create_expected_df(
-                [(0, 101, pd.Timestamp('2015-01-10')),
-                 (10, 111, pd.Timestamp('2015-01-12')),
-                 (20, 121, pd.Timestamp('2015-01-10'))],
-                pd.Timestamp('2015-01-14')
-            ),
-            cls.create_expected_df(
-                [(0, 101, pd.Timestamp('2015-01-10')),
-                 (10, 311, pd.Timestamp('2015-01-15')),
-                 (20, 121, pd.Timestamp('2015-01-10'))],
-                pd.Timestamp('2015-01-15')
-            ),
-            cls.create_expected_df(
-                [(0, 101, pd.Timestamp('2015-01-10')),
-                 (10, 311, pd.Timestamp('2015-01-15')),
-                 (20, 121, pd.Timestamp('2015-01-10'))],
-                pd.Timestamp('2015-01-16')
-            ),
-            cls.create_expected_df(
-                [(0, 201, pd.Timestamp('2015-01-17')),
-                 (10, 311, pd.Timestamp('2015-01-15')),
-                 (20, 221, pd.Timestamp('2015-01-17'))],
-                pd.Timestamp('2015-01-20')
-            ),
-        ])
-
-        twoq_previous = pd.concat(
-            [cls.create_expected_df(
-                [(0, np.NaN, cls.window_test_start_date),
-                 (10, np.NaN, cls.window_test_start_date),
-                 (20, np.NaN, cls.window_test_start_date)],
-                end_date
-            ) for end_date in pd.date_range('2015-01-09', '2015-01-19')] +
-            [cls.create_expected_df(
+            pd.concat([
+                cls.create_expected_df_for_factor_compute([
+                    (0, np.NaN, cls.window_test_start_date),
+                    (10, np.NaN, cls.window_test_start_date),
+                    (20, np.NaN, cls.window_test_start_date)
+                ], end_date)
+                for end_date in pd.date_range('2015-01-09', '2015-01-19')
+            ]),
+            cls.create_expected_df_for_factor_compute(
                 [(0, 101, pd.Timestamp('2015-01-20')),
                  (10, np.NaN, cls.window_test_start_date),
                  (20, 121, pd.Timestamp('2015-01-20'))],
                 pd.Timestamp('2015-01-20')
+            ),
+            cls.create_expected_df_for_factor_compute(
+                [(0, 101, pd.Timestamp('2015-01-20')),
+                 (10, np.NaN, cls.window_test_start_date),
+                 (20, 121, pd.Timestamp('2015-01-20'))],
+                pd.Timestamp('2015-01-21')
+            ),
+            pd.concat([
+                cls.create_expected_df_for_factor_compute(
+                    [(0, 101, pd.Timestamp('2015-01-20')),
+                     (10, 111, pd.Timestamp('2015-01-22')),
+                     (20, 121, pd.Timestamp('2015-01-20'))],
+                    end_date
+                ) for end_date in pd.date_range('2015-01-22', '2015-02-04')
+            ]),
+            pd.concat([
+                cls.create_expected_df_for_factor_compute(
+                    [(0, 101, pd.Timestamp('2015-01-20')),
+                     (10, 311, pd.Timestamp('2015-02-05')),
+                     (20, 121, pd.Timestamp('2015-01-20'))],
+                    end_date
+                ) for end_date in pd.date_range('2015-02-05', '2015-02-09')
+                ]),
+            cls.create_expected_df_for_factor_compute(
+                [(0, 201, pd.Timestamp('2015-02-10')),
+                 (10, 311, pd.Timestamp('2015-02-05')),
+                 (20, 221, pd.Timestamp('2015-02-10'))],
+                pd.Timestamp('2015-02-10')
+            ),
+        ])
+
+        twoq_previous = pd.concat(
+            [cls.create_expected_df_for_factor_compute(
+                [(0, np.NaN, cls.window_test_start_date),
+                 (10, np.NaN, cls.window_test_start_date),
+                 (20, np.NaN, cls.window_test_start_date)],
+                end_date
+            ) for end_date in pd.date_range('2015-01-09', '2015-02-09')] +
+            # We never get estimates for S1 for 2Q ago because once Q3
+            # becomes our previous quarter, 2Q ago would be Q2, and we have
+            # no data on it.
+            [cls.create_expected_df_for_factor_compute(
+                [(0, 101, pd.Timestamp('2015-02-10')),
+                 (10, np.NaN, pd.Timestamp('2015-02-05')),
+                 (20, 121, pd.Timestamp('2015-02-10'))],
+                pd.Timestamp('2015-02-10')
             )]
         )
         return {
             1: oneq_previous,
             2: twoq_previous
         }
+
+
+class BlazePreviousEstimateWindows(PreviousEstimateWindows):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return BlazePreviousEstimatesLoader(bz.data(events), columns)
 
 
 class NextEstimateWindows(WithEstimateWindows, ZiplineTestCase):
@@ -1027,75 +1169,1437 @@ class NextEstimateWindows(WithEstimateWindows, ZiplineTestCase):
     @classmethod
     def make_expected_timelines(cls):
         oneq_next = pd.concat([
-            cls.create_expected_df(
+            cls.create_expected_df_for_factor_compute(
                 [(0, 100, cls.window_test_start_date),
-                 (0, 101, pd.Timestamp('2015-01-07')),
                  (10, 110, pd.Timestamp('2015-01-09')),
                  (20, 120, cls.window_test_start_date),
                  (20, 121, pd.Timestamp('2015-01-07'))],
                 pd.Timestamp('2015-01-09')
             ),
-            cls.create_expected_df(
-                [(0, 200, cls.window_test_start_date),
+            pd.concat([
+                cls.create_expected_df_for_factor_compute(
+                    [(0, 100, cls.window_test_start_date),
+                     (10, 110, pd.Timestamp('2015-01-09')),
+                     (10, 111, pd.Timestamp('2015-01-12')),
+                     (20, 120, cls.window_test_start_date),
+                     (20, 121, pd.Timestamp('2015-01-07'))],
+                    end_date
+                ) for end_date in pd.date_range('2015-01-12', '2015-01-19')
+            ]),
+            cls.create_expected_df_for_factor_compute(
+                [(0, 100, cls.window_test_start_date),
+                 (0, 101, pd.Timestamp('2015-01-20')),
                  (10, 110, pd.Timestamp('2015-01-09')),
                  (10, 111, pd.Timestamp('2015-01-12')),
-                 (20, 220, cls.window_test_start_date)],
-                pd.Timestamp('2015-01-12')
+                 (20, 120, cls.window_test_start_date),
+                 (20, 121, pd.Timestamp('2015-01-07'))],
+                pd.Timestamp('2015-01-20')
             ),
-            cls.create_expected_df(
-                [(0, 200, cls.window_test_start_date),
-                 (10, 310, pd.Timestamp('2015-01-09')),
-                 (20, 220, cls.window_test_start_date)],
-                pd.Timestamp('2015-01-13')
-            ),
-            cls.create_expected_df(
-                [(0, 200, cls.window_test_start_date),
-                 (10, 310, pd.Timestamp('2015-01-09')),
-                 (20, 220, cls.window_test_start_date)],
-                pd.Timestamp('2015-01-14')
-            ),
-            cls.create_expected_df(
-                [(0, 200, cls.window_test_start_date),
-                 (10, 310, pd.Timestamp('2015-01-09')),
-                 (10, 311, pd.Timestamp('2015-01-15')),
-                 (20, 220, cls.window_test_start_date)],
-                pd.Timestamp('2015-01-15')
-            ),
-            cls.create_expected_df(
-                [(0, 200, cls.window_test_start_date),
+            pd.concat([
+                cls.create_expected_df_for_factor_compute(
+                    [(0, 200, pd.Timestamp('2015-01-12')),
+                     (10, 110, pd.Timestamp('2015-01-09')),
+                     (10, 111, pd.Timestamp('2015-01-12')),
+                     (20, 220, cls.window_test_start_date),
+                     (20, 221, pd.Timestamp('2015-01-17'))],
+                    end_date
+                ) for end_date in pd.date_range('2015-01-21', '2015-01-22')
+            ]),
+            pd.concat([
+                cls.create_expected_df_for_factor_compute(
+                    [(0, 200, pd.Timestamp('2015-01-12')),
+                     (10, 310, pd.Timestamp('2015-01-09')),
+                     (10, 311, pd.Timestamp('2015-01-15')),
+                     (20, 220, cls.window_test_start_date),
+                     (20, 221, pd.Timestamp('2015-01-17'))],
+                    end_date
+                ) for end_date in pd.date_range('2015-01-23', '2015-02-05')
+            ]),
+            pd.concat([
+                cls.create_expected_df_for_factor_compute(
+                    [(0, 200, pd.Timestamp('2015-01-12')),
+                     (10, np.NaN, cls.window_test_start_date),
+                     (20, 220, cls.window_test_start_date),
+                     (20, 221, pd.Timestamp('2015-01-17'))],
+                    end_date
+                ) for end_date in pd.date_range('2015-02-06', '2015-02-09')
+            ]),
+            cls.create_expected_df_for_factor_compute(
+                [(0, 200, pd.Timestamp('2015-01-12')),
+                 (0, 201, pd.Timestamp('2015-02-10')),
+                 (10, np.NaN, cls.window_test_start_date),
+                 (20, 220, cls.window_test_start_date),
+                 (20, 221, pd.Timestamp('2015-01-17'))],
+                pd.Timestamp('2015-02-10')
+            )
+        ])
+
+        twoq_next = pd.concat(
+            [cls.create_expected_df_for_factor_compute(
+                [(0, np.NaN, cls.window_test_start_date),
                  (10, np.NaN, cls.window_test_start_date),
                  (20, 220, cls.window_test_start_date)],
-                pd.Timestamp('2015-01-16')
-            ),
-            cls.create_expected_df(
-                [(0, 200, cls.window_test_start_date),
-                 (0, 201, pd.Timestamp('2015-01-17')),
+                end_date
+            ) for end_date in pd.date_range('2015-01-09', '2015-01-11')] +
+            [cls.create_expected_df_for_factor_compute(
+                [(0, 200, pd.Timestamp('2015-01-12')),
+                 (10, np.NaN, cls.window_test_start_date),
+                 (20, 220, cls.window_test_start_date)],
+                end_date
+            ) for end_date in pd.date_range('2015-01-12', '2015-01-16')] +
+            [cls.create_expected_df_for_factor_compute(
+                [(0, 200, pd.Timestamp('2015-01-12')),
                  (10, np.NaN, cls.window_test_start_date),
                  (20, 220, cls.window_test_start_date),
                  (20, 221, pd.Timestamp('2015-01-17'))],
                 pd.Timestamp('2015-01-20')
-            ),
-        ])
-
-        twoq_next = pd.concat(
-            [cls.create_expected_df(
-                [(0, 200, pd.Timestamp(cls.window_test_start_date)),
-                 (10, np.NaN, pd.Timestamp(cls.window_test_start_date)),
-                 (20, 220, pd.Timestamp(cls.window_test_start_date))],
-                pd.Timestamp('2015-01-09')
             )] +
-            [cls.create_expected_df(
-                [(0, np.NaN, pd.Timestamp(cls.window_test_start_date)),
-                 (10, np.NaN, pd.Timestamp(cls.window_test_start_date)),
-                 (20, np.NaN, pd.Timestamp(cls.window_test_start_date))],
+            [cls.create_expected_df_for_factor_compute(
+                [(0, np.NaN, cls.window_test_start_date),
+                 (10, np.NaN, cls.window_test_start_date),
+                 (20, np.NaN, cls.window_test_start_date)],
                 end_date
-            ) for end_date in pd.date_range('2015-01-12', '2015-01-20')]
+            ) for end_date in pd.date_range('2015-01-21', '2015-02-10')]
         )
 
         return {
             1: oneq_next,
             2: twoq_next
         }
+
+
+class BlazeNextEstimateWindows(NextEstimateWindows):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return BlazeNextEstimatesLoader(bz.data(events), columns)
+
+
+class WithSplitAdjustedWindows(WithEstimateWindows):
+    """
+    ZiplineTestCase mixin providing fixures and a test to test running a
+    Pipeline with an estimates loader over differently-sized windows and with
+    split adjustments.
+    """
+
+    split_adjusted_asof_date = pd.Timestamp('2015-01-14')
+
+    @classmethod
+    def make_events(cls):
+        # Add an extra sid that has a release before the split-asof-date in
+        # order to test that we're reversing splits correctly in the previous
+        # case (without an overwrite) and in the next case (with an overwrite).
+        sid_30 = pd.DataFrame({
+            TS_FIELD_NAME: [cls.window_test_start_date,
+                            pd.Timestamp('2015-01-09'),
+                            # For Q2, we want it to start early enough
+                            # that we can have several adjustments before
+                            # the end of the first quarter so that we
+                            # can test un-adjusting & readjusting with an
+                            # overwrite.
+                            cls.window_test_start_date,
+                            # We want the Q2 event date to be enough past
+                            # the split-asof-date that we can have
+                            # several splits and can make sure that they
+                            # are applied correctly.
+                            pd.Timestamp('2015-01-20')],
+            EVENT_DATE_FIELD_NAME:
+                [pd.Timestamp('2015-01-09'),
+                 pd.Timestamp('2015-01-09'),
+                 pd.Timestamp('2015-01-20'),
+                 pd.Timestamp('2015-01-20')],
+            'estimate': [130., 131., 230., 231.],
+            FISCAL_QUARTER_FIELD_NAME: [1] * 2 + [2] * 2,
+            FISCAL_YEAR_FIELD_NAME: 2015,
+            SID_FIELD_NAME: 30
+        })
+
+        # An extra sid to test no splits before the split-adjusted-asof-date.
+        # We want an event before and after the split-adjusted-asof-date &
+        # timestamps for data points also before and after
+        # split-adjsuted-asof-date (but also before the split dates, so that
+        # we can test that splits actually get applied at the correct times).
+        sid_40 = pd.DataFrame({
+            TS_FIELD_NAME: [pd.Timestamp('2015-01-09'),
+                            pd.Timestamp('2015-01-15')],
+            EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-09'),
+                                    pd.Timestamp('2015-02-10')],
+            'estimate': [140., 240.],
+            FISCAL_QUARTER_FIELD_NAME: [1, 2],
+            FISCAL_YEAR_FIELD_NAME: 2015,
+            SID_FIELD_NAME: 40
+        })
+
+        # An extra sid to test all splits before the
+        # split-adjusted-asof-date. All timestamps should be before that date
+        # so that we have cases where we un-apply and re-apply splits.
+        sid_50 = pd.DataFrame({
+            TS_FIELD_NAME: [pd.Timestamp('2015-01-09'),
+                            pd.Timestamp('2015-01-12')],
+            EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-09'),
+                                    pd.Timestamp('2015-02-10')],
+            'estimate': [150., 250.],
+            FISCAL_QUARTER_FIELD_NAME: [1, 2],
+            FISCAL_YEAR_FIELD_NAME: 2015,
+            SID_FIELD_NAME: 50
+        })
+
+        return pd.concat([
+            # Slightly hacky, but want to make sure we're using the same
+            # events as WithEstimateWindows.
+            cls.__base__.make_events(),
+            sid_30,
+            sid_40,
+            sid_50,
+        ])
+
+    @classmethod
+    def make_splits_data(cls):
+        # For sid 0, we want to apply a series of splits before and after the
+        #  split-adjusted-asof-date we well as between quarters (for the
+        # previous case, where we won't see any values until after the event
+        # happens).
+        sid_0_splits = pd.DataFrame({
+            SID_FIELD_NAME: 0,
+            'ratio': (-1., 2., 3., 4., 5., 6., 7., 100),
+            'effective_date': (pd.Timestamp('2014-01-01'),  # Filter out
+                               # Split before Q1 event & after first estimate
+                               pd.Timestamp('2015-01-07'),
+                               # Split before Q1 event
+                               pd.Timestamp('2015-01-09'),
+                               # Split before Q1 event
+                               pd.Timestamp('2015-01-13'),
+                               # Split before Q1 event
+                               pd.Timestamp('2015-01-15'),
+                               # Split before Q1 event
+                               pd.Timestamp('2015-01-18'),
+                               # Split after Q1 event and before Q2 event
+                               pd.Timestamp('2015-01-30'),
+                               # Filter out - this is after our date index
+                               pd.Timestamp('2016-01-01'))
+        })
+
+        sid_10_splits = pd.DataFrame({
+            SID_FIELD_NAME: 10,
+            'ratio': (.2, .3),
+            'effective_date': (
+                # We want a split before the first estimate and before the
+                # split-adjusted-asof-date but within our calendar index so
+                # that we can test that the split is NEVER applied.
+                pd.Timestamp('2015-01-07'),
+                # Apply a single split before Q1 event.
+                pd.Timestamp('2015-01-20')),
+        })
+
+        # We want a sid with split dates that collide with another sid (0) to
+        # make sure splits are correctly applied for both sids.
+        sid_20_splits = pd.DataFrame({
+            SID_FIELD_NAME: 20,
+            'ratio': (.4, .5, .6, .7, .8, .9,),
+            'effective_date': (
+                pd.Timestamp('2015-01-07'),
+                pd.Timestamp('2015-01-09'),
+                pd.Timestamp('2015-01-13'),
+                pd.Timestamp('2015-01-15'),
+                pd.Timestamp('2015-01-18'),
+                pd.Timestamp('2015-01-30')),
+        })
+
+        # This sid has event dates that are shifted back so that we can test
+        # cases where an event occurs before the split-asof-date.
+        sid_30_splits = pd.DataFrame({
+            SID_FIELD_NAME: 30,
+            'ratio': (8, 9, 10, 11, 12),
+            'effective_date': (
+                # Split before the event and before the
+                # split-asof-date.
+                pd.Timestamp('2015-01-07'),
+                # Split on date of event but before the
+                # split-asof-date.
+                pd.Timestamp('2015-01-09'),
+                # Split after the event, but before the
+                # split-asof-date.
+                pd.Timestamp('2015-01-13'),
+                pd.Timestamp('2015-01-15'),
+                pd.Timestamp('2015-01-18')),
+        })
+
+        # No splits for a sid before the split-adjusted-asof-date.
+        sid_40_splits = pd.DataFrame({
+            SID_FIELD_NAME: 40,
+            'ratio': (13, 14),
+            'effective_date': (
+                pd.Timestamp('2015-01-20'),
+                pd.Timestamp('2015-01-22')
+            )
+        })
+
+        # No splits for a sid after the split-adjusted-asof-date.
+        sid_50_splits = pd.DataFrame({
+            SID_FIELD_NAME: 50,
+            'ratio': (15, 16),
+            'effective_date': (
+                pd.Timestamp('2015-01-13'),
+                pd.Timestamp('2015-01-14')
+            )
+        })
+
+        return pd.concat([
+            sid_0_splits,
+            sid_10_splits,
+            sid_20_splits,
+            sid_30_splits,
+            sid_40_splits,
+            sid_50_splits,
+        ])
+
+
+class PreviousWithSplitAdjustedWindows(WithSplitAdjustedWindows,
+                                       ZiplineTestCase):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return PreviousSplitAdjustedEarningsEstimatesLoader(
+            events,
+            columns,
+            split_adjustments_loader=cls.adjustment_reader,
+            split_adjusted_column_names=['estimate'],
+            split_adjusted_asof=cls.split_adjusted_asof_date,
+        )
+
+    @classmethod
+    def make_expected_timelines(cls):
+        oneq_previous = pd.concat([
+            pd.concat([
+                cls.create_expected_df_for_factor_compute([
+                    (0, np.NaN, cls.window_test_start_date),
+                    (10, np.NaN, cls.window_test_start_date),
+                    (20, np.NaN, cls.window_test_start_date),
+                    # Undo all adjustments that haven't happened yet.
+                    (30, 131*1/10, pd.Timestamp('2015-01-09')),
+                    (40, 140., pd.Timestamp('2015-01-09')),
+                    (50, 150 * 1 / 15 * 1 / 16, pd.Timestamp('2015-01-09')),
+                ], end_date)
+                for end_date in pd.date_range('2015-01-09', '2015-01-12')
+            ]),
+            cls.create_expected_df_for_factor_compute([
+                (0, np.NaN, cls.window_test_start_date),
+                (10, np.NaN, cls.window_test_start_date),
+                (20, np.NaN, cls.window_test_start_date),
+                (30, 131, pd.Timestamp('2015-01-09')),
+                (40, 140., pd.Timestamp('2015-01-09')),
+                (50, 150. * 1 / 16, pd.Timestamp('2015-01-09')),
+            ], pd.Timestamp('2015-01-13')),
+            cls.create_expected_df_for_factor_compute([
+                (0, np.NaN, cls.window_test_start_date),
+                (10, np.NaN, cls.window_test_start_date),
+                (20, np.NaN, cls.window_test_start_date),
+                (30, 131, pd.Timestamp('2015-01-09')),
+                (40, 140., pd.Timestamp('2015-01-09')),
+                (50, 150., pd.Timestamp('2015-01-09'))
+            ], pd.Timestamp('2015-01-14')),
+            pd.concat([
+                cls.create_expected_df_for_factor_compute([
+                    (0, np.NaN, cls.window_test_start_date),
+                    (10, np.NaN, cls.window_test_start_date),
+                    (20, np.NaN, cls.window_test_start_date),
+                    (30, 131*11, pd.Timestamp('2015-01-09')),
+                    (40, 140., pd.Timestamp('2015-01-09')),
+                    (50, 150., pd.Timestamp('2015-01-09')),
+                ], end_date)
+                for end_date in pd.date_range('2015-01-15', '2015-01-16')
+            ]),
+            pd.concat([
+                cls.create_expected_df_for_factor_compute(
+                    [(0, 101, pd.Timestamp('2015-01-20')),
+                     (10, np.NaN, cls.window_test_start_date),
+                     (20, 121*.7*.8, pd.Timestamp('2015-01-20')),
+                     (30, 231, pd.Timestamp('2015-01-20')),
+                     (40, 140.*13, pd.Timestamp('2015-01-09')),
+                     (50, 150., pd.Timestamp('2015-01-09'))],
+                    end_date
+                ) for end_date in pd.date_range('2015-01-20', '2015-01-21')
+            ]),
+            pd.concat([
+                cls.create_expected_df_for_factor_compute(
+                    [(0, 101, pd.Timestamp('2015-01-20')),
+                     (10, 111*.3, pd.Timestamp('2015-01-22')),
+                     (20, 121*.7*.8, pd.Timestamp('2015-01-20')),
+                     (30, 231, pd.Timestamp('2015-01-20')),
+                     (40, 140.*13*14, pd.Timestamp('2015-01-09')),
+                     (50, 150., pd.Timestamp('2015-01-09'))],
+                    end_date
+                ) for end_date in pd.date_range('2015-01-22', '2015-01-29')
+            ]),
+            pd.concat([
+                cls.create_expected_df_for_factor_compute(
+                    [(0, 101*7, pd.Timestamp('2015-01-20')),
+                     (10, 111*.3, pd.Timestamp('2015-01-22')),
+                     (20, 121*.7*.8*.9, pd.Timestamp('2015-01-20')),
+                     (30, 231, pd.Timestamp('2015-01-20')),
+                     (40, 140.*13*14, pd.Timestamp('2015-01-09')),
+                     (50, 150., pd.Timestamp('2015-01-09'))],
+                    end_date
+                ) for end_date in pd.date_range('2015-01-30', '2015-02-04')
+            ]),
+            pd.concat([
+                cls.create_expected_df_for_factor_compute(
+                    [(0, 101*7, pd.Timestamp('2015-01-20')),
+                     (10, 311*.3, pd.Timestamp('2015-02-05')),
+                     (20, 121*.7*.8*.9, pd.Timestamp('2015-01-20')),
+                     (30, 231, pd.Timestamp('2015-01-20')),
+                     (40, 140.*13*14, pd.Timestamp('2015-01-09')),
+                     (50, 150., pd.Timestamp('2015-01-09'))],
+                    end_date
+                ) for end_date in pd.date_range('2015-02-05', '2015-02-09')
+                ]),
+            cls.create_expected_df_for_factor_compute(
+                [(0, 201, pd.Timestamp('2015-02-10')),
+                 (10, 311*.3, pd.Timestamp('2015-02-05')),
+                 (20, 221*.8*.9, pd.Timestamp('2015-02-10')),
+                 (30, 231, pd.Timestamp('2015-01-20')),
+                 (40, 240.*13*14, pd.Timestamp('2015-02-10')),
+                 (50, 250., pd.Timestamp('2015-02-10'))],
+                pd.Timestamp('2015-02-10')
+            ),
+        ])
+
+        twoq_previous = pd.concat(
+            [cls.create_expected_df_for_factor_compute(
+                [(0, np.NaN, cls.window_test_start_date),
+                 (10, np.NaN, cls.window_test_start_date),
+                 (20, np.NaN, cls.window_test_start_date),
+                 (30, np.NaN, cls.window_test_start_date)],
+                end_date
+            ) for end_date in pd.date_range('2015-01-09', '2015-01-19')] +
+            [cls.create_expected_df_for_factor_compute(
+                [(0, np.NaN, cls.window_test_start_date),
+                 (10, np.NaN, cls.window_test_start_date),
+                 (20, np.NaN, cls.window_test_start_date),
+                 (30, 131*11*12, pd.Timestamp('2015-01-20'))],
+                end_date
+            ) for end_date in pd.date_range('2015-01-20', '2015-02-09')] +
+            # We never get estimates for S1 for 2Q ago because once Q3
+            # becomes our previous quarter, 2Q ago would be Q2, and we have
+            # no data on it.
+            [cls.create_expected_df_for_factor_compute(
+                [(0, 101*7, pd.Timestamp('2015-02-10')),
+                 (10, np.NaN, pd.Timestamp('2015-02-05')),
+                 (20, 121*.7*.8*.9, pd.Timestamp('2015-02-10')),
+                 (30, 131*11*12, pd.Timestamp('2015-01-20')),
+                 (40, 140. * 13 * 14, pd.Timestamp('2015-02-10')),
+                 (50, 150., pd.Timestamp('2015-02-10'))],
+                pd.Timestamp('2015-02-10')
+            )]
+        )
+        return {
+            1: oneq_previous,
+            2: twoq_previous
+        }
+
+
+class BlazePreviousWithSplitAdjustedWindows(PreviousWithSplitAdjustedWindows):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return BlazePreviousSplitAdjustedEstimatesLoader(
+            bz.data(events),
+            columns,
+            split_adjustments_loader=cls.adjustment_reader,
+            split_adjusted_column_names=['estimate'],
+            split_adjusted_asof=cls.split_adjusted_asof_date,
+        )
+
+
+class NextWithSplitAdjustedWindows(WithSplitAdjustedWindows, ZiplineTestCase):
+
+    @classmethod
+    def make_loader(cls, events, columns):
+        return NextSplitAdjustedEarningsEstimatesLoader(
+            events,
+            columns,
+            split_adjustments_loader=cls.adjustment_reader,
+            split_adjusted_column_names=['estimate'],
+            split_adjusted_asof=cls.split_adjusted_asof_date,
+        )
+
+    @classmethod
+    def make_expected_timelines(cls):
+        oneq_next = pd.concat([
+            cls.create_expected_df_for_factor_compute(
+                [(0, 100*1/4, cls.window_test_start_date),
+                 (10, 110, pd.Timestamp('2015-01-09')),
+                 (20, 120*5/3, cls.window_test_start_date),
+                 (20, 121*5/3, pd.Timestamp('2015-01-07')),
+                 (30, 130*1/10, cls.window_test_start_date),
+                 (30, 131*1/10, pd.Timestamp('2015-01-09')),
+                 (40, 140, pd.Timestamp('2015-01-09')),
+                 (50, 150.*1/15*1/16, pd.Timestamp('2015-01-09'))],
+                pd.Timestamp('2015-01-09')
+            ),
+            cls.create_expected_df_for_factor_compute(
+                [(0, 100*1/4, cls.window_test_start_date),
+                 (10, 110, pd.Timestamp('2015-01-09')),
+                 (10, 111, pd.Timestamp('2015-01-12')),
+                 (20, 120*5/3, cls.window_test_start_date),
+                 (20, 121*5/3, pd.Timestamp('2015-01-07')),
+                 (30, 230*1/10, cls.window_test_start_date),
+                 (40, np.NaN, pd.Timestamp('2015-01-10')),
+                 (50, 250.*1/15*1/16, pd.Timestamp('2015-01-12'))],
+                pd.Timestamp('2015-01-12')
+            ),
+            cls.create_expected_df_for_factor_compute(
+                [(0, 100, cls.window_test_start_date),
+                 (10, 110, pd.Timestamp('2015-01-09')),
+                 (10, 111, pd.Timestamp('2015-01-12')),
+                 (20, 120, cls.window_test_start_date),
+                 (20, 121, pd.Timestamp('2015-01-07')),
+                 (30, 230, cls.window_test_start_date),
+                 (40, np.NaN, pd.Timestamp('2015-01-10')),
+                 (50, 250.*1/16, pd.Timestamp('2015-01-12'))],
+                pd.Timestamp('2015-01-13')
+            ),
+            cls.create_expected_df_for_factor_compute(
+                [(0, 100, cls.window_test_start_date),
+                 (10, 110, pd.Timestamp('2015-01-09')),
+                 (10, 111, pd.Timestamp('2015-01-12')),
+                 (20, 120, cls.window_test_start_date),
+                 (20, 121, pd.Timestamp('2015-01-07')),
+                 (30, 230, cls.window_test_start_date),
+                 (40, np.NaN, pd.Timestamp('2015-01-10')),
+                 (50, 250., pd.Timestamp('2015-01-12'))],
+                pd.Timestamp('2015-01-14')
+            ),
+            pd.concat([
+                cls.create_expected_df_for_factor_compute(
+                    [(0, 100*5, cls.window_test_start_date),
+                     (10, 110, pd.Timestamp('2015-01-09')),
+                     (10, 111, pd.Timestamp('2015-01-12')),
+                     (20, 120*.7, cls.window_test_start_date),
+                     (20, 121*.7, pd.Timestamp('2015-01-07')),
+                     (30, 230*11, cls.window_test_start_date),
+                     (40, 240, pd.Timestamp('2015-01-15')),
+                     (50, 250., pd.Timestamp('2015-01-12'))],
+                    end_date
+                ) for end_date in pd.date_range('2015-01-15', '2015-01-16')
+            ]),
+            cls.create_expected_df_for_factor_compute(
+                [(0, 100*5*6, cls.window_test_start_date),
+                 (0, 101, pd.Timestamp('2015-01-20')),
+                 (10, 110*.3, pd.Timestamp('2015-01-09')),
+                 (10, 111*.3, pd.Timestamp('2015-01-12')),
+                 (20, 120*.7*.8, cls.window_test_start_date),
+                 (20, 121*.7*.8, pd.Timestamp('2015-01-07')),
+                 (30, 230*11*12, cls.window_test_start_date),
+                 (30, 231, pd.Timestamp('2015-01-20')),
+                 (40, 240*13, pd.Timestamp('2015-01-15')),
+                 (50, 250., pd.Timestamp('2015-01-12'))],
+                pd.Timestamp('2015-01-20')
+            ),
+            cls.create_expected_df_for_factor_compute(
+                [(0, 200 * 5 * 6, pd.Timestamp('2015-01-12')),
+                 (10, 110 * .3, pd.Timestamp('2015-01-09')),
+                 (10, 111 * .3, pd.Timestamp('2015-01-12')),
+                 (20, 220 * .7 * .8, cls.window_test_start_date),
+                 (20, 221 * .8, pd.Timestamp('2015-01-17')),
+                 (40, 240 * 13, pd.Timestamp('2015-01-15')),
+                 (50, 250., pd.Timestamp('2015-01-12'))],
+                pd.Timestamp('2015-01-21')
+            ),
+            cls.create_expected_df_for_factor_compute(
+                [(0, 200 * 5 * 6, pd.Timestamp('2015-01-12')),
+                 (10, 110 * .3, pd.Timestamp('2015-01-09')),
+                 (10, 111 * .3, pd.Timestamp('2015-01-12')),
+                 (20, 220 * .7 * .8, cls.window_test_start_date),
+                 (20, 221 * .8, pd.Timestamp('2015-01-17')),
+                 (40, 240 * 13 * 14, pd.Timestamp('2015-01-15')),
+                 (50, 250., pd.Timestamp('2015-01-12'))],
+                pd.Timestamp('2015-01-22')
+            ),
+            pd.concat([
+                cls.create_expected_df_for_factor_compute(
+                    [(0, 200*5*6, pd.Timestamp('2015-01-12')),
+                     (10, 310*.3, pd.Timestamp('2015-01-09')),
+                     (10, 311*.3, pd.Timestamp('2015-01-15')),
+                     (20, 220*.7*.8, cls.window_test_start_date),
+                     (20, 221*.8, pd.Timestamp('2015-01-17')),
+                     (40, 240 * 13 * 14, pd.Timestamp('2015-01-15')),
+                     (50, 250., pd.Timestamp('2015-01-12'))],
+                    end_date
+                ) for end_date in pd.date_range('2015-01-23', '2015-01-29')
+            ]),
+            pd.concat([
+                cls.create_expected_df_for_factor_compute(
+                    [(0, 200*5*6*7, pd.Timestamp('2015-01-12')),
+                     (10, 310*.3, pd.Timestamp('2015-01-09')),
+                     (10, 311*.3, pd.Timestamp('2015-01-15')),
+                     (20, 220*.7*.8*.9, cls.window_test_start_date),
+                     (20, 221*.8*.9, pd.Timestamp('2015-01-17')),
+                     (40, 240 * 13 * 14, pd.Timestamp('2015-01-15')),
+                     (50, 250., pd.Timestamp('2015-01-12'))],
+                    end_date
+                ) for end_date in pd.date_range('2015-01-30', '2015-02-05')
+            ]),
+            pd.concat([
+                cls.create_expected_df_for_factor_compute(
+                    [(0, 200*5*6*7, pd.Timestamp('2015-01-12')),
+                     (10, np.NaN, cls.window_test_start_date),
+                     (20, 220*.7*.8*.9, cls.window_test_start_date),
+                     (20, 221*.8*.9, pd.Timestamp('2015-01-17')),
+                     (40, 240 * 13 * 14, pd.Timestamp('2015-01-15')),
+                     (50, 250., pd.Timestamp('2015-01-12'))],
+                    end_date
+                ) for end_date in pd.date_range('2015-02-06', '2015-02-09')
+            ]),
+            cls.create_expected_df_for_factor_compute(
+                [(0, 200*5*6*7, pd.Timestamp('2015-01-12')),
+                 (0, 201, pd.Timestamp('2015-02-10')),
+                 (10, np.NaN, cls.window_test_start_date),
+                 (20, 220*.7*.8*.9, cls.window_test_start_date),
+                 (20, 221*.8*.9, pd.Timestamp('2015-01-17')),
+                 (40, 240 * 13 * 14, pd.Timestamp('2015-01-15')),
+                 (50, 250., pd.Timestamp('2015-01-12'))],
+                pd.Timestamp('2015-02-10')
+            )
+        ])
+
+        twoq_next = pd.concat(
+            [cls.create_expected_df_for_factor_compute(
+                [(0, np.NaN, cls.window_test_start_date),
+                 (10, np.NaN, cls.window_test_start_date),
+                 (20, 220*5/3, cls.window_test_start_date),
+                 (30, 230*1/10, cls.window_test_start_date),
+                 (40, np.NaN, cls.window_test_start_date),
+                 (50, np.NaN, cls.window_test_start_date)],
+                pd.Timestamp('2015-01-09')
+            )] +
+            [cls.create_expected_df_for_factor_compute(
+                [(0, 200*1/4, pd.Timestamp('2015-01-12')),
+                 (10, np.NaN, cls.window_test_start_date),
+                 (20, 220*5/3, cls.window_test_start_date),
+                 (30, np.NaN, cls.window_test_start_date),
+                 (40, np.NaN, cls.window_test_start_date)],
+                pd.Timestamp('2015-01-12')
+            )] +
+            [cls.create_expected_df_for_factor_compute(
+                [(0, 200, pd.Timestamp('2015-01-12')),
+                 (10, np.NaN, cls.window_test_start_date),
+                 (20, 220, cls.window_test_start_date),
+                 (30, np.NaN, cls.window_test_start_date),
+                 (40, np.NaN, cls.window_test_start_date)],
+                end_date
+            ) for end_date in pd.date_range('2015-01-13', '2015-01-14')] +
+            [cls.create_expected_df_for_factor_compute(
+                [(0, 200*5, pd.Timestamp('2015-01-12')),
+                 (10, np.NaN, cls.window_test_start_date),
+                 (20, 220*.7, cls.window_test_start_date),
+                 (30, np.NaN, cls.window_test_start_date),
+                 (40, np.NaN, cls.window_test_start_date)],
+                end_date
+            ) for end_date in pd.date_range('2015-01-15', '2015-01-16')] +
+            [cls.create_expected_df_for_factor_compute(
+                [(0, 200*5*6, pd.Timestamp('2015-01-12')),
+                 (10, np.NaN, cls.window_test_start_date),
+                 (20, 220*.7*.8, cls.window_test_start_date),
+                 (20, 221*.8, pd.Timestamp('2015-01-17')),
+                 (30, np.NaN, cls.window_test_start_date),
+                 (40, np.NaN, cls.window_test_start_date)],
+                pd.Timestamp('2015-01-20')
+            )] +
+            [cls.create_expected_df_for_factor_compute(
+                [(0, np.NaN, cls.window_test_start_date),
+                 (10, np.NaN, cls.window_test_start_date),
+                 (20, np.NaN, cls.window_test_start_date),
+                 (30, np.NaN, cls.window_test_start_date),
+                 (40, np.NaN, cls.window_test_start_date)],
+                end_date
+            ) for end_date in pd.date_range('2015-01-21', '2015-02-10')]
+        )
+
+        return {
+            1: oneq_next,
+            2: twoq_next
+        }
+
+
+class BlazeNextWithSplitAdjustedWindows(NextWithSplitAdjustedWindows):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return BlazeNextSplitAdjustedEstimatesLoader(
+            bz.data(events),
+            columns,
+            split_adjustments_loader=cls.adjustment_reader,
+            split_adjusted_column_names=['estimate'],
+            split_adjusted_asof=cls.split_adjusted_asof_date,
+        )
+
+
+class WithSplitAdjustedMultipleEstimateColumns(WithEstimates):
+    """
+    ZiplineTestCase mixin for having multiple estimate columns that are
+    split-adjusted to make sure that adjustments are applied correctly.
+
+    Attributes
+    ----------
+    test_start_date : pd.Timestamp
+        The start date of the test.
+    test_end_date : pd.Timestamp
+        The start date of the test.
+    split_adjusted_asof : pd.Timestamp
+        The split-adjusted-asof-date of the data used in the test, to be used
+        to create all loaders of test classes that subclass this mixin.
+
+    Methods
+    -------
+    make_expected_timelines_1q_out -> dict[pd.Timestamp -> dict[str ->
+        np.array]]
+        The expected array of results for each date of the date range for
+        each column. Only for 1 quarter out.
+
+    make_expected_timelines_2q_out -> dict[pd.Timestamp -> dict[str ->
+        np.array]]
+        The expected array of results for each date of the date range. For 2
+        quarters out, so only for the column that is requested to be loaded
+        with 2 quarters out.
+
+    Tests
+    -----
+    test_adjustments_with_multiple_adjusted_columns
+        Tests that if you have multiple columns, we still split-adjust
+        correctly.
+
+    test_multiple_datasets_different_num_announcements
+        Tests that if you have multiple datasets that ask for a different
+        number of quarters out, and each asks for a different estimates column,
+        we still split-adjust correctly.
+    """
+    END_DATE = pd.Timestamp('2015-02-10')
+    test_start_date = pd.Timestamp('2015-01-06', tz='utc')
+    test_end_date = pd.Timestamp('2015-01-12', tz='utc')
+    split_adjusted_asof = pd.Timestamp('2015-01-08')
+
+    @classmethod
+    def make_columns(cls):
+        return {
+            MultipleColumnsEstimates.event_date: 'event_date',
+            MultipleColumnsEstimates.fiscal_quarter: 'fiscal_quarter',
+            MultipleColumnsEstimates.fiscal_year: 'fiscal_year',
+            MultipleColumnsEstimates.estimate1: 'estimate1',
+            MultipleColumnsEstimates.estimate2: 'estimate2'
+        }
+
+    @classmethod
+    def make_events(cls):
+        sid_0_events = pd.DataFrame({
+            # We only want a stale KD here so that adjustments
+            # will be applied.
+            TS_FIELD_NAME: [pd.Timestamp('2015-01-05'),
+                            pd.Timestamp('2015-01-05')],
+            EVENT_DATE_FIELD_NAME:
+                [pd.Timestamp('2015-01-09'),
+                 pd.Timestamp('2015-01-12')],
+            'estimate1': [1100., 1200.],
+            'estimate2': [2100., 2200.],
+            FISCAL_QUARTER_FIELD_NAME: [1, 2],
+            FISCAL_YEAR_FIELD_NAME: 2015,
+            SID_FIELD_NAME: 0,
+        })
+
+        # This is just an extra sid to make sure that we apply adjustments
+        # correctly for multiple columns when we have multiple sids.
+        sid_1_events = pd.DataFrame({
+            # We only want a stale KD here so that adjustments
+            # will be applied.
+            TS_FIELD_NAME: [pd.Timestamp('2015-01-05'),
+                            pd.Timestamp('2015-01-05')],
+            EVENT_DATE_FIELD_NAME:
+                [pd.Timestamp('2015-01-08'),
+                 pd.Timestamp('2015-01-11')],
+            'estimate1': [1110., 1210.],
+            'estimate2': [2110., 2210.],
+            FISCAL_QUARTER_FIELD_NAME: [1, 2],
+            FISCAL_YEAR_FIELD_NAME: 2015,
+            SID_FIELD_NAME: 1,
+        })
+        return pd.concat([sid_0_events, sid_1_events])
+
+    @classmethod
+    def make_splits_data(cls):
+        sid_0_splits = pd.DataFrame({
+            SID_FIELD_NAME: 0,
+            'ratio': (.3, 3.),
+            'effective_date': (pd.Timestamp('2015-01-07'),
+                               pd.Timestamp('2015-01-09')),
+        })
+
+        sid_1_splits = pd.DataFrame({
+            SID_FIELD_NAME: 1,
+            'ratio': (.4, 4.),
+            'effective_date': (pd.Timestamp('2015-01-07'),
+                               pd.Timestamp('2015-01-09')),
+        })
+
+        return pd.concat([sid_0_splits, sid_1_splits])
+
+    @classmethod
+    def make_expected_timelines_1q_out(cls):
+        return {}
+
+    @classmethod
+    def make_expected_timelines_2q_out(cls):
+        return {}
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(
+            WithSplitAdjustedMultipleEstimateColumns, cls
+        ).init_class_fixtures()
+        cls.timelines_1q_out = cls.make_expected_timelines_1q_out()
+        cls.timelines_2q_out = cls.make_expected_timelines_2q_out()
+
+    def test_adjustments_with_multiple_adjusted_columns(self):
+        dataset = MultipleColumnsQuartersEstimates(1)
+        timelines = self.timelines_1q_out
+        window_len = 3
+
+        class SomeFactor(CustomFactor):
+            inputs = [dataset.estimate1, dataset.estimate2]
+            window_length = window_len
+
+            def compute(self, today, assets, out, estimate1, estimate2):
+                assert_almost_equal(estimate1, timelines[today]['estimate1'])
+                assert_almost_equal(estimate2, timelines[today]['estimate2'])
+
+        engine = SimplePipelineEngine(
+            lambda x: self.loader,
+            self.trading_days,
+            self.asset_finder,
+        )
+        engine.run_pipeline(
+            Pipeline({'est': SomeFactor()}),
+            start_date=self.test_start_date,
+            # last event date we have
+            end_date=self.test_end_date,
+        )
+
+    def test_multiple_datasets_different_num_announcements(self):
+        dataset1 = MultipleColumnsQuartersEstimates(1)
+        dataset2 = MultipleColumnsQuartersEstimates(2)
+        timelines_1q_out = self.timelines_1q_out
+        timelines_2q_out = self.timelines_2q_out
+        window_len = 3
+
+        class SomeFactor1(CustomFactor):
+            inputs = [dataset1.estimate1]
+            window_length = window_len
+
+            def compute(self, today, assets, out, estimate1):
+                assert_almost_equal(
+                    estimate1, timelines_1q_out[today]['estimate1']
+                )
+
+        class SomeFactor2(CustomFactor):
+            inputs = [dataset2.estimate2]
+            window_length = window_len
+
+            def compute(self, today, assets, out, estimate2):
+                assert_almost_equal(
+                    estimate2, timelines_2q_out[today]['estimate2']
+                )
+
+        engine = SimplePipelineEngine(
+            lambda x: self.loader,
+            self.trading_days,
+            self.asset_finder,
+        )
+        engine.run_pipeline(
+            Pipeline({'est1': SomeFactor1(), 'est2': SomeFactor2()}),
+            start_date=self.test_start_date,
+            # last event date we have
+            end_date=self.test_end_date,
+        )
+
+
+class PreviousWithSplitAdjustedMultipleEstimateColumns(
+    WithSplitAdjustedMultipleEstimateColumns, ZiplineTestCase
+):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return PreviousSplitAdjustedEarningsEstimatesLoader(
+            events,
+            columns,
+            split_adjustments_loader=cls.adjustment_reader,
+            split_adjusted_column_names=['estimate1', 'estimate2'],
+            split_adjusted_asof=cls.split_adjusted_asof,
+        )
+
+    @classmethod
+    def make_expected_timelines_1q_out(cls):
+        return {
+            pd.Timestamp('2015-01-06', tz='utc'): {
+                'estimate1': np.array([[np.NaN, np.NaN]] * 3),
+                'estimate2': np.array([[np.NaN, np.NaN]] * 3)
+            },
+            pd.Timestamp('2015-01-07', tz='utc'): {
+                'estimate1': np.array([[np.NaN, np.NaN]] * 3),
+                'estimate2': np.array([[np.NaN, np.NaN]] * 3)
+            },
+            pd.Timestamp('2015-01-08', tz='utc'): {
+                'estimate1': np.array([[np.NaN, np.NaN]] * 2 +
+                                      [[np.NaN, 1110.]]),
+                'estimate2': np.array([[np.NaN, np.NaN]] * 2 +
+                                      [[np.NaN, 2110.]])
+            },
+            pd.Timestamp('2015-01-09', tz='utc'): {
+                'estimate1': np.array([[np.NaN, np.NaN]] +
+                                      [[np.NaN, 1110. * 4]] +
+                                      [[1100 * 3., 1110. * 4]]),
+                'estimate2': np.array([[np.NaN, np.NaN]] +
+                                      [[np.NaN, 2110. * 4]] +
+                                      [[2100 * 3., 2110. * 4]])
+            },
+            pd.Timestamp('2015-01-12', tz='utc'): {
+                'estimate1': np.array([[np.NaN, np.NaN]] * 2 +
+                                      [[1200 * 3., 1210. * 4]]),
+                'estimate2': np.array([[np.NaN, np.NaN]] * 2 +
+                                      [[2200 * 3., 2210. * 4]])
+            }
+        }
+
+    @classmethod
+    def make_expected_timelines_2q_out(cls):
+        return {
+            pd.Timestamp('2015-01-06', tz='utc'): {
+                'estimate2': np.array([[np.NaN, np.NaN]] * 3)
+            },
+            pd.Timestamp('2015-01-07', tz='utc'): {
+                'estimate2': np.array([[np.NaN, np.NaN]] * 3)
+            },
+            pd.Timestamp('2015-01-08', tz='utc'): {
+                'estimate2': np.array([[np.NaN, np.NaN]] * 3)
+            },
+            pd.Timestamp('2015-01-09', tz='utc'): {
+                'estimate2': np.array([[np.NaN, np.NaN]] * 3)
+            },
+            pd.Timestamp('2015-01-12', tz='utc'): {
+                'estimate2': np.array([[np.NaN, np.NaN]] * 2 +
+                                      [[2100 * 3., 2110. * 4]])
+            }
+        }
+
+
+class BlazePreviousWithMultipleEstimateColumns(
+    PreviousWithSplitAdjustedMultipleEstimateColumns
+):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return BlazePreviousSplitAdjustedEstimatesLoader(
+            bz.data(events),
+            columns,
+            split_adjustments_loader=cls.adjustment_reader,
+            split_adjusted_column_names=['estimate1', 'estimate2'],
+            split_adjusted_asof=cls.split_adjusted_asof,
+        )
+
+
+class NextWithSplitAdjustedMultipleEstimateColumns(
+    WithSplitAdjustedMultipleEstimateColumns, ZiplineTestCase
+):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return NextSplitAdjustedEarningsEstimatesLoader(
+            events,
+            columns,
+            split_adjustments_loader=cls.adjustment_reader,
+            split_adjusted_column_names=['estimate1', 'estimate2'],
+            split_adjusted_asof=cls.split_adjusted_asof,
+        )
+
+    @classmethod
+    def make_expected_timelines_1q_out(cls):
+        return {
+            pd.Timestamp('2015-01-06', tz='utc'): {
+                'estimate1': np.array([[np.NaN, np.NaN]] +
+                                      [[1100. * 1/.3, 1110. * 1/.4]] * 2),
+                'estimate2': np.array([[np.NaN, np.NaN]] +
+                                      [[2100. * 1/.3, 2110. * 1/.4]] * 2),
+            },
+            pd.Timestamp('2015-01-07', tz='utc'): {
+                'estimate1': np.array([[1100., 1110.]] * 3),
+                'estimate2': np.array([[2100., 2110.]] * 3)
+            },
+            pd.Timestamp('2015-01-08', tz='utc'): {
+                'estimate1': np.array([[1100., 1110.]] * 3),
+                'estimate2': np.array([[2100., 2110.]] * 3)
+            },
+            pd.Timestamp('2015-01-09', tz='utc'): {
+                'estimate1': np.array([[1100 * 3., 1210. * 4]] * 3),
+                'estimate2': np.array([[2100 * 3., 2210. * 4]] * 3)
+            },
+            pd.Timestamp('2015-01-12', tz='utc'): {
+                'estimate1': np.array([[1200 * 3., np.NaN]] * 3),
+                'estimate2': np.array([[2200 * 3., np.NaN]] * 3)
+            }
+        }
+
+    @classmethod
+    def make_expected_timelines_2q_out(cls):
+        return {
+            pd.Timestamp('2015-01-06', tz='utc'): {
+                'estimate2': np.array([[np.NaN, np.NaN]] +
+                                      [[2200 * 1/.3, 2210. * 1/.4]] * 2)
+            },
+            pd.Timestamp('2015-01-07', tz='utc'): {
+                'estimate2': np.array([[2200., 2210.]] * 3)
+            },
+            pd.Timestamp('2015-01-08', tz='utc'): {
+                'estimate2': np.array([[2200, 2210.]] * 3)
+            },
+            pd.Timestamp('2015-01-09', tz='utc'): {
+                'estimate2': np.array([[2200 * 3., np.NaN]] * 3)
+            },
+            pd.Timestamp('2015-01-12', tz='utc'): {
+                'estimate2': np.array([[np.NaN, np.NaN]] * 3)
+            }
+        }
+
+
+class BlazeNextWithMultipleEstimateColumns(
+    NextWithSplitAdjustedMultipleEstimateColumns
+):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return BlazeNextSplitAdjustedEstimatesLoader(
+            bz.data(events),
+            columns,
+            split_adjustments_loader=cls.adjustment_reader,
+            split_adjusted_column_names=['estimate1', 'estimate2'],
+            split_adjusted_asof=cls.split_adjusted_asof,
+        )
+
+
+class WithAdjustmentBoundaries(WithEstimates):
+    """
+    ZiplineTestCase mixin providing class-level attributes, methods,
+    and a test to make sure that when the split-adjusted-asof-date is not
+    strictly within the date index, we can still apply adjustments correctly.
+
+    Attributes
+    ----------
+    split_adjusted_before_start : pd.Timestamp
+        A split-adjusted-asof-date before the start date of the test.
+    split_adjusted_after_end : pd.Timestamp
+        A split-adjusted-asof-date before the end date of the test.
+    split_adjusted_asof_dates : list of tuples of pd.Timestamp
+        All the split-adjusted-asof-dates over which we want to parameterize
+        the test.
+
+    Methods
+    -------
+    make_expected_out -> dict[pd.Timestamp -> pd.DataFrame]
+        A dictionary of the expected output of the pipeline at each of the
+        dates of interest.
+    """
+    START_DATE = pd.Timestamp('2015-01-04')
+    # We want to run the pipeline starting from `START_DATE`, but the
+    # pipeline results will start from the next day, which is
+    # `test_start_date`.
+    test_start_date = pd.Timestamp('2015-01-05')
+    END_DATE = test_end_date = pd.Timestamp('2015-01-12')
+    split_adjusted_before_start = (
+        test_start_date - timedelta(days=1)
+    )
+    split_adjusted_after_end = (
+        test_end_date + timedelta(days=1)
+    )
+    # Must parametrize over this because there can only be 1 such date for
+    # each set of data.
+    split_adjusted_asof_dates = [(test_start_date,),
+                                 (test_end_date,),
+                                 (split_adjusted_before_start,),
+                                 (split_adjusted_after_end,)]
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(WithAdjustmentBoundaries, cls).init_class_fixtures()
+        cls.s0 = cls.asset_finder.retrieve_asset(0)
+        cls.s1 = cls.asset_finder.retrieve_asset(1)
+        cls.s2 = cls.asset_finder.retrieve_asset(2)
+        cls.s3 = cls.asset_finder.retrieve_asset(3)
+        cls.s4 = cls.asset_finder.retrieve_asset(4)
+        cls.expected = cls.make_expected_out()
+
+    @classmethod
+    def make_events(cls):
+        # We can create a sid for each configuration of dates for KDs, events,
+        # and splits. For this test we don't care about overwrites so we only
+        # test 1 quarter.
+        sid_0_timeline = pd.DataFrame({
+            # KD on first date of index
+            TS_FIELD_NAME: cls.test_start_date,
+            EVENT_DATE_FIELD_NAME: pd.Timestamp('2015-01-09'),
+            'estimate': 10.,
+            FISCAL_QUARTER_FIELD_NAME: 1,
+            FISCAL_YEAR_FIELD_NAME: 2015,
+            SID_FIELD_NAME: 0,
+        }, index=[0])
+
+        sid_1_timeline = pd.DataFrame({
+            TS_FIELD_NAME: cls.test_start_date,
+            # event date on first date of index
+            EVENT_DATE_FIELD_NAME: cls.test_start_date,
+            'estimate': 11.,
+            FISCAL_QUARTER_FIELD_NAME: 1,
+            FISCAL_YEAR_FIELD_NAME: 2015,
+            SID_FIELD_NAME: 1,
+        }, index=[0])
+
+        sid_2_timeline = pd.DataFrame({
+            # KD on first date of index
+            TS_FIELD_NAME: cls.test_end_date,
+            EVENT_DATE_FIELD_NAME: cls.test_end_date + timedelta(days=1),
+            'estimate': 12.,
+            FISCAL_QUARTER_FIELD_NAME: 1,
+            FISCAL_YEAR_FIELD_NAME: 2015,
+            SID_FIELD_NAME: 2,
+        }, index=[0])
+
+        sid_3_timeline = pd.DataFrame({
+            TS_FIELD_NAME: cls.test_end_date - timedelta(days=1),
+            EVENT_DATE_FIELD_NAME: cls.test_end_date,
+            'estimate': 13.,
+            FISCAL_QUARTER_FIELD_NAME: 1,
+            FISCAL_YEAR_FIELD_NAME: 2015,
+            SID_FIELD_NAME: 3,
+        }, index=[0])
+
+        # KD and event date don't fall on date index boundaries
+        sid_4_timeline = pd.DataFrame({
+            TS_FIELD_NAME: cls.test_end_date - timedelta(days=1),
+            EVENT_DATE_FIELD_NAME: cls.test_end_date - timedelta(days=1),
+            'estimate': 14.,
+            FISCAL_QUARTER_FIELD_NAME: 1,
+            FISCAL_YEAR_FIELD_NAME: 2015,
+            SID_FIELD_NAME: 4,
+        }, index=[0])
+
+        return pd.concat([sid_0_timeline,
+                          sid_1_timeline,
+                          sid_2_timeline,
+                          sid_3_timeline,
+                          sid_4_timeline])
+
+    @classmethod
+    def make_splits_data(cls):
+        # Here we want splits that collide
+        sid_0_splits = pd.DataFrame({
+            SID_FIELD_NAME: 0,
+            'ratio': .10,
+            'effective_date': cls.test_start_date,
+        }, index=[0])
+
+        sid_1_splits = pd.DataFrame({
+            SID_FIELD_NAME: 1,
+            'ratio': .11,
+            'effective_date': cls.test_start_date,
+        }, index=[0])
+
+        sid_2_splits = pd.DataFrame({
+            SID_FIELD_NAME: 2,
+            'ratio': .12,
+            'effective_date': cls.test_end_date,
+        }, index=[0])
+
+        sid_3_splits = pd.DataFrame({
+            SID_FIELD_NAME: 3,
+            'ratio': .13,
+            'effective_date': cls.test_end_date,
+        }, index=[0])
+
+        # We want 2 splits here - at the starting boundary and at the end
+        # boundary - while there is no collision with KD/event date for the
+        # sid.
+        sid_4_splits = pd.DataFrame({
+            SID_FIELD_NAME: 4,
+            'ratio': (.14, .15),
+            'effective_date': (cls.test_start_date, cls.test_end_date),
+        })
+
+        return pd.concat([sid_0_splits,
+                          sid_1_splits,
+                          sid_2_splits,
+                          sid_3_splits,
+                          sid_4_splits])
+
+    @parameterized.expand(split_adjusted_asof_dates)
+    def test_boundaries(self, split_date):
+        dataset = QuartersEstimates(1)
+        loader = self.loader(split_adjusted_asof=split_date)
+        engine = SimplePipelineEngine(
+            lambda x: loader,
+            self.trading_days,
+            self.asset_finder,
+        )
+        result = engine.run_pipeline(
+            Pipeline({'estimate': dataset.estimate.latest}),
+            start_date=self.trading_days[0],
+            # last event date we have
+            end_date=self.trading_days[-1],
+        )
+        expected = self.expected[split_date]
+        assert_frame_equal(result, expected, check_names=False)
+
+    @classmethod
+    def make_expected_out(cls):
+        return {}
+
+
+class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries,
+                                       ZiplineTestCase):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return partial(PreviousSplitAdjustedEarningsEstimatesLoader,
+                       events,
+                       columns,
+                       split_adjustments_loader=cls.adjustment_reader,
+                       split_adjusted_column_names=['estimate'])
+
+    @classmethod
+    def make_expected_out(cls):
+        split_adjusted_at_start_boundary = pd.concat([
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s0,
+                'estimate': np.NaN,
+            }, index=pd.date_range(
+                cls.test_start_date,
+                pd.Timestamp('2015-01-08'),
+                tz='utc'
+            )),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s0,
+                'estimate': 10.,
+            }, index=pd.date_range(
+                pd.Timestamp('2015-01-09'), cls.test_end_date, tz='utc'
+            )),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s1,
+                'estimate': 11.,
+            }, index=pd.date_range(cls.test_start_date, cls.test_end_date,
+                                   tz='utc')),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s2,
+                'estimate': np.NaN
+            }, index=pd.date_range(cls.test_start_date,
+                                   cls.test_end_date,
+                                   tz='utc')),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s3,
+                'estimate': np.NaN
+            }, index=pd.date_range(
+                cls.test_start_date, cls.test_end_date - timedelta(1), tz='utc'
+            )),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s3,
+                'estimate': 13. * .13
+            }, index=pd.date_range(cls.test_end_date,
+                                   cls.test_end_date,
+                                   tz='utc')),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s4,
+                'estimate': np.NaN
+            }, index=pd.date_range(
+                cls.test_start_date, cls.test_end_date - timedelta(2), tz='utc'
+            )),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s4,
+                'estimate': 14. * .15
+            }, index=pd.date_range(
+                cls.test_end_date - timedelta(1), cls.test_end_date, tz='utc'
+            )),
+        ]).set_index(SID_FIELD_NAME, append=True).unstack(
+            SID_FIELD_NAME).reindex(cls.trading_days).stack(
+            SID_FIELD_NAME, dropna=False)
+
+        split_adjusted_at_end_boundary = pd.concat([
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s0,
+                'estimate': np.NaN,
+            }, index=pd.date_range(
+                cls.test_start_date, pd.Timestamp('2015-01-08'), tz='utc'
+            )),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s0,
+                'estimate': 10.,
+            }, index=pd.date_range(
+                pd.Timestamp('2015-01-09'), cls.test_end_date, tz='utc'
+            )),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s1,
+                'estimate': 11.,
+            }, index=pd.date_range(cls.test_start_date,
+                                   cls.test_end_date,
+                                   tz='utc')),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s2,
+                'estimate': np.NaN
+            }, index=pd.date_range(cls.test_start_date,
+                                   cls.test_end_date,
+                                   tz='utc')),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s3,
+                'estimate': np.NaN
+            }, index=pd.date_range(
+                cls.test_start_date, cls.test_end_date - timedelta(1), tz='utc'
+            )),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s3,
+                'estimate': 13.
+            }, index=pd.date_range(cls.test_end_date,
+                                   cls.test_end_date,
+                                   tz='utc')),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s4,
+                'estimate': np.NaN
+            }, index=pd.date_range(
+                cls.test_start_date, cls.test_end_date - timedelta(2), tz='utc'
+            )),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s4,
+                'estimate': 14.
+            }, index=pd.date_range(cls.test_end_date - timedelta(1),
+                                   cls.test_end_date,
+                                   tz='utc')),
+        ]).set_index(SID_FIELD_NAME, append=True).unstack(
+            SID_FIELD_NAME).reindex(cls.trading_days).stack(SID_FIELD_NAME,
+                                                            dropna=False)
+
+        split_adjusted_before_start_boundary = split_adjusted_at_start_boundary
+        split_adjusted_after_end_boundary = split_adjusted_at_end_boundary
+
+        return {cls.test_start_date:
+                split_adjusted_at_start_boundary,
+                cls.split_adjusted_before_start:
+                split_adjusted_before_start_boundary,
+                cls.test_end_date:
+                split_adjusted_at_end_boundary,
+                cls.split_adjusted_after_end:
+                split_adjusted_after_end_boundary}
+
+
+class BlazePreviousWithAdjustmentBoundaries(PreviousWithAdjustmentBoundaries):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return partial(BlazePreviousSplitAdjustedEstimatesLoader,
+                       bz.data(events),
+                       columns,
+                       split_adjustments_loader=cls.adjustment_reader,
+                       split_adjusted_column_names=['estimate'])
+
+
+class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries,
+                                   ZiplineTestCase):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return partial(NextSplitAdjustedEarningsEstimatesLoader,
+                       events,
+                       columns,
+                       split_adjustments_loader=cls.adjustment_reader,
+                       split_adjusted_column_names=['estimate'])
+
+    @classmethod
+    def make_expected_out(cls):
+        split_adjusted_at_start_boundary = pd.concat([
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s0,
+                'estimate': 10,
+            }, index=pd.date_range(
+                cls.test_start_date, pd.Timestamp('2015-01-09'), tz='utc'
+            )),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s1,
+                'estimate': 11.,
+            }, index=pd.date_range(cls.test_start_date,
+                                   cls.test_start_date,
+                                   tz='utc')),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s2,
+                'estimate': 12.,
+            }, index=pd.date_range(cls.test_end_date,
+                                   cls.test_end_date,
+                                   tz='utc')),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s3,
+                'estimate': 13. * .13,
+            }, index=pd.date_range(
+                cls.test_end_date - timedelta(1), cls.test_end_date, tz='utc'
+            )),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s4,
+                'estimate': 14.,
+            }, index=pd.date_range(
+                cls.test_end_date - timedelta(1),
+                cls.test_end_date - timedelta(1),
+                tz='utc'
+            )),
+        ]).set_index(SID_FIELD_NAME, append=True).unstack(
+            SID_FIELD_NAME).reindex(cls.trading_days).stack(
+            SID_FIELD_NAME, dropna=False)
+
+        split_adjusted_at_end_boundary = pd.concat([
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s0,
+                'estimate': 10,
+            }, index=pd.date_range(
+                cls.test_start_date, pd.Timestamp('2015-01-09'), tz='utc'
+            )),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s1,
+                'estimate': 11.,
+            }, index=pd.date_range(cls.test_start_date,
+                                   cls.test_start_date,
+                                   tz='utc')),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s2,
+                'estimate': 12.,
+            }, index=pd.date_range(cls.test_end_date,
+                                   cls.test_end_date,
+                                   tz='utc')),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s3,
+                'estimate': 13.,
+            }, index=pd.date_range(
+                cls.test_end_date - timedelta(1), cls.test_end_date, tz='utc'
+            )),
+            pd.DataFrame({
+                SID_FIELD_NAME: cls.s4,
+                'estimate': 14.,
+            }, index=pd.date_range(
+                cls.test_end_date - timedelta(1),
+                cls.test_end_date - timedelta(1),
+                tz='utc'
+            )),
+        ]).set_index(SID_FIELD_NAME, append=True).unstack(
+            SID_FIELD_NAME).reindex(cls.trading_days).stack(
+            SID_FIELD_NAME, dropna=False)
+
+        split_adjusted_before_start_boundary = split_adjusted_at_start_boundary
+        split_adjusted_after_end_boundary = split_adjusted_at_end_boundary
+
+        return {cls.test_start_date:
+                split_adjusted_at_start_boundary,
+                cls.split_adjusted_before_start:
+                split_adjusted_before_start_boundary,
+                cls.test_end_date:
+                split_adjusted_at_end_boundary,
+                cls.split_adjusted_after_end:
+                split_adjusted_after_end_boundary}
+
+
+class BlazeNextWithAdjustmentBoundaries(NextWithAdjustmentBoundaries):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return partial(BlazeNextSplitAdjustedEstimatesLoader,
+                       bz.data(events),
+                       columns,
+                       split_adjustments_loader=cls.adjustment_reader,
+                       split_adjusted_column_names=['estimate'])
 
 
 class QuarterShiftTestCase(ZiplineTestCase):
