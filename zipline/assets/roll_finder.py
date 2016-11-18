@@ -96,9 +96,12 @@ class RollFinder(with_metaclass(ABCMeta, object)):
             i -= 1
         else:
             i -= 2
-        auto_close_date = Timestamp(oc.auto_close_dates[i], tz='UTC')
-        while auto_close_date > start and i > -1:
-            session_loc = sessions.searchsorted(auto_close_date)
+
+        curr = min(
+            Timestamp(oc.auto_close_dates[i], tz='UTC'), sessions[-1])
+
+        while curr >= start and i > -1:
+            session_loc = sessions.get_loc(curr)
             front = oc.contract_sids[i]
             back = oc.contract_sids[i + 1]
             while session_loc > -1:
@@ -111,8 +114,7 @@ class RollFinder(with_metaclass(ABCMeta, object)):
                 rolls.insert(0, (oc.contract_sids[i + offset],
                                  roll_session))
             i -= 1
-            auto_close_date = Timestamp(oc.auto_close_dates[i],
-                                        tz='UTC')
+            curr = Timestamp(oc.auto_close_dates[i], tz='UTC')
         return rolls
 
 
