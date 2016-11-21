@@ -17,7 +17,8 @@ from zipline.pipeline.factors import (
     LinearWeightedMovingAverage,
     RateOfChangePercentage,
     TrueRange,
-    MovingAverageConvergenceDivergence
+    MovingAverageConvergenceDivergence,
+    AnnualizedVolatility,
 )
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import ZiplineTestCase
@@ -407,7 +408,7 @@ class TestTrueRange(ZiplineTestCase):
         assert_equal(out, np.full((3,), 2.))
 
 
-class MovingAverageConvergenceDivergenceCase(ZiplineTestCase):
+class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
     def test_MACD_window_length_generation(self):
         signal_period = random_integers(1, 90)
         fast_period = random_integers(signal_period+1, signal_period+100)
@@ -478,5 +479,57 @@ class MovingAverageConvergenceDivergenceCase(ZiplineTestCase):
         np.testing.assert_almost_equal(
             out.hist,
             expected_hist,
+            decimal=8
+        )
+
+
+class AnnualizedVolatilityTestCase(ZiplineTestCase):
+    """
+    Test Annualized Volatility
+    """
+    def test_simple_volatility(self):
+        """
+        Simple test for uniform returns should generate 0 volatility
+        """
+        nassets = 3
+        ann_vol = AnnualizedVolatility()
+        today = pd.Timestamp('2016', tz='utc')
+        assets = np.arange(nassets, dtype=np.float)
+        returns = np.full((ann_vol.window_length, nassets),
+                          0.004,
+                          dtype=np.float64)
+        out = np.empty(shape=(nassets,), dtype=np.float64)
+
+        ann_vol.compute(today, assets, out, returns, 252)
+
+        expected_vol = np.array([0] * nassets)
+        np.testing.assert_almost_equal(
+            out,
+            expected_vol,
+            decimal=8
+        )
+
+    def test_volatility(self):
+        """
+        Check volatility results against values calculated manually
+        """
+        nassets = 3
+        ann_vol = AnnualizedVolatility()
+        today = pd.Timestamp('2016', tz='utc')
+        assets = np.arange(nassets, dtype=np.float)
+        returns = np.random.normal(loc=0.001,
+                                   scale=0.01,
+                                   size=(ann_vol.window_length, nassets))
+        out = np.empty(shape=(nassets,), dtype=np.float64)
+        ann_vol.compute(today, assets, out, returns, 252)
+
+        mean = returns.sum(axis=0) / returns.shape[0]
+        annualized_variance = ((returns - mean) ** 2).sum(axis=0) / \
+            returns.shape[0] * 252
+        expected_vol = np.sqrt(annualized_variance)
+
+        np.testing.assert_almost_equal(
+            out,
+            expected_vol,
             decimal=8
         )
