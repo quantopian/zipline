@@ -38,7 +38,7 @@ from zipline.utils.input_validation import (
     coerce,
     preprocess,
 )
-from zipline.utils.memoize import remember_last, lazyval
+from zipline.utils.memoize import lazyval
 
 start_default = pd.Timestamp('1990-01-01', tz='UTC')
 end_base = pd.Timestamp('today', tz='UTC')
@@ -655,8 +655,7 @@ class TradingCalendar(with_metaclass(ABCMeta)):
     def last_session(self):
         return self.all_sessions[-1]
 
-    @property
-    @remember_last
+    @lazyval
     def all_minutes(self):
         """
         Returns a DatetimeIndex representing all the minutes in this calendar.
