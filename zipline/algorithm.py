@@ -22,7 +22,6 @@ import pandas as pd
 from contextlib2 import ExitStack
 from pandas.tseries.tools import normalize_date
 import numpy as np
-import sys
 
 from itertools import chain, repeat
 from numbers import Integral
@@ -111,6 +110,7 @@ from zipline.utils.input_validation import (
 from zipline.utils.calendars.trading_calendar import days_at_time
 from zipline.utils.cache import CachedObject, Expired
 from zipline.utils.calendars import get_calendar
+from zipline.utils.compat import exc_clear
 
 import zipline.utils.events
 from zipline.utils.events import (
@@ -2343,9 +2343,16 @@ class TradingAlgorithm(object):
         Internal implementation of `pipeline_output`.
         """
         today = normalize_date(self.get_datetime())
+        data = NO_DATA = object()
         try:
             data = self._pipeline_cache.unwrap(today)
         except Expired:
+            # We can't handle the exception in this block because in Python 3
+            # sys.exc_info isn't cleared until we leave the block.  See note
+            # below for why we need to clear exc_info.
+            pass
+
+        if data is NO_DATA:
             # Try to deterministically garbage collect the previous result by
             # removing any references to it. There are at least three sources
             # of references:
@@ -2358,8 +2365,8 @@ class TradingAlgorithm(object):
 
             # We remove the above sources of references in reverse order:
 
-            # 3. Clear the traceback.
-            sys.exc_clear()
+            # 3. Clear the traceback.  This is no-op in Python 3.
+            exc_clear()
 
             # 2. Clear the .loc/.iloc caches.
             clear_dataframe_indexer_caches(
