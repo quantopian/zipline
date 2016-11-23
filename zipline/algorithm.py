@@ -1382,8 +1382,9 @@ class TradingAlgorithm(object):
 
         Returns
         -------
-        order_id : str
-            The unique identifier for this order.
+        order_id : str or None
+            The unique identifier for this order, or None if no order was
+            placed.
 
         Notes
         -----

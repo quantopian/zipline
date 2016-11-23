@@ -75,12 +75,29 @@ class Blotter(object):
         self.current_dt = dt
 
     def order(self, sid, amount, style, order_id=None):
+        """Place an order.
 
-        # something could be done with amount to further divide
-        # between buy by share count OR buy shares up to a dollar amount
-        # numeric == share count  AND  "$dollar.cents" == cost amount
+        Parameters
+        ----------
+        asset : zipline.assets.Asset
+            The asset that this order is for.
+        amount : int
+            The amount of shares to order. If ``amount`` is positive, this is
+            the number of shares to buy or cover. If ``amount`` is negative,
+            this is the number of shares to sell or short.
+        style : zipline.finance.execution.ExecutionStyle
+            The execution style for the order.
+        order_id : str, optional
+            The unique identifier for this order.
 
-        """
+        Returns
+        -------
+        order_id : str or None
+            The unique identifier for this order, or None if no order was
+            placed.
+
+        Notes
+        -----
         amount > 0 :: Buy/Cover
         amount < 0 :: Sell/Short
         Market order:    order(sid, amount)
@@ -89,6 +106,10 @@ class Blotter(object):
         StopLimit order: order(sid, amount, style=StopLimitOrder(limit_price,
                                stop_price))
         """
+        # something could be done with amount to further divide
+        # between buy by share count OR buy shares up to a dollar amount
+        # numeric == share count  AND  "$dollar.cents" == cost amount
+
         if amount == 0:
             # Don't bother placing orders for 0 shares.
             return None
@@ -114,8 +135,26 @@ class Blotter(object):
 
         return order.id
 
-    def order_batch(self, orders):
-        return [self.order(*order) for order in orders]
+    def order_batch(self, order_arg_lists):
+        """Place a batch of orders.
+
+        Parameters
+        ----------
+        order_arg_lists : iterable[tuple]
+            Tuples of args that `order` expects.
+
+        Returns
+        -------
+        order_ids : list[str or None]
+            The unique identifier (or None) for each of the orders placed
+            (or not placed).
+
+        Notes
+        -----
+        This is required for `Blotter` subclasses to be able to place a batch
+        of orders, instead of being passed the order requests one at a time.
+        """
+        return [self.order(*order_args) for order_args in order_arg_lists]
 
     def cancel(self, order_id, relay_status=True):
         if order_id not in self.orders:
