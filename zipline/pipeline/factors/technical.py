@@ -14,7 +14,6 @@ from numpy import (
     dstack,
     exp,
     fmax,
-    full,
     inf,
     isnan,
     log,
@@ -36,6 +35,7 @@ from zipline.utils.math_utils import (
     nanstd,
     nansum,
     nanmin,
+    exponential_weights,
 )
 from zipline.utils.numpy_utils import rolling_window
 from .factor import CustomFactor
@@ -191,14 +191,6 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
     from_center_of_mass
     """
     params = ('decay_rate',)
-
-    @staticmethod
-    def weights(length, decay_rate):
-        """
-        Return weighting vector for an exponential moving statistic on `length`
-        rows with a decay rate of `decay_rate`.
-        """
-        return full(length, decay_rate, float) ** arange(length + 1, 1, -1)
 
     @classmethod
     @expect_types(span=Number)
@@ -369,7 +361,7 @@ class ExponentialWeightedMovingAverage(_ExponentialWeightedFactor):
         out[:] = average(
             data,
             axis=0,
-            weights=self.weights(len(data), decay_rate),
+            weights=exponential_weights(len(data), decay_rate),
         )
 
 
@@ -434,7 +426,7 @@ class ExponentialWeightedMovingStdDev(_ExponentialWeightedFactor):
     """
 
     def compute(self, today, assets, out, data, decay_rate):
-        weights = self.weights(len(data), decay_rate)
+        weights = exponential_weights(len(data), decay_rate)
 
         mean = average(data, axis=0, weights=weights)
         variance = average((data - mean) ** 2, axis=0, weights=weights)
@@ -681,9 +673,9 @@ class TrueRange(CustomFactor):
         )
 
 
-class MovingAverageConvergenceDivergence(_ExponentialWeightedFactor):
+class MovingAverageConvergenceDivergenceSignal(CustomFactor):
     """
-    Moving Average Convergence/Divergence (MACD)
+    Moving Average Convergence/Divergence (MACD) Signal line
     https://en.wikipedia.org/wiki/MACD
 
     A technical indicator originally developed by Gerald Appel in the late
@@ -697,22 +689,21 @@ class MovingAverageConvergenceDivergence(_ExponentialWeightedFactor):
 
     Parameters
     ----------
-    fast_period : int >= 0, <= window_length
+    fast_period : int > 0
         The window length for the "fast" EWMA. Default is 12.
-    slow_period : int >= 0, <= window_length
+    slow_period : int > 0, > fast_period
         The window length for the "slow" EWMA. Default is 26.
-    signal_period' : int >= 0, <= slow_period
+    signal_period' : int > 0, < fast_period
         The window length for the signal line. Default is 9.
 
     Returns
     -------
-    MACD: The difference between "fast" EWMA and "slow" EWMA.
-    signal: The EWMA of the MACD line using `signal_period` as span.
-    hist: Difference between MACD and signal. (Divergence series)
+    The EWMA of the difference between "fast" EWMA and "slow" EWMA line using
+    `signal_period` as span.
     """
+
     inputs = [USEquityPricing.close]
     params = ('fast_period', 'slow_period', 'signal_period')
-    outputs = ('MACD', 'signal', 'hist')
 
     def __new__(cls,
                 fast_period=12,
@@ -720,7 +711,16 @@ class MovingAverageConvergenceDivergence(_ExponentialWeightedFactor):
                 signal_period=9,
                 *args,
                 **kwargs):
-        return super(MovingAverageConvergenceDivergence, cls).__new__(
+
+        if signal_period <= 0:
+            raise ValueError("'signal_period' must be larger than 0.")
+        if slow_period <= fast_period or fast_period <= signal_period:
+            raise ValueError(
+                "'slow_period' must be larger than 'fast_period'."
+                "'fast_period' must be larger than 'signal_period'."
+            )
+
+        return super(MovingAverageConvergenceDivergenceSignal, cls).__new__(
             cls,
             fast_period=fast_period,
             slow_period=slow_period,
@@ -729,38 +729,25 @@ class MovingAverageConvergenceDivergence(_ExponentialWeightedFactor):
             *args, **kwargs
         )
 
-    def calculate_ewma(self, data, length):
+    def _ewma(self, data, length):
         decay_rate = 1.0 - (2.0 / (1.0 + length))
         return average(data,
                        axis=1,
-                       weights=self.weights(length, decay_rate))
-
-    def calculate_macd(self, col):
-        slow_EWMA = self.calculate_ewma(
-            rolling_window(
-                col,
-                self.params['slow_period']
-            ),
-            self.params['slow_period'])
-        fast_EWMA = self.calculate_ewma(
-            rolling_window(
-                col,
-                self.params['fast_period']
-            )[-self.params['signal_period']:],
-            self.params['fast_period'])
-        macd = fast_EWMA - slow_EWMA
-        signal_line = self.calculate_ewma(
-            macd.reshape(-1, self.params['signal_period']),
-            self.params['signal_period'])
-        hist = macd[-1] - signal_line
-        return macd[-1], signal_line[-1], hist[-1]
+                       weights=exponential_weights(length, decay_rate)
+                       )
 
     def compute(self, today, assets, out, close, fast_period, slow_period,
                 signal_period):
-        macd, sig, hist = zip(*map(self.calculate_macd, close.T))
-        out.macd[:] = macd
-        out.signal[:] = sig
-        out.hist[:] = hist
+        slow_EWMA = self._ewma(
+            rolling_window(close, slow_period),
+            slow_period
+        )
+        fast_EWMA = self._ewma(
+            rolling_window(close, fast_period)[-signal_period:],
+            fast_period
+        )
+        macd = fast_EWMA - slow_EWMA
+        out[:] = self._ewma(macd.T, signal_period)
 
 
 class AnnualizedVolatility(CustomFactor):
@@ -785,9 +772,9 @@ class AnnualizedVolatility(CustomFactor):
     window_length = 252
 
     def compute(self, today, assets, out, returns, annualization_factor):
-        out[:] = nanstd(returns, ddof=0, axis=0) * (annualization_factor ** .5)
+        out[:] = nanstd(returns, axis=0) * (annualization_factor ** .5)
 
 # Convenience aliases.
 EWMA = ExponentialWeightedMovingAverage
 EWMSTD = ExponentialWeightedMovingStdDev
-MACD = MovingAverageConvergenceDivergence
+MACDSignal = MovingAverageConvergenceDivergenceSignal

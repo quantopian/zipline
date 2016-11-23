@@ -14,6 +14,7 @@ from .statistical import (
     RollingSpearmanOfReturns,
 )
 from .technical import (
+    AnnualizedVolatility,
     Aroon,
     AverageDollarVolume,
     BollingerBands,
@@ -24,7 +25,9 @@ from .technical import (
     FastStochasticOscillator,
     IchimokuKinkoHyo,
     LinearWeightedMovingAverage,
+    MACDSignal,
     MaxDrawdown,
+    MovingAverageConvergenceDivergenceSignal,
     RateOfChangePercentage,
     Returns,
     RSI,
@@ -32,12 +35,10 @@ from .technical import (
     TrueRange,
     VWAP,
     WeightedAverageValue,
-    MovingAverageConvergenceDivergence,
-    MACD,
-    AnnualizedVolatility,
 )
 
 __all__ = [
+    'AnnualizedVolatility',
     'Aroon',
     'AverageDollarVolume',
     'BollingerBands',
@@ -53,7 +54,9 @@ __all__ = [
     'IchimokuKinkoHyo',
     'Latest',
     'LinearWeightedMovingAverage',
+    'MACDSignal',
     'MaxDrawdown',
+    'MovingAverageConvergenceDivergenceSignal',
     'RateOfChangePercentage',
     'RecarrayField',
     'Returns',
@@ -65,7 +68,4 @@ __all__ = [
     'TrueRange',
     'VWAP',
     'WeightedAverageValue',
-    'MovingAverageConvergenceDivergence',
-    'MACD',
-    'AnnualizedVolatility',
 ]

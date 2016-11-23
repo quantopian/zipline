@@ -17,13 +17,12 @@ from zipline.pipeline.factors import (
     LinearWeightedMovingAverage,
     RateOfChangePercentage,
     TrueRange,
-    MovingAverageConvergenceDivergence,
+    MovingAverageConvergenceDivergenceSignal,
     AnnualizedVolatility,
 )
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import assert_equal
-
 from .base import BasePipelineTestCase
 
 
@@ -409,11 +408,24 @@ class TestTrueRange(ZiplineTestCase):
 
 
 class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
+
+    def expected_ewma(self, data_df, window):
+        # Comment copied from `test_engine.py`:
+        # XXX: This is a comically inefficient way to compute a windowed EWMA.
+        # Don't use it outside of testing.  We're using rolling-apply of an
+        # ewma (which is itself a rolling-window function) because we only want
+        # to look at ``window_length`` rows at a time.
+        return data_df.rolling(window).apply(
+            lambda sub: pd.DataFrame(sub)
+            .ewm(span=window)
+            .mean()
+            .values[-1])
+
     def test_MACD_window_length_generation(self):
         signal_period = random_integers(1, 90)
         fast_period = random_integers(signal_period+1, signal_period+100)
         slow_period = random_integers(fast_period+1, fast_period+100)
-        ewma = MovingAverageConvergenceDivergence(
+        ewma = MovingAverageConvergenceDivergenceSignal(
             fast_period=fast_period,
             slow_period=slow_period,
             signal_period=signal_period,
@@ -424,34 +436,22 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
         )
 
     def test_moving_average_convergence_divergence(self):
+        nassets = 3
         fast_period = 3
         slow_period = 8
         signal_period = 2
 
-        macd = MovingAverageConvergenceDivergence(
+        macd = MovingAverageConvergenceDivergenceSignal(
             fast_period=fast_period,
             slow_period=slow_period,
             signal_period=signal_period,
         )
 
         today = pd.Timestamp('2016', tz='utc')
-        nassets = macd.window_length
         assets = pd.Index(np.arange(nassets))
-        days_col = np.arange(start=-.05,
-                             stop=.01*nassets-.05,
-                             step=.01)[:, np.newaxis]
-        close = np.logspace(start=.01, stop=.10, num=nassets) - 1 + days_col
+        out = np.empty(shape=(nassets,), dtype=np.float64)
+        close = np.random.rand(macd.window_length, nassets)
 
-        dtype = [
-            ('macd', 'f8'),
-            ('signal', 'f8'),
-            ('hist', 'f8'),
-        ]
-        out = np.recarray(
-            shape=(nassets,),
-            dtype=dtype,
-            buf=np.empty(shape=(nassets,), dtype=dtype),
-        )
         macd.compute(
             today,
             assets,
@@ -462,23 +462,21 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
             signal_period,
         )
 
-        expected_macd = np.array([0.01691553] * nassets)
-        expected_signal = np.array([0.01691553] * nassets)
-        expected_hist = np.array([0] * nassets)
+        close_df = pd.DataFrame(close)
+        fast_ewma = self.expected_ewma(
+            close_df,
+            fast_period)
+        slow_ewma = self.expected_ewma(
+            close_df,
+            slow_period)
+        expected_signal = self.expected_ewma(
+            fast_ewma-slow_ewma,
+            signal_period
+        ).values[-1]
 
         np.testing.assert_almost_equal(
-            out.macd,
-            expected_macd,
-            decimal=8
-        )
-        np.testing.assert_almost_equal(
-            out.signal,
+            out,
             expected_signal,
-            decimal=8
-        )
-        np.testing.assert_almost_equal(
-            out.hist,
-            expected_hist,
             decimal=8
         )
 
@@ -502,7 +500,7 @@ class AnnualizedVolatilityTestCase(ZiplineTestCase):
 
         ann_vol.compute(today, assets, out, returns, 252)
 
-        expected_vol = np.array([0] * nassets)
+        expected_vol = np.zeros(nassets)
         np.testing.assert_almost_equal(
             out,
             expected_vol,
@@ -523,7 +521,7 @@ class AnnualizedVolatilityTestCase(ZiplineTestCase):
         out = np.empty(shape=(nassets,), dtype=np.float64)
         ann_vol.compute(today, assets, out, returns, 252)
 
-        mean = returns.sum(axis=0) / returns.shape[0]
+        mean = np.mean(returns, axis=0)
         annualized_variance = ((returns - mean) ** 2).sum(axis=0) / \
             returns.shape[0] * 252
         expected_vol = np.sqrt(annualized_variance)
