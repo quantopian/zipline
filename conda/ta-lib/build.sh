@@ -1,5 +1,5 @@
 #!/bin/bash
-wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
+wget https://downloads.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz
 tar xvfz ta-lib-0.4.0-src.tar.gz
 pushd ta-lib
 ./configure --prefix=$PREFIX
