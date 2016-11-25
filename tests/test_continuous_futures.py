@@ -618,6 +618,49 @@ def record_current_contract(algo, data):
                          2,
                          "Should be FOH16 on session after roll.")
 
+        # This query is constructed so that the roll occurs at the end of the
+        # window when there is no prefetch, to protect against a case where the
+        # back contract being active at the end of the window caused an index
+        # error in the roll finder because the front contract's auto close was
+        # beyond the end of the window, which created index errors when
+        # attempting to use that date within the session index.
+        window = self.data_portal.get_history_window(
+            [cf],
+            Timestamp('2016-03-18 18:01', tz='US/Eastern').tz_convert('UTC'),
+            30, '1d', 'sid')
+
+        self.assertEqual(window.loc['2016-02-09', cf],
+                         1,
+                         "Should be FOG16 at beginning of window.")
+
+        self.assertEqual(window.loc['2016-02-10', cf],
+                         1,
+                         "Should have remained FOG16.")
+
+        self.assertEqual(window.loc['2016-02-25', cf],
+                         1,
+                         "Should be FOG16 on session before roll.")
+
+        self.assertEqual(window.loc['2016-02-26', cf],
+                         2,
+                         "Should be FOH16 on session with roll.")
+
+        self.assertEqual(window.loc['2016-02-29', cf],
+                         2,
+                         "Should be FOH16 on session after roll.")
+
+        self.assertEqual(window.loc['2016-03-17', cf],
+                         2,
+                         "Should be FOH16 on session before roll.")
+
+        self.assertEqual(window.loc['2016-03-18', cf],
+                         3,
+                         "Should be FOJ16 on session with roll.")
+
+        self.assertEqual(window.loc['2016-03-21', cf],
+                         3,
+                         "Should be FOJ16 on session after roll.")
+
         # Advance the window a month.
         window = self.data_portal.get_history_window(
             [cf],
