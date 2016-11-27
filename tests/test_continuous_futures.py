@@ -176,18 +176,20 @@ class ContinuousFuturesTestCase(WithCreateBarData,
                 vol_stop_session = sid_to_vol_stop_session[i]
                 m_open = tc.open_and_close_for_session(vol_stop_session)[0]
                 loc = dts.searchsorted(m_open)
-                # Add a little bit of noise to roll. So that checks for exacly
-                # 0 do not work, since there may be stragglers after a roll.
+                # Add a little bit of noise to roll. So that predicates that
+                # check for exactly 0 do not work, since there may be
+                # stragglers after a roll.
                 df.volume.values[loc] = 1000
                 df.volume.values[loc + 1:] = 0
             j = i - 1
             if j in sid_to_vol_stop_session:
-                non_primary_end = sid_to_vol_stop_session[j] - sessions.freq
+                non_primary_end = sid_to_vol_stop_session[j]
                 m_close = tc.open_and_close_for_session(non_primary_end)[1]
-                loc = dts.searchsorted(m_close)
-                # Add some volume before a roll, since a contracted may be
-                # entered earlier than when it is the primary.
-                df.volume.values[:loc] = 2000
+                if m_close > dts[0]:
+                    loc = dts.get_loc(m_close)
+                    # Add some volume before a roll, since a contract may be
+                    # entered earlier than when it is the primary.
+                    df.volume.values[:loc + 1] = 10
             yield i, df
 
     def test_create_continuous_future(self):
@@ -311,14 +313,14 @@ class ContinuousFuturesTestCase(WithCreateBarData,
             lambda: pd.Timestamp('2016-01-26', tz='UTC'))
         contract = bar_data.current(cf_primary, 'contract')
 
-        self.assertEqual(contract.symbol, 'FOG16')
+        self.assertEqual(contract.symbol, 'FOF16')
 
         bar_data = self.create_bardata(
-            lambda: pd.Timestamp('2016-01-26', tz='UTC'))
+            lambda: pd.Timestamp('2016-01-27', tz='UTC'))
         contract = bar_data.current(cf_primary, 'contract')
 
         self.assertEqual(contract.symbol, 'FOG16',
-                         'Auto close at beginning of session. FOG16 remains '
+                         'Auto close at beginning of session. FOG16 is now '
                          'the current contract.')
 
         bar_data = self.create_bardata(
@@ -599,12 +601,12 @@ def record_current_contract(algo, data):
 
         # Volume cuts out for FOF16 on 2016-01-25
         self.assertEqual(window.loc['2016-01-26', cf],
-                         1,
-                         "Should be FOG16 at beginning of window.")
+                         0,
+                         "Should be FOF16 at beginning of window.")
 
         self.assertEqual(window.loc['2016-01-27', cf],
                          1,
-                         "Should have remained FOG16.")
+                         "Should have rolled to FOG16.")
 
         self.assertEqual(window.loc['2016-02-25', cf],
                          1,
@@ -630,24 +632,24 @@ def record_current_contract(algo, data):
 
         self.assertEqual(window.loc['2016-02-26', cf],
                          2,
-                         "Should be FOH16 on session with roll.")
+                         "Should be FOH16 on roll session.")
 
         self.assertEqual(window.loc['2016-02-29', cf],
                          2,
-                         "Should be FOH16 on session after roll.")
+                         "Should remain FOH16.")
 
         self.assertEqual(window.loc['2016-03-17', cf],
                          2,
                          "Should be FOH16 on session before volume cuts out.")
 
         self.assertEqual(window.loc['2016-03-18', cf],
-                         3,
-                         "Should be FOJ16 on session where the volume of "
-                         "FOH16 cuts out.")
+                         2,
+                         "Should be FOH16 on session where the volume of "
+                         "FOH16 cuts out, the roll is upcoming.")
 
         self.assertEqual(window.loc['2016-03-24', cf],
                          3,
-                         "Should have remained FOJ16.")
+                         "Should have rolled to FOJ16.")
 
         self.assertEqual(window.loc['2016-03-28', cf],
                          3,
