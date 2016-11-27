@@ -754,7 +754,7 @@ class BcolzMinuteBarWriter(object):
 
         tds = self._session_labels
         input_first_day = self._calendar.minute_to_session_label(
-            pd.Timestamp(dts[0]))
+            pd.Timestamp(dts[0]), direction='previous')
 
         last_date = self.last_date_in_output_for_sid(sid)
 
