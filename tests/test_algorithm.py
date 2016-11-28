@@ -123,6 +123,7 @@ from zipline.test_algorithms import (
     TestTargetAlgorithm,
     TestTargetPercentAlgorithm,
     TestTargetValueAlgorithm,
+    TestBatchTargetPercentAlgorithm,
     SetLongOnlyAlgorithm,
     SetAssetDateBoundsAlgorithm,
     SetMaxPositionSizeAlgorithm,
@@ -905,14 +906,15 @@ def before_trading_start(context, data):
         self.assertEqual(algo.sim_params.data_frequency, 'minute')
 
     @parameterized.expand([
-        (TestOrderAlgorithm,),
-        (TestOrderValueAlgorithm,),
-        (TestTargetAlgorithm,),
-        (TestOrderPercentAlgorithm,),
-        (TestTargetPercentAlgorithm,),
-        (TestTargetValueAlgorithm,),
+        ('order', TestOrderAlgorithm,),
+        ('order_value', TestOrderValueAlgorithm,),
+        ('order_target', TestTargetAlgorithm,),
+        ('order_percent', TestOrderPercentAlgorithm,),
+        ('order_target_percent', TestTargetPercentAlgorithm,),
+        ('order_target_value', TestTargetValueAlgorithm,),
+        ('batch_order_target_percent', TestBatchTargetPercentAlgorithm,),
     ])
-    def test_order_methods(self, algo_class):
+    def test_order_methods(self, test_name, algo_class):
         algo = algo_class(
             sim_params=self.sim_params,
             env=self.env,

@@ -135,7 +135,7 @@ class Blotter(object):
 
         return order.id
 
-    def order_batch(self, order_arg_lists):
+    def batch_order(self, order_arg_lists):
         """Place a batch of orders.
 
         Parameters

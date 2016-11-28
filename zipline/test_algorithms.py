@@ -429,8 +429,16 @@ class TestTargetPercentAlgorithm(TradingAlgorithm):
                 "Orders not filled at current price."
 
         self.sale_price = data.current(sid(0), "price")
-        self.order_target_percent(self.sid(0), .002)
+        self._order(self.sid(0), .002)
         self.ordered = True
+
+    def _order(self, asset, target):
+        return self.order_target_percent(asset, target)
+
+
+class TestBatchTargetPercentAlgorithm(TestTargetPercentAlgorithm):
+    def _order(self, asset, target):
+        return self.batch_order_target_percent({asset: target})
 
 
 class TestTargetValueAlgorithm(TradingAlgorithm):

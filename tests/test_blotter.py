@@ -330,7 +330,7 @@ class BlotterTestCase(WithCreateBarData,
 
         blotter.prune_orders([other_order])
 
-    def test_order_batch_matches_multi_order(self):
+    def test_batch_order_matches_multiple_orders(self):
         """
         Ensure the effect of order_batch is the same as multiple calls to
         order.
@@ -345,7 +345,7 @@ class BlotterTestCase(WithCreateBarData,
                 (self.asset_25, i * 100, LimitOrder(i * 100 + 1)),
             ]
 
-            order_batch_ids = blotter1.order_batch(order_arg_lists)
+            order_batch_ids = blotter1.batch_order(order_arg_lists)
             order_ids = []
             for order_args in order_arg_lists:
                 order_ids.append(blotter2.order(*order_args))
