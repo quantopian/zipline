@@ -380,7 +380,7 @@ class HistoryLoader(with_metaclass(ABCMeta)):
         assets = self._asset_finder.retrieve_all(assets)
 
         try:
-            end_ix = self._calendar.get_loc(end)
+            end_ix = self._calendar.searchsorted(end)
         except KeyError:
             raise KeyError("{0} not in calendar [{1}...{2}]".format(
                 end, self._calendar[0], self._calendar[-1]))
@@ -405,7 +405,7 @@ class HistoryLoader(with_metaclass(ABCMeta)):
 
             offset = 0
             try:
-                start_ix = self._calendar.get_loc(start)
+                start_ix = self._calendar.searchsorted(start)
             except KeyError:
                 raise KeyError("{0} not in calendar [{1}...{2}]".format(
                     start, self._calendar[0], self._calendar[-1]))
@@ -537,7 +537,7 @@ class HistoryLoader(with_metaclass(ABCMeta)):
                                              dts,
                                              field,
                                              is_perspective_after)
-        end_ix = self._calendar.get_loc(dts[-1])
+        end_ix = self._calendar.searchsorted(dts[-1])
 
         return concatenate(
             [window.get(end_ix) for window in block],

@@ -166,3 +166,28 @@ def ignore_pandas_nan_categorical_warning():
             category=FutureWarning,
         )
         yield
+
+
+_INDEXER_NAMES = [
+    '_' + name for (name, _) in pd.core.indexing.get_indexers_list()
+]
+
+
+def clear_dataframe_indexer_caches(df):
+    """
+    Clear cached attributes from a pandas DataFrame.
+
+    By default pandas memoizes indexers (`iloc`, `loc`, `ix`, etc.) objects on
+    DataFrames, resulting in refcycles that can lead to unexpectedly long-lived
+    DataFrames. This function attempts to clear those cycles by deleting the
+    cached indexers from the frame.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+    """
+    for attr in _INDEXER_NAMES:
+        try:
+            delattr(df, attr)
+        except AttributeError:
+            pass
