@@ -5,6 +5,7 @@ from six.moves import range
 import numpy as np
 import pandas as pd
 import talib
+from numpy.random import RandomState
 
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.pipeline.data import USEquityPricing
@@ -16,11 +17,12 @@ from zipline.pipeline.factors import (
     LinearWeightedMovingAverage,
     RateOfChangePercentage,
     TrueRange,
+    MovingAverageConvergenceDivergenceSignal,
+    AnnualizedVolatility,
 )
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import assert_equal
-
 from .base import BasePipelineTestCase
 
 
@@ -403,3 +405,180 @@ class TestTrueRange(ZiplineTestCase):
 
         tr.compute(today, assets, out, highs, lows, closes)
         assert_equal(out, np.full((3,), 2.))
+
+
+class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
+
+    def expected_ewma(self, data_df, window):
+        # Comment copied from `test_engine.py`:
+        # XXX: This is a comically inefficient way to compute a windowed EWMA.
+        # Don't use it outside of testing.  We're using rolling-apply of an
+        # ewma (which is itself a rolling-window function) because we only want
+        # to look at ``window_length`` rows at a time.
+        return data_df.rolling(window).apply(
+            lambda sub: pd.DataFrame(sub)
+            .ewm(span=window)
+            .mean()
+            .values[-1])
+
+    @parameter_space(seed=range(5))
+    def test_MACD_window_length_generation(self, seed):
+        rng = RandomState(seed)
+
+        signal_period = rng.randint(1, 90)
+        fast_period = rng.randint(signal_period + 1, signal_period + 100)
+        slow_period = rng.randint(fast_period + 1, fast_period + 100)
+        ewma = MovingAverageConvergenceDivergenceSignal(
+            fast_period=fast_period,
+            slow_period=slow_period,
+            signal_period=signal_period,
+        )
+        assert_equal(
+            ewma.window_length,
+            slow_period + signal_period - 1,
+        )
+
+    def test_bad_inputs(self):
+        template = (
+            "MACDSignal() expected a value greater than or equal to 1"
+            " for argument %r, but got 0 instead."
+        )
+        with self.assertRaises(ValueError) as e:
+            MovingAverageConvergenceDivergenceSignal(fast_period=0)
+        self.assertEqual(template % 'fast_period', str(e.exception))
+
+        with self.assertRaises(ValueError) as e:
+            MovingAverageConvergenceDivergenceSignal(slow_period=0)
+        self.assertEqual(template % 'slow_period', str(e.exception))
+
+        with self.assertRaises(ValueError) as e:
+            MovingAverageConvergenceDivergenceSignal(signal_period=0)
+        self.assertEqual(template % 'signal_period', str(e.exception))
+
+        with self.assertRaises(ValueError) as e:
+            MovingAverageConvergenceDivergenceSignal(
+                fast_period=5,
+                slow_period=4,
+            )
+
+        expected = (
+            "'slow_period' must be greater than 'fast_period', but got\n"
+            "slow_period=4, fast_period=5"
+        )
+        self.assertEqual(expected, str(e.exception))
+
+    @parameter_space(
+        seed=range(2),
+        fast_period=[3, 5],
+        slow_period=[8, 10],
+        signal_period=[3, 9],
+        __fail_fast=True,
+    )
+    def test_moving_average_convergence_divergence(self,
+                                                   seed,
+                                                   fast_period,
+                                                   slow_period,
+                                                   signal_period):
+        rng = RandomState(seed)
+
+        nassets = 3
+
+        macd = MovingAverageConvergenceDivergenceSignal(
+            fast_period=fast_period,
+            slow_period=slow_period,
+            signal_period=signal_period,
+        )
+
+        today = pd.Timestamp('2016', tz='utc')
+        assets = pd.Index(np.arange(nassets))
+        out = np.empty(shape=(nassets,), dtype=np.float64)
+        close = rng.rand(macd.window_length, nassets)
+
+        macd.compute(
+            today,
+            assets,
+            out,
+            close,
+            fast_period,
+            slow_period,
+            signal_period,
+        )
+
+        close_df = pd.DataFrame(close)
+        fast_ewma = self.expected_ewma(
+            close_df,
+            fast_period,
+        )
+        slow_ewma = self.expected_ewma(
+            close_df,
+            slow_period,
+        )
+        signal_ewma = self.expected_ewma(
+            fast_ewma - slow_ewma,
+            signal_period
+        )
+
+        # Everything but the last row should be NaN.
+        self.assertTrue(signal_ewma.iloc[:-1].isnull().all().all())
+
+        # We're testing a single compute call, which we expect to be equivalent
+        # to the last row of the frame we calculated with pandas.
+        expected_signal = signal_ewma.values[-1]
+
+        np.testing.assert_almost_equal(
+            out,
+            expected_signal,
+            decimal=8
+        )
+
+
+class AnnualizedVolatilityTestCase(ZiplineTestCase):
+    """
+    Test Annualized Volatility
+    """
+    def test_simple_volatility(self):
+        """
+        Simple test for uniform returns should generate 0 volatility
+        """
+        nassets = 3
+        ann_vol = AnnualizedVolatility()
+        today = pd.Timestamp('2016', tz='utc')
+        assets = np.arange(nassets, dtype=np.float64)
+        returns = np.full((ann_vol.window_length, nassets),
+                          0.004,
+                          dtype=np.float64)
+        out = np.empty(shape=(nassets,), dtype=np.float64)
+
+        ann_vol.compute(today, assets, out, returns, 252)
+
+        expected_vol = np.zeros(nassets)
+        np.testing.assert_almost_equal(
+            out,
+            expected_vol,
+            decimal=8
+        )
+
+    def test_volatility(self):
+        """
+        Check volatility results against values calculated manually
+        """
+        nassets = 3
+        ann_vol = AnnualizedVolatility()
+        today = pd.Timestamp('2016', tz='utc')
+        assets = np.arange(nassets, dtype=np.float64)
+        returns = np.random.normal(loc=0.001,
+                                   scale=0.01,
+                                   size=(ann_vol.window_length, nassets))
+        out = np.empty(shape=(nassets,), dtype=np.float64)
+        ann_vol.compute(today, assets, out, returns, 252)
+
+        mean = np.mean(returns, axis=0)
+        annualized_variance = ((returns - mean) ** 2).sum(axis=0) / \
+            returns.shape[0] * 252
+        expected_vol = np.sqrt(annualized_variance)
+
+        np.testing.assert_almost_equal(
+            out,
+            expected_vol,
+            decimal=8
+        )

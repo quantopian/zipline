@@ -26,8 +26,7 @@ from numexpr import evaluate
 
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.mixins import SingleInputMixin
-from zipline.utils.numpy_utils import ignore_nanwarnings
-from zipline.utils.input_validation import expect_types
+from zipline.utils.input_validation import expect_bounded, expect_types
 from zipline.utils.math_utils import (
     nanargmax,
     nanargmin,
@@ -36,6 +35,11 @@ from zipline.utils.math_utils import (
     nanstd,
     nansum,
     nanmin,
+)
+from zipline.utils.numpy_utils import (
+    float64_dtype,
+    ignore_nanwarnings,
+    rolling_window,
 )
 from .factor import CustomFactor
 
@@ -160,6 +164,28 @@ class AverageDollarVolume(CustomFactor):
         out[:] = nansum(close * volume, axis=0) / len(close)
 
 
+def exponential_weights(length, decay_rate):
+    """
+    Build a weight vector for an exponentially-weighted statistic.
+
+    The resulting ndarray is of the form::
+
+        [decay_rate ** length, ..., decay_rate ** 2, decay_rate]
+
+    Parameters
+    ----------
+    length : int
+        The length of the desired weight vector.
+    decay_rate : float
+        The rate at which entries in the weight vector increase or decrease.
+
+    Returns
+    -------
+    weights : ndarray[float64]
+    """
+    return full(length, decay_rate, float64_dtype) ** arange(length + 1, 1, -1)
+
+
 class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
     """
     Base class for factors implementing exponential-weighted operations.
@@ -190,14 +216,6 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
     from_center_of_mass
     """
     params = ('decay_rate',)
-
-    @staticmethod
-    def weights(length, decay_rate):
-        """
-        Return weighting vector for an exponential moving statistic on `length`
-        rows with a decay rate of `decay_rate`.
-        """
-        return full(length, decay_rate, float) ** arange(length + 1, 1, -1)
 
     @classmethod
     @expect_types(span=Number)
@@ -368,7 +386,7 @@ class ExponentialWeightedMovingAverage(_ExponentialWeightedFactor):
         out[:] = average(
             data,
             axis=0,
-            weights=self.weights(len(data), decay_rate),
+            weights=exponential_weights(len(data), decay_rate),
         )
 
 
@@ -386,13 +404,13 @@ class LinearWeightedMovingAverage(CustomFactor, SingleInputMixin):
     ctx = ignore_nanwarnings()
 
     def compute(self, today, assets, out, data):
-        num_days = data.shape[0]
+        ndays = data.shape[0]
 
         # Initialize weights array
-        weights = arange(1, num_days + 1, dtype=float).reshape(num_days, 1)
+        weights = arange(1, ndays + 1, dtype=float64_dtype).reshape(ndays, 1)
 
         # Compute normalizer
-        normalizer = (num_days * (num_days + 1)) / 2
+        normalizer = (ndays * (ndays + 1)) / 2
 
         # Weight the data
         weighted_data = data * weights
@@ -433,7 +451,7 @@ class ExponentialWeightedMovingStdDev(_ExponentialWeightedFactor):
     """
 
     def compute(self, today, assets, out, data, decay_rate):
-        weights = self.weights(len(data), decay_rate)
+        weights = exponential_weights(len(data), decay_rate)
 
         mean = average(data, axis=0, weights=weights)
         variance = average((data - mean) ** 2, axis=0, weights=weights)
@@ -443,11 +461,6 @@ class ExponentialWeightedMovingStdDev(_ExponentialWeightedFactor):
             squared_weight_sum / (squared_weight_sum - np_sum(weights ** 2))
         )
         out[:] = sqrt(variance * bias_correction)
-
-
-# Convenience aliases.
-EWMA = ExponentialWeightedMovingAverage
-EWMSTD = ExponentialWeightedMovingStdDev
 
 
 class BollingerBands(CustomFactor):
@@ -683,3 +696,119 @@ class TrueRange(CustomFactor):
             )),
             2
         )
+
+
+class MovingAverageConvergenceDivergenceSignal(CustomFactor):
+    """
+    Moving Average Convergence/Divergence (MACD) Signal line
+    https://en.wikipedia.org/wiki/MACD
+
+    A technical indicator originally developed by Gerald Appel in the late
+    1970's. MACD shows the relationship between two moving averages and
+    reveals changes in the strength, direction, momentum, and duration of a
+    trend in a stock's price.
+
+    **Default Inputs:** :data:`zipline.pipeline.data.USEquityPricing.close`
+
+    Parameters
+    ----------
+    fast_period : int > 0, optional
+        The window length for the "fast" EWMA. Default is 12.
+    slow_period : int > 0, > fast_period, optional
+        The window length for the "slow" EWMA. Default is 26.
+    signal_period' : int > 0, < fast_period, optional
+        The window length for the signal line. Default is 9.
+
+    Notes
+    -----
+    Unlike most pipeline expressions, this factor does not accept a
+    ``window_length`` parameter. ``window_length`` is inferred from
+    ``slow_period`` and ``signal_period``.
+    """
+    inputs = (USEquityPricing.close,)
+    # We don't use the default form of `params` here because we want to
+    # dynamically calculate `window_length` from the period lengths in our
+    # __new__.
+    params = ('fast_period', 'slow_period', 'signal_period')
+
+    @expect_bounded(
+        __funcname='MACDSignal',
+        fast_period=(1, None),  # These must all be >= 1.
+        slow_period=(1, None),
+        signal_period=(1, None),
+    )
+    def __new__(cls,
+                fast_period=12,
+                slow_period=26,
+                signal_period=9,
+                *args,
+                **kwargs):
+
+        if slow_period <= fast_period:
+            raise ValueError(
+                "'slow_period' must be greater than 'fast_period', but got\n"
+                "slow_period={slow}, fast_period={fast}".format(
+                    slow=slow_period,
+                    fast=fast_period,
+                )
+            )
+
+        return super(MovingAverageConvergenceDivergenceSignal, cls).__new__(
+            cls,
+            fast_period=fast_period,
+            slow_period=slow_period,
+            signal_period=signal_period,
+            window_length=slow_period + signal_period - 1,
+            *args, **kwargs
+        )
+
+    def _ewma(self, data, length):
+        decay_rate = 1.0 - (2.0 / (1.0 + length))
+        return average(
+            data,
+            axis=1,
+            weights=exponential_weights(length, decay_rate)
+        )
+
+    def compute(self, today, assets, out, close, fast_period, slow_period,
+                signal_period):
+        slow_EWMA = self._ewma(
+            rolling_window(close, slow_period),
+            slow_period
+        )
+        fast_EWMA = self._ewma(
+            rolling_window(close, fast_period)[-signal_period:],
+            fast_period
+        )
+        macd = fast_EWMA - slow_EWMA
+        out[:] = self._ewma(macd.T, signal_period)
+
+
+class AnnualizedVolatility(CustomFactor):
+    """
+    Volatility
+    https://en.wikipedia.org/wiki/Volatility_(finance)
+
+    The degree of variation of a series over time as measured by the standard
+    deviation of daily returns.
+
+    **Default Inputs:**
+        :data:`zipline.pipeline.factors.Returns(window_length=2)`
+
+    Parameters
+    ----------
+    annualization_factor : float, optional
+        The number of time units per year. Defaults is 252, the number of NYSE
+        trading days in a normal year.
+    """
+    inputs = [Returns(window_length=2)]
+    params = {'annualization_factor': 252.0}
+    window_length = 252
+
+    def compute(self, today, assets, out, returns, annualization_factor):
+        out[:] = nanstd(returns, axis=0) * (annualization_factor ** .5)
+
+# Convenience aliases.
+EWMA = ExponentialWeightedMovingAverage
+EWMSTD = ExponentialWeightedMovingStdDev
+MACDSignal = MovingAverageConvergenceDivergenceSignal
