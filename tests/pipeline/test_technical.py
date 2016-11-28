@@ -435,7 +435,7 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
         )
         assert_equal(
             ewma.window_length,
-            slow_period+signal_period-1,
+            slow_period + signal_period - 1,
         )
 
     @parameter_space(
