@@ -5,7 +5,7 @@ from six.moves import range
 import numpy as np
 import pandas as pd
 import talib
-from numpy.random import random_integers
+from numpy.random import RandomState
 
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.pipeline.data import USEquityPricing
@@ -421,10 +421,13 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
             .mean()
             .values[-1])
 
-    def test_MACD_window_length_generation(self):
-        signal_period = random_integers(1, 90)
-        fast_period = random_integers(signal_period+1, signal_period+100)
-        slow_period = random_integers(fast_period+1, fast_period+100)
+    @parameter_space(seed=range(5))
+    def test_MACD_window_length_generation(self, seed):
+        rng = RandomState(seed)
+
+        signal_period = rng.randint(1, 90)
+        fast_period = rng.randint(signal_period + 1, signal_period + 100)
+        slow_period = rng.randint(fast_period + 1, fast_period + 100)
         ewma = MovingAverageConvergenceDivergenceSignal(
             fast_period=fast_period,
             slow_period=slow_period,
@@ -435,11 +438,21 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
             slow_period+signal_period-1,
         )
 
-    def test_moving_average_convergence_divergence(self):
+    @parameter_space(
+        seed=range(2),
+        fast_period=[3, 5],
+        slow_period=[8, 10],
+        signal_period=[3, 9],
+        __fail_fast=True,
+    )
+    def test_moving_average_convergence_divergence(self,
+                                                   seed,
+                                                   fast_period,
+                                                   slow_period,
+                                                   signal_period):
+        rng = RandomState(seed)
+
         nassets = 3
-        fast_period = 3
-        slow_period = 8
-        signal_period = 2
 
         macd = MovingAverageConvergenceDivergenceSignal(
             fast_period=fast_period,
@@ -450,7 +463,7 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
         today = pd.Timestamp('2016', tz='utc')
         assets = pd.Index(np.arange(nassets))
         out = np.empty(shape=(nassets,), dtype=np.float64)
-        close = np.random.rand(macd.window_length, nassets)
+        close = rng.rand(macd.window_length, nassets)
 
         macd.compute(
             today,
