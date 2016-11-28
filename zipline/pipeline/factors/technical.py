@@ -712,16 +712,16 @@ class MovingAverageConvergenceDivergenceSignal(CustomFactor):
 
     Parameters
     ----------
-    fast_period : int > 0
+    fast_period : int > 0, optional
         The window length for the "fast" EWMA. Default is 12.
-    slow_period : int > 0, > fast_period
+    slow_period : int > 0, > fast_period, optional
         The window length for the "slow" EWMA. Default is 26.
-    signal_period' : int > 0, < fast_period
+    signal_period' : int > 0, < fast_period, optional
         The window length for the signal line. Default is 9.
 
     Notes
     -----
-    Unlike most Factors, MovingAverageConvergenceDivergence does not accept a
+    Unlike most pipeline expressions, this factor does not accept a
     ``window_length`` parameter. ``window_length`` is inferred from
     ``slow_period`` and ``signal_period``.
     """
