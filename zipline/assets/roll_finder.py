@@ -15,8 +15,6 @@
 from abc import ABCMeta, abstractmethod
 from six import with_metaclass
 
-from pandas import Timestamp
-
 
 class RollFinder(with_metaclass(ABCMeta, object)):
     """
@@ -85,32 +83,30 @@ class RollFinder(with_metaclass(ABCMeta, object)):
             first = self._active_contract(oc, front, back, end)
         else:
             first = front
-        for i, sid in enumerate(oc.contract_sids):
-            if sid == first:
-                break
-        rolls = [(first + offset, None)]
+        first_contract = oc.sid_to_contract[first]
+        rolls = [((first_contract >> offset).contract.sid, None)]
         tc = self.trading_calendar
         sessions = tc.sessions_in_range(tc.minute_to_session_label(start),
                                         tc.minute_to_session_label(end))
         if first == front:
-            i -= 1
+            curr = first_contract << 1
         else:
-            i -= 2
-        curr = sessions[-1]
-        while curr > start and i > -1:
-            session_loc = sessions.searchsorted(curr)
-            front = oc.contract_sids[i]
-            back = oc.contract_sids[i + 1]
+            curr = first_contract << 2
+        sess = sessions[-1]
+        while sess > start and curr is not None:
+            session_loc = sessions.searchsorted(sess)
+            front = curr.contract.sid
+            back = curr.next.contract.sid
             while session_loc > 0:
                 session = sessions[session_loc]
                 prev = sessions[session_loc - 1]
                 if back != self._active_contract(oc, front, back, prev):
-                    rolls.insert(0, (oc.contract_sids[i + offset], session))
+                    rolls.insert(0, ((curr >> offset).contract.sid, session))
                     break
                 session_loc -= 1
-            i -= 1
-            curr = Timestamp(oc.auto_close_dates[i],
-                             tz='UTC')
+            curr = curr.prev
+            if curr is not None:
+                sess = curr.contract.auto_close_date
         return rolls
 
 
@@ -125,10 +121,8 @@ class CalendarRollFinder(RollFinder):
         self.asset_finder = asset_finder
 
     def _active_contract(self, oc, front, back, dt):
-        for i, sid in enumerate(oc.contract_sids):
-            if sid == front:
-                break
-        auto_close_date = Timestamp(oc.auto_close_dates[i], tz='UTC')
+        contract = oc.sid_to_contract[front].contract
+        auto_close_date = contract.auto_close_date
         auto_closed = dt >= auto_close_date
         return back if auto_closed else front
 
@@ -153,9 +147,6 @@ class VolumeRollFinder(RollFinder):
         if back_vol > front_vol:
             return back
         else:
-            for i, sid in enumerate(oc.contract_sids):
-                if sid == front:
-                    break
-            auto_close_date = Timestamp(oc.auto_close_dates[i], tz='UTC')
-            auto_closed = dt >= auto_close_date
+            contract = oc.sid_to_contract[front].contract
+            auto_closed = dt >= contract.auto_close_date
             return back if auto_closed else front
