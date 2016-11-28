@@ -14,7 +14,7 @@
 # limitations under the License.
 import math
 
-from numpy import isnan, full, arange
+from numpy import isnan
 
 
 def tolerant_equals(a, b, atol=10e-7, rtol=10e-7, equal_nan=False):
@@ -77,11 +77,3 @@ def round_if_near_integer(a, epsilon=1e-4):
         return round(a)
     else:
         return a
-
-
-def exponential_weights(length, decay_rate):
-    """
-    Return weighting vector for an exponential moving statistic on `length`
-    rows with a decay rate of `decay_rate`.
-    """
-    return full(length, decay_rate, float) ** arange(length + 1, 1, -1)

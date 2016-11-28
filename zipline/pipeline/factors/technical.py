@@ -14,6 +14,7 @@ from numpy import (
     dstack,
     exp,
     fmax,
+    full,
     inf,
     isnan,
     log,
@@ -25,8 +26,7 @@ from numexpr import evaluate
 
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.mixins import SingleInputMixin
-from zipline.utils.numpy_utils import ignore_nanwarnings
-from zipline.utils.input_validation import expect_types
+from zipline.utils.input_validation import expect_bounded, expect_types
 from zipline.utils.math_utils import (
     nanargmax,
     nanargmin,
@@ -35,9 +35,12 @@ from zipline.utils.math_utils import (
     nanstd,
     nansum,
     nanmin,
-    exponential_weights,
 )
-from zipline.utils.numpy_utils import rolling_window
+from zipline.utils.numpy_utils import (
+    float64_dtype,
+    ignore_nanwarnings,
+    rolling_window,
+)
 from .factor import CustomFactor
 
 
@@ -159,6 +162,28 @@ class AverageDollarVolume(CustomFactor):
 
     def compute(self, today, assets, out, close, volume):
         out[:] = nansum(close * volume, axis=0) / len(close)
+
+
+def exponential_weights(length, decay_rate):
+    """
+    Build a weight vector for an exponentially-weighted statistic.
+
+    The resulting ndarray is of the form::
+
+        [decay_rate ** length, ..., decay_rate ** 2, decay_rate]
+
+    Parameters
+    ----------
+    length : int
+        The length of the desired weight vector.
+    decay_rate : float
+        The rate at which entries in the weight vector increase or decrease.
+
+    Returns
+    -------
+    weights : ndarray[float64]
+    """
+    return full(length, decay_rate, float64_dtype) ** arange(length + 1, 1, -1)
 
 
 class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
@@ -379,13 +404,13 @@ class LinearWeightedMovingAverage(CustomFactor, SingleInputMixin):
     ctx = ignore_nanwarnings()
 
     def compute(self, today, assets, out, data):
-        num_days = data.shape[0]
+        ndays = data.shape[0]
 
         # Initialize weights array
-        weights = arange(1, num_days + 1, dtype=float).reshape(num_days, 1)
+        weights = arange(1, ndays + 1, dtype=float64_dtype).reshape(ndays, 1)
 
         # Compute normalizer
-        normalizer = (num_days * (num_days + 1)) / 2
+        normalizer = (ndays * (ndays + 1)) / 2
 
         # Weight the data
         weighted_data = data * weights
@@ -684,27 +709,34 @@ class MovingAverageConvergenceDivergenceSignal(CustomFactor):
     trend in a stock's price.
 
     **Default Inputs:** :data:`zipline.pipeline.data.USEquityPricing.close`
-    **Default Window Length:** Window length is automatically calculated as the
-    sum of slow_period and signal_period.
 
     Parameters
     ----------
-    fast_period : int > 0
+    fast_period : int > 0, optional
         The window length for the "fast" EWMA. Default is 12.
-    slow_period : int > 0, > fast_period
+    slow_period : int > 0, > fast_period, optional
         The window length for the "slow" EWMA. Default is 26.
-    signal_period' : int > 0, < fast_period
+    signal_period' : int > 0, < fast_period, optional
         The window length for the signal line. Default is 9.
 
-    Returns
-    -------
-    The EWMA of the difference between "fast" EWMA and "slow" EWMA line using
-    `signal_period` as span.
+    Notes
+    -----
+    Unlike most pipeline expressions, this factor does not accept a
+    ``window_length`` parameter. ``window_length`` is inferred from
+    ``slow_period`` and ``signal_period``.
     """
-
-    inputs = [USEquityPricing.close]
+    inputs = (USEquityPricing.close,)
+    # We don't use the default form of `params` here because we want to
+    # dynamically calculate `window_length` from the period lengths in our
+    # __new__.
     params = ('fast_period', 'slow_period', 'signal_period')
 
+    @expect_bounded(
+        __funcname='MACDSignal',
+        fast_period=(1, None),  # These must all be >= 1.
+        slow_period=(1, None),
+        signal_period=(1, None),
+    )
     def __new__(cls,
                 fast_period=12,
                 slow_period=26,
@@ -712,12 +744,13 @@ class MovingAverageConvergenceDivergenceSignal(CustomFactor):
                 *args,
                 **kwargs):
 
-        if signal_period <= 0:
-            raise ValueError("'signal_period' must be larger than 0.")
-        if slow_period <= fast_period or fast_period <= signal_period:
+        if slow_period <= fast_period:
             raise ValueError(
-                "'slow_period' must be larger than 'fast_period'."
-                "'fast_period' must be larger than 'signal_period'."
+                "'slow_period' must be greater than 'fast_period', but got\n"
+                "slow_period={slow}, fast_period={fast}".format(
+                    slow=slow_period,
+                    fast=fast_period,
+                )
             )
 
         return super(MovingAverageConvergenceDivergenceSignal, cls).__new__(
@@ -731,10 +764,11 @@ class MovingAverageConvergenceDivergenceSignal(CustomFactor):
 
     def _ewma(self, data, length):
         decay_rate = 1.0 - (2.0 / (1.0 + length))
-        return average(data,
-                       axis=1,
-                       weights=exponential_weights(length, decay_rate)
-                       )
+        return average(
+            data,
+            axis=1,
+            weights=exponential_weights(length, decay_rate)
+        )
 
     def compute(self, today, assets, out, close, fast_period, slow_period,
                 signal_period):
@@ -756,19 +790,19 @@ class AnnualizedVolatility(CustomFactor):
     https://en.wikipedia.org/wiki/Volatility_(finance)
 
     The degree of variation of a series over time as measured by the standard
-    deviation of returns.
+    deviation of daily returns.
 
     **Default Inputs:**
         :data:`zipline.pipeline.factors.Returns(window_length=2)`
 
     Parameters
     ----------
-    annualization_factor :
-        The number of time units per year. Defaults to average number of NYSE
-        trading days per year, 252.
+    annualization_factor : float, optional
+        The number of time units per year. Defaults is 252, the number of NYSE
+        trading days in a normal year.
     """
     inputs = [Returns(window_length=2)]
-    params = {'annualization_factor': 252}
+    params = {'annualization_factor': 252.0}
     window_length = 252
 
     def compute(self, today, assets, out, returns, annualization_factor):
