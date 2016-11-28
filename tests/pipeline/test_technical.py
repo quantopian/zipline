@@ -438,6 +438,35 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
             slow_period + signal_period - 1,
         )
 
+    def test_bad_inputs(self):
+        template = (
+            "MACDSignal() expected a value greater than or equal to 1"
+            " for argument %r, but got 0 instead."
+        )
+        with self.assertRaises(ValueError) as e:
+            MovingAverageConvergenceDivergenceSignal(fast_period=0)
+        self.assertEqual(template % 'fast_period', str(e.exception))
+
+        with self.assertRaises(ValueError) as e:
+            MovingAverageConvergenceDivergenceSignal(slow_period=0)
+        self.assertEqual(template % 'slow_period', str(e.exception))
+
+        with self.assertRaises(ValueError) as e:
+            MovingAverageConvergenceDivergenceSignal(signal_period=0)
+        self.assertEqual(template % 'signal_period', str(e.exception))
+
+        with self.assertRaises(ValueError) as e:
+            MovingAverageConvergenceDivergenceSignal(
+                fast_period=5,
+                slow_period=4,
+            )
+
+        expected = (
+            "'slow_period' must be greater than 'fast_period', but got\n"
+            "slow_period=4, fast_period=5"
+        )
+        self.assertEqual(expected, str(e.exception))
+
     @parameter_space(
         seed=range(2),
         fast_period=[3, 5],
@@ -478,14 +507,23 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
         close_df = pd.DataFrame(close)
         fast_ewma = self.expected_ewma(
             close_df,
-            fast_period)
+            fast_period,
+        )
         slow_ewma = self.expected_ewma(
             close_df,
-            slow_period)
-        expected_signal = self.expected_ewma(
-            fast_ewma-slow_ewma,
+            slow_period,
+        )
+        signal_ewma = self.expected_ewma(
+            fast_ewma - slow_ewma,
             signal_period
-        ).values[-1]
+        )
+
+        # Everything but the last row should be NaN.
+        self.assertTrue(signal_ewma.iloc[:-1].isnull().all().all())
+
+        # We're testing a single compute call, which we expect to be equivalent
+        # to the last row of the frame we calculated with pandas.
+        expected_signal = signal_ewma.values[-1]
 
         np.testing.assert_almost_equal(
             out,
@@ -505,7 +543,7 @@ class AnnualizedVolatilityTestCase(ZiplineTestCase):
         nassets = 3
         ann_vol = AnnualizedVolatility()
         today = pd.Timestamp('2016', tz='utc')
-        assets = np.arange(nassets, dtype=np.float)
+        assets = np.arange(nassets, dtype=np.float64)
         returns = np.full((ann_vol.window_length, nassets),
                           0.004,
                           dtype=np.float64)
@@ -527,7 +565,7 @@ class AnnualizedVolatilityTestCase(ZiplineTestCase):
         nassets = 3
         ann_vol = AnnualizedVolatility()
         today = pd.Timestamp('2016', tz='utc')
-        assets = np.arange(nassets, dtype=np.float)
+        assets = np.arange(nassets, dtype=np.float64)
         returns = np.random.normal(loc=0.001,
                                    scale=0.01,
                                    size=(ann_vol.window_length, nassets))
