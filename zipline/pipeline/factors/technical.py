@@ -14,6 +14,7 @@ from numpy import (
     dstack,
     exp,
     fmax,
+    full,
     inf,
     isnan,
     log,
@@ -35,7 +36,6 @@ from zipline.utils.math_utils import (
     nanstd,
     nansum,
     nanmin,
-    exponential_weights,
 )
 from zipline.utils.numpy_utils import rolling_window
 from .factor import CustomFactor
@@ -159,6 +159,28 @@ class AverageDollarVolume(CustomFactor):
 
     def compute(self, today, assets, out, close, volume):
         out[:] = nansum(close * volume, axis=0) / len(close)
+
+
+def exponential_weights(length, decay_rate):
+    """
+    Build a weight vector for an exponentially-weighted statistic.
+
+    The resulting ndarray is of the form::
+
+        [decay_rate ** length, ..., decay_rate ** 2, decay_rate]
+
+    Parameters
+    ----------
+    length : int
+        The length of the desired weight vector.
+    decay_rate : float
+        The rate at which entries in the weight vector increase or decrease.
+
+    Returns
+    -------
+    weights : ndarray[float64]
+    """
+    return full(length, decay_rate, float64_dtype) ** arange(length + 1, 1, -1)
 
 
 class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
