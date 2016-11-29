@@ -43,6 +43,7 @@ from zipline.utils.sqlite_utils import coerce_string_to_eng
 AssetData = namedtuple(
     'AssetData', (
         'equities',
+        'internal_equities',
         'equities_mappings',
         'futures',
         'exchanges',
@@ -174,10 +175,14 @@ def _generate_output_dataframe(data_subset, defaults):
     cols = set(data_subset.columns)
     desired_cols = set(defaults)
 
+    extra_cols = cols - desired_cols
+    if extra_cols:
+        extra_data = data_subset[list(extra_cols)]
+    else:
+        extra_data = pd.DataFrame()
+
     # Drop columns with unrecognised headers.
-    data_subset.drop(cols - desired_cols,
-                     axis=1,
-                     inplace=True)
+    data_subset.drop(cols - desired_cols, axis=1, inplace=True)
 
     # Get those columns which we need but
     # for which no data has been supplied.
@@ -185,7 +190,7 @@ def _generate_output_dataframe(data_subset, defaults):
         # write the default value for any missing columns
         data_subset[col] = defaults[col]
 
-    return data_subset
+    return data_subset, extra_data
 
 
 def _check_asset_group(group):
@@ -480,6 +485,8 @@ class AssetDBWriter(object):
                 mapping_data=data.equities_mappings,
             )
 
+            data.internal_equities.to_sql('internal_equities', conn)
+
     def _write_df_to_table(self, tbl, df, txn, chunk_size, idx_label=None):
         df.to_sql(
             tbl.name,
@@ -594,7 +601,7 @@ class AssetDBWriter(object):
         if 'file_name' in equities.columns:
             equities['symbol'] = equities['file_name']
 
-        equities_output = _generate_output_dataframe(
+        equities_output, internal_equities_output = _generate_output_dataframe(
             data_subset=equities,
             defaults=_equities_defaults,
         )
@@ -619,10 +626,15 @@ class AssetDBWriter(object):
                     'auto_close_date'):
             equities_output[col] = _dt_to_epoch_ns(equities_output[col])
 
-        return _split_symbol_mappings(equities_output)
+        (
+            equities_output,
+            equities_mappings,
+        ) = _split_symbol_mappings(equities_output)
+
+        return equities_output, equities_mappings, internal_equities_output
 
     def _normalize_futures(self, futures):
-        futures_output = _generate_output_dataframe(
+        futures_output, _ = _generate_output_dataframe(
             data_subset=futures,
             defaults=_futures_defaults,
         )
@@ -654,21 +666,26 @@ class AssetDBWriter(object):
             if id_col in df.columns:
                 df.set_index(id_col, inplace=True)
 
-        equities_output, equities_mappings = self._normalize_equities(equities)
+        (
+            equities_output,
+            equities_mappings,
+            internal_equities_output,
+        ) = self._normalize_equities(equities)
         futures_output = self._normalize_futures(futures)
 
-        exchanges_output = _generate_output_dataframe(
+        exchanges_output, _ = _generate_output_dataframe(
             data_subset=exchanges,
             defaults=_exchanges_defaults,
         )
 
-        root_symbols_output = _generate_output_dataframe(
+        root_symbols_output, _ = _generate_output_dataframe(
             data_subset=root_symbols,
             defaults=_root_symbols_defaults,
         )
 
         return AssetData(
             equities=equities_output,
+            internal_equities=internal_equities_output,
             equities_mappings=equities_mappings,
             futures=futures_output,
             exchanges=exchanges_output,

@@ -41,6 +41,18 @@ equities = sa.Table(
     sa.Column('exchange_full', sa.Text)
 )
 
+# internal_equities = sa.Table(
+#     'internal_equities',
+#     metadata,
+#     sa.Column(
+#         'sid',
+#         sa.Integer,
+#         unique=True,
+#         nullable=False,
+#         primary_key=True,
+#     ),
+# )
+
 equity_symbol_mappings = sa.Table(
     'equity_symbol_mappings',
     metadata,
