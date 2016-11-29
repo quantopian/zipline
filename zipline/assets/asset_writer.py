@@ -485,7 +485,9 @@ class AssetDBWriter(object):
                 mapping_data=data.equities_mappings,
             )
 
-            data.extra_equities.to_sql('extra_data', conn)
+            # Write provided equities fields that aren't part of the
+            # equtiies table to a separate table for extra fields.
+            data.extra_equities.to_sql('equities_extra_data', conn)
 
     def _write_df_to_table(self, tbl, df, txn, chunk_size, idx_label=None):
         df.to_sql(
