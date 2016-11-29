@@ -43,7 +43,7 @@ from zipline.utils.sqlite_utils import coerce_string_to_eng
 AssetData = namedtuple(
     'AssetData', (
         'equities',
-        'internal_equities',
+        'extra_equities',
         'equities_mappings',
         'futures',
         'exchanges',
@@ -485,7 +485,7 @@ class AssetDBWriter(object):
                 mapping_data=data.equities_mappings,
             )
 
-            data.internal_equities.to_sql('internal_equities', conn)
+            data.extra_equities.to_sql('extra_data', conn)
 
     def _write_df_to_table(self, tbl, df, txn, chunk_size, idx_label=None):
         df.to_sql(
@@ -601,7 +601,7 @@ class AssetDBWriter(object):
         if 'file_name' in equities.columns:
             equities['symbol'] = equities['file_name']
 
-        equities_output, internal_equities_output = _generate_output_dataframe(
+        equities_output, extra_equities_output = _generate_output_dataframe(
             data_subset=equities,
             defaults=_equities_defaults,
         )
@@ -631,7 +631,7 @@ class AssetDBWriter(object):
             equities_mappings,
         ) = _split_symbol_mappings(equities_output)
 
-        return equities_output, equities_mappings, internal_equities_output
+        return equities_output, equities_mappings, extra_equities_output
 
     def _normalize_futures(self, futures):
         futures_output, _ = _generate_output_dataframe(
@@ -669,7 +669,7 @@ class AssetDBWriter(object):
         (
             equities_output,
             equities_mappings,
-            internal_equities_output,
+            extra_equities_output,
         ) = self._normalize_equities(equities)
         futures_output = self._normalize_futures(futures)
 
@@ -685,7 +685,7 @@ class AssetDBWriter(object):
 
         return AssetData(
             equities=equities_output,
-            internal_equities=internal_equities_output,
+            extra_equities=extra_equities_output,
             equities_mappings=equities_mappings,
             futures=futures_output,
             exchanges=exchanges_output,
