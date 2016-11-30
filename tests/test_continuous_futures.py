@@ -1023,6 +1023,70 @@ def record_current_contract(algo, data):
                          125250.001,
                          "Should remain FOH16 on next session.")
 
+    def test_history_close_minute_adjusted_volume_roll(self):
+        cf = self.data_portal.asset_finder.create_continuous_future(
+            'FO', 0, 'volume')
+        cf_mul = self.data_portal.asset_finder.create_continuous_future(
+            'FO', 0, 'volume').adj('mul')
+        cf_add = self.data_portal.asset_finder.create_continuous_future(
+            'FO', 0, 'volume').adj('add')
+        window = self.data_portal.get_history_window(
+            [cf, cf_mul, cf_add],
+            Timestamp('2016-02-25 18:01', tz='US/Eastern').tz_convert('UTC'),
+            30, '1m', 'close')
+
+        # Unadjusted: 115231.412
+        # Adjustment based on roll:
+        # 2016-02-25 23:00:00+00:00
+        # front: 115231.440
+        # back:  125231.440
+        # Ratio: ~0.920
+        # Difference: 10000.00
+        self.assertEqual(window.loc['2016-02-25 22:32', cf_mul],
+                         125231.41,
+                         "Should be FOG16 at beginning of window. A minute "
+                         "which is in the 02-25 session, before the roll.")
+
+        self.assertEqual(window.loc['2016-02-25 22:32', cf_add],
+                         125231.412,
+                         "Should be FOG16 at beginning of window. A minute "
+                         "which is in the 02-25 session, before the roll.")
+
+        # Unadjusted: 115231.44
+        # Should use same ratios as above.
+        self.assertEqual(window.loc['2016-02-25 23:00', cf_mul],
+                         125231.44,
+                         "Should be FOG16 on on minute before roll minute, "
+                         "adjusted.")
+
+        self.assertEqual(window.loc['2016-02-25 23:00', cf_add],
+                         125231.44,
+                         "Should be FOG16 on on minute before roll minute, "
+                         "adjusted.")
+
+        self.assertEqual(window.loc['2016-02-25 23:01', cf_mul],
+                         125240.001,
+                         "Should be FOH16 on minute after roll, unadjusted.")
+
+        self.assertEqual(window.loc['2016-02-25 23:01', cf_add],
+                         125240.001,
+                         "Should be FOH16 on minute after roll, unadjusted.")
+
+        # Advance the window a session.
+        window = self.data_portal.get_history_window(
+            [cf, cf_mul, cf_add],
+            Timestamp('2016-02-28 18:01', tz='US/Eastern').tz_convert('UTC'),
+            30, '1m', 'close')
+
+        # No adjustments in this window.
+        self.assertEqual(window.loc['2016-02-26 22:32', cf_mul],
+                         125241.412,
+                         "Should be FOH16 at beginning of window.")
+
+        self.assertEqual(window.loc['2016-02-28 23:01', cf_mul],
+                         125250.001,
+                         "Should remain FOH16 on next session.")
+
 
 class OrderedContractsTestCase(WithAssetFinder,
                                ZiplineTestCase):
