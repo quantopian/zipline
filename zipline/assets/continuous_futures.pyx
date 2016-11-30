@@ -318,7 +318,12 @@ cdef class OrderedContracts(object):
         while contracts:
             contract = contracts.popleft()
 
-            # Here is where a predicate would go to ensure continuity of the chain.
+            # Prevent contract chains with gaps between auto close and start of
+            # next contract.
+            # This is in lieu of more explicit support for
+            # contracts with quarterly rolls. e.g. Eurodollar
+            if contract.start_date > prev.contract.auto_close_date:
+                continue
 
             self._start_date = min(contract.start_date.value, self._start_date)
             self._end_date = max(contract.end_date.value, self._end_date)

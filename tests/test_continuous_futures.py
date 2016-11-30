@@ -58,15 +58,16 @@ class ContinuousFuturesTestCase(WithCreateBarData,
     @classmethod
     def make_root_symbols_info(self):
         return pd.DataFrame({
-            'root_symbol': ['FO'],
-            'root_symbol_id': [1],
-            'exchange': ['CME']})
+            'root_symbol': ['FO', 'BA'],
+            'root_symbol_id': [1, 2],
+            'exchange': ['CME', 'CME']})
 
     @classmethod
     def make_futures_info(self):
-        return DataFrame({
+        fo_frame = DataFrame({
             'symbol': ['FOF16', 'FOG16', 'FOH16', 'FOJ16', 'FOK16', 'FOF22',
                        'FOG22'],
+            'sid': range(0, 7),
             'root_symbol': ['FO'] * 7,
             'asset_name': ['Foo'] * 7,
             'start_date': [Timestamp('2015-01-05', tz='UTC'),
@@ -80,8 +81,8 @@ class ContinuousFuturesTestCase(WithCreateBarData,
                          Timestamp('2016-09-19', tz='UTC'),
                          Timestamp('2016-10-19', tz='UTC'),
                          Timestamp('2016-11-19', tz='UTC'),
-                         Timestamp('2016-12-19', tz='UTC'),
                          Timestamp('2022-08-19', tz='UTC'),
+                         Timestamp('2022-09-19', tz='UTC'),
                          # Set the last contract's end date (which is the last
                          # date for which there is data to a value that is
                          # within the range of the dates being tested.  This
@@ -114,6 +115,36 @@ class ContinuousFuturesTestCase(WithCreateBarData,
             'multiplier': [1000.0] * 7,
             'exchange': ['CME'] * 7,
         })
+
+        # BA is set up to test a quarterly roll, to test Eurodollar-like
+        # behavior
+        # The roll should go from BAH16 -> BAM16
+        ba_frame = DataFrame({
+            'symbol': ['BAH16', 'BAK16', 'BAM16'],
+            'root_symbol': ['BA'] * 3,
+            'asset_name': ['Bar'] * 3,
+            'sid': range(7, 10),
+            'start_date': [Timestamp('2005-04-01', tz='UTC'),
+                           Timestamp('2016-04-21', tz='UTC'),
+                           Timestamp('2005-06-21', tz='UTC')],
+            'end_date': [Timestamp('2016-08-19', tz='UTC'),
+                         Timestamp('2016-04-21', tz='UTC'),
+                         Timestamp('2016-10-19', tz='UTC')],
+            'notice_date': [Timestamp('2016-03-11', tz='UTC'),
+                            Timestamp('2016-05-13', tz='UTC'),
+                            Timestamp('2016-06-10', tz='UTC')],
+            'expiration_date': [Timestamp('2016-03-11', tz='UTC'),
+                                Timestamp('2016-05-13', tz='UTC'),
+                                Timestamp('2016-06-10', tz='UTC')],
+            'auto_close_date': [Timestamp('2016-03-11', tz='UTC'),
+                                Timestamp('2016-05-13', tz='UTC'),
+                                Timestamp('2016-06-10', tz='UTC')],
+            'tick_size': [0.001] * 3,
+            'multiplier': [1000.0] * 3,
+            'exchange': ['CME'] * 3,
+        })
+
+        return pd.concat([fo_frame, ba_frame])
 
     @classmethod
     def make_future_minute_bar_data(cls):
@@ -163,14 +194,17 @@ class ContinuousFuturesTestCase(WithCreateBarData,
         # FOG16 cuts out on autoclose
         # FOH16 cuts out 4 days before autoclose
         # FOJ16 cuts out 3 days before autoclose
+        # Make FOG22 have a blip of trading, but not be the actively trading,
+        # so that it does not particpate in volume rolls.
 
         sid_to_vol_stop_session = {
             0: Timestamp('2016-01-26', tz='UTC'),
             1: Timestamp('2016-02-26', tz='UTC'),
             2: Timestamp('2016-03-18', tz='UTC'),
             3: Timestamp('2016-04-20', tz='UTC'),
+            6: Timestamp('2016-01-27', tz='UTC'),
         }
-        for i in range(6):
+        for i in range(7):
             df = base_df.copy()
             df += i * 10000
             if i in sid_to_vol_stop_session:
@@ -537,6 +571,27 @@ def record_current_contract(algo, data):
         self.assertEqual(window.loc['2016-03-28', cf],
                          3,
                          "Should be FOJ16 on session after roll.")
+
+    def test_history_sid_session_quarter_rolls(self):
+        cf = self.data_portal.asset_finder.create_continuous_future(
+            'BA', 0, 'calendar')
+        window = self.data_portal.get_history_window(
+            [cf],
+            Timestamp('2016-03-13 18:01', tz='US/Eastern').tz_convert('UTC'),
+            3, '1d', 'sid')
+
+        self.assertEqual(window.loc['2016-03-10', cf],
+                         7,
+                         "Should be BAH16 at beginning of window.")
+
+        self.assertEqual(window.loc['2016-03-11', cf],
+                         9,
+                         "Should be BAM16 after first roll, having skipped "
+                         "over BAK16.")
+
+        self.assertEqual(window.loc['2016-03-14', cf],
+                         9,
+                         "Should have remained BAM16")
 
     def test_history_sid_session_secondary(self):
         cf = self.data_portal.asset_finder.create_continuous_future(
