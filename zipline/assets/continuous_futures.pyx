@@ -29,8 +29,9 @@ from cpython.object cimport (
 )
 from cpython cimport bool
 
-from numpy import empty
+from numpy import array, empty, iinfo
 from numpy cimport long_t, int64_t
+from pandas import Timestamp
 import warnings
 
 from zipline.utils.calendars import get_calendar
@@ -241,6 +242,33 @@ cdef class ContinuousFuture:
         except KeyError:
             return None
 
+cdef class ContractNode(object):
+
+    cdef readonly object contract
+    cdef public object prev
+    cdef public object next
+
+    def __init__(self, contract):
+        self.contract = contract
+        self.prev = None
+        self.next = None
+
+    def __rshift__(self, offset):
+        i = 0
+        curr = self
+        while i < offset and curr is not None:
+            curr = curr.next
+            i += 1
+        return curr
+
+    def __lshift__(self, offset):
+        i = 0
+        curr = self
+        while i < offset and curr is not None:
+            curr = curr.prev
+            i += 1
+        return curr
+
 
 cdef class OrderedContracts(object):
     """
@@ -249,16 +277,12 @@ cdef class OrderedContracts(object):
     Used to get answers about contracts in relation to their auto close
     dates and start dates.
 
-    The number of contracts for a given root symbol is ~250,
-    which is why search by comparison over the range of contracts is
-    used. At this size, this is faster than using an index or np.searchsorted.
-
     Members
     -------
     root_symbol : str
         The root symbol of the future contract chain.
-    contract_sids : long[:]
-        The contract sids in sorted order of occurrence.
+    contracts : deque
+        The contracts in the chain in order of occurrence.
     start_dates : long[:]
         The start dates of the contracts in the chain.
         Corresponds by index with contract_sids.
@@ -271,68 +295,85 @@ cdef class OrderedContracts(object):
     """
 
     cdef readonly object root_symbol
-    cdef int _size
-    cdef readonly long_t[:] contract_sids
-    cdef readonly long_t[:] start_dates
-    cdef readonly long_t[:] auto_close_dates
+    cdef readonly object head_contract
+    cdef readonly dict sid_to_contract
+    cdef readonly int64_t _start_date
+    cdef readonly int64_t _end_date
 
-    def __init__(self,
-                 object root_symbol,
-                 long_t[:] contract_sids,
-                 long_t[:] start_dates,
-                 long_t[:] auto_close_dates):
-        self._size = len(contract_sids)
+    def __init__(self, object root_symbol, object contracts):
+
         self.root_symbol = root_symbol
-        self.contract_sids = contract_sids
-        self.start_dates = start_dates
-        self.auto_close_dates = auto_close_dates
+
+        self.sid_to_contract = {}
+
+        self._start_date = iinfo('int64').max
+        self._end_date = 0
+
+        contract = contracts.popleft()
+        self.head_contract = ContractNode(contract)
+        self._start_date = min(contract.start_date.value, self._start_date)
+        self._end_date = max(contract.end_date.value, self._end_date)
+        self.sid_to_contract[contract.sid] = self.head_contract
+        prev = self.head_contract
+        while contracts:
+            contract = contracts.popleft()
+
+            # Here is where a predicate would go to ensure continuity of the chain.
+
+            self._start_date = min(contract.start_date.value, self._start_date)
+            self._end_date = max(contract.end_date.value, self._end_date)
+            
+            curr = ContractNode(contract)
+            curr.prev = prev
+            prev.next = curr
+            prev = curr
+
+            self.sid_to_contract[contract.sid] = curr
     
     cpdef long_t contract_before_auto_close(self, long_t dt_value):
         """
         Get the contract with next upcoming auto close date.
         """
-        cdef Py_ssize_t i, auto_close_date
-        for i, auto_close_date in enumerate(self.auto_close_dates):
-            if auto_close_date > dt_value:
+        curr = self.head_contract
+        while curr.next is not None:
+            if curr.contract.auto_close_date.value > dt_value:
                 break
-        return self.contract_sids[i]
+            curr = curr.next
+        return curr.contract.sid
 
     cpdef contract_at_offset(self, long_t sid, Py_ssize_t offset, int64_t start_cap):
         """
         Get the sid which is the given sid plus the offset distance.
         An offset of 0 should be reflexive.
         """
-        cdef Py_ssize_t i, j
-        cdef long_t[:] sids
-        sids = self.contract_sids
-        start_dates = self.start_dates
+        cdef Py_ssize_t i
+        curr = self.sid_to_contract[sid]
         i = 0
-        j = i + offset
-        while j < self._size:
-            if sid == sids[i]:
-                if start_dates[j] < start_cap:
-                    return sids[j]
-                else:
-                    return None
+        while i < offset:
+            if curr.next is None:
+                return None
+            curr = curr.next
             i += 1
-            j += 1
+        if curr.contract.start_date.value <= start_cap:
+            return curr.contract.sid
+        else:
+            return None
 
     cpdef long_t[:] active_chain(self, long_t starting_sid, long_t dt_value):
-        cdef Py_ssize_t left, right, i, j
-        cdef long_t[:] sids, start_dates
-        left = 0
-        right = self._size
-        sids = self.contract_sids
-        start_dates = self.start_dates
+        curr = self.sid_to_contract[starting_sid]
+        cdef list contracts = []
 
-        for i in range(self._size):
-            if starting_sid == sids[i]:
-                left = i
-                break
+        while curr is not None:
+            if curr.contract.start_date.value <= dt_value:
+                contracts.append(curr.contract.sid)
+            curr = curr.next
+            
+        return array(contracts, dtype='int64')
 
-        for j in range(i, self._size):
-            if start_dates[j] > dt_value:
-                right = j
-                break
+    property start_date:
+        def __get__(self):
+            return Timestamp(self._start_date, tz='UTC')
 
-        return sids[left:right]
+    property end_date:
+        def __get__(self):
+            return Timestamp(self._end_date, tz='UTC')

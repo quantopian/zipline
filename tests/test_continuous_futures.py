@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from collections import deque
 from textwrap import dedent
 
 from numpy import (
@@ -31,6 +31,7 @@ from zipline import TradingAlgorithm
 from zipline.assets.continuous_futures import OrderedContracts
 from zipline.data.minute_bars import FUTURES_MINUTES_PER_DAY
 from zipline.testing.fixtures import (
+    WithAssetFinder,
     WithCreateBarData,
     WithDataPortal,
     WithBcolzFutureMinuteBarReader,
@@ -415,15 +416,15 @@ def record_current_contract(algo, data):
         result = results.iloc[0]
 
         self.assertEqual(result.primary_len,
-                         5,
-                         'There should be only 5 contracts in the chain for '
-                         'the primary, there are 6 contracts defined in the '
+                         6,
+                         'There should be only 6 contracts in the chain for '
+                         'the primary, there are 7 contracts defined in the '
                          'fixture, but one has a start after the simulation '
                          'date.')
         self.assertEqual(result.secondary_len,
-                         4,
-                         'There should be only 4 contracts in the chain for '
-                         'the primary, there are 6 contracts defined in the '
+                         5,
+                         'There should be only 5 contracts in the chain for '
+                         'the primary, there are 7 contracts defined in the '
                          'fixture, but one has a start after the simulation '
                          'date. And the first is not included because it is '
                          'the primary on that date.')
@@ -438,11 +439,11 @@ def record_current_contract(algo, data):
                          'session.')
 
         self.assertEqual(result.primary_last,
-                         'FOK16',
+                         'FOG22',
                          'End of primary chain should be FOK16 on first '
                          'session.')
         self.assertEqual(result.secondary_last,
-                         'FOK16',
+                         'FOG22',
                          'End of secondary chain should be FOK16 on first '
                          'session.')
 
@@ -450,15 +451,15 @@ def record_current_contract(algo, data):
         result = results.iloc[1]
 
         self.assertEqual(result.primary_len,
-                         4,
-                         'There should be only 4 contracts in the chain for '
-                         'the primary, there are 6 contracts defined in the '
+                         5,
+                         'There should be only 5 contracts in the chain for '
+                         'the primary, there are 7 contracts defined in the '
                          'fixture, but one has a start after the simulation '
                          'date. The first is not included because of roll.')
         self.assertEqual(result.secondary_len,
-                         3,
-                         'There should be only 3 contracts in the chain for '
-                         'the primary, there are 6 contracts defined in the '
+                         4,
+                         'There should be only 4 contracts in the chain for '
+                         'the primary, there are 7 contracts defined in the '
                          'fixture, but one has a start after the simulation '
                          'date. The first is not included because of roll, '
                          'the second is the primary on that date.')
@@ -475,11 +476,11 @@ def record_current_contract(algo, data):
         # These values remain FOJ16 because fixture data is not exhaustive
         # enough to move the end of the chain.
         self.assertEqual(result.primary_last,
-                         'FOK16',
+                         'FOG22',
                          'End of primary chain should be FOK16 on second '
                          'session.')
         self.assertEqual(result.secondary_last,
-                         'FOK16',
+                         'FOG22',
                          'End of secondary chain should be FOK16 on second '
                          'session.')
 
@@ -968,17 +969,43 @@ def record_current_contract(algo, data):
                          "Should remain FOH16 on next session.")
 
 
-class OrderedContractsTestCase(ZiplineTestCase):
+class OrderedContractsTestCase(WithAssetFinder,
+                               ZiplineTestCase):
+
+    @classmethod
+    def make_root_symbols_info(self):
+        return pd.DataFrame({
+            'root_symbol': ['FO'],
+            'root_symbol_id': [1],
+            'exchange': ['CME']})
+
+    @classmethod
+    def make_futures_info(self):
+        return DataFrame({
+            'root_symbol': ['FO'] * 4,
+            'asset_name': ['Foo'] * 4,
+            'sid': range(1, 5),
+            'start_date': pd.date_range('2015-01-01', periods=4, tz="UTC"),
+            'end_date': pd.date_range('2016-01-01', periods=4, tz="UTC"),
+            'notice_date': pd.date_range('2016-01-01', periods=4, tz="UTC"),
+            'expiration_date': pd.date_range(
+                '2016-01-01', periods=4, tz="UTC"),
+            'expiration_date': pd.date_range(
+                '2016-01-01', periods=4, tz="UTC"),
+            'auto_close_date': pd.date_range(
+                '2016-01-01', periods=4, tz="UTC"),
+            'tick_size': [0.001] * 4,
+            'multiplier': [1000.0] * 4,
+            'exchange': ['CME'] * 4,
+        })
 
     def test_contract_at_offset(self):
         contract_sids = array([1, 2, 3, 4], dtype=int64)
         start_dates = pd.date_range('2015-01-01', periods=4, tz="UTC")
-        auto_close_dates = pd.date_range('2016-04-01', periods=4, tz="UTC")
 
-        oc = OrderedContracts('FO',
-                              contract_sids,
-                              start_dates.astype('int64'),
-                              auto_close_dates.astype('int64'))
+        contracts = deque(self.asset_finder.retrieve_all(contract_sids))
+
+        oc = OrderedContracts('FO', contracts)
 
         self.assertEquals(1,
                           oc.contract_at_offset(1, 0, start_dates[-1].value),
@@ -994,13 +1021,10 @@ class OrderedContractsTestCase(ZiplineTestCase):
 
     def test_active_chain(self):
         contract_sids = array([1, 2, 3, 4], dtype=int64)
-        start_dates = pd.date_range('2015-01-01', periods=4, tz="UTC")
-        auto_close_dates = pd.date_range('2016-04-01', periods=4, tz="UTC")
 
-        oc = OrderedContracts('FO',
-                              contract_sids,
-                              start_dates.astype('int64'),
-                              auto_close_dates.astype('int64'))
+        contracts = deque(self.asset_finder.retrieve_all(contract_sids))
+
+        oc = OrderedContracts('FO', contracts)
 
         # Test sid 1 as days increment, as the sessions march forward
         # a contract should be added per day, until all defined contracts

@@ -15,7 +15,7 @@
 from abc import ABCMeta
 import array
 import binascii
-from collections import namedtuple
+from collections import deque, namedtuple
 from numbers import Integral
 from operator import itemgetter, attrgetter
 import struct
@@ -880,15 +880,14 @@ class AssetFinder(object):
 
         return sids
 
-    def _get_contract_info(self, root_symbol):
+    def _get_contract_sids(self, root_symbol):
         fc_cols = self.futures_contracts.c
 
-        fields = (fc_cols.sid, fc_cols.start_date, fc_cols.auto_close_date)
-
-        return list(sa.select(fields).where(
-            (fc_cols.root_symbol == root_symbol) &
-            (fc_cols.start_date != pd.NaT.value))
-            .order_by(fc_cols.auto_close_date).execute().fetchall())
+        return [r.sid for r in
+                list(sa.select((fc_cols.sid,)).where(
+                    (fc_cols.root_symbol == root_symbol) &
+                    (fc_cols.start_date != pd.NaT.value)).order_by(
+                        fc_cols.sid).execute().fetchall())]
 
     def _get_root_symbol_exchange(self, root_symbol):
         fc_cols = self.futures_root_symbols.c
@@ -902,29 +901,14 @@ class AssetFinder(object):
         try:
             return self._ordered_contracts[root_symbol]
         except KeyError:
-            contract_info = self._get_contract_info(root_symbol)
-            size = len(contract_info)
-            sids = np.full(size, 0, dtype=np.int64)
-            start_dates = np.full(size, 0, dtype=np.int64)
-            auto_close_dates = np.full(size, 0, dtype=np.int64)
-            self._size = size
-            for i, info in enumerate(contract_info):
-                sid, start_date, auto_close_date = info
-                sids[i] = sid
-                start_dates[i] = start_date
-                auto_close_dates[i] = auto_close_date
-            oc = OrderedContracts(root_symbol,
-                                  sids,
-                                  start_dates,
-                                  auto_close_dates)
+            contract_sids = self._get_contract_sids(root_symbol)
+            contracts = deque(self.retrieve_all(contract_sids))
+            oc = OrderedContracts(root_symbol, contracts)
             self._ordered_contracts[root_symbol] = oc
             return oc
 
     def create_continuous_future(self, root_symbol, offset, roll_style):
         oc = self.get_ordered_contracts(root_symbol)
-        contracts = self.retrieve_all(oc.contract_sids)
-        start_date = min(c.start_date for c in contracts)
-        end_date = max(c.end_date for c in contracts)
         exchange = self._get_root_symbol_exchange(root_symbol)
 
         sid = _encode_continuous_future_sid(root_symbol, offset,
@@ -940,24 +924,24 @@ class AssetFinder(object):
                                   root_symbol,
                                   offset,
                                   roll_style,
-                                  start_date,
-                                  end_date,
+                                  oc.start_date,
+                                  oc.end_date,
                                   exchange,
                                   'mul')
         add_cf = ContinuousFuture(add_sid,
                                   root_symbol,
                                   offset,
                                   roll_style,
-                                  start_date,
-                                  end_date,
+                                  oc.start_date,
+                                  oc.end_date,
                                   exchange,
                                   'add')
         cf = ContinuousFuture(sid,
                               root_symbol,
                               offset,
                               roll_style,
-                              start_date,
-                              end_date,
+                              oc.start_date,
+                              oc.end_date,
                               exchange,
                               adjustment_children={
                                   'mul': mul_cf,
