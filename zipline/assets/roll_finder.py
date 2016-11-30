@@ -80,7 +80,8 @@ class RollFinder(with_metaclass(ABCMeta, object)):
         front = self.get_contract_center(root_symbol, end, 0)
         back = oc.contract_at_offset(front, 1, end.value)
         if back is not None:
-            first = self._active_contract(oc, front, back, end)
+            end_session = self.trading_calendar.minute_to_session_label(end)
+            first = self._active_contract(oc, front, back, end_session)
         else:
             first = front
         first_contract = oc.sid_to_contract[first]
