@@ -988,10 +988,11 @@ class BlazeLoader(dict):
         have_sids = (dataset.ndim == 2)
         asset_idx = pd.Series(index=assets, data=np.arange(len(assets)))
         assets = list(map(int, assets))  # coerce from numpy.int64
-        added_query_fields = [AD_FIELD_NAME, TS_FIELD_NAME] + (
-            [SID_FIELD_NAME] if have_sids else []
+        added_query_fields = {AD_FIELD_NAME, TS_FIELD_NAME} | (
+            {SID_FIELD_NAME} if have_sids else set()
         )
-        colnames = added_query_fields + list(map(getname, columns))
+        requested_columns = set(map(getname, columns))
+        colnames = sorted(added_query_fields | requested_columns)
 
         data_query_time = self._data_query_time
         data_query_tz = self._data_query_tz
@@ -1078,7 +1079,8 @@ class BlazeLoader(dict):
             materialized_deltas,
             dates,
         )
-        sparse_output.drop(AD_FIELD_NAME, axis=1, inplace=True)
+        if AD_FIELD_NAME not in requested_columns:
+            sparse_output.drop(AD_FIELD_NAME, axis=1, inplace=True)
 
         sparse_deltas = last_in_date_group(non_novel_deltas,
                                            dates,
