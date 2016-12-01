@@ -20,6 +20,7 @@ from six import string_types
 from sqlalchemy import create_engine
 
 from zipline.assets import AssetDBWriter, AssetFinder
+from zipline.assets.continuous_futures import CHAIN_PREDICATES
 from zipline.data.loader import load_market_data
 from zipline.utils.calendars import get_calendar
 from zipline.utils.memoize import remember_last
@@ -80,7 +81,8 @@ class TradingEnvironment(object):
         bm_symbol='^GSPC',
         exchange_tz="US/Eastern",
         trading_calendar=None,
-        asset_db_path=':memory:'
+        asset_db_path=':memory:',
+        future_chain_predicates=CHAIN_PREDICATES,
     ):
 
         self.bm_symbol = bm_symbol
@@ -106,7 +108,9 @@ class TradingEnvironment(object):
 
         if engine is not None:
             AssetDBWriter(engine).init_db()
-            self.asset_finder = AssetFinder(engine)
+            self.asset_finder = AssetFinder(
+                engine,
+                future_chain_predicates=future_chain_predicates)
         else:
             self.asset_finder = None
 

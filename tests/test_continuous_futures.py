@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import deque
+from functools import partial
 from textwrap import dedent
 
 from numpy import (
@@ -28,7 +29,10 @@ import pandas as pd
 from pandas import Timestamp, DataFrame
 
 from zipline import TradingAlgorithm
-from zipline.assets.continuous_futures import OrderedContracts
+from zipline.assets.continuous_futures import (
+    OrderedContracts,
+    delivery_predicate
+)
 from zipline.data.minute_bars import FUTURES_MINUTES_PER_DAY
 from zipline.testing.fixtures import (
     WithAssetFinder,
@@ -55,12 +59,16 @@ class ContinuousFuturesTestCase(WithCreateBarData,
     TRADING_CALENDAR_STRS = ('us_futures',)
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
+    TRADING_ENV_FUTURE_CHAIN_PREDICATES = {
+        'BZ': partial(delivery_predicate, set(['F', 'H'])),
+    }
+
     @classmethod
     def make_root_symbols_info(self):
         return pd.DataFrame({
-            'root_symbol': ['FO', 'BA'],
-            'root_symbol_id': [1, 2],
-            'exchange': ['CME', 'CME']})
+            'root_symbol': ['FO', 'BA', 'BZ'],
+            'root_symbol_id': [1, 2, 3],
+            'exchange': ['CME', 'CME', 'CME']})
 
     @classmethod
     def make_futures_info(self):
@@ -144,7 +152,34 @@ class ContinuousFuturesTestCase(WithCreateBarData,
             'exchange': ['CME'] * 3,
         })
 
-        return pd.concat([fo_frame, ba_frame])
+        # BZ is set up to test chain predicates, for futures such as PL which
+        # only use a subset of contracts for the roll chain.
+        bz_frame = DataFrame({
+            'symbol': ['BZF16', 'BZG16', 'BZH16'],
+            'root_symbol': ['BZ'] * 3,
+            'asset_name': ['Baz'] * 3,
+            'sid': range(10, 13),
+            'start_date': [Timestamp('2005-01-01', tz='UTC'),
+                           Timestamp('2005-01-21', tz='UTC'),
+                           Timestamp('2005-01-21', tz='UTC')],
+            'end_date': [Timestamp('2016-08-19', tz='UTC'),
+                         Timestamp('2016-11-21', tz='UTC'),
+                         Timestamp('2016-10-19', tz='UTC')],
+            'notice_date': [Timestamp('2016-01-11', tz='UTC'),
+                            Timestamp('2016-02-08', tz='UTC'),
+                            Timestamp('2016-03-09', tz='UTC')],
+            'expiration_date': [Timestamp('2016-01-11', tz='UTC'),
+                                Timestamp('2016-02-08', tz='UTC'),
+                                Timestamp('2016-03-09', tz='UTC')],
+            'auto_close_date': [Timestamp('2016-01-11', tz='UTC'),
+                                Timestamp('2016-02-08', tz='UTC'),
+                                Timestamp('2016-03-09', tz='UTC')],
+            'tick_size': [0.001] * 3,
+            'multiplier': [1000.0] * 3,
+            'exchange': ['CME'] * 3,
+        })
+
+        return pd.concat([fo_frame, ba_frame, bz_frame])
 
     @classmethod
     def make_future_minute_bar_data(cls):
@@ -592,6 +627,27 @@ def record_current_contract(algo, data):
         self.assertEqual(window.loc['2016-03-14', cf],
                          9,
                          "Should have remained BAM16")
+
+    def test_history_sid_session_delivery_predicate(self):
+        cf = self.data_portal.asset_finder.create_continuous_future(
+            'BZ', 0, 'calendar')
+        window = self.data_portal.get_history_window(
+            [cf],
+            Timestamp('2016-01-11 18:01', tz='US/Eastern').tz_convert('UTC'),
+            3, '1d', 'sid')
+
+        self.assertEqual(window.loc['2016-01-08', cf],
+                         10,
+                         "Should be BZF16 at beginning of window.")
+
+        self.assertEqual(window.loc['2016-01-11', cf],
+                         12,
+                         "Should be BZH16 after first roll, having skipped "
+                         "over BZG16.")
+
+        self.assertEqual(window.loc['2016-01-12', cf],
+                         12,
+                         "Should have remained BZG16")
 
     def test_history_sid_session_secondary(self):
         cf = self.data_portal.asset_finder.create_continuous_future(
@@ -1094,15 +1150,16 @@ class OrderedContractsTestCase(WithAssetFinder,
     @classmethod
     def make_root_symbols_info(self):
         return pd.DataFrame({
-            'root_symbol': ['FO'],
-            'root_symbol_id': [1],
-            'exchange': ['CME']})
+            'root_symbol': ['FO', 'BA'],
+            'root_symbol_id': [1, 2],
+            'exchange': ['CME', 'CME']})
 
     @classmethod
     def make_futures_info(self):
-        return DataFrame({
+        fo_frame = DataFrame({
             'root_symbol': ['FO'] * 4,
             'asset_name': ['Foo'] * 4,
+            'symbol': ['FOF16', 'FOG16', 'FOH16', 'FOJ16'],
             'sid': range(1, 5),
             'start_date': pd.date_range('2015-01-01', periods=4, tz="UTC"),
             'end_date': pd.date_range('2016-01-01', periods=4, tz="UTC"),
@@ -1117,6 +1174,29 @@ class OrderedContractsTestCase(WithAssetFinder,
             'multiplier': [1000.0] * 4,
             'exchange': ['CME'] * 4,
         })
+        # BA is set up to test a quarterly roll, to test Eurodollar-like
+        # behavior
+        # The roll should go from BAH16 -> BAM16
+        ba_frame = DataFrame({
+            'root_symbol': ['BA'] * 3,
+            'asset_name': ['Bar'] * 3,
+            'symbol': ['BAF16', 'BAG16', 'BAH16'],
+            'sid': range(5, 8),
+            'start_date': pd.date_range('2015-01-01', periods=3, tz="UTC"),
+            'end_date': pd.date_range('2016-01-01', periods=3, tz="UTC"),
+            'notice_date': pd.date_range('2016-01-01', periods=3, tz="UTC"),
+            'expiration_date': pd.date_range(
+                '2016-01-01', periods=3, tz="UTC"),
+            'expiration_date': pd.date_range(
+                '2016-01-01', periods=3, tz="UTC"),
+            'auto_close_date': pd.date_range(
+                '2016-01-01', periods=3, tz="UTC"),
+            'tick_size': [0.001] * 3,
+            'multiplier': [1000.0] * 3,
+            'exchange': ['CME'] * 3,
+        })
+
+        return pd.concat([fo_frame, ba_frame])
 
     def test_contract_at_offset(self):
         contract_sids = array([1, 2, 3, 4], dtype=int64)
@@ -1196,6 +1276,23 @@ class OrderedContractsTestCase(WithAssetFinder,
         chain = oc.active_chain(4, pd.Timestamp('2015-01-04', tz='UTC').value)
         self.assertEquals([4], list(chain),
                           "[4] should be active beginning at its start date.")
+
+    def test_delivery_predicate(self):
+        contract_sids = range(5, 8)
+        contracts = deque(self.asset_finder.retrieve_all(contract_sids))
+
+        oc = OrderedContracts('BA', contracts,
+                              chain_predicate=partial(delivery_predicate,
+                                                      set(['F', 'H'])))
+
+        # Test sid 1 as days increment, as the sessions march forward
+        # a contract should be added per day, until all defined contracts
+        # are returned.
+        chain = oc.active_chain(5, pd.Timestamp('2015-01-05', tz='UTC').value)
+        self.assertEquals(
+            [5, 7], list(chain),
+            "Contract BAG16 (sid=6) should be ommitted from chain, since "
+            "it does not satisfy the roll predicate.")
 
 
 class NoPrefetchContinuousFuturesTestCase(ContinuousFuturesTestCase):

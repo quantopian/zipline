@@ -29,12 +29,29 @@ from cpython.object cimport (
 )
 from cpython cimport bool
 
+from functools import partial
+
 from numpy import array, empty, iinfo
 from numpy cimport long_t, int64_t
 from pandas import Timestamp
 import warnings
 
 from zipline.utils.calendars import get_calendar
+
+
+def delivery_predicate(codes, contract):
+    # This relies on symbols that are construct following a pattern of
+    # root symbol + delivery code + year, e.g. PLF16
+    # This check would be more robust if the future contract class had
+    # a 'delivery_month' member.
+    delivery_code = contract.symbol[-3]
+    return delivery_code in codes
+
+CHAIN_PREDICATES = {
+    'ME': partial(delivery_predicate, set(['H', 'M', 'U', 'Z'])),
+    'PL': partial(delivery_predicate, set(['F', 'J', 'N', 'V'])),
+    'PA': partial(delivery_predicate, set(['H', 'M', 'U', 'Z']))
+}
 
 
 cdef class ContinuousFuture:
@@ -289,18 +306,23 @@ cdef class OrderedContracts(object):
     auto_close_dates : long[:]
         The auto close dates of the contracts in the chain.
         Corresponds by index with contract_sids.
+    future_chain_predicates : dict
+        A dict mapping root symbol to a predicate function which accepts a contract
+    as a parameter and returns whether or not the contract should be included in the
+    chain.
 
     Instances of this class are used by the simulation engine, but not
     exposed to the algorithm.
     """
 
     cdef readonly object root_symbol
-    cdef readonly object head_contract
+    cdef readonly object _head_contract
     cdef readonly dict sid_to_contract
     cdef readonly int64_t _start_date
     cdef readonly int64_t _end_date
+    cdef readonly object chain_predicate
 
-    def __init__(self, object root_symbol, object contracts):
+    def __init__(self, object root_symbol, object contracts, object chain_predicate=None):
 
         self.root_symbol = root_symbol
 
@@ -309,12 +331,11 @@ cdef class OrderedContracts(object):
         self._start_date = iinfo('int64').max
         self._end_date = 0
 
-        contract = contracts.popleft()
-        self.head_contract = ContractNode(contract)
-        self._start_date = min(contract.start_date.value, self._start_date)
-        self._end_date = max(contract.end_date.value, self._end_date)
-        self.sid_to_contract[contract.sid] = self.head_contract
-        prev = self.head_contract
+        if chain_predicate is None:
+            chain_predicate = lambda x: True
+
+        self._head_contract = None
+        prev = None
         while contracts:
             contract = contracts.popleft()
 
@@ -322,24 +343,30 @@ cdef class OrderedContracts(object):
             # next contract.
             # This is in lieu of more explicit support for
             # contracts with quarterly rolls. e.g. Eurodollar
-            if contract.start_date > prev.contract.auto_close_date:
+            if prev is not None and contract.start_date > prev.contract.auto_close_date:
+                continue
+
+            if not chain_predicate(contract):
                 continue
 
             self._start_date = min(contract.start_date.value, self._start_date)
             self._end_date = max(contract.end_date.value, self._end_date)
             
             curr = ContractNode(contract)
+            self.sid_to_contract[contract.sid] = curr
+            if self._head_contract is None:
+                self._head_contract = curr
+                prev = curr
+                continue
             curr.prev = prev
             prev.next = curr
             prev = curr
-
-            self.sid_to_contract[contract.sid] = curr
     
     cpdef long_t contract_before_auto_close(self, long_t dt_value):
         """
         Get the contract with next upcoming auto close date.
         """
-        curr = self.head_contract
+        curr = self._head_contract
         while curr.next is not None:
             if curr.contract.auto_close_date.value > dt_value:
                 break
