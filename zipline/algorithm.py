@@ -2003,7 +2003,8 @@ class TradingAlgorithm(object):
                 order_args[asset] = (asset, amount, style)
 
         order_ids = self.blotter.batch_order(viewvalues(order_args))
-        return pd.Series(data=order_ids, index=order_args)
+        order_ids = pd.Series(data=order_ids, index=order_args)
+        return order_ids[~order_ids.isnull()]
 
     @error_keywords(sid='Keyword argument `sid` is no longer supported for '
                         'get_open_orders. Use `asset` instead.')
