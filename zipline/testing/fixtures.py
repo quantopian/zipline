@@ -451,6 +451,8 @@ class WithTradingEnvironment(WithAssetFinder,
         The max date to forward to the constructed TradingEnvironment.
     TRADING_ENV_TRADING_CALENDAR : pd.DatetimeIndex
         The trading calendar to use for the class's TradingEnvironment.
+    TRADING_ENV_FUTURE_CHAIN_PREDICATES : dict
+        The roll predicates to apply when creating contract chains.
 
     Methods
     -------
@@ -468,6 +470,7 @@ class WithTradingEnvironment(WithAssetFinder,
     --------
     :class:`zipline.finance.trading.TradingEnvironment`
     """
+    TRADING_ENV_FUTURE_CHAIN_PREDICATES = None
 
     @classmethod
     def make_load_function(cls):
@@ -479,6 +482,7 @@ class WithTradingEnvironment(WithAssetFinder,
             load=cls.make_load_function(),
             asset_db_path=cls.asset_finder.engine,
             trading_calendar=cls.trading_calendar,
+            future_chain_predicates=cls.TRADING_ENV_FUTURE_CHAIN_PREDICATES,
         )
 
     @classmethod
