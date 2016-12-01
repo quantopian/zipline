@@ -857,28 +857,28 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
     def test_id(self):
         """
         input (self.df):
-           asof_date  sid  timestamp  value
-        0 2014-01-01   65 2014-01-01      0
-        1 2014-01-01   66 2014-01-01      1
-        2 2014-01-01   67 2014-01-01      2
-        3 2014-01-02   65 2014-01-02      1
-        4 2014-01-02   66 2014-01-02      2
-        5 2014-01-02   67 2014-01-02      3
-        6 2014-01-03   65 2014-01-03      2
-        7 2014-01-03   66 2014-01-03      3
-        8 2014-01-03   67 2014-01-03      4
+           asof_date  sid  timestamp int_value value
+        0 2014-01-01   65 2014-01-01         0     0
+        1 2014-01-01   66 2014-01-01         1     1
+        2 2014-01-01   67 2014-01-01         2     2
+        3 2014-01-02   65 2014-01-02         1     1
+        4 2014-01-02   66 2014-01-02         2     2
+        5 2014-01-02   67 2014-01-02         3     3
+        6 2014-01-03   65 2014-01-03         2     2
+        7 2014-01-03   66 2014-01-03         3     3
+        8 2014-01-03   67 2014-01-03         4     4
 
         output (expected)
-                                   value
-        2014-01-01 Equity(65 [A])      0
-                   Equity(66 [B])      1
-                   Equity(67 [C])      2
-        2014-01-02 Equity(65 [A])      1
-                   Equity(66 [B])      2
-                   Equity(67 [C])      3
-        2014-01-03 Equity(65 [A])      2
-                   Equity(66 [B])      3
-                   Equity(67 [C])      4
+                                  int_value value
+        2014-01-01 Equity(65 [A])         0     0
+                   Equity(66 [B])         1     1
+                   Equity(67 [C])         2     2
+        2014-01-02 Equity(65 [A])         1     1
+                   Equity(66 [B])         2     2
+                   Equity(67 [C])         3     3
+        2014-01-03 Equity(65 [A])         2     2
+                   Equity(66 [B])         3     3
+                   Equity(67 [C])         4     4
         """
         expected = self.df.drop('asof_date', axis=1).set_index(
             ['timestamp', 'sid'],
@@ -890,6 +890,44 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         self._test_id(
             self.df, self.dshape, expected, self.asset_finder,
             ('int_value', 'value',)
+        )
+
+    def test_id_with_asof_date(self):
+        """
+        input (self.df):
+           asof_date  sid  timestamp int_value value
+        0 2014-01-01   65 2014-01-01         0     0
+        1 2014-01-01   66 2014-01-01         1     1
+        2 2014-01-01   67 2014-01-01         2     2
+        3 2014-01-02   65 2014-01-02         1     1
+        4 2014-01-02   66 2014-01-02         2     2
+        5 2014-01-02   67 2014-01-02         3     3
+        6 2014-01-03   65 2014-01-03         2     2
+        7 2014-01-03   66 2014-01-03         3     3
+        8 2014-01-03   67 2014-01-03         4     4
+
+        output (expected)
+                                    asof_date
+        2014-01-01 Equity(65 [A])  2014-01-01
+                   Equity(66 [B])  2014-01-01
+                   Equity(67 [C])  2014-01-01
+        2014-01-02 Equity(65 [A])  2014-01-02
+                   Equity(66 [B])  2014-01-02
+                   Equity(67 [C])  2014-01-02
+        2014-01-03 Equity(65 [A])  2014-01-03
+                   Equity(66 [B])  2014-01-03
+                   Equity(67 [C])  2014-01-03
+        """
+        expected = self.df.drop(['value', 'int_value'], axis=1).set_index(
+            ['timestamp', 'sid'],
+        )
+        expected.index = pd.MultiIndex.from_product((
+            expected.index.levels[0],
+            self.asset_finder.retrieve_all(expected.index.levels[1]),
+        ))
+        self._test_id(
+            self.df, self.dshape, expected, self.asset_finder,
+            ('asof_date',)
         )
 
     def test_id_ffill_out_of_window(self):
