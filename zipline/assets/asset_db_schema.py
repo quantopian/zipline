@@ -6,7 +6,7 @@ import sqlalchemy as sa
 # assets database
 # NOTE: When upgrading this remember to add a downgrade in:
 # .asset_db_migrations
-ASSET_DB_VERSION = 5
+ASSET_DB_VERSION = 6
 
 # A frozenset of the names of all tables in the assets db
 # NOTE: When modifying this schema, update the ASSET_DB_VERSION value
@@ -14,6 +14,7 @@ asset_db_table_names = frozenset({
     'asset_router',
     'equities',
     'equity_symbol_mappings',
+    'supplementary_mappings',
     'futures_contracts',
     'futures_exchanges',
     'futures_root_symbols',
@@ -160,6 +161,29 @@ asset_router = sa.Table(
         nullable=False,
         primary_key=True),
     sa.Column('asset_type', sa.Text),
+)
+
+supplementary_mappings = sa.Table(
+    'supplementary_mappings',
+    metadata,
+    sa.Column(
+        'id',
+        sa.Integer,
+        unique=True,
+        nullable=False,
+        primary_key=True,
+    ),
+    sa.Column(
+        'sid',
+        sa.Integer,
+        sa.ForeignKey(equities.c.sid),
+        nullable=False,
+        index=True,
+    ),
+    sa.Column('value', sa.Text, nullable=False),
+    sa.Column('mapping_type', sa.Text, nullable=False),
+    sa.Column('start_date', sa.Integer, default=0, nullable=False),
+    sa.Column('end_date', sa.Integer, nullable=False),
 )
 
 version_info = sa.Table(
