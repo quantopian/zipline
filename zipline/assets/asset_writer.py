@@ -75,6 +75,7 @@ _equities_defaults = {
 
 # Default values for the equities DataFrame
 _equities_mappings_defaults = {
+    'type': None,
     'symbol': None,
     'company_symbol': None,
     'share_class_symbol': None,
@@ -666,7 +667,7 @@ class AssetDBWriter(object):
 
         return futures_output
 
-    def _load_data(self, equities, futures, exchanges, root_symbols):
+    def _load_data(self, equities, futures, exchanges, root_symbols, equities_mappings=None):
         """
         Returns a standard set of pandas.DataFrames:
         equities, futures, exchanges, root_symbols
@@ -685,13 +686,18 @@ class AssetDBWriter(object):
         futures_output = self._normalize_futures(futures)
 
         # Split out symbol mappings from equity data.
-        (equities_output,
-         equities_mappings) = _split_symbol_mappings(equities_output)
+        if equities_mappings is None:
+            (equities_output,
+             equities_mappings) = _split_symbol_mappings(equities_output)
+            equities_mappings['type'] = 'symbol'
+
+        if 'sid' in equities_mappings.columns:
+            equities_mappings.set_index('sid', inplace=True)
+
         equities_mappings = _generate_output_dataframe(
             data_subset=equities_mappings,
             defaults=_equities_mappings_defaults,
         )
-        equities_mappings['type'] = 'symbol'
 
         exchanges_output = _generate_output_dataframe(
             data_subset=exchanges,
