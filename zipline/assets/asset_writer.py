@@ -461,25 +461,14 @@ class AssetDBWriter(object):
             # Create SQL tables if they do not exist.
             self.init_db(conn)
 
-            equities_input = (
-                equities if equities is not None else pd.DataFrame())
-            futures_input = (
-                futures if futures is not None else pd.DataFrame())
-            exchanges_input = (
-                exchanges if exchanges is not None else pd.DataFrame())
-            root_symbols_input = (
-                root_symbols if root_symbols is not None else pd.DataFrame())
-
             # Get the data to add to SQL.
-            if equities_mappings:
-                pass
-            else:
-                data = self._load_data(
-                    equities_input,
-                    futures_input,
-                    exchanges_input,
-                    root_symbols_input,
-                )
+            data = self._load_data(
+                equities if equities is not None else pd.DataFrame(),
+                equities_mappings,
+                futures if futures is not None else pd.DataFrame(),
+                exchanges if exchanges is not None else pd.DataFrame(),
+                root_symbols if root_symbols is not None else pd.DataFrame(),
+            )
 
             # Write the data to SQL.
             self._write_df_to_table(
@@ -667,7 +656,14 @@ class AssetDBWriter(object):
 
         return futures_output
 
-    def _load_data(self, equities, futures, exchanges, root_symbols, equities_mappings=None):
+    def _load_data(
+        self,
+        equities,
+        equities_mappings,
+        futures,
+        exchanges,
+        root_symbols,
+    ):
         """
         Returns a standard set of pandas.DataFrames:
         equities, futures, exchanges, root_symbols
