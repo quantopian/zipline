@@ -73,6 +73,17 @@ _equities_defaults = {
     'exchange_full': None,
 }
 
+# Default values for the equities DataFrame
+_equities_mappings_defaults = {
+    'symbol': None,
+    'company_symbol': None,
+    'share_class_symbol': None,
+    'CUSIP': None,
+    'start_date': 0,
+    'end_date': 2 ** 62 - 1,
+}
+
+
 # Default values for the futures DataFrame
 _futures_defaults = {
     'symbol': None,
@@ -635,7 +646,7 @@ class AssetDBWriter(object):
                     'auto_close_date'):
             equities_output[col] = _dt_to_epoch_ns(equities_output[col])
 
-        return _split_symbol_mappings(equities_output)
+        return equities_output
 
     def _normalize_futures(self, futures):
         futures_output = _generate_output_dataframe(
@@ -670,8 +681,17 @@ class AssetDBWriter(object):
             if id_col in df.columns:
                 df.set_index(id_col, inplace=True)
 
-        equities_output, equities_mappings = self._normalize_equities(equities)
+        equities_output = self._normalize_equities(equities)
         futures_output = self._normalize_futures(futures)
+
+        # Split out symbol mappings from equity data.
+        (equities_output,
+         equities_mappings) = _split_symbol_mappings(equities_output)
+        equities_mappings = _generate_output_dataframe(
+            data_subset=equities_mappings,
+            defaults=_equities_mappings_defaults,
+        )
+        equities_mappings['type'] = 'symbol'
 
         exchanges_output = _generate_output_dataframe(
             data_subset=exchanges,

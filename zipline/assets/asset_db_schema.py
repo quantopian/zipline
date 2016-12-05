@@ -59,9 +59,13 @@ equity_symbol_mappings = sa.Table(
         index=True,
     ),
     sa.Column(
-        'symbol',
+        'type',
         sa.Text,
         nullable=False,
+    ),
+    sa.Column(
+        'symbol',
+        sa.Text,
     ),
     sa.Column(
         'company_symbol',
@@ -70,6 +74,10 @@ equity_symbol_mappings = sa.Table(
     ),
     sa.Column(
         'share_class_symbol',
+        sa.Text,
+    ),
+    sa.Column(
+        'CUSIP',
         sa.Text,
     ),
     sa.Column(
