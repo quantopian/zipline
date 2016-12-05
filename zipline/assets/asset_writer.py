@@ -352,6 +352,7 @@ class AssetDBWriter(object):
 
     def write(self,
               equities=None,
+              equities_mappings=None,
               futures=None,
               exchanges=None,
               root_symbols=None,
@@ -379,6 +380,8 @@ class AssetDBWriter(object):
                   The exchange where this asset is traded.
 
             The index of this dataframe should contain the sids.
+        equities_mappings : pd.DataFrame, optional
+            Point-in-time data mapping different types of values to equities.
         futures : pd.Dataframe, optional
             The future contract metadata. The columns for this dataframe are:
 
@@ -446,13 +449,26 @@ class AssetDBWriter(object):
             # Create SQL tables if they do not exist.
             self.init_db(conn)
 
+            equities_input = (
+                equities if equities is not None else pd.DataFrame())
+            futures_input = (
+                futures if futures is not None else pd.DataFrame())
+            exchanges_input = (
+                exchanges if exchanges is not None else pd.DataFrame())
+            root_symbols_input = (
+                root_symbols if root_symbols is not None else pd.DataFrame())
+
             # Get the data to add to SQL.
-            data = self._load_data(
-                equities if equities is not None else pd.DataFrame(),
-                futures if futures is not None else pd.DataFrame(),
-                exchanges if exchanges is not None else pd.DataFrame(),
-                root_symbols if root_symbols is not None else pd.DataFrame(),
-            )
+            if equities_mappings:
+                pass
+            else:
+                data = self._load_data(
+                    equities_input,
+                    futures_input,
+                    exchanges_input,
+                    root_symbols_input,
+                )
+
             # Write the data to SQL.
             self._write_df_to_table(
                 futures_exchanges,
