@@ -89,25 +89,25 @@ class RollFinder(with_metaclass(ABCMeta, object)):
         tc = self.trading_calendar
         sessions = tc.sessions_in_range(tc.minute_to_session_label(start),
                                         tc.minute_to_session_label(end))
+        freq = sessions.freq
         if first == front:
             curr = first_contract << 1
         else:
             curr = first_contract << 2
-        sess = sessions[-1]
-        while sess > start and curr is not None:
-            session_loc = sessions.searchsorted(sess)
+        session = sessions[-1]
+
+        while session > start and curr is not None:
             front = curr.contract.sid
             back = curr.next.contract.sid
-            while session_loc > 0:
-                session = sessions[session_loc]
-                prev = sessions[session_loc - 1]
+            while session > start:
+                prev = session - freq
                 if back != self._active_contract(oc, front, back, prev):
                     rolls.insert(0, ((curr >> offset).contract.sid, session))
                     break
-                session_loc -= 1
+                session = prev
             curr = curr.prev
             if curr is not None:
-                sess = curr.contract.auto_close_date
+                session = curr.contract.auto_close_date
         return rolls
 
 
