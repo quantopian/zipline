@@ -66,9 +66,9 @@ class ContinuousFuturesTestCase(WithCreateBarData,
     @classmethod
     def make_root_symbols_info(self):
         return pd.DataFrame({
-            'root_symbol': ['FO', 'BA', 'BZ'],
-            'root_symbol_id': [1, 2, 3],
-            'exchange': ['CME', 'CME', 'CME']})
+            'root_symbol': ['FO', 'BA', 'BZ', 'MA'],
+            'root_symbol_id': [1, 2, 3, 4],
+            'exchange': ['CME', 'CME', 'CME', 'CME']})
 
     @classmethod
     def make_futures_info(self):
@@ -179,7 +179,33 @@ class ContinuousFuturesTestCase(WithCreateBarData,
             'exchange': ['CME'] * 3,
         })
 
-        return pd.concat([fo_frame, ba_frame, bz_frame])
+        # MA is set up to test a contract which is has no active volume.
+        ma_frame = DataFrame({
+            'symbol': ['MAG16', 'MAH16', 'MAJ16'],
+            'root_symbol': ['MA'] * 3,
+            'asset_name': ['Most Active'] * 3,
+            'sid': range(14, 17),
+            'start_date': [Timestamp('2005-01-01', tz='UTC'),
+                           Timestamp('2005-01-21', tz='UTC'),
+                           Timestamp('2005-01-21', tz='UTC')],
+            'end_date': [Timestamp('2016-08-19', tz='UTC'),
+                         Timestamp('2016-11-21', tz='UTC'),
+                         Timestamp('2016-10-19', tz='UTC')],
+            'notice_date': [Timestamp('2016-02-17', tz='UTC'),
+                            Timestamp('2016-03-16', tz='UTC'),
+                            Timestamp('2016-04-13', tz='UTC')],
+            'expiration_date': [Timestamp('2016-02-17', tz='UTC'),
+                                Timestamp('2016-03-16', tz='UTC'),
+                                Timestamp('2016-04-13', tz='UTC')],
+            'auto_close_date': [Timestamp('2016-02-17', tz='UTC'),
+                                Timestamp('2016-03-16', tz='UTC'),
+                                Timestamp('2016-04-13', tz='UTC')],
+            'tick_size': [0.001] * 3,
+            'multiplier': [1000.0] * 3,
+            'exchange': ['CME'] * 3,
+        })
+
+        return pd.concat([fo_frame, ba_frame, bz_frame, ma_frame])
 
     @classmethod
     def make_future_minute_bar_data(cls):
@@ -239,7 +265,7 @@ class ContinuousFuturesTestCase(WithCreateBarData,
             3: Timestamp('2016-04-20', tz='UTC'),
             6: Timestamp('2016-01-27', tz='UTC'),
         }
-        for i in range(7):
+        for i in range(17):
             df = base_df.copy()
             df += i * 10000
             if i in sid_to_vol_stop_session:
@@ -260,6 +286,8 @@ class ContinuousFuturesTestCase(WithCreateBarData,
                     # Add some volume before a roll, since a contract may be
                     # entered earlier than when it is the primary.
                     df.volume.values[:loc + 1] = 10
+            if i == 15:  # No volume for MAH16
+                df.volume.values[:] = 0
             yield i, df
 
     def test_create_continuous_future(self):
@@ -851,6 +879,46 @@ def record_current_contract(algo, data):
             window.loc['2016-03-28', cf],
             135441.440,
             err_msg="On session after roll, Should be FOJ16's 44th value.")
+
+    def test_history_close_session_skip_volume(self):
+        cf = self.data_portal.asset_finder.create_continuous_future(
+            'MA', 0, 'volume')
+        window = self.data_portal.get_history_window(
+            [cf.sid], Timestamp('2016-03-06', tz='UTC'), 30, '1d', 'close')
+
+        assert_almost_equal(
+            window.loc['2016-01-26', cf],
+            245011.440,
+            err_msg="At beginning of window, should be MAG16's first value.")
+
+        assert_almost_equal(
+            window.loc['2016-02-26', cf],
+            265241.440,
+            err_msg="Should have skipped MAH16 to MAJ16.")
+
+        assert_almost_equal(
+            window.loc['2016-02-29', cf],
+            265251.440,
+            err_msg="Should have remained MAJ16.")
+
+        # Advance the window a month.
+        window = self.data_portal.get_history_window(
+            [cf.sid], Timestamp('2016-04-06', tz='UTC'), 30, '1d', 'close')
+
+        assert_almost_equal(
+            window.loc['2016-02-24', cf],
+            265221.440,
+            err_msg="Should be MAJ16, having skipped MAH16.")
+
+        assert_almost_equal(
+            window.loc['2016-02-29', cf],
+            265251.440,
+            err_msg="Should be MAJ1 for rest of window.")
+
+        assert_almost_equal(
+            window.loc['2016-03-24', cf],
+            265431.440,
+            err_msg="Should be MAJ16 for rest of window.")
 
     def test_history_close_session_adjusted(self):
         cf = self.data_portal.asset_finder.create_continuous_future(
