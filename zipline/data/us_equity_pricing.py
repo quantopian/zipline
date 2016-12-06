@@ -41,7 +41,8 @@ from pandas import (
     read_csv,
     Timestamp,
     NaT,
-    DatetimeIndex
+    DatetimeIndex,
+    read_sql_table
 )
 from pandas.tslib import iNaT
 from six import (
@@ -1316,3 +1317,39 @@ class SQLiteAdjustmentReader(object):
         c.close()
 
         return stock_divs
+
+    def unpack_db_to_component_dfs(self):
+        """Returns the set of known tables in the adjustments file in DataFrame
+        form.
+
+        Returns
+        -------
+        dfs : dict{str->DataFrame}
+            Dictionary which maps table name to the corresponding DataFrame
+            version of the table, where all date columns have been coerced back
+             from into to datetime.
+        """
+
+        # Given the tables in the adjustments.db file, dict which knows which
+        # col names contain dates that have been coerced into ints.
+        KNOWN_DATE_COLS = {
+            'dividend_payouts': ('declared_date', 'ex_date', 'pay_date',
+                                 'record_date'),
+            'dividends': ('effective_date',),
+            'mergers': ('effective_date',),
+            'splits': ('effective_date',),
+            'stock_dividend_payouts': ('declared_date', 'ex_date', 'pay_date',
+                                       'record_date')
+        }
+
+        def _get_df_from_table(table_name, date_cols):
+
+            # Dates are stored in second resolution as ints in adj.db tables.
+            return read_sql_table(
+                table_name,
+                self.conn,
+                parse_dates={col: 's' for col in date_cols}
+            )
+
+        return {t_name: _get_df_from_table(t_name, KNOWN_DATE_COLS[t_name])
+                for t_name in KNOWN_DATE_COLS}
