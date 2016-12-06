@@ -716,7 +716,7 @@ class MovingAverageConvergenceDivergenceSignal(CustomFactor):
         The window length for the "fast" EWMA. Default is 12.
     slow_period : int > 0, > fast_period, optional
         The window length for the "slow" EWMA. Default is 26.
-    signal_period' : int > 0, < fast_period, optional
+    signal_period : int > 0, < fast_period, optional
         The window length for the signal line. Default is 9.
 
     Notes
@@ -786,14 +786,11 @@ class MovingAverageConvergenceDivergenceSignal(CustomFactor):
 
 class AnnualizedVolatility(CustomFactor):
     """
-    Volatility
+    Volatility. The degree of variation of a series over time as measured by
+    the standard deviation of daily returns.
     https://en.wikipedia.org/wiki/Volatility_(finance)
 
-    The degree of variation of a series over time as measured by the standard
-    deviation of daily returns.
-
-    **Default Inputs:**
-        :data:`zipline.pipeline.factors.Returns(window_length=2)`
+    **Default Inputs:** :data:`zipline.pipeline.factors.Returns(window_length=2)`  # noqa
 
     Parameters
     ----------
