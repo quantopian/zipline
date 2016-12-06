@@ -42,8 +42,7 @@ from pandas import (
     Timestamp,
     NaT,
     DatetimeIndex,
-    read_sql_table
-)
+    read_sql)
 from pandas.tslib import iNaT
 from six import (
     iteritems,
@@ -1345,11 +1344,17 @@ class SQLiteAdjustmentReader(object):
         def _get_df_from_table(table_name, date_cols):
 
             # Dates are stored in second resolution as ints in adj.db tables.
-            return read_sql_table(
-                table_name,
+            return read_sql(
+                'select * from "{}"'.format(table_name),
                 self.conn,
+                index_col='index',
                 parse_dates={col: 's' for col in date_cols}
             )
 
-        return {t_name: _get_df_from_table(t_name, KNOWN_DATE_COLS[t_name])
-                for t_name in KNOWN_DATE_COLS}
+        return {
+            t_name: _get_df_from_table(
+                t_name,
+                KNOWN_DATE_COLS[t_name]
+            )
+            for t_name in KNOWN_DATE_COLS
+        }
