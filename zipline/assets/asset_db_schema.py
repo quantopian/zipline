@@ -85,6 +85,29 @@ equity_symbol_mappings = sa.Table(
     ),
 )
 
+supplementary_mappings = sa.Table(
+    'supplementary_mappings',
+    metadata,
+    sa.Column(
+        'id',
+        sa.Integer,
+        unique=True,
+        nullable=False,
+        primary_key=True,
+    ),
+    sa.Column(
+        'sid',
+        sa.Integer,
+        sa.ForeignKey(equities.c.sid),
+        nullable=False,
+        index=True,
+    ),
+    sa.Column('value', sa.Text, nullable=False),
+    sa.Column('mapping_type', sa.Text, nullable=False),
+    sa.Column('start_date', sa.Integer, default=0, nullable=False),
+    sa.Column('end_date', sa.Integer, nullable=False),
+)
+
 futures_exchanges = sa.Table(
     'futures_exchanges',
     metadata,
@@ -161,29 +184,6 @@ asset_router = sa.Table(
         nullable=False,
         primary_key=True),
     sa.Column('asset_type', sa.Text),
-)
-
-supplementary_mappings = sa.Table(
-    'supplementary_mappings',
-    metadata,
-    sa.Column(
-        'id',
-        sa.Integer,
-        unique=True,
-        nullable=False,
-        primary_key=True,
-    ),
-    sa.Column(
-        'sid',
-        sa.Integer,
-        sa.ForeignKey(equities.c.sid),
-        nullable=False,
-        index=True,
-    ),
-    sa.Column('value', sa.Text, nullable=False),
-    sa.Column('mapping_type', sa.Text, nullable=False),
-    sa.Column('start_date', sa.Integer, default=0, nullable=False),
-    sa.Column('end_date', sa.Integer, nullable=False),
 )
 
 version_info = sa.Table(
