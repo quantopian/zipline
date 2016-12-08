@@ -125,7 +125,7 @@ def merge_ownership_periods(mappings):
     )
 
 
-def build_ownership_map(table, key):
+def build_ownership_map(table, key_from_row, value_from_row):
     """
     Builds a dict mapping to lists of OwnershipPeriods, from a db table.
     """
@@ -134,14 +134,14 @@ def build_ownership_map(table, key):
     mappings = {}
     for row in rows:
         mappings.setdefault(
-            key(row),
+            key_from_row(row),
             [],
         ).append(
             OwnershipPeriod(
                 pd.Timestamp(row.start_date, unit='ns', tz='utc'),
                 pd.Timestamp(row.end_date, unit='ns', tz='utc'),
                 row.sid,
-                row.value,
+                value_from_row(row),
             ),
         )
 
@@ -314,46 +314,12 @@ class AssetFinder(object):
 
     @lazyval
     def symbol_ownership_map(self):
-        rows = sa.select(self.equity_symbol_mappings.c).execute().fetchall()
-
-        mappings = {}
-        for row in rows:
-            mappings.setdefault(
-                (row.company_symbol, row.share_class_symbol),
-                [],
-            ).append(
-                OwnershipPeriod(
-                    pd.Timestamp(row.start_date, unit='ns', tz='utc'),
-                    pd.Timestamp(row.end_date, unit='ns', tz='utc'),
-                    row.sid,
-                    row.symbol,
-                ),
-            )
-
-        return valmap(
-            lambda v: tuple(
-                OwnershipPeriod(
-                    a.start,
-                    b.start,
-                    a.sid,
-                    a.value,
-                ) for a, b in sliding_window(
-                    2,
-                    concatv(
-                        sorted(v),
-                        # concat with a fake ownership object to make the last
-                        # end date be max timestamp
-                        [OwnershipPeriod(
-                            pd.Timestamp.max.tz_localize('utc'),
-                            None,
-                            None,
-                            None,
-                        )],
-                    ),
-                )
+        return build_ownership_map(
+            table=self.equity_symbol_mappings,
+            key_from_row=(
+                lambda row: (row.company_symbol, row.share_class_symbol)
             ),
-            mappings,
-            factory=lambda: mappings,
+            value_from_row=lambda row: row.symbol,
         )
 
     @lazyval
@@ -372,14 +338,16 @@ class AssetFinder(object):
     def supplementary_map(self):
         return build_ownership_map(
             table=self.supplementary_mappings,
-            key=lambda row: (row.field, row.value),
+            key_from_row=lambda row: (row.field, row.value),
+            value_from_row=lambda row: row.value,
         )
 
     @lazyval
     def supplementary_map_by_sid(self):
         return build_ownership_map(
             table=self.supplementary_mappings,
-            key=lambda row: (row.field, row.sid),
+            key_from_row=lambda row: (row.field, row.sid),
+            value_from_row=lambda row: row.value,
         )
 
     def lookup_asset_types(self, sids):
