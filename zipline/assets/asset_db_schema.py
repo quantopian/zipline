@@ -102,10 +102,10 @@ supplementary_mappings = sa.Table(
         nullable=False,
         index=True,
     ),
-    sa.Column('value', sa.Text, nullable=False),
     sa.Column('field', sa.Text, nullable=False),
     sa.Column('start_date', sa.Integer, default=0, nullable=False),
     sa.Column('end_date', sa.Integer, nullable=False),
+    sa.Column('value', sa.Text, nullable=False),
 )
 
 futures_exchanges = sa.Table(
