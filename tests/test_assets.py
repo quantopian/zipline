@@ -62,14 +62,14 @@ from zipline.errors import (
     EquitiesNotFound,
     FutureContractsNotFound,
     MultipleSymbolsFound,
-    MultipleValuesFoundForMappingType,
+    MultipleValuesFoundForField,
     MultipleValuesFoundForSid,
     NoValueForSid,
     AssetDBVersionError,
     SidsNotFound,
     SymbolNotFound,
     AssetDBImpossibleDowngrade,
-    ValueNotFoundForMappingType,
+    ValueNotFoundForField,
 )
 from zipline.testing import (
     all_subindices,
@@ -970,7 +970,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         ))
         self.assertEqual({0, 1, 2}, set(self.asset_finder.sids))
 
-    def test_lookup_by_supplementary_mapping(self):
+    def test_lookup_by_supplementary_field(self):
         equities = pd.DataFrame.from_records(
             [
                 {
@@ -1040,32 +1040,32 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         # Before sid 0 has changed ALT_ID.
         dt = pd.Timestamp('2013-6-28', tz='UTC')
 
-        asset_0 = af.lookup_by_supplementary_mapping('ALT_ID', '100000000', dt)
+        asset_0 = af.lookup_by_supplementary_field('ALT_ID', '100000000', dt)
         self.assertEqual(asset_0.sid, 0)
 
-        asset_1 = af.lookup_by_supplementary_mapping('ALT_ID', '100000001', dt)
+        asset_1 = af.lookup_by_supplementary_field('ALT_ID', '100000001', dt)
         self.assertEqual(asset_1.sid, 1)
 
         # We don't know about this ALT_ID yet.
-        with self.assertRaises(ValueNotFoundForMappingType):
-            af.lookup_by_supplementary_mapping('ALT_ID', '100000002', dt)
+        with self.assertRaises(ValueNotFoundForField):
+            af.lookup_by_supplementary_field('ALT_ID', '100000002', dt)
 
         # After all assets have ended.
         dt = pd.Timestamp('2014-01-02', tz='UTC')
 
-        asset_2 = af.lookup_by_supplementary_mapping('ALT_ID', '100000000', dt)
+        asset_2 = af.lookup_by_supplementary_field('ALT_ID', '100000000', dt)
         self.assertEqual(asset_2.sid, 2)
 
-        asset_1 = af.lookup_by_supplementary_mapping('ALT_ID', '100000001', dt)
+        asset_1 = af.lookup_by_supplementary_field('ALT_ID', '100000001', dt)
         self.assertEqual(asset_1.sid, 1)
 
-        asset_0 = af.lookup_by_supplementary_mapping('ALT_ID', '100000002', dt)
+        asset_0 = af.lookup_by_supplementary_field('ALT_ID', '100000002', dt)
         self.assertEqual(asset_0.sid, 0)
 
         # At this point both sids 0 and 2 have held this value, so an
         # as_of_date is required.
-        with self.assertRaises(MultipleValuesFoundForMappingType):
-            af.lookup_by_supplementary_mapping('ALT_ID', '100000000', None)
+        with self.assertRaises(MultipleValuesFoundForField):
+            af.lookup_by_supplementary_field('ALT_ID', '100000000', None)
 
     def test_get_supplementary_field(self):
         equities = pd.DataFrame.from_records(

@@ -43,10 +43,10 @@ from zipline.errors import (
     FutureContractsNotFound,
     MapAssetIdentifierIndexError,
     MultipleSymbolsFound,
-    MultipleValuesFoundForMappingType,
+    MultipleValuesFoundForField,
     MultipleValuesFoundForSid,
     NoValueForSid,
-    ValueNotFoundForMappingType,
+    ValueNotFoundForField,
     SidsNotFound,
     SymbolNotFound,
 )
@@ -882,23 +882,23 @@ class AssetFinder(object):
             raise SymbolNotFound(symbol=symbol)
         return self.retrieve_asset(data['sid'])
 
-    def lookup_by_supplementary_mapping(self, mapping_type, value, as_of_date):
+    def lookup_by_supplementary_field(self, field_name, value, as_of_date):
         try:
             owners = self.supplementary_map[
-                mapping_type,
+                field_name,
                 value,
             ]
-            assert owners, 'empty owners list for %r' % (mapping_type, value)
+            assert owners, 'empty owners list for %r' % (field_name, value)
         except KeyError:
             # no equity has ever held this value
-            raise ValueNotFoundForMappingType(type=mapping_type, value=value)
+            raise ValueNotFoundForField(type=field_name, value=value)
 
         if not as_of_date:
             if len(owners) > 1:
                 # more than one equity has held this value, this is ambigious
                 # without the date
-                raise MultipleValuesFoundForMappingType(
-                    type=mapping_type,
+                raise MultipleValuesFoundForField(
+                    type=field_name,
                     value=value,
                     options=set(map(
                         compose(self.retrieve_asset, attrgetter('sid')),
@@ -915,7 +915,7 @@ class AssetFinder(object):
                 return self.retrieve_asset(sid)
 
         # no equity held the value on the given asof date
-        raise ValueNotFoundForMappingType(type=mapping_type, value=value)
+        raise ValueNotFoundForField(type=field_name, value=value)
 
     def get_supplementary_field(
         self,

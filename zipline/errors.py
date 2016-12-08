@@ -304,25 +304,25 @@ Root symbol '{root_symbol}' was not found.
 """.strip()
 
 
-class ValueNotFoundForMappingType(ZiplineError):
+class ValueNotFoundForField(ZiplineError):
     """
     Raised when a lookup_by_supplementary_mapping() call contains a
     value does not exist for the specified mapping type.
     """
     msg = """
-Value '{value}' was not found for mapping type '{type}'.
+Value '{value}' was not found for field '{field}'.
 """.strip()
 
 
-class MultipleValuesFoundForMappingType(ZiplineError):
+class MultipleValuesFoundForField(ZiplineError):
     """
     Raised when a lookup_by_supplementary_mapping() call contains a
-    value that changed over time for the specified mapping type and is
+    value that changed over time for the specified field and is
     thus not resolvable without additional information provided via
     as_of_date.
     """
     msg = """
-Multiple occurrences of the value '{value}' found for mapping type '{type}'.
+Multiple occurrences of the value '{value}' found for field '{field}'.
 Use the as_of_date' argument to specify when the lookup should be valid.
 
 Possible options: {options}
