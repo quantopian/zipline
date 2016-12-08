@@ -94,7 +94,6 @@ _asset_timestamp_fields = frozenset({
     'auto_close_date',
 })
 
-SymbolOwnership = namedtuple('SymbolOwnership', 'start end sid symbol')
 OwnershipPeriod = namedtuple('OwnershipPeriod', 'start end sid value')
 
 
@@ -323,7 +322,7 @@ class AssetFinder(object):
                 (row.company_symbol, row.share_class_symbol),
                 [],
             ).append(
-                SymbolOwnership(
+                OwnershipPeriod(
                     pd.Timestamp(row.start_date, unit='ns', tz='utc'),
                     pd.Timestamp(row.end_date, unit='ns', tz='utc'),
                     row.sid,
@@ -333,18 +332,18 @@ class AssetFinder(object):
 
         return valmap(
             lambda v: tuple(
-                SymbolOwnership(
+                OwnershipPeriod(
                     a.start,
                     b.start,
                     a.sid,
-                    a.symbol,
+                    a.value,
                 ) for a, b in sliding_window(
                     2,
                     concatv(
                         sorted(v),
                         # concat with a fake ownership object to make the last
                         # end date be max timestamp
-                        [SymbolOwnership(
+                        [OwnershipPeriod(
                             pd.Timestamp.max.tz_localize('utc'),
                             None,
                             None,
