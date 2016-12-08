@@ -108,7 +108,7 @@ _root_symbols_defaults = {
 _supplementary_mappings_defaults = {
     'sid': None,
     'value': None,
-    'mapping_type': None,
+    'field': None,
     'start_date': 0,
     'end_date': 2 ** 62 - 1,
 }

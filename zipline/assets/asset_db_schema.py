@@ -103,7 +103,7 @@ supplementary_mappings = sa.Table(
         index=True,
     ),
     sa.Column('value', sa.Text, nullable=False),
-    sa.Column('mapping_type', sa.Text, nullable=False),
+    sa.Column('field', sa.Text, nullable=False),
     sa.Column('start_date', sa.Integer, default=0, nullable=False),
     sa.Column('end_date', sa.Integer, nullable=False),
 )

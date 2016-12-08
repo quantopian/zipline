@@ -373,14 +373,14 @@ class AssetFinder(object):
     def supplementary_map(self):
         return build_ownership_map(
             table=self.supplementary_mappings,
-            key=lambda row: (row.mapping_type, row.value),
+            key=lambda row: (row.field, row.value),
         )
 
     @lazyval
     def supplementary_map_by_sid(self):
         return build_ownership_map(
             table=self.supplementary_mappings,
-            key=lambda row: (row.mapping_type, row.sid),
+            key=lambda row: (row.field, row.sid),
         )
 
     def lookup_asset_types(self, sids):
