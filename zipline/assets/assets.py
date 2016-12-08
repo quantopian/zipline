@@ -126,6 +126,29 @@ def merge_ownership_periods(mappings):
     )
 
 
+def build_ownership_map(table, key):
+    """
+    Builds a dict mapping to lists of OwnershipPeriods, from a db table.
+    """
+    rows = sa.select(table.c).execute().fetchall()
+
+    mappings = {}
+    for row in rows:
+        mappings.setdefault(
+            key(row),
+            [],
+        ).append(
+            OwnershipPeriod(
+                pd.Timestamp(row.start_date, unit='ns', tz='utc'),
+                pd.Timestamp(row.end_date, unit='ns', tz='utc'),
+                row.sid,
+                row.value,
+            ),
+        )
+
+    return merge_ownership_periods(mappings)
+
+
 @curry
 def _filter_kwargs(names, dict_):
     """Filter out kwargs from a dictionary.
@@ -348,43 +371,17 @@ class AssetFinder(object):
 
     @lazyval
     def supplementary_map(self):
-        rows = sa.select(self.supplementary_mappings.c).execute().fetchall()
-
-        mappings = {}
-        for row in rows:
-            mappings.setdefault(
-                (row.mapping_type, row.value),
-                [],
-            ).append(
-                OwnershipPeriod(
-                    pd.Timestamp(row.start_date, unit='ns', tz='utc'),
-                    pd.Timestamp(row.end_date, unit='ns', tz='utc'),
-                    row.sid,
-                    row.value,
-                ),
-            )
-
-        return merge_ownership_periods(mappings)
+        return build_ownership_map(
+            table=self.supplementary_mappings,
+            key=lambda row: (row.mapping_type, row.value),
+        )
 
     @lazyval
     def supplementary_map_by_sid(self):
-        rows = sa.select(self.supplementary_mappings.c).execute().fetchall()
-
-        mappings = {}
-        for row in rows:
-            mappings.setdefault(
-                (row.mapping_type, row.sid),
-                [],
-            ).append(
-                OwnershipPeriod(
-                    pd.Timestamp(row.start_date, unit='ns', tz='utc'),
-                    pd.Timestamp(row.end_date, unit='ns', tz='utc'),
-                    row.sid,
-                    row.value,
-                ),
-            )
-
-        return merge_ownership_periods(mappings)
+        return build_ownership_map(
+            table=self.supplementary_mappings,
+            key=lambda row: (row.mapping_type, row.sid),
+        )
 
     def lookup_asset_types(self, sids):
         """
