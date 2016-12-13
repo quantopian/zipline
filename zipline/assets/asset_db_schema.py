@@ -100,7 +100,6 @@ equity_supplementary_mappings = sa.Table(
         sa.Integer,
         sa.ForeignKey(equities.c.sid),
         nullable=False,
-        index=True,
     ),
     sa.Column('field', sa.Text, nullable=False),
     sa.Column('start_date', sa.Integer, default=0, nullable=False),
