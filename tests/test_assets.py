@@ -1047,7 +1047,13 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         self.assertEqual(asset_1.sid, 1)
 
         # We don't know about this ALT_ID yet.
-        with self.assertRaises(ValueNotFoundForField):
+        with self.assertRaisesRegexp(
+            ValueNotFoundForField,
+            "Value '{}' was not found for field '{}'.".format(
+                '100000002',
+                'ALT_ID',
+            )
+        ):
             af.lookup_by_supplementary_field('ALT_ID', '100000002', dt)
 
         # After all assets have ended.
@@ -1064,7 +1070,14 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
 
         # At this point both sids 0 and 2 have held this value, so an
         # as_of_date is required.
-        with self.assertRaises(MultipleValuesFoundForField):
+        expected_in_repr = (
+            "Multiple occurrences of the value '{}' found for field '{}'."
+        ).format('100000000', 'ALT_ID')
+
+        with self.assertRaisesRegexp(
+            MultipleValuesFoundForField,
+            expected_in_repr,
+        ):
             af.lookup_by_supplementary_field('ALT_ID', '100000000', None)
 
     def test_get_supplementary_field(self):
@@ -1144,7 +1157,10 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
 
         # Since sid 2 has not yet started, we don't know about its
         # ALT_ID.
-        with self.assertRaises(NoValueForSid):
+        with self.assertRaisesRegexp(
+            NoValueForSid,
+            "No '{}' value found for sid '{}'.".format('ALT_ID', 2),
+        ):
             finder.get_supplementary_field(2, 'ALT_ID', dt),
 
         # After all assets have ended.
@@ -1159,7 +1175,10 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
             )
 
         # Sid 0 has historically held two values for ALT_ID by this dt.
-        with self.assertRaises(MultipleValuesFoundForSid):
+        with self.assertRaisesRegexp(
+            MultipleValuesFoundForSid,
+            "Multiple '{}' values found for sid '{}'.".format('ALT_ID', 0),
+        ):
             finder.get_supplementary_field(0, 'ALT_ID', None),
 
     def test_group_by_type(self):
