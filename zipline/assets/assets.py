@@ -864,14 +864,14 @@ class AssetFinder(object):
             assert owners, 'empty owners list for %r' % (field_name, value)
         except KeyError:
             # no equity has ever held this value
-            raise ValueNotFoundForField(type=field_name, value=value)
+            raise ValueNotFoundForField(field=field_name, value=value)
 
         if not as_of_date:
             if len(owners) > 1:
                 # more than one equity has held this value, this is ambigious
                 # without the date
                 raise MultipleValuesFoundForField(
-                    type=field_name,
+                    field=field_name,
                     value=value,
                     options=set(map(
                         compose(self.retrieve_asset, attrgetter('sid')),
@@ -888,7 +888,7 @@ class AssetFinder(object):
                 return self.retrieve_asset(sid)
 
         # no equity held the value on the given asof date
-        raise ValueNotFoundForField(type=field_name, value=value)
+        raise ValueNotFoundForField(field=field_name, value=value)
 
     def get_supplementary_field(
         self,
