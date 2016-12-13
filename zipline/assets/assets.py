@@ -100,12 +100,13 @@ OwnershipPeriod = namedtuple('OwnershipPeriod', 'start end sid value')
 def merge_ownership_periods(mappings):
     """
     Given a dict of mappings where the values are lists of
-    OwnershipPeriod objects, returns a dict with the same stucture with
+    OwnershipPeriod objects, returns a dict with the same structure with
     new OwnershipPeriod objects adjusted so that the periods have no
     gaps.
 
-    Orders the periods chronologically, and pushes back the end date of
-    each period to match the start date of the following period.
+    Orders the periods chronologically, and pushes forward the end date
+    of each period to match the start date of the following period. The
+    end date of the last period pushed forward to the max Timestamp.
     """
     return valmap(
         lambda v: tuple(
