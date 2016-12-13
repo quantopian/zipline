@@ -896,6 +896,29 @@ class AssetFinder(object):
         field_name,
         as_of_date,
     ):
+        """Get the value of a supplementary field for an asset.
+
+        Parameters
+        ----------
+        asset_convertible : AssetConvertible
+            The asset to query.
+        field_name : str
+            Name of the supplementary field.
+        as_of_date : pd.Timestamp, None
+            The last known value on this date is returned. If None, a
+            value is returned only if we've only ever had one value for
+            this sid. If None and we've had multiple values,
+            MultipleValuesFoundForSid is raised.
+
+        Raises
+        ------
+        NoValueForSid
+            If we have no values for this asset, or no values was known
+            on this as_of_date.
+        MultipleValuesFoundForSid
+            If we have had multiple values for this asset over time, and
+            None was passed for as_of_date.
+        """
         asset, _ = self.lookup_generic(asset_convertible, as_of_date)
         sid = asset.sid
 
