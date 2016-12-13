@@ -892,7 +892,7 @@ class AssetFinder(object):
 
     def get_supplementary_field(
         self,
-        asset_convertible,
+        sid,
         field_name,
         as_of_date,
     ):
@@ -900,8 +900,8 @@ class AssetFinder(object):
 
         Parameters
         ----------
-        asset_convertible : AssetConvertible
-            The asset to query.
+        sid : int
+            The sid of the asset to query.
         field_name : str
             Name of the supplementary field.
         as_of_date : pd.Timestamp, None
@@ -919,9 +919,6 @@ class AssetFinder(object):
             If we have had multiple values for this asset over time, and
             None was passed for as_of_date.
         """
-        asset, _ = self.lookup_generic(asset_convertible, as_of_date)
-        sid = asset.sid
-
         try:
             periods = self.equity_supplementary_map_by_sid[
                 field_name,
