@@ -131,7 +131,6 @@ def merge_ownership_periods(mappings):
             )
         ),
         mappings,
-        factory=lambda: mappings,
     )
 
 
