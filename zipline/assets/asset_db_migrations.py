@@ -313,4 +313,4 @@ def _downgrade_v5(op):
 
 @downgrades(6)
 def _downgrade_v6(op):
-    op.drop_table('supplementary_mappings')
+    op.drop_table('equity_supplementary_mappings')

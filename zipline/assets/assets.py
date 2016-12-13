@@ -344,17 +344,17 @@ class AssetFinder(object):
         return fuzzy_mappings
 
     @lazyval
-    def supplementary_map(self):
+    def equity_supplementary_map(self):
         return build_ownership_map(
-            table=self.supplementary_mappings,
+            table=self.equity_supplementary_mappings,
             key_from_row=lambda row: (row.field, row.value),
             value_from_row=lambda row: row.value,
         )
 
     @lazyval
-    def supplementary_map_by_sid(self):
+    def equity_supplementary_map_by_sid(self):
         return build_ownership_map(
-            table=self.supplementary_mappings,
+            table=self.equity_supplementary_mappings,
             key_from_row=lambda row: (row.field, row.sid),
             value_from_row=lambda row: row.value,
         )
@@ -857,7 +857,7 @@ class AssetFinder(object):
 
     def lookup_by_supplementary_field(self, field_name, value, as_of_date):
         try:
-            owners = self.supplementary_map[
+            owners = self.equity_supplementary_map[
                 field_name,
                 value,
             ]
@@ -923,7 +923,7 @@ class AssetFinder(object):
         sid = asset.sid
 
         try:
-            periods = self.supplementary_map_by_sid[
+            periods = self.equity_supplementary_map_by_sid[
                 field_name,
                 sid,
             ]

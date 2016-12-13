@@ -997,7 +997,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
             ]
         )
 
-        supplementary_mappings = pd.DataFrame.from_records(
+        equity_supplementary_mappings = pd.DataFrame.from_records(
             [
                 {
                     'sid': 0,
@@ -1032,7 +1032,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
 
         self.write_assets(
             equities=equities,
-            supplementary_mappings=supplementary_mappings,
+            equity_supplementary_mappings=equity_supplementary_mappings,
         )
 
         af = self.asset_finder
@@ -1094,7 +1094,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
             ]
         )
 
-        supplementary_mappings = pd.DataFrame.from_records(
+        equity_supplementary_mappings = pd.DataFrame.from_records(
             [
                 {
                     'sid': 0,
@@ -1129,7 +1129,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
 
         self.write_assets(
             equities=equities,
-            supplementary_mappings=supplementary_mappings,
+            equity_supplementary_mappings=equity_supplementary_mappings,
         )
         finder = self.asset_finder
 

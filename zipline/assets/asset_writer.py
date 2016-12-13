@@ -28,7 +28,7 @@ from zipline.assets.asset_db_schema import (
     asset_router,
     equities as equities_table,
     equity_symbol_mappings,
-    supplementary_mappings as supplementary_mappings_table,
+    equity_supplementary_mappings as equity_supplementary_mappings_table,
     futures_contracts as futures_contracts_table,
     futures_exchanges,
     futures_root_symbols,
@@ -48,7 +48,7 @@ AssetData = namedtuple(
         'futures',
         'exchanges',
         'root_symbols',
-        'supplementary_mappings',
+        'equity_supplementary_mappings',
     ),
 )
 
@@ -104,8 +104,8 @@ _root_symbols_defaults = {
     'exchange': None,
 }
 
-# Default values for the supplementary_mappings DataFrame
-_supplementary_mappings_defaults = {
+# Default values for the equity_supplementary_mappings DataFrame
+_equity_supplementary_mappings_defaults = {
     'sid': None,
     'value': None,
     'field': None,
@@ -367,7 +367,7 @@ class AssetDBWriter(object):
               futures=None,
               exchanges=None,
               root_symbols=None,
-              supplementary_mappings=None,
+              equity_supplementary_mappings=None,
               chunk_size=DEFAULT_CHUNK_SIZE):
         """Write asset metadata to a sqlite database.
 
@@ -445,7 +445,7 @@ class AssetDBWriter(object):
                   A short description of this root symbol.
               exchange : str
                   The exchange where this root symbol is traded.
-        supplementary_mappings : pd.DataFrame, optional
+        equity_supplementary_mappings : pd.DataFrame, optional
             Additional mappings from values of abitrary type to assets.
         chunk_size : int, optional
             The amount of rows to write to the SQLite table at once.
@@ -468,8 +468,8 @@ class AssetDBWriter(object):
                 exchanges if exchanges is not None else pd.DataFrame(),
                 root_symbols if root_symbols is not None else pd.DataFrame(),
                 (
-                    supplementary_mappings
-                    if supplementary_mappings is not None
+                    equity_supplementary_mappings
+                    if equity_supplementary_mappings is not None
                     else pd.DataFrame()
                 ),
             )
@@ -487,8 +487,8 @@ class AssetDBWriter(object):
                 chunk_size,
             )
             self._write_df_to_table(
-                supplementary_mappings_table,
-                data.supplementary_mappings,
+                equity_supplementary_mappings_table,
+                data.equity_supplementary_mappings,
                 conn,
                 chunk_size,
             )
@@ -665,10 +665,10 @@ class AssetDBWriter(object):
 
         return futures_output
 
-    def _normalize_supplementary_mappings(self, mappings):
+    def _normalize_equity_supplementary_mappings(self, mappings):
         mappings_output = _generate_output_dataframe(
             data_subset=mappings,
-            defaults=_supplementary_mappings_defaults,
+            defaults=_equity_supplementary_mappings_defaults,
         )
 
         for col in ('start_date', 'end_date'):
@@ -682,7 +682,7 @@ class AssetDBWriter(object):
         futures,
         exchanges,
         root_symbols,
-        supplementary_mappings,
+        equity_supplementary_mappings,
     ):
         """
         Returns a standard set of pandas.DataFrames:
@@ -701,8 +701,10 @@ class AssetDBWriter(object):
         equities_output, equities_mappings = self._normalize_equities(equities)
         futures_output = self._normalize_futures(futures)
 
-        supplementary_mappings_output = self._normalize_supplementary_mappings(
-            supplementary_mappings,
+        equity_supplementary_mappings_output = (
+            self._normalize_equity_supplementary_mappings(
+                equity_supplementary_mappings,
+            )
         )
 
         exchanges_output = _generate_output_dataframe(
@@ -721,5 +723,5 @@ class AssetDBWriter(object):
             futures=futures_output,
             exchanges=exchanges_output,
             root_symbols=root_symbols_output,
-            supplementary_mappings=supplementary_mappings_output,
+            equity_supplementary_mappings=equity_supplementary_mappings_output,
         )

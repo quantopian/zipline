@@ -14,7 +14,7 @@ asset_db_table_names = frozenset({
     'asset_router',
     'equities',
     'equity_symbol_mappings',
-    'supplementary_mappings',
+    'equity_supplementary_mappings',
     'futures_contracts',
     'futures_exchanges',
     'futures_root_symbols',
@@ -85,8 +85,8 @@ equity_symbol_mappings = sa.Table(
     ),
 )
 
-supplementary_mappings = sa.Table(
-    'supplementary_mappings',
+equity_supplementary_mappings = sa.Table(
+    'equity_supplementary_mappings',
     metadata,
     sa.Column(
         'id',
