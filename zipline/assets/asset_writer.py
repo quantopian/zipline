@@ -491,6 +491,7 @@ class AssetDBWriter(object):
                 data.equity_supplementary_mappings,
                 conn,
                 chunk_size,
+                idx=False,
             )
             self._write_assets(
                 'future',
@@ -506,10 +507,19 @@ class AssetDBWriter(object):
                 mapping_data=data.equities_mappings,
             )
 
-    def _write_df_to_table(self, tbl, df, txn, chunk_size, idx_label=None):
+    def _write_df_to_table(
+        self,
+        tbl,
+        df,
+        txn,
+        chunk_size,
+        idx=True,
+        idx_label=None,
+    ):
         df.to_sql(
             tbl.name,
             txn.connection,
+            index=idx,
             index_label=(
                 idx_label
                 if idx_label is not None else

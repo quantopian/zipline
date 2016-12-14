@@ -89,20 +89,14 @@ equity_supplementary_mappings = sa.Table(
     'equity_supplementary_mappings',
     metadata,
     sa.Column(
-        'id',
-        sa.Integer,
-        unique=True,
-        nullable=False,
-        primary_key=True,
-    ),
-    sa.Column(
         'sid',
         sa.Integer,
         sa.ForeignKey(equities.c.sid),
         nullable=False,
+        primary_key=True
     ),
-    sa.Column('field', sa.Text, nullable=False),
-    sa.Column('start_date', sa.Integer, default=0, nullable=False),
+    sa.Column('field', sa.Text, nullable=False, primary_key=True),
+    sa.Column('start_date', sa.Integer, nullable=False, primary_key=True),
     sa.Column('end_date', sa.Integer, nullable=False),
     sa.Column('value', sa.Text, nullable=False),
 )
