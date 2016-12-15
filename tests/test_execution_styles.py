@@ -12,27 +12,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from unittest import TestCase
-
+from nose_parameterized import parameterized
 from six.moves import range
 
-from nose_parameterized import parameterized
-
+from zipline.errors import(
+    BadOrderParameters
+)
 from zipline.finance.execution import (
     LimitOrder,
     MarketOrder,
     StopLimitOrder,
     StopOrder,
 )
-
-from zipline.utils.test_utils import(
-    setup_logger,
-    teardown_logger,
+from zipline.testing.fixtures import (
+    WithLogger,
+    ZiplineTestCase,
 )
 
 
-class ExecutionStyleTestCase(TestCase):
+class ExecutionStyleTestCase(WithLogger, ZiplineTestCase):
     """
     Tests for zipline ExecutionStyle classes.
     """
@@ -58,13 +56,19 @@ class ExecutionStyleTestCase(TestCase):
         for delta in range(1, 10)
     ]
 
-    INVALID_PRICES = [(-1,), (-1.0,), (0 - epsilon,)]
+    class ArbitraryObject():
+        def __str__(self):
+            return """This should yield a bad order error when
+            passed as a stop or limit price."""
 
-    def setUp(self):
-        setup_logger(self)
-
-    def tearDown(self):
-        teardown_logger(self)
+    INVALID_PRICES = [
+        (-1,),
+        (-1.0,),
+        (0 - epsilon,),
+        (float('nan'),),
+        (float('inf'),),
+        (ArbitraryObject(),),
+    ]
 
     @parameterized.expand(INVALID_PRICES)
     def test_invalid_prices(self, price):
@@ -72,14 +76,14 @@ class ExecutionStyleTestCase(TestCase):
         Test that execution styles throw appropriate exceptions upon receipt
         of an invalid price field.
         """
-        with self.assertRaises(ValueError):
+        with self.assertRaises(BadOrderParameters):
             LimitOrder(price)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(BadOrderParameters):
             StopOrder(price)
 
         for lmt, stp in [(price, 1), (1, price), (price, price)]:
-            with self.assertRaises(ValueError):
+            with self.assertRaises(BadOrderParameters):
                 StopLimitOrder(lmt, stp)
 
     def test_market_order_prices(self):

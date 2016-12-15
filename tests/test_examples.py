@@ -12,51 +12,62 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
+import tarfile
 
-# This code is based on a unittest written by John Salvatier:
-# https://github.com/pymc-devs/pymc/blob/pymc3/tests/test_examples.py
-
-# Disable plotting
-#
 import matplotlib
+from nose_parameterized import parameterized
+import pandas as pd
+
+from zipline import examples
+from zipline.data.bundles import register, unregister
+from zipline.testing import test_resource_path
+from zipline.testing.fixtures import WithTmpDir, ZiplineTestCase
+from zipline.testing.predicates import assert_equal
+from zipline.utils.cache import dataframe_cache
+
+# Otherwise the next line sometimes complains about being run too late.
+_multiprocess_can_split_ = False
+
 matplotlib.use('Agg')
 
-import os
-from os import path
 
-try:
-    from path import walk
-except ImportError:
-    # Assume Python 3
-    from os import walk
+class ExamplesTests(WithTmpDir, ZiplineTestCase):
+    # some columns contain values with unique ids that will not be the same
 
-import fnmatch
-import imp
+    @classmethod
+    def init_class_fixtures(cls):
+        super(ExamplesTests, cls).init_class_fixtures()
 
+        register('test', lambda *args: None)
+        cls.add_class_callback(partial(unregister, 'test'))
 
-def test_examples():
-    os.chdir(example_dir())
-    for fname in all_matching_files(example_dir(), '*.py'):
-        yield check_example, fname
+        with tarfile.open(test_resource_path('example_data.tar.gz')) as tar:
+            tar.extractall(cls.tmpdir.path)
 
+        cls.expected_perf = dataframe_cache(
+            cls.tmpdir.getpath(
+                'example_data/expected_perf/%s' %
+                pd.__version__.replace('.', '-'),
+            ),
+            serialization='pickle',
+        )
 
-def all_matching_files(d, pattern):
-    def addfiles(fls, dir, nfiles):
-        nfiles = fnmatch.filter(nfiles, pattern)
-        nfiles = [path.join(dir, f) for f in nfiles]
-        fls.extend(nfiles)
-
-    files = []
-    for dirpath, dirnames, filenames in walk(d):
-        addfiles(files, dirpath, filenames)
-    return files
-
-
-def example_dir():
-    import zipline
-    d = path.dirname(zipline.__file__)
-    return path.join(path.abspath(d), 'examples/')
-
-
-def check_example(p):
-    imp.load_source('__main__', path.basename(p))
+    @parameterized.expand(examples.EXAMPLE_MODULES)
+    def test_example(self, example_name):
+        actual_perf = examples.run_example(
+            example_name,
+            # This should match the invocation in
+            # zipline/tests/resources/rebuild_example_data
+            environ={
+                'ZIPLINE_ROOT': self.tmpdir.getpath('example_data/root'),
+            },
+        )
+        assert_equal(
+            actual_perf[examples._cols_to_check],
+            self.expected_perf[example_name][examples._cols_to_check],
+            # There is a difference in the datetime columns in pandas
+            # 0.16 and 0.17 because in 16 they are object and in 17 they are
+            # datetime[ns, UTC]. We will just ignore the dtypes for now.
+            check_dtype=False,
+        )

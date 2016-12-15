@@ -15,35 +15,43 @@
 
 # Note that part of the API is implemented in TradingAlgorithm as
 # methods (e.g. order). These are added to this namespace via the
-# decorator `api_methods` inside of algorithm.py.
-
-import zipline
-from .finance import (commission, slippage)
-from .utils import math_utils
-
-from zipline.finance.slippage import (
+# decorator ``api_method`` inside of algorithm.py.
+from .finance.asset_restrictions import (
+    Restriction,
+    StaticRestrictions,
+    HistoricalRestrictions,
+    RESTRICTION_STATES,
+)
+from .finance import commission, execution, slippage, cancel_policy
+from .finance.cancel_policy import (
+    NeverCancel,
+    EODCancel
+)
+from .finance.slippage import (
     FixedSlippage,
     VolumeShareSlippage,
 )
-
-
-batch_transform = zipline.transforms.BatchTransform
-
-
-def symbol(symbol_str, as_of_date=None):
-    """Default symbol lookup for any source that directly maps the
-    symbol to the identifier (e.g. yahoo finance).
-
-    Keyword argument as_of_date is ignored.
-    """
-    return symbol_str
+from .utils import math_utils, events
+from .utils.events import (
+    date_rules,
+    time_rules
+)
 
 __all__ = [
-    'symbol',
-    'slippage',
-    'commission',
-    'math_utils',
-    'batch_transform',
+    'EODCancel',
     'FixedSlippage',
-    'VolumeShareSlippage'
+    'NeverCancel',
+    'VolumeShareSlippage',
+    'Restriction',
+    'StaticRestrictions',
+    'HistoricalRestrictions',
+    'RESTRICTION_STATES',
+    'cancel_policy',
+    'commission',
+    'date_rules',
+    'events',
+    'execution',
+    'math_utils',
+    'slippage',
+    'time_rules'
 ]

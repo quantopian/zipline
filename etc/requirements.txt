@@ -1,28 +1,71 @@
+# Incompatible with earlier PIP versions
+pip>=7.1.0
+# bcolz fails to install if this is not in the build_requires.
+setuptools>18.0
+
 # Logging
-Logbook==0.7.0
+Logbook==0.12.5
 
 # Scientific Libraries
 
-pytz==2014.4
-numpy==1.8.1
+pytz==2016.4
+numpy==1.11.1
 
 # scipy and pandas are required for statsmodels,
 # statsmodels in turn is required for some pandas packages
-scipy==0.13.2
-pandas==0.12.0
+scipy==0.17.1
+pandas==0.18.1
+pandas-datareader==0.2.1
 # Needed for parts of pandas.stats
-patsy==0.2.1
-statsmodels==0.5.0
+patsy==0.4.0
+statsmodels==0.6.1
 
-python-dateutil==2.2
-six==1.6.1
-
-# Cython is required for TA-Lib
-Cython==0.20.1
-# This --allow syntax is for compatibility with pip >= 1.5
-# However, this is backwards incompatible change, since previous
-# versions of pip do not support that flag.
---allow-external TA-Lib --allow-unverified TA-Lib TA-Lib==0.4.8
+python-dateutil==2.4.2
+six==1.10.0
 
 # For fetching remote data
-requests==2.3.0
+requests==2.9.1
+
+Cython==0.22.1
+
+# faster OrderedDict
+cyordereddict==0.2.2
+
+# faster array ops.
+bottleneck==1.0.0
+
+contextlib2==0.4.0
+
+# networkx requires decorator
+decorator==4.0.0
+
+# Graph algorithms used by zipline.pipeline
+networkx==1.9.1
+
+# NumericalExpression pipeline terms.
+numexpr==2.4.6
+
+# On disk storage format for pipeline data.
+bcolz==0.12.1
+
+# Command line interface helper
+click==4.0.0
+
+# FUNctional programming utilities
+toolz==0.7.4
+multipledispatch==0.4.8
+
+# Asset writer and finder
+sqlalchemy==1.0.8
+# For asset db management
+alembic==0.7.7
+
+# for intervaltree
+sortedcontainers==1.4.4
+intervaltree==2.1.0
+
+# for caching
+lru-dict==1.1.4
+
+# For financial risk calculations
+empyrical==0.2.1

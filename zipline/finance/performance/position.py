@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Quantopian, Inc.
+# Copyright 2016 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,12 +20,11 @@ Position Tracking
     +-----------------+----------------------------------------------------+
     | key             | value                                              |
     +=================+====================================================+
-    | sid             | the identifier for the security held in this       |
-    |                 | position.                                          |
+    | sid             | the sid for the asset held in this position        |
     +-----------------+----------------------------------------------------+
     | amount          | whole number of shares in the position             |
     +-----------------+----------------------------------------------------+
-    | last_sale_price | price at last sale of the security on the exchange |
+    | last_sale_price | price at last sale of the asset on the exchange    |
     +-----------------+----------------------------------------------------+
     | cost_basis      | the volume weighted average price paid per share   |
     +-----------------+----------------------------------------------------+
@@ -33,10 +32,10 @@ Position Tracking
 """
 
 from __future__ import division
+from math import copysign
+from collections import OrderedDict
+import numpy as np
 import logbook
-import math
-
-from collections import Counter
 
 log = logbook.Logger('Performance')
 
@@ -44,77 +43,44 @@ log = logbook.Logger('Performance')
 class Position(object):
 
     def __init__(self, sid, amount=0, cost_basis=0.0,
-                 last_sale_price=0.0, last_sale_date=None,
-                 dividends=None):
+                 last_sale_price=0.0, last_sale_date=None):
+
         self.sid = sid
         self.amount = amount
         self.cost_basis = cost_basis  # per share
         self.last_sale_price = last_sale_price
         self.last_sale_date = last_sale_date
-        self.dividends = dividends or []
 
-    def update_dividends(self, midnight_utc):
+    def earn_dividend(self, dividend):
         """
-        midnight_utc is the 0 hour for the current (not yet open) trading day.
-        This method will be invoked at the end of the market
-        close handling, before the next market open.
+        Register the number of shares we held at this dividend's ex date so
+        that we can pay out the correct amount on the dividend's pay date.
         """
-        cash_payment = 0.0
-        stock_payment = Counter()  # maps sid to number of shares paid
-        unpaid_dividends = []
-        for dividend in self.dividends:
-            if midnight_utc == dividend.ex_date:
-                # if we own shares at midnight of the div_ex date
-                # we are entitled to the dividend.
-                dividend.amount_on_ex_date = self.amount
-                # stock dividend
-                if dividend.payment_sid:
-                    # e.g., 33.333
-                    raw_share_count = self.amount * float(dividend.ratio)
-                    # e.g., 33
-                    dividend.stock_payment = math.floor(raw_share_count)
-                else:
-                    dividend.stock_payment = None
-                # cash dividend
-                if dividend.net_amount:
-                    dividend.cash_payment = self.amount * dividend.net_amount
-                elif dividend.gross_amount:
-                    dividend.cash_payment = self.amount * dividend.gross_amount
-                else:
-                    dividend.cash_payment = None
+        return {
+            'amount': self.amount * dividend.amount
+        }
 
-            if midnight_utc == dividend.pay_date:
-                # if it is the payment date, include this
-                # dividend's actual payment (calculated on
-                # ex_date)
-                if dividend.stock_payment:
-                    stock_payment[dividend.payment_sid] += \
-                        dividend.stock_payment
+    def earn_stock_dividend(self, stock_dividend):
+        """
+        Register the number of shares we held at this dividend's ex date so
+        that we can pay out the correct amount on the dividend's pay date.
+        """
+        return {
+            'payment_asset': stock_dividend.payment_asset,
+            'share_count': np.floor(
+                self.amount * float(stock_dividend.ratio)
+            )
+        }
 
-                if dividend.cash_payment:
-                    cash_payment += dividend.cash_payment
-            else:
-                unpaid_dividends.append(dividend)
+    def handle_split(self, sid, ratio):
+        """
+        Update the position by the split ratio, and return the resulting
+        fractional share that will be converted into cash.
 
-        self.dividends = unpaid_dividends
-        return cash_payment, stock_payment
-
-    def add_dividend(self, dividend):
-        self.dividends.append(dividend)
-
-    # Update the position by the split ratio, and return the
-    # resulting fractional share that will be converted into cash.
-
-    # Returns the unused cash.
-    def handle_split(self, split):
-        if self.sid != split.sid:
+        Returns the unused cash.
+        """
+        if self.sid != sid:
             raise Exception("updating split with the wrong sid!")
-
-        ratio = split.ratio
-
-        log.info("handling split for sid = " + str(split.sid) +
-                 ", ratio = " + str(split.ratio))
-        log.info("before split: " + str(self))
 
         # adjust the # of shares by the ratio
         # (if we had 100 shares, and the ratio is 3,
@@ -126,7 +92,7 @@ class Position(object):
         raw_share_count = self.amount / float(ratio)
 
         # e.g., 33
-        full_share_count = math.floor(raw_share_count)
+        full_share_count = np.floor(raw_share_count)
 
         # e.g., 0.333
         fractional_share_count = raw_share_count - full_share_count
@@ -134,11 +100,7 @@ class Position(object):
         # adjust the cost basis to the nearest cent, e.g., 60.0
         new_cost_basis = round(self.cost_basis * ratio, 2)
 
-        # adjust the last sale price
-        new_last_sale_price = round(self.last_sale_price * ratio, 2)
-
         self.cost_basis = new_cost_basis
-        self.last_sale_price = new_last_sale_price
         self.amount = full_share_count
 
         return_cash = round(float(fractional_share_count * new_cost_basis), 2)
@@ -160,8 +122,8 @@ class Position(object):
         if total_shares == 0:
             self.cost_basis = 0.0
         else:
-            prev_direction = math.copysign(1, self.amount)
-            txn_direction = math.copysign(1, txn.amount)
+            prev_direction = copysign(1, self.amount)
+            txn_direction = copysign(1, txn.amount)
 
             if prev_direction != txn_direction:
                 # we're covering a short or closing a position
@@ -175,9 +137,15 @@ class Position(object):
                 total_cost = prev_cost + txn_cost
                 self.cost_basis = total_cost / total_shares
 
+            # Update the last sale price if txn is
+            # best data we have so far
+            if self.last_sale_date is None or txn.dt > self.last_sale_date:
+                self.last_sale_price = txn.price
+                self.last_sale_date = txn.dt
+
         self.amount = total_shares
 
-    def adjust_commission_cost_basis(self, commission):
+    def adjust_commission_cost_basis(self, sid, cost):
         """
         A note about cost-basis in zipline: all positions are considered
         to share a cost basis, even if they were executed in different
@@ -188,9 +156,9 @@ class Position(object):
         all shares in a position.
         """
 
-        if commission.sid != self.sid:
+        if sid != self.sid:
             raise Exception('Updating a commission for a different sid?')
-        if commission.cost == 0.0:
+        if cost == 0.0:
             return
 
         # If we no longer hold this position, there is no cost basis to
@@ -199,7 +167,7 @@ class Position(object):
             return
 
         prev_cost = self.cost_basis * self.amount
-        new_cost = prev_cost + commission.cost
+        new_cost = prev_cost + cost
         self.cost_basis = new_cost / self.amount
 
     def __repr__(self):
@@ -225,9 +193,6 @@ last_sale_price: {last_sale_price}"
         }
 
 
-class positiondict(dict):
-
+class positiondict(OrderedDict):
     def __missing__(self, key):
-        pos = Position(key)
-        self[key] = pos
-        return pos
+        return None

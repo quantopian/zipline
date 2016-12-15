@@ -1,0 +1,58 @@
+Release 1.0.1
+-------------
+
+:Release: 1.0.1
+:Date: May 27, 2016
+
+This is a minor bug-fix release from 1.0.0 and includes a small number of bug
+fixes and documentation improvements.
+
+Enhancements
+~~~~~~~~~~~~
+
+- Added support for user-defined commission models. See the
+  :class:`zipline.finance.commission.CommissionModel` class for more details on
+  implementing a commision model. (:issue:`1213`)
+
+- Added support for non-float columns to Blaze-backed Pipeline
+  datasets (:issue:`1201`).
+
+- Added :class:`zipline.pipeline.slice.Slice`, a new pipeline term designed to
+  extract a single column from another term. Slices can be created by indexing
+  into a term, keyed by asset. (:issue:`1267`)
+
+Bug Fixes
+~~~~~~~~~
+
+- Fixed a bug where Pipeline loaders were not properly initialized by
+  :func:`zipline.run_algorithm`.  This also affected invocations of ``zipline
+  run`` from the CLI.
+
+- Fixed a bug that caused the ``%%zipline`` IPython cell magic to fail
+  (:commit:`533233fae43c7ff74abfb0044f046978817cb4e4`).
+
+- Fixed a bug in the :class:`~zipline.finance.commission.PerTrade` commission
+  model where commissions were incorrectly applied to each partial-fill of an
+  order rather than on the order itself, resulting in algorithms being charged
+  too much in commissions when placing large orders.
+
+  :class:`~zipline.finance.commission.PerTrade` now correctly applies
+  commissions on a per-order basis (:issue:`1213`).
+
+- Attribute accesses on :class:`CustomFactors <zipline.pipeline.CustomFactor>`
+  defining multiple outputs will now correctly return an output slice when the
+  output is also the name of a :class:`~zipline.pipeline.factors.Factor` method
+  (:issue:`1214`).
+
+- Replaced deprecated usage of ``pandas.io.data`` with ``pandas_datareader``
+  (:issue:`1218`).
+
+- Fixed an issue where ``.pyi`` stub files for :mod:`zipline.api` were
+  accidentally excluded from the PyPI source distribution.  Conda users should
+  be unaffected (:issue:`1230`).
+
+Documentation
+~~~~~~~~~~~~~
+
+- Added a new example, :mod:`zipline.examples.momentum_pipeline`, which
+  exercises the Pipeline API (:issue:`1230`).

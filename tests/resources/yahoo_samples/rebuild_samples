@@ -1,0 +1,81 @@
+#!/usr/bin/env python
+"""
+Script for rebuilding the samples for the Yahoo tests.
+"""
+from textwrap import dedent
+
+import numpy as np
+import pandas as pd
+
+from zipline.testing import test_resource_path, write_compressed
+from zipline.utils.calendars import get_calendar
+
+
+def zipfile_path(symbol, ext):
+    return test_resource_path('yahoo_samples', symbol + ext + '.gz')
+
+
+def pricing_for_sid(sid):
+    modifier = {
+        'Low': 0,
+        'Open': 1,
+        'Close': 2,
+        'High': 3,
+        'Volume': 0,
+    }
+
+    def column(name):
+        return np.arange(252) + 1 + sid * 10000 + modifier[name] * 1000
+
+    trading_days = get_calendar('NYSE').all_sessions
+
+    return pd.DataFrame(
+        data={
+            'Date': trading_days[
+                (trading_days >= pd.Timestamp('2014')) &
+                (trading_days < pd.Timestamp('2015'))
+            ],
+            'Open': column('Open'),
+            'High': column('High'),
+            'Low': column('Low'),
+            'Close': column('Close'),
+            'Volume': column('Volume'),
+            'Adj Close': 0,
+        },
+        columns=[
+            'Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'Adj Close',
+        ],
+    ).to_csv(index=False, date_format='%Y-%m-%d').encode('ascii')
+
+
+def adjustments_for_sid(sid):
+    """This is not exactly a csv... thanks yahoo.
+    """
+    return dedent(
+        """\
+        Date,Dividends
+        DIVIDEND, 20140403,0.{p1}00000
+        SPLIT, 20140703,{p2}:1
+        DIVIDEND, 20141002,0.{p2}00000
+        STARTDATE, 20140102
+        ENDDATE, 20141231
+        TOTALSIZE, 2
+        """.format(p1=sid + 1, p2=sid + 2),
+    ).encode('ascii')
+
+
+def main():
+    symbols = 'AAPL', 'IBM', 'MSFT'
+
+    for sid, symbol in enumerate(symbols):
+        write_compressed(
+            zipfile_path(symbol, '.csv'),
+            pricing_for_sid(sid),
+        )
+        write_compressed(
+            zipfile_path(symbol, '.adjustments'),
+            adjustments_for_sid(sid),
+        )
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,327 @@
+Release 0.6.1
+-------------
+
+:Release: 0.6.1
+:Date: April 23, 2014
+
+
+Highlights
+~~~~~~~~~~
+
+* Major fixes to risk calculations, see Bug Fixes section.
+* Port of ``history()`` function, see Enhancements section
+* Start of support for Quantopian algorithm script-syntax, see ENH
+  section.
+* conda package manager support, see Build section.
+
+Enhancements
+~~~~~~~~~~~~
+
+* Always process new orders
+  i.e. on bars where ``handle_data`` isn't called, but there is 'clock'
+  data e.g. a consistent benchmark, process orders.
+* Empty positions are now filtered from the portfolio container.
+  To help prevent algorithms from operating on positions that are not in
+  the existing universe of stocks.
+  Formerly, iterating over positions would return positions for stocks
+  which had zero shares held. (Where an explicit check in algorithm code
+  for ``pos.amount != 0`` could prevent from using a non-existent
+  position.)
+* Add trading calendar for BMF&Bovespa.
+* Add beginning of algo script support.
+* Starts on the path of parity with the script syntax in Quantopian's IDE
+  on https://quantopian.com
+  Example:
+
+  .. code-block:: python
+
+     from datetime import datetime import pytz
+     from zipline import TradingAlgorithm
+     from zipline.utils.factory import load_from_yahoo
+
+     from zipline.api import order
+
+     def initialize(context):
+         context.test = 10
+
+     def handle_date(context, data):
+         order('AAPL', 10)
+         print(context.test)
+
+     if __name__ == '__main__':
+         import pylab as pl
+         start = datetime(2008, 1, 1, 0, 0, 0, 0, pytz.utc)
+         end = datetime(2010, 1, 1, 0, 0, 0, 0, pytz.utc)
+         data = load_from_yahoo(
+             stocks=['AAPL'],
+             indexes={},
+             start=start,
+             end=end)
+         data = data.dropna()
+         algo = TradingAlgorithm(
+             initialize=initialize,
+             handle_data=handle_date)
+         results = algo.run(data)
+         results.portfolio_value.plot()
+         pl.show()
+
+* Add HDF5 and CSV sources.
+* Limit ``handle_data`` to times with market data.
+  To prevent cases where custom data types had unaligned timestamps, only
+  call ``handle_data`` when market data passes through.
+  Custom data that comes before market data will still update the data
+  bar. But the handling of that data will only be done when there is
+  actionable market data.
+* Extended commission PerShare method to allow a minimum cost per trade.
+* Add symbol api function
+  A ``symbol()`` lookup feature was added to Quantopian. By adding the
+  same API function to zipline we can make copy&pasting of a Zipline algo
+  to Quantopian easier.
+* Add simulated random trade source.
+  Added a new data source that emits events with certain user-specified
+  frequency (minute or daily).
+  This allows users to backtest and debug an algorithm in minute mode to
+  provide a cleaner path towards Quantopian.
+* Remove dependency on benchmark for trading day calendar.
+  Instead of the benchmarks' index, the trading calendar is now used to
+  populate the environment's trading days.
+  Remove ``extra_date`` field, since unlike the benchmarks list, the
+  trading calendar can generate future dates, so dates for current day
+  trading do not need to be appended.
+  Motivations:
+
+  -  The source for the open and close/early close calendar and the
+     trading day calendar is now the same, which should help prevent
+     potential issues due to misalignment.
+  -  Allows configurations where the benchmark is provided as a generator
+     based data source to need to supply a second benchmark list just to
+     populate dates.
+* Port ``history()`` API method from Quantopian.
+  Opens the core of the ``history()`` function that was previously only
+  available on the Quantopian platform.
+
+  The history method is analoguous to the ``batch_transform``
+  function/decorator, but with a hopefully more precise specification of
+  the frequency and period of the previous bar data that is captured.
+  Example usage:
+
+  .. code-block:: python
+
+     from zipline.api import history, add_history
+
+     def initialize(context):
+         add_history(bar_count=2, frequency='1d', field='price')
+
+     def handle_data(context, data):
+         prices = history(bar_count=2, frequency='1d', field='price')
+         context.last_prices = prices
+
+  N.B. this version of history lacks the backfilling capability that
+  allows the return a full DataFrame on the first bar.
+
+
+Bug Fixes
+~~~~~~~~~
+
+* Adjust benchmark events to match market hours (:issue:`241`).
+  Previously benchmark events were emitted at 0:00 on the day the
+  benchmark related to: in 'minute' emission mode this meant that the
+  benchmarks were emitted before any intra-day trades were processed.
+* Ensure perf stats are generated for all days
+  When running with minutely emissions the simulator would report to the
+  user that it simulated 'n - 1' days (where n is the number of days
+  specified in the simulation params). Now the correct number of trading
+  days are reported as being simulated.
+* Fix repr for cumulative risk metrics.
+  The ``__repr__`` for RiskMetricsCumulative was referring to an older
+  structure of the class, causing an exception when printed.
+  Also, now prints the last values in the metrics DataFrame.
+* Prevent minute emission from crashing at end of available data.
+  The next day calculation was causing an error when a minute emission
+  algorithm reached the end of available data.
+  Instead of a generic exception when available data is reached, raise and
+  catch a named exception so that the tradesimulation loop can skip over,
+  since the next market close is not needed at the end.
+* Fix pandas indexing in trading calendar. This could alternatively be filed
+  under Performance. Index using loc instead of the inefficient index-ing of
+  day, then time.
+* Prevent crash in vwap transform due to non-existent member.
+  The WrongDataForTransform was referencing a ``self.fields`` member,
+  which did not exist.
+  Add a self.fields member set to ``price`` and ``volume`` and use it to
+  iterate over during the check.
+* Fix max drawdown calculation.
+  The input into max drawdown was incorrect, causing the bad results. i.e.
+  the ``compounded_log_returns`` were not values representative of the
+  algorithms total return at a given time, though
+  ``calculate_max_drawdown`` was treating the values as if they were.
+  Instead, the ``algorithm_period_returns`` series is now used, which does
+  provide the total return.
+* Fix cost basis calculation.
+  Cost basis calculation now takes direction of txn into account.
+  Closing a long position or covering a short shouldn't affect the cost
+  basis.
+* Fix floating point error in ``order()``.
+  Where order amounts that were near an integer could accidentally be
+  floored or ceilinged (depending on being postive or negative) to the
+  wrong integer.
+  e.g. an amount stored internally as -27.99999 was converted to -27
+  instead of -28.
+* Update perf period state when positions are changed by splits.
+  Otherwise, ``self._position_amounts`` will be out of sync with
+  position.amount, etc.
+* Fix misalignment of downside series calc when using exact dates.
+  An oddity that was exposed while working on making the return series
+  passed to the risk module more exact, the series comparison between the
+  returns and mean returns was unbalanced, because the mean returns were
+  not masked down to the downside data points; however, in most, if not
+  all cases this was papered over by the call to ``.valid()`` which was
+  removed in this change set.
+* Check that self.logger exists before using it.
+  ``self.logger`` is initialized as ``None`` and there is no guarantee
+  that users have set it, so check that it exists before trying to pass
+  messages to it.
+* Prevent out of sync market closes in performance tracker.
+  In situations where the performance tracker has been reset or patched to
+  handle state juggling with warming up live data, the ``market_close``
+  member of the performance tracker could end up out of sync with the
+  current algo time as determined by the performance tracker.
+  The symptom was dividends never triggering, because the end of day
+  checks would not match the current time.
+  Fix by having the tradesimulation loop be responsible, in minute/minute
+  mode, for advancing the market close and passing that value to the
+  performance tracker, instead of having the market close advanced by the
+  performance tracker as well.
+* Fix numerous cumulative and period risk calculations.
+  The calculations that are expected to change are:
+
+  - ``cumulative.beta``
+  - ``cumulative.alpha``
+  - ``cumulative.information``
+  - ``cumulative.sharpe``
+  - ``period.sortino``
+
+  How Risk Calculations Are Changing
+  Risk Fixes for Both Period and Cumulative
+
+  Downside Risk
+
+  Use sample instead of population for standard deviation.
+
+  Add a rounding factor, so that if the two values are close for a given
+  dt, that they do not count as a downside value, which would throw off
+  the denominator of the standard deviation of the downside diffs.
+
+  Standard Deviation Type
+
+  Across the board the standard deviation has been standardized to using a
+  'sample' calculation, whereas before cumulative risk was mostly using
+  'population'. Using ``ddof=1`` with ``np.std`` calculates as if the
+  values are a sample.
+
+  Cumulative Risk Fixes
+
+  Beta
+
+  Use the daily algorithm returns and benchmarks instead of annualized
+  mean returns.
+
+  Volatility
+
+  Use sample instead of population with standard deviation.
+
+  The volatility is an input to other calculations so this change affects
+  Sharpe and Information ratio calculations.
+
+  Information Ratio
+
+  The benchmark returns input is changed from annualized benchmark returns
+  to the annualized mean returns.
+
+  Alpha
+
+  The benchmark returns input is changed from annualized benchmark returns
+  to the annualized mean returns.
+
+  Period Risk Fixes
+
+  Sortino
+
+  Now uses the downside risk of the daily return vs. the mean algorithm
+  returns for the minimum acceptable return instead of the treasury
+  return.
+
+  The above required adding the calculation of the mean algorithm returns
+  for period risk.
+
+  Also, uses ``algorithm_period_returns`` and ``tresaury_period_return``
+  as the cumulative Sortino does, instead of using algorithm returns for
+  both inputs into the Sortino calculation.
+
+
+Performance
+~~~~~~~~~~~
+
+* Removed ``alias_dt`` transform in favor of property on SIDData.
+  Adding a copy of the Event's dt field as datetime via the ``alias_dt``
+  generator, so that the API was forgiving and allowed both datetime and
+  dt on a SIDData object, was creating noticeable overhead, even on an
+  noop algorithms.
+  Instead of incurring the cost of copying the datetime value and
+  assigning it to the Event object on every event that is passed through
+  the system, add a property to SIDData which acts as an alias
+  ``datetime`` to ``dt``.
+  Eventually support for ``data['foo'].datetime`` may be removed, and
+  could be considered deprecated.
+* Remove the drop of 'null return' from cumulative returns.
+  The check of existence of the null return key, and the drop of said
+  return on every single bar was adding unneeded CPU time when an
+  algorithm was run with minute emissions.
+  Instead, add the 0.0 return with an index of the trading day before the
+  start date.
+  The removal of the ``null return`` was mainly in place so that the
+  period calculation was not crashing on a non-date index value; with the
+  index as a date, the period return can also approximate volatility (even
+  though the that volatility has high noise-to-signal strength because it
+  uses only two values as an input.)
+
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Allow ``sim_params`` to provide data frequency for the algorithm.
+  In the case that ``data_frequency`` of the algorithm is None, allow the
+  ``sim_params`` to provide the ``data_frequency``.
+
+  Also, defer to the algorithms data frequency, if provided.
+
+
+Build
+~~~~~
+
+* Added support for building and releasing via conda
+  For those who prefer building with http://conda.pydata.org/ to compiling
+  locally with pip.
+  The following should install Zipline on many systems.
+
+  ::
+
+    conda install -c quantopian zipline
+
+Contributors
+~~~~~~~~~~~~
+
+The following people have contributed to this release, ordered by
+numbers of commit:
+
+::
+
+        49  Eddie Hebert
+        28  Thomas Wiecki
+        11  Richard Frank
+         2  Jamie Kirkpatrick
+         2  Jeremiah Lowin
+         1  Colin Alexander
+         1  Michael Schatzow
+         1  Moises Trovo
+         1  Suminda Dharmasena

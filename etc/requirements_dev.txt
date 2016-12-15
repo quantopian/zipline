@@ -1,26 +1,63 @@
 # Testing
-nose==1.3.3
-nose-parameterized==0.3.3
+coverage==4.0.3
+nose==1.3.7
+nose-parameterized==0.5.0
 nose-ignore-docstring==0.2
-xlrd==0.9.3
-mock==1.0.1
+nose-timer==0.5.0
+xlrd==0.9.4
+
+# These are required by mock or its dependencies
+MarkupSafe==0.23
+Jinja2==2.7.3
+funcsigs==0.4
+Pygments==2.0.2
+alabaster==0.7.6
+babel==1.3
+docutils==0.12
+snowballstemmer==1.2.0
+sphinx-rtd-theme==0.1.8
+sphinx==1.3.4
+pbr==1.3.0
+
+mock==1.3.0
+
+# Temp Directories for testing
+testfixtures==4.1.2
 
 # Linting
 
-flake8==2.1.0
-mccabe==0.2.1
+flake8==2.4.1
+mccabe==0.3.1
+# Note: Old version of pep8 required by flake8 2.4.1
 pep8==1.5.7
+# Note: Old version of pyflakes required by flake8 2.4.1
 pyflakes==0.8.1
 
 # Documentation Conversion
 
 pyandoc==0.0.1
+docopt==0.6.2
+numpydoc==0.5
+mistune==0.7
 
 # Example scripts that are run during unit tests use the following:
 
-matplotlib==1.3.1
-# tornado and pyparsing are required by matplotlib
-tornado==3.2.1
-pyparsing==2.0.2
+# Required by tornado
+backports.ssl-match-hostname==3.4.0.2;python_version<'3.0'
+certifi==2015.4.28
 
-Markdown==2.4.1
+# tornado and pyparsing are required by matplotlib
+tornado==4.2.1
+pyparsing==2.0.3
+
+matplotlib==1.4.3
+
+Markdown==2.6.2
+
+# Checking for old PIP packages
+futures==3.0.5
+requests-futures==0.9.7
+piprot==0.9.6
+
+# For mocking out requests fetches
+responses==0.4.0

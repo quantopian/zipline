@@ -1,5 +1,5 @@
 #
-# Copyright 2013 Quantopian, Inc.
+# Copyright 2016 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,14 +12,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from warnings import warn
 
-from six import iteritems, iterkeys
+import pandas as pd
 
-from . utils.protocol_utils import Enum
+from .utils.enum import enum
+from zipline._protocol import BarData  # noqa
+
 
 # Datasource type should completely determine the other fields of a
 # message with its type.
-DATASOURCE_TYPE = Enum(
+DATASOURCE_TYPE = enum(
     'AS_TRADED_EQUITY',
     'MERGER',
     'SPLIT',
@@ -31,30 +34,41 @@ DATASOURCE_TYPE = Enum(
     'DONE',
     'CUSTOM',
     'BENCHMARK',
-    'COMMISSION'
+    'COMMISSION',
+    'CLOSE_POSITION'
 )
+
+# Expected fields/index values for a dividend Series.
+DIVIDEND_FIELDS = [
+    'declared_date',
+    'ex_date',
+    'gross_amount',
+    'net_amount',
+    'pay_date',
+    'payment_sid',
+    'ratio',
+    'sid',
+]
+# Expected fields/index values for a dividend payment Series.
+DIVIDEND_PAYMENT_FIELDS = [
+    'id',
+    'payment_sid',
+    'cash_amount',
+    'share_count',
+]
 
 
 class Event(object):
 
     def __init__(self, initial_values=None):
         if initial_values:
-            self.__dict__ = initial_values
-
-    def __getitem__(self, name):
-        return getattr(self, name)
-
-    def __setitem__(self, name, value):
-        setattr(self, name, value)
-
-    def __delitem__(self, name):
-        delattr(self, name)
+            self.__dict__.update(initial_values)
 
     def keys(self):
         return self.__dict__.keys()
 
     def __eq__(self, other):
-        return self.__dict__ == other.__dict__
+        return hasattr(other, '__dict__') and self.__dict__ == other.__dict__
 
     def __contains__(self, name):
         return name in self.__dict__
@@ -62,9 +76,62 @@ class Event(object):
     def __repr__(self):
         return "Event({0})".format(self.__dict__)
 
+    def to_series(self, index=None):
+        return pd.Series(self.__dict__, index=index)
+
+
+def _deprecated_getitem_method(name, attrs):
+    """Create a deprecated ``__getitem__`` method that tells users to use
+    getattr instead.
+
+    Parameters
+    ----------
+    name : str
+        The name of the object in the warning message.
+    attrs : iterable[str]
+        The set of allowed attributes.
+
+    Returns
+    -------
+    __getitem__ : callable[any, str]
+        The ``__getitem__`` method to put in the class dict.
+    """
+    attrs = frozenset(attrs)
+    msg = (
+        "'{name}[{attr!r}]' is deprecated, please use"
+        " '{name}.{attr}' instead"
+    )
+
+    def __getitem__(self, key):
+        """``__getitem__`` is deprecated, please use attribute access instead.
+        """
+        warn(msg.format(name=name, attr=key), DeprecationWarning, stacklevel=2)
+        if key in attrs:
+            return self.__dict__[key]
+        raise KeyError(key)
+
+    return __getitem__
+
 
 class Order(Event):
-    pass
+    # If you are adding new attributes, don't update this set. This method
+    # is deprecated to normal attribute access so we don't want to encourage
+    # new usages.
+    __getitem__ = _deprecated_getitem_method(
+        'order', {
+            'dt',
+            'sid',
+            'amount',
+            'stop',
+            'limit',
+            'id',
+            'filled',
+            'commission',
+            'stop_reached',
+            'limit_reached',
+            'created',
+        },
+    )
 
 
 class Portfolio(object):
@@ -80,11 +147,81 @@ class Portfolio(object):
         self.start_date = None
         self.positions_value = 0.0
 
-    def __getitem__(self, key):
-        return self.__dict__[key]
-
     def __repr__(self):
         return "Portfolio({0})".format(self.__dict__)
+
+    # If you are adding new attributes, don't update this set. This method
+    # is deprecated to normal attribute access so we don't want to encourage
+    # new usages.
+    __getitem__ = _deprecated_getitem_method(
+        'portfolio', {
+            'capital_used',
+            'starting_cash',
+            'portfolio_value',
+            'pnl',
+            'returns',
+            'cash',
+            'positions',
+            'start_date',
+            'positions_value',
+        },
+    )
+
+
+class Account(object):
+    '''
+    The account object tracks information about the trading account. The
+    values are updated as the algorithm runs and its keys remain unchanged.
+    If connected to a broker, one can update these values with the trading
+    account values as reported by the broker.
+    '''
+
+    def __init__(self):
+        self.settled_cash = 0.0
+        self.accrued_interest = 0.0
+        self.buying_power = float('inf')
+        self.equity_with_loan = 0.0
+        self.total_positions_value = 0.0
+        self.total_positions_exposure = 0.0
+        self.regt_equity = 0.0
+        self.regt_margin = float('inf')
+        self.initial_margin_requirement = 0.0
+        self.maintenance_margin_requirement = 0.0
+        self.available_funds = 0.0
+        self.excess_liquidity = 0.0
+        self.cushion = 0.0
+        self.day_trades_remaining = float('inf')
+        self.leverage = 0.0
+        self.net_leverage = 0.0
+        self.net_liquidation = 0.0
+
+    def __repr__(self):
+        return "Account({0})".format(self.__dict__)
+
+    # If you are adding new attributes, don't update this set. This method
+    # is deprecated to normal attribute access so we don't want to encourage
+    # new usages.
+    __getitem__ = _deprecated_getitem_method(
+        'account', {
+            'settled_cash',
+            'accrued_interest',
+            'buying_power',
+            'equity_with_loan',
+            'total_positions_value',
+            'total_positions_exposure',
+            'regt_equity',
+            'regt_margin',
+            'initial_margin_requirement',
+            'maintenance_margin_requirement',
+            'available_funds',
+            'excess_liquidity',
+            'cushion',
+            'day_trades_remaining',
+            'leverage',
+            'net_leverage',
+            'net_liquidation',
+        },
+    )
 
 
 class Position(object):
@@ -94,129 +231,27 @@ class Position(object):
         self.amount = 0
         self.cost_basis = 0.0  # per share
         self.last_sale_price = 0.0
-
-    def __getitem__(self, key):
-        return self.__dict__[key]
+        self.last_sale_date = None
 
     def __repr__(self):
         return "Position({0})".format(self.__dict__)
+
+    # If you are adding new attributes, don't update this set. This method
+    # is deprecated to normal attribute access so we don't want to encourage
+    # new usages.
+    __getitem__ = _deprecated_getitem_method(
+        'position', {
+            'sid',
+            'amount',
+            'cost_basis',
+            'last_sale_price',
+            'last_sale_date',
+        },
+    )
 
 
 class Positions(dict):
 
     def __missing__(self, key):
         pos = Position(key)
-        self[key] = pos
         return pos
-
-
-class SIDData(object):
-
-    def __init__(self, initial_values=None):
-        if initial_values:
-            self.__dict__ = initial_values
-
-    @property
-    def datetime(self):
-        """
-        Provides an alias from data['foo'].datetime -> data['foo'].dt
-
-        `datetime` was previously provided by adding a seperate `datetime`
-        member of the SIDData object via a generator that wrapped the incoming
-        data feed and added the field to each equity event.
-
-        This alias is intended to be temporary, to provide backwards
-        compatibility with existing algorithms, but should be considered
-        deprecated, and may be removed in the future.
-        """
-        return self.dt
-
-    def __getitem__(self, name):
-        return self.__dict__[name]
-
-    def __setitem__(self, name, value):
-        self.__dict__[name] = value
-
-    def __len__(self):
-        return len(self.__dict__)
-
-    def __contains__(self, name):
-        return name in self.__dict__
-
-    def __repr__(self):
-        return "SIDData({0})".format(self.__dict__)
-
-
-class BarData(object):
-    """
-    Holds the event data for all sids for a given dt.
-
-    This is what is passed as `data` to the `handle_data` function.
-
-    Note: Many methods are analogues of dictionary because of historical
-    usage of what this replaced as a dictionary subclass.
-    """
-
-    def __init__(self, data=None):
-        self._data = data or {}
-        self._contains_override = None
-
-    def __contains__(self, name):
-        if self._contains_override:
-            if self._contains_override(name):
-                return name in self._data
-            else:
-                return False
-        else:
-            return name in self._data
-
-    def has_key(self, name):
-        """
-        DEPRECATED: __contains__ is preferred, but this method is for
-        compatibility with existing algorithms.
-        """
-        return name in self
-
-    def __setitem__(self, name, value):
-        self._data[name] = value
-
-    def __getitem__(self, name):
-        return self._data[name]
-
-    def __delitem__(self, name):
-        del self._data[name]
-
-    def __iter__(self):
-        for sid, data in iteritems(self._data):
-            # Allow contains override to filter out sids.
-            if sid in self:
-                if len(data):
-                    yield sid
-
-    def iterkeys(self):
-        # Allow contains override to filter out sids.
-        return (sid for sid in iterkeys(self._data) if sid in self)
-
-    def keys(self):
-        # Allow contains override to filter out sids.
-        return list(self.iterkeys())
-
-    def itervalues(self):
-        return (value for _sid, value in self.iteritems())
-
-    def values(self):
-        return list(self.itervalues())
-
-    def iteritems(self):
-        return ((sid, value) for sid, value
-                in iteritems(self._data)
-                if sid in self)
-
-    def items(self):
-        return list(self.iteritems())
-
-    def __len__(self):
-        return len(self.keys())
-
-    def __repr__(self):
-        return '{0}({1})'.format(self.__class__.__name__, self._data)

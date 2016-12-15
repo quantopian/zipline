@@ -1,19 +1,20 @@
 package:
   name: ta-lib
-  version: !!str 0.4.8
+  version: !!str 0.4.9
 
 source:
-  fn: TA_Lib-0.4.8.tar.gz
-  url: https://github.com/mrjbq7/ta-lib/archive/TA_Lib-0.4.8.tar.gz
+  fn: TA_Lib-0.4.9.tar.gz
+  url: https://github.com/mrjbq7/ta-lib/archive/TA_Lib-0.4.9.tar.gz
+  md5: f2f6ec8b7d552ff96d53d56ffb7b4e97
 
 requirements:
   build:
     - python
     - cython
-    - numpy
+    - numpy x.x
   run:
     - python
-    - numpy
+    - numpy x.x
 
 test:
   imports:

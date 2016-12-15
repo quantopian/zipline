@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Quantopian, Inc.
+# Copyright 2015 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,15 +15,12 @@
 from __future__ import division
 
 import abc
-
 import math
-
-from copy import copy
-from functools import partial
-
 from six import with_metaclass
 
-from zipline.protocol import DATASOURCE_TYPE
+from pandas import isnull
+
+from zipline.finance.transaction import create_transaction
 
 SELL = 1 << 0
 BUY = 1 << 1
@@ -31,166 +28,109 @@ STOP = 1 << 2
 LIMIT = 1 << 3
 
 
-def check_order_triggers(order, event):
-    """
-    Given an order and a trade event, return a tuple of
-    (stop_reached, limit_reached).
-    For market orders, will return (False, False).
-    For stop orders, limit_reached will always be False.
-    For limit orders, stop_reached will always be False.
-    For stop limit orders a Boolean is returned to flag
-    that the stop has been reached.
-
-    Orders that have been triggered already (price targets reached),
-    the order's current values are returned.
-    """
-    if order.triggered:
-        return (order.stop_reached, order.limit_reached, False)
-
-    stop_reached = False
-    limit_reached = False
-    sl_stop_reached = False
-
-    order_type = 0
-
-    if order.amount > 0:
-        order_type |= BUY
-    else:
-        order_type |= SELL
-
-    if order.stop is not None:
-        order_type |= STOP
-
-    if order.limit is not None:
-        order_type |= LIMIT
-
-    if order_type == BUY | STOP | LIMIT:
-        if event.price >= order.stop:
-            sl_stop_reached = True
-            if event.price <= order.limit:
-                limit_reached = True
-    elif order_type == SELL | STOP | LIMIT:
-        if event.price <= order.stop:
-            sl_stop_reached = True
-            if event.price >= order.limit:
-                limit_reached = True
-    elif order_type == BUY | STOP:
-        if event.price >= order.stop:
-            stop_reached = True
-    elif order_type == SELL | STOP:
-        if event.price <= order.stop:
-            stop_reached = True
-    elif order_type == BUY | LIMIT:
-        if event.price <= order.limit:
-            limit_reached = True
-    elif order_type == SELL | LIMIT:
-        # This is a SELL LIMIT order
-        if event.price >= order.limit:
-            limit_reached = True
-
-    return (stop_reached, limit_reached, sl_stop_reached)
+class LiquidityExceeded(Exception):
+    pass
 
 
-def transact_stub(slippage, commission, event, open_orders):
-    """
-    This is intended to be wrapped in a partial, so that the
-    slippage and commission models can be enclosed.
-    """
-    for order, transaction in slippage(event, open_orders):
-        if transaction and transaction.amount != 0:
-            direction = math.copysign(1, transaction.amount)
-            per_share, total_commission = commission.calculate(transaction)
-            transaction.price += per_share * direction
-            transaction.commission = total_commission
-        yield order, transaction
-
-
-def transact_partial(slippage, commission):
-    return partial(transact_stub, slippage, commission)
-
-
-class Transaction(object):
-
-    def __init__(self, sid, amount, dt, price, order_id, commission=None):
-        self.sid = sid
-        self.amount = amount
-        self.dt = dt
-        self.price = price
-        self.order_id = order_id
-        self.commission = commission
-        self.type = DATASOURCE_TYPE.TRANSACTION
-
-    def __getitem__(self, name):
-        return self.__dict__[name]
-
-    def to_dict(self):
-        py = copy(self.__dict__)
-        del py['type']
-        return py
-
-
-def create_transaction(event, order, price, amount):
-
-    # floor the amount to protect against non-whole number orders
-    # TODO: Investigate whether we can add a robust check in blotter
-    # and/or tradesimulation, as well.
-    amount_magnitude = int(abs(amount))
-
-    if amount_magnitude < 1:
-        raise Exception("Transaction magnitude must be at least 1.")
-
-    transaction = Transaction(
-        sid=event.sid,
-        amount=int(amount),
-        dt=event.dt,
-        price=price,
-        order_id=order.id
-    )
-
-    return transaction
+DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT = 0.025
 
 
 class SlippageModel(with_metaclass(abc.ABCMeta)):
+    """Abstract interface for defining a slippage model.
+    """
+    def __init__(self):
+        self._volume_for_bar = 0
 
     @property
     def volume_for_bar(self):
         return self._volume_for_bar
 
     @abc.abstractproperty
-    def process_order(self, event, order):
+    def process_order(self, data, order):
+        """Process how orders get filled.
+
+        Parameters
+        ----------
+        data : BarData
+            The data for the given bar.
+        order : Order
+            The order to simulate.
+
+        Returns
+        -------
+        execution_price : float
+            The price to execute the trade at.
+        execution_volume : int
+            The number of shares that could be filled. This may not be all
+            the shares ordered in which case the order will be filled over
+            multiple bars.
+        """
         pass
 
-    def simulate(self, event, current_orders):
-
+    def simulate(self, data, asset, orders_for_asset):
         self._volume_for_bar = 0
+        volume = data.current(asset, "volume")
 
-        for order in current_orders:
+        if volume == 0:
+            return
 
+        # can use the close price, since we verified there's volume in this
+        # bar.
+        price = data.current(asset, "close")
+
+        # BEGIN
+        #
+        # Remove this block after fixing data to ensure volume always has
+        # corresponding price.
+        if isnull(price):
+            return
+        # END
+        dt = data.current_dt
+
+        for order in orders_for_asset:
             if order.open_amount == 0:
                 continue
 
-            order.check_triggers(event)
+            order.check_triggers(price, dt)
             if not order.triggered:
                 continue
 
-            txn = self.process_order(event, order)
+            txn = None
+
+            try:
+                execution_price, execution_volume = \
+                    self.process_order(data, order)
+
+                if execution_price is not None:
+                    txn = create_transaction(
+                        order,
+                        data.current_dt,
+                        execution_price,
+                        execution_volume
+                    )
+
+            except LiquidityExceeded:
+                break
 
             if txn:
                 self._volume_for_bar += abs(txn.amount)
                 yield order, txn
 
-    def __call__(self, event, current_orders, **kwargs):
-        return self.simulate(event, current_orders, **kwargs)
+    def __call__(self, bar_data, asset, current_orders):
+        return self.simulate(bar_data, asset, current_orders)
 
 
 class VolumeShareSlippage(SlippageModel):
+    """Model slippage as a function of the volume of shares traded.
+    """
 
-    def __init__(self,
-                 volume_limit=.25,
+    def __init__(self, volume_limit=DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT,
                  price_impact=0.1):
 
         self.volume_limit = volume_limit
         self.price_impact = price_impact
+
+        super(VolumeShareSlippage, self).__init__()
 
     def __repr__(self):
         return """
@@ -201,59 +141,82 @@ class VolumeShareSlippage(SlippageModel):
                    volume_limit=self.volume_limit,
                    price_impact=self.price_impact)
 
-    def process_order(self, event, order):
+    def process_order(self, data, order):
+        volume = data.current(order.asset, "volume")
 
-        max_volume = self.volume_limit * event.volume
+        max_volume = self.volume_limit * volume
 
         # price impact accounts for the total volume of transactions
         # created against the current minute bar
         remaining_volume = max_volume - self.volume_for_bar
         if remaining_volume < 1:
             # we can't fill any more transactions
-            return
+            raise LiquidityExceeded()
 
         # the current order amount will be the min of the
         # volume available in the bar or the open amount.
         cur_volume = int(min(remaining_volume, abs(order.open_amount)))
 
         if cur_volume < 1:
-            return
+            return None, None
 
         # tally the current amount into our total amount ordered.
         # total amount will be used to calculate price impact
         total_volume = self.volume_for_bar + cur_volume
 
-        volume_share = min(total_volume / event.volume,
+        volume_share = min(total_volume / volume,
                            self.volume_limit)
+
+        price = data.current(order.asset, "close")
+
+        # BEGIN
+        #
+        # Remove this block after fixing data to ensure volume always has
+        # corresponding price.
+        if isnull(price):
+            return
+        # END
 
         simulated_impact = volume_share ** 2 \
             * math.copysign(self.price_impact, order.direction) \
-            * event.price
+            * price
+        impacted_price = price + simulated_impact
 
-        return create_transaction(
-            event,
-            order,
-            # In the future, we may want to change the next line
-            # for limit pricing
-            event.price + simulated_impact,
+        if order.limit:
+            # this is tricky! if an order with a limit price has reached
+            # the limit price, we will try to fill the order. do not fill
+            # these shares if the impacted price is worse than the limit
+            # price. return early to avoid creating the transaction.
+
+            # buy order is worse if the impacted price is greater than
+            # the limit price. sell order is worse if the impacted price
+            # is less than the limit price
+            if (order.direction > 0 and impacted_price > order.limit) or \
+                    (order.direction < 0 and impacted_price < order.limit):
+                return None, None
+
+        return (
+            impacted_price,
             math.copysign(cur_volume, order.direction)
         )
 
 
 class FixedSlippage(SlippageModel):
+    """Model slippage as a fixed spread.
+
+    Parameters
+    ----------
+    spread : float, optional
+        spread / 2 will be added to buys and subtracted from sells.
+    """
 
     def __init__(self, spread=0.0):
-        """
-        Use the fixed slippage model, which will just add/subtract
-        a specified spread spread/2 will be added on buys and subtracted
-        on sells per share
-        """
         self.spread = spread
 
-    def process_order(self, event, order):
-        return create_transaction(
-            event,
-            order,
-            event.price + (self.spread / 2.0 * order.direction),
-            order.amount,
+    def process_order(self, data, order):
+        price = data.current(order.asset, "close")
+
+        return (
+            price + (self.spread / 2.0 * order.direction),
+            order.amount
         )

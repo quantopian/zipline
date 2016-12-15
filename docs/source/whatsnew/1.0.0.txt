@@ -1,0 +1,227 @@
+Release 1.0.0
+-------------
+
+:Release: 1.0.0
+:Date: May 19, 2016
+
+
+Highlights
+~~~~~~~~~~
+
+Zipline 1.0 Rewrite (:issue:`1105`)
+```````````````````````````````````
+
+We have rewritten a lot of Zipline and its basic concepts in order to improve
+runtime performance. At the same time, we've introduced several new APIs.
+
+At a high level, earlier versions of Zipline simulations pulled from a
+multiplexed stream of data sources, which were merged via heapq. This stream was
+fed to the main simulation loop, driving the clock forward. This strong
+dependency on reading all the data made it difficult to optimize simulation
+performance because there was no connection between the amount of data we
+fetched and the amount of data actually used by the algorithm.
+
+Now, we only fetch data when the algorithm needs it. A new class,
+:class:`~zipline.data.data_portal.DataPortal`, dispatches data requests to
+various data sources and returns the requested values. This makes the runtime of
+a simulation scale much more closely with the complexity of the algorithm,
+rather than with the number of assets provided by the data sources.
+
+Instead of the data stream driving the clock, now simulations iterate through a
+pre-calculated set of day or minute timestamps. The timestamps are emitted by
+:class:`~zipline.gens.sim_engine.MinuteSimulationClock` and
+:class:`~zipline.gens.sim_engine.DailySimulationClock`, and consumed by the main
+loop in :meth:`~zipline.gens.tradesimulation.AlgorithmSimulator.transform`.
+
+We've retired the ``data[sid(N)]`` and ``history`` APIs, replacing them with
+several methods on the :class:`~zipline.protocol.BarData` object:
+:meth:`~zipline.protocol.BarData.current`,
+:meth:`~zipline.protocol.BarData.history`,
+:meth:`~zipline.protocol.BarData.can_trade`, and
+:meth:`~zipline.protocol.BarData.is_stale`. Old APIs will continue to work for
+now, but will issue deprecation warnings.
+
+You can now pass in an adjustments source to the
+:class:`~zipline.data.data_portal.DataPortal`, and we will apply adjustments to
+the pricing data when looking backwards at data. Prices and volumes for
+execution and presented to the algorithm in data.current are the as-traded value
+of the asset.
+
+New Entry Points (:issue:`1173` and :issue:`1178`)
+``````````````````````````````````````````````````
+
+In order to make it easier to use zipline we have updated the entry points for
+a backtest. The three supported ways to run a backtest are now:
+
+1. :func:`zipline.run_algo`
+2. ``$ zipline run``
+3. ``%zipline`` (IPython magic)
+
+Data Bundles (:issue:`1173` and :issue:`1178`)
+``````````````````````````````````````````````
+
+1.0.0 introduces data bundles. Data bundles are groups of data that should be
+preloaded and used to run backtests later. This allows users to not need to to
+specify  which tickers they are interested in each time they run an
+algorithm. This also allows us to cache the data between runs.
+
+By default, the ``quantopian-quandl`` bundle will be used which pulls data from
+Quantopian's mirror of the quandl `WIKI dataset
+<https://www.quandl.com/data/WIKI>`_. New bundles may be registered with
+:func:`zipline.data.bundles.register` like:
+
+.. code-block:: python
+
+   @zipline.data.bundles.register('my-new-bundle')
+   def my_new_bundle_ingest(environ,
+                            asset_db_writer,
+                            minute_bar_writer,
+                            daily_bar_writer,
+                            adjustment_writer,
+                            calendar,
+                            cache,
+                            show_progress):
+       ...
+
+
+This function should retrieve the data it needs and then use the writers that
+have been passed to write that data to disc in a location that zipline can find
+later.
+
+This data can be used in backtests by passing the name as the ``-b / --bundle``
+argument to ``$ zipline run`` or as the ``bundle`` argument to
+:func:`zipline.run_algorithm`.
+
+For more information see :ref:`data-bundles` for more information.
+
+String Support in Pipeline (:issue:`1174`)
+``````````````````````````````````````````
+
+Added support for string data in Pipeline.
+:class:`zipline.pipeline.data.Column` now accepts ``object`` as a dtype, which
+signifies that loaders for that column should emit windowed iterators over the
+experimental new :class:`~zipline.lib.labelarray.LabelArray` class.
+
+Several new :class:`~zipline.pipeline.Classifier` methods have also been added
+for constructing :class:`~zipline.pipeline.Filter` instances based on string
+operations.  The new methods are:
+
+  - :meth:`~zipline.pipeline.Classifier.element_of`
+  - :meth:`~zipline.pipeline.Classifier.startswith`
+  - :meth:`~zipline.pipeline.Classifier.endswith`
+  - :meth:`~zipline.pipeline.Classifier.has_substring`
+  - :meth:`~zipline.pipeline.Classifier.matches`
+
+  ``element_of`` is defined for all classifiers.  The remaining methods are
+  only defined for string-dtype classifiers.
+
+Enhancements
+~~~~~~~~~~~~
+
+* Made the data loading classes have more consistent interfaces. This includes
+  the equity bar writers, adjustment writer, and asset db writer. The new
+  interface is that the resource to be written to is passed at construction time
+  and the data to write is provided later to the `write` method as
+  dataframes or some iterator of dataframes. This model allows us to pass these
+  writer objects around as a resource for other classes and functions to
+  consume (:issue:`1109` and :issue:`1149`).
+
+* Added masking to :class:`zipline.pipeline.CustomFactor`.
+  Custom factors can now be passed a Filter upon instantiation. This tells the
+  factor to only compute over stocks for which the filter returns True, rather
+  than always computing over the entire universe of stocks. (:issue:`1095`)
+
+* Added :class:`zipline.utils.cache.ExpiringCache`.
+  A cache which wraps entries in a :class:`zipline.utils.cache.CachedObject`,
+  which manages expiration of entries based on the `dt` supplied to the `get`
+  method. (:issue:`1130`)
+
+* Implemented :class:`zipline.pipeline.factors.RecarrayField`, a new pipeline
+  term designed to be the output type of a CustomFactor with multiple outputs.
+  (:issue:`1119`)
+
+* Added optional `outputs` parameter to :class:`zipline.pipeline.CustomFactor`.
+  Custom factors are now capable of computing and returning multiple outputs,
+  each of which are themselves a Factor. (:issue:`1119`)
+
+* Added support for string-dtype pipeline columns. Loaders for thse columns
+  should produce instances of :class:`zipline.lib.labelarray.LabelArray` when
+  traversed. :meth:`~zipline.pipeline.data.BoundColumn.latest` on string
+  columns produces a string-dtype
+  :class:`zipline.pipeline.Classifier`. (:issue:`1174`)
+
+* Added several methods for converting Classifiers into Filters.
+
+  The new methods are:
+  - :meth:`~zipline.pipeline.Classifier.element_of`
+  - :meth:`~zipline.pipeline.Classifier.startswith`
+  - :meth:`~zipline.pipeline.Classifier.endswith`
+  - :meth:`~zipline.pipeline.Classifier.has_substring`
+  - :meth:`~zipline.pipeline.Classifier.matches`
+
+  ``element_of`` is defined for all classifiers.  The remaining methods are
+  only defined for strings. (:issue:`1174`)
+
+* Added :class:`~zipline.pipeline.factors.BollingerBands` factor. This factor
+  implements the Bollinger Bands technical indicator:
+  https://en.wikipedia.org/wiki/Bollinger_Bands (:issue:`1199`).
+
+* Fetcher has been moved from Quantopian internal code into Zipline
+  (:issue:`1105`).
+
+* Added new built-in factors,
+  :class:`~zipline.pipeline.factors.RollingPearsonOfReturns`,
+  :class:`~zipline.pipeline.factors.RollingSpearmanOfReturns` and
+  :class:`~zipline.pipeline.factors.RollingLinearRegressionOfReturns`
+  (:issue:`1154`)
+
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   Experimental features are subject to change.
+
+* Added a new :class:`zipline.lib.labelarray.LabelArray` class for efficiently
+  representing and computing on string data with numpy.  This class is
+  conceptually similar to :class:`pandas.Categorical`, in that it represents
+  string arrays as arrays of indices into a (smaller) array of unique string
+  values. (:issue:`1174`)
+
+
+Bug Fixes
+~~~~~~~~~
+
+None
+
+Performance
+~~~~~~~~~~~
+
+None
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+None
+
+Build
+~~~~~
+
+None
+
+Documentation
+~~~~~~~~~~~~~
+
+* Updated documentation for the API methods (:issue:`1188`).
+
+* Updated release process to mention that docs should be built with python 3
+  (:issue:`1188`).
+
+Miscellaneous
+~~~~~~~~~~~~~
+
+* Zipline now provides a `stub file
+  <https://www.python.org/dev/peps/pep-0484/#stub-files>`_ for the
+  ``zipline.api`` module. This module is normally dynamically created so the
+  stub file provides some static information for utilities that can consume it,
+  for example PyCharm (:issue:`1208`).

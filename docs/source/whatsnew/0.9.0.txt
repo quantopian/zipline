@@ -1,0 +1,112 @@
+Release 0.9.0
+-------------
+
+:Release: 0.9.0
+:Date: March 29, 2016
+
+Highlights
+~~~~~~~~~~
+
+* Added classifiers and normalization methods to pipeline, along with new
+  datasets and factors.
+
+* Added support for Windows with continuous integration on AppVeyor.
+
+Enhancements
+~~~~~~~~~~~~
+* Added new datasets
+  :class:`~zipline.pipeline.data.buyback_auth.CashBuybackAuthorizations`
+  and :class:`~zipline.pipeline.data.buyback_auth.ShareBuybackAuthorizations`
+  for use in the Pipeline API.  These datasets provide an abstract interface for
+  adding cash and share buyback authorizations data, respectively, to a new
+  algorithm. pandas-based reference implementations for these datasets can be
+  found in :mod:`zipline.pipeline.loaders.buyback_auth`, and experimental
+  blaze-based implementations can be found in
+  :mod:`zipline.pipeline.loaders.blaze.buyback_auth`. (:issue:`1022`).
+
+* Added new datasets
+  :class:`~zipline.pipeline.data.dividends.DividendsByExDate`,
+  :class:`~zipline.pipeline.data.dividends.DividendsByPayDate`, and
+  :class:`~zipline.pipeline.data.dividends.DividendsByAnnouncementDate`
+  for use in the Pipeline API.  These datasets provide an abstract interface for
+  adding dividends data organized by ex date, pay date, and announcement date,
+  respectively, to a new algorithm. pandas-based reference implementations for
+  these datasets can be found in :mod:`zipline.pipeline.loaders.dividends`, and
+  experimental blaze-based implementations can be found in
+  :mod:`zipline.pipeline.loaders.blaze.dividends`. (:issue:`1093`).
+
+* Added new built-in factors,
+  :class:`zipline.pipeline.factors.BusinessDaysSinceCashBuybackAuth` and
+  :class:`zipline.pipeline.factors.BusinessDaysSinceShareBuybackAuth`.  These
+  factors use the new ``CashBuybackAuthorizations`` and
+  ``ShareBuybackAuthorizations`` datasets, respectively. (:issue:`1022`).
+
+* Added new built-in factors,
+  :class:`zipline.pipeline.factors.BusinessDaysSinceDividendAnnouncement`,
+  :class:`zipline.pipeline.factors.BusinessDaysUntilNextExDate`, and
+  :class:`zipline.pipeline.factors.BusinessDaysSincePreviousExDate`.  These
+  factors use the new ``DividendsByAnnouncementDate` and ``DividendsByExDate``
+  datasets, respectively. (:issue:`1093`).
+
+* Implemented :class:`zipline.pipeline.Classifier`, a new core pipeline API
+  term representing grouping keys.  Classifiers are primarily used by passing
+  them as the ``groupby`` parameter to factor normalization methods.
+  (:issue:`1046`)
+
+* Added factor normalization methods:
+  :meth:`zipline.pipeline.Factor.demean` and
+  :meth:`zipline.pipeline.Factor.zscore`. (:issue:`1046`)
+
+* Added :meth:`zipline.pipeline.Factor.quantiles`, a method for computing a
+  Classifier from a Factor by partitioning into equally-sized buckets. Also
+  added helpers for common quantile sizes
+  (:meth:`zipline.pipeline.Factor.quartiles`,
+  :meth:`zipline.pipeline.Factor.quartiles`, and
+  :meth:`zipline.pipeline.Factor.deciles`) (:issue:`1075`).
+
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   Experimental features are subject to change.
+
+None
+
+Bug Fixes
+~~~~~~~~~
+
+* Fixed a bug where merging two numerical expressions failed given too many
+  inputs. This caused running a pipeline to fail when combining more than ten
+  factors or filters. (:issue:`1072`)
+
+Performance
+~~~~~~~~~~~
+
+None
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+None
+
+Build
+~~~~~
+
+* Added AppVeyor for continuous integration on Windows.  Added conda build of
+  zipline and its dependencies to AppVeyor and Travis builds, which upload
+  their results to anaconda.org labeled with "ci". (:issue:`981`)
+
+Documentation
+~~~~~~~~~~~~~
+
+None
+
+Miscellaneous
+~~~~~~~~~~~~~
+
+* Adds :class:`~zipline.testing.fixtures.ZiplineTestCase` which provides hooks
+  to consume test fixtures. Fixtures are things like:
+  :class:`~zipline.testing.fixtures.WithAssetFinder` which will make
+  ``self.asset_finder`` available to your test with some mock data
+  (:issue:`1042`).

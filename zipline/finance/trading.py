@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Quantopian, Inc.
+# Copyright 2016 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,423 +13,260 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import bisect
 import logbook
-import datetime
-
 import pandas as pd
-import numpy as np
+from pandas.tslib import normalize_date
+from six import string_types
+from sqlalchemy import create_engine
 
+from zipline.assets import AssetDBWriter, AssetFinder
+from zipline.assets.continuous_futures import CHAIN_PREDICATES
 from zipline.data.loader import load_market_data
-from zipline.utils import tradingcalendar
-from zipline.utils.tradingcalendar import get_early_closes
-
+from zipline.utils.calendars import get_calendar
+from zipline.utils.memoize import remember_last
 
 log = logbook.Logger('Trading')
 
 
-# The financial simulations in zipline depend on information
-# about the benchmark index and the risk free rates of return.
-# The benchmark index defines the benchmark returns used in
-# the calculation of performance metrics such as alpha/beta. Many
-# components, including risk, performance, transforms, and
-# batch_transforms, need access to a calendar of trading days and
-# market hours. The TradingEnvironment maintains two time keeping
-# facilities:
-#   - a DatetimeIndex of trading days for calendar calculations
-#   - a timezone name, which should be local to the exchange
-#   hosting the benchmark index. All dates are normalized to UTC
-#   for serialization and storage, and the timezone is used to
-#   ensure proper rollover through daylight savings and so on.
-#
-# This module maintains a global variable, environment, which is
-# subsequently referenced directly by zipline financial
-# components. To set the environment, you can set the property on
-# the module directly:
-#       from zipline.finance import trading
-#       trading.environment = TradingEnvironment()
-#
-# or if you want to switch the environment for a limited context
-# you can use a TradingEnvironment in a with clause:
-#       lse = TradingEnvironment(bm_index="^FTSE", exchange_tz="Europe/London")
-#       with lse:
-# the code here will have lse as the global trading.environment
-#           algo.run(start, end)
-#
-# User code will not normally need to use TradingEnvironment
-# directly. If you are extending zipline's core financial
-# compponents and need to use the environment, you must import the module
-# NOT the variable. If you import the module, you will get a
-# reference to the environment at import time, which will prevent
-# your code from responding to user code that changes the global
-# state.
-
-environment = None
-
-
-class NoFurtherDataError(Exception):
-    """
-    Thrown when next trading is attempted at the end of available data.
-    """
-    pass
-
-
 class TradingEnvironment(object):
+    """
+    The financial simulations in zipline depend on information
+    about the benchmark index and the risk free rates of return.
+    The benchmark index defines the benchmark returns used in
+    the calculation of performance metrics such as alpha/beta. Many
+    components, including risk, performance, transforms, and
+    batch_transforms, need access to a calendar of trading days and
+    market hours. The TradingEnvironment maintains two time keeping
+    facilities:
+      - a DatetimeIndex of trading days for calendar calculations
+      - a timezone name, which should be local to the exchange
+        hosting the benchmark index. All dates are normalized to UTC
+        for serialization and storage, and the timezone is used to
+       ensure proper rollover through daylight savings and so on.
 
-    @classmethod
-    def instance(cls):
-        global environment
-        if not environment:
-            environment = TradingEnvironment()
+    User code will not normally need to use TradingEnvironment
+    directly. If you are extending zipline's core financial
+    components and need to use the environment, you must import the module and
+    build a new TradingEnvironment object, then pass that TradingEnvironment as
+    the 'env' arg to your TradingAlgorithm.
 
-        return environment
+    Parameters
+    ----------
+    load : callable, optional
+        The function that returns benchmark returns and treasury curves.
+        The treasury curves are expected to be a DataFrame with an index of
+        dates and columns of the curve names, e.g. '10year', '1month', etc.
+    bm_symbol : str, optional
+        The benchmark symbol
+    exchange_tz : tz-coercable, optional
+        The timezone of the exchange.
+    min_date : datetime, optional
+        The oldest date that we know about in this environment.
+    max_date : datetime, optional
+        The most recent date that we know about in this environment.
+    env_trading_calendar : pd.DatetimeIndex, optional
+        The calendar of datetimes that define our market hours.
+    asset_db_path : str or sa.engine.Engine, optional
+        The path to the assets db or sqlalchemy Engine object to use to
+        construct an AssetFinder.
+    """
+
+    # Token used as a substitute for pickling objects that contain a
+    # reference to a TradingEnvironment
+    PERSISTENT_TOKEN = "<TradingEnvironment>"
 
     def __init__(
         self,
         load=None,
         bm_symbol='^GSPC',
         exchange_tz="US/Eastern",
-        max_date=None,
-        env_trading_calendar=tradingcalendar
+        trading_calendar=None,
+        asset_db_path=':memory:',
+        future_chain_predicates=CHAIN_PREDICATES,
     ):
-        self.prev_environment = self
+
         self.bm_symbol = bm_symbol
         if not load:
             load = load_market_data
 
-        self.benchmark_returns, treasury_curves_map = \
-            load(self.bm_symbol)
+        if not trading_calendar:
+            trading_calendar = get_calendar("NYSE")
 
-        self.treasury_curves = pd.DataFrame(treasury_curves_map).T
-        if max_date:
-            tr_c = self.treasury_curves
-            # Mask the treasury curvers down to the current date.
-            # In the case of live trading, the last date in the treasury
-            # curves would be the day before the date considered to be
-            # 'today'.
-            self.treasury_curves = tr_c[tr_c.index <= max_date]
+        self.benchmark_returns, self.treasury_curves = load(
+            trading_calendar.day,
+            trading_calendar.schedule.index,
+            self.bm_symbol,
+        )
 
         self.exchange_tz = exchange_tz
 
-        # `tc_td` is short for "trading calendar trading days"
-        tc_td = env_trading_calendar.trading_days
-
-        if max_date:
-            self.trading_days = tc_td[tc_td <= max_date].copy()
+        if isinstance(asset_db_path, string_types):
+            asset_db_path = 'sqlite:///' + asset_db_path
+            self.engine = engine = create_engine(asset_db_path)
         else:
-            self.trading_days = tc_td.copy()
+            self.engine = engine = asset_db_path
 
-        self.first_trading_day = self.trading_days[0]
-        self.last_trading_day = self.trading_days[-1]
-
-        self.early_closes = get_early_closes(self.first_trading_day,
-                                             self.last_trading_day)
-
-        self.open_and_closes = env_trading_calendar.open_and_closes.ix[
-            self.trading_days]
-
-    def __enter__(self, *args, **kwargs):
-        global environment
-        self.prev_environment = environment
-        environment = self
-        # return value here is associated with "as such_and_such" on the
-        # with clause.
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        global environment
-        environment = self.prev_environment
-        # signal that any exceptions need to be propagated up the
-        # stack.
-        return False
-
-    def normalize_date(self, test_date):
-        test_date = pd.Timestamp(test_date, tz='UTC')
-        return pd.tseries.tools.normalize_date(test_date)
-
-    def utc_dt_in_exchange(self, dt):
-        return pd.Timestamp(dt).tz_convert(self.exchange_tz)
-
-    def exchange_dt_in_utc(self, dt):
-        return pd.Timestamp(dt, tz=self.exchange_tz).tz_convert('UTC')
-
-    def is_market_hours(self, test_date):
-        if not self.is_trading_day(test_date):
-            return False
-
-        mkt_open, mkt_close = self.get_open_and_close(test_date)
-        return test_date >= mkt_open and test_date <= mkt_close
-
-    def is_trading_day(self, test_date):
-        dt = self.normalize_date(test_date)
-        return (dt in self.trading_days)
-
-    def next_trading_day(self, test_date):
-        dt = self.normalize_date(test_date)
-        delta = datetime.timedelta(days=1)
-
-        while dt <= self.last_trading_day:
-            dt += delta
-            if dt in self.trading_days:
-                return dt
-
-        return None
-
-    def previous_trading_day(self, test_date):
-        dt = self.normalize_date(test_date)
-        delta = datetime.timedelta(days=-1)
-
-        while self.first_trading_day < test_date:
-            dt += delta
-            if dt in self.trading_days:
-                return dt
-
-        return None
-
-    def days_in_range(self, start, end):
-        mask = ((self.trading_days >= start) &
-                (self.trading_days <= end))
-        return self.trading_days[mask]
-
-    def minutes_for_days_in_range(self, start, end):
-        """
-        Get all market minutes for the days between start and end, inclusive.
-        """
-        start_date = self.normalize_date(start)
-        end_date = self.normalize_date(end)
-
-        all_minutes = []
-        for day in self.days_in_range(start_date, end_date):
-            day_minutes = self.market_minutes_for_day(day)
-            all_minutes.append(day_minutes)
-
-        # Concatenate all minutes and truncate minutes before start/after end.
-        return pd.DatetimeIndex(
-            np.concatenate(all_minutes), copy=False, tz='UTC',
-        )
-
-    def next_open_and_close(self, start_date):
-        """
-        Given the start_date, returns the next open and close of
-        the market.
-        """
-        next_open = self.next_trading_day(start_date)
-
-        if next_open is None:
-            raise NoFurtherDataError(
-                "Attempt to backtest beyond available history. \
-Last successful date: %s" % self.last_trading_day)
-
-        return self.get_open_and_close(next_open)
-
-    def previous_open_and_close(self, start_date):
-        """
-        Given the start_date, returns the previous open and close of the
-        market.
-        """
-        previous = self.previous_trading_day(start_date)
-
-        if previous is None:
-            raise NoFurtherDataError(
-                "Attempt to backtest beyond available history. "
-                "First successful date: %s" % self.first_trading_day)
-        return self.get_open_and_close(previous)
-
-    def next_market_minute(self, start):
-        """
-        Get the next market minute after @start. This is either the immediate
-        next minute, or the open of the next market day after start.
-        """
-        next_minute = start + datetime.timedelta(minutes=1)
-        if self.is_market_hours(next_minute):
-            return next_minute
-        return self.next_open_and_close(start)[0]
-
-    def previous_market_minute(self, start):
-        """
-        Get the next market minute before @start. This is either the immediate
-        previous minute, or the close of the market day before start.
-        """
-        prev_minute = start - datetime.timedelta(minutes=1)
-        if self.is_market_hours(prev_minute):
-            return prev_minute
-        return self.previous_open_and_close(start)[1]
-
-    def get_open_and_close(self, day):
-        todays_minutes = self.open_and_closes.ix[day.date()]
-
-        return todays_minutes['market_open'], todays_minutes['market_close']
-
-    def market_minutes_for_day(self, stamp):
-        market_open, market_close = self.get_open_and_close(stamp)
-        return pd.date_range(market_open, market_close, freq='T')
-
-    def open_close_window(self, start, count, offset=0, step=1):
-        """
-        Return a DataFrame containing `count` market opens and closes,
-        beginning with `start` + `offset` days and continuing `step` minutes at
-        a time.
-        """
-        # TODO: Correctly handle end of data.
-        start_idx = self.get_index(start) + offset
-        stop_idx = start_idx + (count * step)
-
-        index = np.arange(start_idx, stop_idx, step)
-
-        return self.open_and_closes.iloc[index]
-
-    def market_minute_window(self, start, count, step=1):
-        """
-        Return a DatetimeIndex containing `count` market minutes, starting with
-        `start` and continuing `step` minutes at a time.
-        """
-        if not self.is_market_hours(start):
-            raise ValueError("market_minute_window starting at "
-                             "non-market time {minute}".format(minute=start))
-
-        all_minutes = []
-
-        current_day_minutes = self.market_minutes_for_day(start)
-        first_minute_idx = current_day_minutes.searchsorted(start)
-        minutes_in_range = current_day_minutes[first_minute_idx::step]
-
-        # Build up list of lists of days' market minutes until we have count
-        # minutes stored altogether.
-        while True:
-
-            if len(minutes_in_range) >= count:
-                # Truncate off extra minutes
-                minutes_in_range = minutes_in_range[:count]
-
-            all_minutes.append(minutes_in_range)
-            count -= len(minutes_in_range)
-            if count <= 0:
-                break
-
-            if step > 0:
-                start, _ = self.next_open_and_close(start)
-                current_day_minutes = self.market_minutes_for_day(start)
-            else:
-                _, start = self.previous_open_and_close(start)
-                current_day_minutes = self.market_minutes_for_day(start)
-
-            minutes_in_range = current_day_minutes[::step]
-
-        # Concatenate all the accumulated minutes.
-        return pd.DatetimeIndex(
-            np.concatenate(all_minutes), copy=False, tz='UTC',
-        )
-
-    def trading_day_distance(self, first_date, second_date):
-        first_date = self.normalize_date(first_date)
-        second_date = self.normalize_date(second_date)
-
-        # TODO: May be able to replace the following with searchsorted.
-        # Find leftmost item greater than or equal to day
-        i = bisect.bisect_left(self.trading_days, first_date)
-        if i == len(self.trading_days):  # nothing found
-            return None
-        j = bisect.bisect_left(self.trading_days, second_date)
-        if j == len(self.trading_days):
-            return None
-
-        return j - i
-
-    def get_index(self, dt):
-        """
-        Return the index of the given @dt, or the index of the preceding
-        trading day if the given dt is not in the trading calendar.
-        """
-        ndt = self.normalize_date(dt)
-        if ndt in self.trading_days:
-            return self.trading_days.searchsorted(ndt)
+        if engine is not None:
+            AssetDBWriter(engine).init_db()
+            self.asset_finder = AssetFinder(
+                engine,
+                future_chain_predicates=future_chain_predicates)
         else:
-            return self.trading_days.searchsorted(ndt) - 1
+            self.asset_finder = None
+
+    def write_data(self, **kwargs):
+        """Write data into the asset_db.
+
+        Parameters
+        ----------
+        **kwargs
+            Forwarded to AssetDBWriter.write
+        """
+        AssetDBWriter(self.engine).write(**kwargs)
 
 
 class SimulationParameters(object):
-    def __init__(self, period_start, period_end,
+    def __init__(self, start_session, end_session,
+                 trading_calendar,
                  capital_base=10e3,
                  emission_rate='daily',
                  data_frequency='daily',
-                 sids=None):
+                 arena='backtest'):
 
-        # This is the global environment for trading simulation.
-        environment = TradingEnvironment.instance()
+        assert type(start_session) == pd.Timestamp
+        assert type(end_session) == pd.Timestamp
 
-        self.period_start = period_start
-        self.period_end = period_end
-        self.capital_base = capital_base
-
-        self.emission_rate = emission_rate
-        self.data_frequency = data_frequency
-        self.sids = sids
-
-        assert self.period_start <= self.period_end, \
+        assert trading_calendar is not None, \
+            "Must pass in trading calendar!"
+        assert start_session <= end_session, \
             "Period start falls after period end."
-
-        assert self.period_start <= environment.last_trading_day, \
+        assert start_session <= trading_calendar.last_trading_session, \
             "Period start falls after the last known trading day."
-        assert self.period_end >= environment.first_trading_day, \
+        assert end_session >= trading_calendar.first_trading_session, \
             "Period end falls before the first known trading day."
 
-        self.first_open = self.calculate_first_open()
-        self.last_close = self.calculate_last_close()
-        start_index = \
-            environment.get_index(self.first_open)
-        end_index = environment.get_index(self.last_close)
+        # chop off any minutes or hours on the given start and end dates,
+        # as we only support session labels here (and we represent session
+        # labels as midnight UTC).
+        self._start_session = normalize_date(start_session)
+        self._end_session = normalize_date(end_session)
+        self._capital_base = capital_base
 
-        # take an inclusive slice of the environment's
-        # trading_days.
-        self.trading_days = \
-            environment.trading_days[start_index:end_index + 1]
+        self._emission_rate = emission_rate
+        self._data_frequency = data_frequency
 
-    def calculate_first_open(self):
-        """
-        Finds the first trading day on or after self.period_start.
-        """
-        first_open = self.period_start
-        one_day = datetime.timedelta(days=1)
+        # copied to algorithm's environment for runtime access
+        self._arena = arena
 
-        while not environment.is_trading_day(first_open):
-            first_open = first_open + one_day
+        self._trading_calendar = trading_calendar
 
-        mkt_open, _ = environment.get_open_and_close(first_open)
-        return mkt_open
+        if not trading_calendar.is_session(self._start_session):
+            # if the start date is not a valid session in this calendar,
+            # push it forward to the first valid session
+            self._start_session = trading_calendar.minute_to_session_label(
+                self._start_session
+            )
 
-    def calculate_last_close(self):
-        """
-        Finds the last trading day on or before self.period_end
-        """
-        last_close = self.period_end
-        one_day = datetime.timedelta(days=1)
+        if not trading_calendar.is_session(self._end_session):
+            # if the end date is not a valid session in this calendar,
+            # pull it backward to the last valid session before the given
+            # end date.
+            self._end_session = trading_calendar.minute_to_session_label(
+                self._end_session, direction="previous"
+            )
 
-        while not environment.is_trading_day(last_close):
-            last_close = last_close - one_day
-
-        _, mkt_close = environment.get_open_and_close(last_close)
-        return mkt_close
+        self._first_open = trading_calendar.open_and_close_for_session(
+            self._start_session
+        )[0]
+        self._last_close = trading_calendar.open_and_close_for_session(
+            self._end_session
+        )[1]
 
     @property
-    def days_in_period(self):
-        """return the number of trading days within the period [start, end)"""
-        return len(self.trading_days)
+    def capital_base(self):
+        return self._capital_base
+
+    @property
+    def emission_rate(self):
+        return self._emission_rate
+
+    @property
+    def data_frequency(self):
+        return self._data_frequency
+
+    @data_frequency.setter
+    def data_frequency(self, val):
+        self._data_frequency = val
+
+    @property
+    def arena(self):
+        return self._arena
+
+    @arena.setter
+    def arena(self, val):
+        self._arena = val
+
+    @property
+    def start_session(self):
+        return self._start_session
+
+    @property
+    def end_session(self):
+        return self._end_session
+
+    @property
+    def first_open(self):
+        return self._first_open
+
+    @property
+    def last_close(self):
+        return self._last_close
+
+    @property
+    @remember_last
+    def sessions(self):
+        return self._trading_calendar.sessions_in_range(
+            self.start_session,
+            self.end_session
+        )
+
+    def create_new(self, start_session, end_session):
+        return SimulationParameters(
+            start_session,
+            end_session,
+            self._trading_calendar,
+            capital_base=self.capital_base,
+            emission_rate=self.emission_rate,
+            data_frequency=self.data_frequency,
+            arena=self.arena
+        )
 
     def __repr__(self):
         return """
 {class_name}(
-    period_start={period_start},
-    period_end={period_end},
+    start_session={start_session},
+    end_session={end_session},
     capital_base={capital_base},
     data_frequency={data_frequency},
     emission_rate={emission_rate},
     first_open={first_open},
     last_close={last_close})\
 """.format(class_name=self.__class__.__name__,
-           period_start=self.period_start,
-           period_end=self.period_end,
+           start_session=self.start_session,
+           end_session=self.end_session,
            capital_base=self.capital_base,
            data_frequency=self.data_frequency,
            emission_rate=self.emission_rate,
            first_open=self.first_open,
            last_close=self.last_close)
+
+
+def noop_load(*args, **kwargs):
+    """
+    A method that can be substituted in as the load method in a
+    TradingEnvironment to prevent it from loading benchmarks.
+
+    Accepts any arguments, but returns only a tuple of Nones regardless
+    of input.
+    """
+    return None, None

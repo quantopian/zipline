@@ -12,121 +12,55 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from unittest import TestCase
-
-import zipline.utils.simfactory as simfactory
-import zipline.utils.factory as factory
+import pandas as pd
 
 from zipline.test_algorithms import (
     ExceptionAlgorithm,
     DivByZeroAlgorithm,
     SetPortfolioAlgorithm,
 )
-from zipline.finance.slippage import FixedSlippage
-from zipline.transforms.utils import StatefulTransform
-
-
-from zipline.utils.test_utils import (
-    drain_zipline,
-    setup_logger,
-    teardown_logger,
-    ExceptionSource,
-    ExceptionTransform
+from zipline.testing.fixtures import (
+    WithDataPortal,
+    WithSimParams,
+    ZiplineTestCase,
 )
 
 DEFAULT_TIMEOUT = 15  # seconds
 EXTENDED_TIMEOUT = 90
 
 
-class ExceptionTestCase(TestCase):
+class ExceptionTestCase(WithDataPortal, WithSimParams, ZiplineTestCase):
+    START_DATE = pd.Timestamp('2006-01-03', tz='utc')
+    START_DATE = pd.Timestamp('2006-01-07', tz='utc')
 
-    def setUp(self):
-        self.zipline_test_config = {
-            'sid': 133,
-            'slippage': FixedSlippage()
-        }
-        setup_logger(self)
-
-    def tearDown(self):
-        teardown_logger(self)
-
-    def test_datasource_exception(self):
-        self.zipline_test_config['trade_source'] = ExceptionSource()
-        zipline = simfactory.create_test_zipline(
-            **self.zipline_test_config
-        )
-
-        with self.assertRaises(ZeroDivisionError):
-            output, _ = drain_zipline(self, zipline)
-
-    def test_tranform_exception(self):
-        exc_tnfm = StatefulTransform(ExceptionTransform)
-        self.zipline_test_config['transforms'] = [exc_tnfm]
-
-        zipline = simfactory.create_test_zipline(
-            **self.zipline_test_config
-        )
-
-        with self.assertRaises(AssertionError) as ctx:
-            output, _ = drain_zipline(self, zipline)
-
-        self.assertEqual(str(ctx.exception),
-                         'An assertion message')
+    sid, = ASSET_FINDER_EQUITY_SIDS = 133,
 
     def test_exception_in_handle_data(self):
-        # Simulation
-        # ----------
-        self.zipline_test_config['algorithm'] = \
-            ExceptionAlgorithm(
-                'handle_data',
-                self.zipline_test_config['sid'],
-                sim_params=factory.create_simulation_parameters()
-        )
-
-        zipline = simfactory.create_test_zipline(
-            **self.zipline_test_config
-        )
+        algo = ExceptionAlgorithm('handle_data',
+                                  self.sid,
+                                  sim_params=self.sim_params,
+                                  env=self.env)
 
         with self.assertRaises(Exception) as ctx:
-            output, _ = drain_zipline(self, zipline)
+            algo.run(self.data_portal)
 
-        self.assertEqual(str(ctx.exception),
-                         'Algo exception in handle_data')
+        self.assertEqual(str(ctx.exception), 'Algo exception in handle_data')
 
     def test_zerodivision_exception_in_handle_data(self):
-
-        # Simulation
-        # ----------
-        self.zipline_test_config['algorithm'] = \
-            DivByZeroAlgorithm(
-                self.zipline_test_config['sid'],
-                sim_params=factory.create_simulation_parameters()
-        )
-
-        zipline = simfactory.create_test_zipline(
-            **self.zipline_test_config
-        )
+        algo = DivByZeroAlgorithm(self.sid,
+                                  sim_params=self.sim_params,
+                                  env=self.env)
 
         with self.assertRaises(ZeroDivisionError):
-            output, _ = drain_zipline(self, zipline)
+            algo.run(self.data_portal)
 
     def test_set_portfolio(self):
         """
         Are we protected against overwriting an algo's portfolio?
         """
-
-        # Simulation
-        # ----------
-        self.zipline_test_config['algorithm'] = \
-            SetPortfolioAlgorithm(
-                self.zipline_test_config['sid'],
-                sim_params=factory.create_simulation_parameters()
-        )
-
-        zipline = simfactory.create_test_zipline(
-            **self.zipline_test_config
-        )
+        algo = SetPortfolioAlgorithm(self.sid,
+                                     sim_params=self.sim_params,
+                                     env=self.env)
 
         with self.assertRaises(AttributeError):
-            output, _ = drain_zipline(self, zipline)
+            algo.run(self.data_portal)

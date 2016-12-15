@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2013 Quantopian, Inc.
+# Copyright 2014 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,79 +14,96 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import matplotlib.pyplot as plt
 
-from zipline.algorithm import TradingAlgorithm
-from zipline.utils.factory import load_from_yahoo
+"""Dual Moving Average Crossover algorithm.
 
+This algorithm buys apple once its short moving average crosses
+its long moving average (indicating upwards momentum) and sells
+its shares once the averages cross again (indicating downwards
+momentum).
+
+"""
+
+from zipline.api import order, record, symbol
 # Import exponential moving average from talib wrapper
-from zipline.transforms.ta import EMA
-
-from datetime import datetime
-import pytz
+from talib import EMA
 
 
-class DualEMATaLib(TradingAlgorithm):
-    """Dual Moving Average Crossover algorithm.
+def initialize(context):
+    context.asset = symbol('AAPL')
 
-    This algorithm buys apple once its short moving average crosses
-    its long moving average (indicating upwards momentum) and sells
-    its shares once the averages cross again (indicating downwards
-    momentum).
+    # To keep track of whether we invested in the stock or not
+    context.invested = False
 
-    """
-    def initialize(self, short_window=20, long_window=40):
-        # Add 2 mavg transforms, one with a long window, one
-        # with a short window.
-        self.short_ema_trans = EMA(timeperiod=short_window)
-        self.long_ema_trans = EMA(timeperiod=long_window)
 
-        # To keep track of whether we invested in the stock or not
-        self.invested = False
+def handle_data(context, data):
+    trailing_window = data.history(context.asset, 'price', 40, '1d')
+    if trailing_window.isnull().values.any():
+        return
+    short_ema = EMA(trailing_window.values, timeperiod=20)
+    long_ema = EMA(trailing_window.values, timeperiod=40)
 
-    def handle_data(self, data):
-        self.short_ema = self.short_ema_trans.handle_data(data)
-        self.long_ema = self.long_ema_trans.handle_data(data)
-        if self.short_ema is None or self.long_ema is None:
-            return
+    buy = False
+    sell = False
 
-        self.buy = False
-        self.sell = False
+    if (short_ema[-1] > long_ema[-1]) and not context.invested:
+        order(context.asset, 100)
+        context.invested = True
+        buy = True
+    elif (short_ema[-1] < long_ema[-1]) and context.invested:
+        order(context.asset, -100)
+        context.invested = False
+        sell = True
 
-        if (self.short_ema > self.long_ema).all() and not self.invested:
-            self.order('AAPL', 100)
-            self.invested = True
-            self.buy = True
-        elif (self.short_ema < self.long_ema).all() and self.invested:
-            self.order('AAPL', -100)
-            self.invested = False
-            self.sell = True
+    record(AAPL=data.current(context.asset, "price"),
+           short_ema=short_ema[-1],
+           long_ema=long_ema[-1],
+           buy=buy,
+           sell=sell)
 
-        self.record(AAPL=data['AAPL'].price,
-                    short_ema=self.short_ema['AAPL'],
-                    long_ema=self.long_ema['AAPL'],
-                    buy=self.buy,
-                    sell=self.sell)
 
-if __name__ == '__main__':
-    start = datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc)
-    end = datetime(1991, 1, 1, 0, 0, 0, 0, pytz.utc)
-    data = load_from_yahoo(stocks=['AAPL'], indexes={}, start=start,
-                           end=end)
-
-    dma = DualEMATaLib()
-    results = dma.run(data).dropna()
+# Note: this function can be removed if running
+# this algorithm on quantopian.com
+def analyze(context=None, results=None):
+    import matplotlib.pyplot as plt
+    import logbook
+    logbook.StderrHandler().push_application()
+    log = logbook.Logger('Algorithm')
 
     fig = plt.figure()
-    ax1 = fig.add_subplot(211, ylabel='portfolio value')
+    ax1 = fig.add_subplot(211)
     results.portfolio_value.plot(ax=ax1)
+    ax1.set_ylabel('Portfolio value (USD)')
 
     ax2 = fig.add_subplot(212)
-    results[['AAPL', 'short_ema', 'long_ema']].plot(ax=ax2)
+    ax2.set_ylabel('Price (USD)')
 
-    ax2.plot(results.ix[results.buy].index, results.short_ema[results.buy],
-             '^', markersize=10, color='m')
-    ax2.plot(results.ix[results.sell].index, results.short_ema[results.sell],
-             'v', markersize=10, color='k')
-    plt.legend(loc=0)
-    plt.gcf().set_size_inches(18, 8)
+    # If data has been record()ed, then plot it.
+    # Otherwise, log the fact that no data has been recorded.
+    if 'AAPL' in results and 'short_ema' in results and 'long_ema' in results:
+        results[['AAPL', 'short_ema', 'long_ema']].plot(ax=ax2)
+
+        ax2.plot(results.ix[results.buy].index, results.short_ema[results.buy],
+                 '^', markersize=10, color='m')
+        ax2.plot(results.ix[results.sell].index,
+                 results.short_ema[results.sell],
+                 'v', markersize=10, color='k')
+        plt.legend(loc=0)
+        plt.gcf().set_size_inches(18, 8)
+    else:
+        msg = 'AAPL, short_ema and long_ema data not captured using record().'
+        ax2.annotate(msg, xy=(0.1, 0.5))
+        log.info(msg)
+
+    plt.show()
+
+
+def _test_args():
+    """Extra arguments to use when zipline's automated tests run this example.
+    """
+    import pandas as pd
+
+    return {
+        'start': pd.Timestamp('2014-01-01', tz='utc'),
+        'end': pd.Timestamp('2014-11-01', tz='utc'),
+    }

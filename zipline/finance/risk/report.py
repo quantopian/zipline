@@ -51,7 +51,9 @@ Risk Report
     |                 | for the portfolio returns between self.start_date  |
     |                 | and self.end_date.                                 |
     +-----------------+----------------------------------------------------+
-
+    | max_leverage    | The largest gross leverage between self.start_date |
+    |                 | and self.end_date                                  |
+    +-----------------+----------------------------------------------------+
 
 """
 
@@ -65,28 +67,43 @@ log = logbook.Logger('Risk Report')
 
 
 class RiskReport(object):
-    def __init__(self, algorithm_returns, sim_params, benchmark_returns=None):
+    def __init__(self, algorithm_returns, sim_params, trading_calendar,
+                 treasury_curves, benchmark_returns,
+                 algorithm_leverages=None):
         """
         algorithm_returns needs to be a list of daily_return objects
         sorted in date ascending order
+
+        account needs to be a list of account objects sorted in date
+        ascending order
         """
 
         self.algorithm_returns = algorithm_returns
         self.sim_params = sim_params
+        self.trading_calendar = trading_calendar
+        self.treasury_curves = treasury_curves
         self.benchmark_returns = benchmark_returns
+        self.algorithm_leverages = algorithm_leverages
 
         if len(self.algorithm_returns) == 0:
-            start_date = self.sim_params.period_start
-            end_date = self.sim_params.period_end
+            start_session = self.sim_params.start_session
+            end_session = self.sim_params.end_session
         else:
-            start_date = self.algorithm_returns.index[0]
-            end_date = self.algorithm_returns.index[-1]
+            start_session = self.algorithm_returns.index[0]
+            end_session = self.algorithm_returns.index[-1]
 
-        self.month_periods = self.periods_in_range(1, start_date, end_date)
-        self.three_month_periods = self.periods_in_range(3, start_date,
-                                                         end_date)
-        self.six_month_periods = self.periods_in_range(6, start_date, end_date)
-        self.year_periods = self.periods_in_range(12, start_date, end_date)
+        self.month_periods = self.periods_in_range(
+            1, start_session, end_session
+        )
+        self.three_month_periods = self.periods_in_range(
+            3, start_session, end_session
+        )
+        self.six_month_periods = self.periods_in_range(
+            6, start_session, end_session
+        )
+        self.year_periods = self.periods_in_range(
+            12, start_session, end_session
+        )
 
     def to_dict(self):
         """
@@ -96,7 +113,7 @@ class RiskReport(object):
             - 6_month
             - 12_month
 
-        The return value of this funciton is a dictionary keyed by the above
+        The return value of this function is a dictionary keyed by the above
         list of durations. The value of each entry is a list of RiskMetric
         dicts of the same duration as denoted by the top_level key.
 
@@ -110,10 +127,10 @@ class RiskReport(object):
             'twelve_month': [x.to_dict() for x in self.year_periods],
         }
 
-    def periods_in_range(self, months_per, start, end):
+    def periods_in_range(self, months_per, start_session, end_session):
         one_day = datetime.timedelta(days=1)
         ends = []
-        cur_start = start.replace(day=1)
+        cur_start = start_session.replace(day=1)
 
         # in edge cases (all sids filtered out, start/end are adjacent)
         # a test will not generate any returns data
@@ -122,16 +139,20 @@ class RiskReport(object):
 
         # ensure that we have an end at the end of a calendar month, in case
         # the return series ends mid-month...
-        the_end = end.replace(day=1) + relativedelta(months=1) - one_day
+        the_end = end_session.replace(day=1) + relativedelta(months=1) - \
+            one_day
         while True:
             cur_end = cur_start + relativedelta(months=months_per) - one_day
-            if(cur_end > the_end):
+            if cur_end > the_end:
                 break
             cur_period_metrics = RiskMetricsPeriod(
-                start_date=cur_start,
-                end_date=cur_end,
+                start_session=cur_start,
+                end_session=cur_end,
                 returns=self.algorithm_returns,
-                benchmark_returns=self.benchmark_returns
+                benchmark_returns=self.benchmark_returns,
+                trading_calendar=self.trading_calendar,
+                treasury_curves=self.treasury_curves,
+                algorithm_leverages=self.algorithm_leverages,
             )
 
             ends.append(cur_period_metrics)

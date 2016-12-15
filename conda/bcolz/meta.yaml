@@ -1,0 +1,68 @@
+package:
+  name: bcolz
+  version: "0.12.1"
+
+source:
+  fn: bcolz-0.12.1.tar.gz
+  url: https://pypi.python.org/packages/source/b/bcolz/bcolz-0.12.1.tar.gz
+  md5: 43deb659e1f926976be3850e01844360
+#  patches:
+   # List any patch files here
+   # - fix.patch
+
+# build:
+  # noarch_python: True
+  # preserve_egg_dir: True
+  # entry_points:
+    # Put any entry points (scripts to be generated automatically) here. The
+    # syntax is module:function.  For example
+    #
+    # - bcolz = bcolz:main
+    #
+    # Would create an entry point called bcolz that calls bcolz.main()
+
+
+  # If this is a new build for the same version, increment the build
+  # number. If you do not include this key, it defaults to 0.
+  # number: 1
+
+requirements:
+  build:
+    - python
+    - setuptools >18.0
+    - numpy x.x
+    - setuptools_scm >1.5.4
+    - cython ==0.22.1
+
+  run:
+    - python
+    - numpy x.x
+
+test:
+  # Python imports
+  imports:
+    - bcolz
+    - bcolz.tests
+
+  # commands:
+    # You can put test commands to be run here.  Use this to test that the
+    # entry points work.
+
+
+  # You can also put a file called run_test.py in the recipe that will be run
+  # at test time.
+
+  requires:
+    - mock
+    - unittest2 # [py26]
+    # Put any additional test requirements here.  For example
+    # - nose
+
+about:
+  home: https://github.com/Blosc/bcolz
+  license: BSD License
+  summary: 'columnar and compressed data containers.'
+
+# See
+# http://docs.continuum.io/conda/build.html for
+# more information about meta.yaml

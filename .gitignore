@@ -25,6 +25,7 @@ test.log
 
 # Packages
 *.egg
+.eggs/*
 *.egg-info
 dist
 build
@@ -37,6 +38,7 @@ sdist
 develop-eggs
 .installed.cfg
 coverage.xml
+htmlcov
 nosetests.xml
 
 # C Extensions
@@ -53,8 +55,20 @@ nosetests.xml
 # Built documentation
 docs/_build/*
 
+# Un-tarred example data input. We should only commit the tarball.
+tests/resources/example_data/*
+
 # database of vbench
 benchmarks.db
 
 # Vagrant temp folder
 .vagrant
+
+# Intellij IDE temp project files
+.project
+zipline.iml
+
+# PyCharm custom settings
+.idea
+
+TAGS

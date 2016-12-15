@@ -31,7 +31,7 @@ omitted).
     |               | end of the period                                    |
     +---------------+------------------------------------------------------+
     | cash_flow     | the cash flow in the period (negative means spent)   |
-    |               | from buying and selling securities in the period.    |
+    |               | from buying and selling assets in the period.        |
     |               | Includes dividend payments in the period as well.    |
     +---------------+------------------------------------------------------+
     | starting_value| the total market value of the positions held at the  |
@@ -74,15 +74,64 @@ from __future__ import division
 import logbook
 
 import numpy as np
-import pandas as pd
-from collections import Counter, OrderedDict, defaultdict
 
-from six import iteritems, itervalues
+from collections import namedtuple
+from zipline.assets import Future
+
+try:
+    # optional cython based OrderedDict
+    from cyordereddict import OrderedDict
+except ImportError:
+    from collections import OrderedDict
+
+from six import itervalues, iteritems
 
 import zipline.protocol as zp
-from . position import positiondict
 
 log = logbook.Logger('Performance')
+TRADE_TYPE = zp.DATASOURCE_TYPE.TRADE
+
+
+PeriodStats = namedtuple('PeriodStats',
+                         ['net_liquidation',
+                          'gross_leverage',
+                          'net_leverage'])
+
+PrevSubPeriodStats = namedtuple(
+    'PrevSubPeriodStats', ['returns', 'pnl', 'cash_flow']
+)
+
+CurrSubPeriodStats = namedtuple(
+    'CurrSubPeriodStats', ['starting_value', 'starting_cash']
+)
+
+
+def calc_net_liquidation(ending_cash, long_value, short_value):
+    return ending_cash + long_value + short_value
+
+
+def calc_leverage(exposure, net_liq):
+    if net_liq != 0:
+        return exposure / net_liq
+
+    return np.inf
+
+
+def calc_period_stats(pos_stats, ending_cash):
+    net_liq = calc_net_liquidation(ending_cash,
+                                   pos_stats.long_value,
+                                   pos_stats.short_value)
+    gross_leverage = calc_leverage(pos_stats.gross_exposure, net_liq)
+    net_leverage = calc_leverage(pos_stats.net_exposure, net_liq)
+
+    return PeriodStats(
+        net_liquidation=net_liq,
+        gross_leverage=gross_leverage,
+        net_leverage=net_leverage)
+
+
+def calc_payout(multiplier, amount, old_price, price):
+    return (price - old_price) * multiplier * amount
 
 
 class PerformancePeriod(object):
@@ -90,144 +139,218 @@ class PerformancePeriod(object):
     def __init__(
             self,
             starting_cash,
+            asset_finder,
+            data_frequency,
             period_open=None,
             period_close=None,
             keep_transactions=True,
             keep_orders=False,
-            serialize_positions=True):
+            serialize_positions=True,
+            name=None):
 
+        self.asset_finder = asset_finder
+        self.data_frequency = data_frequency
+
+        # Start and end of the entire period
         self.period_open = period_open
         self.period_close = period_close
 
+        self.initialize(starting_cash=starting_cash,
+                        starting_value=0.0,
+                        starting_exposure=0.0)
+
         self.ending_value = 0.0
-        self.period_cash_flow = 0.0
-        self.pnl = 0.0
-        # sid => position object
-        self.positions = positiondict()
+        self.ending_exposure = 0.0
         self.ending_cash = starting_cash
-        # rollover initializes a number of self's attributes:
-        self.rollover()
+
+        self.subperiod_divider = None
+
+        # Keyed by asset, the previous last sale price of positions with
+        # payouts on price differences, e.g. Futures.
+        #
+        # This dt is not the previous minute to the minute for which the
+        # calculation is done, but the last sale price either before the period
+        # start, or when the price at execution.
+        self._payout_last_sale_prices = {}
+
         self.keep_transactions = keep_transactions
         self.keep_orders = keep_orders
 
-        # Arrays for quick calculations of positions value
-        self._position_amounts = pd.Series()
-        self._position_last_sale_prices = pd.Series()
-
-        self.calculate_performance()
+        self.name = name
 
         # An object to recycle via assigning new values
         # when returning portfolio information.
         # So as not to avoid creating a new object for each event
         self._portfolio_store = zp.Portfolio()
-        self._positions_store = zp.Positions()
+        self._account_store = zp.Account()
         self.serialize_positions = serialize_positions
 
-    def rollover(self):
-        self.starting_value = self.ending_value
-        self.starting_cash = self.ending_cash
-        self.period_cash_flow = 0.0
+        # This dict contains the known cash flow multipliers for sids and is
+        # keyed on sid
+        self._execution_cash_flow_multipliers = {}
+
+    _position_tracker = None
+
+    def initialize(self, starting_cash, starting_value, starting_exposure):
+
+        # Performance stats for the entire period, returned externally
         self.pnl = 0.0
-        self.processed_transactions = defaultdict(list)
-        self.orders_by_modified = defaultdict(OrderedDict)
+        self.returns = 0.0
+        self.cash_flow = 0.0
+        self.starting_value = starting_value
+        self.starting_exposure = starting_exposure
+        self.starting_cash = starting_cash
+
+        # The cumulative capital change occurred within the period
+        self._total_intraperiod_capital_change = 0.0
+
+        self.processed_transactions = {}
+        self.orders_by_modified = {}
         self.orders_by_id = OrderedDict()
 
-    def ensure_position_index(self, sid):
-        try:
-            self._position_amounts[sid]
-            self._position_last_sale_prices[sid]
-        except (KeyError, IndexError):
-            self._position_amounts = \
-                self._position_amounts.append(pd.Series({sid: 0.0}))
-            self._position_last_sale_prices = \
-                self._position_last_sale_prices.append(pd.Series({sid: 0.0}))
+    @property
+    def position_tracker(self):
+        return self._position_tracker
 
-    def add_dividend(self, div):
-        # The dividend is received on midnight of the dividend
-        # declared date. We calculate the dividends based on the amount of
-        # stock owned on midnight of the ex dividend date. However, the cash
-        # is not dispersed until the payment date, which is
-        # included in the event.
-        self.positions[div.sid].add_dividend(div)
+    @position_tracker.setter
+    def position_tracker(self, obj):
+        if obj is None:
+            raise ValueError("position_tracker can not be None")
+        self._position_tracker = obj
+        # we only calculate perf once we inject PositionTracker
+        self.calculate_performance()
 
-    def handle_split(self, split):
-        if split.sid in self.positions:
-            # Make the position object handle the split. It returns the
-            # leftover cash from a fractional share, if there is any.
-            position = self.positions[split.sid]
-            leftover_cash = position.handle_split(split)
-            self._position_amounts[split.sid] = position.amount
-            self._position_last_sale_prices[split.sid] = \
-                position.last_sale_price
+    def adjust_period_starting_capital(self, capital_change):
+        self.ending_cash += capital_change
+        self.starting_cash += capital_change
 
-            if leftover_cash > 0:
-                self.handle_cash_payment(leftover_cash)
+    def rollover(self):
+        # We are starting a new period
+        self.initialize(starting_cash=self.ending_cash,
+                        starting_value=self.ending_value,
+                        starting_exposure=self.ending_exposure)
 
-    def update_dividends(self, todays_date):
-        """
-        Check the payment date and ex date against today's date
-        to determine if we are owed a dividend payment or if the
-        payment has been disbursed.
-        """
-        cash_payments = 0.0
-        stock_payments = Counter()  # maps sid to number of shares paid
-        for sid, pos in iteritems(self.positions):
-            cash_payment, stock_payment = pos.update_dividends(todays_date)
-            cash_payments += cash_payment
-            stock_payments.update(stock_payment)
+        self.subperiod_divider = None
 
-        for stock, payment in iteritems(stock_payments):
-            position = self.positions[stock]
-            position.amount += payment
-            self.ensure_position_index(stock)
-            self._position_amounts[stock] = position.amount
-            self._position_last_sale_prices[stock] = \
-                position.last_sale_price
+        payout_assets = self._payout_last_sale_prices.keys()
 
-        # credit our cash balance with the dividend payments, or
-        # if we are short, debit our cash balance with the
-        # payments.
-        # debit our cumulative cash spent with the dividend
-        # payments, or credit our cumulative cash spent if we are
-        # short the stock.
-        self.handle_cash_payment(cash_payments)
+        for asset in payout_assets:
+            if asset in self._payout_last_sale_prices:
+                self._payout_last_sale_prices[asset] = \
+                    self.position_tracker.positions[asset].last_sale_price
+            else:
+                del self._payout_last_sale_prices[asset]
 
-        # recalculate performance, including the dividend
-        # payments
+    def initialize_subperiod_divider(self):
+        self.calculate_performance()
+
+        # Initialize a subperiod divider to stash the current performance
+        # values. Current period starting values are set to equal ending values
+        # of the previous subperiod
+        self.subperiod_divider = SubPeriodDivider(
+            prev_returns=self.returns,
+            prev_pnl=self.pnl,
+            prev_cash_flow=self.cash_flow,
+            curr_starting_value=self.ending_value,
+            curr_starting_cash=self.ending_cash
+        )
+
+    def set_current_subperiod_starting_values(self, capital_change):
+        # Apply the capital change to the ending cash
+        self.ending_cash += capital_change
+
+        # Increment the total capital change occurred within the period
+        self._total_intraperiod_capital_change += capital_change
+
+        # Update the current subperiod starting cash to reflect the capital
+        # change
+        starting_value = self.subperiod_divider.curr_subperiod.starting_value
+        self.subperiod_divider.curr_subperiod = CurrSubPeriodStats(
+            starting_value=starting_value,
+            starting_cash=self.ending_cash)
+
+    def handle_dividends_paid(self, net_cash_payment):
+        if net_cash_payment:
+            self.handle_cash_payment(net_cash_payment)
         self.calculate_performance()
 
     def handle_cash_payment(self, payment_amount):
         self.adjust_cash(payment_amount)
 
-    def handle_commission(self, commission):
+    def handle_commission(self, cost):
         # Deduct from our total cash pool.
-        self.adjust_cash(-commission.cost)
-        # Adjust the cost basis of the stock if we own it
-        if commission.sid in self.positions:
-            self.positions[commission.sid].\
-                adjust_commission_cost_basis(commission)
+        self.adjust_cash(-cost)
 
     def adjust_cash(self, amount):
-        self.period_cash_flow += amount
+        self.cash_flow += amount
+
+    def adjust_field(self, field, value):
+        setattr(self, field, value)
+
+    def _get_payout_total(self, positions):
+        payouts = []
+        for asset, old_price in iteritems(self._payout_last_sale_prices):
+            pos = positions[asset]
+            amount = pos.amount
+            payout = calc_payout(
+                asset.multiplier,
+                amount,
+                old_price,
+                pos.last_sale_price)
+            payouts.append(payout)
+
+        return sum(payouts)
 
     def calculate_performance(self):
-        self.ending_value = self.calculate_positions_value()
+        pt = self.position_tracker
+        pos_stats = pt.stats()
+        self.ending_value = pos_stats.net_value
+        self.ending_exposure = pos_stats.net_exposure
 
-        total_at_start = self.starting_cash + self.starting_value
-        self.ending_cash = self.starting_cash + self.period_cash_flow
+        payout = self._get_payout_total(pt.positions)
+
+        self.ending_cash = self.starting_cash + self.cash_flow + \
+            self._total_intraperiod_capital_change + payout
+
         total_at_end = self.ending_cash + self.ending_value
 
-        self.pnl = total_at_end - total_at_start
-        if total_at_start != 0:
-            self.returns = self.pnl / total_at_start
+        # If there is a previous subperiod, the performance is calculated
+        # from the previous and current subperiods. Otherwise, the performance
+        # is calculated based on the start and end values of the whole period
+        if self.subperiod_divider:
+            starting_cash = self.subperiod_divider.curr_subperiod.starting_cash
+            total_at_start = starting_cash + \
+                self.subperiod_divider.curr_subperiod.starting_value
+
+            # Performance for this subperiod
+            pnl = total_at_end - total_at_start
+            if total_at_start != 0:
+                returns = pnl / total_at_start
+            else:
+                returns = 0.0
+
+            # Performance for this whole period
+            self.pnl = self.subperiod_divider.prev_subperiod.pnl + pnl
+            self.returns = \
+                (1 + self.subperiod_divider.prev_subperiod.returns) * \
+                (1 + returns) - 1
         else:
-            self.returns = 0.0
+            total_at_start = self.starting_cash + self.starting_value
+            self.pnl = total_at_end - total_at_start
+
+            if total_at_start != 0:
+                self.returns = self.pnl / total_at_start
+            else:
+                self.returns = 0.0
 
     def record_order(self, order):
         if self.keep_orders:
-            dt_orders = self.orders_by_modified[order.dt]
-            if order.id in dt_orders:
-                del dt_orders[order.id]
+            try:
+                dt_orders = self.orders_by_modified[order.dt]
+                if order.id in dt_orders:
+                    del dt_orders[order.id]
+            except KeyError:
+                self.orders_by_modified[order.dt] = dt_orders = OrderedDict()
             dt_orders[order.id] = order
             # to preserve the order of the orders by modified date
             # we delete and add back. (ordered dictionary is sorted by
@@ -236,64 +359,88 @@ class PerformancePeriod(object):
                 del self.orders_by_id[order.id]
             self.orders_by_id[order.id] = order
 
-    def update_position(self, sid, amount=None, last_sale_price=None,
-                        last_sale_date=None, cost_basis=None):
-        pos = self.positions[sid]
-        self.ensure_position_index(sid)
+    def handle_execution(self, txn):
+        self.cash_flow += self._calculate_execution_cash_flow(txn)
 
-        if amount is not None:
-            pos.amount = amount
-            self._position_amounts[sid] = amount
-        if last_sale_price is not None:
-            pos.last_sale_price = last_sale_price
-            self._position_last_sale_prices[sid] = last_sale_price
-        if last_sale_date is not None:
-            pos.last_sale_date = last_sale_date
-        if cost_basis is not None:
-            pos.cost_basis = cost_basis
-
-    def execute_transaction(self, txn):
-        # Update Position
-        # ----------------
-        position = self.positions[txn.sid]
-        position.update(txn)
-        self.ensure_position_index(txn.sid)
-        self._position_amounts[txn.sid] = position.amount
-
-        self.period_cash_flow -= txn.price * txn.amount
+        asset = self.asset_finder.retrieve_asset(txn.sid)
+        if isinstance(asset, Future):
+            try:
+                old_price = self._payout_last_sale_prices[asset]
+                pos = self.position_tracker.positions[asset]
+                amount = pos.amount
+                price = txn.price
+                cash_adj = calc_payout(
+                    asset.multiplier, amount, old_price, price)
+                self.adjust_cash(cash_adj)
+                if amount + txn.amount == 0:
+                    del self._payout_last_sale_prices[asset]
+                else:
+                    self._payout_last_sale_prices[asset] = price
+            except KeyError:
+                self._payout_last_sale_prices[asset] = txn.price
 
         if self.keep_transactions:
-            self.processed_transactions[txn.dt].append(txn)
+            try:
+                self.processed_transactions[txn.dt].append(txn)
+            except KeyError:
+                self.processed_transactions[txn.dt] = [txn]
 
-    def calculate_positions_value(self):
-        return np.dot(self._position_amounts, self._position_last_sale_prices)
+    def _calculate_execution_cash_flow(self, txn):
+        """
+        Calculates the cash flow from executing the given transaction
+        """
+        # Check if the multiplier is cached. If it is not, look up the asset
+        # and cache the multiplier.
+        try:
+            multiplier = self._execution_cash_flow_multipliers[txn.sid]
+        except KeyError:
+            asset = self.asset_finder.retrieve_asset(txn.sid)
+            # Futures experience no cash flow on transactions
+            if isinstance(asset, Future):
+                multiplier = 0
+            else:
+                multiplier = 1
+            self._execution_cash_flow_multipliers[txn.sid] = multiplier
 
-    def update_last_sale(self, event):
-        if event.sid not in self.positions:
-            return
+        # Calculate and return the cash flow given the multiplier
+        return -1 * txn.price * txn.amount * multiplier
 
-        if event.type != zp.DATASOURCE_TYPE.TRADE:
-            return
+    # backwards compat. TODO: remove?
+    @property
+    def positions(self):
+        return self.position_tracker.positions
 
-        if not pd.isnull(event.price):
-            # isnan check will keep the last price if its not present
-            self.update_position(event.sid, last_sale_price=event.price,
-                                 last_sale_date=event.dt)
+    @property
+    def position_amounts(self):
+        return self.position_tracker.position_amounts
 
     def __core_dict(self):
+        pos_stats = self.position_tracker.stats()
+        period_stats = calc_period_stats(pos_stats, self.ending_cash)
+
         rval = {
             'ending_value': self.ending_value,
+            'ending_exposure': self.ending_exposure,
             # this field is renamed to capital_used for backward
             # compatibility.
-            'capital_used': self.period_cash_flow,
+            'capital_used': self.cash_flow,
             'starting_value': self.starting_value,
+            'starting_exposure': self.starting_exposure,
             'starting_cash': self.starting_cash,
             'ending_cash': self.ending_cash,
             'portfolio_value': self.ending_cash + self.ending_value,
             'pnl': self.pnl,
             'returns': self.returns,
             'period_open': self.period_open,
-            'period_close': self.period_close
+            'period_close': self.period_close,
+            'gross_leverage': period_stats.gross_leverage,
+            'net_leverage': period_stats.net_leverage,
+            'short_exposure': pos_stats.short_exposure,
+            'long_exposure': pos_stats.long_exposure,
+            'short_value': pos_stats.short_value,
+            'long_value': pos_stats.long_value,
+            'longs_count': pos_stats.longs_count,
+            'shorts_count': pos_stats.shorts_count,
         }
 
         return rval
@@ -309,15 +456,18 @@ class PerformancePeriod(object):
         rval = self.__core_dict()
 
         if self.serialize_positions:
-            positions = self.get_positions_list()
+            positions = self.position_tracker.get_positions_list()
             rval['positions'] = positions
 
         # we want the key to be absent, not just empty
         if self.keep_transactions:
             if dt:
                 # Only include transactions for given dt
-                transactions = [x.to_dict()
-                                for x in self.processed_transactions[dt]]
+                try:
+                    transactions = [x.to_dict()
+                                    for x in self.processed_transactions[dt]]
+                except KeyError:
+                    transactions = []
             else:
                 transactions = \
                     [y.to_dict()
@@ -328,8 +478,11 @@ class PerformancePeriod(object):
         if self.keep_orders:
             if dt:
                 # only include orders modified as of the given dt.
-                orders = [x.to_dict()
-                          for x in itervalues(self.orders_by_modified[dt])]
+                try:
+                    orders = [x.to_dict()
+                              for x in itervalues(self.orders_by_modified[dt])]
+                except KeyError:
+                    orders = []
             else:
                 orders = [x.to_dict() for x in itervalues(self.orders_by_id)]
             rval['orders'] = orders
@@ -351,45 +504,84 @@ class PerformancePeriod(object):
         portfolio = self._portfolio_store
         # maintaining the old name for the portfolio field for
         # backward compatibility
-        portfolio.capital_used = self.period_cash_flow
+        portfolio.capital_used = self.cash_flow
         portfolio.starting_cash = self.starting_cash
         portfolio.portfolio_value = self.ending_cash + self.ending_value
         portfolio.pnl = self.pnl
         portfolio.returns = self.returns
         portfolio.cash = self.ending_cash
         portfolio.start_date = self.period_open
-        portfolio.positions = self.get_positions()
+        portfolio.positions = self.position_tracker.get_positions()
         portfolio.positions_value = self.ending_value
+        portfolio.positions_exposure = self.ending_exposure
         return portfolio
 
-    def get_positions(self):
+    def as_account(self):
+        account = self._account_store
 
-        positions = self._positions_store
+        pt = self.position_tracker
+        pos_stats = pt.stats()
+        period_stats = calc_period_stats(pos_stats, self.ending_cash)
 
-        for sid, pos in iteritems(self.positions):
+        # If no attribute is found on the PerformancePeriod resort to the
+        # following default values. If an attribute is found use the existing
+        # value. For instance, a broker may provide updates to these
+        # attributes. In this case we do not want to over write the broker
+        # values with the default values.
+        account.settled_cash = \
+            getattr(self, 'settled_cash', self.ending_cash)
+        account.accrued_interest = \
+            getattr(self, 'accrued_interest', 0.0)
+        account.buying_power = \
+            getattr(self, 'buying_power', float('inf'))
+        account.equity_with_loan = \
+            getattr(self, 'equity_with_loan',
+                    self.ending_cash + self.ending_value)
+        account.total_positions_value = \
+            getattr(self, 'total_positions_value', self.ending_value)
+        account.total_positions_exposure = \
+            getattr(self, 'total_positions_exposure', self.ending_exposure)
+        account.regt_equity = \
+            getattr(self, 'regt_equity', self.ending_cash)
+        account.regt_margin = \
+            getattr(self, 'regt_margin', float('inf'))
+        account.initial_margin_requirement = \
+            getattr(self, 'initial_margin_requirement', 0.0)
+        account.maintenance_margin_requirement = \
+            getattr(self, 'maintenance_margin_requirement', 0.0)
+        account.available_funds = \
+            getattr(self, 'available_funds', self.ending_cash)
+        account.excess_liquidity = \
+            getattr(self, 'excess_liquidity', self.ending_cash)
+        account.cushion = \
+            getattr(self, 'cushion',
+                    self.ending_cash / (self.ending_cash + self.ending_value))
+        account.day_trades_remaining = \
+            getattr(self, 'day_trades_remaining', float('inf'))
+        account.leverage = getattr(self, 'leverage',
+                                   period_stats.gross_leverage)
+        account.net_leverage = getattr(self, 'net_leverage',
+                                       period_stats.net_leverage)
+        account.net_liquidation = getattr(self, 'net_liquidation',
+                                          period_stats.net_liquidation)
+        return account
 
-            if pos.amount == 0:
-                # Clear out the position if it has become empty since the last
-                # time get_positions was called.  Catching the KeyError is
-                # faster than checking `if sid in positions`, and this can be
-                # potentially called in a tight inner loop.
-                try:
-                    del positions[sid]
-                except KeyError:
-                    pass
-                continue
 
-            # Note that this will create a position if we don't currently have
-            # an entry
-            position = positions[sid]
-            position.amount = pos.amount
-            position.cost_basis = pos.cost_basis
-            position.last_sale_price = pos.last_sale_price
-        return positions
+class SubPeriodDivider(object):
+    """
+    A marker for subdividing the period at the latest intraperiod capital
+    change. prev_subperiod and curr_subperiod hold information respective to
+    the previous and current subperiods.
+    """
 
-    def get_positions_list(self):
-        positions = []
-        for sid, pos in iteritems(self.positions):
-            if pos.amount != 0:
-                positions.append(pos.to_dict())
-        return positions
+    def __init__(self, prev_returns, prev_pnl, prev_cash_flow,
+                 curr_starting_value, curr_starting_cash):
+
+        self.prev_subperiod = PrevSubPeriodStats(
+            returns=prev_returns,
+            pnl=prev_pnl,
+            cash_flow=prev_cash_flow)
+
+        self.curr_subperiod = CurrSubPeriodStats(
+            starting_value=curr_starting_value,
+            starting_cash=curr_starting_cash)

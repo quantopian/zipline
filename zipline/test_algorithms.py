@@ -62,7 +62,7 @@ The algorithm must expose methods:
     algorithm can then check position information with the
     Portfolio object::
 
-        self.Portfolio[sid(133)]['cost_basis']
+        self.Portfolio[sid(133)].cost_basis
 
   - set_transact_setter: method that accepts a callable. Will
     be set as the value of the set_transact_setter method of
@@ -71,7 +71,6 @@ The algorithm must expose methods:
     and trade events.
 
 """
-from copy import deepcopy
 import numpy as np
 
 from nose.tools import assert_raises
@@ -80,14 +79,24 @@ from six.moves import range
 from six import itervalues
 
 from zipline.algorithm import TradingAlgorithm
-from zipline.api import FixedSlippage
+from zipline.api import (
+    FixedSlippage,
+    order,
+    set_slippage,
+    record,
+    sid,
+)
 from zipline.errors import UnsupportedOrderParameters
+from zipline.assets import Future, Equity
+from zipline.finance.commission import PerShare
 from zipline.finance.execution import (
     LimitOrder,
     MarketOrder,
     StopLimitOrder,
     StopOrder,
 )
+from zipline.finance.controls import AssetDateBounds
+from zipline.utils.math_utils import round_if_near_integer
 
 
 class TestAlgorithm(TradingAlgorithm):
@@ -97,21 +106,33 @@ class TestAlgorithm(TradingAlgorithm):
     at the close of a simulation.
     """
 
-    def initialize(self, sid, amount, order_count, sid_filter=None):
+    def initialize(self,
+                   sid,
+                   amount,
+                   order_count,
+                   sid_filter=None,
+                   slippage=None,
+                   commission=None):
         self.count = order_count
-        self.sid = sid
+        self.asset = self.sid(sid)
         self.amount = amount
         self.incr = 0
 
         if sid_filter:
             self.sid_filter = sid_filter
         else:
-            self.sid_filter = [self.sid]
+            self.sid_filter = [self.asset.sid]
+
+        if slippage is not None:
+            self.set_slippage(slippage)
+
+        if commission is not None:
+            self.set_commission(commission)
 
     def handle_data(self, data):
         # place an order for amount shares of sid
         if self.incr < self.count:
-            self.order(self.sid, self.amount)
+            self.order(self.asset, self.amount)
             self.incr += 1
 
 
@@ -123,13 +144,13 @@ class HeavyBuyAlgorithm(TradingAlgorithm):
     """
 
     def initialize(self, sid, amount):
-        self.sid = sid
+        self.asset = self.sid(sid)
         self.amount = amount
         self.incr = 0
 
     def handle_data(self, data):
         # place an order for 100 shares of sid
-        self.order(self.sid, self.amount)
+        self.order(self.asset, self.amount)
         self.incr += 1
 
 
@@ -137,13 +158,7 @@ class NoopAlgorithm(TradingAlgorithm):
     """
     Dolce fa niente.
     """
-    def get_sid_filter(self):
-        return []
-
     def initialize(self):
-        pass
-
-    def set_transact_setter(self, txn_sim_callable):
         pass
 
     def handle_data(self, data):
@@ -159,7 +174,7 @@ class ExceptionAlgorithm(TradingAlgorithm):
     def initialize(self, throw_from, sid):
 
         self.throw_from = throw_from
-        self.sid = sid
+        self.asset = self.sid(sid)
 
         if self.throw_from == "initialize":
             raise Exception("Algo exception in initialize")
@@ -182,7 +197,7 @@ class ExceptionAlgorithm(TradingAlgorithm):
         if self.throw_from == "get_sid_filter":
             raise Exception("Algo exception in get_sid_filter")
         else:
-            return [self.sid]
+            return [self.asset]
 
     def set_transact_setter(self, txn_sim_callable):
         pass
@@ -191,12 +206,12 @@ class ExceptionAlgorithm(TradingAlgorithm):
 class DivByZeroAlgorithm(TradingAlgorithm):
 
     def initialize(self, sid):
-        self.sid = sid
+        self.asset = self.sid(sid)
         self.incr = 0
 
     def handle_data(self, data):
         self.incr += 1
-        if self.incr > 4:
+        if self.incr > 1:
             5 / 0
         pass
 
@@ -204,7 +219,7 @@ class DivByZeroAlgorithm(TradingAlgorithm):
 class TooMuchProcessingAlgorithm(TradingAlgorithm):
 
     def initialize(self, sid):
-        self.sid = sid
+        self.asset = self.sid(sid)
 
     def handle_data(self, data):
         # Unless we're running on some sort of
@@ -216,7 +231,7 @@ class TooMuchProcessingAlgorithm(TradingAlgorithm):
 class TimeoutAlgorithm(TradingAlgorithm):
 
     def initialize(self, sid):
-        self.sid = sid
+        self.asset = self.sid(sid)
         self.incr = 0
 
     def handle_data(self, data):
@@ -233,23 +248,26 @@ class RecordAlgorithm(TradingAlgorithm):
     def handle_data(self, data):
         self.incr += 1
         self.record(incr=self.incr)
+        name = 'name'
+        self.record(name, self.incr)
+        record(name, self.incr, 'name2', 2, name3=self.incr)
 
 
 class TestOrderAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.incr = 0
-        self.sale_price = None
 
     def handle_data(self, data):
         if self.incr == 0:
             assert 0 not in self.portfolio.positions
         else:
-            assert self.portfolio.positions[0]['amount'] == \
+            assert self.portfolio.positions[0].amount == \
                 self.incr, "Orders not filled immediately."
-            assert self.portfolio.positions[0]['last_sale_price'] == \
-                data[0].price, "Orders not filled at current price."
+            assert self.portfolio.positions[0].last_sale_price == \
+                data.current(sid(0), "price"), \
+                "Orders not filled at current price."
         self.incr += 1
-        self.order(0, 1)
+        self.order(self.sid(0), 1)
 
 
 class TestOrderInstantAlgorithm(TradingAlgorithm):
@@ -261,13 +279,13 @@ class TestOrderInstantAlgorithm(TradingAlgorithm):
         if self.incr == 0:
             assert 0 not in self.portfolio.positions
         else:
-            assert self.portfolio.positions[0]['amount'] == \
+            assert self.portfolio.positions[0].amount == \
                 self.incr, "Orders not filled immediately."
-            assert self.portfolio.positions[0]['last_sale_price'] == \
+            assert self.portfolio.positions[0].last_sale_price == \
                 self.last_price, "Orders was not filled at last price."
-        self.incr += 2
-        self.order_value(0, data[0].price * 2.)
-        self.last_price = data[0].price
+        self.incr += 1
+        self.order_value(self.sid(0), data.current(sid(0), "price"))
+        self.last_price = data.current(sid(0), "price")
 
 
 class TestOrderStyleForwardingAlgorithm(TradingAlgorithm):
@@ -291,10 +309,12 @@ class TestOrderStyleForwardingAlgorithm(TradingAlgorithm):
             assert len(self.portfolio.positions.keys()) == 0
 
             method_to_check = getattr(self, self.method_name)
-            method_to_check(0, data[0].price, style=StopLimitOrder(10, 10))
+            method_to_check(self.sid(133),
+                            data.current(sid(0), "price"),
+                            style=StopLimitOrder(10, 10))
 
-            assert len(self.blotter.open_orders[0]) == 1
-            result = self.blotter.open_orders[0][0]
+            assert len(self.blotter.open_orders[self.sid(133)]) == 1
+            result = self.blotter.open_orders[self.sid(133)][0]
             assert result.limit == 10
             assert result.stop == 10
 
@@ -310,16 +330,26 @@ class TestOrderValueAlgorithm(TradingAlgorithm):
         if self.incr == 0:
             assert 0 not in self.portfolio.positions
         else:
-            assert self.portfolio.positions[0]['amount'] == \
+            assert self.portfolio.positions[0].amount == \
                 self.incr, "Orders not filled immediately."
-            assert self.portfolio.positions[0]['last_sale_price'] == \
-                data[0].price, "Orders not filled at current price."
+            assert self.portfolio.positions[0].last_sale_price == \
+                data.current(sid(0), "price"), \
+                "Orders not filled at current price."
         self.incr += 2
-        self.order_value(0, data[0].price * 2.)
+
+        multiplier = 2.
+        if isinstance(self.sid(0), Future):
+            multiplier *= self.sid(0).multiplier
+
+        self.order_value(
+            self.sid(0),
+            data.current(sid(0), "price") * multiplier
+        )
 
 
 class TestTargetAlgorithm(TradingAlgorithm):
     def initialize(self):
+        self.set_slippage(FixedSlippage())
         self.target_shares = 0
         self.sale_price = None
 
@@ -327,76 +357,129 @@ class TestTargetAlgorithm(TradingAlgorithm):
         if self.target_shares == 0:
             assert 0 not in self.portfolio.positions
         else:
-            assert self.portfolio.positions[0]['amount'] == \
+            assert self.portfolio.positions[0].amount == \
                 self.target_shares, "Orders not filled immediately."
-            assert self.portfolio.positions[0]['last_sale_price'] == \
-                data[0].price, "Orders not filled at current price."
-        self.target_shares = np.random.randint(1, 30)
-        self.order_target(0, self.target_shares)
+            assert self.portfolio.positions[0].last_sale_price == \
+                data.current(sid(0), "price"), \
+                "Orders not filled at current price."
+        self.target_shares = 10
+        self.order_target(self.sid(0), self.target_shares)
 
 
 class TestOrderPercentAlgorithm(TradingAlgorithm):
     def initialize(self):
+        self.set_slippage(FixedSlippage())
         self.target_shares = 0
         self.sale_price = None
 
     def handle_data(self, data):
         if self.target_shares == 0:
             assert 0 not in self.portfolio.positions
-            self.order(0, 10)
+            self.order(self.sid(0), 10)
             self.target_shares = 10
             return
         else:
-            assert self.portfolio.positions[0]['amount'] == \
-                self.target_shares, "Orders not filled immediately."
-            assert self.portfolio.positions[0]['last_sale_price'] == \
-                data[0].price, "Orders not filled at current price."
 
-        self.order_percent(0, .001)
-        self.target_shares += np.floor((.001 *
-                                        self.portfolio.portfolio_value)
-                                       / data[0].price)
+            assert self.portfolio.positions[0].amount == \
+                self.target_shares, "Orders not filled immediately."
+            assert self.portfolio.positions[0].last_sale_price == \
+                data.current(sid(0), "price"), \
+                "Orders not filled at current price."
+
+        self.order_percent(self.sid(0), .001)
+
+        if isinstance(self.sid(0), Equity):
+            price = data.current(sid(0), "price")
+            new_shares = (.001 * self.portfolio.portfolio_value) / price
+        elif isinstance(self.sid(0), Future):
+            new_shares = (.001 * self.portfolio.portfolio_value) / \
+                (data.current(sid(0), "price") *
+                    self.sid(0).contract_multiplier)
+
+        new_shares = int(round_if_near_integer(new_shares))
+        self.target_shares += new_shares
 
 
 class TestTargetPercentAlgorithm(TradingAlgorithm):
     def initialize(self):
-        self.target_shares = 0
+        self.ordered = False
         self.sale_price = None
 
+        # this makes the math easier to check
+        self.set_slippage(FixedSlippage())
+        self.set_commission(PerShare(0))
+
     def handle_data(self, data):
-        if self.target_shares == 0:
+        if not self.ordered:
             assert 0 not in self.portfolio.positions
-            self.target_shares = 1
         else:
-            assert np.round(self.portfolio.portfolio_value * 0.002) == \
-                self.portfolio.positions[0]['amount'] * self.sale_price, \
-                "Orders not filled correctly."
-            assert self.portfolio.positions[0]['last_sale_price'] == \
-                data[0].price, "Orders not filled at current price."
-        self.sale_price = data[0].price
-        self.order_target_percent(0, .002)
+            # Since you can't own fractional shares (at least in this
+            # example), we want to make sure that our target amount is
+            # no more than a share's value away from our current
+            # holdings.
+            target_value = self.portfolio.portfolio_value * 0.002
+            position_value = self.portfolio.positions[0].amount * \
+                self.sale_price
+
+            assert abs(target_value - position_value) <= self.sale_price, \
+                "Orders not filled correctly"
+
+            assert self.portfolio.positions[0].last_sale_price == \
+                data.current(sid(0), "price"), \
+                "Orders not filled at current price."
+
+        self.sale_price = data.current(sid(0), "price")
+        self.order_target_percent(self.sid(0), .002)
+        self.ordered = True
 
 
 class TestTargetValueAlgorithm(TradingAlgorithm):
     def initialize(self):
+        self.set_slippage(FixedSlippage())
         self.target_shares = 0
         self.sale_price = None
 
     def handle_data(self, data):
         if self.target_shares == 0:
             assert 0 not in self.portfolio.positions
-            self.order(0, 10)
+            self.order(self.sid(0), 10)
             self.target_shares = 10
             return
         else:
-            print(self.portfolio)
-            assert self.portfolio.positions[0]['amount'] == \
+            assert self.portfolio.positions[0].amount == \
                 self.target_shares, "Orders not filled immediately."
-            assert self.portfolio.positions[0]['last_sale_price'] == \
-                data[0].price, "Orders not filled at current price."
+            assert self.portfolio.positions[0].last_sale_price == \
+                data.current(sid(0), "price"), \
+                "Orders not filled at current price."
 
-        self.order_target_value(0, 20)
-        self.target_shares = np.round(20 / data[0].price)
+        self.order_target_value(self.sid(0), 20)
+        self.target_shares = np.round(20 / data.current(sid(0), "price"))
+
+        if isinstance(self.sid(0), Equity):
+            self.target_shares = np.round(20 / data.current(sid(0), "price"))
+        if isinstance(self.sid(0), Future):
+            self.target_shares = np.round(
+                20 / (data.current(sid(0), "price") * self.sid(0).multiplier))
+
+
+class FutureFlipAlgo(TestAlgorithm):
+    def handle_data(self, data):
+        if len(self.portfolio.positions) > 0:
+            if self.portfolio.positions[self.asset.sid]["amount"] > 0:
+                self.order_target(self.asset, -self.amount)
+            else:
+                self.order_target(self.asset, 0)
+        else:
+            self.order_target(self.asset, self.amount)
+
+############################
+# AccountControl Test Algos#
+############################
+
+
+class SetMaxLeverageAlgorithm(TradingAlgorithm):
+    def initialize(self, max_leverage=None):
+        self.set_max_leverage(max_leverage=max_leverage)
 
 
 ############################
@@ -405,25 +488,46 @@ class TestTargetValueAlgorithm(TradingAlgorithm):
 
 
 class SetMaxPositionSizeAlgorithm(TradingAlgorithm):
-    def initialize(self, sid=None, max_shares=None, max_notional=None):
+    def initialize(self, asset=None, max_shares=None, max_notional=None):
+        self.set_slippage(FixedSlippage())
         self.order_count = 0
-        self.set_max_position_size(sid=sid,
+        self.set_max_position_size(asset=asset,
                                    max_shares=max_shares,
                                    max_notional=max_notional)
 
 
 class SetMaxOrderSizeAlgorithm(TradingAlgorithm):
-    def initialize(self, sid=None, max_shares=None, max_notional=None):
+    def initialize(self, asset=None, max_shares=None, max_notional=None):
         self.order_count = 0
-        self.set_max_order_size(sid=sid,
+        self.set_max_order_size(asset=asset,
                                 max_shares=max_shares,
                                 max_notional=max_notional)
+
+
+class SetDoNotOrderListAlgorithm(TradingAlgorithm):
+    def initialize(self, sid=None, restricted_list=None, on_error='fail'):
+        self.order_count = 0
+        self.set_do_not_order_list(restricted_list, on_error)
+
+
+class SetAssetRestrictionsAlgorithm(TradingAlgorithm):
+    def initialize(self, sid=None, restrictions=None, on_error='fail'):
+        self.order_count = 0
+        self.set_asset_restrictions(restrictions, on_error)
+
+
+class SetMultipleAssetRestrictionsAlgorithm(TradingAlgorithm):
+    def initialize(self, restrictions1, restrictions2, on_error='fail'):
+        self.order_count = 0
+        self.set_asset_restrictions(restrictions1, on_error)
+        self.set_asset_restrictions(restrictions2, on_error)
 
 
 class SetMaxOrderCountAlgorithm(TradingAlgorithm):
     def initialize(self, count):
         self.order_count = 0
         self.set_max_order_count(count)
+        self.minute_count = 0
 
 
 class SetLongOnlyAlgorithm(TradingAlgorithm):
@@ -432,16 +536,20 @@ class SetLongOnlyAlgorithm(TradingAlgorithm):
         self.set_long_only()
 
 
-from zipline.transforms import BatchTransform, batch_transform
-from zipline.transforms import MovingAverage
+class SetAssetDateBoundsAlgorithm(TradingAlgorithm):
+    """
+    Algorithm that tries to order 1 share of sid 999 on every bar and has an
+    AssetDateBounds() trading control in place.
+    """
+    def initialize(self):
+        self.register_trading_control(AssetDateBounds(on_error='fail'))
+
+    def handle_data(algo, data):
+        algo.order(algo.sid(999), 1)
 
 
 class TestRegisterTransformAlgorithm(TradingAlgorithm):
     def initialize(self, *args, **kwargs):
-        self.add_transform(MovingAverage, 'mavg', ['price'],
-                           market_aware=True,
-                           window_length=2)
-
         self.set_slippage(FixedSlippage())
 
     def handle_data(self, data):
@@ -456,7 +564,7 @@ class AmbitiousStopLimitAlgorithm(TradingAlgorithm):
     """
 
     def initialize(self, *args, **kwargs):
-        self.sid = kwargs.pop('sid')
+        self.asset = self.sid(kwargs.pop('sid'))
 
     def handle_data(self, data):
 
@@ -465,264 +573,42 @@ class AmbitiousStopLimitAlgorithm(TradingAlgorithm):
         ########
 
         # Buy with low limit, shouldn't trigger.
-        self.order(self.sid, 100, limit_price=1)
+        self.order(self.asset, 100, limit_price=1)
 
         # But with high stop, shouldn't trigger
-        self.order(self.sid, 100, stop_price=10000000)
+        self.order(self.asset, 100, stop_price=10000000)
 
         # Buy with high limit (should trigger) but also high stop (should
         # prevent trigger).
-        self.order(self.sid, 100, limit_price=10000000, stop_price=10000000)
+        self.order(self.asset, 100, limit_price=10000000, stop_price=10000000)
 
         # Buy with low stop (should trigger), but also low limit (should
         # prevent trigger).
-        self.order(self.sid, 100, limit_price=1, stop_price=1)
+        self.order(self.asset, 100, limit_price=1, stop_price=1)
 
         #########
         # Sells #
         #########
 
         # Sell with high limit, shouldn't trigger.
-        self.order(self.sid, -100, limit_price=1000000)
+        self.order(self.asset, -100, limit_price=1000000)
 
         # Sell with low stop, shouldn't trigger.
-        self.order(self.sid, -100, stop_price=1)
+        self.order(self.asset, -100, stop_price=1)
 
         # Sell with low limit (should trigger), but also high stop (should
         # prevent trigger).
-        self.order(self.sid, -100, limit_price=1000000, stop_price=1000000)
+        self.order(self.asset, -100, limit_price=1000000, stop_price=1000000)
 
         # Sell with low limit (should trigger), but also low stop (should
         # prevent trigger).
-        self.order(self.sid, -100, limit_price=1, stop_price=1)
+        self.order(self.asset, -100, limit_price=1, stop_price=1)
 
         ###################
         # Rounding Checks #
         ###################
-        self.order(self.sid, 100, limit_price=.00000001)
-        self.order(self.sid, -100, stop_price=.00000001)
-
-
-##########################################
-# Algorithm using simple batch transforms
-
-class ReturnPriceBatchTransform(BatchTransform):
-    def get_value(self, data):
-        assert data.shape[1] == self.window_length, \
-            "data shape={0} does not equal window_length={1} for data={2}".\
-            format(data.shape[1], self.window_length, data)
-        return data.price
-
-
-@batch_transform
-def return_price_batch_decorator(data):
-    return data.price
-
-
-@batch_transform
-def return_args_batch_decorator(data, *args, **kwargs):
-    return args, kwargs
-
-
-@batch_transform
-def return_data(data, *args, **kwargs):
-    return data
-
-
-@batch_transform
-def uses_ufunc(data, *args, **kwargs):
-    # ufuncs like np.log should not crash
-    return np.log(data)
-
-
-@batch_transform
-def price_multiple(data, multiplier, extra_arg=1):
-    return data.price * multiplier * extra_arg
-
-
-class BatchTransformAlgorithm(TradingAlgorithm):
-    def initialize(self, *args, **kwargs):
-        self.refresh_period = kwargs.pop('refresh_period', 1)
-        self.window_length = kwargs.pop('window_length', 3)
-
-        self.args = args
-        self.kwargs = kwargs
-
-        self.history_return_price_class = []
-        self.history_return_price_decorator = []
-        self.history_return_args = []
-        self.history_return_arbitrary_fields = []
-        self.history_return_nan = []
-        self.history_return_sid_filter = []
-        self.history_return_field_filter = []
-        self.history_return_field_no_filter = []
-        self.history_return_ticks = []
-        self.history_return_not_full = []
-
-        self.return_price_class = ReturnPriceBatchTransform(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=False
-        )
-
-        self.return_price_decorator = return_price_batch_decorator(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=False
-        )
-
-        self.return_args_batch = return_args_batch_decorator(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=False
-        )
-
-        self.return_arbitrary_fields = return_data(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=False
-        )
-
-        self.return_nan = return_price_batch_decorator(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=True
-        )
-
-        self.return_sid_filter = return_price_batch_decorator(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=True,
-            sids=[0]
-        )
-
-        self.return_field_filter = return_data(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=True,
-            fields=['price']
-        )
-
-        self.return_field_no_filter = return_data(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=True
-        )
-
-        self.return_not_full = return_data(
-            refresh_period=1,
-            window_length=self.window_length,
-            compute_only_full=False
-        )
-
-        self.uses_ufunc = uses_ufunc(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=False
-        )
-
-        self.price_multiple = price_multiple(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=False
-        )
-
-        self.iter = 0
-
-        self.set_slippage(FixedSlippage())
-
-    def handle_data(self, data):
-        self.history_return_price_class.append(
-            self.return_price_class.handle_data(data))
-        self.history_return_price_decorator.append(
-            self.return_price_decorator.handle_data(data))
-        self.history_return_args.append(
-            self.return_args_batch.handle_data(
-                data, *self.args, **self.kwargs))
-        self.history_return_not_full.append(
-            self.return_not_full.handle_data(data))
-        self.uses_ufunc.handle_data(data)
-
-        # check that calling transforms with the same arguments
-        # is idempotent
-        self.price_multiple.handle_data(data, 1, extra_arg=1)
-
-        if self.price_multiple.full:
-            pre = self.price_multiple.rolling_panel.get_current().shape[0]
-            result1 = self.price_multiple.handle_data(data, 1, extra_arg=1)
-            post = self.price_multiple.rolling_panel.get_current().shape[0]
-            assert pre == post, "batch transform is appending redundant events"
-            result2 = self.price_multiple.handle_data(data, 1, extra_arg=1)
-            assert result1 is result2, "batch transform is not idempotent"
-
-            # check that calling transform with the same data, but
-            # different supplemental arguments results in new
-            # results.
-            result3 = self.price_multiple.handle_data(data, 2, extra_arg=1)
-            assert result1 is not result3, \
-                "batch transform is not updating for new args"
-
-            result4 = self.price_multiple.handle_data(data, 1, extra_arg=2)
-            assert result1 is not result4,\
-                "batch transform is not updating for new kwargs"
-
-        new_data = deepcopy(data)
-        for sid in new_data:
-            new_data[sid]['arbitrary'] = 123
-
-        self.history_return_arbitrary_fields.append(
-            self.return_arbitrary_fields.handle_data(new_data))
-
-        # nan every second event price
-        if self.iter % 2 == 0:
-            self.history_return_nan.append(
-                self.return_nan.handle_data(data))
-        else:
-            nan_data = deepcopy(data)
-            for sid in nan_data.iterkeys():
-                nan_data[sid].price = np.nan
-            self.history_return_nan.append(
-                self.return_nan.handle_data(nan_data))
-
-        self.iter += 1
-
-        # Add a new sid to check that it does not get included
-        extra_sid_data = deepcopy(data)
-        extra_sid_data[1] = extra_sid_data[0]
-        self.history_return_sid_filter.append(
-            self.return_sid_filter.handle_data(extra_sid_data)
-        )
-
-        # Add a field to check that it does not get included
-        extra_field_data = deepcopy(data)
-        extra_field_data[0]['ignore'] = extra_sid_data[0]['price']
-        self.history_return_field_filter.append(
-            self.return_field_filter.handle_data(extra_field_data)
-        )
-        self.history_return_field_no_filter.append(
-            self.return_field_no_filter.handle_data(extra_field_data)
-        )
-
-
-class BatchTransformAlgorithmMinute(TradingAlgorithm):
-    def initialize(self, *args, **kwargs):
-        self.refresh_period = kwargs.pop('refresh_period', 1)
-        self.window_length = kwargs.pop('window_length', 3)
-
-        self.args = args
-        self.kwargs = kwargs
-
-        self.history = []
-
-        self.batch_transform = return_price_batch_decorator(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=False,
-            bars='minute'
-        )
-
-    def handle_data(self, data):
-        self.history.append(self.batch_transform.handle_data(data))
+        self.order(self.asset, 100, limit_price=.00000001)
+        self.order(self.asset, -100, stop_price=.00000001)
 
 
 class SetPortfolioAlgorithm(TradingAlgorithm):
@@ -771,29 +657,31 @@ class TALIBAlgorithm(TradingAlgorithm):
 
 class EmptyPositionsAlgorithm(TradingAlgorithm):
     """
-    An algorithm that ensures that 'phantom' positions do not appear
+    An algorithm that ensures that 'phantom' positions do not appear in
     portfolio.positions in the case that a position has been entered
     and fully exited.
     """
-    def initialize(self, *args, **kwargs):
+    def initialize(self, sids, *args, **kwargs):
         self.ordered = False
         self.exited = False
+        self.sids = sids
 
     def handle_data(self, data):
         if not self.ordered:
-            for s in data:
-                self.order(s, 100)
+            for s in self.sids:
+                self.order(self.sid(s), 1)
             self.ordered = True
 
         if not self.exited:
             amounts = [pos.amount for pos
                        in itervalues(self.portfolio.positions)]
+
             if (
-                all([(amount == 100) for amount in amounts]) and
-                (len(amounts) == len(data.keys()))
+                len(amounts) > 0 and
+                all([(amount == 1) for amount in amounts])
             ):
                 for stock in self.portfolio.positions:
-                    self.order(stock, -100)
+                    self.order(self.sid(stock), -1)
                 self.exited = True
 
         # Should be 0 when all positions are exited.
@@ -806,7 +694,7 @@ class InvalidOrderAlgorithm(TradingAlgorithm):
     appropriate exceptions are raised.
     """
     def initialize(self, *args, **kwargs):
-        self.sid = kwargs.pop('sids')[0]
+        self.asset = self.sid(kwargs.pop('sids')[0])
 
     def handle_data(self, data):
         from zipline.api import (
@@ -821,48 +709,52 @@ class InvalidOrderAlgorithm(TradingAlgorithm):
                       StopOrder(10), StopLimitOrder(10, 10)]:
 
             with assert_raises(UnsupportedOrderParameters):
-                order(self.sid, 10, limit_price=10, style=style)
+                order(self.asset, 10, limit_price=10, style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order(self.sid, 10, stop_price=10, style=style)
+                order(self.asset, 10, stop_price=10, style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_value(self.sid, 300, limit_price=10, style=style)
+                order_value(self.asset, 300, limit_price=10, style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_value(self.sid, 300, stop_price=10, style=style)
+                order_value(self.asset, 300, stop_price=10, style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_percent(self.sid, .1, limit_price=10, style=style)
+                order_percent(self.asset, .1, limit_price=10, style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_percent(self.sid, .1, stop_price=10, style=style)
+                order_percent(self.asset, .1, stop_price=10, style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_target(self.sid, 100, limit_price=10, style=style)
+                order_target(self.asset, 100, limit_price=10, style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_target(self.sid, 100, stop_price=10, style=style)
+                order_target(self.asset, 100, stop_price=10, style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_target_value(self.sid, 100, limit_price=10, style=style)
+                order_target_value(self.asset, 100,
+                                   limit_price=10,
+                                   style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_target_value(self.sid, 100, stop_price=10, style=style)
+                order_target_value(self.asset, 100,
+                                   stop_price=10,
+                                   style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_target_percent(self.sid, .2, limit_price=10, style=style)
+                order_target_percent(self.asset, .2,
+                                     limit_price=10,
+                                     style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_target_percent(self.sid, .2, stop_price=10, style=style)
+                order_target_percent(self.asset, .2,
+                                     stop_price=10,
+                                     style=style)
 
 
 ##############################
 # Quantopian style algorithms
-from zipline.api import (order,
-                         set_slippage,
-                         record)
-
 
 # Noop algo
 def initialize_noop(context):
@@ -884,12 +776,13 @@ def handle_data_api(context, data):
     if context.incr == 0:
         assert 0 not in context.portfolio.positions
     else:
-        assert context.portfolio.positions[0]['amount'] == \
+        assert context.portfolio.positions[0].amount == \
             context.incr, "Orders not filled immediately."
-        assert context.portfolio.positions[0]['last_sale_price'] == \
-            data[0].price, "Orders not filled at current price."
+        assert context.portfolio.positions[0].last_sale_price == \
+            data.current(sid(0), "price"), \
+            "Orders not filled at current price."
     context.incr += 1
-    order(0, 1)
+    order(sid(0), 1)
 
     record(incr=context.incr)
 
@@ -904,11 +797,17 @@ def handle_data(context, data):
     pass
 """
 
+no_handle_data = """
+def initialize(context):
+    pass
+"""
+
 api_algo = """
 from zipline.api import (order,
                          set_slippage,
                          FixedSlippage,
-                         record)
+                         record,
+                         sid)
 
 def initialize(context):
     context.incr = 0
@@ -919,14 +818,26 @@ def handle_data(context, data):
     if context.incr == 0:
         assert 0 not in context.portfolio.positions
     else:
-        assert context.portfolio.positions[0]['amount'] == \
+        assert context.portfolio.positions[0].amount == \
                 context.incr, "Orders not filled immediately."
-        assert context.portfolio.positions[0]['last_sale_price'] == \
-                data[0].price, "Orders not filled at current price."
+        assert context.portfolio.positions[0].last_sale_price == \
+                data.current(sid(0), "price"), \
+                "Orders not filled at current price."
     context.incr += 1
-    order(0, 1)
+    order(sid(0), 1)
 
     record(incr=context.incr)
+"""
+
+api_get_environment_algo = """
+from zipline.api import get_environment, order, symbol
+
+
+def initialize(context):
+    context.environment = get_environment()
+
+def handle_data(context, data):
+    pass
 """
 
 api_symbol_algo = """
@@ -937,7 +848,36 @@ def initialize(context):
     pass
 
 def handle_data(context, data):
-    order(symbol(0), 1)
+    order(symbol('TEST'), 1)
+"""
+
+call_order_in_init = """
+from zipline.api import (sid, order)
+
+def initialize(context):
+    order(sid(0), 10)
+    pass
+
+def handle_data(context, data):
+    pass
+"""
+
+access_portfolio_in_init = """
+def initialize(context):
+    var = context.portfolio.cash
+    pass
+
+def handle_data(context, data):
+    pass
+"""
+
+access_account_in_init = """
+def initialize(context):
+    var = context.account.settled_cash
+    pass
+
+def handle_data(context, data):
+    pass
 """
 
 call_all_order_methods = """
@@ -946,18 +886,19 @@ from zipline.api import (order,
                          order_percent,
                          order_target,
                          order_target_value,
-                         order_target_percent)
+                         order_target_percent,
+                         sid)
 
 def initialize(context):
     pass
 
 def handle_data(context, data):
-    order(0, 10)
-    order_value(0, 300)
-    order_percent(0, .1)
-    order_target(0, 100)
-    order_target_value(0, 100)
-    order_target_percent(0, .2)
+    order(sid(0), 10)
+    order_value(sid(0), 300)
+    order_percent(sid(0), .1)
+    order_target(sid(0), 100)
+    order_target_value(sid(0), 100)
+    order_target_percent(sid(0), .2)
 """
 
 record_variables = """
@@ -982,4 +923,244 @@ def initialize(context):
 def handle_data(context, data):
     context.incr += 1
     record(data=float('%s'))
+"""
+
+call_with_kwargs = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    price_history = data.history(assets=symbol('TEST'), fields="price",
+                                 bar_count=5, frequency="1d")
+    current = data.current(assets=symbol('TEST'), fields="price")
+"""
+
+call_without_kwargs = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    price_history = data.history(symbol('TEST'), "price", 5, "1d")
+    current = data.current(symbol('TEST'), "price")
+    is_stale = data.is_stale(symbol('TEST'))
+    can_trade = data.can_trade(symbol('TEST'))
+"""
+
+call_with_bad_kwargs_history = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    price_history = data.history(assets=symbol('TEST'), fields="price",
+                                 blahblah=5, frequency="1d")
+"""
+
+call_with_bad_kwargs_current = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    current = data.current(assets=symbol('TEST'), blahblah="price")
+"""
+
+bad_type_history_assets = """
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.history(1, 'price', 5, '1d')
+"""
+
+bad_type_history_fields = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.history(symbol('TEST'), 10 , 5, '1d')
+"""
+
+bad_type_history_bar_count = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.history(symbol('TEST'), 'price', '5', '1d')
+"""
+
+bad_type_history_frequency = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.history(symbol('TEST'), 'price', 5, 1)
+"""
+
+bad_type_current_assets = """
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.current(1, 'price')
+"""
+
+bad_type_current_fields = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.current(symbol('TEST'), 10)
+"""
+
+bad_type_is_stale_assets = """
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.is_stale('TEST')
+"""
+
+bad_type_can_trade_assets = """
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.can_trade('TEST')
+"""
+
+bad_type_history_assets_kwarg = """
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.history(frequency='1d', fields='price', assets=1, bar_count=5)
+"""
+
+bad_type_history_fields_kwarg = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.history(frequency='1d', fields=10, assets=symbol('TEST'),
+                 bar_count=5)
+"""
+
+bad_type_history_bar_count_kwarg = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.history(frequency='1d', fields='price', assets=symbol('TEST'),
+                 bar_count='5')
+"""
+
+bad_type_history_frequency_kwarg = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.history(frequency=1, fields='price', assets=symbol('TEST'),
+                 bar_count=5)
+"""
+
+bad_type_current_assets_kwarg = """
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.current(fields='price', assets=1)
+"""
+
+bad_type_current_fields_kwarg = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.current(fields=10, assets=symbol('TEST'))
+"""
+
+bad_type_history_assets_kwarg_list = """
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.history(assets=[1,2], fields='price', bar_count=5, frequency="1d")
+"""
+
+call_with_bad_kwargs_get_open_orders = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    context.get_open_orders(sid=symbol('TEST'))
+"""
+
+call_with_good_kwargs_get_open_orders = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    context.get_open_orders(asset=symbol('TEST'))
+"""
+
+call_with_no_kwargs_get_open_orders = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    context.get_open_orders(symbol('TEST'))
+"""
+
+empty_positions = """
+from zipline.api import record, schedule_function, time_rules, date_rules, \
+    symbol
+
+def initialize(context):
+    schedule_function(test_history, date_rules.every_day(),
+                      time_rules.market_open(hours=1))
+    context.sid = symbol('TEST')
+
+def test_history(context,data):
+    record(amounts=context.portfolio.positions[context.sid].amount)
+    record(num_positions=len(context.portfolio.positions))
+"""
+
+set_benchmark_algo = """
+from zipline.api import symbol, set_benchmark
+
+def initialize(context):
+    set_benchmark(symbol('TEST'))
+    context.sid = symbol('TEST')
+
+def handle_data(context, data):
+    pass
 """

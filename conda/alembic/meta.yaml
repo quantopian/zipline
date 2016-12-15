@@ -1,0 +1,73 @@
+package:
+  name: alembic
+  version: "0.7.7"
+
+source:
+  fn: alembic-0.7.7.tar.gz
+  url: https://pypi.python.org/packages/41/80/58c25d9a4e8321376a0231ef4cedd22f93c899c28c93bc236ca991a0f291/alembic-0.7.7.tar.gz
+  md5: 8bd77f40857100da2cdcb6f5da9a7f1c
+#  patches:
+   # List any patch files here
+   # - fix.patch
+
+build:
+  # noarch_python: True
+  # preserve_egg_dir: True
+  entry_points:
+    # Put any entry points (scripts to be generated automatically) here. The
+    # syntax is module:function.  For example
+    #
+    # - alembic = alembic:main
+    #
+    # Would create an entry point called alembic that calls alembic.main()
+
+    - alembic = alembic.config:main
+
+  # If this is a new build for the same version, increment the build
+  # number. If you do not include this key, it defaults to 0.
+  # number: 1
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - sqlalchemy >=0.7.6
+    - mako
+
+  run:
+    - python
+    - sqlalchemy >=0.7.6
+    - mako
+
+test:
+  # Python imports
+  imports:
+    - alembic
+    - alembic.autogenerate
+    - alembic.ddl
+    - alembic.testing
+    - alembic.testing.plugin
+
+  commands:
+    # You can put test commands to be run here.  Use this to test that the
+    # entry points work.
+
+    - alembic --help
+
+  # You can also put a file called run_test.py in the recipe that will be run
+  # at test time.
+
+  requires:
+    - mock
+    - nose >=0.11
+    # Put any additional test requirements here.  For example
+    # - nose
+
+about:
+  home: http://bitbucket.org/zzzeek/alembic
+  license: MIT
+  summary: 'A database migration tool for SQLAlchemy.'
+
+# See
+# http://docs.continuum.io/conda/build.html for
+# more information about meta.yaml
