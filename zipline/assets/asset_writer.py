@@ -66,7 +66,7 @@ _equities_defaults = {
     'symbol': None,
     'asset_name': None,
     'start_date': 0,
-    'end_date': 2 ** 62 - 1,
+    'end_date': np.iinfo(np.int64).max,
     'first_traded': None,
     'auto_close_date': None,
     # the canonical exchange name, like "NYSE"
@@ -81,7 +81,7 @@ _futures_defaults = {
     'root_symbol': None,
     'asset_name': None,
     'start_date': 0,
-    'end_date': 2 ** 62 - 1,
+    'end_date': np.iinfo(np.int64).max,
     'first_traded': None,
     'exchange': None,
     'notice_date': None,
@@ -110,7 +110,7 @@ _equity_supplementary_mappings_defaults = {
     'value': None,
     'field': None,
     'start_date': 0,
-    'end_date': 2 ** 62 - 1,
+    'end_date': np.iinfo(np.int64).max,
 }
 
 
