@@ -62,10 +62,14 @@ from zipline.errors import (
     EquitiesNotFound,
     FutureContractsNotFound,
     MultipleSymbolsFound,
+    MultipleValuesFoundForField,
+    MultipleValuesFoundForSid,
+    NoValueForSid,
     AssetDBVersionError,
     SidsNotFound,
     SymbolNotFound,
     AssetDBImpossibleDowngrade,
+    ValueNotFoundForField,
 )
 from zipline.testing import (
     all_subindices,
@@ -965,6 +969,217 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
             pd.Timestamp('2014-01-02'),
         ))
         self.assertEqual({0, 1, 2}, set(self.asset_finder.sids))
+
+    def test_lookup_by_supplementary_field(self):
+        equities = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': 0,
+                    'symbol': 'A',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange': 'TEST',
+                },
+                {
+                    'sid': 1,
+                    'symbol': 'B',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange': 'TEST',
+                },
+                {
+                    'sid': 2,
+                    'symbol': 'C',
+                    'start_date': pd.Timestamp('2013-7-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange': 'TEST',
+                },
+            ]
+        )
+
+        equity_supplementary_mappings = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': 0,
+                    'field': 'ALT_ID',
+                    'value': '100000000',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2013-6-28', tz='UTC'),
+                },
+                {
+                    'sid': 1,
+                    'field': 'ALT_ID',
+                    'value': '100000001',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                },
+                {
+                    'sid': 0,
+                    'field': 'ALT_ID',
+                    'value': '100000002',
+                    'start_date': pd.Timestamp('2013-7-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                },
+                {
+                    'sid': 2,
+                    'field': 'ALT_ID',
+                    'value': '100000000',
+                    'start_date': pd.Timestamp('2013-7-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                },
+            ]
+        )
+
+        self.write_assets(
+            equities=equities,
+            equity_supplementary_mappings=equity_supplementary_mappings,
+        )
+
+        af = self.asset_finder
+
+        # Before sid 0 has changed ALT_ID.
+        dt = pd.Timestamp('2013-6-28', tz='UTC')
+
+        asset_0 = af.lookup_by_supplementary_field('ALT_ID', '100000000', dt)
+        self.assertEqual(asset_0.sid, 0)
+
+        asset_1 = af.lookup_by_supplementary_field('ALT_ID', '100000001', dt)
+        self.assertEqual(asset_1.sid, 1)
+
+        # We don't know about this ALT_ID yet.
+        with self.assertRaisesRegexp(
+            ValueNotFoundForField,
+            "Value '{}' was not found for field '{}'.".format(
+                '100000002',
+                'ALT_ID',
+            )
+        ):
+            af.lookup_by_supplementary_field('ALT_ID', '100000002', dt)
+
+        # After all assets have ended.
+        dt = pd.Timestamp('2014-01-02', tz='UTC')
+
+        asset_2 = af.lookup_by_supplementary_field('ALT_ID', '100000000', dt)
+        self.assertEqual(asset_2.sid, 2)
+
+        asset_1 = af.lookup_by_supplementary_field('ALT_ID', '100000001', dt)
+        self.assertEqual(asset_1.sid, 1)
+
+        asset_0 = af.lookup_by_supplementary_field('ALT_ID', '100000002', dt)
+        self.assertEqual(asset_0.sid, 0)
+
+        # At this point both sids 0 and 2 have held this value, so an
+        # as_of_date is required.
+        expected_in_repr = (
+            "Multiple occurrences of the value '{}' found for field '{}'."
+        ).format('100000000', 'ALT_ID')
+
+        with self.assertRaisesRegexp(
+            MultipleValuesFoundForField,
+            expected_in_repr,
+        ):
+            af.lookup_by_supplementary_field('ALT_ID', '100000000', None)
+
+    def test_get_supplementary_field(self):
+        equities = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': 0,
+                    'symbol': 'A',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange': 'TEST',
+                },
+                {
+                    'sid': 1,
+                    'symbol': 'B',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange': 'TEST',
+                },
+                {
+                    'sid': 2,
+                    'symbol': 'C',
+                    'start_date': pd.Timestamp('2013-7-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange': 'TEST',
+                },
+            ]
+        )
+
+        equity_supplementary_mappings = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': 0,
+                    'field': 'ALT_ID',
+                    'value': '100000000',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2013-6-28', tz='UTC'),
+                },
+                {
+                    'sid': 1,
+                    'field': 'ALT_ID',
+                    'value': '100000001',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                },
+                {
+                    'sid': 0,
+                    'field': 'ALT_ID',
+                    'value': '100000002',
+                    'start_date': pd.Timestamp('2013-7-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                },
+                {
+                    'sid': 2,
+                    'field': 'ALT_ID',
+                    'value': '100000000',
+                    'start_date': pd.Timestamp('2013-7-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                },
+            ]
+        )
+
+        self.write_assets(
+            equities=equities,
+            equity_supplementary_mappings=equity_supplementary_mappings,
+        )
+        finder = self.asset_finder
+
+        # Before sid 0 has changed ALT_ID and sid 2 has started.
+        dt = pd.Timestamp('2013-6-28', tz='UTC')
+
+        for sid, expected in [(0, '100000000'), (1, '100000001')]:
+            self.assertEqual(
+                finder.get_supplementary_field(sid, 'ALT_ID', dt),
+                expected,
+            )
+
+        # Since sid 2 has not yet started, we don't know about its
+        # ALT_ID.
+        with self.assertRaisesRegexp(
+            NoValueForSid,
+            "No '{}' value found for sid '{}'.".format('ALT_ID', 2),
+        ):
+            finder.get_supplementary_field(2, 'ALT_ID', dt),
+
+        # After all assets have ended.
+        dt = pd.Timestamp('2014-01-02', tz='UTC')
+
+        for sid, expected in [
+            (0, '100000002'), (1, '100000001'), (2, '100000000'),
+        ]:
+            self.assertEqual(
+                finder.get_supplementary_field(sid, 'ALT_ID', dt),
+                expected,
+            )
+
+        # Sid 0 has historically held two values for ALT_ID by this dt.
+        with self.assertRaisesRegexp(
+            MultipleValuesFoundForSid,
+            "Multiple '{}' values found for sid '{}'.".format('ALT_ID', 0),
+        ):
+            finder.get_supplementary_field(0, 'ALT_ID', None),
 
     def test_group_by_type(self):
         equities = make_simple_equity_info(

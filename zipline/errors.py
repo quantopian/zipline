@@ -304,6 +304,55 @@ Root symbol '{root_symbol}' was not found.
 """.strip()
 
 
+class ValueNotFoundForField(ZiplineError):
+    """
+    Raised when a lookup_by_supplementary_mapping() call contains a
+    value does not exist for the specified mapping type.
+    """
+    msg = """
+Value '{value}' was not found for field '{field}'.
+""".strip()
+
+
+class MultipleValuesFoundForField(ZiplineError):
+    """
+    Raised when a lookup_by_supplementary_mapping() call contains a
+    value that changed over time for the specified field and is
+    thus not resolvable without additional information provided via
+    as_of_date.
+    """
+    msg = """
+Multiple occurrences of the value '{value}' found for field '{field}'.
+Use the as_of_date' argument to specify when the lookup should be valid.
+
+Possible options: {options}
+    """.strip()
+
+
+class NoValueForSid(ZiplineError):
+    """
+    Raised when a get_supplementary_field() call contains a sid that
+    does not have a value for the specified mapping type.
+    """
+    msg = """
+No '{field}' value found for sid '{sid}'.
+""".strip()
+
+
+class MultipleValuesFoundForSid(ZiplineError):
+    """
+    Raised when a get_supplementary_field() call contains a value that
+    changed over time for the specified field and is thus not resolvable
+    without additional information provided via as_of_date.
+    """
+    msg = """
+Multiple '{field}' values found for sid '{sid}'. Use the as_of_date' argument
+to specify when the lookup should be valid.
+
+Possible options: {options}
+""".strip()
+
+
 class SidsNotFound(ZiplineError):
     """
     Raised when a retrieve_asset() or retrieve_all() call contains a

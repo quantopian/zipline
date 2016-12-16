@@ -309,3 +309,8 @@ def _downgrade_v5(op):
         'equities',
         ['fuzzy_symbol'],
     )
+
+
+@downgrades(6)
+def _downgrade_v6(op):
+    op.drop_table('equity_supplementary_mappings')

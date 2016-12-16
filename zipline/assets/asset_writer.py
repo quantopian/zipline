@@ -28,6 +28,7 @@ from zipline.assets.asset_db_schema import (
     asset_router,
     equities as equities_table,
     equity_symbol_mappings,
+    equity_supplementary_mappings as equity_supplementary_mappings_table,
     futures_contracts as futures_contracts_table,
     futures_exchanges,
     futures_root_symbols,
@@ -47,6 +48,7 @@ AssetData = namedtuple(
         'futures',
         'exchanges',
         'root_symbols',
+        'equity_supplementary_mappings',
     ),
 )
 
@@ -101,6 +103,16 @@ _root_symbols_defaults = {
     'description': None,
     'exchange': None,
 }
+
+# Default values for the equity_supplementary_mappings DataFrame
+_equity_supplementary_mappings_defaults = {
+    'sid': None,
+    'value': None,
+    'field': None,
+    'start_date': 0,
+    'end_date': 2 ** 62 - 1,
+}
+
 
 # Fuzzy symbol delimiters that may break up a company symbol and share class
 _delimited_symbol_delimiters_regex = re.compile(r'[./\-_]')
@@ -355,6 +367,7 @@ class AssetDBWriter(object):
               futures=None,
               exchanges=None,
               root_symbols=None,
+              equity_supplementary_mappings=None,
               chunk_size=DEFAULT_CHUNK_SIZE):
         """Write asset metadata to a sqlite database.
 
@@ -379,7 +392,7 @@ class AssetDBWriter(object):
                   The exchange where this asset is traded.
 
             The index of this dataframe should contain the sids.
-        futures : pd.Dataframe, optional
+        futures : pd.DataFrame, optional
             The future contract metadata. The columns for this dataframe are:
 
               symbol : str
@@ -410,7 +423,7 @@ class AssetDBWriter(object):
               multiplier: float
                   The amount of the underlying asset represented by this
                   contract.
-        exchanges : pd.Dataframe, optional
+        exchanges : pd.DataFrame, optional
             The exchanges where assets can be traded. The columns of this
             dataframe are:
 
@@ -418,7 +431,7 @@ class AssetDBWriter(object):
                   The name of the exchange.
               timezone : str
                   The timezone of the exchange.
-        root_symbols : pd.Dataframe, optional
+        root_symbols : pd.DataFrame, optional
             The root symbols for the futures contracts. The columns for this
             dataframe are:
 
@@ -432,6 +445,8 @@ class AssetDBWriter(object):
                   A short description of this root symbol.
               exchange : str
                   The exchange where this root symbol is traded.
+        equity_supplementary_mappings : pd.DataFrame, optional
+            Additional mappings from values of abitrary type to assets.
         chunk_size : int, optional
             The amount of rows to write to the SQLite table at once.
             This defaults to the default number of bind params in sqlite.
@@ -452,6 +467,11 @@ class AssetDBWriter(object):
                 futures if futures is not None else pd.DataFrame(),
                 exchanges if exchanges is not None else pd.DataFrame(),
                 root_symbols if root_symbols is not None else pd.DataFrame(),
+                (
+                    equity_supplementary_mappings
+                    if equity_supplementary_mappings is not None
+                    else pd.DataFrame()
+                ),
             )
             # Write the data to SQL.
             self._write_df_to_table(
@@ -465,6 +485,13 @@ class AssetDBWriter(object):
                 data.root_symbols,
                 conn,
                 chunk_size,
+            )
+            self._write_df_to_table(
+                equity_supplementary_mappings_table,
+                data.equity_supplementary_mappings,
+                conn,
+                chunk_size,
+                idx=False,
             )
             self._write_assets(
                 'future',
@@ -480,10 +507,19 @@ class AssetDBWriter(object):
                 mapping_data=data.equities_mappings,
             )
 
-    def _write_df_to_table(self, tbl, df, txn, chunk_size, idx_label=None):
+    def _write_df_to_table(
+        self,
+        tbl,
+        df,
+        txn,
+        chunk_size,
+        idx=True,
+        idx_label=None,
+    ):
         df.to_sql(
             tbl.name,
             txn.connection,
+            index=idx,
             index_label=(
                 idx_label
                 if idx_label is not None else
@@ -639,7 +675,25 @@ class AssetDBWriter(object):
 
         return futures_output
 
-    def _load_data(self, equities, futures, exchanges, root_symbols):
+    def _normalize_equity_supplementary_mappings(self, mappings):
+        mappings_output = _generate_output_dataframe(
+            data_subset=mappings,
+            defaults=_equity_supplementary_mappings_defaults,
+        )
+
+        for col in ('start_date', 'end_date'):
+            mappings_output[col] = _dt_to_epoch_ns(mappings_output[col])
+
+        return mappings_output
+
+    def _load_data(
+        self,
+        equities,
+        futures,
+        exchanges,
+        root_symbols,
+        equity_supplementary_mappings,
+    ):
         """
         Returns a standard set of pandas.DataFrames:
         equities, futures, exchanges, root_symbols
@@ -657,6 +711,12 @@ class AssetDBWriter(object):
         equities_output, equities_mappings = self._normalize_equities(equities)
         futures_output = self._normalize_futures(futures)
 
+        equity_supplementary_mappings_output = (
+            self._normalize_equity_supplementary_mappings(
+                equity_supplementary_mappings,
+            )
+        )
+
         exchanges_output = _generate_output_dataframe(
             data_subset=exchanges,
             defaults=_exchanges_defaults,
@@ -673,4 +733,5 @@ class AssetDBWriter(object):
             futures=futures_output,
             exchanges=exchanges_output,
             root_symbols=root_symbols_output,
+            equity_supplementary_mappings=equity_supplementary_mappings_output,
         )

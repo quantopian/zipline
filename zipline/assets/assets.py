@@ -43,6 +43,10 @@ from zipline.errors import (
     FutureContractsNotFound,
     MapAssetIdentifierIndexError,
     MultipleSymbolsFound,
+    MultipleValuesFoundForField,
+    MultipleValuesFoundForSid,
+    NoValueForSid,
+    ValueNotFoundForField,
     SidsNotFound,
     SymbolNotFound,
 )
@@ -90,7 +94,67 @@ _asset_timestamp_fields = frozenset({
     'auto_close_date',
 })
 
-SymbolOwnership = namedtuple('SymbolOwnership', 'start end sid symbol')
+OwnershipPeriod = namedtuple('OwnershipPeriod', 'start end sid value')
+
+
+def merge_ownership_periods(mappings):
+    """
+    Given a dict of mappings where the values are lists of
+    OwnershipPeriod objects, returns a dict with the same structure with
+    new OwnershipPeriod objects adjusted so that the periods have no
+    gaps.
+
+    Orders the periods chronologically, and pushes forward the end date
+    of each period to match the start date of the following period. The
+    end date of the last period pushed forward to the max Timestamp.
+    """
+    return valmap(
+        lambda v: tuple(
+            OwnershipPeriod(
+                a.start,
+                b.start,
+                a.sid,
+                a.value,
+            ) for a, b in sliding_window(
+                2,
+                concatv(
+                    sorted(v),
+                    # concat with a fake ownership object to make the last
+                    # end date be max timestamp
+                    [OwnershipPeriod(
+                        pd.Timestamp.max.tz_localize('utc'),
+                        None,
+                        None,
+                        None,
+                    )],
+                ),
+            )
+        ),
+        mappings,
+    )
+
+
+def build_ownership_map(table, key_from_row, value_from_row):
+    """
+    Builds a dict mapping to lists of OwnershipPeriods, from a db table.
+    """
+    rows = sa.select(table.c).execute().fetchall()
+
+    mappings = {}
+    for row in rows:
+        mappings.setdefault(
+            key_from_row(row),
+            [],
+        ).append(
+            OwnershipPeriod(
+                pd.Timestamp(row.start_date, unit='ns', tz='utc'),
+                pd.Timestamp(row.end_date, unit='ns', tz='utc'),
+                row.sid,
+                value_from_row(row),
+            ),
+        )
+
+    return merge_ownership_periods(mappings)
 
 
 @curry
@@ -259,46 +323,12 @@ class AssetFinder(object):
 
     @lazyval
     def symbol_ownership_map(self):
-        rows = sa.select(self.equity_symbol_mappings.c).execute().fetchall()
-
-        mappings = {}
-        for row in rows:
-            mappings.setdefault(
-                (row.company_symbol, row.share_class_symbol),
-                [],
-            ).append(
-                SymbolOwnership(
-                    pd.Timestamp(row.start_date, unit='ns', tz='utc'),
-                    pd.Timestamp(row.end_date, unit='ns', tz='utc'),
-                    row.sid,
-                    row.symbol,
-                ),
-            )
-
-        return valmap(
-            lambda v: tuple(
-                SymbolOwnership(
-                    a.start,
-                    b.start,
-                    a.sid,
-                    a.symbol,
-                ) for a, b in sliding_window(
-                    2,
-                    concatv(
-                        sorted(v),
-                        # concat with a fake ownership object to make the last
-                        # end date be max timestamp
-                        [SymbolOwnership(
-                            pd.Timestamp.max.tz_localize('utc'),
-                            None,
-                            None,
-                            None,
-                        )],
-                    ),
-                )
+        return build_ownership_map(
+            table=self.equity_symbol_mappings,
+            key_from_row=(
+                lambda row: (row.company_symbol, row.share_class_symbol)
             ),
-            mappings,
-            factory=lambda: mappings,
+            value_from_row=lambda row: row.symbol,
         )
 
     @lazyval
@@ -312,6 +342,22 @@ class AssetFinder(object):
             fuzzy_owners.extend(owners)
             fuzzy_owners.sort()
         return fuzzy_mappings
+
+    @lazyval
+    def equity_supplementary_map(self):
+        return build_ownership_map(
+            table=self.equity_supplementary_mappings,
+            key_from_row=lambda row: (row.field, row.value),
+            value_from_row=lambda row: row.value,
+        )
+
+    @lazyval
+    def equity_supplementary_map_by_sid(self):
+        return build_ownership_map(
+            table=self.equity_supplementary_mappings,
+            key_from_row=lambda row: (row.field, row.sid),
+            value_from_row=lambda row: row.value,
+        )
 
     def lookup_asset_types(self, sids):
         """
@@ -808,6 +854,99 @@ class AssetFinder(object):
         if not data:
             raise SymbolNotFound(symbol=symbol)
         return self.retrieve_asset(data['sid'])
+
+    def lookup_by_supplementary_field(self, field_name, value, as_of_date):
+        try:
+            owners = self.equity_supplementary_map[
+                field_name,
+                value,
+            ]
+            assert owners, 'empty owners list for %r' % (field_name, value)
+        except KeyError:
+            # no equity has ever held this value
+            raise ValueNotFoundForField(field=field_name, value=value)
+
+        if not as_of_date:
+            if len(owners) > 1:
+                # more than one equity has held this value, this is ambigious
+                # without the date
+                raise MultipleValuesFoundForField(
+                    field=field_name,
+                    value=value,
+                    options=set(map(
+                        compose(self.retrieve_asset, attrgetter('sid')),
+                        owners,
+                    )),
+                )
+            # exactly one equity has ever held this value, we may resolve
+            # without the date
+            return self.retrieve_asset(owners[0].sid)
+
+        for start, end, sid, _ in owners:
+            if start <= as_of_date < end:
+                # find the equity that owned it on the given asof date
+                return self.retrieve_asset(sid)
+
+        # no equity held the value on the given asof date
+        raise ValueNotFoundForField(field=field_name, value=value)
+
+    def get_supplementary_field(
+        self,
+        sid,
+        field_name,
+        as_of_date,
+    ):
+        """Get the value of a supplementary field for an asset.
+
+        Parameters
+        ----------
+        sid : int
+            The sid of the asset to query.
+        field_name : str
+            Name of the supplementary field.
+        as_of_date : pd.Timestamp, None
+            The last known value on this date is returned. If None, a
+            value is returned only if we've only ever had one value for
+            this sid. If None and we've had multiple values,
+            MultipleValuesFoundForSid is raised.
+
+        Raises
+        ------
+        NoValueForSid
+            If we have no values for this asset, or no values was known
+            on this as_of_date.
+        MultipleValuesFoundForSid
+            If we have had multiple values for this asset over time, and
+            None was passed for as_of_date.
+        """
+        try:
+            periods = self.equity_supplementary_map_by_sid[
+                field_name,
+                sid,
+            ]
+            assert periods, 'empty periods list for %r' % (field_name, sid)
+        except KeyError:
+            raise NoValueForSid(field=field_name, sid=sid)
+
+        if not as_of_date:
+            if len(periods) > 1:
+                # This equity has held more than one value, this is ambigious
+                # without the date
+                raise MultipleValuesFoundForSid(
+                    field=field_name,
+                    sid=sid,
+                    options={p.value for p in periods},
+                )
+            # this equity has only ever held this value, we may resolve
+            # without the date
+            return periods[0].value
+
+        for start, end, _, value in periods:
+            if start <= as_of_date < end:
+                return value
+
+        # Could not find a value for this sid on the as_of_date.
+        raise NoValueForSid(field=field_name, sid=sid)
 
     @weak_lru_cache(100)
     def _get_future_sids_for_root_symbol(self, root_symbol, as_of_date_ns):
