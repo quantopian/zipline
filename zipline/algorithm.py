@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import Iterable
 from copy import copy
 import operator as op
 import warnings
@@ -2261,9 +2262,9 @@ class TradingAlgorithm(object):
     @expect_types(
         pipeline=Pipeline,
         name=string_types,
-        chunksize=optional(int),
+        chunks=(int, Iterable, type(None)),
     )
-    def attach_pipeline(self, pipeline, name, chunksize=None):
+    def attach_pipeline(self, pipeline, name, chunks=None):
         """Register a pipeline to be computed at the start of each day.
 
         Parameters
@@ -2272,10 +2273,11 @@ class TradingAlgorithm(object):
             The pipeline to have computed.
         name : str
             The name of the pipeline.
-        chunksize : int, optional
+        chunks : int or iterator, optional
             The number of days to compute pipeline results for. Increasing
             this number will make it longer to get the first results but
-            may improve the total runtime of the simulation.
+            may improve the total runtime of the simulation. If an iterator
+            is passed, we will run in chunks based on values of the itereator.
 
         Returns
         -------
@@ -2288,13 +2290,13 @@ class TradingAlgorithm(object):
         """
         if self._pipelines:
             raise NotImplementedError("Multiple pipelines are not supported.")
-        if chunksize is None:
+        if chunks is None:
             # Make the first chunk smaller to get more immediate results:
             # (one week, then every half year)
-            chunks = iter(chain([5], repeat(126)))
-        else:
-            chunks = iter(repeat(int(chunksize)))
-        self._pipelines[name] = pipeline, chunks
+            chunks = chain([5], repeat(126))
+        elif isinstance(chunks, int):
+            chunks = repeat(chunks)
+        self._pipelines[name] = pipeline, iter(chunks)
 
         # Return the pipeline to allow expressions like
         # p = attach_pipeline(Pipeline(), 'name')

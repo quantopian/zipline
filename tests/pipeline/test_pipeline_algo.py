@@ -8,6 +8,7 @@ from os.path import (
 )
 
 from nose_parameterized import parameterized
+import numpy as np
 from numpy import (
     array,
     arange,
@@ -285,21 +286,33 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
                            ('day', 1),
                            ('week', 5),
                            ('year', 252),
-                           ('all_but_one_day', 'all_but_one_day')])
-    def test_assets_appear_on_correct_days(self, test_name, chunksize):
+                           ('all_but_one_day', 'all_but_one_day'),
+                           ('custom_iter', 'custom_iter')])
+    def test_assets_appear_on_correct_days(self, test_name, chunks):
         """
         Assert that assets appear at correct times during a backtest, with
         correctly-adjusted close price values.
         """
 
-        if chunksize == 'all_but_one_day':
-            chunksize = (
+        if chunks == 'all_but_one_day':
+            chunks = (
                 self.dates.get_loc(self.last_asset_end) -
                 self.dates.get_loc(self.first_asset_start)
             ) - 1
+        elif chunks == 'custom_iter':
+            chunks = []
+            st = np.random.RandomState(12345)
+            remaining = (
+                self.dates.get_loc(self.last_asset_end) -
+                self.dates.get_loc(self.first_asset_start)
+            )
+            while remaining > 0:
+                chunk = st.randint(3)
+                chunks.append(chunk)
+                remaining -= chunk
 
         def initialize(context):
-            p = attach_pipeline(Pipeline(), 'test', chunksize=chunksize)
+            p = attach_pipeline(Pipeline(), 'test', chunks=chunks)
             p.add(USEquityPricing.close.latest, 'close')
 
         def handle_data(context, data):
