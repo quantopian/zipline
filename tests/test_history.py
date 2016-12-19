@@ -140,7 +140,7 @@ class WithHistory(WithCreateBarData, WithDataPortal):
                 },
                 cls.SPLIT_ASSET_SID: {
                     'start_date': jan_5_2015,
-                    'end_date': day_after_12312015,
+                    'end_date': pd.Timestamp('2015-01-08', tz='UTC'),
                     'symbol': 'SPLIT_ASSET',
                     'exchange': "TEST",
                 },
@@ -182,6 +182,13 @@ class WithHistory(WithCreateBarData, WithDataPortal):
             },
             {
                 'effective_date': str_to_seconds('2015-01-07'),
+                'ratio': 0.5,
+                'sid': cls.SPLIT_ASSET_SID,
+            },
+            {  # This split is intentionally after asset lifetime.
+               # To guard against bad data which has erroneous splits
+               # post asset lifetime.
+                'effective_date': str_to_seconds('2015-01-09'),
                 'ratio': 0.5,
                 'sid': cls.SPLIT_ASSET_SID,
             },
@@ -707,6 +714,34 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
             # should not be adjusted
             np.testing.assert_array_equal([1389, 1009], window4)
+
+    def test_split_after_lifetime(self):
+        # self.SPLIT_ASSET and self.MERGER_ASSET had splits/mergers
+        # on 1/6 and 1/7
+
+        end_dt = pd.Timestamp('2015-01-08', tz='UTC')
+        post_lifetime_dt = pd.Timestamp('2015-01-12', tz='UTC')
+
+        # Make at end of lifetime.
+        window1 = self.data_portal.get_history_window(
+            [self.SPLIT_ASSET],
+            self.trading_calendar.open_and_close_for_session(end_dt)[1],
+            3,
+            '1d',
+            'close'
+        )[self.SPLIT_ASSET]
+
+        # Make query after lifetime.
+        window2 = self.data_portal.get_history_window(
+            [self.SPLIT_ASSET],
+            self.trading_calendar.open_and_close_for_session(
+                post_lifetime_dt)[1],
+            3,
+            '1d',
+            'close'
+        )[self.SPLIT_ASSET]
+
+        np.testing.assert_almost_equal(window1[-1], window2[0])
 
     def test_daily_dividends(self):
         # self.DIVIDEND_ASSET had dividends on 1/6 and 1/7
