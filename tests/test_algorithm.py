@@ -939,7 +939,7 @@ def before_trading_start(context, data):
             sim_params=self.sim_params,
             env=self.env,
         )
-        # Ensure that the environment's asset 0 is a Future
+        # Ensure that the environment's asset 3 is a Future
         asset_to_test = algo.sid(3)
         self.assertIsInstance(asset_to_test, Future)
 
@@ -1019,7 +1019,7 @@ def before_trading_start(context, data):
             sim_params = SimulationParameters(
                 start_session=start_session,
                 end_session=period_end,
-                capital_base=float("1.0e5"),
+                capital_base=1.0e5,
                 data_frequency='minute',
                 trading_calendar=self.trading_calendar,
             )
@@ -3701,7 +3701,7 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
         cls.first_asset_expiration = cls.test_days[2]
 
     def make_data(self, auto_close_delta, frequency,
-                  capital_base=float("1.0e5")):
+                  capital_base=1.0e5):
 
         asset_info = make_jagged_equity_info(
             num_assets=3,
