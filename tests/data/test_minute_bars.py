@@ -42,7 +42,9 @@ from zipline.data.minute_bars import (
     BcolzMinuteBarReader,
     BcolzMinuteOverlappingData,
     US_EQUITIES_MINUTES_PER_DAY,
-    BcolzMinuteWriterColumnMismatch
+    BcolzMinuteWriterColumnMismatch,
+    H5MinuteBarUpdateWriter,
+    H5MinuteBarUpdateReader,
 )
 
 from zipline.testing.fixtures import (
@@ -1146,3 +1148,55 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
                           "The last traded dt should be before the early "
                           "close, even when data is written between the early "
                           "close and the next open.")
+
+    def test_minute_updates(self):
+        """
+        Test minute updates.
+        """
+        start_minute = self.market_opens[TEST_CALENDAR_START]
+        minutes = [start_minute,
+                   start_minute + Timedelta('1 min'),
+                   start_minute + Timedelta('2 min')]
+        sids = [1, 2]
+        data_1 = DataFrame(
+            data={
+                'open': [15.0, nan, 15.1],
+                'high': [17.0, nan, 17.1],
+                'low': [11.0, nan, 11.1],
+                'close': [14.0, nan, 14.1],
+                'volume': [1000, 0, 1001]
+            },
+            index=minutes)
+
+        data_2 = DataFrame(
+            data={
+                'open': [25.0, nan, 25.1],
+                'high': [27.0, nan, 27.1],
+                'low': [21.0, nan, 21.1],
+                'close': [24.0, nan, 24.1],
+                'volume': [2000, 0, 2001]
+            },
+            index=minutes)
+
+        frames = {1: data_1, 2: data_2}
+        update_path = self.instance_tmpdir.getpath('updates.h5')
+        update_writer = H5MinuteBarUpdateWriter(update_path)
+        update_writer.write(frames)
+
+        update_reader = H5MinuteBarUpdateReader(update_path)
+        self.writer.write(update_reader.read(minutes, sids))
+
+        # Refresh the reader since truncate update the metadata.
+        reader = BcolzMinuteBarReader(self.dest)
+
+        columns = ['open', 'high', 'low', 'close', 'volume']
+        sids = [sids[0], sids[1]]
+        arrays = list(map(transpose, reader.load_raw_arrays(
+            columns, minutes[0], minutes[-1], sids,
+        )))
+
+        data = {sids[0]: data_1, sids[1]: data_2}
+
+        for i, col in enumerate(columns):
+            for j, sid in enumerate(sids):
+                assert_almost_equal(data[sid][col], arrays[i][j])
