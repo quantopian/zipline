@@ -69,3 +69,5 @@ lru-dict==1.1.4
 
 # For financial risk calculations
 empyrical==0.2.1
+
+tables==3.3.0

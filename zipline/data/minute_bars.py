@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from abc import ABCMeta, abstractmethod
 import json
 import os
 from glob import glob
@@ -24,6 +25,9 @@ from intervaltree import IntervalTree
 import logbook
 import numpy as np
 import pandas as pd
+from pandas import HDFStore
+import tables
+from six import with_metaclass
 from toolz import keymap, valmap
 
 from zipline.data._minute_bar_internal import (
@@ -1242,3 +1246,92 @@ class BcolzMinuteBarReader(MinuteBarReader):
 
             results.append(out)
         return results
+
+
+class MinuteBarUpdateReader(with_metaclass(ABCMeta, object)):
+    """
+    Abstract base class for minute update readers.
+    """
+
+    @abstractmethod
+    def read(self, dts, sids):
+        """
+        Read and return pricing update data.
+
+        Parameters
+        ----------
+        dts : DatetimeIndex
+            The minutes for which to read the pricing updates.
+        sids : iter[int]
+            The sids for which to read the pricing updates.
+
+        Returns
+        -------
+        data : iter[(int, DataFrame)]
+            Returns an iterable of ``sid`` to the corresponding OHLCV data.
+        """
+        raise NotImplementedError()
+
+
+class H5MinuteBarUpdateWriter(object):
+    """
+    Writer for files containing minute bar updates for consumption by a writer
+    for a ``MinuteBarReader`` format.
+
+    Parameters
+    ----------
+    path : str
+        The destination path.
+    complevel : int, optional
+        The HDF5 complevel, defaults to ``5``.
+    complib : str, optional
+        The HDF5 complib, defaults to ``zlib``.
+    """
+
+    FORMAT_VERSION = 0
+
+    _COMPLEVEL = 5
+    _COMPLIB = 'zlib'
+
+    def __init__(self, path, complevel=None, complib=None):
+        self._complevel = complevel if complevel \
+            is not None else self._COMPLEVEL
+        self._complib = complib if complib \
+            is not None else self._COMPLIB
+        self._path = path
+
+    def write(self, frames):
+        """
+        Write the frames to the target HDF5 file, using the format used by
+        ``pd.Panel.to_hdf``
+
+        Parameters
+        ----------
+        frames : iter[(int, DataFrame)] or dict[int -> DataFrame]
+            An iterable or other mapping of sid to the corresponding OHLCV
+            pricing data.
+        """
+        with HDFStore(self._path, 'w',
+                      complevel=self._complevel, complib=self._complib) \
+                as store:
+            panel = pd.Panel.from_dict(dict(frames))
+            panel.to_hdf(store, 'updates')
+        with tables.open_file(self._path, mode='r+') as h5file:
+            h5file.set_node_attr('/', 'version', 0)
+
+
+class H5MinuteBarUpdateReader(MinuteBarUpdateReader):
+    """
+    Reader for minute bar updates stored in HDF5 files.
+
+    Parameters
+    ----------
+    path : str
+        The path of the HDF5 file from which to source data.
+    """
+    def __init__(self, path):
+        self._panel = pd.read_hdf(path)
+
+    def read(self, dts, sids):
+        panel = self._panel[sids, dts, :]
+        return panel.iteritems()
