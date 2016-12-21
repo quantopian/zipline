@@ -32,6 +32,7 @@ from pandas import (
     Int64Index,
     Timestamp,
 )
+from pandas.util.testing import assert_frame_equal
 from toolz.curried.operator import getitem
 
 from zipline.lib.adjustment import Float64Multiply
@@ -394,6 +395,40 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
                 self.assertEqual(adj.first_col, expected.first_col)
                 self.assertEqual(adj.last_col, expected.last_col)
                 assert_allclose(adj.value, expected.value)
+
+    def test_load_adjustments_to_df(self):
+        reader = self.adjustment_reader
+        adjustment_dfs = reader.unpack_db_to_component_dfs()
+
+        name_and_raw = (
+            ('splits', SPLITS),
+            ('mergers', MERGERS),
+            ('dividends', DIVIDENDS_EXPECTED)
+        )
+
+        def create_expected_table(df, name):
+            expected_df = df.copy()
+
+            for colname in reader._datetime_int_cols[name]:
+                expected_df[colname] = expected_df[colname].astype(
+                    'datetime64[s]'
+                )
+            return expected_df
+
+        for action_name, raw_tbl in name_and_raw:
+
+            exp = create_expected_table(raw_tbl, action_name)
+            assert_frame_equal(
+                adjustment_dfs[action_name],
+                exp
+            )
+
+        # DIVIDENDS is already in the correct form and does not need ints to be
+        # converted back.
+        assert_frame_equal(
+            adjustment_dfs['dividend_payouts'],
+            DIVIDENDS
+        )
 
     def test_read_no_adjustments(self):
         adjustment_reader = NullAdjustmentReader()

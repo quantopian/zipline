@@ -36,18 +36,19 @@ from numpy import (
     uint32,
 )
 from pandas import (
-    isnull,
     DataFrame,
-    read_csv,
-    Timestamp,
-    NaT,
     DatetimeIndex,
-    read_sql)
+    isnull,
+    NaT,
+    read_csv,
+    read_sql,
+    Timestamp,
+)
 from pandas.tslib import iNaT
 from six import (
     iteritems,
-    viewkeys,
     string_types,
+    viewkeys,
 )
 
 from zipline.data.session_bars import SessionBarReader
@@ -60,8 +61,8 @@ from zipline.utils.calendars import get_calendar
 from zipline.utils.functional import apply
 from zipline.utils.preprocess import call
 from zipline.utils.input_validation import (
-    preprocess,
     expect_element,
+    preprocess,
     verify_indices_all_unique,
 )
 from zipline.utils.sqlite_utils import group_into_chunks, coerce_string_to_conn
@@ -1250,6 +1251,18 @@ class SQLiteAdjustmentReader(object):
     def __init__(self, conn):
         self.conn = conn
 
+        # Given the tables in the adjustments.db file, dict which knows which
+        # col names contain dates that have been coerced into ints.
+        self._datetime_int_cols = {
+            'dividend_payouts': ('declared_date', 'ex_date', 'pay_date',
+                                 'record_date'),
+            'dividends': ('effective_date',),
+            'mergers': ('effective_date',),
+            'splits': ('effective_date',),
+            'stock_dividend_payouts': ('declared_date', 'ex_date', 'pay_date',
+                                       'record_date')
+        }
+
     def load_adjustments(self, columns, dates, assets):
         return load_adjustments_from_sqlite(
             self.conn,
@@ -1326,20 +1339,8 @@ class SQLiteAdjustmentReader(object):
         dfs : dict{str->DataFrame}
             Dictionary which maps table name to the corresponding DataFrame
             version of the table, where all date columns have been coerced back
-             from into to datetime.
+            from int to datetime.
         """
-
-        # Given the tables in the adjustments.db file, dict which knows which
-        # col names contain dates that have been coerced into ints.
-        KNOWN_DATE_COLS = {
-            'dividend_payouts': ('declared_date', 'ex_date', 'pay_date',
-                                 'record_date'),
-            'dividends': ('effective_date',),
-            'mergers': ('effective_date',),
-            'splits': ('effective_date',),
-            'stock_dividend_payouts': ('declared_date', 'ex_date', 'pay_date',
-                                       'record_date')
-        }
 
         def _get_df_from_table(table_name, date_cols):
 
@@ -1349,12 +1350,12 @@ class SQLiteAdjustmentReader(object):
                 self.conn,
                 index_col='index',
                 parse_dates={col: 's' for col in date_cols}
-            )
+            ).rename_axis(None)
 
         return {
             t_name: _get_df_from_table(
                 t_name,
-                KNOWN_DATE_COLS[t_name]
+                date_cols
             )
-            for t_name in KNOWN_DATE_COLS
+            for t_name, date_cols in self._datetime_int_cols.items()
         }
