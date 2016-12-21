@@ -1330,9 +1330,16 @@ class SQLiteAdjustmentReader(object):
 
         return stock_divs
 
-    def unpack_db_to_component_dfs(self):
+    def unpack_db_to_component_dfs(self, convert_dates=False):
         """Returns the set of known tables in the adjustments file in DataFrame
         form.
+
+        Parameters
+        ----------
+        convert_dates : bool, optional
+            By default, dates are returned in seconds since EPOCH. If
+            convert_dates is True, all ints in date columns will be converted
+            to datetimes.
 
         Returns
         -------
@@ -1344,12 +1351,18 @@ class SQLiteAdjustmentReader(object):
 
         def _get_df_from_table(table_name, date_cols):
 
+            kwargs = (
+                {'parse_dates': {col: 's' for col in date_cols}}
+                if convert_dates
+                else {}
+            )
+
             # Dates are stored in second resolution as ints in adj.db tables.
             return read_sql(
                 'select * from "{}"'.format(table_name),
                 self.conn,
                 index_col='index',
-                parse_dates={col: 's' for col in date_cols}
+                **kwargs
             ).rename_axis(None)
 
         return {

@@ -15,6 +15,7 @@
 """
 Tests for USEquityPricingLoader and related classes.
 """
+from nose_parameterized import parameterized
 from numpy import (
     arange,
     datetime64,
@@ -396,9 +397,12 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
                 self.assertEqual(adj.last_col, expected.last_col)
                 assert_allclose(adj.value, expected.value)
 
-    def test_load_adjustments_to_df(self):
+    @parameterized([(True,), (False,)])
+    def test_load_adjustments_to_df(self, convert_dts):
         reader = self.adjustment_reader
-        adjustment_dfs = reader.unpack_db_to_component_dfs()
+        adjustment_dfs = reader.unpack_db_to_component_dfs(
+            convert_dates=convert_dts
+        )
 
         name_and_raw = (
             ('splits', SPLITS),
@@ -409,10 +413,23 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
         def create_expected_table(df, name):
             expected_df = df.copy()
 
-            for colname in reader._datetime_int_cols[name]:
-                expected_df[colname] = expected_df[colname].astype(
-                    'datetime64[s]'
-                )
+            if convert_dts:
+                for colname in reader._datetime_int_cols[name]:
+                    expected_df[colname] = expected_df[colname].astype(
+                        'datetime64[s]'
+                    )
+
+            return expected_df
+
+        def create_expected_div_table(df, name):
+            expected_df = df.copy()
+
+            if not convert_dts:
+                for colname in reader._datetime_int_cols[name]:
+                    expected_df[colname] = expected_df[colname].astype(
+                        'datetime64[s]'
+                    ).astype(int)
+
             return expected_df
 
         for action_name, raw_tbl in name_and_raw:
@@ -423,11 +440,12 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
                 exp
             )
 
-        # DIVIDENDS is already in the correct form and does not need ints to be
-        # converted back.
+        # DIVIDENDS is in the opposite form from the rest of the dataframes, so
+        # needs to be converted separately.
+        div_name = 'dividend_payouts'
         assert_frame_equal(
-            adjustment_dfs['dividend_payouts'],
-            DIVIDENDS
+            adjustment_dfs[div_name],
+            create_expected_div_table(DIVIDENDS, div_name)
         )
 
     def test_read_no_adjustments(self):
