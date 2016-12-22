@@ -346,6 +346,7 @@ class WithAssetFinder(WithDefaultDateBounds):
     make_futures_info = _make_info
     make_exchanges_info = _make_info
     make_root_symbols_info = _make_info
+    make_equity_supplementary_mappings = _make_info
 
     del _make_info
 
@@ -378,6 +379,9 @@ class WithAssetFinder(WithDefaultDateBounds):
             futures=cls.make_futures_info(),
             exchanges=cls.make_exchanges_info(),
             root_symbols=cls.make_root_symbols_info(),
+            equity_supplementary_mappings=(
+                cls.make_equity_supplementary_mappings()
+            ),
         ))
 
     @classmethod
