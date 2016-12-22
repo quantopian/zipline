@@ -411,7 +411,7 @@ class TestTargetPercentAlgorithm(TradingAlgorithm):
 
     def handle_data(self, data):
         if not self.ordered:
-            assert 0 not in self.portfolio.positions
+            assert not self.portfolio.positions
         else:
             # Since you can't own fractional shares (at least in this
             # example), we want to make sure that our target amount is
@@ -429,8 +429,16 @@ class TestTargetPercentAlgorithm(TradingAlgorithm):
                 "Orders not filled at current price."
 
         self.sale_price = data.current(sid(0), "price")
-        self.order_target_percent(self.sid(0), .002)
+        self._order(sid(0), .002)
         self.ordered = True
+
+    def _order(self, asset, target):
+        return self.order_target_percent(asset, target)
+
+
+class TestBatchTargetPercentAlgorithm(TestTargetPercentAlgorithm):
+    def _order(self, asset, target):
+        return self.batch_order_target_percent({asset: target})
 
 
 class TestTargetValueAlgorithm(TradingAlgorithm):

@@ -39,6 +39,7 @@ from zipline.data.us_equity_pricing import (
     BcolzDailyBarWriter,
     SQLiteAdjustmentWriter,
 )
+from zipline.finance.blotter import Blotter
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.order import ORDER_STATUS
 from zipline.lib.labelarray import LabelArray
@@ -1500,6 +1501,20 @@ def ensure_doctest(f, name=None):
         f.__name__ if name is None else name
     ] = f
     return f
+
+
+class RecordBatchBlotter(Blotter):
+    """Blotter that tracks how its batch_order method was called.
+    """
+    def __init__(self, data_frequency, asset_finder):
+        super(RecordBatchBlotter, self).__init__(
+            data_frequency, asset_finder,
+        )
+        self.order_batch_called = []
+
+    def batch_order(self, *args, **kwargs):
+        self.order_batch_called.append((args, kwargs))
+        return super(RecordBatchBlotter, self).batch_order(*args, **kwargs)
 
 
 ####################################

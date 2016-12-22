@@ -67,7 +67,7 @@ class TradingCalendarDispatcher(object):
 
         Returns
         -------
-        TradingCalendar
+        calendar : zipline.utils.calendars.TradingCalendar
             The desired calendar.
         """
         canonical_name = self.resolve_alias(name)

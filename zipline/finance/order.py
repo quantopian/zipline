@@ -58,7 +58,7 @@ class Order(object):
         assert isinstance(sid, Asset)
 
         # get a string representation of the uuid.
-        self.id = id or self.make_id()
+        self.id = self.make_id() if id is None else id
         self.dt = dt
         self.reason = None
         self.created = dt

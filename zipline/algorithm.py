@@ -13,6 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import Iterable
+try:
+    # optional cython based OrderedDict
+    from cyordereddict import OrderedDict
+except ImportError:
+    from collections import OrderedDict
 from copy import copy
 import operator as op
 import warnings
@@ -33,6 +38,7 @@ from six import (
     itervalues,
     string_types,
     viewkeys,
+    viewvalues,
 )
 
 from zipline._protocol import handle_non_market_minutes
@@ -1382,8 +1388,9 @@ class TradingAlgorithm(object):
 
         Returns
         -------
-        order_id : str
-            The unique identifier for this order.
+        order_id : str or None
+            The unique identifier for this order, or None if no order was
+            placed.
 
         Notes
         -----
@@ -1404,6 +1411,12 @@ class TradingAlgorithm(object):
         if not self._can_order_asset(asset):
             return None
 
+        amount, style = self._calculate_order(asset, amount,
+                                              limit_price, stop_price, style)
+        return self.blotter.order(asset, amount, style)
+
+    def _calculate_order(self, asset, amount,
+                         limit_price=None, stop_price=None, style=None):
         # Truncate to the integer share count that's either within .0001 of
         # amount or closer to zero.
         # E.g. 3.9999 -> 4.0; 5.5 -> 5.0; -5.5 -> -5.0
@@ -1421,7 +1434,7 @@ class TradingAlgorithm(object):
         style = self.__convert_order_params_for_blotter(limit_price,
                                                         stop_price,
                                                         style)
-        return self.blotter.order(asset, amount, style)
+        return amount, style
 
     def validate_order_params(self,
                               asset,
@@ -1744,11 +1757,15 @@ class TradingAlgorithm(object):
         if not self._can_order_asset(asset):
             return None
 
+        amount = self._calculate_order_percent_amount(asset, percent)
+        return self.order(asset, amount,
+                          limit_price=limit_price,
+                          stop_price=stop_price,
+                          style=style)
+
+    def _calculate_order_percent_amount(self, asset, percent):
         value = self.portfolio.portfolio_value * percent
-        return self.order_value(asset, value,
-                                limit_price=limit_price,
-                                stop_price=stop_price,
-                                style=style)
+        return self._calculate_order_value_amount(asset, value)
 
     @api_method
     @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
@@ -1810,18 +1827,18 @@ class TradingAlgorithm(object):
         if not self._can_order_asset(asset):
             return None
 
+        amount = self._calculate_order_target_amount(asset, target)
+        return self.order(asset, amount,
+                          limit_price=limit_price,
+                          stop_price=stop_price,
+                          style=style)
+
+    def _calculate_order_target_amount(self, asset, target):
         if asset in self.portfolio.positions:
             current_position = self.portfolio.positions[asset].amount
-            req_shares = target - current_position
-            return self.order(asset, req_shares,
-                              limit_price=limit_price,
-                              stop_price=stop_price,
-                              style=style)
-        else:
-            return self.order(asset, target,
-                              limit_price=limit_price,
-                              stop_price=stop_price,
-                              style=style)
+            target -= current_position
+
+        return target
 
     @api_method
     @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
@@ -1885,10 +1902,11 @@ class TradingAlgorithm(object):
             return None
 
         target_amount = self._calculate_order_value_amount(asset, target)
-        return self.order_target(asset, target_amount,
-                                 limit_price=limit_price,
-                                 stop_price=stop_price,
-                                 style=style)
+        amount = self._calculate_order_target_amount(asset, target_amount)
+        return self.order(asset, amount,
+                          limit_price=limit_price,
+                          stop_price=stop_price,
+                          style=style)
 
     @api_method
     @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
@@ -1904,7 +1922,7 @@ class TradingAlgorithm(object):
         ----------
         asset : Asset
             The asset that this order is for.
-        percent : float
+        target : float
             The desired percentage of the porfolio value to allocate to
             ``asset``. This is specified as a decimal, for example:
             0.50 means 50%.
@@ -1947,11 +1965,46 @@ class TradingAlgorithm(object):
         if not self._can_order_asset(asset):
             return None
 
-        target_value = self.portfolio.portfolio_value * target
-        return self.order_target_value(asset, target_value,
-                                       limit_price=limit_price,
-                                       stop_price=stop_price,
-                                       style=style)
+        amount = self._calculate_order_target_percent_amount(asset, target)
+        return self.order(asset, amount,
+                          limit_price=limit_price,
+                          stop_price=stop_price,
+                          style=style)
+
+    def _calculate_order_target_percent_amount(self, asset, target):
+        target_amount = self._calculate_order_percent_amount(asset, target)
+        return self._calculate_order_target_amount(asset, target_amount)
+
+    @api_method
+    @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
+    def batch_order_target_percent(self, weights):
+        """Place orders towards a given portfolio of weights.
+
+        Parameters
+        ----------
+        weights : collections.Mapping[Asset -> float]
+
+        Returns
+        -------
+        order_ids : pd.Series[Asset -> str]
+            The unique identifiers for the orders that were placed.
+
+        See Also
+        --------
+        :func:`zipline.api.order_target_percent`
+        """
+        order_args = OrderedDict()
+        for asset, target in iteritems(weights):
+            if self._can_order_asset(asset):
+                amount = self._calculate_order_target_percent_amount(
+                    asset, target,
+                )
+                amount, style = self._calculate_order(asset, amount)
+                order_args[asset] = (asset, amount, style)
+
+        order_ids = self.blotter.batch_order(viewvalues(order_args))
+        order_ids = pd.Series(data=order_ids, index=order_args)
+        return order_ids[~order_ids.isnull()]
 
     @error_keywords(sid='Keyword argument `sid` is no longer supported for '
                         'get_open_orders. Use `asset` instead.')

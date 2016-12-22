@@ -366,6 +366,12 @@ class WithAssetFinder(WithDefaultDateBounds):
 
     @classmethod
     def make_asset_finder(cls):
+        """Returns a new AssetFinder
+
+        Returns
+        -------
+        asset_finder : zipline.assets.AssetFinder
+        """
         return cls.enter_class_context(tmp_asset_finder(
             url=cls.make_asset_finder_db_url(),
             equities=cls.make_equity_info(),

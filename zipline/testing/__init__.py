@@ -7,6 +7,7 @@ from .core import (  # noqa
     FetcherDataPortal,
     MockDailyBarReader,
     OpenPrice,
+    RecordBatchBlotter,
     add_security_data,
     all_pairs_matching_predicate,
     all_subindices,
