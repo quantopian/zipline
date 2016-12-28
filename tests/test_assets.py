@@ -74,6 +74,7 @@ from zipline.errors import (
 from zipline.testing import (
     all_subindices,
     empty_assets_db,
+    parameter_space,
     tmp_assets_db,
 )
 from zipline.testing.predicates import assert_equal
@@ -1475,3 +1476,78 @@ class TestAssetDBVersioning(ZiplineTestCase):
         ))
 
         assert_equal(expected_data, actual_data)
+
+
+class TestVectorizedSymbolLookup(WithAssetFinder, ZiplineTestCase):
+
+    @classmethod
+    def make_equity_info(cls):
+        T = partial(pd.Timestamp, tz='UTC')
+
+        def asset(sid, symbol, start_date, end_date):
+            return dict(
+                sid=sid,
+                symbol=symbol,
+                start_date=T(start_date),
+                end_date=T(end_date),
+                exchange='NYSE',
+                exchange_full='NYSE',
+            )
+
+        records = [
+            asset(1, 'A', '2014-01-02', '2014-01-31'),
+            asset(2, 'A', '2014-02-03', '2015-01-02'),
+            asset(3, 'B', '2014-01-02', '2014-01-15'),
+            asset(4, 'B', '2014-01-17', '2015-01-02'),
+            asset(5, 'C', '2001-01-02', '2015-01-02'),
+            asset(6, 'D', '2001-01-02', '2015-01-02'),
+            asset(7, 'FUZZY', '2001-01-02', '2015-01-02'),
+        ]
+        return pd.DataFrame.from_records(records)
+
+    @parameter_space(
+        as_of=pd.to_datetime([
+            '2014-01-02',
+            '2014-01-15',
+            '2014-01-17',
+            '2015-01-02',
+        ], utc=True),
+        symbols=[
+            [],
+            ['A'], ['B'], ['C'], ['D'],
+            list('ABCD'),
+            list('ABCDDCBA'),
+            list('AABBAABBACABD'),
+        ],
+    )
+    def test_lookup_symbols(self, as_of, symbols):
+        af = self.asset_finder
+        expected = [
+            af.lookup_symbol(symbol, as_of) for symbol in symbols
+        ]
+        result = af.lookup_symbols(symbols, as_of)
+        assert_equal(result, expected)
+
+    def test_fuzzy(self):
+        af = self.asset_finder
+
+        # FUZZ.Y shouldn't resolve unless fuzzy=True.
+        syms = ['A', 'B', 'FUZZ.Y']
+        dt = pd.Timestamp('2014-01-15', tz='UTC')
+
+        with self.assertRaises(SymbolNotFound):
+            af.lookup_symbols(syms, pd.Timestamp('2014-01-15', tz='UTC'))
+
+        with self.assertRaises(SymbolNotFound):
+            af.lookup_symbols(
+                syms,
+                pd.Timestamp('2014-01-15', tz='UTC'),
+                fuzzy=False,
+            )
+
+        results = af.lookup_symbols(syms, dt, fuzzy=True)
+        assert_equal(results, af.retrieve_all([1, 3, 7]))
+        assert_equal(
+            results,
+            [af.lookup_symbol(sym, dt, fuzzy=True) for sym in syms],
+        )

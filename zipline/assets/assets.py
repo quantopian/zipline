@@ -827,6 +827,40 @@ class AssetFinder(object):
             return self._lookup_symbol_fuzzy(symbol, as_of_date)
         return self._lookup_symbol_strict(symbol, as_of_date)
 
+    def lookup_symbols(self, symbols, as_of_date, fuzzy=False):
+        """
+        Lookup a list of equities by symbol.
+
+        Equivalent to::
+
+            [finder.lookup_symbol(s, as_of, fuzzy) for s in symbols]
+
+        but potentially faster because repeated lookups are memoized.
+
+        Parameters
+        ----------
+        symbols : sequence[str]
+            Sequence of ticker symbols to resolve.
+        as_of_date : pd.Timestamp
+            Forwarded to ``lookup_symbol``.
+        fuzzy : bool, optional
+            Forwarded to ``lookup_symbol``.
+
+        Returns
+        -------
+        equities : list[Equity]
+        """
+        memo = {}
+        out = []
+        append_output = out.append
+        for sym in symbols:
+            if sym in memo:
+                append_output(memo[sym])
+            else:
+                equity = memo[sym] = self.lookup_symbol(sym, as_of_date, fuzzy)
+                append_output(equity)
+        return out
+
     def lookup_future_symbol(self, symbol):
         """Lookup a future contract by symbol.
 
