@@ -1513,7 +1513,8 @@ class TestVectorizedSymbolLookup(WithAssetFinder, ZiplineTestCase):
             '2015-01-02',
         ], utc=True),
         symbols=[
-            ['A.'], ['B.'], ['C.'], ['D.'],
+            [],
+            ['A'], ['B'], ['C'], ['D'],
             list('ABCD'),
             list('ABCDDCBA'),
             list('AABBAABBACABD'),
@@ -1546,3 +1547,7 @@ class TestVectorizedSymbolLookup(WithAssetFinder, ZiplineTestCase):
 
         results = af.lookup_symbols(syms, dt, fuzzy=True)
         assert_equal(results, af.retrieve_all([1, 3, 7]))
+        assert_equal(
+            results,
+            [af.lookup_symbol(sym, dt, fuzzy=True) for sym in syms],
+        )
