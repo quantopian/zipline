@@ -831,6 +831,12 @@ class AssetFinder(object):
         """
         Lookup a list of equities by symbol.
 
+        Equivalent to::
+
+            [finder.lookup_symbol(s, as_of, fuzzy) for s in symbols]
+
+        but potentially faster because repeated lookups are memoized.
+
         Parameters
         ----------
         symbols : sequence[str]
