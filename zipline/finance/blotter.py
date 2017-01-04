@@ -162,20 +162,20 @@ class Blotter(object):
 
         cur_order = self.orders[order_id]
 
-        #  if cur_order.open:
-        order_list = self.open_orders[cur_order.sid]
-        if cur_order in order_list:
-            order_list.remove(cur_order)
+        if cur_order.open:
+            order_list = self.open_orders[cur_order.sid]
+            if cur_order in order_list:
+                order_list.remove(cur_order)
 
-        if cur_order in self.new_orders:
-            self.new_orders.remove(cur_order)
-        cur_order.cancel()
-        cur_order.dt = self.current_dt
+            if cur_order in self.new_orders:
+                self.new_orders.remove(cur_order)
+            cur_order.cancel()
+            cur_order.dt = self.current_dt
 
-        if relay_status:
-            # we want this order's new status to be relayed out
-            # along with newly placed orders.
-            self.new_orders.append(cur_order)
+            if relay_status:
+                # we want this order's new status to be relayed out
+                # along with newly placed orders.
+                self.new_orders.append(cur_order)
 
     def cancel_all_orders_for_asset(self, asset, warn=False,
                                     relay_status=True):
@@ -306,6 +306,8 @@ class Blotter(object):
             orders_to_modify = self.open_orders[sid]
             for order in orders_to_modify:
                 order.handle_split(split[1])
+                if(order.amount==0):
+                    self.cancel(order.id)
 
     def get_transactions(self, bar_data):
         """
