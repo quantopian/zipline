@@ -1,0 +1,81 @@
+package:
+  name: tables
+  version: "3.3.0"
+
+source:
+  fn: tables-3.3.0.tar.gz
+  url: https://pypi.python.org/packages/97/eb/ea2102f5a210a62f9f7387cf9912cb841f4a9089dbb232e642daa2626769/tables-3.3.0.tar.gz
+  md5: f75aa46cf6e7c5ee51f1ab498d5895f8
+#  patches:
+   # List any patch files here
+   # - fix.patch
+
+build:
+  # noarch_python: True
+  # preserve_egg_dir: True
+  entry_points:
+    # Put any entry points (scripts to be generated automatically) here. The
+    # syntax is module:function.  For example
+    #
+    # - tables = tables:main
+    #
+    # Would create an entry point called tables that calls tables.main()
+
+    - ptdump = tables.scripts.ptdump:main
+    - ptrepack = tables.scripts.ptrepack:main
+    - pt2to3 = tables.scripts.pt2to3:main
+    - pttree = tables.scripts.pttree:main
+
+  # If this is a new build for the same version, increment the build
+  # number. If you do not include this key, it defaults to 0.
+  # number: 1
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - numpy >=1.8.0
+    - numexpr >=2.5.2
+    - six
+
+  run:
+    - python
+    - numpy >=1.8.0
+    - numexpr >=2.5.2
+    - six
+
+test:
+  # Python imports
+  imports:
+    - tables
+    - tables.misc
+    - tables.nodes
+    - tables.nodes.tests
+    - tables.scripts
+    - tables.tests
+
+  commands:
+    # You can put test commands to be run here.  Use this to test that the
+    # entry points work.
+
+    - ptdump --help
+    - ptrepack --help
+    - pt2to3 --help
+    - pttree --help
+
+  # You can also put a file called run_test.py in the recipe that will be run
+  # at test time.
+
+  # requires:
+    # Put any additional test requirements here.  For example
+    # - nose
+
+about:
+  home: http://www.pytables.org/
+  license: BSD License
+  summary: 'Hierarchical datasets for Python'
+  license_family: BSD
+
+# See
+# http://docs.continuum.io/conda/build.html for
+# more information about meta.yaml
