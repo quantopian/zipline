@@ -189,6 +189,8 @@ def _conda_format(req):
         name = m.group('name').lower()
         if name == 'numpy':
             return 'numpy x.x'
+        if name == 'tables':
+            name = 'pytables'
 
         formatted = '%s %s%s' % ((name,) + m.group('comp', 'spec'))
         pycomp, pyspec = m.group('pycomp', 'pyspec')
