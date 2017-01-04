@@ -32,7 +32,7 @@ install:
 
   - TALIB_VERSION=$(cat ./etc/requirements_talib.txt | sed "s/TA-Lib==\(.*\)/\1/")
   - TABLES_VERSION=$(cat ./etc/requirements.txt | sed "s/tables==\(.*\)/\1/")
-  - conda create -n testenv --yes -c quantopian pip python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION libgfortran=3.0 ta-lib=$TALIB_VERSION pytables=$TABLES_VERSION
+  - conda create -n testenv --yes -c quantopian pip python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION libgfortran=3.0 ta-lib=$TALIB_VERSION tables=$TABLES_VERSION
   - source activate testenv
   - IFS='.' read -r -a NPY_VERSION_ARR <<< "$NUMPY_VERSION"
   - CONDA_NPY=${NPY_VERSION_ARR[0]}${NPY_VERSION_ARR[1]}
