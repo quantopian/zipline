@@ -1,0 +1,26 @@
+package:
+  name: pytables
+  version: "3.3.0"
+
+source:
+  fn: tables-3.3.0.tar.gz
+  url: https://pypi.python.org/packages/97/eb/ea2102f5a210a62f9f7387cf9912cb841f4a9089dbb232e642daa2626769/tables-3.3.0.tar.gz
+  md5: f75aa46cf6e7c5ee51f1ab498d5895f8
+
+requirements:
+  build:
+    - python
+    - numpy x.x
+    - numexpr x.x
+    - six
+
+  run:
+    - python
+    - numpy x.x
+    - numexpr x.x
+    - six
+
+test:
+  # Python imports
+  imports:
+    - tables
