@@ -70,7 +70,7 @@ install:
   - sed -i "s/scipy==.*/scipy==%SCIPY_VERSION%/" etc/requirements.txt
 
   - conda info -a
-  - conda install conda=4.1.11 conda-build=1.21.11 anaconda-client=1.5.1 --yes -q
+  - conda install conda=4.1.11 conda-build=1.21.11 anaconda-client=1.5.1 hdf5=1.8.17 --yes -q
   # https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/ for 64bit C compilation
   - ps: copy .\ci\appveyor\vcvars64.bat "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64"
   - "%CMD_IN_ENV% python .\\ci\\make_conda_packages.py"
