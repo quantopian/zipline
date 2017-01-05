@@ -1351,13 +1351,16 @@ class SQLiteAdjustmentReader(object):
 
         def _get_df_from_table(table_name, date_cols):
 
+            # Dates are stored in second resolution as ints in adj.db tables.
+            # Need to specifically convert them as UTC, not local time.
             kwargs = (
-                {'parse_dates': {col: 's' for col in date_cols}}
+                {'parse_dates': {col: {'unit': 's', 'utc': True}
+                                 for col in date_cols}
+                 }
                 if convert_dates
                 else {}
             )
 
-            # Dates are stored in second resolution as ints in adj.db tables.
             return read_sql(
                 'select * from "{}"'.format(table_name),
                 self.conn,
