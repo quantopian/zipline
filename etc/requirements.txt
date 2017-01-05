@@ -43,7 +43,7 @@ decorator==4.0.0
 networkx==1.9.1
 
 # NumericalExpression pipeline terms.
-numexpr==2.4.6
+numexpr==2.6.1
 
 # On disk storage format for pipeline data.
 bcolz==0.12.1
