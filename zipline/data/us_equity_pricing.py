@@ -1352,7 +1352,9 @@ class SQLiteAdjustmentReader(object):
         def _get_df_from_table(table_name, date_cols):
 
             kwargs = (
-                {'parse_dates': {col: 's' for col in date_cols}}
+                {'parse_dates': {col: {'unit': 's', 'utc': True}
+                                 for col in date_cols}
+                 }
                 if convert_dates
                 else {}
             )
