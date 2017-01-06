@@ -598,7 +598,7 @@ class IchimokuKinkoHyo(CustomFactor):
         'kijun_sen_length': 26,
         'chikou_span_length': 26,
     }
-    inputs = USEquityPricing.high, USEquityPricing.close
+    inputs = (USEquityPricing.high, USEquityPricing.low, USEquityPricing.close)
     outputs = (
         'tenkan_sen',
         'kijun_sen',
