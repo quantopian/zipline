@@ -81,6 +81,7 @@ class CategoryMismatch(ValueError):
             )
         )
 
+
 _NotPassed = sentinel('_NotPassed')
 
 

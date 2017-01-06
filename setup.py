@@ -263,6 +263,7 @@ def setup_requirements(requirements_path, module_names, strict_bounds,
         )
     return module_lines
 
+
 conda_build = os.path.basename(sys.argv[0]) in ('conda-build',  # unix
                                                 'conda-build-script.py')  # win
 

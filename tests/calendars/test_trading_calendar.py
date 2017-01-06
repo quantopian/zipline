@@ -34,7 +34,7 @@ from zipline.errors import (
     InvalidCalendarName,
 )
 
-from zipline.utils.calendars import(
+from zipline.utils.calendars import (
     register_calendar,
     deregister_calendar,
     get_calendar,
