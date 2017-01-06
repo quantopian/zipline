@@ -322,6 +322,14 @@ class AssetFinder(object):
             del type(self).fuzzy_symbol_ownership_map[self]
         except KeyError:
             pass
+        try:
+            del type(self).equity_supplementary_map[self]
+        except KeyError:
+            pass
+        try:
+            del type(self).equity_supplementary_map_by_sid[self]
+        except KeyError:
+            pass
 
     @lazyval
     def symbol_ownership_map(self):
