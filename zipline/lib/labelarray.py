@@ -536,7 +536,8 @@ class LabelArray(ndarray):
         # them on None, which is the only non-str value we ever store in
         # categories.
         if self.missing_value is None:
-            f_to_use = lambda x: False if x is None else f(x)
+            def f_to_use(x):
+                return False if x is None else f(x)
         else:
             f_to_use = f
 

@@ -508,7 +508,9 @@ class DataPortal(object):
             assets = [assets]
 
         adjustment_ratios_per_asset = []
-        split_adj_factor = lambda x: x if field != 'volume' else 1.0 / x
+
+        def split_adj_factor(x):
+            return x if field != 'volume' else 1.0 / x
 
         for asset in assets:
             adjustments_for_asset = []

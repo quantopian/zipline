@@ -21,7 +21,10 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
 )
 
-str_to_ts = lambda dt_str: pd.Timestamp(dt_str, tz='UTC')
+
+def str_to_ts(dt_str):
+    return pd.Timestamp(dt_str, tz='UTC')
+
 FROZEN = RESTRICTION_STATES.FROZEN
 ALLOWED = RESTRICTION_STATES.ALLOWED
 MINUTE = pd.Timedelta(minutes=1)
