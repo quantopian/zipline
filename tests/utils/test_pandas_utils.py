@@ -16,7 +16,8 @@ class TestNearestUnequalElements(ZiplineTestCase):
             ['2014-01-01', '2014-01-05', '2014-01-06', '2014-01-09'],
         ).tz_localize(tz)
 
-        t = lambda s: None if s is None else pd.Timestamp(s, tz=tz)
+        def t(s):
+            return None if s is None else pd.Timestamp(s, tz=tz)
 
         for dt, before, after in (('2013-12-30', None, '2014-01-01'),
                                   ('2013-12-31', None, '2014-01-01'),
@@ -40,7 +41,9 @@ class TestNearestUnequalElements(ZiplineTestCase):
 
         # Length 1.
         dts = pd.to_datetime(['2014-01-01']).tz_localize(tz)
-        t = lambda s: None if s is None else pd.Timestamp(s, tz=tz)
+
+        def t(s):
+            return None if s is None else pd.Timestamp(s, tz=tz)
 
         for dt, before, after in (('2013-12-31', None, '2014-01-01'),
                                   ('2014-01-01', None, None),

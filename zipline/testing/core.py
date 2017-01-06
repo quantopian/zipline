@@ -1084,7 +1084,9 @@ def temp_pipeline_engine(calendar, sids, random_seed, symbols=None):
     )
 
     loader = make_seeded_random_loader(random_seed, calendar, sids)
-    get_loader = lambda column: loader
+
+    def get_loader(column):
+        return loader
 
     with tmp_asset_finder(equities=equity_info) as finder:
         yield SimplePipelineEngine(get_loader, calendar, finder)

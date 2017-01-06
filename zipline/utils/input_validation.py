@@ -246,7 +246,8 @@ def expect_dtypes(__funcname=_qualified_name, **named):
             )
 
     if isinstance(__funcname, str):
-        get_funcname = lambda _: __funcname
+        def get_funcname(_):
+            return __funcname
     else:
         get_funcname = __funcname
 
@@ -430,7 +431,8 @@ def make_check(exc_type, template, pred, actual, funcname):
         to refer to the class name instead of the method name.
     """
     if isinstance(funcname, str):
-        get_funcname = lambda _: funcname
+        def get_funcname(_):
+            return funcname
     else:
         get_funcname = funcname
 
@@ -593,13 +595,16 @@ def expect_bounded(__funcname=_qualified_name, **named):
     def _expect_bounded(bounds):
         (lower, upper) = bounds
         if lower is None:
-            should_fail = lambda value: value > upper
+            def should_fail(value):
+                return value > upper
             predicate_descr = "less than or equal to " + str(upper)
         elif upper is None:
-            should_fail = lambda value: value < lower
+            def should_fail(value):
+                return value < lower
             predicate_descr = "greater than or equal to " + str(lower)
         else:
-            should_fail = lambda value: not (lower <= value <= upper)
+            def should_fail(value):
+                return not (lower <= value <= upper)
             predicate_descr = "between %s and %s" % bounds
 
         template = (
@@ -639,7 +644,8 @@ def expect_dimensions(__funcname=_qualified_name, **dimensions):
     but got a 1-D array instead.
     """
     if isinstance(__funcname, str):
-        get_funcname = lambda _: __funcname
+        def get_funcname(_):
+            return __funcname
     else:
         get_funcname = __funcname
 

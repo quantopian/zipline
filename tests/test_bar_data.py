@@ -53,7 +53,9 @@ field_info = {
     "close": 0
 }
 
-str_to_ts = lambda dt_str: pd.Timestamp(dt_str, tz='UTC')
+
+def str_to_ts(dt_str):
+    return pd.Timestamp(dt_str, tz='UTC')
 
 
 class WithBarDataChecks(object):
