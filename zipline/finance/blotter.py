@@ -164,7 +164,7 @@ class Blotter(object):
         order_list = self.open_orders[cur_order.sid]
         if cur_order in order_list:
             order_list.remove(cur_order)
-            
+
         if cur_order in self.new_orders:
             self.new_orders.remove(cur_order)
         cur_order.cancel()
@@ -174,7 +174,7 @@ class Blotter(object):
             # we want this order's new status to be relayed out
             # along with newly placed orders.
             self.new_orders.append(cur_order)
-    
+
     def cancel(self, order_id, relay_status=True):
         if order_id not in self.orders:
             return
