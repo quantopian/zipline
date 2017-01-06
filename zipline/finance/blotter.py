@@ -156,11 +156,11 @@ class Blotter(object):
         """
         return [self.order(*order_args) for order_args in order_arg_lists]
 
-    def cancel_on_split(self, order_id, relaya_status=True):
+    def cancel_on_split(self, order_id, relay_status=True):
         if order_id not in self.orders:
                 return
         cur_order = self.orders[order_id]
-        #no open check
+        # no open check
         order_list = self.open_orders[cur_order.sid]
         if cur_order in order_list:
             order_list.remove(cur_order)
@@ -325,7 +325,7 @@ class Blotter(object):
             orders_to_modify = self.open_orders[sid]
             for order in orders_to_modify:
                 order.handle_split(split[1])
-                if(order.amount==0):
+                if(order.amount == 0):
                     self.cancel_on_split(order.id)
 
     def get_transactions(self, bar_data):
