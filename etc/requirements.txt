@@ -11,6 +11,9 @@ Logbook==0.12.5
 pytz==2016.4
 numpy==1.11.1
 
+# for pandas-datareader
+requests-file==1.4.1
+
 # scipy and pandas are required for statsmodels,
 # statsmodels in turn is required for some pandas packages
 scipy==0.17.1
@@ -55,6 +58,9 @@ click==4.0.0
 toolz==0.7.4
 multipledispatch==0.4.8
 
+# for alembic
+MarkupSafe==0.23
+Mako==1.0.1
 # Asset writer and finder
 sqlalchemy==1.0.8
 # For asset db management

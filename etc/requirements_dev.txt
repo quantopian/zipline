@@ -7,7 +7,6 @@ nose-timer==0.5.0
 xlrd==0.9.4
 
 # These are required by mock or its dependencies
-MarkupSafe==0.23
 Jinja2==2.7.3
 funcsigs==0.4
 Pygments==2.0.2
