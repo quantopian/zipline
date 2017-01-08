@@ -3,12 +3,13 @@ coverage==4.0.3
 nose==1.3.7
 nose-parameterized==0.5.0
 nose-ignore-docstring==0.2
+termcolor==1.1.0
 nose-timer==0.5.0
 xlrd==0.9.4
 
 # These are required by mock or its dependencies
 Jinja2==2.7.3
-funcsigs==0.4
+funcsigs==1.0.2
 Pygments==2.0.2
 alabaster==0.7.6
 babel==1.3
@@ -16,9 +17,9 @@ docutils==0.12
 snowballstemmer==1.2.0
 sphinx-rtd-theme==0.1.8
 sphinx==1.3.4
-pbr==1.3.0
+pbr==1.10.0
 
-mock==1.3.0
+mock==2.0.0
 
 # Temp Directories for testing
 testfixtures==4.1.2
