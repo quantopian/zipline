@@ -320,7 +320,7 @@ class EventsLoaderEmptyTestCase(WithAssetFinder,
         )
         for c in EventDataSet.columns:
             unstacked = results[c.name].unstack()
-            assert map(int, unstacked.columns) == [0, 1]
+            assert list(map(int, unstacked.columns)) == [0, 1]
             for sid in unstacked.columns:
                 assert len(unstacked) == len(self.trading_days)
                 assert_equal(unstacked[sid].unique()[0], c.missing_value)
