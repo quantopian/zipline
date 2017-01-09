@@ -194,10 +194,16 @@ class EventsLoader(PipelineLoader):
 
         out = {}
         for c in columns:
-            raw = self.events[name_map[c]][indexer]
-            # indexer will be -1 for locations where we don't have a known
-            # value.
-            raw[indexer < 0] = c.missing_value
+            col_array = self.events[name_map[c]]
+            if not len(col_array):
+                raw = np.full(
+                    (len(dates), len(sids)), c.missing_value, dtype=c.dtype
+                )
+            else:
+                raw = col_array[indexer]
+                # indexer will be -1 for locations where we don't have a known
+                # value.
+                raw[indexer < 0] = c.missing_value
 
             # Delegate the actual array formatting logic to a DataFrameLoader.
             loader = DataFrameLoader(c, to_frame(raw), adjustments=None)
