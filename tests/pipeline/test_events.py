@@ -267,6 +267,65 @@ class EventIndexerTestCase(ZiplineTestCase):
                 self.assertEqual(computed_index, -1)
 
 
+class EventsLoaderEmptyTestCase(WithAssetFinder,
+                                WithTradingSessions,
+                                ZiplineTestCase):
+    START_DATE = pd.Timestamp('2014-01-01')
+    END_DATE = pd.Timestamp('2014-01-30')
+
+    @classmethod
+    def init_class_fixtures(cls):
+        cls.raw_events = pd.DataFrame(columns=["sid", "timestamp",
+                                               "event_date", "float", "int",
+                                               "datetime", "string"])
+        cls.next_value_columns = {
+            EventDataSet.next_datetime: 'datetime',
+            EventDataSet.next_event_date: 'event_date',
+            EventDataSet.next_float: 'float',
+            EventDataSet.next_int: 'int',
+            EventDataSet.next_string: 'string',
+            EventDataSet.next_string_custom_missing: 'string'
+        }
+        cls.previous_value_columns = {
+            EventDataSet.previous_datetime: 'datetime',
+            EventDataSet.previous_event_date: 'event_date',
+            EventDataSet.previous_float: 'float',
+            EventDataSet.previous_int: 'int',
+            EventDataSet.previous_string: 'string',
+            EventDataSet.previous_string_custom_missing: 'string'
+        }
+        cls.loader = EventsLoader(
+            cls.raw_events, cls.next_value_columns, cls.previous_value_columns
+        )
+        cls.ASSET_FINDER_EQUITY_SIDS = [0, 1]
+        cls.ASSET_FINDER_EQUITY_SYMBOLS = ['A', 'B']
+        super(EventsLoaderEmptyTestCase, cls).init_class_fixtures()
+
+    def test_load_empty(self):
+        """
+        For the case where raw data is empty, make sure we have a result for
+        all sids, that the dimensions are correct, and that we have the
+        correct missing value.
+        """
+        engine = SimplePipelineEngine(
+            lambda x: self.loader,
+            self.trading_days,
+            self.asset_finder,
+        )
+
+        results = engine.run_pipeline(
+            Pipeline({c.name: c.latest for c in EventDataSet.columns}),
+            start_date=self.trading_days[0],
+            end_date=self.trading_days[-1],
+        )
+        for c in EventDataSet.columns:
+            unstacked = results[c.name].unstack()
+            assert map(int, unstacked.columns) == [0, 1]
+            for sid in unstacked.columns:
+                assert len(unstacked) == len(self.trading_days)
+                assert_equal(unstacked[sid].unique()[0], c.missing_value)
+
+
 class EventsLoaderTestCase(WithAssetFinder,
                            WithTradingSessions,
                            ZiplineTestCase):
