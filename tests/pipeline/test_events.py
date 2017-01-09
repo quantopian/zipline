@@ -267,6 +267,88 @@ class EventIndexerTestCase(ZiplineTestCase):
                 self.assertEqual(computed_index, -1)
 
 
+class EventsLoaderEmptyTestCase(WithAssetFinder,
+                                WithTradingSessions,
+                                ZiplineTestCase):
+    START_DATE = pd.Timestamp('2014-01-01')
+    END_DATE = pd.Timestamp('2014-01-30')
+
+    @classmethod
+    def init_class_fixtures(cls):
+        cls.ASSET_FINDER_EQUITY_SIDS = [0, 1]
+        cls.ASSET_FINDER_EQUITY_SYMBOLS = ['A', 'B']
+        super(EventsLoaderEmptyTestCase, cls).init_class_fixtures()
+
+    def frame_containing_all_missing_values(self, index, columns):
+        frame = pd.DataFrame(
+            index=index,
+            data={c.name: c.missing_value for c in EventDataSet.columns},
+        )
+        for c in columns:
+            # The construction above produces columns of dtype `object` when
+            # the missing value is string, but we expect categoricals in the
+            # final result.
+            if c.dtype == categorical_dtype:
+                frame[c.name] = frame[c.name].astype('category')
+        return frame
+
+    def test_load_empty(self):
+        """
+        For the case where raw data is empty, make sure we have a result for
+        all sids, that the dimensions are correct, and that we have the
+        correct missing value.
+        """
+        raw_events = pd.DataFrame(
+            columns=["sid",
+                     "timestamp",
+                     "event_date",
+                     "float",
+                     "int",
+                     "datetime",
+                     "string"]
+        )
+        next_value_columns = {
+            EventDataSet.next_datetime: 'datetime',
+            EventDataSet.next_event_date: 'event_date',
+            EventDataSet.next_float: 'float',
+            EventDataSet.next_int: 'int',
+            EventDataSet.next_string: 'string',
+            EventDataSet.next_string_custom_missing: 'string'
+        }
+        previous_value_columns = {
+            EventDataSet.previous_datetime: 'datetime',
+            EventDataSet.previous_event_date: 'event_date',
+            EventDataSet.previous_float: 'float',
+            EventDataSet.previous_int: 'int',
+            EventDataSet.previous_string: 'string',
+            EventDataSet.previous_string_custom_missing: 'string'
+        }
+        loader = EventsLoader(
+            raw_events, next_value_columns, previous_value_columns
+        )
+        engine = SimplePipelineEngine(
+            lambda x: loader,
+            self.trading_days,
+            self.asset_finder,
+        )
+
+        results = engine.run_pipeline(
+            Pipeline({c.name: c.latest for c in EventDataSet.columns}),
+            start_date=self.trading_days[0],
+            end_date=self.trading_days[-1],
+        )
+
+        assets = self.asset_finder.retrieve_all(self.ASSET_FINDER_EQUITY_SIDS)
+        dates = self.trading_days
+
+        expected = self.frame_containing_all_missing_values(
+            index=pd.MultiIndex.from_product([dates, assets]),
+            columns=EventDataSet.columns,
+        )
+
+        assert_equal(results, expected)
+
+
 class EventsLoaderTestCase(WithAssetFinder,
                            WithTradingSessions,
                            ZiplineTestCase):
