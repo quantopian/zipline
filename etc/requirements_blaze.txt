@@ -1,3 +1,5 @@
 -e git://github.com/quantopian/datashape.git@bf06a41dc0908baf7c324aeacadba8820468ee78#egg=datashape-dev
 -e git://github.com/quantopian/odo.git@da7f26d87702f5d293763e8ed54c7e25fd3af386#egg=odo-dev
+# Keep cytoolz version in sync with toolz version in requirements.txt
+cytoolz==0.8.2
 -e git://github.com/quantopian/blaze.git@729493f0c8adaf5066bc9e7d4897f39fe30a1188#egg=blaze-dev

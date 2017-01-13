@@ -55,7 +55,7 @@ bcolz==0.12.1
 click==4.0.0
 
 # FUNctional programming utilities
-toolz==0.7.4
+toolz==0.8.2
 multipledispatch==0.4.8
 
 # for alembic
