@@ -720,9 +720,7 @@ class WithEquityDailyBarData(WithTradingEnvironment):
         if cls.EQUITY_DAILY_BAR_USE_FULL_CALENDAR:
             days = trading_calendar.all_sessions
         else:
-            if trading_calendar.is_session(
-                    cls.EQUITY_DAILY_BAR_START_DATE
-            ):
+            if trading_calendar.is_session(cls.EQUITY_DAILY_BAR_START_DATE):
                 first_session = cls.EQUITY_DAILY_BAR_START_DATE
             else:
                 first_session = trading_calendar.minute_to_session_label(
