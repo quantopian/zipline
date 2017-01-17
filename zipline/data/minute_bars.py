@@ -478,6 +478,28 @@ class BcolzMinuteBarWriter(object):
             )
             metadata.write(self._rootdir)
 
+    @classmethod
+    def open(cls, rootdir, end_session=None):
+        """
+        Open an existing ``rootdir`` for writing.
+
+        Parameters
+        ----------
+        end_session : Timestamp (optional)
+            When appending, the intended new ``end_session``.
+        """
+        metadata = BcolzMinuteBarMetadata.read(rootdir)
+        return BcolzMinuteBarWriter(
+            rootdir,
+            metadata.calendar,
+            metadata.start_session,
+            end_session if end_session is not None else metadata.end_session,
+            metadata.minutes_per_day,
+            metadata.default_ohlc_ratio,
+            metadata.ohlc_ratios_per_sid,
+            write_metadata=False
+        )
+
     @property
     def first_trading_day(self):
         return self._start_session
@@ -834,7 +856,7 @@ class BcolzMinuteBarWriter(object):
         truncate_slice_end = self.data_len_for_day(date)
 
         glob_path = os.path.join(self._rootdir, "*", "*", "*.bcolz")
-        sid_paths = glob(glob_path)
+        sid_paths = sorted(glob(glob_path))
 
         for sid_path in sid_paths:
             file_name = os.path.basename(sid_path)

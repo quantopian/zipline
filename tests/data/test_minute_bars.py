@@ -445,11 +445,16 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
             index=[first_minute])
         self.writer.write_sid(sid, data)
 
-        next_day_minute = first_minute + Timedelta(days=1)
+        # Open a new writer to cover `open` method, also a common usage
+        # of appending new days will be writing to an existing directory.
+        cday = self.trading_calendar.schedule.index.freq
+        new_end_session = TEST_CALENDAR_START + cday
+        writer = BcolzMinuteBarWriter.open(self.dest, new_end_session)
+        next_day_minute = first_minute + cday
         new_data = DataFrame(
             data=ohlcv,
             index=[next_day_minute])
-        self.writer.write_sid(sid, new_data)
+        writer.write_sid(sid, new_data)
 
         second_minute = first_minute + Timedelta(minutes=1)
 
@@ -1014,8 +1019,12 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
             index=minutes)
         self.writer.write_sid(sid, data)
 
+        # Open a new writer to cover `open` method, also truncating only
+        # applies to an existing directory.
+        writer = BcolzMinuteBarWriter.open(self.dest)
+
         # Truncate to first day with data.
-        self.writer.truncate(days[0])
+        writer.truncate(days[0])
 
         # Refresh the reader since truncate update the metadata.
         self.reader = BcolzMinuteBarReader(self.dest)
