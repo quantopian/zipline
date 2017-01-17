@@ -856,7 +856,7 @@ class BcolzMinuteBarWriter(object):
         truncate_slice_end = self.data_len_for_day(date)
 
         glob_path = os.path.join(self._rootdir, "*", "*", "*.bcolz")
-        sid_paths = glob(glob_path)
+        sid_paths = sorted(glob(glob_path))
 
         for sid_path in sid_paths:
             file_name = os.path.basename(sid_path)
