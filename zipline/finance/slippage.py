@@ -1,5 +1,5 @@
 #
-# Copyright 2015 Quantopian, Inc.
+# Copyright 2017 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,6 +33,39 @@ class LiquidityExceeded(Exception):
 
 
 DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT = 0.025
+
+
+def fill_price_worse_than_limit_price(fill_price, order):
+    """
+    Checks whether the fill price is worse than the order's limit price.
+
+    Parameters
+    ----------
+    fill_price: float
+        The price to check.
+
+    order: zipline.finance.order.Order
+        The order whose limit price to check.
+
+    Returns
+    -------
+    bool: Whether the fill price is above the limit price (for a buy) or below
+    the limit price (for a sell).
+    """
+    if order.limit:
+        # this is tricky! if an order with a limit price has reached
+        # the limit price, we will try to fill the order. do not fill
+        # these shares if the impacted price is worse than the limit
+        # price. return early to avoid creating the transaction.
+
+        # buy order is worse if the impacted price is greater than
+        # the limit price. sell order is worse if the impacted price
+        # is less than the limit price
+        if (order.direction > 0 and fill_price > order.limit) or \
+                (order.direction < 0 and fill_price < order.limit):
+            return True
+
+    return False
 
 
 class SlippageModel(with_metaclass(abc.ABCMeta)):
@@ -182,18 +215,8 @@ class VolumeShareSlippage(SlippageModel):
             * price
         impacted_price = price + simulated_impact
 
-        if order.limit:
-            # this is tricky! if an order with a limit price has reached
-            # the limit price, we will try to fill the order. do not fill
-            # these shares if the impacted price is worse than the limit
-            # price. return early to avoid creating the transaction.
-
-            # buy order is worse if the impacted price is greater than
-            # the limit price. sell order is worse if the impacted price
-            # is less than the limit price
-            if (order.direction > 0 and impacted_price > order.limit) or \
-                    (order.direction < 0 and impacted_price < order.limit):
-                return None, None
+        if fill_price_worse_than_limit_price(impacted_price, order):
+            return None, None
 
         return (
             impacted_price,
