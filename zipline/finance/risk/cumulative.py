@@ -302,8 +302,12 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             # compatibility with existing consumers.
             'algorithm_period_return':
             self.algorithm_cumulative_returns[dt_loc],
+            'annualized_algorithm_return':
+                self.annualized_mean_returns[dt_loc],
             'benchmark_period_return':
             self.benchmark_cumulative_returns[dt_loc],
+            'annualized_benchmark_return':
+                self.annualized_mean_benchmark_returns[dt_loc],
             'beta': self.beta[dt_loc],
             'alpha': self.alpha[dt_loc],
             'sharpe': self.sharpe[dt_loc],
