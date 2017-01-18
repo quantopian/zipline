@@ -194,6 +194,14 @@ class VolumeShareSlippage(SlippageModel):
             if (order.direction > 0 and impacted_price > order.limit) or \
                     (order.direction < 0 and impacted_price < order.limit):
                 return None, None
+            else:
+                # since limit orders should be filled at the limit price and
+                # not at the market price, we will calculate slippage at the 
+                # limit price
+                simulated_impact = volume_share ** 2 \
+                    * math.copysign(self.price_impact, order.direction) \
+                    * order.limit
+                impacted_price = order.limit + simulated_impact
 
         return (
             impacted_price,
