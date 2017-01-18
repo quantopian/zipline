@@ -1,5 +1,5 @@
 #
-# Copyright 2013 Quantopian, Inc.
+# Copyright 2017 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 Unit tests for finance.slippage
 '''
 import datetime
+from collections import namedtuple
 
 import pytz
 
@@ -25,7 +26,8 @@ from nose_parameterized import parameterized
 import pandas as pd
 from pandas.tslib import normalize_date
 
-from zipline.finance.slippage import VolumeShareSlippage
+from zipline.finance.slippage import VolumeShareSlippage, \
+    fill_price_worse_than_limit_price
 
 from zipline.protocol import DATASOURCE_TYPE, BarData
 from zipline.finance.blotter import Order
@@ -40,6 +42,9 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
 )
 from zipline.utils.classproperty import classproperty
+
+
+TestOrder = namedtuple('TestOrder', 'limit direction')
 
 
 class SlippageTestCase(WithCreateBarData,
@@ -82,6 +87,24 @@ class SlippageTestCase(WithCreateBarData,
     def init_class_fixtures(cls):
         super(SlippageTestCase, cls).init_class_fixtures()
         cls.ASSET133 = cls.env.asset_finder.retrieve_asset(133)
+
+    def test_fill_price_worse_than_limit_price(self):
+        non_limit_order = TestOrder(limit=None, direction=1)
+        limit_buy = TestOrder(limit=1.5, direction=1)
+        limit_sell = TestOrder(limit=1.5, direction=-1)
+
+        for price in [1, 1.5, 2]:
+            self.assertFalse(
+                fill_price_worse_than_limit_price(price, non_limit_order)
+            )
+
+        self.assertFalse(fill_price_worse_than_limit_price(1, limit_buy))
+        self.assertFalse(fill_price_worse_than_limit_price(1.5, limit_buy))
+        self.assertTrue(fill_price_worse_than_limit_price(2, limit_buy))
+
+        self.assertTrue(fill_price_worse_than_limit_price(1, limit_sell))
+        self.assertFalse(fill_price_worse_than_limit_price(1.5, limit_sell))
+        self.assertFalse(fill_price_worse_than_limit_price(2, limit_sell))
 
     def test_orders_limit(self):
         slippage_model = VolumeShareSlippage()
