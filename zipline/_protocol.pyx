@@ -747,6 +747,13 @@ cdef class BarData:
         def __set__(self, val):
             self._adjust_minutes = val
 
+    property current_session:
+        def __get__(self):
+            return self._trading_calendar.minute_to_session_label(
+                self.simulation_dt_func(),
+                direction="next"
+            )
+
     #################
     # OLD API SUPPORT
     #################
