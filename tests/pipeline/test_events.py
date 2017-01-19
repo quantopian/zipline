@@ -301,6 +301,19 @@ class EventsLoaderEmptyTestCase(WithAssetFinder,
         cls.ASSET_FINDER_EQUITY_SYMBOLS = ['A', 'B']
         super(EventsLoaderEmptyTestCase, cls).init_class_fixtures()
 
+    def frame_containing_all_missing_values(self, index, columns):
+        frame = pd.DataFrame(
+            index=index,
+            data={c.name: c.missing_value for c in EventDataSet.columns},
+        )
+        for c in columns:
+            # The construction above produces columns of dtype `object` when
+            # the missing value is string, but we expect categoricals in the
+            # final result.
+            if c.dtype == categorical_dtype:
+                frame[c.name] = frame[c.name].astype('category')
+        return frame
+
     def test_load_empty(self):
         """
         For the case where raw data is empty, make sure we have a result for
@@ -318,12 +331,16 @@ class EventsLoaderEmptyTestCase(WithAssetFinder,
             start_date=self.trading_days[0],
             end_date=self.trading_days[-1],
         )
-        for c in EventDataSet.columns:
-            unstacked = results[c.name].unstack()
-            assert list(map(int, unstacked.columns)) == [0, 1]
-            for sid in unstacked.columns:
-                assert len(unstacked) == len(self.trading_days)
-                assert_equal(unstacked[sid].unique()[0], c.missing_value)
+
+        assets = self.asset_finder.retrieve_all(self.ASSET_FINDER_EQUITY_SIDS)
+        dates = self.trading_days
+
+        expected = self.frame_containing_all_missing_values(
+            index=pd.MultiIndex.from_product([dates, assets]),
+            columns=EventDataSet.columns,
+        )
+
+        assert_equal(results, expected)
 
 
 class EventsLoaderTestCase(WithAssetFinder,
