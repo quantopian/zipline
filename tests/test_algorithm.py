@@ -4294,12 +4294,21 @@ class TestOrderAfterDelist(WithTradingEnvironment, ZiplineTestCase):
     def make_equity_info(cls):
         return pd.DataFrame.from_dict(
             {
+                # Asset whose auto close date is after its end date.
                 1: {
                     'start_date': cls.start,
                     'end_date': cls.day_1,
                     'auto_close_date': cls.day_4,
                     'symbol': "ASSET1",
                     'exchange': "TEST",
+                },
+                # Asset whose auto close date is before its end date.
+                2: {
+                    'start_date': cls.start,
+                    'end_date': cls.day_4,
+                    'auto_close_date': cls.day_1,
+                    'symbol': 'ASSET2',
+                    'exchange': 'TEST',
                 },
             },
             orient='index',
@@ -4310,7 +4319,13 @@ class TestOrderAfterDelist(WithTradingEnvironment, ZiplineTestCase):
         super(TestOrderAfterDelist, cls).init_class_fixtures()
         cls.data_portal = FakeDataPortal(cls.env)
 
-    def test_order_in_quiet_period(self):
+    @parameterized.expand([
+        ('auto_close_after_end_date', 1),
+        ('auto_close_before_end_date', 2),
+    ])
+    def test_order_in_quiet_period(self, name, sid):
+        asset = self.asset_finder.retrieve_asset(sid)
+
         algo_code = dedent("""
         from zipline.api import (
             sid,
@@ -4326,13 +4341,13 @@ class TestOrderAfterDelist(WithTradingEnvironment, ZiplineTestCase):
             pass
 
         def handle_data(context, data):
-            order(sid(1), 1)
-            order_value(sid(1), 100)
-            order_percent(sid(1), 0.5)
-            order_target(sid(1), 50)
-            order_target_percent(sid(1), 0.5)
-            order_target_value(sid(1), 50)
-        """)
+            order(sid({sid}), 1)
+            order_value(sid({sid}), 100)
+            order_percent(sid({sid}), 0.5)
+            order_target(sid({sid}), 50)
+            order_target_percent(sid({sid}), 0.5)
+            order_target_value(sid({sid}), 50)
+        """).format(sid=sid)
 
         # run algo from 1/6 to 1/7
         algo = TradingAlgorithm(
@@ -4356,11 +4371,12 @@ class TestOrderAfterDelist(WithTradingEnvironment, ZiplineTestCase):
             self.assertEqual(6 * 390, len(warnings))
 
             for w in warnings:
-                self.assertEqual("Cannot place order for ASSET1, as it has "
-                                 "de-listed. Any existing positions for this "
-                                 "asset will be liquidated on "
-                                 "2016-01-11 00:00:00+00:00.",
-                                 w.message)
+                expected_message = (
+                    'Cannot place order for ASSET{sid}, as it has de-listed. '
+                    'Any existing positions for this asset will be liquidated '
+                    'on {date}.'.format(sid=sid, date=asset.auto_close_date)
+                )
+                self.assertEqual(expected_message, w.message)
 
 
 class AlgoInputValidationTestCase(ZiplineTestCase):

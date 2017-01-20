@@ -508,6 +508,9 @@ cdef class BarData:
             # asset isn't alive
             return False
 
+        if asset.auto_close_date and session_label >= asset.auto_close_date:
+            return False
+
         if not self._daily_mode:
             # Find the next market minute for this calendar, and check if this
             # asset's exchange is open at that minute.
