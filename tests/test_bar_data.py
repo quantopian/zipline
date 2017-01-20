@@ -221,7 +221,7 @@ class TestMinuteBarData(WithCreateBarData,
         # some other non-market-minute
         three_oh_six_am_minutes = days_at_time(
             self.equity_minute_bar_days,
-            time(3, 06),
+            time(3, 6),
             "US/Eastern"
         )
 
