@@ -439,40 +439,42 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
             'volume': [10.0]
         }
 
-        first_minute = self.market_opens[TEST_CALENDAR_START]
+        dt = self.market_opens[TEST_CALENDAR_STOP]
         data = DataFrame(
             data=ohlcv,
-            index=[first_minute])
+            index=[dt])
         self.writer.write_sid(sid, data)
 
         # Open a new writer to cover `open` method, also a common usage
         # of appending new days will be writing to an existing directory.
         cday = self.trading_calendar.schedule.index.freq
-        new_end_session = TEST_CALENDAR_START + cday
+        new_end_session = TEST_CALENDAR_STOP + cday
         writer = BcolzMinuteBarWriter.open(self.dest, new_end_session)
-        next_day_minute = first_minute + cday
+        next_day_minute = dt + cday
         new_data = DataFrame(
             data=ohlcv,
             index=[next_day_minute])
         writer.write_sid(sid, new_data)
 
-        second_minute = first_minute + Timedelta(minutes=1)
+        # Get a new reader to test updated calendar.
+        reader = BcolzMinuteBarReader(self.dest)
+
+        second_minute = dt + Timedelta(minutes=1)
 
         # The second minute should have been padded with zeros
         for col in ('open', 'high', 'low', 'close'):
             assert_almost_equal(
-                nan, self.reader.get_value(sid, second_minute, col)
+                nan, reader.get_value(sid, second_minute, col)
             )
         self.assertEqual(
-            0, self.reader.get_value(sid, second_minute, 'volume')
+            0, reader.get_value(sid, second_minute, 'volume')
         )
 
-        # The first day should contain US_EQUITIES_MINUTES_PER_DAY rows.
-        # The second day should contain a single row.
-        self.assertEqual(
-            len(self.writer._ensure_ctable(sid)),
-            US_EQUITIES_MINUTES_PER_DAY + 1,
-        )
+        # The next day minute should have data.
+        for col in ('open', 'high', 'low', 'close', 'volume'):
+            assert_almost_equal(
+                ohlcv[col], reader.get_value(sid, next_day_minute, col)
+            )
 
     def test_write_multiple_sids(self):
         """

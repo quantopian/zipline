@@ -497,7 +497,7 @@ class BcolzMinuteBarWriter(object):
             metadata.minutes_per_day,
             metadata.default_ohlc_ratio,
             metadata.ohlc_ratios_per_sid,
-            write_metadata=False
+            write_metadata=end_session is not None
         )
 
     @property
