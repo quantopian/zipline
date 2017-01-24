@@ -16,7 +16,7 @@ from __future__ import division
 
 import abc
 import math
-from six import with_metaclass
+from six import with_metaclass, iteritems
 
 from pandas import isnull
 
@@ -151,6 +151,18 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
 
     def __call__(self, bar_data, asset, current_orders):
         return self.simulate(bar_data, asset, current_orders)
+
+    def __eq__(self, other):
+        return self._attrs_to_check() == other._attrs_to_check()
+
+    def __hash__(self):
+        return hash((
+            type(self),
+            tuple(sorted(iteritems(self._attrs_to_check())))
+        ))
+
+    def _attrs_to_check(self):
+        return self.__dict__
 
 
 class VolumeShareSlippage(SlippageModel):

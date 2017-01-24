@@ -88,6 +88,13 @@ class SlippageTestCase(WithCreateBarData,
         super(SlippageTestCase, cls).init_class_fixtures()
         cls.ASSET133 = cls.env.asset_finder.retrieve_asset(133)
 
+    def test_equality_and_comparison(self):
+        vol1 = VolumeShareSlippage(volume_limit=0.2)
+        vol2 = VolumeShareSlippage(volume_limit=0.2)
+
+        self.assertEqual(vol1, vol2)
+        self.assertEqual(hash(vol1), hash(vol2))
+
     def test_fill_price_worse_than_limit_price(self):
         non_limit_order = TestOrder(limit=None, direction=1)
         limit_buy = TestOrder(limit=1.5, direction=1)
