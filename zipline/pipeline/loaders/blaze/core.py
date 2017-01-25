@@ -206,12 +206,12 @@ is_invalid_deltas_node = complement(flip(isinstance, valid_deltas_node_types))
 get__name__ = op.attrgetter('__name__')
 
 
-class ExprData(
-    namedtuple(
-        'ExprData',
-        'expr deltas checkpoints odo_kwargs apply_deltas_adjustments'
-    )
-):
+_expr_data_base = namedtuple(
+    'ExprData', 'expr deltas checkpoints odo_kwargs apply_deltas_adjustments'
+)
+
+
+class ExprData(_expr_data_base):
     """A pair of expressions and data resources. The expressions will be
     computed using the resources as the starting scope.
 
@@ -225,6 +225,9 @@ class ExprData(
         The forward fill checkpoints for the data.
     odo_kwargs : dict, optional
         The keyword arguments to forward to the odo calls internally.
+    apply_deltas_adjustments : bool, optional
+        Whether or not deltas adjustments should be applied to the baseline
+        values. If False, only novel deltas will be applied.
     """
     def __new__(cls,
                 expr,
@@ -567,10 +570,6 @@ def from_blaze(expr,
     ----------
     expr : Expr
         The blaze expression to use.
-    apply_deltas_adjustments : bool, optional
-        Whether or not deltas adjustments should be applied for this dataset.
-        True by default because not applying deltas adjustments is an exception
-        rather than the rule.
     deltas : Expr, 'auto' or None, optional
         The expression to use for the point in time adjustments.
         If the string 'auto' is passed, a deltas expr will be looked up
@@ -604,6 +603,10 @@ def from_blaze(expr,
         found. 'warn' says to raise a warning but continue.
         'raise' says to raise an exception if no deltas can be found.
         'ignore' says take no action and proceed with no deltas.
+    apply_deltas_adjustments : bool, optional
+        Whether or not deltas adjustments should be applied for this dataset.
+        True by default because not applying deltas adjustments is an exception
+        rather than the rule.
 
     Returns
     -------
@@ -1114,7 +1117,12 @@ class BlazeLoader(dict):
                                           have_sids=have_sids)
         ffill_across_cols(dense_output, columns, {c.name: c.name
                                                   for c in columns})
-        adjustments_from_deltas = lambda *args: {}
+
+        # By default, no non-novel deltas are applied.
+        def no_adjustments_from_deltas(*args):
+            return {}
+
+        adjustments_from_deltas = no_adjustments_from_deltas
         if have_sids:
             if apply_deltas_adjustments:
                 adjustments_from_deltas = adjustments_from_deltas_with_sids

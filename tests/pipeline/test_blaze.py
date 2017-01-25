@@ -1247,12 +1247,14 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                       start,
                       end,
                       window_length,
-                      compute_fn):
+                      compute_fn,
+                      apply_deltas_adjustments=True):
         loader = BlazeLoader()
         ds = from_blaze(
             expr,
             deltas,
             checkpoints,
+            apply_deltas_adjustments=apply_deltas_adjustments,
             loader=loader,
             no_deltas_rule='raise',
             no_checkpoints_rule='ignore',
@@ -1480,7 +1482,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             name='delta',
             dshape=self.dshape,
         )
-        expected_views = keymap(pd.Timestamp, {
+        expected_views_all_deltas = keymap(pd.Timestamp, {
             '2014-01-03': np.array([[10.0, 11.0, 12.0],
                                     [10.0, 11.0, 12.0],
                                     [10.0, 11.0, 12.0]]),
@@ -1488,14 +1490,47 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                                     [10.0, 11.0, 12.0],
                                     [11.0, 12.0, 13.0]]),
         })
-        if len(asset_info) == 4:
-            expected_views = valmap(
-                lambda view: np.c_[view, [np.nan, np.nan, np.nan]],
+        # The only novel delta is on 2014-01-05, because it modifies a
+        # baseline data point that occurred on 2014-01-04, which is on a
+        # Saturday. The other delta, occurring on 2014-01-02, is seen after
+        # we already see the baseline data it modifies, and so it is a
+        # non-novel delta. Thus, the only delta seen in the expected view for
+        # novel deltas is on 2014-01-06 at (2, 0), (2, 1), and (2, 2).
+        expected_views_novel_deltas = keymap(pd.Timestamp, {
+            '2014-01-03': np.array([[0.0, 1.0, 2.0],
+                                    [0.0, 1.0, 2.0],
+                                    [0.0, 1.0, 2.0]]),
+            '2014-01-06': np.array([[0.0, 1.0, 2.0],
+                                    [0.0, 1.0, 2.0],
+                                    [11.0, 12.0, 13.0]]),
+        })
+
+        def get_fourth_asset_view(expected_views, window_length):
+            return valmap(
+                lambda view: np.c_[view, [np.nan] * window_length],
                 expected_views,
             )
-            expected_output_buffer = [10, 11, 12, np.nan, 11, 12, 13, np.nan]
+
+        if len(asset_info) == 4:
+            expected_views_all_deltas = get_fourth_asset_view(
+                expected_views_all_deltas, window_length=3
+            )
+            expected_views_novel_deltas = get_fourth_asset_view(
+                expected_views_novel_deltas, window_length=3
+            )
+            expected_output_buffer_all_deltas = [
+                10, 11, 12, np.nan, 11, 12, 13, np.nan
+            ]
+            expected_output_buffer_novel_deltas = [
+                0, 1, 2, np.nan, 11, 12, 13, np.nan
+            ]
         else:
-            expected_output_buffer = [10, 11, 12, 11, 12, 13]
+            expected_output_buffer_all_deltas = [
+                10, 11, 12, 11, 12, 13
+            ]
+            expected_output_buffer_novel_deltas = [
+                0, 1, 2, 11, 12, 13
+            ]
 
         cal = pd.DatetimeIndex([
             pd.Timestamp('2014-01-01'),
@@ -1506,27 +1541,50 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         ])
 
         with tmp_asset_finder(equities=asset_info) as finder:
-            expected_output = pd.DataFrame(
-                expected_output_buffer,
+            expected_output_all_deltas = pd.DataFrame(
+                expected_output_buffer_all_deltas,
                 index=pd.MultiIndex.from_product((
-                    sorted(expected_views.keys()),
+                    sorted(expected_views_all_deltas.keys()),
                     finder.retrieve_all(asset_info.index),
                 )),
                 columns=('value',),
             )
-            self._run_pipeline(
-                expr,
-                deltas,
-                None,
-                expected_views,
-                expected_output,
-                finder,
-                calendar=cal,
-                start=cal[2],
-                end=cal[-1],
-                window_length=3,
-                compute_fn=op.itemgetter(-1),
+            expected_output_novel_deltas = pd.DataFrame(
+                expected_output_buffer_novel_deltas,
+                index=pd.MultiIndex.from_product((
+                    sorted(expected_views_novel_deltas.keys()),
+                    finder.retrieve_all(asset_info.index),
+                )),
+                columns=('value',),
             )
+
+            it = (
+                (
+                    True,
+                    expected_views_all_deltas,
+                    expected_output_all_deltas
+                ),
+                (
+                    False,
+                    expected_views_novel_deltas,
+                    expected_output_novel_deltas
+                )
+            )
+            for apply_deltas_adjs, expected_views, expected_output in it:
+                self._run_pipeline(
+                    expr,
+                    deltas,
+                    None,
+                    expected_views,
+                    expected_output,
+                    finder,
+                    calendar=cal,
+                    start=cal[2],
+                    end=cal[-1],
+                    window_length=3,
+                    compute_fn=op.itemgetter(-1),
+                    apply_deltas_adjustments=apply_deltas_adjs,
+                )
 
     def test_novel_deltas_macro(self):
         base_dates = pd.DatetimeIndex([
@@ -1547,12 +1605,26 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         )
 
         nassets = len(simple_asset_info)
-        expected_views = keymap(pd.Timestamp, {
+        expected_views_all_deltas = keymap(pd.Timestamp, {
             '2014-01-03': np.array([[10.0],
                                     [10.0],
                                     [10.0]]),
             '2014-01-06': np.array([[10.0],
                                     [10.0],
+                                    [11.0]]),
+        })
+        # The only novel delta is on 2014-01-05, because it modifies a
+        # baseline data point that occurred on 2014-01-04, which is on a
+        # Saturday. The other delta, occurring on 2014-01-02, is seen after
+        # we already see the baseline data it modifies, and so it is a
+        # non-novel delta. Thus, the only delta seen in the expected view for
+        # novel deltas is on 2014-01-06 at (2, 0).
+        expected_views_novel_deltas = keymap(pd.Timestamp, {
+            '2014-01-03': np.array([[0.0],
+                                    [0.0],
+                                    [0.0]]),
+            '2014-01-06': np.array([[0.0],
+                                    [0.0],
                                     [11.0]]),
         })
 
@@ -1563,28 +1635,53 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             # omitting the 4th and 5th to simulate a weekend
             pd.Timestamp('2014-01-06'),
         ])
+
+        def get_expected_output(expected_views, values, asset_info):
+            return pd.DataFrame(
+                list(concatv(*([value] * nassets for value in values))),
+                index=pd.MultiIndex.from_product(
+                    (sorted(expected_views.keys()),
+                     finder.retrieve_all(asset_info.index),)
+                ), columns=('value',),
+            )
         with tmp_asset_finder(equities=simple_asset_info) as finder:
-            expected_output = pd.DataFrame(
-                list(concatv([10] * nassets, [11] * nassets)),
-                index=pd.MultiIndex.from_product((
-                    sorted(expected_views.keys()),
-                    finder.retrieve_all(simple_asset_info.index),
-                )),
-                columns=('value',),
+            expected_output_all_deltas = get_expected_output(
+                expected_views_all_deltas,
+                [10, 11],
+                simple_asset_info,
             )
-            self._run_pipeline(
-                expr,
-                deltas,
-                None,
-                expected_views,
-                expected_output,
-                finder,
-                calendar=cal,
-                start=cal[2],
-                end=cal[-1],
-                window_length=3,
-                compute_fn=op.itemgetter(-1),
+            expected_output_novel_deltas = get_expected_output(
+                expected_views_novel_deltas,
+                [0, 11],
+                simple_asset_info,
             )
+            it = (
+                (
+                    True,
+                    expected_views_all_deltas,
+                    expected_output_all_deltas
+                ),
+                (
+                    False,
+                    expected_views_novel_deltas,
+                    expected_output_novel_deltas
+                )
+            )
+            for apply_deltas_adjs, expected_views, expected_output in it:
+                self._run_pipeline(
+                    expr,
+                    deltas,
+                    None,
+                    expected_views,
+                    expected_output,
+                    finder,
+                    calendar=cal,
+                    start=cal[2],
+                    end=cal[-1],
+                    window_length=3,
+                    compute_fn=op.itemgetter(-1),
+                    apply_deltas_adjustments=apply_deltas_adjs,
+                )
 
     def _test_checkpoints_macro(self, checkpoints, ffilled_value=-1.0):
         """Simple checkpoints test that accepts a checkpoints dataframe and
@@ -1805,7 +1902,8 @@ class MiscTestCase(ZiplineTestCase):
                 odo_kwargs={'a': 'b'},
             )),
             "ExprData(expr='expr', deltas='deltas',"
-            " checkpoints='checkpoints', odo_kwargs={'a': 'b'})",
+            " checkpoints='checkpoints', odo_kwargs={'a': 'b'}, "
+            "apply_deltas_adjustments=True)",
         )
 
     def test_blaze_loader_repr(self):
