@@ -192,6 +192,8 @@ class PositionTracker(object):
             # if this position now has 0 shares, remove it from our internal
             # bookkeeping.
             del self.positions[sid]
+            del self._position_value_multipliers[sid]
+            del self._position_exposure_multipliers[sid]
 
             try:
                 # if this position exists in our user-facing dictionary,
@@ -199,8 +201,8 @@ class PositionTracker(object):
                 del self._positions_store[sid]
             except KeyError:
                 pass
-
-        self._update_asset(sid)
+        else:
+            self._update_asset(sid)
 
     def handle_commission(self, sid, cost):
         # Adjust the cost basis of the stock if we own it

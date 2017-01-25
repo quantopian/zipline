@@ -2085,3 +2085,53 @@ class TestPositionTracker(WithTradingEnvironment,
         # Test gross and net exposures
         self.assertEqual(100 + 150000 + 200, pos_stats.gross_exposure)
         self.assertEqual(100 + 150000 - 200, pos_stats.net_exposure)
+
+    def test_close_position(self):
+        future_sid = 1032201401
+        equity_sid = 1
+        pt = perf.PositionTracker(self.env.asset_finder, None)
+        dt = pd.Timestamp('2017/01/04 3:00PM')
+
+        pos1 = perf.Position(
+            sid=future_sid,
+            amount=np.float64(30.0),
+            last_sale_date=dt,
+            last_sale_price=100,
+        )
+        pos2 = perf.Position(
+            sid=equity_sid,
+            amount=np.float64(10.0),
+            last_sale_date=dt,
+            last_sale_price=10,
+        )
+
+        # Update the positions dictionary with `future_sid` first. The order
+        # matters because it affects the multipliers dictionaries, which are
+        # OrderedDicts. If `future_sid` is not removed from the multipliers
+        # dictionaries, equities will hit the incorrect multiplier when
+        # computing `pt.stats()`.
+        pt.update_positions({future_sid: pos1, equity_sid: pos2})
+
+        asset_to_close = self.env.asset_finder.retrieve_asset(future_sid)
+        txn = create_txn(asset_to_close, dt, 100, -30)
+        pt.execute_transaction(txn)
+
+        pos_stats = pt.stats()
+
+        # Test long-only methods.
+        self.assertEqual(100, pos_stats.long_value)
+        self.assertEqual(100, pos_stats.long_exposure)
+        self.assertEqual(1, pos_stats.longs_count)
+
+        # Test short-only methods.
+        self.assertEqual(0, pos_stats.short_value)
+        self.assertEqual(0, pos_stats.short_exposure)
+        self.assertEqual(0, pos_stats.shorts_count)
+
+        # Test gross and net values.
+        self.assertEqual(100, pos_stats.gross_value)
+        self.assertEqual(100, pos_stats.net_value)
+
+        # Test gross and net exposures.
+        self.assertEqual(100, pos_stats.gross_exposure)
+        self.assertEqual(100, pos_stats.net_exposure)
