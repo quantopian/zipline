@@ -1081,6 +1081,24 @@ class AssetFinder(object):
     )
     del _make_sids
 
+    @lazyval
+    def _symbol_lookups(self):
+        """
+        An iterable of symbol lookup functions to use with ``lookup_generic``
+
+        Attempts equities lookup, then futures.
+        """
+        return (
+            self.lookup_symbol,
+            # lookup_future_symbol method does not use as_of date, since
+            # symbols are unique.
+            #
+            # Wrap the function in a lambda so that both methods share a
+            # signature, so that when the functions are iterated over
+            # the consumer can use the same arguments with both methods.
+            lambda symbol, _: self.lookup_future_symbol(symbol)
+        )
+
     def _lookup_generic_scalar(self,
                                asset_convertible,
                                as_of_date,
@@ -1104,11 +1122,13 @@ class AssetFinder(object):
             matches.append(result)
 
         elif isinstance(asset_convertible, string_types):
-            try:
-                matches.append(
-                    self.lookup_symbol(asset_convertible, as_of_date)
-                )
-            except SymbolNotFound:
+            for lookup in self._symbol_lookups:
+                try:
+                    matches.append(lookup(asset_convertible, as_of_date))
+                    return
+                except SymbolNotFound:
+                    continue
+            else:
                 missing.append(asset_convertible)
                 return None
         else:

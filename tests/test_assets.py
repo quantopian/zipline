@@ -102,7 +102,7 @@ def build_lookup_generic_cases(asset_finder_type):
     dupe_1_start = pd.Timestamp('2013-01-03', tz='UTC')
     dupe_1_end = dupe_1_start + timedelta(days=1)
 
-    frame = pd.DataFrame.from_records(
+    equities = pd.DataFrame.from_records(
         [
             {
                 'sid': 0,
@@ -126,13 +126,30 @@ def build_lookup_generic_cases(asset_finder_type):
                 'exchange': 'TEST',
             },
         ],
-        index='sid')
-    with tmp_assets_db(equities=frame) as assets_db:
+        index='sid'
+    )
+
+    fof14_sid = 10000
+
+    futures = pd.DataFrame.from_records(
+        [
+            {
+                'sid': fof14_sid,
+                'symbol': 'FOF14',
+                'start_date': unique_start.value,
+                'end_date': unique_end.value,
+                'exchange': 'FUT',
+            },
+        ],
+        index='sid'
+    )
+    with tmp_assets_db(equities=equities, futures=futures) as assets_db:
         finder = asset_finder_type(assets_db)
         dupe_0, dupe_1, unique = assets = [
             finder.retrieve_asset(i)
             for i in range(3)
         ]
+        fof14 = finder.retrieve_asset(fof14_sid)
 
         dupe_0_start = dupe_0.start_date
         dupe_1_start = dupe_1.start_date
@@ -155,6 +172,18 @@ def build_lookup_generic_cases(asset_finder_type):
             (finder, 'UNIQUE', unique_start, unique),
             (finder, 'UNIQUE', None, unique),
 
+            # Futures
+            (finder, 'FOF14', None, fof14),
+            # Future symbols should be unique, but including as_of date
+            # make sure that code path is exercised.
+            (finder, 'FOF14', unique_start, fof14),
+
+            # Futures int
+            (finder, fof14_sid, None, fof14),
+            # Future symbols should be unique, but including as_of date
+            # make sure that code path is exercised.
+            (finder, fof14_sid, unique_start, fof14),
+
             ##
             # Iterables
 
@@ -172,6 +201,9 @@ def build_lookup_generic_cases(asset_finder_type):
              ('DUPLICATED', 2, 'UNIQUE', 1, dupe_1),
              dupe_0_start,
              [dupe_0, assets[2], unique, assets[1], dupe_1]),
+
+            # Futures and Equities
+            (finder, ['FOF14', 0], None, [fof14, assets[0]]),
         )
 
 
