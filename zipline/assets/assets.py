@@ -69,7 +69,7 @@ from .asset_db_schema import (
     ASSET_DB_VERSION
 )
 from zipline.utils.control_flow import invert
-from zipline.utils.memoize import lazyval, weak_lru_cache
+from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import as_column
 from zipline.utils.preprocess import preprocess
 from zipline.utils.sqlite_utils import group_into_chunks, coerce_string_to_eng
@@ -981,87 +981,6 @@ class AssetFinder(object):
 
         # Could not find a value for this sid on the as_of_date.
         raise NoValueForSid(field=field_name, sid=sid)
-
-    @weak_lru_cache(100)
-    def _get_future_sids_for_root_symbol(self, root_symbol, as_of_date_ns):
-        fc_cols = self.futures_contracts.c
-
-        return list(map(
-            itemgetter('sid'),
-            sa.select((fc_cols.sid,)).where(
-                (fc_cols.root_symbol == root_symbol) &
-
-                # Filter to contracts that are still valid. If both
-                # exist, use the one that comes first in time (i.e.
-                # the lower value). If either notice_date or
-                # expiration_date is NaT, use the other. If both are
-                # NaT, the contract cannot be included in any chain.
-                sa.case(
-                    [
-                        (
-                            fc_cols.notice_date == pd.NaT.value,
-                            fc_cols.expiration_date >= as_of_date_ns
-                        ),
-                        (
-                            fc_cols.expiration_date == pd.NaT.value,
-                            fc_cols.notice_date >= as_of_date_ns
-                        )
-                    ],
-                    else_=(
-                        sa.func.min(
-                            fc_cols.notice_date,
-                            fc_cols.expiration_date
-                        ) >= as_of_date_ns
-                    )
-                )
-            ).order_by(
-                # If both dates exist sort using minimum of
-                # expiration_date and notice_date
-                # else if one is NaT use the other.
-                sa.case(
-                    [
-                        (
-                            fc_cols.expiration_date == pd.NaT.value,
-                            fc_cols.notice_date
-                        ),
-                        (
-                            fc_cols.notice_date == pd.NaT.value,
-                            fc_cols.expiration_date
-                        )
-                    ],
-                    else_=(
-                        sa.func.min(
-                            fc_cols.notice_date,
-                            fc_cols.expiration_date
-                        )
-                    )
-                ).asc()
-            ).execute().fetchall()
-        ))
-
-    def lookup_expired_futures(self, start, end):
-        if not isinstance(start, pd.Timestamp):
-            start = pd.Timestamp(start)
-        start = start.value
-        if not isinstance(end, pd.Timestamp):
-            end = pd.Timestamp(end)
-        end = end.value
-
-        fc_cols = self.futures_contracts.c
-
-        nd = sa.func.nullif(fc_cols.notice_date, pd.tslib.iNaT)
-        ed = sa.func.nullif(fc_cols.expiration_date, pd.tslib.iNaT)
-        date = sa.func.coalesce(sa.func.min(nd, ed), ed, nd)
-
-        sids = list(map(
-            itemgetter('sid'),
-            sa.select((fc_cols.sid,)).where(
-                (date >= start) & (date < end)).order_by(
-                sa.func.coalesce(ed, nd).asc()
-            ).execute().fetchall()
-        ))
-
-        return sids
 
     def _get_contract_sids(self, root_symbol):
         fc_cols = self.futures_contracts.c
