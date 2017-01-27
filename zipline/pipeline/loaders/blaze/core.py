@@ -760,7 +760,7 @@ def overwrite_novel_deltas(baseline, deltas, dates):
 
 
 def overwrite_from_dates(asof, dense_dates, sparse_dates, asset_idx, value):
-    """Construct a `Float64Overwrite` with the correct
+    """Construct an Overwrite with the correct
     start and end date based on the asof date of the delta,
     the dense_dates, and the dense_dates.
 
@@ -775,7 +775,7 @@ def overwrite_from_dates(asof, dense_dates, sparse_dates, asset_idx, value):
     asset_idx : tuple of int
         The index of the asset in the block. If this is a tuple, then this
         is treated as the first and last index to use.
-    value : np.float64
+    value : any
         The value to overwrite with.
 
     Returns

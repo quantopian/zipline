@@ -1534,7 +1534,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             pd.Timestamp('2014-01-04')
         ])
         baseline = pd.DataFrame({
-            'value': (0, 1),
+            'value': (0., 1.),
             'asof_date': base_dates,
             'timestamp': base_dates,
         })
@@ -1545,7 +1545,6 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             value=deltas.value + 10,
             timestamp=deltas.timestamp + timedelta(days=1),
         )
-
         nassets = len(simple_asset_info)
         expected_views = keymap(pd.Timestamp, {
             '2014-01-03': np.array([[10.0],

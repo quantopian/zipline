@@ -25,6 +25,7 @@ from zipline.lib.adjustment import (
     Float64Multiply,
     Float64Overwrite,
     Float641DArrayOverwrite,
+    Int64Overwrite,
     ObjectOverwrite,
 )
 from zipline.lib.adjusted_array import AdjustedArray, NOMASK
@@ -235,6 +236,7 @@ def _gen_overwrite_adjustment_cases(dtype):
     adjustment_type = {
         float64_dtype: Float64Overwrite,
         datetime64ns_dtype: Datetime64Overwrite,
+        int64_dtype: Int64Overwrite,
         bytes_dtype: ObjectOverwrite,
         unicode_dtype: ObjectOverwrite,
         object_dtype: ObjectOverwrite,
@@ -585,6 +587,7 @@ class AdjustedArrayTestCase(TestCase):
 
     @parameterized.expand(
         chain(
+            _gen_overwrite_adjustment_cases(int64_dtype),
             _gen_overwrite_adjustment_cases(float64_dtype),
             _gen_overwrite_adjustment_cases(datetime64ns_dtype),
             _gen_overwrite_1d_array_adjustment_case(float64_dtype),
