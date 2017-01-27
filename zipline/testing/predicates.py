@@ -468,10 +468,17 @@ def _register_assert_equal_wrapper(type_, assert_eq):
             )
         except AssertionError as e:
             print '@@@@@@'
-            print type(result)
-            print result
-            print type(expected)
-            print expected
+            r = result['algorithm_period_return']
+            e = expected['algorithm_period_return']
+            for i in range(len(r)):
+                if r.iloc[i] != e.iloc[i]:
+                    print 'ROW:'
+                    print i
+                    print 'RESULT:'
+                    print r.iloc[i]
+                    print 'EXPECTED:'
+                    print e.iloc[i]
+                
             print '@@@@@@'
             raise AssertionError(
                 _fmt_msg(msg) + '\n'.join((str(e), _fmt_path(path))),
