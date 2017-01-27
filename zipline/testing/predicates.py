@@ -467,6 +467,12 @@ def _register_assert_equal_wrapper(type_, assert_eq):
                 **filter_kwargs(assert_eq, kwargs)
             )
         except AssertionError as e:
+            print '@@@@@@'
+            print type(result)
+            print result
+            print type(expected)
+            print expected
+            print '@@@@@@'
             raise AssertionError(
                 _fmt_msg(msg) + '\n'.join((str(e), _fmt_path(path))),
             )
