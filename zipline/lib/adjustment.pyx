@@ -4,6 +4,9 @@ from cpython cimport Py_EQ
 from pandas import isnull, Timestamp
 from numpy cimport float64_t, uint8_t, int64_t
 from numpy import asarray, datetime64, float64, int64
+
+from zipline.utils.compat import unicode
+
 # Purely for readability. There aren't C-level declarations for these types.
 ctypedef object Int64Index_t
 ctypedef object DatetimeIndex_t
@@ -45,6 +48,9 @@ def _is_datetime(object value):
 def _is_int(object value):
     return isinstance(value, (int, int64))
 
+def _is_obj(object value):
+    return isinstance(value, (bytes, unicode, type(None)))
+
 cpdef choose_adjustment_type(AdjustmentKind adjustment_kind, object value):
     """
     Make an adjustment object of the type appropriate for the given kind and
@@ -77,8 +83,14 @@ cpdef choose_adjustment_type(AdjustmentKind adjustment_kind, object value):
             return _datetime_adjustment_types[adjustment_kind]
         elif _is_int(value):
             return _int_adjustment_types[adjustment_kind]
-        else:
+        elif _is_obj(value):
             return _object_adjustment_types[adjustment_kind]
+        else:
+            raise TypeError(
+                "Don't know how to make overwrite "
+                "adjustments for values of type %r." % type(value),
+            )
+
     else:
         raise ValueError("Unknown adjustment type %d." % adjustment_kind)
 
