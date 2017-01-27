@@ -51,20 +51,22 @@ class AdjustmentTestCase(TestCase):
         )
         self.assertEqual(result, expected)
 
-    def test_unsupported_type(self):
+    def test_make_object_adjustment(self):
         class SomeClass(object):
             pass
+        my_value = SomeClass()
 
-        with self.assertRaises(TypeError) as e:
-            adj.make_adjustment_from_indices(
-                1, 2, 3, 4,
-                adjustment_kind=adj.OVERWRITE,
-                value=SomeClass(),
-            )
-
-        exc = e.exception
-        expected_msg = (
-            "Don't know how to make overwrite adjustments for values of type "
-            "%r." % SomeClass
+        result = adj.make_adjustment_from_indices(
+            1, 2, 3, 4,
+            adjustment_kind=adj.OVERWRITE,
+            value=my_value,
         )
-        self.assertEqual(str(exc), expected_msg)
+
+        expected = adj.ObjectOverwrite(
+            first_row=1,
+            last_row=2,
+            first_col=3,
+            last_col=4,
+            value=my_value,
+        )
+        self.assertEqual(result, expected)

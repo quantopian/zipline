@@ -182,7 +182,7 @@ from zipline.pipeline.loaders.utils import (
 )
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.lib.adjusted_array import AdjustedArray, can_represent_dtype
-from zipline.lib.adjustment import Float64Overwrite
+from zipline.lib.adjustment import make_adjustment_from_indices, OVERWRITE
 from zipline.utils.input_validation import (
     expect_element,
     ensure_timezone,
@@ -815,7 +815,9 @@ def overwrite_from_dates(asof, dense_dates, sparse_dates, asset_idx, value):
         return
 
     first, last = asset_idx
-    yield Float64Overwrite(first_row, last_row, first, last, value)
+    yield make_adjustment_from_indices(
+        first_row, last_row, first, last, OVERWRITE, value
+    )
 
 
 def adjustments_from_deltas_no_sids(dense_dates,

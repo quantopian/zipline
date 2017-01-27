@@ -29,6 +29,9 @@ cdef dict _float_adjustment_types = {
 cdef dict _datetime_adjustment_types = {
     OVERWRITE: Datetime64Overwrite,
 }
+cdef dict _object_adjustment_types = {
+    OVERWRITE: ObjectOverwrite,
+}
 
 cdef _is_float(object value):
     return isinstance(value, (float, float64))
@@ -68,10 +71,7 @@ cpdef choose_adjustment_type(AdjustmentKind adjustment_kind, object value):
         elif _is_datetime(value):
             return _datetime_adjustment_types[adjustment_kind]
         else:
-            raise TypeError(
-                "Don't know how to make overwrite "
-                "adjustments for values of type %r." % type(value),
-            )
+            return _object_adjustment_types[adjustment_kind]
     else:
         raise ValueError("Unknown adjustment type %d." % adjustment_kind)
 
