@@ -467,20 +467,6 @@ def _register_assert_equal_wrapper(type_, assert_eq):
                 **filter_kwargs(assert_eq, kwargs)
             )
         except AssertionError as e:
-            print '@@@@@@'
-            r = result['algorithm_period_return']
-            e = expected['algorithm_period_return']
-            for i in range(len(r)):
-                if r.iloc[i] != e.iloc[i]:
-                    print 'ROW:'
-                    print i
-                    print 'RESULT:'
-                    print type(r.iloc[i]), r.iloc[i],
-                    print 'EXPECTED:'
-                    print type(r.iloc[i]), e.iloc[i]
-                    print r.iloc[i] - e.iloc[i]
-                
-            print '@@@@@@'
             raise AssertionError(
                 _fmt_msg(msg) + '\n'.join((str(e), _fmt_path(path))),
             )

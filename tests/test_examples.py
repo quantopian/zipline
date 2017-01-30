@@ -63,6 +63,20 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
                 'ZIPLINE_ROOT': self.tmpdir.getpath('example_data/root'),
             },
         )
+        print '@@@@@@'
+        r = actual_perf[examples._cols_to_check].algorithm_period_return
+        e = self.expected_perf[example_name][examples._cols_to_check].algorithm_period_return
+        for i in range(len(r)):
+            if r.iloc[i] != e.iloc[i]:
+                print 'ROW:'
+                print i
+                print 'RESULT:'
+                print r.iloc[i],
+                print 'EXPECTED:'
+                print e.iloc[i]
+                print r.iloc[i] - e.iloc[i]
+            
+        print '@@@@@@'
         assert_equal(
             actual_perf[examples._cols_to_check],
             self.expected_perf[example_name][examples._cols_to_check],
