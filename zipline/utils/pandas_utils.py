@@ -91,6 +91,39 @@ def mask_between_time(dts, start, end, include_start=True, include_end=True):
     )
 
 
+def find_in_sorted_index(dts, dt):
+    """
+    Find the index of ``dt`` in ``dts``.
+
+    This function should be used instead of `dts.get_loc(dt)` if the index is
+    large enough that we don't want to initialize a hash table in ``dts``. In
+    particular, this should always be used on minutely trading calendars.
+
+    Parameters
+    ----------
+    dts : pd.DatetimeIndex
+        Index in which to look up ``dt``. **Must be sorted**.
+    dt : pd.Timestamp
+        ``dt`` to be looked up.
+
+    Returns
+    -------
+    ix : int
+        Integer index such that dts[ix] == dt.
+
+    Raises
+    ------
+    KeyError
+        If dt is not in ``dts``.
+    """
+    ix = dts.searchsorted(dt)
+    if dts[ix] != dt:
+        raise KeyError(
+            "{0} is not in calendar [{1} ... {2}]".format(dt, dts[0], dts[-1])
+        )
+    return ix
+
+
 def nearest_unequal_elements(dts, dt):
     """
     Find values in ``dts`` closest but not equal to ``dt``.

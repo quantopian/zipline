@@ -34,6 +34,7 @@ from zipline.lib.adjustment import Float64Multiply, Float64Add
 from zipline.utils.cache import ExpiringCache
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import float64_dtype
+from zipline.utils.pandas_utils import find_in_sorted_index
 
 
 class HistoryCompatibleUSEquityAdjustmentReader(object):
@@ -376,14 +377,10 @@ class HistoryLoader(with_metaclass(ABCMeta)):
         size = len(dts)
         asset_windows = {}
         needed_assets = []
+        cal = self._calendar
 
         assets = self._asset_finder.retrieve_all(assets)
-
-        try:
-            end_ix = self._calendar.searchsorted(end)
-        except KeyError:
-            raise KeyError("{0} not in calendar [{1}...{2}]".format(
-                end, self._calendar[0], self._calendar[-1]))
+        end_ix = find_in_sorted_index(cal, end)
 
         for asset in assets:
             try:
@@ -401,15 +398,9 @@ class HistoryLoader(with_metaclass(ABCMeta)):
                     asset_windows[asset] = window
 
         if needed_assets:
-            start = dts[0]
-
             offset = 0
-            try:
-                start_ix = self._calendar.searchsorted(start)
-            except KeyError:
-                raise KeyError("{0} not in calendar [{1}...{2}]".format(
-                    start, self._calendar[0], self._calendar[-1]))
-            cal = self._calendar
+            start_ix = find_in_sorted_index(cal, dts[0])
+
             prefetch_end_ix = min(end_ix + self._prefetch_length, len(cal) - 1)
             prefetch_end = cal[prefetch_end_ix]
             prefetch_dts = cal[start_ix:prefetch_end_ix + 1]
