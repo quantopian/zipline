@@ -883,11 +883,9 @@ class WithEquityMinuteBarData(_WithMinuteBarDataBase):
     Methods
     -------
     make_equity_minute_bar_data() -> iterable[(int, pd.DataFrame)]
-        A class method that returns a dict mapping sid to dataframe
-        which will be written to into the the format of the inherited
-        class which writes the minute bar data for use by a reader.
-        By default this creates some simple sythetic data with
-        :func:`~zipline.testing.create_minute_bar_data`
+        Classmethod producing an iterator of (sid, minute_data) pairs.
+        The default implementation invokes
+        zipline.testing.core.create_minute_bar_data.
 
     See Also
     --------
