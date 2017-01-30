@@ -475,9 +475,9 @@ def _register_assert_equal_wrapper(type_, assert_eq):
                     print 'ROW:'
                     print i
                     print 'RESULT:'
-                    print r.iloc[i]
+                    print type(r.iloc[i]), r.iloc[i]
                     print 'EXPECTED:'
-                    print e.iloc[i]
+                    print type(r.iloc[i]), e.iloc[i]
                 
             print '@@@@@@'
             raise AssertionError(
