@@ -685,15 +685,25 @@ class WithEquityDailyBarData(WithTradingEnvironment):
     WithEquityMinuteBarData
     zipline.testing.create_daily_bar_data
     """
-    EQUITY_DAILY_BAR_LOOKBACK_DAYS = 0
-
     EQUITY_DAILY_BAR_USE_FULL_CALENDAR = False
     EQUITY_DAILY_BAR_START_DATE = alias('START_DATE')
     EQUITY_DAILY_BAR_END_DATE = alias('END_DATE')
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = None
 
+    @classproperty
+    def EQUITY_DAILY_BAR_LOOKBACK_DAYS(cls):
+        # If we're sourcing from minute data, then we almost certainly want the
+        # minute bar calendar to be aligned with the daily bar calendar, so
+        # re-use the same lookback parameter.
+        if cls.EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE:
+            return cls.EQUITY_MINUTE_BAR_LOOKBACK_DAYS
+        else:
+            return 0
+
     @classmethod
     def _make_equity_daily_bar_from_minute(cls):
+        assert issubclass(cls, WithEquityMinuteBarData), \
+            "Can't source daily data from minute without minute data!"
         assets = cls.asset_finder.retrieve_all(cls.asset_finder.equities_sids)
         minute_data = dict(cls.make_equity_minute_bar_data())
         for asset in assets:
