@@ -1838,6 +1838,14 @@ class TradingAlgorithm(object):
             current_position = self.portfolio.positions[asset].amount
             target -= current_position
 
+        if asset in self.blotter.open_orders:
+            current_unfilled = sum(
+                order.amount - order.filled
+                for order in self.blotter.open_orders[asset]
+                if order.limit is None and order.stop is None
+            )
+            target -= current_unfilled
+
         return target
 
     @api_method
