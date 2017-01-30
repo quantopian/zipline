@@ -135,7 +135,7 @@ class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
 
     @final
     @classmethod
-    def add_class_callback(cls, callback):
+    def add_class_callback(cls, callback, *args, **kwargs):
         """
         Register a callback to be executed during tearDownClass.
 
@@ -149,7 +149,7 @@ class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
                 'Attempted to add a class callback in init_instance_fixtures.'
                 '\nDid you mean to call add_instance_callback?',
             )
-        return cls._class_teardown_stack.callback(callback)
+        return cls._class_teardown_stack.callback(callback, *args, **kwargs)
 
     @final
     def setUp(self):
