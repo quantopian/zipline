@@ -118,9 +118,7 @@ def find_in_sorted_index(dts, dt):
     """
     ix = dts.searchsorted(dt)
     if dts[ix] != dt:
-        raise KeyError(
-            "{0} is not in calendar [{1} ... {2}]".format(dt, dts[0], dts[-1])
-        )
+        raise LookupError("{dt} is not in {dts}".format(dt=dt, dts=dts))
     return ix
 
 
