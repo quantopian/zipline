@@ -67,7 +67,7 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
         r = actual_perf[examples._cols_to_check].algorithm_period_return
         e = self.expected_perf[example_name][examples._cols_to_check].algorithm_period_return
         for i in range(len(r)):
-            if r.iloc[i] is not e.iloc[i] or r.iloc[i] != e.iloc[i]:
+            if abs(r.iloc[i] - e.iloc[i]) > 0 or type(r.iloc[i]) != type(e.iloc[i]) or type(r.iloc[i]) is not type(e.iloc[i]):
                 print 'ROW:'
                 print i
                 print 'RESULT:'
