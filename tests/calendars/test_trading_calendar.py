@@ -670,6 +670,14 @@ class ExchangeCalendarTestBase(object):
             found_open, found_close = \
                 self.calendar.open_and_close_for_session(session_label)
 
+            # Test that the methods for just session open and close produce the
+            # same values as the method for getting both.
+            alt_open = self.calendar.session_open(session_label)
+            self.assertEqual(alt_open, found_open)
+
+            alt_close = self.calendar.session_close(session_label)
+            self.assertEqual(alt_close, found_close)
+
             self.assertEqual(open_answer, found_open)
             self.assertEqual(close_answer, found_close)
 
