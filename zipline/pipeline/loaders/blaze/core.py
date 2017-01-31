@@ -182,7 +182,7 @@ from zipline.pipeline.loaders.utils import (
 )
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.lib.adjusted_array import AdjustedArray, can_represent_dtype
-from zipline.lib.adjustment import Float64Overwrite
+from zipline.lib.adjustment import make_adjustment_from_indices, OVERWRITE
 from zipline.utils.input_validation import (
     expect_element,
     ensure_timezone,
@@ -760,7 +760,7 @@ def overwrite_novel_deltas(baseline, deltas, dates):
 
 
 def overwrite_from_dates(asof, dense_dates, sparse_dates, asset_idx, value):
-    """Construct a `Float64Overwrite` with the correct
+    """Construct an Overwrite with the correct
     start and end date based on the asof date of the delta,
     the dense_dates, and the dense_dates.
 
@@ -775,7 +775,7 @@ def overwrite_from_dates(asof, dense_dates, sparse_dates, asset_idx, value):
     asset_idx : tuple of int
         The index of the asset in the block. If this is a tuple, then this
         is treated as the first and last index to use.
-    value : np.float64
+    value : any
         The value to overwrite with.
 
     Returns
@@ -815,7 +815,9 @@ def overwrite_from_dates(asof, dense_dates, sparse_dates, asset_idx, value):
         return
 
     first, last = asset_idx
-    yield Float64Overwrite(first_row, last_row, first, last, value)
+    yield make_adjustment_from_indices(
+        first_row, last_row, first, last, OVERWRITE, value
+    )
 
 
 def adjustments_from_deltas_no_sids(dense_dates,

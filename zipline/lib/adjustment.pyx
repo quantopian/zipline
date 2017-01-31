@@ -4,6 +4,9 @@ from cpython cimport Py_EQ
 from pandas import isnull, Timestamp
 from numpy cimport float64_t, uint8_t, int64_t
 from numpy import asarray, datetime64, float64, int64
+
+from zipline.utils.compat import unicode
+
 # Purely for readability. There aren't C-level declarations for these types.
 ctypedef object Int64Index_t
 ctypedef object DatetimeIndex_t
@@ -29,6 +32,12 @@ cdef dict _float_adjustment_types = {
 cdef dict _datetime_adjustment_types = {
     OVERWRITE: Datetime64Overwrite,
 }
+cdef dict _object_adjustment_types = {
+    OVERWRITE: ObjectOverwrite,
+}
+cdef dict _int_adjustment_types = {
+    OVERWRITE: Int64Overwrite,
+}
 
 cdef _is_float(object value):
     return isinstance(value, (float, float64))
@@ -36,6 +45,11 @@ cdef _is_float(object value):
 def _is_datetime(object value):
     return isinstance(value, (datetime64, Timestamp))
 
+def _is_int(object value):
+    return isinstance(value, (int, int64))
+
+def _is_obj(object value):
+    return isinstance(value, (bytes, unicode, type(None)))
 
 cpdef choose_adjustment_type(AdjustmentKind adjustment_kind, object value):
     """
@@ -67,11 +81,16 @@ cpdef choose_adjustment_type(AdjustmentKind adjustment_kind, object value):
             return _float_adjustment_types[adjustment_kind]
         elif _is_datetime(value):
             return _datetime_adjustment_types[adjustment_kind]
+        elif _is_int(value):
+            return _int_adjustment_types[adjustment_kind]
+        elif _is_obj(value):
+            return _object_adjustment_types[adjustment_kind]
         else:
             raise TypeError(
                 "Don't know how to make overwrite "
                 "adjustments for values of type %r." % type(value),
             )
+
     else:
         raise ValueError("Unknown adjustment type %d." % adjustment_kind)
 
@@ -583,6 +602,45 @@ cdef class _Int64Adjustment(Adjustment):
                 self.value,
             )
         )
+
+
+cdef class Int64Overwrite(_Int64Adjustment):
+    """
+    An adjustment that overwrites with an int.
+
+    Example
+    -------
+
+    >>> import numpy as np
+    >>> arr = np.arange(9, dtype=int).reshape(3, 3)
+    >>> arr
+    array([[ 0,  1,  2],
+           [ 3,  4,  5],
+           [ 6,  7,  8]])
+
+    >>> adj = Int64Overwrite(
+    ...     first_row=1,
+    ...     last_row=2,
+    ...     first_col=1,
+    ...     last_col=2,
+    ...     value=0,
+    ... )
+    >>> adj.mutate(arr)
+    >>> arr
+    array([[ 0,  1,  2],
+           [ 3,  0,  0],
+           [ 6,  0,  0]])
+    """
+
+    cpdef mutate(self, int64_t[:, :] data):
+        cdef Py_ssize_t row, col
+        cdef int64_t value = self.value
+
+        # last_col + 1 because last_col should also be affected.
+        for col in range(self.first_col, self.last_col + 1):
+            # last_row + 1 because last_row should also be affected.
+            for row in range(self.first_row, self.last_row + 1):
+                data[row, col] = value
 
 
 cdef datetime_to_int(object datetimelike):
