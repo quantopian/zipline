@@ -529,10 +529,10 @@ def expect_element(__funcname=_qualified_name, **named):
 
 def expect_bounded(__funcname=_qualified_name, **named):
     """
-    Preprocessing decorator verifying that inputs fall between bounds.
+    Preprocessing decorator verifying that inputs fall INCLUSIVELY between
+    bounds.
 
-    Bounds should be passed as a pair of ``(min_value, max_value)``. Both
-    bounds are checked inclusively.
+    Bounds should be passed as a pair of ``(min_value, max_value)``.
 
     ``None`` may be passed as ``min_value`` or ``max_value`` to signify that
     the input is only bounded above or below.
@@ -550,8 +550,8 @@ def expect_bounded(__funcname=_qualified_name, **named):
     >>> foo(6)  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
     Traceback (most recent call last):
        ...
-    ValueError: ...foo() expected a value between 1 and 5 for argument 'x',
-    but got 6 instead.
+    ValueError: ...foo() expected a value inclusively between 1 and 5 for
+    argument 'x', but got 6 instead.
 
     >>> @expect_bounded(x=(2, None))
     ... def foo(x):
@@ -575,6 +575,117 @@ def expect_bounded(__funcname=_qualified_name, **named):
     ValueError: ...foo() expected a value less than or equal to 5 for
     argument 'x', but got 6 instead.
     """
+    def _make_bounded_check(bounds):
+        (lower, upper) = bounds
+        if lower is None:
+            def should_fail(value):
+                return value > upper
+            predicate_descr = "less than or equal to " + str(upper)
+        elif upper is None:
+            def should_fail(value):
+                return value < lower
+            predicate_descr = "greater than or equal to " + str(lower)
+        else:
+            def should_fail(value):
+                return not (lower <= value <= upper)
+            predicate_descr = "inclusively between %s and %s" % bounds
+
+        template = (
+            "%(funcname)s() expected a value {predicate}"
+            " for argument '%(argname)s', but got %(actual)s instead."
+        ).format(predicate=predicate_descr)
+
+        return make_check(
+            exc_type=ValueError,
+            template=template,
+            pred=should_fail,
+            actual=repr,
+            funcname=__funcname,
+        )
+
+    return _expect_bounded(_make_bounded_check, __funcname=__funcname, **named)
+
+
+def expect_strictly_bounded(__funcname=_qualified_name, **named):
+    """
+    Preprocessing decorator verifying that inputs fall EXCLUSIVELY between
+    bounds.
+
+    Bounds should be passed as a pair of ``(min_value, max_value)``.
+
+    ``None`` may be passed as ``min_value`` or ``max_value`` to signify that
+    the input is only bounded above or below.
+
+    Usage
+    -----
+    >>> @expect_strictly_bounded(x=(1, 5))
+    ... def foo(x):
+    ...    return x + 1
+    ...
+    >>> foo(2)
+    3
+    >>> foo(4)
+    5
+    >>> foo(5)  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
+    Traceback (most recent call last):
+       ...
+    ValueError: ...foo() expected a value exclusively between 1 and 5 for
+    argument 'x', but got 5 instead.
+
+    >>> @expect_strictly_bounded(x=(2, None))
+    ... def foo(x):
+    ...    return x
+    ...
+    >>> foo(100000)
+    100000
+    >>> foo(2)  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
+    Traceback (most recent call last):
+       ...
+    ValueError: ...foo() expected a value strictly greater than 2 for
+    argument 'x', but got 2 instead.
+
+    >>> @expect_strictly_bounded(x=(None, 5))
+    ... def foo(x):
+    ...    return x
+    ...
+    >>> foo(5)  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
+    Traceback (most recent call last):
+       ...
+    ValueError: ...foo() expected a value strictly less than 5 for
+    argument 'x', but got 5 instead.
+    """
+    def _make_bounded_check(bounds):
+        (lower, upper) = bounds
+        if lower is None:
+            def should_fail(value):
+                return value >= upper
+            predicate_descr = "strictly less than " + str(upper)
+        elif upper is None:
+            def should_fail(value):
+                return value <= lower
+            predicate_descr = "strictly greater than " + str(lower)
+        else:
+            def should_fail(value):
+                return not (lower < value < upper)
+            predicate_descr = "exclusively between %s and %s" % bounds
+
+        template = (
+            "%(funcname)s() expected a value {predicate}"
+            " for argument '%(argname)s', but got %(actual)s instead."
+        ).format(predicate=predicate_descr)
+
+        return make_check(
+            exc_type=ValueError,
+            template=template,
+            pred=should_fail,
+            actual=repr,
+            funcname=__funcname,
+        )
+
+    return _expect_bounded(_make_bounded_check, __funcname=__funcname, **named)
+
+
+def _expect_bounded(make_bounded_check, __funcname, **named):
     def valid_bounds(t):
         return (
             isinstance(t, tuple)
@@ -592,34 +703,7 @@ def expect_bounded(__funcname=_qualified_name, **named):
                 )
             )
 
-    def _expect_bounded(bounds):
-        (lower, upper) = bounds
-        if lower is None:
-            def should_fail(value):
-                return value > upper
-            predicate_descr = "less than or equal to " + str(upper)
-        elif upper is None:
-            def should_fail(value):
-                return value < lower
-            predicate_descr = "greater than or equal to " + str(lower)
-        else:
-            def should_fail(value):
-                return not (lower <= value <= upper)
-            predicate_descr = "between %s and %s" % bounds
-
-        template = (
-            "%(funcname)s() expected a value {predicate}"
-            " for argument '%(argname)s', but got %(actual)s instead."
-        ).format(predicate=predicate_descr)
-
-        return make_check(
-            exc_type=ValueError,
-            template=template,
-            pred=should_fail,
-            actual=repr,
-            funcname=__funcname,
-        )
-    return preprocess(**valmap(_expect_bounded, named))
+    return preprocess(**valmap(make_bounded_check, named))
 
 
 def expect_dimensions(__funcname=_qualified_name, **dimensions):
