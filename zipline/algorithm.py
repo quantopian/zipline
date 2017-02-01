@@ -531,6 +531,17 @@ class TradingAlgorithm(object):
             # as the last minute of the session.
             market_opens = market_closes
 
+        # The calendar's execution times are the minutes over which we actually
+        # want to run the clock. Typically the execution times simply adhere to
+        # the market open and close times. In the case of the futures calendar,
+        # for example, we only want to simulate over a subset of the full 24
+        # hour calendar, so the execution times dictate a market open time of
+        # 6:31am US/Eastern and a close of 5:00pm US/Eastern.
+        execution_opens = \
+            self.trading_calendar.execution_time_from_open(market_opens)
+        execution_closes = \
+            self.trading_calendar.execution_time_from_close(market_closes)
+
         # FIXME generalize these values
         before_trading_start_minutes = days_at_time(
             self.sim_params.sessions,
@@ -540,8 +551,8 @@ class TradingAlgorithm(object):
 
         return MinuteSimulationClock(
             self.sim_params.sessions,
-            market_opens,
-            market_closes,
+            execution_opens,
+            execution_closes,
             before_trading_start_minutes,
             minute_emission=minutely_emission,
         )

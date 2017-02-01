@@ -3502,6 +3502,115 @@ class TestFutureFlip(WithDataPortal, WithSimParams, ZiplineTestCase):
                 format(i, actual_position, expected_positions[i]))
 
 
+class TestFuturesAlgo(WithDataPortal, WithSimParams, ZiplineTestCase):
+    START_DATE = pd.Timestamp('2016-01-06', tz='utc')
+    END_DATE = pd.Timestamp('2016-01-07', tz='utc')
+    FUTURE_MINUTE_BAR_START_DATE = pd.Timestamp('2016-01-05', tz='UTC')
+
+    SIM_PARAMS_DATA_FREQUENCY = 'minute'
+
+    TRADING_CALENDAR_STRS = ('us_futures',)
+    TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
+
+    @classmethod
+    def make_futures_info(cls):
+        return pd.DataFrame.from_dict(
+            {
+                1: {
+                    'symbol': 'CLG16',
+                    'root_symbol': 'CL',
+                    'start_date': pd.Timestamp('2015-12-01', tz='UTC'),
+                    'notice_date': pd.Timestamp('2016-01-20', tz='UTC'),
+                    'expiration_date': pd.Timestamp('2016-02-19', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2016-01-18', tz='UTC'),
+                    'exchange': 'TEST',
+                },
+            },
+            orient='index',
+        )
+
+    def test_futures_history(self):
+        algo_code = dedent(
+            """
+            from datetime import time
+            from zipline.api import (
+                date_rules,
+                get_datetime,
+                schedule_function,
+                sid,
+                time_rules,
+            )
+
+            def initialize(context):
+                context.history_values = []
+
+                schedule_function(
+                    make_history_call,
+                    date_rules.every_day(),
+                    time_rules.market_open(),
+                )
+
+                schedule_function(
+                    check_market_close_time,
+                    date_rules.every_day(),
+                    time_rules.market_close(),
+                )
+
+            def make_history_call(context, data):
+                # Ensure that the market open is 6:31am US/Eastern.
+                open_time = get_datetime().tz_convert('US/Eastern').time()
+                assert open_time == time(6, 31)
+                context.history_values.append(
+                    data.history(sid(1), 'close', 5, '1m'),
+                )
+
+            def check_market_close_time(context, data):
+                # Ensure that this function is called at 4:59pm US/Eastern.
+                # By default, `market_close()` uses an offset of 1 minute.
+                close_time = get_datetime().tz_convert('US/Eastern').time()
+                assert close_time == time(16, 59)
+            """
+        )
+
+        algo = TradingAlgorithm(
+            script=algo_code,
+            sim_params=self.sim_params,
+            env=self.env,
+            trading_calendar=get_calendar('us_futures'),
+        )
+        algo.run(self.data_portal)
+
+        # Assert that we were able to retrieve history data for minutes outside
+        # of the 6:31am US/Eastern to 5:00pm US/Eastern futures open times.
+        np.testing.assert_array_equal(
+            algo.history_values[0].index,
+            pd.date_range(
+                '2016-01-06 6:27',
+                '2016-01-06 6:31',
+                freq='min',
+                tz='US/Eastern',
+            ),
+        )
+        np.testing.assert_array_equal(
+            algo.history_values[1].index,
+            pd.date_range(
+                '2016-01-07 6:27',
+                '2016-01-07 6:31',
+                freq='min',
+                tz='US/Eastern',
+            ),
+        )
+
+        # Expected prices here are given by the range values created by the
+        # default `make_future_minute_bar_data` method.
+        np.testing.assert_array_equal(
+            algo.history_values[0].values, list(map(float, range(2196, 2201))),
+        )
+        np.testing.assert_array_equal(
+            algo.history_values[1].values, list(map(float, range(3636, 3641))),
+        )
+
+
 class TestTradingAlgorithm(ZiplineTestCase):
     def test_analyze_called(self):
         self.perf_ref = None
