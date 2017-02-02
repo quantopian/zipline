@@ -323,7 +323,7 @@ def ingest(bundle, assets_version, show_progress):
     help='The data bundle to clean.',
 )
 @click.option(
-    '-b',
+    '-e',
     '--before',
     type=Timestamp(),
     help='Clear all data before TIMESTAMP.'

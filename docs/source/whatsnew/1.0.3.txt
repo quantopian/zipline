@@ -56,4 +56,6 @@ None
 Miscellaneous
 ~~~~~~~~~~~~~
 
-None
+* Changed the short-opt for ``--before`` in the ``zipline clean``
+  entrypoint. The new argument is ``-e``. The old argument, ``-b``, conflicted
+  with the ``--bundle`` short-opt (:issue:`1625`).
