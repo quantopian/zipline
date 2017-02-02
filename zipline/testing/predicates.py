@@ -29,7 +29,6 @@ from nose.tools import (  # noqa
     assert_raises,
     assert_raises_regexp,
     assert_regexp_matches,
-    assert_sequence_equal,
     assert_true,
     assert_tuple_equal,
 )
@@ -371,12 +370,14 @@ def assert_dict_equal(result, expected, path=(), msg='', **kwargs):
 
 
 @assert_equal.register(list, list)
-def assert_list_equal(result, expected, path=(), msg='', **kwargs):
+@assert_equal.register(tuple, tuple)
+def assert_sequence_equal(result, expected, path=(), msg='', **kwargs):
     result_len = len(result)
     expected_len = len(expected)
     assert result_len == expected_len, (
-        '%slist lengths do not match: %d != %d\n%s' % (
+        '%s%s lengths do not match: %d != %d\n%s' % (
             _fmt_msg(msg),
+            type(result).__name__,
             result_len,
             expected_len,
             _fmt_path(path),
