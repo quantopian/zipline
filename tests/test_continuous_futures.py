@@ -1234,8 +1234,6 @@ class OrderedContractsTestCase(WithAssetFinder,
             'notice_date': pd.date_range('2016-01-01', periods=4, tz="UTC"),
             'expiration_date': pd.date_range(
                 '2016-01-01', periods=4, tz="UTC"),
-            'expiration_date': pd.date_range(
-                '2016-01-01', periods=4, tz="UTC"),
             'auto_close_date': pd.date_range(
                 '2016-01-01', periods=4, tz="UTC"),
             'tick_size': [0.001] * 4,
