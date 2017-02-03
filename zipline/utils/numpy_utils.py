@@ -69,12 +69,28 @@ INT_DTYPES_BY_SIZE_BYTES = OrderedDict([
     (8, dtype('int64')),
 ])
 
+UNSIGNED_INT_DTYPES_BY_SIZE_BYTES = OrderedDict([
+    (1, dtype('uint8')),
+    (2, dtype('uint16')),
+    (4, dtype('uint32')),
+    (8, dtype('uint64')),
+])
+
 
 def int_dtype_with_size_in_bytes(size):
     try:
         return INT_DTYPES_BY_SIZE_BYTES[size]
     except KeyError:
         raise ValueError("No integral dtype whose size is %d bytes." % size)
+
+
+def unsigned_int_dtype_with_size_in_bytes(size):
+    try:
+        return UNSIGNED_INT_DTYPES_BY_SIZE_BYTES[size]
+    except KeyError:
+        raise ValueError(
+            "No unsigned integral dtype whose size is %d bytes." % size
+        )
 
 
 class NoDefaultMissingValue(Exception):

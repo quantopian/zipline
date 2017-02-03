@@ -1,7 +1,9 @@
 from itertools import product
 from operator import eq, ne
-import numpy as np
 import warnings
+
+import numpy as np
+from toolz import take
 
 from zipline.lib.labelarray import LabelArray
 from zipline.testing import check_arrays, parameter_space, ZiplineTestCase
@@ -337,3 +339,37 @@ class LabelArrayTestCase(ZiplineTestCase):
         # Write the whole array.
         arr[:] = orig_arr
         check_arrays(arr, orig_arr)
+
+    def test_narrow_code_storage(self):
+        def create_categories(width, plus_one):
+            length = int(width / 8) + plus_one
+            return [
+                ''.join(cs)
+                for cs in take(
+                    2 ** width + plus_one,
+                    product([chr(c) for c in range(256)], repeat=length),
+                )
+            ]
+
+        #  uint8
+        categories = create_categories(8, plus_one=False)
+        arr = LabelArray([], missing_value='', categories=categories)
+        self.assertEqual(arr.itemsize, 1)
+
+        # just over uint8
+        categories = create_categories(8, plus_one=True)
+        arr = LabelArray([], missing_value='', categories=categories)
+        self.assertEqual(arr.itemsize, 2)
+
+        # fits in uint16
+        categories = create_categories(16, plus_one=False)
+        arr = LabelArray([], missing_value='', categories=categories)
+        self.assertEqual(arr.itemsize, 2)
+
+        # just over uint16
+        categories = create_categories(16, plus_one=True)
+        arr = LabelArray([], missing_value='', categories=categories)
+        self.assertEqual(arr.itemsize, 4)
+
+        # NOTE: we could do this for 32 and 64; however, no one has enough RAM
+        # or time for that.

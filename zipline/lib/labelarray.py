@@ -21,7 +21,7 @@ from zipline.utils.input_validation import (
 )
 from zipline.utils.numpy_utils import (
     bool_dtype,
-    int_dtype_with_size_in_bytes,
+    unsigned_int_dtype_with_size_in_bytes,
     is_object,
 )
 from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning
@@ -80,6 +80,7 @@ class CategoryMismatch(ValueError):
                 right=right[mismatches],
             )
         )
+
 
 _NotPassed = sentinel('_NotPassed')
 
@@ -289,7 +290,7 @@ class LabelArray(ndarray):
         """
         return self.view(
             type=ndarray,
-            dtype=int_dtype_with_size_in_bytes(self.itemsize),
+            dtype=unsigned_int_dtype_with_size_in_bytes(self.itemsize),
         )
 
     def as_string_array(self):
@@ -384,7 +385,9 @@ class LabelArray(ndarray):
 
         # Result is a scalar value, which will be an instance of np.void.
         # Map it back to one of our category entries.
-        index = result.view(int_dtype_with_size_in_bytes(self.itemsize))
+        index = result.view(
+            unsigned_int_dtype_with_size_in_bytes(self.itemsize),
+        )
         return self.categories[index]
 
     def is_missing(self):
@@ -518,7 +521,7 @@ class LabelArray(ndarray):
             codes=np.full(
                 shape,
                 self.reverse_categories[self.missing_value],
-                dtype=int_dtype_with_size_in_bytes(self.itemsize),
+                dtype=unsigned_int_dtype_with_size_in_bytes(self.itemsize),
             ),
             categories=self.categories,
             reverse_categories=self.reverse_categories,
