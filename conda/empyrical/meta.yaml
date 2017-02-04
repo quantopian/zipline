@@ -1,11 +1,11 @@
 package:
   name: empyrical
-  version: "0.2.1"
+  version: "0.2.2"
 
 source:
-  fn: empyrical-0.2.1.tar.gz
-  url: https://pypi.python.org/packages/af/68/2329f8eeadea30775458075a13eb4c80647f309121ed2d797fdac1fcf4d7/empyrical-0.2.1.tar.gz
-  md5: 6cc874d9e77017a4545e294048d310cd
+  fn: empyrical-0.2.2.tar.gz
+  url: https://pypi.python.org/packages/61/0a/959a48f176da49ddd939d49ad53bc6e5e4c82c022f1f724517cb7a82770c/empyrical-0.2.2.tar.gz
+  md5: d614402c585ccad847b35e6c73f85a67
 #  patches:
    # List any patch files here
    # - fix.patch
