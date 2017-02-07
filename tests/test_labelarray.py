@@ -351,24 +351,55 @@ class LabelArrayTestCase(ZiplineTestCase):
                 )
             ]
 
-        #  uint8
+        # uint8
         categories = create_categories(8, plus_one=False)
-        arr = LabelArray([], missing_value='', categories=categories)
+        arr = LabelArray(
+            [],
+            missing_value=categories[0],
+            categories=categories,
+        )
+        self.assertEqual(arr.itemsize, 1)
+
+        # uint8 inference
+        arr = LabelArray(categories, missing_value=categories[0])
         self.assertEqual(arr.itemsize, 1)
 
         # just over uint8
         categories = create_categories(8, plus_one=True)
-        arr = LabelArray([], missing_value='', categories=categories)
+        arr = LabelArray(
+            [],
+            missing_value=categories[0],
+            categories=categories,
+        )
+        self.assertEqual(arr.itemsize, 2)
+
+        # uint16 inference
+        arr = LabelArray(categories, missing_value=categories[0])
         self.assertEqual(arr.itemsize, 2)
 
         # fits in uint16
         categories = create_categories(16, plus_one=False)
-        arr = LabelArray([], missing_value='', categories=categories)
+        arr = LabelArray(
+            [], missing_value=categories[0],
+            categories=categories,
+        )
+        self.assertEqual(arr.itemsize, 2)
+
+        # uint16 inference
+        arr = LabelArray(categories, missing_value=categories[0])
         self.assertEqual(arr.itemsize, 2)
 
         # just over uint16
         categories = create_categories(16, plus_one=True)
-        arr = LabelArray([], missing_value='', categories=categories)
+        arr = LabelArray(
+            [],
+            missing_value=categories[0],
+            categories=categories,
+        )
+        self.assertEqual(arr.itemsize, 4)
+
+        # uint32 inference
+        arr = LabelArray(categories, missing_value=categories[0])
         self.assertEqual(arr.itemsize, 4)
 
         # NOTE: we could do this for 32 and 64; however, no one has enough RAM
