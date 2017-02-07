@@ -4278,7 +4278,6 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
             env=env,
             sim_params=resources.sim_params,
             data_frequency='minute',
-            capital_base=capital_base,
         )
 
         output = algo.run(resources.data_portal)

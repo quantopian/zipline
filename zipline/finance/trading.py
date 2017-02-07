@@ -28,6 +28,9 @@ from zipline.utils.memoize import remember_last
 log = logbook.Logger('Trading')
 
 
+DEFAULT_CAPITAL_BASE = 1e5
+
+
 class TradingEnvironment(object):
     """
     The financial simulations in zipline depend on information
@@ -128,7 +131,7 @@ class TradingEnvironment(object):
 class SimulationParameters(object):
     def __init__(self, start_session, end_session,
                  trading_calendar,
-                 capital_base=10e3,
+                 capital_base=DEFAULT_CAPITAL_BASE,
                  emission_rate='daily',
                  data_frequency='daily',
                  arena='backtest'):

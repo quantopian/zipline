@@ -157,7 +157,6 @@ def _run(handle_data,
 
     perf = TradingAlgorithm(
         namespace=namespace,
-        capital_base=capital_base,
         env=env,
         get_pipeline_loader=choose_loader,
         sim_params=create_simulation_parameters(
