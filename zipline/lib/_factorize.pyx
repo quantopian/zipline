@@ -1,13 +1,23 @@
 """
 Factorization algorithms.
 """
-from libc.math cimport log2, floor
+from libc.math cimport floor
 cimport numpy as np
 import numpy as np
 
 from zipline.utils.numpy_utils import unsigned_int_dtype_with_size_in_bytes
 
 np.import_array()
+
+
+IF UNAME_SYSNAME == "Windows":
+    # msvc doesn't define log2
+    from libc.math cimport log
+
+    cdef double log2(double d):
+        return log(d) / log(2);
+ELSE:
+    from libc.math cimport log2
 
 
 ctypedef fused unsigned_integral:
