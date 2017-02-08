@@ -1142,16 +1142,20 @@ def parameter_space(__fail_fast=False, **params):
                 "supplied to parameter_space()." % extra
             )
 
-        param_sets = product(*(params[name] for name in argnames))
+        make_param_sets = lambda: product(*(params[name] for name in argnames))
 
         if __fail_fast:
             @wraps(f)
             def wrapped(self):
-                for args in param_sets:
+                for args in make_param_sets():
                     f(self, *args)
             return wrapped
         else:
-            return subtest(param_sets, *argnames)(f)
+            @wraps(f)
+            def wrapped(*args, **kwargs):
+                subtest(make_param_sets(), *argnames)(f)(*args, **kwargs)
+
+        return wrapped
 
     return decorator
 
