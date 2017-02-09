@@ -1040,11 +1040,11 @@ class SQLiteAdjustmentWriter(object):
             dividend_payouts['ex_date'] = dividend_payouts['ex_date'].values.\
                 astype('datetime64[s]').astype(integer)
             dividend_payouts['record_date'] = \
-                dividend_payouts['record_date'].values.astype('datetime64[s]').\
-                astype(integer)
+                dividend_payouts['record_date'].values.\
+                astype('datetime64[s]').astype(integer)
             dividend_payouts['declared_date'] = \
-                dividend_payouts['declared_date'].values.astype('datetime64[s]').\
-                astype(integer)
+                dividend_payouts['declared_date'].values.\
+                astype('datetime64[s]').astype(integer)
             dividend_payouts['pay_date'] = \
                 dividend_payouts['pay_date'].values.astype('datetime64[s]').\
                 astype(integer)

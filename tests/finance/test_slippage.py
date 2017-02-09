@@ -801,8 +801,8 @@ class OrdersStopTestCase(WithSimParams,
             start=normalize_date(self.minutes[0]),
             end=normalize_date(self.minutes[-1])
         )
-        with tmp_bcolz_equity_minute_bar_reader(self.trading_calendar, days, assets) \
-                as reader:
+        with tmp_bcolz_equity_minute_bar_reader(
+                self.trading_calendar, days, assets) as reader:
             data_portal = DataPortal(
                 self.env.asset_finder, self.trading_calendar,
                 first_trading_day=reader.first_trading_day,
