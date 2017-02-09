@@ -1099,6 +1099,37 @@ class WithBcolzFutureMinuteBarReader(WithFutureMinuteBarData, WithTmpDir):
             BcolzMinuteBarReader(p)
 
 
+class WithConstantEquityMinuteBarData(WithEquityMinuteBarData):
+
+    EQUITY_MINUTE_CONSTANT_LOW = 3.0
+    EQUITY_MINUTE_CONSTANT_OPEN = 4.0
+    EQUITY_MINUTE_CONSTANT_CLOSE = 5.0
+    EQUITY_MINUTE_CONSTANT_HIGH = 6.0
+    EQUITY_MINUTE_CONSTANT_VOLUME = 100.0
+
+    @classmethod
+    def make_equity_minute_bar_data(cls):
+        trading_calendar = cls.trading_calendars[Equity]
+
+        sids = cls.asset_finder.equities_sids
+        minutes = trading_calendar.minutes_for_sessions_in_range(
+            cls.equity_minute_bar_days[0],
+            cls.equity_minute_bar_days[-1],
+        )
+        frame = pd.DataFrame(
+            {
+                'open': cls.EQUITY_MINUTE_CONSTANT_OPEN,
+                'high': cls.EQUITY_MINUTE_CONSTANT_HIGH,
+                'low': cls.EQUITY_MINUTE_CONSTANT_LOW,
+                'close': cls.EQUITY_MINUTE_CONSTANT_CLOSE,
+                'volume': cls.EQUITY_MINUTE_CONSTANT_VOLUME,
+            },
+            index=minutes,
+        )
+
+        return ((sid, frame) for sid in sids)
+
+
 class WithAdjustmentReader(WithBcolzEquityDailyBarReader):
     """
     ZiplineTestCase mixin providing cls.adjustment_reader as a class level
