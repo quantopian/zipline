@@ -275,6 +275,145 @@ def check_data_query_args(data_query_time, data_query_tz):
             ),
         )
 
+def grouped_ffilled_reindex(df, index, group_columns):
+    """Perform a groupwise reindex(method='ffill') for a dataframe without
+    altering the dtypes of columns. Any row which would have a `nan` written
+    is dropped.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The dataframe to reindex groupwise.
+    index : pd.Index
+        The new index per group.
+    group_columns : str or list[str]
+        The group_columns of column or columns to group by.
+
+    Returns
+    -------
+    grouped_reindexed : pd.DataFrame
+        The result of the grouping, reindexing, and forward filling.
+
+    Examples
+    --------
+    >>> df = df = pd.DataFrame(
+    ...     [[1, 1], [1, 2], [2, 3], [2, 4], [2, 5], [3, 6], [3, 7]],
+    ...     columns=['key', 'col'],
+    ...     index=pd.Index([0, 1, 0, 1, 2, 1, 2])
+    ... )
+    >>> df
+       key  col
+    0    1    1
+    1    1    2
+    0    2    3
+    1    2    4
+    2    2    5
+    1    3    6
+    2    3    7
+    >>> grouped_ffilled_reindex(df, [1, 2], 'key')
+       key  col
+    1    1    2
+    2    1    2
+    1    2    4
+    2    2    5
+    1    3    6
+    2    3    7
+    """
+    import pdb; pdb.set_trace()
+    groups = df.groupby(group_columns).indices
+    # The output arrays and nan mask are preallocated to
+    # ``len(index) * len(groups)`` because that is the maximum size possible
+    # if we don't need to mask out any missing values. This also makes it
+    # easy to fill by shifting our indices by ``len(index)`` per group.
+    out_len = len(index) * len(groups)
+    out_columns = {
+        column: np.empty(out_len, dtype=df.dtypes[column])
+        for column in df.columns
+    }
+    # In our reindex we will never write ``nan``, instead we will use a mask
+    # array to filter out any missing rows before returning the final
+    # dataframe.
+    mask = np.empty(out_len, dtype=bool)
+    # It is much faster to perform our operations on an ndarray per column
+    # instead of the series so we expand our input dataframe into a dict
+    # mapping string column name to the ndarray for that column.
+    in_columns = {
+        column: df[column].values
+        for column in df.columns
+    }
+
+    for n, group_ix in enumerate(groups.values()):
+        # ``group_ix`` is an array with all of the integer indices for the
+        # elements of a single group.
+
+        # The data for each group is written into shared column and mask arrays
+        # so we adjust all the indices by group_number * len(index).
+        offset = n * len(index)
+
+        # Get the indices for the reindex.
+        where = df.index[group_ix].get_indexer_for(index, method='ffill')
+
+        # Any value which would have a ``nan`` written has an index of ``-1``
+        # in ``where``. We mask out the ``nan`` values so that we can just
+        # resize the output buffer once before creating the dataframe.
+        group_mask = where != -1
+        mask[offset:offset + len(index)] = group_mask
+
+        for column, out_buf in out_columns.items():
+            # For each column, select from the input array with the indices
+            # computed for the reindex and write the result to a slice of our
+            # preallocated output column array.
+            in_columns[column][group_ix].take(
+                where,
+                out=out_buf[offset:offset + len(index)],
+            )
+
+    return pd.DataFrame(
+        # Apply our mask to each of the output columns.
+        {name: buf[mask] for name, buf in out_columns.items()},
+        # The full output index is the new index tiled ``len(groups)`` times.
+        # To get the actual output index we then slice based on our mask.
+        index=np.tile(index, len(groups))[mask],
+        # Ensure our output columns are in the same order as our input columns.
+        columns=df.columns,
+    )
+
+
+def flat_last_in_date_group(df, dates, group_columns):
+    """Compute the last forward filled value in each date group.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The input dataframe of non forward filled records.
+    dates : pd.Index
+        The date index to align the timestamps to.
+
+    Returns
+    -------
+    ffilled : pd.DataFrame
+        The correctly forward filled dataframe.
+    """
+    idx = [
+        dates[dates.searchsorted(
+            df[TS_FIELD_NAME].values.astype('datetime64[D]')
+        )],
+    ] + group_columns
+
+    last_in_group = df.drop(TS_FIELD_NAME, axis=1).groupby(
+        idx,
+        sort=False,
+    ).last()
+    last_in_group.reset_index(group_columns, inplace=True)
+    last_in_group = grouped_ffilled_reindex(
+        last_in_group,
+        dates,
+        group_columns,
+    )
+    last_in_group.reset_index(inplace=True)
+    last_in_group.rename(columns={'index': TS_FIELD_NAME}, inplace=True)
+    return last_in_group
+
 
 def last_in_date_group(df,
                        dates,
