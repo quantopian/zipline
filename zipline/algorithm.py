@@ -306,7 +306,6 @@ class TradingAlgorithm(object):
                 end=kwargs.pop('end', None),
                 trading_calendar=self.trading_calendar,
             )
-        self.capital_base = self.sim_params.capital_base
 
         self.perf_tracker = None
         # Pull in the environment's new AssetFinder for quick reference
@@ -499,7 +498,7 @@ class TradingAlgorithm(object):
     blotter={blotter},
     recorded_vars={recorded_vars})
 """.strip().format(class_name=self.__class__.__name__,
-                   capital_base=self.capital_base,
+                   capital_base=self.sim_params.capital_base,
                    sim_params=repr(self.sim_params),
                    initialized=self.initialized,
                    slippage=repr(self.blotter.slippage_func),
