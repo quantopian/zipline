@@ -144,8 +144,6 @@ from zipline.gens.sim_engine import MinuteSimulationClock
 from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
-DEFAULT_CAPITAL_BASE = 1e5
-
 
 log = logbook.Logger("ZiplineLog")
 
@@ -181,8 +179,6 @@ class TradingAlgorithm(object):
         tracebacks. default: '<string>'.
     data_frequency : {'daily', 'minute'}, optional
         The duration of the bars.
-    capital_base : float, optional
-        How much capital to start with. default: 1.0e5
     instant_fill : bool, optional
         Whether to fill orders immediately or on next bar. default: False
     equities_metadata : dict or DataFrame or file-like object, optional
@@ -303,12 +299,9 @@ class TradingAlgorithm(object):
             get_calendar("NYSE")
         )
 
-        # set the capital base
-        self.capital_base = kwargs.pop('capital_base', DEFAULT_CAPITAL_BASE)
         self.sim_params = kwargs.pop('sim_params', None)
         if self.sim_params is None:
             self.sim_params = create_simulation_parameters(
-                capital_base=self.capital_base,
                 start=kwargs.pop('start', None),
                 end=kwargs.pop('end', None),
                 trading_calendar=self.trading_calendar,
@@ -505,7 +498,7 @@ class TradingAlgorithm(object):
     blotter={blotter},
     recorded_vars={recorded_vars})
 """.strip().format(class_name=self.__class__.__name__,
-                   capital_base=self.capital_base,
+                   capital_base=self.sim_params.capital_base,
                    sim_params=repr(self.sim_params),
                    initialized=self.initialized,
                    slippage=repr(self.blotter.slippage_func),
