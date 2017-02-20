@@ -16,6 +16,7 @@ env:
     #   is sufficient: ["read:org", "user:email", "repo_deployment", "repo:status", "write:repo_hook"]
     #   See https://docs.travis-ci.com/api#external-apis.
     - secure: "iVr5iE75CPUZLX3ucgth0QA8y0JQJm+p3YrHwnCYZ5d+qTJA1eWGeA7k5+6Fhx1opCXkG+MkU8fNrSkqIA55mcAHoCINquQeQ4lfpDBgwjbjs+/2gB08Jm6ZQ78QG8cy6hEoSMDXAs27PMKyBuMkZKrIJWB8v5dWIDBz8cntBHs="
+    - CONDA_ROOT_PYTHON_VERSION: "2.7"
   matrix:
     - NUMPY_VERSION=1.11.1 SCIPY_VERSION=0.17.1
 cache:
@@ -23,11 +24,12 @@ cache:
     - $HOME/.cache/.pip/
 
 before_install:
-  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget https://repo.continuum.io/miniconda/Miniconda-3.7.0-Linux-x86_64.sh -O miniconda.sh; else wget https://repo.continuum.io/miniconda/Miniconda3-3.7.0-Linux-x86_64.sh -O miniconda.sh; fi
+  - if [ ${CONDA_ROOT_PYTHON_VERSION:0:1} == "2" ]; then wget https://repo.continuum.io/miniconda/Miniconda-3.7.0-Linux-x86_64.sh -O miniconda.sh; else wget https://repo.continuum.io/miniconda/Miniconda3-3.7.0-Linux-x86_64.sh -O miniconda.sh; fi
   - chmod +x miniconda.sh
   - ./miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
 install:
+  - conda info -a
   - conda install conda=4.1.11 conda-build=1.21.11 anaconda-client=1.5.1 --yes
 
   - TALIB_VERSION=$(cat ./etc/requirements_talib.txt | sed "s/TA-Lib==\(.*\)/\1/")

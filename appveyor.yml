@@ -16,6 +16,8 @@ environment:
     ANACONDA_TOKEN:
       secure: "u3oPlANiKY5g1yMtcK+2MQfb4ViKGEap3TcBtvS7Y1InyeWs80Ko3/PsP7Lp6qwq"
 
+    CONDA_ROOT_PYTHON_VERSION: "2.7"
+
   matrix:
     - PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
