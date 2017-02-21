@@ -76,4 +76,3 @@ after_success:
 branches:
   only:
     - master
-    - exchange-calendars-v2
