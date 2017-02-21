@@ -1,5 +1,4 @@
 from datetime import time
-from itertools import chain
 
 from pandas.tseries.holiday import (
     USPresidentsDay,
@@ -66,10 +65,10 @@ class CFEExchangeCalendar(TradingCalendar):
 
     @property
     def adhoc_holidays(self):
-        return list(chain(
+        return HolidayCalendar([
             HurricaneSandyClosings,
-            USNationalDaysofMourning,
-        ))
+            USNationalDaysofMourning
+        ])
 
     @property
     def special_closes(self):
