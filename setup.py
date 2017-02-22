@@ -302,7 +302,7 @@ class install_scripts_quoted_shebang(install_scripts):
           and '"' not in shebang:
             quoted_shebang = '#!"%s"' % shebang[2:].strip()
             contents = contents.replace(shebang, quoted_shebang)
-            install_scripts.write_script(self, script_name, contents, mode, *ignored)
+        install_scripts.write_script(self, script_name, contents, mode, *ignored)
 
 # The custom command classes only need to be used on Windows machines
 if os.name == 'nt':
