@@ -692,10 +692,12 @@ class EarningsEstimatesLoader(PipelineLoader):
         # Get a DataFrame indexed by date with a MultiIndex of columns of [
         # self.estimates.columns, normalized_quarters, sid], where each cell
         # contains the latest data for that day.
-        last_per_qtr = flat_last_in_date_group(self.estimates, dates, [SID_FIELD_NAME, NORMALIZED_QUARTERS])
-        last_per_qtr = last_in_date_group(self.estimates, dates, assets_with_data, reindex=True, extra_groupers=[NORMALIZED_QUARTERS],)
+        last_per_qtr = flat_last_in_date_group(self.estimates, dates, [SID_FIELD_NAME, NORMALIZED_QUARTERS], assets_with_data)
+        last_per_qtr_old = last_in_date_group(self.estimates, dates, assets_with_data, reindex=True, extra_groupers=[NORMALIZED_QUARTERS],)
         # Forward fill values for each quarter/sid/dataset column.
-        ffill_across_cols(last_per_qtr, columns, self.name_map)
+        ffill_across_cols(last_per_qtr_old, columns, self.name_map)
+        for _ in range(2):
+            last_per_qtr = last_per_qtr.unstack(-1)
         # Stack quarter and sid into the index.
         stacked_last_per_qtr = last_per_qtr.stack(
             [SID_FIELD_NAME, NORMALIZED_QUARTERS],

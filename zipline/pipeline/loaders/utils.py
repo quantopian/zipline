@@ -275,7 +275,7 @@ def check_data_query_args(data_query_time, data_query_tz):
             ),
         )
 
-def grouped_ffilled_reindex(df, index, group_columns):
+def grouped_ffilled_reindex(df, index, group_columns, assets):
     """Perform a groupwise reindex(method='ffill') for a dataframe without
     altering the dtypes of columns. Any row which would have a `nan` written
     is dropped.
@@ -319,7 +319,6 @@ def grouped_ffilled_reindex(df, index, group_columns):
     1    3    6
     2    3    7
     """
-    import pdb; pdb.set_trace()
     groups = df.groupby(group_columns).indices
     # The output arrays and nan mask are preallocated to
     # ``len(index) * len(groups)`` because that is the maximum size possible
@@ -379,7 +378,7 @@ def grouped_ffilled_reindex(df, index, group_columns):
     )
 
 
-def flat_last_in_date_group(df, dates, group_columns):
+def flat_last_in_date_group(df, dates, group_columns, assets):
     """Compute the last forward filled value in each date group.
 
     Parameters
@@ -404,11 +403,16 @@ def flat_last_in_date_group(df, dates, group_columns):
         idx,
         sort=False,
     ).last()
+    sids_to_add = pd.DataFrame(
+        columns=[SID_FIELD_NAME], data=list(set(df.sid) - assets)
+    )
     last_in_group.reset_index(group_columns, inplace=True)
+    last_in_group = pd.concat([last_in_group, sids_to_add])
     last_in_group = grouped_ffilled_reindex(
         last_in_group,
         dates,
         group_columns,
+        assets,
     )
     last_in_group.reset_index(inplace=True)
     last_in_group.rename(columns={'index': TS_FIELD_NAME}, inplace=True)
