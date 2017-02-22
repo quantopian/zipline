@@ -28,10 +28,12 @@ from setuptools import (
     Extension,
     find_packages,
     setup,
-    dist,
+    # dist,
 )
-from setuptools.command.install import install
-from setuptools.command.install_scripts import install_scripts
+from setuptools.command.easy_install import WindowsScriptWriter, \
+    WindowsCommandSpec
+# from setuptools.command.install import install
+# from setuptools.command.install_scripts import install_scripts
 
 import versioneer
 
@@ -288,62 +290,73 @@ conditional_arguments = {
 # Note that cmdclass must be be hooked into setup().
 
 # Custom install command class for setup()
-class custom_install(install):
-    """Ensures setuptools uses custom install_scripts."""
-    def run(self):
-        install.run(self)
+# class custom_install(install):
+#     """Ensures setuptools uses custom install_scripts."""
+#     def run(self):
+#         install.run(self)
+#
+# # Custom install_scripts command class for setup()
+# class install_scripts_quoted_shebang(install_scripts):
+#     """Ensure there are quotes around shebang paths with spaces."""
+#     def write_script(self, script_name, contents, mode="t", *ignored):
+#         shebang = str(contents.splitlines()[0])
+#         if shebang.startswith('#!') and ' ' in shebang[2:].strip() \
+#           and '"' not in shebang:
+#             quoted_shebang = '#!"%s"' % shebang[2:].strip()
+#             contents = contents.replace(shebang, quoted_shebang)
+#         install_scripts.write_script(self, script_name, contents, mode, *ignored)
+#
+# # The custom command classes only need to be used on Windows machines
+# if os.name == 'nt':
+#     cmdclass = {'install': custom_install,
+#                 'install_scripts': install_scripts_quoted_shebang}
+#
+#     # Below is another hack to overcome a separate bug.  The
+#     # dist.Distribution.cmdclass dict should not be stored in a length-1 list.
+#
+#     # Save the original method
+#     dist.Distribution._get_command_class = dist.Distribution.get_command_class
+#
+#     # Define a new method that repairs self.cmdclass if needed
+#     def get_command_class(self, command):
+#         """Pluggable version of get_command_class()"""
+#         try:
+#             # See if the original behaviour works
+#             return dist.Distribution._get_command_class(self, command)
+#         except TypeError:
+#             # If self.cmdclass is the problem, fix it up
+#             if type(self.cmdclass) is tuple and type(self.cmdclass[0]) is dict:
+#                 self.cmdclass = self.cmdclass[0]
+#                 return dist.Distribution._get_command_class(self, command)
+#             else:
+#                 # Something else went wrong
+#                 raise
+#
+#     # Hook in the new method
+#     dist.Distribution.get_command_class = get_command_class
+#
+# else:
+#     cmdclass = {}
 
-# Custom install_scripts command class for setup()
-class install_scripts_quoted_shebang(install_scripts):
-    """Ensure there are quotes around shebang paths with spaces."""
-    def write_script(self, script_name, contents, mode="t", *ignored):
-        shebang = str(contents.splitlines()[0])
-        if shebang.startswith('#!') and ' ' in shebang[2:].strip() \
-          and '"' not in shebang:
-            quoted_shebang = '#!"%s"' % shebang[2:].strip()
-            contents = contents.replace(shebang, quoted_shebang)
-        install_scripts.write_script(self, script_name, contents, mode, *ignored)
-
-# The custom command classes only need to be used on Windows machines
 if os.name == 'nt':
-    cmdclass = {'install': custom_install,
-                'install_scripts': install_scripts_quoted_shebang}
+    class _WindowsCommandSpec(WindowsCommandSpec):
+        def as_header(self):
+            header = super(_WindowsCommandSpec, self).as_header()
+            shebang = str(header.splitlines()[0])
+            if shebang.startswith('#!') and ' ' in shebang[2:].strip() \
+                    and '"' not in shebang:
+                quoted_shebang = '#!"%s"' % shebang[2:].strip()
+                header = header.replace(shebang, quoted_shebang)
+            return header
 
-    # Below is another hack to overcome a separate bug.  The
-    # dist.Distribution.cmdclass dict should not be stored in a length-1 list.
+    WindowsScriptWriter.command_spec_class = _WindowsCommandSpec
 
-    # Save the original method
-    dist.Distribution._get_command_class = dist.Distribution.get_command_class
-
-    # Define a new method that repairs self.cmdclass if needed
-    def get_command_class(self, command):
-        """Pluggable version of get_command_class()"""
-        try:
-            # See if the original behaviour works
-            return dist.Distribution._get_command_class(self, command)
-        except TypeError:
-            # If self.cmdclass is the problem, fix it up
-            if type(self.cmdclass) is tuple and type(self.cmdclass[0]) is dict:
-                self.cmdclass = self.cmdclass[0]
-                return dist.Distribution._get_command_class(self, command)
-            else:
-                # Something else went wrong
-                raise
-
-    # Hook in the new method
-    dist.Distribution.get_command_class = get_command_class
-
-else:
-    cmdclass = {}
-
-
-cmdclass.update(versioneer.get_cmdclass())
 
 setup(
     name='zipline',
     url="http://zipline.io",
     version=versioneer.get_version(),
-    cmdclass=LazyBuildExtCommandClass(cmdclass),
+    cmdclass=LazyBuildExtCommandClass(versioneer.get_cmdclass()),
     description='A backtester for financial algorithms.',
     entry_points={
         'console_scripts': [
