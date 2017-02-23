@@ -16,6 +16,7 @@
 from __future__ import print_function
 import os
 import re
+import subprocess
 import sys
 from operator import lt, gt, eq, le, ge
 from os.path import (
@@ -28,12 +29,8 @@ from setuptools import (
     Extension,
     find_packages,
     setup,
-    # dist,
 )
-from setuptools.command.easy_install import WindowsScriptWriter, \
-    WindowsCommandSpec
-# from setuptools.command.install import install
-# from setuptools.command.install_scripts import install_scripts
+from setuptools.command.easy_install import CommandSpec
 
 import versioneer
 
@@ -339,17 +336,32 @@ conditional_arguments = {
 #     cmdclass = {}
 
 if os.name == 'nt':
-    class _WindowsCommandSpec(WindowsCommandSpec):
-        def as_header(self):
-            header = super(_WindowsCommandSpec, self).as_header()
-            shebang = str(header.splitlines()[0])
-            if shebang.startswith('#!') and ' ' in shebang[2:].strip() \
-                    and '"' not in shebang:
-                quoted_shebang = '#!"%s"' % shebang[2:].strip()
-                header = header.replace(shebang, quoted_shebang)
-            return header
 
-    WindowsScriptWriter.command_spec_class = _WindowsCommandSpec
+    def _strip_quotes(item):
+        _QUOTES = '"\''
+        for q in _QUOTES:
+            if item.startswith(q) and item.endswith(q):
+                return item[1:-1]
+        return item
+
+    @staticmethod
+    def render(items):
+        cmdline = subprocess.list2cmdline(
+            _strip_quotes(item.strip()) for item in items
+        )
+        return '#!' + cmdline + '\n'
+
+    orig_from_param = CommandSpec.from_param
+
+    @staticmethod
+    def from_param(param):
+        if param == sys.executable:
+            param = [param]
+        return orig_from_param(param)
+
+    CommandSpec.render = render
+    CommandSpec.from_param = from_param
+
 
 
 setup(
