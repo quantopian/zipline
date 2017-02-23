@@ -95,6 +95,9 @@ class SlippageTestCase(WithCreateBarData,
         self.assertEqual(vol1, vol2)
         self.assertEqual(hash(vol1), hash(vol2))
 
+        self.assertEqual(vol1.__dict__, vol1.asdict())
+        self.assertEqual(vol2.__dict__, vol2.asdict())
+
     def test_fill_price_worse_than_limit_price(self):
         non_limit_order = TestOrder(limit=None, direction=1)
         limit_buy = TestOrder(limit=1.5, direction=1)

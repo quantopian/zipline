@@ -153,15 +153,15 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
         return self.simulate(bar_data, asset, current_orders)
 
     def __eq__(self, other):
-        return self._attrs_to_check() == other._attrs_to_check()
+        return self.asdict() == other.asdict()
 
     def __hash__(self):
         return hash((
             type(self),
-            tuple(sorted(iteritems(self._attrs_to_check())))
+            tuple(sorted(iteritems(self.asdict())))
         ))
 
-    def _attrs_to_check(self):
+    def asdict(self):
         return self.__dict__
 
 
