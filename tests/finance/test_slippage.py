@@ -27,7 +27,7 @@ import pandas as pd
 from pandas.tslib import normalize_date
 
 from zipline.finance.slippage import VolumeShareSlippage, \
-    fill_price_worse_than_limit_price
+    fill_price_worse_than_limit_price, VolumeWeightedAveragePrice
 
 from zipline.protocol import DATASOURCE_TYPE, BarData
 from zipline.finance.blotter import Order
@@ -91,9 +91,56 @@ class SlippageTestCase(WithCreateBarData,
     def test_equality_and_comparison(self):
         vol1 = VolumeShareSlippage(volume_limit=0.2)
         vol2 = VolumeShareSlippage(volume_limit=0.2)
-
         self.assertEqual(vol1, vol2)
         self.assertEqual(hash(vol1), hash(vol2))
+
+    def test_vwap_will_not_trade(self):
+        slippage_model = VolumeWeightedAveragePrice()
+        slippage_model.data_portal = self.data_portal
+        # Long, does not trade as vwap price = 3.13 > 3.1
+        open_orders = [
+            Order(**{
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'amount': 100,
+                'filled': 0,
+                'sid': self.ASSET133,
+                'limit': 3.1})
+        ]
+
+        bar_data = self.create_bardata(
+            simulation_dt_func=lambda: self.minutes[4],
+        )
+
+        orders_txns = list(slippage_model.simulate(
+            bar_data,
+            self.ASSET133,
+            open_orders,
+        ))
+        self.assertEquals(len(orders_txns), 0)
+
+    def test_vwap_will_trade(self):
+        slippage_model = VolumeWeightedAveragePrice()
+        slippage_model.data_portal = self.data_portal
+        # Long, will trade as vwap price = 3.13 < 3.5
+        open_orders = [
+            Order(**{
+                'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                'amount': 100,
+                'filled': 0,
+                'sid': self.ASSET133,
+                'limit': 3.5})
+        ]
+
+        bar_data = self.create_bardata(
+            simulation_dt_func=lambda: self.minutes[4],
+        )
+
+        orders_txns = list(slippage_model.simulate(
+            bar_data,
+            self.ASSET133,
+            open_orders,
+        ))
+        self.assertEquals(len(orders_txns), 1)
 
     def test_fill_price_worse_than_limit_price(self):
         non_limit_order = TestOrder(limit=None, direction=1)
