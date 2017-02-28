@@ -48,7 +48,6 @@ class RollFinder(with_metaclass(ABCMeta, object)):
         back = oc.contract_at_offset(front, 1, dt.value)
         if back is None:
             return front
-        session = self.trading_calendar.minute_to_session_label(dt)
         primary = self._active_contract(oc, front, back, session)
         return oc.contract_at_offset(primary, offset, session.value)
 
@@ -106,6 +105,9 @@ class RollFinder(with_metaclass(ABCMeta, object)):
                     if prev < prev_c.contract.auto_close_date:
                         break
                 if back != self._active_contract(oc, front, back, prev):
+                    # TODO: Instead of listing each contract with its roll date
+                    # as tuples, create a series which maps every day to the
+                    # active contract on that day.
                     rolls.insert(0, ((curr >> offset).contract.sid, session))
                     break
                 session = prev
@@ -137,7 +139,7 @@ class VolumeRollFinder(RollFinder):
     The CalendarRollFinder calculates contract rolls based on when
     volume activity transfers from one contract to another.
     """
-
+    GRACE_DAYS = 7
     THRESHOLD = 0.10
 
     def __init__(self, trading_calendar, asset_finder, session_reader):
@@ -146,12 +148,54 @@ class VolumeRollFinder(RollFinder):
         self.session_reader = session_reader
 
     def _active_contract(self, oc, front, back, dt):
-        prev = dt - self.trading_calendar.day
-        front_vol = self.session_reader.get_value(front, prev, 'volume')
-        back_vol = self.session_reader.get_value(back, prev, 'volume')
-        if back_vol > front_vol:
+        """
+        Return the active contract based on the previous trading day's volume.
+
+        In the rare case that a double volume switch occurs we treat the first
+        switch as the roll. Take the following case for example:
+
+        | +++++             _____
+        |      +   __      /       <--- 'G'
+        |       ++/++\++++/++
+        |       _/    \__/   +
+        |      /              +
+        | ____/                +   <--- 'F'
+        |_________|__|___|________
+                  a  b   c         <--- Switches
+
+        We should treat 'a' as the roll date rather than 'c' because from the
+        perspective of 'a', if a switch happens and we are pretty close to the
+        auto-close date, we would probably assume it is time to roll. This
+        means that for every date after 'a', `data.current(cf, 'contract')`
+        should return the 'G' contract.
+        """
+        tc = self.trading_calendar
+        trading_day = tc.day
+        prev = dt - trading_day
+        get_value = self.session_reader.get_value
+        front_vol = get_value(front, prev, 'volume')
+        back_vol = get_value(back, prev, 'volume')
+        front_contract = oc.sid_to_contract[front].contract
+
+        if dt >= front_contract.auto_close_date or back_vol > front_vol:
             return back
-        else:
-            contract = oc.sid_to_contract[front].contract
-            auto_closed = dt >= contract.auto_close_date
-            return back if auto_closed else front
+
+        gap_start = \
+            front_contract.auto_close_date - (trading_day * self.GRACE_DAYS)
+        gap_end = prev - trading_day
+        if dt < gap_start:
+            return front
+
+        # If we are within `self.GRACE_DAYS` of the front contract's auto close
+        # date, and a volume flip happened during that period, return the back
+        # contract as the active one.
+        sessions = tc.sessions_in_range(
+            tc.minute_to_session_label(gap_start),
+            tc.minute_to_session_label(gap_end),
+        )
+        for session in sessions:
+            front_vol = get_value(front, session, 'volume')
+            back_vol = get_value(back, session, 'volume')
+            if back_vol > front_vol:
+                return back
+        return front

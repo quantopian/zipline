@@ -318,6 +318,11 @@ class EarningsEstimatesLoader(PipelineLoader):
         sid : int
             The sid for which overwrites should be computed.
         """
+        # If data was requested for only 1 date, there can never be any
+        # overwrites, so skip the extra work.
+        if len(dates) == 1:
+            return
+
         next_qtr_start_indices = dates.searchsorted(
             group[EVENT_DATE_FIELD_NAME].values,
             side=self.searchsorted_side,
@@ -649,11 +654,12 @@ class EarningsEstimatesLoader(PipelineLoader):
                     :,
                     asset_indexer,
                 ] = requested_qtr_data[column_name].values
-
                 out[col] = AdjustedArray(
                     output_array,
                     mask,
-                    dict(col_to_adjustments[column_name]),
+                    # There may not be any adjustments at all (e.g. if
+                    # len(date) == 1), so provide a default.
+                    dict(col_to_adjustments.get(column_name, {})),
                     col.missing_value,
                 )
         return out
@@ -727,8 +733,6 @@ class NextEarningsEstimatesLoader(EarningsEstimatesLoader):
                                       sid_idx,
                                       col_to_split_adjustments=None,
                                       split_adjusted_asof_idx=None):
-        # if not isinstance(sid_idx, int):
-        #     import pdb; pdb.set_trace()
         return [self.array_overwrites_dict[column.dtype](
             0,
             next_qtr_start_idx - 1,

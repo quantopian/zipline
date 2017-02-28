@@ -144,8 +144,6 @@ from zipline.gens.sim_engine import MinuteSimulationClock
 from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
-DEFAULT_CAPITAL_BASE = 1e5
-
 
 log = logbook.Logger("ZiplineLog")
 
@@ -181,8 +179,6 @@ class TradingAlgorithm(object):
         tracebacks. default: '<string>'.
     data_frequency : {'daily', 'minute'}, optional
         The duration of the bars.
-    capital_base : float, optional
-        How much capital to start with. default: 1.0e5
     instant_fill : bool, optional
         Whether to fill orders immediately or on next bar. default: False
     equities_metadata : dict or DataFrame or file-like object, optional
@@ -303,12 +299,9 @@ class TradingAlgorithm(object):
             get_calendar("NYSE")
         )
 
-        # set the capital base
-        self.capital_base = kwargs.pop('capital_base', DEFAULT_CAPITAL_BASE)
         self.sim_params = kwargs.pop('sim_params', None)
         if self.sim_params is None:
             self.sim_params = create_simulation_parameters(
-                capital_base=self.capital_base,
                 start=kwargs.pop('start', None),
                 end=kwargs.pop('end', None),
                 trading_calendar=self.trading_calendar,
@@ -505,7 +498,7 @@ class TradingAlgorithm(object):
     blotter={blotter},
     recorded_vars={recorded_vars})
 """.strip().format(class_name=self.__class__.__name__,
-                   capital_base=self.capital_base,
+                   capital_base=self.sim_params.capital_base,
                    sim_params=repr(self.sim_params),
                    initialized=self.initialized,
                    slippage=repr(self.blotter.slippage_func),
@@ -531,6 +524,17 @@ class TradingAlgorithm(object):
             # as the last minute of the session.
             market_opens = market_closes
 
+        # The calendar's execution times are the minutes over which we actually
+        # want to run the clock. Typically the execution times simply adhere to
+        # the market open and close times. In the case of the futures calendar,
+        # for example, we only want to simulate over a subset of the full 24
+        # hour calendar, so the execution times dictate a market open time of
+        # 6:31am US/Eastern and a close of 5:00pm US/Eastern.
+        execution_opens = \
+            self.trading_calendar.execution_time_from_open(market_opens)
+        execution_closes = \
+            self.trading_calendar.execution_time_from_close(market_closes)
+
         # FIXME generalize these values
         before_trading_start_minutes = days_at_time(
             self.sim_params.sessions,
@@ -540,8 +544,8 @@ class TradingAlgorithm(object):
 
         return MinuteSimulationClock(
             self.sim_params.sessions,
-            market_opens,
-            market_closes,
+            execution_opens,
+            execution_closes,
             before_trading_start_minutes,
             minute_emission=minutely_emission,
         )
@@ -1186,7 +1190,8 @@ class TradingAlgorithm(object):
         """
         # If the user has not set the symbol lookup date,
         # use the end_session as the date for sybmol->sid resolution.
-        _lookup_date = self._symbol_lookup_date if self._symbol_lookup_date is not None \
+        _lookup_date = self._symbol_lookup_date \
+            if self._symbol_lookup_date is not None \
             else self.sim_params.end_session
 
         return self.asset_finder.lookup_symbol(

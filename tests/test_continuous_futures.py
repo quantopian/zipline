@@ -66,9 +66,9 @@ class ContinuousFuturesTestCase(WithCreateBarData,
     @classmethod
     def make_root_symbols_info(self):
         return pd.DataFrame({
-            'root_symbol': ['FO', 'BA', 'BZ', 'MA'],
-            'root_symbol_id': [1, 2, 3, 4],
-            'exchange': ['CME', 'CME', 'CME', 'CME']})
+            'root_symbol': ['FO', 'BA', 'BZ', 'MA', 'DF'],
+            'root_symbol_id': [1, 2, 3, 4, 5],
+            'exchange': ['CME', 'CME', 'CME', 'CME', 'CME']})
 
     @classmethod
     def make_futures_info(self):
@@ -205,7 +205,35 @@ class ContinuousFuturesTestCase(WithCreateBarData,
             'exchange': ['CME'] * 3,
         })
 
-        return pd.concat([fo_frame, ba_frame, bz_frame, ma_frame])
+        # DF is set up to have a double volume flip between the 'F' and 'G'
+        # contracts, and then a really early temporary volume flip between the
+        # 'G' and 'H' contracts.
+        df_frame = DataFrame({
+            'symbol': ['DFF16', 'DFG16', 'DFH16'],
+            'root_symbol': ['DF'] * 3,
+            'asset_name': ['Double Flip'] * 3,
+            'sid': range(17, 20),
+            'start_date': [Timestamp('2005-01-01', tz='UTC'),
+                           Timestamp('2005-02-01', tz='UTC'),
+                           Timestamp('2005-03-01', tz='UTC')],
+            'end_date': [Timestamp('2016-08-19', tz='UTC'),
+                         Timestamp('2016-09-19', tz='UTC'),
+                         Timestamp('2016-10-19', tz='UTC')],
+            'notice_date': [Timestamp('2016-02-19', tz='UTC'),
+                            Timestamp('2016-03-18', tz='UTC'),
+                            Timestamp('2016-04-22', tz='UTC')],
+            'expiration_date': [Timestamp('2016-02-19', tz='UTC'),
+                                Timestamp('2016-03-18', tz='UTC'),
+                                Timestamp('2016-04-22', tz='UTC')],
+            'auto_close_date': [Timestamp('2016-02-17', tz='UTC'),
+                                Timestamp('2016-03-16', tz='UTC'),
+                                Timestamp('2016-04-20', tz='UTC')],
+            'tick_size': [0.001] * 3,
+            'multiplier': [1000.0] * 3,
+            'exchange': ['CME'] * 3,
+        })
+
+        return pd.concat([fo_frame, ba_frame, bz_frame, ma_frame, df_frame])
 
     @classmethod
     def make_future_minute_bar_data(cls):
@@ -265,7 +293,7 @@ class ContinuousFuturesTestCase(WithCreateBarData,
             3: Timestamp('2016-04-20', tz='UTC'),
             6: Timestamp('2016-01-27', tz='UTC'),
         }
-        for i in range(17):
+        for i in range(20):
             df = base_df.copy()
             df += i * 10000
             if i in sid_to_vol_stop_session:
@@ -288,7 +316,71 @@ class ContinuousFuturesTestCase(WithCreateBarData,
                     df.volume.values[:loc + 1] = 10
             if i == 15:  # No volume for MAH16
                 df.volume.values[:] = 0
+            if i == 17:
+                end_loc = dts.searchsorted('2016-02-16 23:00:00+00:00')
+                df.volume.values[:end_loc] = 10
+                df.volume.values[end_loc:] = 0
+            if i == 18:
+                cross_loc_1 = dts.searchsorted('2016-02-09 23:01:00+00:00')
+                cross_loc_2 = dts.searchsorted('2016-02-11 23:01:00+00:00')
+                cross_loc_3 = dts.searchsorted('2016-02-15 23:01:00+00:00')
+                end_loc = dts.searchsorted('2016-03-15 23:01:00+00:00')
+                df.volume.values[:cross_loc_1] = 5
+                df.volume.values[cross_loc_1:cross_loc_2] = 15
+                df.volume.values[cross_loc_2:cross_loc_3] = 5
+                df.volume.values[cross_loc_3:end_loc] = 15
+                df.volume.values[end_loc:] = 0
+            if i == 19:
+                early_cross_1 = dts.searchsorted('2016-03-01 23:01:00+00:00')
+                early_cross_2 = dts.searchsorted('2016-03-03 23:01:00+00:00')
+                end_loc = dts.searchsorted('2016-04-19 23:01:00+00:00')
+                df.volume.values[:early_cross_1] = 1
+                df.volume.values[early_cross_1:early_cross_2] = 20
+                df.volume.values[early_cross_2:end_loc] = 10
+                df.volume.values[end_loc:] = 0
             yield i, df
+
+    def test_double_volume_switch(self):
+        """
+        Test that when a double volume switch occurs we treat the first switch
+        as the roll, assuming it is within a certain distance of the next auto
+        close date. See `VolumeRollFinder._active_contract` for a full
+        explanation and example.
+        """
+        cf = self.asset_finder.create_continuous_future('DF', 0, 'volume')
+
+        sessions = self.trading_calendar.sessions_in_range(
+            '2016-02-09', '2016-02-17',
+        )
+        for session in sessions:
+            bar_data = self.create_bardata(lambda: session)
+            contract = bar_data.current(cf, 'contract')
+
+            # The 'G' contract surpasses the 'F' contract in volume on
+            # 2016-02-10, which means that the 'G' contract should become the
+            # front contract starting on 2016-02-11.
+            if session < pd.Timestamp('2016-02-11', tz='UTC'):
+                self.assertEqual(contract.symbol, 'DFF16')
+            else:
+                self.assertEqual(contract.symbol, 'DFG16')
+
+        # TODO: This test asserts behavior about a back contract briefly
+        # spiking in volume, but more than a week before the front contract's
+        # auto close date, meaning it does not fall in the 'grace' period used
+        # by `VolumeRollFinder._active_contract`. The current behavior is that
+        # during the spike, the back contract is considered current, but it may
+        # be worth changing that behavior in the future.
+        # sessions = self.trading_calendar.sessions_in_range(
+        #     '2016-03-01', '2016-03-21',
+        # )
+        # for session in sessions:
+        #     bar_data = self.create_bardata(lambda: session)
+        #     contract = bar_data.current(cf, 'contract')
+
+        #     if session < pd.Timestamp('2016-03-16', tz='UTC'):
+        #         self.assertEqual(contract.symbol, 'DFG16')
+        #     else:
+        #         self.assertEqual(contract.symbol, 'DFH16')
 
     def test_create_continuous_future(self):
         cf_primary = self.asset_finder.create_continuous_future(

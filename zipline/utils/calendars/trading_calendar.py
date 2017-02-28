@@ -667,6 +667,12 @@ class TradingCalendar(with_metaclass(ABCMeta)):
     def last_session(self):
         return self.all_sessions[-1]
 
+    def execution_time_from_open(self, open_dates):
+        return open_dates
+
+    def execution_time_from_close(self, close_dates):
+        return close_dates
+
     @lazyval
     def all_minutes(self):
         """
