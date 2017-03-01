@@ -806,6 +806,9 @@ class WithBcolzEquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
     # allows WithBcolzEquityDailyBarReaderFromCSVs to call the
     # `write_csvs`method without needing to reimplement `init_class_fixtures`
     _write_method_name = 'write'
+    # What to do when data being written is invalid, e.g. nan, inf, etc.
+    # options are: 'warn', 'raise', 'ignore'
+    INVALID_DATA_BEHAVIOR = 'warn'
 
     @classmethod
     def make_bcolz_daily_bar_rootdir_path(cls):
@@ -821,7 +824,10 @@ class WithBcolzEquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
         cls.bcolz_daily_bar_ctable = t = getattr(
             BcolzDailyBarWriter(p, trading_calendar, days[0], days[-1]),
             cls._write_method_name,
-        )(cls.make_equity_daily_bar_data())
+        )(
+            cls.make_equity_daily_bar_data(),
+            invalid_data_behavior=cls.INVALID_DATA_BEHAVIOR
+        )
 
         if cls.BCOLZ_DAILY_BAR_READ_ALL_THRESHOLD is not None:
             cls.bcolz_equity_daily_bar_reader = BcolzDailyBarReader(
