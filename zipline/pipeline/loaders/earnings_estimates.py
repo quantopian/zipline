@@ -833,12 +833,7 @@ class EarningsEstimatesLoader(PipelineLoader):
         # contains the latest data for that day.
         missing_type_map = {self.name_map[column.name]: column.missing_value for column in columns}
         last_per_qtr = flat_last_in_date_group(self.estimates, dates, [SID_FIELD_NAME, NORMALIZED_QUARTERS], assets_with_data, missing_type_map)
-        # Forward fill values for each quarter/sid/dataset column.
-        ffill_across_cols(last_per_qtr, columns, self.name_map)
-        for _ in range(2):
-            last_per_qtr = last_per_qtr.unstack(-1)
         # Stack quarter and sid into the index.
-        import pdb; pdb.set_trace()
         stacked_last_per_qtr = last_per_qtr.stack([SID_FIELD_NAME, NORMALIZED_QUARTERS],)
         # Set date index name for ease of reference
         stacked_last_per_qtr.index.set_names(
