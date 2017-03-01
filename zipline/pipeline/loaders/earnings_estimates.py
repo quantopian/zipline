@@ -25,8 +25,8 @@ from zipline.pipeline.loaders.base import PipelineLoader
 from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
 from zipline.pipeline.loaders.utils import (
     ffill_across_cols,
-    last_in_date_group,
-    flat_last_in_date_group)
+    last_in_date_group
+)
 
 
 INVALID_NUM_QTRS_MESSAGE = "Passed invalid number of quarters %s; " \
@@ -58,6 +58,145 @@ metadata_columns = frozenset({
     FISCAL_QUARTER_FIELD_NAME,
     FISCAL_YEAR_FIELD_NAME,
 })
+
+
+def grouped_ffilled_reindex(df, index, group_columns, assets, missing_type_map):
+    """Perform a groupwise reindex(method='ffill') for a dataframe without
+    altering the dtypes of columns. Any row which would have a `nan` written
+    is dropped.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The dataframe to reindex groupwise.
+    index : pd.Index
+        The new index per group.
+    group_columns : str or list[str]
+        The group_columns of column or columns to group by.
+
+    Returns
+    -------
+    grouped_reindexed : pd.DataFrame
+        The result of the grouping, reindexing, and forward filling.
+
+    Examples
+    --------
+    >>> df = df = pd.DataFrame(
+    ...     [[1, 1], [1, 2], [2, 3], [2, 4], [2, 5], [3, 6], [3, 7]],
+    ...     columns=['key', 'col'],
+    ...     index=pd.Index([0, 1, 0, 1, 2, 1, 2])
+    ... )
+    >>> df
+       key  col
+    0    1    1
+    1    1    2
+    0    2    3
+    1    2    4
+    2    2    5
+    1    3    6
+    2    3    7
+    >>> grouped_ffilled_reindex(df, [1, 2], 'key')
+       key  col
+    1    1    2
+    2    1    2
+    1    2    4
+    2    2    5
+    1    3    6
+    2    3    7
+    """
+    groups = df.groupby(group_columns).indices
+    # The output arrays and nan mask are preallocated to
+    # ``len(index) * len(groups)`` because that is the maximum size possible
+    # if we don't need to mask out any missing values. This also makes it
+    # easy to fill by shifting our indices by ``len(index)`` per group.
+    out_len = len(index) * len(groups)
+    out_columns = {}
+    for sid, normalized_quarter in groups.keys():
+        out_columns[(sid, normalized_quarter)] = {}
+        for column in set(df.columns) - {SID_FIELD_NAME, NORMALIZED_QUARTERS}:
+            out_columns[(sid, normalized_quarter)][column] = np.empty(len(index), dtype=df.dtypes[column])
+
+    # In our reindex we will never write ``nan``, instead we will use a mask
+    # array to filter out any missing rows before returning the final
+    # dataframe.
+    # It is much faster to perform our operations on an ndarray per column
+    # instead of the series so we expand our input dataframe into a dict
+    # mapping string column name to the ndarray for that column.
+    in_columns = {
+        column: df[column].values
+        for column in df.columns
+    }
+    for n, ((sid, normalized_quarter), group_ix) in enumerate(groups.items()):
+        # ``group_ix`` is an array with all of the integer indices for the
+        # elements of a single group.
+
+        # Get the indices for the reindex.
+        where = df.index[group_ix].get_indexer_for(index, method='ffill')
+
+        # Any value which would have a ``nan`` written has an index of ``-1``
+        # in ``where``. We mask out the ``nan`` values so that we can just
+        # resize the output buffer once before creating the dataframe.
+        group_mask = where != -1
+
+        for column, out_buf in out_columns[(sid, normalized_quarter)].items():
+            # For each column, select from the input array with the indices
+            # computed for the reindex and write the result to a slice of our
+            # preallocated output column array.
+            out_buf[group_mask] = in_columns[column][group_ix].take(
+                where[group_mask],
+            )
+            if column in missing_type_map:
+                out_buf[~group_mask] = missing_type_map[column]
+
+    df2 = pd.DataFrame({
+        (column, normalized_quarter, sid):
+        buf
+        for sid, normalized_quarter in out_columns.keys()
+        for column, buf in out_columns[(sid, normalized_quarter)].items()},
+        index=index
+    )
+    df2.columns.names = [None, 'normalized_quarters', 'sid']
+    return df2
+
+
+def flat_last_in_date_group(df, dates, group_columns, assets, missing_type_map):
+    """Compute the last forward filled value in each date group.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The input dataframe of non forward filled records.
+    dates : pd.Index
+        The date index to align the timestamps to.
+
+    Returns
+    -------
+    ffilled : pd.DataFrame
+        The correctly forward filled dataframe.
+    """
+    idx = [
+        dates[dates.searchsorted(
+            df[TS_FIELD_NAME].values.astype('datetime64[D]')
+        )],
+    ] + group_columns
+
+    last_in_group = df.drop(TS_FIELD_NAME, axis=1).groupby(
+        idx,
+        sort=False,
+    ).last()
+    sids_to_add = pd.DataFrame(
+        columns=[SID_FIELD_NAME], data=list(set(df.sid) - assets)
+    )
+    last_in_group.reset_index(group_columns, inplace=True)
+    last_in_group = pd.concat([last_in_group, sids_to_add])
+    last_in_group = grouped_ffilled_reindex(
+        last_in_group,
+        dates,
+        group_columns,
+        assets,
+        missing_type_map
+    )
+    return last_in_group
 
 
 def required_estimates_fields(columns):
@@ -692,16 +831,15 @@ class EarningsEstimatesLoader(PipelineLoader):
         # Get a DataFrame indexed by date with a MultiIndex of columns of [
         # self.estimates.columns, normalized_quarters, sid], where each cell
         # contains the latest data for that day.
-        last_per_qtr = flat_last_in_date_group(self.estimates, dates, [SID_FIELD_NAME, NORMALIZED_QUARTERS], assets_with_data)
-        last_per_qtr_old = last_in_date_group(self.estimates, dates, assets_with_data, reindex=True, extra_groupers=[NORMALIZED_QUARTERS],)
+        missing_type_map = {self.name_map[column.name]: column.missing_value for column in columns}
+        last_per_qtr = flat_last_in_date_group(self.estimates, dates, [SID_FIELD_NAME, NORMALIZED_QUARTERS], assets_with_data, missing_type_map)
         # Forward fill values for each quarter/sid/dataset column.
-        ffill_across_cols(last_per_qtr_old, columns, self.name_map)
+        ffill_across_cols(last_per_qtr, columns, self.name_map)
         for _ in range(2):
             last_per_qtr = last_per_qtr.unstack(-1)
         # Stack quarter and sid into the index.
-        stacked_last_per_qtr = last_per_qtr.stack(
-            [SID_FIELD_NAME, NORMALIZED_QUARTERS],
-        )
+        import pdb; pdb.set_trace()
+        stacked_last_per_qtr = last_per_qtr.stack([SID_FIELD_NAME, NORMALIZED_QUARTERS],)
         # Set date index name for ease of reference
         stacked_last_per_qtr.index.set_names(
             SIMULATION_DATES,
@@ -1141,7 +1279,7 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
             split-asof-date.
         """
         col_to_split_adjustments = {}
-        if post_adjustments:
+        if len(post_adjustments[0]):
             # Get an integer index
             requested_qtr_timeline = requested_qtr_data[
                 SHIFTED_NORMALIZED_QTRS
