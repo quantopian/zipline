@@ -176,7 +176,7 @@ class LabelArray(ndarray):
             )
         categories.setflags(write=False)
 
-        return cls._from_codes_and_metadata(
+        return cls.from_codes_and_metadata(
             codes=codes.reshape(values.shape),
             categories=categories,
             reverse_categories=reverse_categories,
@@ -184,13 +184,24 @@ class LabelArray(ndarray):
         )
 
     @classmethod
-    def _from_codes_and_metadata(cls,
-                                 codes,
-                                 categories,
-                                 reverse_categories,
-                                 missing_value):
+    def from_codes_and_metadata(cls,
+                                codes,
+                                categories,
+                                reverse_categories,
+                                missing_value):
         """
-        View codes as a LabelArray and set LabelArray metadata on the result.
+        Rehydrate a LabelArray from the codes and metadata.
+
+        Parameters
+        ----------
+        codes : np.ndarray[integral]
+            The codes for the label array.
+        categories : np.ndarray[object]
+            The unique string categories.
+        reverse_categories : dict[str, int]
+            The mapping from category to its code-index.
+        missing_value : any
+            The value used to represent missing data.
         """
         ret = codes.view(type=cls, dtype=np.void)
         ret._categories = categories
@@ -517,7 +528,7 @@ class LabelArray(ndarray):
         Make an empty LabelArray with the same categories as ``self``, filled
         with ``self.missing_value``.
         """
-        return type(self)._from_codes_and_metadata(
+        return type(self).from_codes_and_metadata(
             codes=np.full(
                 shape,
                 self.reverse_categories[self.missing_value],
