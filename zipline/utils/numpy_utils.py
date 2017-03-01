@@ -8,6 +8,7 @@ from warnings import (
     filterwarnings,
 )
 
+import numpy as np
 from numpy import (
     broadcast,
     busday_count,
@@ -49,7 +50,24 @@ NaTmap = {
     dtype('datetime64[%s]' % unit): datetime64('NaT', unit)
     for unit in ('ns', 'us', 'ms', 's', 'm', 'D')
 }
-NaT_for_dtype = NaTmap.__getitem__
+
+
+def NaT_for_dtype(dtype):
+    """Retrieve NaT with the same units as ``dtype``.
+
+    Parameters
+    ----------
+    dtype : dtype-coercable
+        The dtype to lookup the NaT value for.
+
+    Returns
+    -------
+    NaT : dtype
+        The NaT value for the given dtype.
+    """
+    return NaTmap[np.dtype(dtype)]
+
+
 NaTns = NaT_for_dtype(datetime64ns_dtype)
 NaTD = NaT_for_dtype(datetime64D_dtype)
 
