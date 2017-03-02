@@ -1,5 +1,6 @@
 from abc import abstractmethod, abstractproperty
 
+import itertools
 import numpy as np
 import pandas as pd
 from six import viewvalues
@@ -22,7 +23,8 @@ from zipline.pipeline.common import (
     TS_FIELD_NAME,
 )
 from zipline.pipeline.loaders.base import PipelineLoader
-from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
+from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype, \
+    default_missing_value_for_dtype
 from zipline.pipeline.loaders.utils import (
     ffill_across_cols,
     last_in_date_group
@@ -111,11 +113,14 @@ def grouped_ffilled_reindex(df, index, group_columns, assets, missing_type_map):
     # easy to fill by shifting our indices by ``len(index)`` per group.
     out_len = len(index) * len(groups)
     out_columns = {}
-    for sid, normalized_quarter in groups.keys():
+    all_sids_quarters = itertools.product(assets, df[NORMALIZED_QUARTERS].unique())
+    for sid, normalized_quarter in all_sids_quarters:
         out_columns[(sid, normalized_quarter)] = {}
         for column in set(df.columns) - {SID_FIELD_NAME, NORMALIZED_QUARTERS}:
-            out_columns[(sid, normalized_quarter)][column] = np.empty(len(index), dtype=df.dtypes[column])
-
+            try:
+                out_columns[(sid, normalized_quarter)][column] = np.full(len(index), default_missing_value_for_dtype(df.dtypes[column]), dtype=df.dtypes[column])
+            except:
+                import pdb; pdb.set_trace()
     # In our reindex we will never write ``nan``, instead we will use a mask
     # array to filter out any missing rows before returning the final
     # dataframe.
@@ -137,7 +142,6 @@ def grouped_ffilled_reindex(df, index, group_columns, assets, missing_type_map):
         # in ``where``. We mask out the ``nan`` values so that we can just
         # resize the output buffer once before creating the dataframe.
         group_mask = where != -1
-
         for column, out_buf in out_columns[(sid, normalized_quarter)].items():
             # For each column, select from the input array with the indices
             # computed for the reindex and write the result to a slice of our
@@ -179,16 +183,11 @@ def flat_last_in_date_group(df, dates, group_columns, assets, missing_type_map):
             df[TS_FIELD_NAME].values.astype('datetime64[D]')
         )],
     ] + group_columns
-
     last_in_group = df.drop(TS_FIELD_NAME, axis=1).groupby(
         idx,
-        sort=False,
+        sort=True,
     ).last()
-    sids_to_add = pd.DataFrame(
-        columns=[SID_FIELD_NAME], data=list(set(df.sid) - assets)
-    )
     last_in_group.reset_index(group_columns, inplace=True)
-    last_in_group = pd.concat([last_in_group, sids_to_add])
     last_in_group = grouped_ffilled_reindex(
         last_in_group,
         dates,
@@ -364,12 +363,7 @@ class EarningsEstimatesLoader(PipelineLoader):
             [
                 zero_qtr_data_idx.get_level_values(0),
                 zero_qtr_data_idx.get_level_values(1),
-                self.get_shifted_qtrs(
-                    zeroth_quarter_idx.get_level_values(
-                        NORMALIZED_QUARTERS,
-                    ),
-                    num_announcements,
-                ),
+                self.get_shifted_qtrs(zeroth_quarter_idx.get_level_values(NORMALIZED_QUARTERS,), num_announcements,),
             ],
             names=[
                 zero_qtr_data_idx.names[0],
@@ -846,6 +840,29 @@ class EarningsEstimatesLoader(PipelineLoader):
         )
         stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] = pd.to_datetime(
             stacked_last_per_qtr[EVENT_DATE_FIELD_NAME]
+        )
+
+        last_per_qtr_old = last_in_date_group(
+            self.estimates,
+            dates,
+            assets_with_data,
+            reindex=True,
+            extra_groupers=[NORMALIZED_QUARTERS],
+        )
+        ffill_across_cols(last_per_qtr_old, columns, self.name_map)
+        stacked_last_per_qtr_old = last_per_qtr_old.stack(
+            [SID_FIELD_NAME, NORMALIZED_QUARTERS],
+        )
+        stacked_last_per_qtr_old.index.set_names(
+            SIMULATION_DATES,
+            level=0,
+            inplace=True,
+        )
+        stacked_last_per_qtr_old = stacked_last_per_qtr_old.sort_values(
+            EVENT_DATE_FIELD_NAME,
+        )
+        stacked_last_per_qtr_old[EVENT_DATE_FIELD_NAME] = pd.to_datetime(
+            stacked_last_per_qtr_old[EVENT_DATE_FIELD_NAME]
         )
         return last_per_qtr, stacked_last_per_qtr
 
