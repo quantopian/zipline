@@ -120,7 +120,6 @@ def grouped_ffilled_reindex(df, index, group_columns, assets, missing_type_map):
         # in ``where``. We mask out the ``nan`` values so that we can just
         # resize the output buffer once before creating the dataframe.
         group_mask = where != -1
-        out_columns[(sid, normalized_quarter)] = {}
         for column in set(df.columns) - {SID_FIELD_NAME, NORMALIZED_QUARTERS}:
             column_dtype = df_dtypes[column]
             out_buf = np.full(len(index), default_missing_value_for_dtype(column_dtype), dtype=column_dtype)
@@ -132,15 +131,8 @@ def grouped_ffilled_reindex(df, index, group_columns, assets, missing_type_map):
             )
             if column in missing_type_map:
                 out_buf[~group_mask] = missing_type_map[column]
-            out_columns[(sid, normalized_quarter)][column] = out_buf
-
-    df2 = pd.DataFrame({
-        (column, normalized_quarter, sid):
-        buf
-        for sid, normalized_quarter in out_columns.keys()
-        for column, buf in out_columns[(sid, normalized_quarter)].items()},
-        index=index
-    )
+            out_columns[(column, normalized_quarter, sid)] = out_buf
+    df2 = pd.DataFrame(out_columns, index=index)
     df2.columns.names = [None, 'normalized_quarters', 'sid']
     return df2
 
