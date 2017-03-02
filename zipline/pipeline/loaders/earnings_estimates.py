@@ -107,31 +107,11 @@ def grouped_ffilled_reindex(df, index, group_columns, assets, missing_type_map):
     2    3    7
     """
     groups = df.groupby(group_columns).indices
-    # The output arrays and nan mask are preallocated to
-    # ``len(index) * len(groups)`` because that is the maximum size possible
-    # if we don't need to mask out any missing values. This also makes it
-    # easy to fill by shifting our indices by ``len(index)`` per group.
-    out_len = len(index) * len(groups)
+
     out_columns = {}
-    all_sids_quarters = itertools.product(assets, df[NORMALIZED_QUARTERS].unique())
-    for sid, normalized_quarter in all_sids_quarters:
-        out_columns[(sid, normalized_quarter)] = {}
-        for column in set(df.columns) - {SID_FIELD_NAME, NORMALIZED_QUARTERS}:
-            out_columns[(sid, normalized_quarter)][column] = np.full(len(index), default_missing_value_for_dtype(df.dtypes[column]), dtype=df.dtypes[column])
-    # In our reindex we will never write ``nan``, instead we will use a mask
-    # array to filter out any missing rows before returning the final
-    # dataframe.
-    # It is much faster to perform our operations on an ndarray per column
-    # instead of the series so we expand our input dataframe into a dict
-    # mapping string column name to the ndarray for that column.
-    in_columns = {
-        column: df[column].values
-        for column in df.columns
-    }
     for n, ((sid, normalized_quarter), group_ix) in enumerate(groups.items()):
         # ``group_ix`` is an array with all of the integer indices for the
         # elements of a single group.
-
         # Get the indices for the reindex.
         where = df.index[group_ix].get_indexer_for(index, method='ffill')
 
@@ -139,15 +119,18 @@ def grouped_ffilled_reindex(df, index, group_columns, assets, missing_type_map):
         # in ``where``. We mask out the ``nan`` values so that we can just
         # resize the output buffer once before creating the dataframe.
         group_mask = where != -1
-        for column, out_buf in out_columns[(sid, normalized_quarter)].items():
+        out_columns[(sid, normalized_quarter)] = {}
+        for column in set(df.columns) - {SID_FIELD_NAME, NORMALIZED_QUARTERS}:
+            out_buf = np.full(len(index), default_missing_value_for_dtype(df.dtypes[column]), dtype=df.dtypes[column])
             # For each column, select from the input array with the indices
             # computed for the reindex and write the result to a slice of our
             # preallocated output column array.
-            out_buf[group_mask] = in_columns[column][group_ix].take(
+            out_buf[group_mask] = df[column].values[group_ix].take(
                 where[group_mask],
             )
             if column in missing_type_map:
                 out_buf[~group_mask] = missing_type_map[column]
+            out_columns[(sid, normalized_quarter)][column] = out_buf
 
     df2 = pd.DataFrame({
         (column, normalized_quarter, sid):
