@@ -1128,7 +1128,7 @@ class WithEstimateWindows(WithEstimates):
         })
         concatted = pd.concat([sid_0_timeline,
                                sid_10_timeline,
-                               sid_20_timeline]).reset_index()
+                               sid_20_timeline]).reset_index(drop=True)
         np.random.seed(0)
         return concatted.reindex(np.random.permutation(concatted.index))
 

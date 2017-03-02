@@ -117,10 +117,7 @@ def grouped_ffilled_reindex(df, index, group_columns, assets, missing_type_map):
     for sid, normalized_quarter in all_sids_quarters:
         out_columns[(sid, normalized_quarter)] = {}
         for column in set(df.columns) - {SID_FIELD_NAME, NORMALIZED_QUARTERS}:
-            try:
-                out_columns[(sid, normalized_quarter)][column] = np.full(len(index), default_missing_value_for_dtype(df.dtypes[column]), dtype=df.dtypes[column])
-            except:
-                import pdb; pdb.set_trace()
+            out_columns[(sid, normalized_quarter)][column] = np.full(len(index), default_missing_value_for_dtype(df.dtypes[column]), dtype=df.dtypes[column])
     # In our reindex we will never write ``nan``, instead we will use a mask
     # array to filter out any missing rows before returning the final
     # dataframe.
@@ -840,29 +837,6 @@ class EarningsEstimatesLoader(PipelineLoader):
         )
         stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] = pd.to_datetime(
             stacked_last_per_qtr[EVENT_DATE_FIELD_NAME]
-        )
-
-        last_per_qtr_old = last_in_date_group(
-            self.estimates,
-            dates,
-            assets_with_data,
-            reindex=True,
-            extra_groupers=[NORMALIZED_QUARTERS],
-        )
-        ffill_across_cols(last_per_qtr_old, columns, self.name_map)
-        stacked_last_per_qtr_old = last_per_qtr_old.stack(
-            [SID_FIELD_NAME, NORMALIZED_QUARTERS],
-        )
-        stacked_last_per_qtr_old.index.set_names(
-            SIMULATION_DATES,
-            level=0,
-            inplace=True,
-        )
-        stacked_last_per_qtr_old = stacked_last_per_qtr_old.sort_values(
-            EVENT_DATE_FIELD_NAME,
-        )
-        stacked_last_per_qtr_old[EVENT_DATE_FIELD_NAME] = pd.to_datetime(
-            stacked_last_per_qtr_old[EVENT_DATE_FIELD_NAME]
         )
         return last_per_qtr, stacked_last_per_qtr
 
