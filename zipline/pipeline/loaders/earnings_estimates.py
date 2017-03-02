@@ -109,6 +109,7 @@ def grouped_ffilled_reindex(df, index, group_columns, assets, missing_type_map):
     groups = df.groupby(group_columns).indices
 
     out_columns = {}
+    df_dtypes = {column: df.dtypes[column] for column in df.columns}
     for n, ((sid, normalized_quarter), group_ix) in enumerate(groups.items()):
         # ``group_ix`` is an array with all of the integer indices for the
         # elements of a single group.
@@ -121,7 +122,8 @@ def grouped_ffilled_reindex(df, index, group_columns, assets, missing_type_map):
         group_mask = where != -1
         out_columns[(sid, normalized_quarter)] = {}
         for column in set(df.columns) - {SID_FIELD_NAME, NORMALIZED_QUARTERS}:
-            out_buf = np.full(len(index), default_missing_value_for_dtype(df.dtypes[column]), dtype=df.dtypes[column])
+            column_dtype = df_dtypes[column]
+            out_buf = np.full(len(index), default_missing_value_for_dtype(column_dtype), dtype=column_dtype)
             # For each column, select from the input array with the indices
             # computed for the reindex and write the result to a slice of our
             # preallocated output column array.
