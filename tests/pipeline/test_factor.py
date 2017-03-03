@@ -22,6 +22,7 @@ from numpy import (
 )
 from numpy.random import randn, seed
 import pandas as pd
+from scipy.stats.mstats import winsorize as scipy_winsorize
 
 from zipline.errors import UnknownRankMethod
 from zipline.lib.labelarray import LabelArray
@@ -714,6 +715,7 @@ class FactorTestCase(BasePipelineTestCase):
         normalizer_name_and_func=[
             ('demean', lambda row: row - nanmean(row)),
             ('zscore', lambda row: (row - nanmean(row)) / nanstd(row)),
+            ('winsorize', lambda row: scipy_winsorize(row, limits=0.05)),
         ],
         add_nulls_to_factor=(False, True,),
     )
@@ -1051,6 +1053,10 @@ class ShortReprTestCase(TestCase):
         r = F().zscore().short_repr()
         self.assertEqual(r, "GroupedRowTransform('zscore')")
 
+    def test_winsorize(self):
+        r = F().winsorize().short_repr()
+        self.assertEqual(r, "GroupedRowTransform('winsorize')")
+
 
 class TestWindowSafety(TestCase):
 
@@ -1061,6 +1067,9 @@ class TestWindowSafety(TestCase):
         self.assertFalse(F().demean().window_safe)
         self.assertFalse(F(window_safe=False).demean().window_safe)
         self.assertTrue(F(window_safe=True).demean().window_safe)
+
+    def test_winsorize_is_window_safe(self):
+        self.assertTrue(F().winsorize().window_safe)
 
 
 class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):

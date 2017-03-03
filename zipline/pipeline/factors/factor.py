@@ -7,6 +7,7 @@ from numbers import Number
 
 from numpy import empty_like, inf, nan, where
 from scipy.stats import rankdata
+from scipy.stats.mstats import winsorize as scipy_winsorize
 
 from zipline.errors import UnknownRankMethod
 from zipline.lib.normalize import naive_grouped_rowwise_apply
@@ -832,6 +833,89 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             regression_length=regression_length,
             mask=mask,
         )
+    @float64_only
+    def winsorize(self,
+                  limits,
+                  inclusive=(True, True),
+                  mask=NotSpecified,
+                  groupby=NotSpecified):
+        """
+        Construct a Factor returns a winsorized row for results. Winsorizing
+        clips the input values to fixed percentiles. The (limits[0])th lowest
+        values are set to the value at the (limits[0])th percentile. The values
+        above the (limits[1])th percentiles are set to the value at the
+        (limits[1])th percentile. This is useful when limiting the impact of
+        extreme values.
+
+        If ``mask`` is supplied, ignore values where ``mask`` returns False
+        when computing row means and standard deviations, and output NaN
+        anywhere the mask is False.
+
+        If ``groupby`` is supplied, compute by partitioning each row based on
+        the values produced by ``groupby``, winsorizing the partitioned arrays,
+        and stitching the sub-results back together.
+
+        Parameters
+        ----------
+        limits : None, tuple of float, optional
+            A tuple of two values between 0 and 100 inclusive. This is the
+            percentage to cut from each tail of the array. A value of None
+            can be used to indicate an open limit.
+        inclusive : a tuple of bool, optional
+            A bool indicating whether the data on each side should be
+            rounded(True) or truncated(False). A value of None can be used if
+            one side is not being winsorized. Default is (False, False).
+        mask : zipline.pipeline.Filter, optional
+            A Filter defining values to ignore when winsorizing.
+        groupby : zipline.pipeline.Classifier, optional
+            A classifier defining partitions over which to winsorize.
+
+        Returns
+        -------
+        winsorized : zipline.pipeline.Factor
+            A Factor producing a winsorized version of self.
+
+        Example
+        -------
+
+        price = USEquityPricing.close.latest
+        columns={
+            'PRICE': price,
+            'WINSOR_1: price.winsorize(limits=25),
+            'WINSOR_2': price.winsorize(limits=(50, None)),
+            'WINSOR_3': price.winsorize(
+                limits=25, inclusive=(False, False)
+            ),
+            'WINSOR_4': price.winsorize(limits=25, inclusive=(True, False)),
+            'WINSOR_5': price.winsorize(limits=(20, 40)),
+        }
+
+        Given a pipeline with columns, defined above, the result for a
+        given day could look like:
+
+                'PRICE' 'WINSOR_1' 'WINSOR_2' 'WINSOR_3' 'WINSOR_4' 'WINSOR_5'
+        Asset_1    1        2          4          3          2          2
+        Asset_2    2        2          4          3          2          2
+        Asset_3    3        3          4          3          3          2
+        Asset_4    4        4          4          4          4          4
+        Asset_5    5        5          5          4          4          4
+        Asset_6    6        5          5          4          4          4
+
+        See Also
+        --------
+        :func:`scipy.stats.mstats.winsorize`
+        :meth:`pandas.DataFrame.groupby`
+        """
+        return GroupedRowTransform(
+            transform=winsorize,
+            transform_args=(limits, inclusive),
+            factor=self,
+            groupby=groupby,
+            dtype=self.dtype,
+            missing_value=self.missing_value,
+            mask=mask,
+            window_safe=self.window_safe,
+        )
 
     @expect_types(bins=int, mask=(Filter, NotSpecifiedType))
     def quantiles(self, bins, mask=NotSpecified):
@@ -1530,3 +1614,20 @@ def demean(row):
 
 def zscore(row):
     return (row - nanmean(row)) / nanstd(row)
+
+
+def winsorize(row, limits, inclusive):
+    if isinstance(limits, int) or isinstance(limits, float):
+        limits = limits / 100.
+    if isinstance(limits, tuple):
+        if limits[0] is not None:
+            limit_0 = limits[0] / 100.
+        else:
+            limit_0 = None
+        if limits[1] is not None:
+            limit_1 = limits[1] / 100
+        else:
+            limit_1 = None
+        limits = (limit_0, limit_1)
+
+    return scipy_winsorize(row, limits=limits, inclusive=inclusive)
