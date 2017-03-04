@@ -2,21 +2,14 @@ from __future__ import division
 
 import numpy as np
 import pandas as pd
-from toolz import merge
-import toolz.curried.operator as op
 
 from zipline import get_calendar
 from zipline.data.bundles import ingest, load, bundles, register
-from zipline.data.bundles.quandl import (
-    format_wiki_url,
-    format_metadata_url,
-)
+
 from zipline.data.bundles.zacks_quandl import from_zacks_dump
-from zipline.lib.adjustment import Float64Multiply
 from zipline.testing import (
     test_resource_path,
-    tmp_dir,
-    patch_read_csv,
+    tmp_dir
 )
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import (
@@ -60,21 +53,25 @@ class ZacksBundleTestCase(ZiplineTestCase):
                              'low',
                              'close',
                              'volume',
-                             'ticker'
-                         ],
+                             'ticker'],
                          na_values=['NA']
                          )
-        df = df.dropna()  # drop NA rows (non trading days) or loader will wipe out entire column
+        # drop NA rows (non trading days) or loader will wipe out entire column
+        df = df.dropna()
 
         df = df.replace({"ticker": sids})            # convert ticker to sids
         df = df.rename(columns={"ticker": "sid"})
-        df["volume"] = np.floor(df["volume"])        # zacks data contains fractional shares, these get dropped
 
-        # split one large DataFrame into one per sid (this also drops unwanted tickers)
+        # zacks data contains fractional shares, these get dropped
+        df["volume"] = np.floor(df["volume"])
+
+        # split one large DataFrame into one per sid
+        # (also drops unwanted tickers)
         subs = [df[df['sid'] == sid] for sid in sorted(sids.values())]
 
-        # package up data from CSV so that it is in the same format as data coming out of the bundle
-        # the format is a list of 5 2D arrays one for each OHLCV
+        # package up data from CSV so that it is in the same format as data
+        # coming out of the bundle the format is a list of 5 2D arrays one
+        # for each OHLCV
         pricing = []
         for column in self.columns:
             vs = np.zeros((subs[0].shape[0], len(subs)))
@@ -93,8 +90,10 @@ class ZacksBundleTestCase(ZiplineTestCase):
             'QUANDL_API_KEY': self.api_key,
         }
 
-        # custom bundles need to be registered before use or they will not be recognized
-        register('ZacksQuandl', from_zacks_dump(test_resource_path('zacks_samples', 'fictitious.csv')))
+        # custom bundles need to be registered before use or they will not
+        # be recognized
+        register('ZacksQuandl', from_zacks_dump(test_resource_path(
+            'zacks_samples', 'fictitious.csv')))
         ingest('ZacksQuandl', environ=environ)
 
         # load bundle now that it has been ingested
