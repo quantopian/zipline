@@ -22,7 +22,7 @@ def format_yahoo_index_url(symbol, start_date, end_date):
     Format a URL for querying Yahoo Finance for Index data.
     """
     return (
-        'http://ichart.finance.yahoo.com/table.csv?' + urlencode({
+        'https://ichart.finance.yahoo.com/table.csv?' + urlencode({
             's': symbol,
             # start_date month, zero indexed
             'a': start_date.month - 1,
