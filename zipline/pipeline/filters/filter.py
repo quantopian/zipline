@@ -334,6 +334,7 @@ class PercentileFilter(SingleInputMixin, Filter):
             raise BadPercentileBounds(
                 min_percentile=self._min_percentile,
                 max_percentile=self._max_percentile,
+                upper_bound=100.0
             )
         return super(PercentileFilter, self)._validate()
 

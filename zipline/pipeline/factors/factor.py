@@ -4,12 +4,12 @@ factor.py
 from functools import wraps
 from operator import attrgetter
 from numbers import Number
+from math import ceil
 
 from numpy import empty_like, inf, nan, where
 from scipy.stats import rankdata
-from scipy.stats.mstats import winsorize as scipy_winsorize
 
-from zipline.errors import UnknownRankMethod
+from zipline.errors import BadPercentileBounds, UnknownRankMethod
 from zipline.lib.normalize import naive_grouped_rowwise_apply
 from zipline.lib.rank import masked_rankdata_2d, rankdata_1d_descending
 from zipline.pipeline.api_utils import restrict_to_dtype
@@ -833,19 +833,25 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             regression_length=regression_length,
             mask=mask,
         )
+
+    @expect_types(
+        min_percentile=(int, float),
+        max_percentile=(int, float),
+        mask=(Filter, NotSpecifiedType),
+        groupby=(Classifier, NotSpecifiedType),
+    )
     @float64_only
     def winsorize(self,
-                  limits,
-                  inclusive=(True, True),
+                  min_percentile,
+                  max_percentile,
                   mask=NotSpecified,
                   groupby=NotSpecified):
         """
-        Construct a Factor returns a winsorized row for results. Winsorizing
-        clips the input values to fixed percentiles. The (limits[0])th lowest
-        values are set to the value at the (limits[0])th percentile. The values
-        above the (limits[1])th percentiles are set to the value at the
-        (limits[1])th percentile. This is useful when limiting the impact of
-        extreme values.
+        Construct a Factor returns a winsorized row. Winsorizing changes values
+        ranked less than the minimum percentile to to value at the minimum
+        percentile. Similarly, values ranking above the maximum percentile will
+        be changed to the value at the maximum percentile. This is useful
+        when limiting the impact of extreme values.
 
         If ``mask`` is supplied, ignore values where ``mask`` returns False
         when computing row means and standard deviations, and output NaN
@@ -857,14 +863,14 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Parameters
         ----------
-        limits : None, tuple of float, optional
-            A tuple of two values between 0 and 100 inclusive. This is the
-            percentage to cut from each tail of the array. A value of None
-            can be used to indicate an open limit.
-        inclusive : a tuple of bool, optional
-            A bool indicating whether the data on each side should be
-            rounded(True) or truncated(False). A value of None can be used if
-            one side is not being winsorized. Default is (False, False).
+        min_percentile: float, int
+            Entries with values at or below this percentile will be replaced
+            with the (len(inp) * min_percentile)th lowest value. If low values
+            should not be clipped, use 0.
+        max_percentile: float, int
+            Entries with values at or above this percentile will be replaced
+            with the (len(inp) * max_percentile)th lowest value. If high
+            values should not be clipped, use 1.
         mask : zipline.pipeline.Filter, optional
             A Filter defining values to ignore when winsorizing.
         groupby : zipline.pipeline.Classifier, optional
@@ -881,34 +887,43 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         price = USEquityPricing.close.latest
         columns={
             'PRICE': price,
-            'WINSOR_1: price.winsorize(limits=25),
-            'WINSOR_2': price.winsorize(limits=(50, None)),
-            'WINSOR_3': price.winsorize(
-                limits=25, inclusive=(False, False)
+            'WINSOR_1: price.winsorize(
+                min_percentile=0.25, max_percentile=0.75
             ),
-            'WINSOR_4': price.winsorize(limits=25, inclusive=(True, False)),
-            'WINSOR_5': price.winsorize(limits=(20, 40)),
+            'WINSOR_2': price.winsorize(
+                min_percentile=0.50, max_percentile=1.0
+            ),
+            'WINSOR_3': price.winsorize(
+                min_percentile=0.0, max_percentile=0.5
+            ),
+
         }
 
         Given a pipeline with columns, defined above, the result for a
         given day could look like:
 
-                'PRICE' 'WINSOR_1' 'WINSOR_2' 'WINSOR_3' 'WINSOR_4' 'WINSOR_5'
-        Asset_1    1        2          4          3          2          2
-        Asset_2    2        2          4          3          2          2
-        Asset_3    3        3          4          3          3          2
-        Asset_4    4        4          4          4          4          4
-        Asset_5    5        5          5          4          4          4
-        Asset_6    6        5          5          4          4          4
+                'PRICE' 'WINSOR_1' 'WINSOR_2' 'WINSOR_3'
+        Asset_1    1        2          4          3
+        Asset_2    2        2          4          3
+        Asset_3    3        3          4          3
+        Asset_4    4        4          4          4
+        Asset_5    5        5          5          4
+        Asset_6    6        5          5          4
 
         See Also
         --------
         :func:`scipy.stats.mstats.winsorize`
         :meth:`pandas.DataFrame.groupby`
         """
+        if not 0.0 <= min_percentile < max_percentile <= 1.0:
+            raise BadPercentileBounds(
+                min_percentile=min_percentile,
+                max_percentile=max_percentile,
+                upper_bound=1.0,
+            )
         return GroupedRowTransform(
             transform=winsorize,
-            transform_args=(limits, inclusive),
+            transform_args=(min_percentile, max_percentile),
             factor=self,
             groupby=groupby,
             dtype=self.dtype,
@@ -1616,18 +1631,21 @@ def zscore(row):
     return (row - nanmean(row)) / nanstd(row)
 
 
-def winsorize(row, limits, inclusive):
-    if isinstance(limits, int) or isinstance(limits, float):
-        limits = limits / 100.
-    if isinstance(limits, tuple):
-        if limits[0] is not None:
-            limit_0 = limits[0] / 100.
-        else:
-            limit_0 = None
-        if limits[1] is not None:
-            limit_1 = limits[1] / 100
-        else:
-            limit_1 = None
-        limits = (limit_0, limit_1)
+def winsorize(row, min_percentile, max_percentile):
+    """
+    This implementation is based on scipy.stats.mstats.winsorize
+    """
+    a = row.copy()
+    num = a.size
+    idx = a.argsort()
+    if min_percentile > 0:
+        lowidx = int(min_percentile * num)
+        a[idx[:lowidx]] = a[idx[lowidx]]
+    if max_percentile < 1:
+        upidx = ceil(num * max_percentile)
+        # upidx could return as the length of the array, in this case
+        # no modification to the right tail is necessary.
+        if upidx < num:
+            a[idx[upidx:]] = a[idx[upidx - 1]]
 
-    return scipy_winsorize(row, limits=limits, inclusive=inclusive)
+    return a
