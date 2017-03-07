@@ -570,8 +570,8 @@ class BadPercentileBounds(ZiplineError):
     are invalid.
     """
     msg = (
-        "Percentile bounds must fall between 0.0 and 100.0, and min must be "
-        "less than max."
+        "Percentile bounds must fall between 0.0 and {upper_bound}, and min "
+        "must be less than max."
         "\nInputs were min={min_percentile}, max={max_percentile}."
     )
 
