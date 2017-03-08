@@ -109,6 +109,8 @@ def grouped_ffilled_reindex(df, index, group_columns, assets, missing_type_map):
     groups = df.groupby(group_columns).indices
 
     out_columns = {}
+    out_2 = {}
+    out_2_idx = []
     df_dtypes = {column: df.dtypes[column] for column in df.columns}
     for n, ((sid, normalized_quarter), group_ix) in enumerate(groups.items()):
         # ``group_ix`` is an array with all of the integer indices for the
@@ -132,9 +134,16 @@ def grouped_ffilled_reindex(df, index, group_columns, assets, missing_type_map):
             if column in missing_type_map:
                 out_buf[~group_mask] = missing_type_map[column]
             out_columns[(column, normalized_quarter, sid)] = out_buf
-    df2 = pd.DataFrame(out_columns, index=index)
-    df2.columns.names = [None, 'normalized_quarters', 'sid']
-    return df2
+            if column not in out_2:
+                out_2[column] = out_buf.copy()
+            else:
+                out_2[column] = np.append(out_2[column], out_buf)
+
+        out_2_idx.extend([(i, sid, normalized_quarter) for i in index])
+    last_in_date_group = pd.DataFrame(out_columns, index=index)
+    last_in_date_group.columns.names = [None, 'normalized_quarters', 'sid']
+    stacked_last_in_group = pd.DataFrame(out_2, index=pd.MultiIndex.from_tuples(out_2_idx, names=[SIMULATION_DATES, SID_FIELD_NAME, NORMALIZED_QUARTERS]))
+    return last_in_date_group, stacked_last_in_group
 
 
 def flat_last_in_date_group(df, dates, group_columns, assets, missing_type_map):
@@ -162,14 +171,14 @@ def flat_last_in_date_group(df, dates, group_columns, assets, missing_type_map):
         sort=True,
     ).last()
     last_in_group.reset_index(group_columns, inplace=True)
-    last_in_group = grouped_ffilled_reindex(
+    last_in_group, stacked_last_in_group = grouped_ffilled_reindex(
         last_in_group,
         dates,
         group_columns,
         assets,
         missing_type_map
     )
-    return last_in_group
+    return last_in_group, stacked_last_in_group
 
 
 def required_estimates_fields(columns):
@@ -800,15 +809,15 @@ class EarningsEstimatesLoader(PipelineLoader):
         # self.estimates.columns, normalized_quarters, sid], where each cell
         # contains the latest data for that day.
         missing_type_map = {self.name_map[column.name]: column.missing_value for column in columns}
-        last_per_qtr = flat_last_in_date_group(self.estimates, dates, [SID_FIELD_NAME, NORMALIZED_QUARTERS], assets_with_data, missing_type_map)
-        # Stack quarter and sid into the index.
-        stacked_last_per_qtr = last_per_qtr.stack([SID_FIELD_NAME, NORMALIZED_QUARTERS],)
+        last_per_qtr, stacked_last_per_qtr = flat_last_in_date_group(self.estimates, dates, [SID_FIELD_NAME, NORMALIZED_QUARTERS], assets_with_data, missing_type_map)
         # Set date index name for ease of reference
-        stacked_last_per_qtr.index.set_names(
-            SIMULATION_DATES,
-            level=0,
-            inplace=True,
-        )
+        # Stack quarter and sid into the index.
+        # stacked_last_per_qtr2 = last_per_qtr.stack([SID_FIELD_NAME, NORMALIZED_QUARTERS],)
+        # stacked_last_per_qtr.index.set_names(
+        #     SIMULATION_DATES,
+        #     level=0,
+        #     inplace=True,
+        # )
         stacked_last_per_qtr = stacked_last_per_qtr.sort_values(
             EVENT_DATE_FIELD_NAME,
         )
