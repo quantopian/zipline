@@ -109,10 +109,24 @@ def grouped_ffilled_reindex(df, index, group_columns, assets, missing_type_map):
     groups = df.groupby(group_columns).indices
 
     out_columns = {}
-    out_2 = {}
-    out_2_idx = []
-    df_dtypes = {column: df.dtypes[column] for column in df.columns}
+    group_index_len = len(groups.items()) * len(index)
+    out_2_normalized_qtr_idx = np.full(group_index_len, default_missing_value_for_dtype(np.dtype('float64')), dtype='float64')
+    out_2_sid_idx = np.full(group_index_len, default_missing_value_for_dtype(np.dtype('float64')), dtype='float64')
+    out_2_timestamp_idx = np.full(group_index_len, default_missing_value_for_dtype(np.dtype('datetime64[ns]')), dtype='datetime64[ns]')
+    columns_to_ffill = set(df.columns) - {SID_FIELD_NAME, NORMALIZED_QUARTERS}
+    df_dtypes = {column: df.dtypes[column] for column in columns_to_ffill}
+    out_2 = {
+        column:
+            np.full(
+                group_index_len,
+                default_missing_value_for_dtype(df_dtypes[column]),
+                dtype=df_dtypes[column]
+            )
+        for column in columns_to_ffill
+    }
     for n, ((sid, normalized_quarter), group_ix) in enumerate(groups.items()):
+        group_start_idx = n * len(index)
+        group_stop_idx = group_start_idx + len(index)
         # ``group_ix`` is an array with all of the integer indices for the
         # elements of a single group.
         # Get the indices for the reindex.
@@ -122,7 +136,7 @@ def grouped_ffilled_reindex(df, index, group_columns, assets, missing_type_map):
         # in ``where``. We mask out the ``nan`` values so that we can just
         # resize the output buffer once before creating the dataframe.
         group_mask = where != -1
-        for column in set(df.columns) - {SID_FIELD_NAME, NORMALIZED_QUARTERS}:
+        for column in columns_to_ffill :
             column_dtype = df_dtypes[column]
             out_buf = np.full(len(index), default_missing_value_for_dtype(column_dtype), dtype=column_dtype)
             # For each column, select from the input array with the indices
@@ -134,15 +148,23 @@ def grouped_ffilled_reindex(df, index, group_columns, assets, missing_type_map):
             if column in missing_type_map:
                 out_buf[~group_mask] = missing_type_map[column]
             out_columns[(column, normalized_quarter, sid)] = out_buf
-            if column not in out_2:
-                out_2[column] = out_buf.copy()
-            else:
-                out_2[column] = np.append(out_2[column], out_buf)
-
-        out_2_idx.extend([(i, sid, normalized_quarter) for i in index])
+            out_2[column][group_start_idx: group_stop_idx] = out_buf.copy()
+        out_2_normalized_qtr_idx[group_start_idx: group_stop_idx] = normalized_quarter
+        out_2_sid_idx[group_start_idx: group_stop_idx] = sid
+        out_2_timestamp_idx[group_start_idx: group_stop_idx] = index.copy()
     last_in_date_group = pd.DataFrame(out_columns, index=index)
     last_in_date_group.columns.names = [None, 'normalized_quarters', 'sid']
-    stacked_last_in_group = pd.DataFrame(out_2, index=pd.MultiIndex.from_tuples(out_2_idx, names=[SIMULATION_DATES, SID_FIELD_NAME, NORMALIZED_QUARTERS]))
+    stacked_last_in_group = pd.DataFrame(
+        out_2,
+        index=pd.MultiIndex.from_tuples(
+            zip(
+                out_2_timestamp_idx,
+                out_2_sid_idx,
+                out_2_normalized_qtr_idx,
+    ),
+            names=[SIMULATION_DATES, SID_FIELD_NAME, NORMALIZED_QUARTERS])
+    ).tz_localize('utc', level=0).dropna()
+
     return last_in_date_group, stacked_last_in_group
 
 
@@ -813,11 +835,6 @@ class EarningsEstimatesLoader(PipelineLoader):
         # Set date index name for ease of reference
         # Stack quarter and sid into the index.
         # stacked_last_per_qtr2 = last_per_qtr.stack([SID_FIELD_NAME, NORMALIZED_QUARTERS],)
-        # stacked_last_per_qtr.index.set_names(
-        #     SIMULATION_DATES,
-        #     level=0,
-        #     inplace=True,
-        # )
         stacked_last_per_qtr = stacked_last_per_qtr.sort_values(
             EVENT_DATE_FIELD_NAME,
         )
