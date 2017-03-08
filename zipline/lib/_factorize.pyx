@@ -1,7 +1,7 @@
 """
 Factorization algorithms.
 """
-from libc.math cimport floor, log
+from libc.math cimport log
 cimport numpy as np
 import numpy as np
 
@@ -144,6 +144,9 @@ cdef factorize_strings_impl(np.ndarray[object] values,
     return codes, categories_array, reverse_categories
 
 
+cdef list _int_sizes = [1, 1, 2, 4, 4, 8, 8, 8, 8]
+
+
 cpdef factorize_strings(np.ndarray[object] values,
                         object missing_value,
                         int sort):
@@ -209,11 +212,22 @@ cpdef factorize_strings(np.ndarray[object] values,
         # unreachable
         raise ValueError('nvalues larger than uint64')
 
-    if len(categories_array) < 2 ** codes.dtype.itemsize:
-        # if there are a lot of duplicates in the values we may need to shrink
-        # the width of the ``codes`` array
-        codes = codes.astype(unsigned_int_dtype_with_size_in_bytes(
-            floor(log2(len(categories_array))),
-        ))
+    length = len(categories_array)
+    if length < 1:
+        # lim x -> 0 log2(x) == -infinity so we floor at uint8
+        narrowest_dtype = np.uint8
+    else:
+        # The number of bits required to hold the codes up to ``length`` is
+        # log2(length). The number of bits per bytes is 8. We cannot have
+        # fractional bytes so we need to round up. Finally, we can only have
+        # integers with widths 1, 2, 4, or 8 so so we need to round up to the
+        # next value by looking up the next largest size in ``_int_sizes``.
+        narrowest_dtype = unsigned_int_dtype_with_size_in_bytes(
+            _int_sizes[int(np.ceil(log2(length) / 8))]
+        )
+
+    if codes.dtype != narrowest_dtype:
+        # condense the codes down to the narrowest dtype possible
+        codes = codes.astype(narrowest_dtype)
 
     return codes, categories_array, reverse_categories
