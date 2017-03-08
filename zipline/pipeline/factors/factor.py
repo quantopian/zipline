@@ -1642,7 +1642,7 @@ def winsorize(row, min_percentile, max_percentile):
         lowidx = int(min_percentile * num)
         a[idx[:lowidx]] = a[idx[lowidx]]
     if max_percentile < 1:
-        upidx = ceil(num * max_percentile)
+        upidx = int(ceil(num * max_percentile))
         # upidx could return as the length of the array, in this case
         # no modification to the right tail is necessary.
         if upidx < num:
