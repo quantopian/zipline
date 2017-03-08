@@ -25,10 +25,6 @@ from zipline.pipeline.common import (
 from zipline.pipeline.loaders.base import PipelineLoader
 from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype, \
     default_missing_value_for_dtype
-from zipline.pipeline.loaders.utils import (
-    ffill_across_cols,
-    last_in_date_group
-)
 
 
 INVALID_NUM_QTRS_MESSAGE = "Passed invalid number of quarters %s; " \
@@ -62,60 +58,57 @@ metadata_columns = frozenset({
 })
 
 
-def grouped_ffilled_reindex(df, index, group_columns, assets, missing_type_map):
-    """Perform a groupwise reindex(method='ffill') for a dataframe without
-    altering the dtypes of columns. Any row which would have a `nan` written
-    is dropped.
+def grouped_ffilled_reindex(df, index, group_columns, missing_type_map):
+    """Perform a groupwise reindex(method='ffill') for dataframe columns
+    without altering the dtypes of columns. Builds up structure for 2
+    dataframes - stacked and unstacked.
 
     Parameters
     ----------
     df : pd.DataFrame
-        The dataframe to reindex groupwise.
+        The dataframe to reshape.
     index : pd.Index
         The new index per group.
     group_columns : str or list[str]
         The group_columns of column or columns to group by.
+    missing_type_map : dict[str -> np.dtype]
+        The missing type to use for certain columns.
 
     Returns
     -------
-    grouped_reindexed : pd.DataFrame
-        The result of the grouping, reindexing, and forward filling.
-
-    Examples
-    --------
-    >>> df = df = pd.DataFrame(
-    ...     [[1, 1], [1, 2], [2, 3], [2, 4], [2, 5], [3, 6], [3, 7]],
-    ...     columns=['key', 'col'],
-    ...     index=pd.Index([0, 1, 0, 1, 2, 1, 2])
-    ... )
-    >>> df
-       key  col
-    0    1    1
-    1    1    2
-    0    2    3
-    1    2    4
-    2    2    5
-    1    3    6
-    2    3    7
-    >>> grouped_ffilled_reindex(df, [1, 2], 'key')
-       key  col
-    1    1    2
-    2    1    2
-    1    2    4
-    2    2    5
-    1    3    6
-    2    3    7
+    last_per_qtr : pd.DataFrame
+        A DataFrame with a column MultiIndex of [self.estimates.columns,
+        normalized_quarters, sid] that allows easily getting the timeline
+        of estimates for a particular sid for a particular quarter.
+    stacked_last_per_qtr : pd.DataFrame
+        The latest estimate known with the dates, normalized quarter, and
+        sid as the index.
     """
     groups = df.groupby(group_columns).indices
-
-    out_columns = {}
-    group_index_len = len(groups.items()) * len(index)
-    out_2_normalized_qtr_idx = np.full(group_index_len, default_missing_value_for_dtype(np.dtype('float64')), dtype='float64')
-    out_2_sid_idx = np.full(group_index_len, default_missing_value_for_dtype(np.dtype('float64')), dtype='float64')
-    out_2_timestamp_idx = np.full(group_index_len, default_missing_value_for_dtype(np.dtype('datetime64[ns]')), dtype='datetime64[ns]')
     columns_to_ffill = set(df.columns) - {SID_FIELD_NAME, NORMALIZED_QUARTERS}
+    group_index_len = len(groups) * len(index)
     df_dtypes = {column: df.dtypes[column] for column in columns_to_ffill}
-    out_2 = {
+
+    # We will build this up in the loop, since the key is (column,
+    # normalized_quarter, sid) and is relatively costly to build.
+    last_per_qtr_columns = {}
+
+    # For the stacked dataframe, we need to build up the index as we loop
+    # through each group. It is fastest to do this by pre-allocating arrays
+    # for each index level and filling them up as we go.
+    normalize_qtr_idx = np.full(
+        group_index_len,
+        default_missing_value_for_dtype(np.dtype('float64')),
+        dtype='float64'
+    )
+    sid_idx = np.full(
+        group_index_len,
+        default_missing_value_for_dtype(np.dtype('float64')),
+        dtype='float64'
+    )
+    # There are only a few keys here - the columns - so we can pre-allocate
+    # these arrays now.
+    stacked_last_per_qtr_columns = {
         column:
             np.full(
                 group_index_len,
@@ -125,51 +118,60 @@ def grouped_ffilled_reindex(df, index, group_columns, assets, missing_type_map):
         for column in columns_to_ffill
     }
     for n, ((sid, normalized_quarter), group_ix) in enumerate(groups.items()):
-        group_start_idx = n * len(index)
-        group_stop_idx = group_start_idx + len(index)
         # ``group_ix`` is an array with all of the integer indices for the
         # elements of a single group.
+        group_start_idx = n * len(index)
+        group_stop_idx = group_start_idx + len(index)
+
         # Get the indices for the reindex.
         where = df.index[group_ix].get_indexer_for(index, method='ffill')
 
-        # Any value which would have a ``nan`` written has an index of ``-1``
-        # in ``where``. We mask out the ``nan`` values so that we can just
-        # resize the output buffer once before creating the dataframe.
         group_mask = where != -1
         for column in columns_to_ffill :
             column_dtype = df_dtypes[column]
-            out_buf = np.full(len(index), default_missing_value_for_dtype(column_dtype), dtype=column_dtype)
-            # For each column, select from the input array with the indices
-            # computed for the reindex and write the result to a slice of our
-            # preallocated output column array.
+            out_buf = np.full(
+                len(index),
+                default_missing_value_for_dtype(column_dtype),
+                dtype=column_dtype
+            )
             out_buf[group_mask] = df[column].values[group_ix].take(
                 where[group_mask],
             )
             if column in missing_type_map:
                 out_buf[~group_mask] = missing_type_map[column]
-            out_columns[(column, normalized_quarter, sid)] = out_buf
-            out_2[column][group_start_idx: group_stop_idx] = out_buf.copy()
-        out_2_normalized_qtr_idx[group_start_idx: group_stop_idx] = normalized_quarter
-        out_2_sid_idx[group_start_idx: group_stop_idx] = sid
-        out_2_timestamp_idx[group_start_idx: group_stop_idx] = index.copy()
-    last_in_date_group = pd.DataFrame(out_columns, index=index)
-    last_in_date_group.columns.names = [None, 'normalized_quarters', 'sid']
-    stacked_last_in_group = pd.DataFrame(
-        out_2,
+            # For the last-per-qtr key, the value is just the out_buf.
+            last_per_qtr_columns[(column, normalized_quarter, sid)] = out_buf
+            # For the stacked-last-per-qtr key, since the value is a
+            # pre-allocated np array, we just need to copy the contents of the
+            # out-buffer to the correct location.
+            stacked_last_per_qtr_columns[column][
+                group_start_idx: group_stop_idx
+            ] = out_buf.copy()
+        # Now, we set the index for the stacked-last-per-qtr dataframe for
+        # the given group.
+        normalize_qtr_idx[
+            group_start_idx: group_stop_idx
+        ] = normalized_quarter
+        sid_idx[group_start_idx: group_stop_idx] = sid
+    last_per_qtr = pd.DataFrame(last_per_qtr_columns, index=index)
+    last_per_qtr.columns.names = [None, 'normalized_quarters', 'sid']
+    stacked_last_per_qtr = pd.DataFrame(
+        stacked_last_per_qtr_columns,
         index=pd.MultiIndex.from_tuples(
             zip(
-                out_2_timestamp_idx,
-                out_2_sid_idx,
-                out_2_normalized_qtr_idx,
+                np.tile(index, len(groups)),
+                sid_idx,
+                normalize_qtr_idx,
     ),
-            names=[SIMULATION_DATES, SID_FIELD_NAME, NORMALIZED_QUARTERS])
+        names=[SIMULATION_DATES, SID_FIELD_NAME, NORMALIZED_QUARTERS])
     ).tz_localize('utc', level=0).dropna()
 
-    return last_in_date_group, stacked_last_in_group
+    return last_per_qtr, stacked_last_per_qtr
 
 
-def flat_last_in_date_group(df, dates, group_columns, assets, missing_type_map):
-    """Compute the last forward filled value in each date group.
+def flat_last_in_date_group(df, dates, group_columns, missing_type_map):
+    """Compute a stacked and un-stacked dataframe with the last forward-filled
+    value in each date group.
 
     Parameters
     ----------
@@ -177,11 +179,20 @@ def flat_last_in_date_group(df, dates, group_columns, assets, missing_type_map):
         The input dataframe of non forward filled records.
     dates : pd.Index
         The date index to align the timestamps to.
+    group_columns : str or list[str]
+        The group_columns of column or columns to group by.
+    missing_type_map : dict[str -> np.dtype]
+        The missing type to use for certain columns.
 
     Returns
     -------
-    ffilled : pd.DataFrame
-        The correctly forward filled dataframe.
+    last_per_qtr : pd.DataFrame
+        A DataFrame with a column MultiIndex of [self.estimates.columns,
+        normalized_quarters, sid] that allows easily getting the timeline
+        of estimates for a particular sid for a particular quarter.
+    stacked_last_per_qtr : pd.DataFrame
+        The latest estimate known with the dates, normalized quarter, and
+        sid as the index.
     """
     idx = [
         dates[dates.searchsorted(
@@ -197,7 +208,6 @@ def flat_last_in_date_group(df, dates, group_columns, assets, missing_type_map):
         last_in_group,
         dates,
         group_columns,
-        assets,
         missing_type_map
     )
     return last_in_group, stacked_last_in_group
@@ -368,7 +378,10 @@ class EarningsEstimatesLoader(PipelineLoader):
             [
                 zero_qtr_data_idx.get_level_values(0),
                 zero_qtr_data_idx.get_level_values(1),
-                self.get_shifted_qtrs(zeroth_quarter_idx.get_level_values(NORMALIZED_QUARTERS,), num_announcements,),
+                self.get_shifted_qtrs(
+                    zeroth_quarter_idx.get_level_values(NORMALIZED_QUARTERS,),
+                    num_announcements,
+                ),
             ],
             names=[
                 zero_qtr_data_idx.names[0],
@@ -830,11 +843,18 @@ class EarningsEstimatesLoader(PipelineLoader):
         # Get a DataFrame indexed by date with a MultiIndex of columns of [
         # self.estimates.columns, normalized_quarters, sid], where each cell
         # contains the latest data for that day.
-        missing_type_map = {self.name_map[column.name]: column.missing_value for column in columns}
-        last_per_qtr, stacked_last_per_qtr = flat_last_in_date_group(self.estimates, dates, [SID_FIELD_NAME, NORMALIZED_QUARTERS], assets_with_data, missing_type_map)
+        missing_type_map = {
+            self.name_map[column.name]:
+            column.missing_value for column in columns
+        }
+        last_per_qtr, stacked_last_per_qtr = flat_last_in_date_group(
+            self.estimates,
+            dates,
+            [SID_FIELD_NAME, NORMALIZED_QUARTERS],
+            missing_type_map
+        )
         # Set date index name for ease of reference
         # Stack quarter and sid into the index.
-        # stacked_last_per_qtr2 = last_per_qtr.stack([SID_FIELD_NAME, NORMALIZED_QUARTERS],)
         stacked_last_per_qtr = stacked_last_per_qtr.sort_values(
             EVENT_DATE_FIELD_NAME,
         )
