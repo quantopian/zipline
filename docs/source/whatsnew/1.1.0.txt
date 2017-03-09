@@ -1,8 +1,8 @@
-Development
------------
+Release 1.1.0
+-------------
 
 :Release: 1.1.0
-:Date:
+:Date: March 10, 2017
 
 This release is meant to provide zipline support for pandas 0.18, as well as several bug fixes, API changes, and many
 performance changes.
