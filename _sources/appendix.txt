@@ -87,8 +87,6 @@ Assets
 
 .. autofunction:: zipline.api.future_symbol
 
-.. autofunction:: zipline.api.future_chain
-
 .. autofunction:: zipline.api.set_symbol_lookup_date
 
 .. autofunction:: zipline.api.sid

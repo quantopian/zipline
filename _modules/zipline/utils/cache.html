@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.utils.cache &mdash; Zipline 1.0.2 documentation</title>
+  <title>zipline.utils.cache &mdash; Zipline 1.1.0 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 1.0.2 documentation" href="../../../index.html"/>
+    <link rel="top" title="Zipline 1.1.0 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -127,20 +127,30 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-2">Release 1.0.2</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-1-0">Release 1.1.0</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#enhancements">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental">Experimental</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#performance">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#build">Build</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-2">Release 1.0.2</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id1">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental">Experimental</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id2">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id5">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id6">Documentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#testing">Testing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#data-format-changes">Data Format Changes</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id3">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id4">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id5">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id7">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id8">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id9">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
@@ -151,70 +161,70 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id6">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id10">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id7">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#performance">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id8">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#build">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id9">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id11">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id12">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id13">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id14">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id15">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id16">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-9-0">Release 0.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id10">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id11">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id12">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id13">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id14">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id15">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id16">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id17">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id18">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id17">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id18">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id19">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id22">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id23">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id24">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id25">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id19">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id22">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id23">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id24">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id25">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id26">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id27">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id26">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id27">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id28">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id29">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id30">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id31">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id32">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id33">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id34">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-3">Release 0.8.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-0">Release 0.8.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id28">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id29">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id30">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id31">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id32">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id33">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id34">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id35">Documentation</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id36">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id37">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id35">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id36">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id37">Experimental Features</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id38">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id39">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id40">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id41">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id42">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id43">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id44">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id45">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id46">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id47">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id48">Build</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#contributors">Contributors</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id42">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id43">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id44">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id45">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id46">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id47">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id48">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id49">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id50">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id51">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id52">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id53">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id54">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id55">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -310,7 +320,7 @@
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Caching utilities for zipline</span>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span><span class="p">,</span> <span class="n">MutableMapping</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">MutableMapping</span>
 <span class="kn">import</span> <span class="nn">errno</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">pickle</span>
@@ -329,7 +339,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
 
-<div class="viewcode-block" id="CachedObject"><a class="viewcode-back" href="../../../appendix.html#zipline.utils.cache.CachedObject">[docs]</a><span class="k">class</span> <span class="nc">CachedObject</span><span class="p">(</span><span class="n">namedtuple</span><span class="p">(</span><span class="s">&quot;_CachedObject&quot;</span><span class="p">,</span> <span class="s">&quot;value expires&quot;</span><span class="p">)):</span>
+<div class="viewcode-block" id="CachedObject"><a class="viewcode-back" href="../../../appendix.html#zipline.utils.cache.CachedObject">[docs]</a><span class="k">class</span> <span class="nc">CachedObject</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A simple struct for maintaining a cached object with an expiration date.</span>
 
@@ -356,6 +366,9 @@
 <span class="sd">        ...</span>
 <span class="sd">    Expired: 2014-01-01 00:00:00+00:00</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">expires</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_value</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_expires</span> <span class="o">=</span> <span class="n">expires</span>
 
     <span class="k">def</span> <span class="nf">unwrap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -371,9 +384,13 @@
 <span class="sd">        Expired</span>
 <span class="sd">            Raised when `dt` is greater than self.expires.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">dt</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">expires</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">Expired</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">expires</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span></div>
+        <span class="k">if</span> <span class="n">dt</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expires</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Expired</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_expires</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span>
+
+    <span class="k">def</span> <span class="nf">_unsafe_get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;You almost certainly shouldn&#39;t use this.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span></div>
 
 
 <div class="viewcode-block" id="ExpiringCache"><a class="viewcode-back" href="../../../appendix.html#zipline.utils.cache.ExpiringCache">[docs]</a><span class="k">class</span> <span class="nc">ExpiringCache</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -697,7 +714,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'1.0.2',
+            VERSION:'1.1.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
