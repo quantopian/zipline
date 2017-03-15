@@ -776,8 +776,9 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             check_dtype=False,
         )
 
-    def _test_id_macro(self, df, dshape, expected, finder, add):
-        dates = self.dates
+    def _test_id_macro(self, df, dshape, expected, finder, add, dates=None):
+        if dates is None:
+            dates = self.dates
         expr = bz.data(df, name='expr', dshape=dshape)
         loader = BlazeLoader()
         ds = from_blaze(
@@ -1874,6 +1875,56 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         })
 
         self._test_checkpoints(checkpoints)
+
+    def test_id_take_last_in_group_sorted(self):
+        """
+        input
+        asof_date     timestamp     other  value
+        2014-01-03    2014-01-04 00     3      3
+        2014-01-02    2014-01-04 00     2      2
+
+        output (expected):
+
+                    other  value
+        2014-01-02    NaN    NaN
+        2014-01-03    NaN    NaN
+        2014-01-06      3      3
+        """
+
+        dates = pd.DatetimeIndex([
+            pd.Timestamp('2014-01-02'),
+            pd.Timestamp('2014-01-03'),
+            pd.Timestamp('2014-01-06'),
+        ])
+
+        T = pd.Timestamp
+        df = pd.DataFrame(
+            columns=['asof_date', 'timestamp', 'other', 'value'],
+            data=[
+                # asof-dates are flipped in terms of order so that if we
+                # don't sort on asof-date before getting the last in group,
+                # we will get the wrong result.
+                [T('2014-01-03'), T('2014-01-04 00'), 3, 3],
+                [T('2014-01-02'), T('2014-01-04 00'), 2, 2],
+            ],
+        )
+        fields = OrderedDict(self.macro_dshape.measure.fields)
+        fields['other'] = fields['value']
+        expected = pd.DataFrame(
+            data=[[np.nan, np.nan],   # 2014-01-02
+                  [np.nan, np.nan],   # 2014-01-03
+                  [3,      3]],       # 2014-01-06
+            columns=['other', 'value'],
+            index=dates,
+        )
+        self._test_id_macro(
+            df,
+            var * Record(fields),
+            expected,
+            self.asset_finder,
+            ('other', 'value'),
+            dates=dates,
+        )
 
 
 class MiscTestCase(ZiplineTestCase):
