@@ -757,6 +757,12 @@ cdef class BarData:
                 direction="next"
             )
 
+    property current_session_minutes:
+        def __get__(self):
+            return self._trading_calendar.minutes_for_session(
+                self.current_session
+            )
+
     #################
     # OLD API SUPPORT
     #################

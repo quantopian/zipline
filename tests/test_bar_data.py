@@ -234,6 +234,18 @@ class TestMinuteBarData(WithCreateBarData,
                 bar_data.current_session
             )
 
+    def test_current_session_minutes(self):
+        first_day_minutes = self.trading_calendar.minutes_for_session(
+            self.equity_minute_bar_days[0]
+        )
+
+        for minute in first_day_minutes:
+            bar_data = self.create_bardata(lambda: minute)
+            np.testing.assert_array_equal(
+                first_day_minutes,
+                bar_data.current_session_minutes
+            )
+
     def test_minute_before_assets_trading(self):
         # grab minutes that include the day before the asset start
         minutes = self.trading_calendar.minutes_for_session(
