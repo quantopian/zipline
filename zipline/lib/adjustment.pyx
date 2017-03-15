@@ -456,7 +456,7 @@ cdef class Float641DArrayOverwrite(ArrayAdjustment):
         self.values = values
 
     cpdef mutate(self, float64_t[:, :] data):
-        cdef Py_ssize_t fill_range, row, col
+        cdef Py_ssize_t i, row, col
         cdef float64_t[:] values = self.values
         for col in range(self.first_col, self.last_col + 1):
             for i, row in enumerate(range(self.first_row, self.last_row + 1)):
@@ -520,7 +520,7 @@ cdef class Datetime641DArrayOverwrite(ArrayAdjustment):
         self.values = asarray([datetime_to_int(value) for value in values])
 
     cpdef mutate(self, int64_t[:, :] data):
-        cdef Py_ssize_t row, col
+        cdef Py_ssize_t i, row, col
         cdef int64_t[:] values = self.values
         for col in range(self.first_col, self.last_col + 1):
             for i, row in enumerate(range(self.first_row, self.last_row + 1)):
@@ -787,8 +787,6 @@ cdef class ObjectOverwrite(_ObjectAdjustment):
     cpdef mutate(self, object data):
         # data is an object here because this is intended to be used with a
         # `zipline.lib.LabelArray`.
-        cdef Py_ssize_t row, col
-        cdef object value = self.value
 
         # We don't do this in a loop because we only want to look up the label
         # code in the array's categories once.
