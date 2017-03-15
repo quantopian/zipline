@@ -720,7 +720,7 @@ class WithEquityDailyBarData(WithTradingEnvironment):
         else:
             return create_daily_bar_data(
                 cls.equity_daily_bar_days,
-                cls.asset_finder.sids,
+                cls.asset_finder.equities_sids,
             )
 
     @classmethod
