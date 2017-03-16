@@ -34,6 +34,7 @@ from zipline.assets.continuous_futures import (
     delivery_predicate
 )
 from zipline.data.minute_bars import FUTURES_MINUTES_PER_DAY
+from zipline.errors import SymbolNotFound
 from zipline.testing.fixtures import (
     WithAssetFinder,
     WithCreateBarData,
@@ -416,6 +417,11 @@ class ContinuousFuturesTestCase(WithCreateBarData,
         self.assertEqual(retrieved, cf_secondary)
 
         self.assertNotEqual(cf_primary, cf_secondary)
+
+        # Assert that the proper exception is raised if the given root symbol
+        # does not exist.
+        with self.assertRaises(SymbolNotFound):
+            self.asset_finder.create_continuous_future('NO', 0, 'calendar')
 
     def test_current_contract(self):
         cf_primary = self.asset_finder.create_continuous_future(
