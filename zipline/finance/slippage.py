@@ -21,6 +21,8 @@ from six import with_metaclass, iteritems
 from pandas import isnull
 
 from zipline.finance.transaction import create_transaction
+from zipline.utils.calendars import get_calendar
+from zipline.utils.pandas_utils import timedelta_to_integral_minutes
 
 SELL = 1 << 0
 BUY = 1 << 1
@@ -233,6 +235,45 @@ class VolumeShareSlippage(SlippageModel):
         return (
             impacted_price,
             math.copysign(cur_volume, order.direction)
+        )
+
+
+class VolumeWeightedAveragePrice(SlippageModel):
+    """Model for execution of order at Volume Weighted Average Price.
+    """
+
+    def __init__(self):
+        self.cumulative_volume = 0
+        self.cumulative_price_volume = 0
+
+        super(VolumeWeightedAveragePrice, self).__init__()
+
+    def process_order(self, data, order):
+        ending_minute = data.current_dt
+        cal = get_calendar(order.asset.exchange)
+        # Get the session associated with the ending minute and use it to
+        # get the minutes elapsed in the current trading day.
+        ending_session = data.current_session
+        session_minute_count = timedelta_to_integral_minutes(
+            ending_minute - cal.open_and_close_for_session(ending_session)[0]
+        ) + 1
+        hist = data.history(order.asset, ["high", "low", "close", "volume"],
+                            session_minute_count, '1m')
+        # Use the VWAP formula.
+        self.cumulative_volume += hist["volume"].sum()
+        self.cumulative_price_volume += ((
+            hist["high"] + hist["low"] +
+            hist["close"])/3 *
+            hist["volume"]).sum()
+
+        vwap = self.cumulative_price_volume / self.cumulative_volume
+
+        if fill_price_worse_than_limit_price(vwap, order):
+            return None, None
+
+        return (
+            vwap,
+            order.open_amount
         )
 
 
