@@ -1177,6 +1177,10 @@ class AssetFinder(object):
                 else:
                     raise SymbolNotFound(symbol=asset_convertible_or_iterable)
 
+        # If the input is a ContinuousFuture just return it as-is.
+        elif isinstance(asset_convertible_or_iterable, ContinuousFuture):
+            return asset_convertible_or_iterable, missing
+
         # Interpret input as iterable.
         try:
             iterator = iter(asset_convertible_or_iterable)
@@ -1187,7 +1191,10 @@ class AssetFinder(object):
             )
 
         for obj in iterator:
-            self._lookup_generic_scalar(obj, as_of_date, matches, missing)
+            if isinstance(obj, ContinuousFuture):
+                matches.append(obj)
+            else:
+                self._lookup_generic_scalar(obj, as_of_date, matches, missing)
         return matches, missing
 
     def map_identifier_index_to_sids(self, index, as_of_date):

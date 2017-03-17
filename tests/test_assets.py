@@ -136,6 +136,7 @@ def build_lookup_generic_cases(asset_finder_type):
             {
                 'sid': fof14_sid,
                 'symbol': 'FOF14',
+                'root_symbol': 'FO',
                 'start_date': unique_start.value,
                 'end_date': unique_end.value,
                 'exchange': 'FUT',
@@ -143,13 +144,25 @@ def build_lookup_generic_cases(asset_finder_type):
         ],
         index='sid'
     )
-    with tmp_assets_db(equities=equities, futures=futures) as assets_db:
+
+    root_symbols = pd.DataFrame({
+        'root_symbol': ['FO'],
+        'root_symbol_id': [1],
+        'exchange': ['CME'],
+    })
+
+    with tmp_assets_db(
+            equities=equities, futures=futures, root_symbols=root_symbols) \
+            as assets_db:
         finder = asset_finder_type(assets_db)
         dupe_0, dupe_1, unique = assets = [
             finder.retrieve_asset(i)
             for i in range(3)
         ]
         fof14 = finder.retrieve_asset(fof14_sid)
+        cf = finder.create_continuous_future(
+            root_symbol=fof14.root_symbol, offset=0, roll_style='volume',
+        )
 
         dupe_0_start = dupe_0.start_date
         dupe_1_start = dupe_1.start_date
@@ -184,6 +197,9 @@ def build_lookup_generic_cases(asset_finder_type):
             # make sure that code path is exercised.
             (finder, fof14_sid, unique_start, fof14),
 
+            # ContinuousFuture
+            (finder, cf, None, cf),
+
             ##
             # Iterables
 
@@ -204,6 +220,9 @@ def build_lookup_generic_cases(asset_finder_type):
 
             # Futures and Equities
             (finder, ['FOF14', 0], None, [fof14, assets[0]]),
+
+            # ContinuousFuture and Equity
+            (finder, [cf, 0], None, [cf, assets[0]]),
         )
 
 
