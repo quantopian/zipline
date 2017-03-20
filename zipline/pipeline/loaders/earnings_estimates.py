@@ -164,7 +164,7 @@ def grouped_ffilled_reindex(df, index, group_columns, missing_type_map):
                 normalize_qtr_idx,
     ),
         names=[SIMULATION_DATES, SID_FIELD_NAME, NORMALIZED_QUARTERS])
-    ).tz_localize('utc', level=0).dropna().sort_index()
+    ).tz_localize('utc', level=0).sort_index()
 
     return last_per_qtr, stacked_last_per_qtr
 
