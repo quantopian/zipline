@@ -215,8 +215,8 @@ class WithOneDayPipeline(WithEstimates):
                                     pd.Timestamp('2015-01-20')],
             'estimate1': [1., 2.],
             'estimate2': [3., 4.],
-            FISCAL_QUARTER_FIELD_NAME: [1, 2],
-            FISCAL_YEAR_FIELD_NAME: [2015, 2015]
+            FISCAL_QUARTER_FIELD_NAME: [1.0, 2.0],
+            FISCAL_YEAR_FIELD_NAME: [2015.0, 2015.0]
         })
 
     @classmethod
