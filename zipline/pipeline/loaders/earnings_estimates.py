@@ -136,7 +136,7 @@ def grouped_ffilled_reindex(df, index, group_columns, missing_type_map):
             col_group_ix = group_ix[
                 ~pd.isnull(df[column].values[group_ix])
             ]
-            if np.array_equal(group_ix, col_group_ix):
+            if ~np.array_equal(group_ix, col_group_ix):
                 where = df.index[col_group_ix].get_indexer_for(
                     index, method='ffill'
                 )
