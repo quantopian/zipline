@@ -15,7 +15,7 @@ METADATA_HEADERS = ['start_date', 'end_date', 'auto_close_date',
 UNWANTED_EXCHANGES = set(["OTC", "OTCBB", "INDX"])
 
 
-def from_zacks_dump(file_name, start=None, end=None):
+def from_zacks_dump(file_name, dvdend_file=None, start=None, end=None):
     """
     Load data from a Zacks dump from Quandl, the data dump is assumed to be in
     a .csv file located at: file_name.
@@ -55,7 +55,7 @@ def from_zacks_dump(file_name, start=None, end=None):
                start=start,
                end=end):
 
-        print "starting ingesting data from: {}".format(file_name)
+        print("starting ingesting data from: {}".format(file_name))
 
         # read in the whole dump (will require ~7GB of RAM)
         df = pd.read_csv(file_name, index_col='date',
@@ -87,8 +87,8 @@ def from_zacks_dump(file_name, start=None, end=None):
             if row0["exchange"] in UNWANTED_EXCHANGES:  # skip OTC securities
                 continue
 
-            print " preparing {} / {} ".format(row0["ticker"],
-                                               row0["exchange"])
+            print(" preparing {} / {} ".format(row0["ticker"],
+                                               row0["exchange"]))
 
             # update metadata; 'start_date', 'end_date', 'auto_close_date',
             # 'symbol', 'exchange', 'asset_name'
@@ -109,15 +109,31 @@ def from_zacks_dump(file_name, start=None, end=None):
             data_list.append((sec_counter, df_tkr))
             sec_counter += 1
 
-        print "writing data for {} securities".format(len(metadata_list))
+        print("writing data for {} securities".format(len(metadata_list)))
         daily_bar_writer.write(data_list, show_progress=False)
 
         # write metadata
         asset_db_writer.write(equities=pd.DataFrame(metadata_list,
                                                     columns=METADATA_HEADERS))
+        print("a total of {} securities were loaded into this bundle".format(
+            sec_counter))
+        # read in Dividend History
+        """
+        m_ticker,ticker,comp_name,comp_name_2,exchange,currency_code,div_ex_date,div_amt,per_end_date
+        Z86Z,0425B,PCA INTL,PCA INTL,,USD,1997-06-09,0.07,1997-07-31
 
-        adjustment_writer.write()
-        print "a total of {} securities were loaded into this bundle".format(
-            sec_counter)
+        div_ex_date is the date you are entitled to the dividend
+        """
+        if dvdend_file is None:
+            adjustment_writer.write()
+        else:
+            dfd = pd.read_csv(dvdend_file, index_col='div_ex_date',
+                             parse_dates=['div_ex_date', 'per_end_date'], na_values=['NA'])
+
+            dfd = dfd.ix[START_DATE:] # drop old data
+            # format dfd to have sid
+            adjustment_writer.write(dividends=dfd)
+
+
 
     return ingest
