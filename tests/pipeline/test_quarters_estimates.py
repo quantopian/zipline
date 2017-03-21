@@ -2735,3 +2735,187 @@ class QuarterShiftTestCase(ZiplineTestCase):
         # because that still fails due to name differences.
         assert_equal(input_yrs, result_years)
         assert_equal(input_qtrs, result_quarters)
+
+
+class WithEstimateShiftingEventDate(WithEstimates):
+    @classmethod
+    def make_events(cls):
+        return pd.DataFrame({
+            SID_FIELD_NAME: [0] * 3,
+            TS_FIELD_NAME: [pd.Timestamp('2015-01-02'),
+                            pd.Timestamp('2015-01-03'),
+                            pd.Timestamp('2015-01-06')],
+            EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-10'),
+                                    pd.Timestamp('2015-01-10'),
+                                    pd.Timestamp('2015-01-20')],
+            'estimate': [11., 21., 12.],
+            FISCAL_QUARTER_FIELD_NAME: [1.0, 4.0, 1.0],
+            FISCAL_YEAR_FIELD_NAME: [2015.0, 2014.0, 2015.0]
+        })
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(WithEstimateShiftingEventDate, cls).init_class_fixtures()
+        cls.expected_out = cls.make_expected_out()
+
+    @classmethod
+    def expected_out_factory(cls, records):
+        expected = pd.DataFrame.from_records(
+            records,
+            columns=[
+                'estimate',
+                'event_date',
+                'fiscal_quarter',
+                'fiscal_year',
+                'date'
+            ]
+        )
+        expected.set_index(['date'], inplace=True)
+        expected = expected.reindex(cls.trading_days)
+        expected['sid'] = cls.asset_finder.retrieve_asset(0)
+        expected = expected.set_index('sid', append=True)
+        return expected
+
+    def test_estimates_shifting_event_date(self):
+        dataset = QuartersEstimates(1)
+        engine = SimplePipelineEngine(
+            lambda x: self.loader,
+            self.trading_days,
+            self.asset_finder,
+        )
+        results = engine.run_pipeline(
+            Pipeline(
+                {c.name: c.latest for c in dataset.columns},
+            ),
+            start_date=self.trading_days[0],
+            end_date=self.trading_days[-1],
+        )
+        assert_frame_equal(results, self.expected_out, check_names=False)
+
+
+class NextEstimateShiftingEventDate(WithEstimateShiftingEventDate,
+                                    ZiplineTestCase):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return NextEarningsEstimatesLoader(events, columns)
+
+    @classmethod
+    def make_expected_out(cls):
+
+        return cls.expected_out_factory(
+            [
+                (11.0, pd.Timestamp('2015-01-10'), 1.0, 2015.0, date)
+                for date in pd.date_range('2015-01-02', '2015-01-02', tz='utc')
+            ] +
+            [
+                (21.0, pd.Timestamp('2015-01-10'), 4.0, 2014.0, date)
+                for date in pd.date_range('2015-01-03', '2015-01-09', tz='utc')
+            ] +
+            [
+                (12.0, pd.Timestamp('2015-01-20'), 1.0, 2015.0, date)
+                for date in pd.date_range('2015-01-12', '2015-01-20', tz='utc')
+            ]
+        )
+
+
+class PreviousEstimateShiftingEventDate(WithEstimateShiftingEventDate,
+                                        ZiplineTestCase):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return PreviousEarningsEstimatesLoader(events, columns)
+
+    @classmethod
+    def make_expected_out(cls):
+        return cls.expected_out_factory(
+            [
+                (21.0, pd.Timestamp('2015-01-10'), 4.0, 2014.0, date)
+                for date in pd.date_range('2015-01-12', '2015-01-19', tz='utc')
+            ] +
+            [
+                (12.0, pd.Timestamp('2015-01-20'), 1.0, 2015.0, date)
+                for date in pd.date_range('2015-01-20', '2015-02-04', tz='utc')
+            ]
+        )
+
+
+class WithDontForwardFillNanValue(WithEstimates):
+    @classmethod
+    def make_events(cls):
+        return pd.DataFrame({
+            SID_FIELD_NAME: [0] * 2,
+            TS_FIELD_NAME: [pd.Timestamp('2015-01-02'),
+                            pd.Timestamp('2015-01-03')],
+            EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-10'),
+                                    pd.Timestamp('2015-01-10')],
+            'estimate': [11., np.NaN],
+            FISCAL_QUARTER_FIELD_NAME: [1.0, 1.0],
+            FISCAL_YEAR_FIELD_NAME: [2015.0, 2015.0]
+        })
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(WithDontForwardFillNanValue, cls).init_class_fixtures()
+        cls.expected_out = cls.make_expected_out()
+
+    @classmethod
+    def expected_out_factory(cls, date_range):
+        expected = pd.DataFrame.from_records(
+            [
+                (11.0, pd.Timestamp('2015-01-10'), 1.0, 2015.0, date)
+                for date in date_range
+            ],
+            columns=[
+                'estimate',
+                'event_date',
+                'fiscal_quarter',
+                'fiscal_year',
+                'date'
+            ]
+        )
+        expected.set_index(['date'], inplace=True)
+        expected = expected.reindex(cls.trading_days)
+        expected['sid'] = cls.asset_finder.retrieve_asset(0)
+        expected = expected.set_index('sid', append=True)
+        return expected
+
+    def test_dont_forward_fill_nan_value(self):
+        dataset = QuartersEstimates(1)
+        engine = SimplePipelineEngine(
+            lambda x: self.loader,
+            self.trading_days,
+            self.asset_finder,
+        )
+        results = engine.run_pipeline(
+            Pipeline(
+                {c.name: c.latest for c in dataset.columns},
+            ),
+            start_date=self.trading_days[0],
+            end_date=self.trading_days[-1],
+        )
+        assert_frame_equal(results, self.expected_out, check_names=False)
+
+
+class NextDontForwardFillNanValue(WithDontForwardFillNanValue,
+                                  ZiplineTestCase):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return NextEarningsEstimatesLoader(events, columns)
+
+    @classmethod
+    def make_expected_out(cls):
+        return cls.expected_out_factory(
+            pd.date_range('2015-01-02', '2015-01-09', tz='utc'),
+        )
+
+
+class PreviousDontForwardFillNanValue(WithDontForwardFillNanValue,
+                                      ZiplineTestCase):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return PreviousEarningsEstimatesLoader(events, columns)
+
+    @classmethod
+    def make_expected_out(cls):
+        return cls.expected_out_factory(
+            pd.date_range('2015-01-12', '2015-02-04', tz='utc'),
+        )

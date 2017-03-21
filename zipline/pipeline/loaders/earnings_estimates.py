@@ -173,8 +173,7 @@ def grouped_ffilled_reindex(df, index, group_columns, missing_type_map):
                 normalize_qtr_idx,
     ),
         names=[SIMULATION_DATES, SID_FIELD_NAME, NORMALIZED_QUARTERS])
-    ).tz_localize('utc', level=0).sort_index()
-
+    ).tz_localize('utc', level=0)
     return last_per_qtr, stacked_last_per_qtr
 
 
@@ -866,7 +865,7 @@ class EarningsEstimatesLoader(PipelineLoader):
         # Stack quarter and sid into the index.
         stacked_last_per_qtr = stacked_last_per_qtr.sort_values(
             EVENT_DATE_FIELD_NAME,
-        )
+        ).sort_index()
         stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] = pd.to_datetime(
             stacked_last_per_qtr[EVENT_DATE_FIELD_NAME]
         )
