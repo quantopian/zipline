@@ -2795,6 +2795,12 @@ class WithEstimateShiftingEventDate(WithEstimates):
 
 class NextEstimateShiftingEventDate(WithEstimateShiftingEventDate,
                                     ZiplineTestCase):
+    """
+    This is a test to ensure that when the same event date is matched to
+    different fiscal quarters/years, we pick out the data points that we
+    expect. We currently are sorting on event date and then on the rest of the
+    index (the timestamp and normalized quarter).
+    """
     @classmethod
     def make_loader(cls, events, columns):
         return NextEarningsEstimatesLoader(events, columns)
