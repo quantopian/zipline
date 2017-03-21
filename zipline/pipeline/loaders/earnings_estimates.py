@@ -123,17 +123,23 @@ def grouped_ffilled_reindex(df, index, group_columns, missing_type_map):
         group_start_idx = n * len(index)
         group_stop_idx = group_start_idx + len(index)
 
+        # Cheaper to do this 1 time for all columns.
+        where = df.index[group_ix].get_indexer_for(
+            index, method='ffill'
+        )
         for column in columns_to_ffill:
             # Get the indices for the reindex.
-            # We must do this column-by-column because in some columns
-            # we get nans as data points, and we want to forward fill
-            # over those if there was prior data for the group.
-            group_ix_with_data = group_ix[
+            # In some columns we get nans as data points. We need to check
+            # if that's the case and, if so, redefine 'where' to fill over
+            # those nans for the given column.
+
+            col_group_ix = group_ix[
                 ~pd.isnull(df[column].values[group_ix])
             ]
-            where = df.index[group_ix_with_data].get_indexer_for(
-                index, method='ffill'
-            )
+            if (group_ix != col_group_ix).any():
+                where = df.index[col_group_ix].get_indexer_for(
+                    index, method='ffill'
+                )
 
             group_mask = where != -1
 
@@ -143,7 +149,7 @@ def grouped_ffilled_reindex(df, index, group_columns, missing_type_map):
                 default_missing_value_for_dtype(column_dtype),
                 dtype=column_dtype
             )
-            out_buf[group_mask] = df[column].values[group_ix_with_data].take(
+            out_buf[group_mask] = df[column].values[col_group_ix].take(
                 where[group_mask],
             )
             if column in missing_type_map:
