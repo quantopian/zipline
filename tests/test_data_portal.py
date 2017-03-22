@@ -296,6 +296,31 @@ class DataPortalTestBase(WithDataPortal,
                   for field in expected.keys()]
         assert_almost_equal(array(list(expected.values())), result)
 
+    def test_get_spot_value_multiple_assets(self):
+        equity = self.asset_finder.retrieve_asset(1)
+        future = self.asset_finder.retrieve_asset(10000)
+        trading_calendar = self.trading_calendars['CME']
+        dts = trading_calendar.minutes_for_session(self.trading_days[3])
+
+        # We expect the outputs to be lists of spot values.
+        expected = pd.DataFrame(
+            {
+                equity: [nan, nan, nan, nan, 0, 101.3],
+                future: [203.5, 203.9, 203.1, 203.3, 2003, 203.3],
+            },
+            index=['open', 'high', 'low', 'close', 'volume', 'price'],
+        )
+        result = [
+            self.data_portal.get_spot_value(
+                assets=[equity, future],
+                field=field,
+                dt=dts[1],
+                data_frequency='minute',
+            )
+            for field in expected.index
+        ]
+        assert_almost_equal(expected.values.tolist(), result)
+
     def test_bar_count_for_simple_transforms(self):
         # July 2015
         # Su Mo Tu We Th Fr Sa
