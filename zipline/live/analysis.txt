@@ -1,0 +1,18 @@
+
+DataPortal's methods used in TradingAlgorithm
+line 586: used to create a trading_client (AlgorithmSimulatior)
+line 625: get a list of all the assets in the trading universe
+line 975: fetch_csv, data from external csv is added to DataPortal.  
+line 1566 & 1580: tracks portfolio positions
+line 2099: get historical data
+
+Blotter's methods used in TradingAlgorithm
+line 1421: used to order assets in order()
+line 1480 & 1439: limit & stop orders
+line 1647: set slipage model, may not be needed for live trading
+line 1692: order cancelation policy
+line 2010: batch order
+line 2060, 2061, 2076 : submit orders, cancel orders
+
+Other notes
+TradingAlgorithm.on_dt_changed() is called by the simulation loop, this would need to be called by something similar to simulation.  
