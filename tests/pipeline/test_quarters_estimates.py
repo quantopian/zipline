@@ -2848,14 +2848,18 @@ class WithDontForwardFillNanValue(WithEstimates):
     @classmethod
     def make_events(cls):
         return pd.DataFrame({
-            SID_FIELD_NAME: [0] * 2,
-            TS_FIELD_NAME: [pd.Timestamp('2015-01-02'),
-                            pd.Timestamp('2015-01-03')],
+            SID_FIELD_NAME: [0] * 4,
+            TS_FIELD_NAME: [pd.Timestamp('2015-01-05'),
+                            pd.Timestamp('2015-01-06'),
+                            pd.Timestamp('2015-01-07'),
+                            pd.Timestamp('2015-01-08')],
             EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-10'),
+                                    pd.Timestamp('2015-01-10'),
+                                    pd.Timestamp('2015-01-10'),
                                     pd.Timestamp('2015-01-10')],
-            'estimate': [11., np.NaN],
-            FISCAL_QUARTER_FIELD_NAME: [1.0, 1.0],
-            FISCAL_YEAR_FIELD_NAME: [2015.0, 2015.0]
+            'estimate': [11., np.NaN, 12., np.NaN],
+            FISCAL_QUARTER_FIELD_NAME: [1.0, 1.0, 1.0, 1.0],
+            FISCAL_YEAR_FIELD_NAME: [2015.0, 2015.0, 2015.0, 2015.0]
         })
 
     @classmethod
@@ -2864,12 +2868,9 @@ class WithDontForwardFillNanValue(WithEstimates):
         cls.expected_out = cls.make_expected_out()
 
     @classmethod
-    def expected_out_factory(cls, date_range):
+    def expected_out_factory(cls, records):
         expected = pd.DataFrame.from_records(
-            [
-                (11.0, pd.Timestamp('2015-01-10'), 1.0, 2015.0, date)
-                for date in date_range
-            ],
+            records,
             columns=[
                 'estimate',
                 'event_date',
@@ -2910,7 +2911,14 @@ class NextDontForwardFillNanValue(WithDontForwardFillNanValue,
     @classmethod
     def make_expected_out(cls):
         return cls.expected_out_factory(
-            pd.date_range('2015-01-02', '2015-01-09', tz='utc'),
+            [
+                (11.0, pd.Timestamp('2015-01-10'), 1.0, 2015.0, date)
+                for date in pd.date_range('2015-01-05', '2015-01-06', tz='utc')
+            ] +
+            [
+                (12.0, pd.Timestamp('2015-01-10'), 1.0, 2015.0, date)
+                for date in pd.date_range('2015-01-07', '2015-01-09', tz='utc')
+            ]
         )
 
 
@@ -2923,5 +2931,8 @@ class PreviousDontForwardFillNanValue(WithDontForwardFillNanValue,
     @classmethod
     def make_expected_out(cls):
         return cls.expected_out_factory(
-            pd.date_range('2015-01-12', '2015-02-04', tz='utc'),
+            [
+                (12.0, pd.Timestamp('2015-01-10'), 1.0, 2015.0, date)
+                for date in pd.date_range('2015-01-12', '2015-02-04', tz='utc')
+            ]
         )

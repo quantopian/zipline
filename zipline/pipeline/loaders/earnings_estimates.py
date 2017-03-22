@@ -117,6 +117,11 @@ def grouped_ffilled_reindex(df, index, group_columns, missing_type_map):
             )
         for column in columns_to_ffill
     }
+    col_nan_idxs = {}
+    for column in columns_to_ffill:
+        col_nan_idxs[column] = np.argwhere(
+            pd.isnull(df[column].values)
+        ).flatten()
     for n, ((sid, normalized_quarter), group_ix) in enumerate(groups.items()):
         # ``group_ix`` is an array with all of the integer indices for the
         # elements of a single group.
@@ -127,21 +132,15 @@ def grouped_ffilled_reindex(df, index, group_columns, missing_type_map):
         where = df.index[group_ix].get_indexer_for(
             index, method='ffill'
         )
+        group_mask = where != -1
         for column in columns_to_ffill:
             # Get the indices for the reindex.
-            # In some columns we get nans as data points. We need to check
-            # if that's the case and, if so, redefine 'where' to fill over
-            # those nans for the given column.
-
-            col_group_ix = group_ix[
-                ~pd.isnull(df[column].values[group_ix])
-            ]
-            if ~np.array_equal(group_ix, col_group_ix):
-                where = df.index[col_group_ix].get_indexer_for(
-                    index, method='ffill'
-                )
-
-            group_mask = where != -1
+            nan_ixs = np.intersect1d(group_ix, col_nan_idxs[column])
+            for ix in nan_ixs:
+                if ix > 0:
+                    ix_ixs = np.where(group_ix == ix)[0]
+                    prev_ix = group_ix[ix_ixs[0]] - 1
+                    where[where == ix] = prev_ix
 
             column_dtype = df_dtypes[column]
             out_buf = np.full(
@@ -149,7 +148,7 @@ def grouped_ffilled_reindex(df, index, group_columns, missing_type_map):
                 default_missing_value_for_dtype(column_dtype),
                 dtype=column_dtype
             )
-            out_buf[group_mask] = df[column].values[col_group_ix].take(
+            out_buf[group_mask] = df[column].values[group_ix].take(
                 where[group_mask],
             )
             if column in missing_type_map:
