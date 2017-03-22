@@ -134,13 +134,16 @@ def grouped_ffilled_reindex(df, index, group_columns, missing_type_map):
         )
         group_mask = where != -1
         for column in columns_to_ffill:
-            # Get the indices for the reindex.
-            nan_ixs = np.intersect1d(group_ix, col_nan_idxs[column])
-            for ix in nan_ixs:
-                if ix > 0:
-                    ix_ixs = np.where(group_ix == ix)[0]
-                    prev_ix = group_ix[ix_ixs[0]] - 1
-                    where[where == ix] = prev_ix
+            # Determine which of the group_ixs are for nan values for this
+            # column.
+            nan_ixs_in_df = np.intersect1d(group_ix, col_nan_idxs[column])
+            # Find the indexes of the nan values in group_ix
+            nan_ixs_in_group_ix = np.searchsorted(group_ix, nan_ixs_in_df)
+            # Replace each index with the value at the index before it in the
+            # group, as long as the previous one was not a nan as well.
+            for ix in nan_ixs_in_group_ix:
+                if ix > 0 and ix - 1 not in nan_ixs_in_group_ix:
+                    where[where == ix] = ix - 1
 
             column_dtype = df_dtypes[column]
             out_buf = np.full(
