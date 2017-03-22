@@ -30,7 +30,13 @@ from zipline.errors import BadPercentileBounds
 from zipline.pipeline import Filter, Factor, Pipeline
 from zipline.pipeline.classifiers import Classifier
 from zipline.pipeline.factors import CustomFactor
-from zipline.pipeline.filters import All, Any, AtLeastN, StaticAssets
+from zipline.pipeline.filters import (
+    All,
+    Any,
+    AtLeastN,
+    StaticAssets,
+    StaticSids,
+)
 from zipline.testing import parameter_space, permute_rows, ZiplineTestCase
 from zipline.testing.fixtures import WithSeededRandomPipelineEngine
 from zipline.testing.predicates import assert_equal
@@ -825,29 +831,28 @@ class FilterTestCase(BasePipelineTestCase):
         )
 
 
+class SidFactor(CustomFactor):
+    """A factor that just returns each asset's sid."""
+    inputs = ()
+    window_length = 1
+
+    def compute(self, today, sids, out):
+        out[:] = sids
+
+
 class SpecificAssetsTestCase(WithSeededRandomPipelineEngine,
                              ZiplineTestCase):
 
     ASSET_FINDER_EQUITY_SIDS = tuple(range(10))
 
-    def test_specific_assets(self):
-        assets = self.asset_finder.retrieve_all(self.ASSET_FINDER_EQUITY_SIDS)
-
-        class SidFactor(CustomFactor):
-            """A factor that just returns each asset's sid."""
-            inputs = ()
-            window_length = 1
-
-            def compute(self, today, sids, out):
-                out[:] = sids
-
+    def _check_filters(self, evens, odds, first_five, last_three):
         pipe = Pipeline(
             columns={
                 'sid': SidFactor(),
-                'evens': StaticAssets(assets[::2]),
-                'odds': StaticAssets(assets[1::2]),
-                'first_five': StaticAssets(assets[:5]),
-                'last_three': StaticAssets(assets[-3:]),
+                'evens': evens,
+                'odds': odds,
+                'first_five': first_five,
+                'last_three': last_three,
             },
         )
 
@@ -860,6 +865,26 @@ class SpecificAssetsTestCase(WithSeededRandomPipelineEngine,
         assert_equal(results.odds, (sids % 2).astype(bool))
         assert_equal(results.first_five, sids < 5)
         assert_equal(results.last_three, sids >= 7)
+
+    def test_specific_assets(self):
+        assets = self.asset_finder.retrieve_all(self.ASSET_FINDER_EQUITY_SIDS)
+
+        self._check_filters(
+            evens=StaticAssets(assets[::2]),
+            odds=StaticAssets(assets[1::2]),
+            first_five=StaticAssets(assets[:5]),
+            last_three=StaticAssets(assets[-3:]),
+        )
+
+    def test_specific_sids(self):
+        sids = self.ASSET_FINDER_EQUITY_SIDS
+
+        self._check_filters(
+            evens=StaticSids(sids[::2]),
+            odds=StaticSids(sids[1::2]),
+            first_five=StaticSids(sids[:5]),
+            last_three=StaticSids(sids[-3:]),
+        )
 
 
 class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
