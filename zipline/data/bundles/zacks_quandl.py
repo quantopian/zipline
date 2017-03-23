@@ -128,12 +128,11 @@ def from_zacks_dump(file_name, dvdend_file=None, start=None, end=None):
             adjustment_writer.write()
         else:
             dfd = pd.read_csv(dvdend_file, index_col='div_ex_date',
-                             parse_dates=['div_ex_date', 'per_end_date'], na_values=['NA'])
+                              parse_dates=['div_ex_date', 'per_end_date'],
+                              na_values=['NA'])
 
-            dfd = dfd.ix[START_DATE:] # drop old data
+            dfd = dfd.ix[START_DATE:]  # drop old data
             # format dfd to have sid
             adjustment_writer.write(dividends=dfd)
-
-
 
     return ingest
