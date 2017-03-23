@@ -68,12 +68,12 @@ except ImportError:
     nanargmin = np.nanargmin
 
 
-def round_if_near_integer(a, epsilon=1e-4):
+def round_if_near_integer_else_truncate(a, epsilon=1e-4):
     """
     Round a to the nearest integer if that integer is within an epsilon
-    of a.
+    of a, otherwise truncate toward zero.
     """
     if abs(a - round(a)) <= epsilon:
-        return round(a)
+        return int(round(a))
     else:
-        return a
+        return int(a)

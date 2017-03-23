@@ -131,7 +131,7 @@ from zipline.utils.events import (
 from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.math_utils import (
     tolerant_equals,
-    round_if_near_integer
+    round_if_near_integer_else_truncate,
 )
 from zipline.utils.pandas_utils import clear_dataframe_indexer_caches
 from zipline.utils.preprocess import preprocess
@@ -1296,10 +1296,36 @@ class TradingAlgorithm(object):
         """
         return self.asset_finder.lookup_future_symbol(symbol)
 
-    def _calculate_order_value_amount(self, asset, value):
+    def _dollars_to_unrounded_share_count(self, asset, value):
         """
-        Calculates how many shares/contracts to order based on the type of
-        asset being ordered.
+        Convert a dollar value for an asset into a (possibly non-integral)
+        share count.
+
+        Parameters
+        ----------
+        asset : zipline.assets.Asset
+            The asset for which a share count is being computed.
+        value : float
+            Value, in USD, to be computed to a share count.
+
+        Returns
+        -------
+        unrounded_shares : float
+            The number of shares corresponding to the dollar value requested.
+
+        Notes
+        -----
+        ``unrounded_shares`` is computed as::
+
+            value / (last_price * value_multiplier)
+
+        Where ``value`` is the requested value, ``last_price`` is the last
+        known quoted price as of the current simulation time, and
+        ``value_multiplier`` is the multiplier associated with the asset.
+
+        ``value_multiplier`` is used for assets classes like futures where the
+        quoted "price" for an asset is some fixed multiple of the real cost of
+        trading the asset. For equities, ``value_multiplier`` is always 1.0.
         """
         # Make sure the asset exists, and that there is a last price for it.
         # FIXME: we should use BarData's can_trade logic here, but I haven't
@@ -1425,7 +1451,7 @@ class TradingAlgorithm(object):
         # Truncate to the integer share count that's either within .0001 of
         # amount or closer to zero.
         # E.g. 3.9999 -> 4.0; 5.5 -> 5.0; -5.5 -> -5.0
-        amount = int(round_if_near_integer(amount))
+        amount = round_if_near_integer_else_truncate(amount)
 
         # Raises a ZiplineError if invalid parameters are detected.
         self.validate_order_params(asset,
@@ -1546,8 +1572,8 @@ class TradingAlgorithm(object):
         if not self._can_order_asset(asset):
             return None
 
-        amount = self._calculate_order_value_amount(asset, value)
-        return self.order(asset, amount,
+        shares = self._dollars_to_unrounded_share_count(asset, value)
+        return self.order(asset, shares,
                           limit_price=limit_price,
                           stop_price=stop_price,
                           style=style)
@@ -1762,15 +1788,15 @@ class TradingAlgorithm(object):
         if not self._can_order_asset(asset):
             return None
 
-        amount = self._calculate_order_percent_amount(asset, percent)
+        amount = self._calculate_order_percent_share_count(asset, percent)
         return self.order(asset, amount,
                           limit_price=limit_price,
                           stop_price=stop_price,
                           style=style)
 
-    def _calculate_order_percent_amount(self, asset, percent):
+    def _calculate_order_percent_share_count(self, asset, percent):
         value = self.portfolio.portfolio_value * percent
-        return self._calculate_order_value_amount(asset, value)
+        return self._dollars_to_unrounded_share_count(asset, value)
 
     @api_method
     @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
@@ -1832,18 +1858,21 @@ class TradingAlgorithm(object):
         if not self._can_order_asset(asset):
             return None
 
-        amount = self._calculate_order_target_amount(asset, target)
+        amount = self._calculate_order_target_share_count(asset, target)
         return self.order(asset, amount,
                           limit_price=limit_price,
                           stop_price=stop_price,
                           style=style)
 
-    def _calculate_order_target_amount(self, asset, target):
+    def _calculate_order_target_share_count(self, asset, target_shares):
+        # If a target share count is very close to an integer
+        target_shares = round_if_near_integer_else_truncate(target_shares)
+
         if asset in self.portfolio.positions:
             current_position = self.portfolio.positions[asset].amount
-            target -= current_position
-
-        return target
+            return target_shares - current_position
+        else:
+            return target_shares
 
     @api_method
     @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
@@ -1906,9 +1935,9 @@ class TradingAlgorithm(object):
         if not self._can_order_asset(asset):
             return None
 
-        target_amount = self._calculate_order_value_amount(asset, target)
-        amount = self._calculate_order_target_amount(asset, target_amount)
-        return self.order(asset, amount,
+        target_shares = self._dollars_to_unrounded_share_count(asset, target)
+        shares = self._calculate_order_target_share_count(asset, target_shares)
+        return self.order(asset, shares,
                           limit_price=limit_price,
                           stop_price=stop_price,
                           style=style)
@@ -1970,15 +1999,15 @@ class TradingAlgorithm(object):
         if not self._can_order_asset(asset):
             return None
 
-        amount = self._calculate_order_target_percent_amount(asset, target)
+        amount = self._calculate_order_target_percent_share_count(asset, target)
         return self.order(asset, amount,
                           limit_price=limit_price,
                           stop_price=stop_price,
                           style=style)
 
-    def _calculate_order_target_percent_amount(self, asset, target):
-        target_amount = self._calculate_order_percent_amount(asset, target)
-        return self._calculate_order_target_amount(asset, target_amount)
+    def _calculate_order_target_percent_share_count(self, asset, target):
+        target_amount = self._calculate_order_percent_share_count(asset, target)
+        return self._calculate_order_target_share_count(asset, target_amount)
 
     @api_method
     @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
@@ -2001,7 +2030,7 @@ class TradingAlgorithm(object):
         order_args = OrderedDict()
         for asset, target in iteritems(weights):
             if self._can_order_asset(asset):
-                amount = self._calculate_order_target_percent_amount(
+                amount = self._calculate_order_target_percent_share_count(
                     asset, target,
                 )
                 amount, style = self._calculate_order(asset, amount)
