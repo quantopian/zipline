@@ -129,10 +129,7 @@ from zipline.utils.events import (
     BeforeClose
 )
 from zipline.utils.factory import create_simulation_parameters
-from zipline.utils.math_utils import (
-    tolerant_equals,
-    round_if_near_integer
-)
+from zipline.utils.math_utils import tolerant_equals
 from zipline.utils.pandas_utils import clear_dataframe_indexer_caches
 from zipline.utils.preprocess import preprocess
 from zipline.utils.security_list import SecurityList
@@ -1422,10 +1419,7 @@ class TradingAlgorithm(object):
 
     def _calculate_order(self, asset, amount,
                          limit_price=None, stop_price=None, style=None):
-        # Truncate to the integer share count that's either within .0001 of
-        # amount or closer to zero.
-        # E.g. 3.9999 -> 4.0; 5.5 -> 5.0; -5.5 -> -5.0
-        amount = int(round_if_near_integer(amount))
+        amount = self._round_order(amount)
 
         # Raises a ZiplineError if invalid parameters are detected.
         self.validate_order_params(asset,
@@ -1440,6 +1434,11 @@ class TradingAlgorithm(object):
                                                         stop_price,
                                                         style)
         return amount, style
+
+    @staticmethod
+    def _round_order(amount):
+        # Round to the nearest integer share count.
+        return int(round(amount))
 
     def validate_order_params(self,
                               asset,

@@ -907,6 +907,27 @@ def before_trading_start(context, data):
         )
         self.assertEqual(algo.sim_params.data_frequency, 'minute')
 
+    def test_order_rounding(self):
+        answer_key = [
+            (0, 0),
+            (10, 10),
+            (1.1, 1),
+            (1.5, 2),
+            (1.9998, 2),
+            (1.99991, 2),
+        ]
+
+        for input, answer in answer_key:
+            self.assertEqual(
+                answer,
+                TradingAlgorithm._round_order(input)
+            )
+
+            self.assertEqual(
+                -1 * answer,
+                -1 * TradingAlgorithm._round_order(input)
+            )
+
     @parameterized.expand([
         ('order', TestOrderAlgorithm,),
         ('order_value', TestOrderValueAlgorithm,),
