@@ -388,7 +388,7 @@ class AssetDBWriter(object):
                   The first date we have trade data for this asset.
               auto_close_date : datetime, optional
                   The date on which to close any positions in this asset.
-              exchange : str, optional
+              exchange : str
                   The exchange where this asset is traded.
 
             The index of this dataframe should contain the sids.
@@ -408,7 +408,7 @@ class AssetDBWriter(object):
                   The last date we have trade data for this asset.
               first_traded : datetime, optional
                   The first date we have trade data for this asset.
-              exchange : str, optional
+              exchange : str
                   The exchange where this asset is traded.
               notice_date : datetime
                   The date when the owner of the contract may be forced
