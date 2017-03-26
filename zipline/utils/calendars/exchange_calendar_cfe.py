@@ -16,7 +16,9 @@ from zipline.utils.calendars.us_holidays import (
     USBlackFridayInOrAfter1993,
     USNewYearsDay,
     USIndependenceDay,
-    Christmas
+    USNationalDaysofMourning,
+    Christmas,
+    HurricaneSandyClosings
 )
 
 
@@ -59,6 +61,13 @@ class CFEExchangeCalendar(TradingCalendar):
             USLaborDay,
             USThanksgivingDay,
             Christmas
+        ])
+
+    @property
+    def adhoc_holidays(self):
+        return HolidayCalendar([
+            HurricaneSandyClosings,
+            USNationalDaysofMourning
         ])
 
     @property
