@@ -927,6 +927,51 @@ def before_trading_start(context, data):
 
         algo.run(self.data_portal)
 
+    def test_order_rounding(self):
+        # Each of these tuples is:
+        # (existing position, desired order amount, modified order amount)
+        answer_key = [
+            (0, 10, 10),
+            (0, -10, -10),
+            (0, 9.2, 9),
+            (0, 9.6, 9),
+            (0, 9.9998, 9),
+            (0, 9.99991, 10),
+            (0, -9.2, -9),
+            (0, -9.6, -9),
+            (0, -9.99991, -10),
+            (5, 10, 10),
+            (5, -10, -10),
+            (5, 9.2, 9),
+            (5, 9.6, 9),
+            (5, 9.9998, 9),
+            (5, 9.99991, 10),
+            (5, -2.2, -3),
+            (5, -2.6, -3),
+            (5, -2.9999, -3),
+            (5, -3.00009, -3),
+            (5, -3.0002, -4),
+            (5, -5.2, -5),
+            (5, -5.6, -5),
+            (5, -5.99991, -6),
+            (5, -9.2, -9),
+            (5, -9.6, -9),
+            (5, -9.99991, -10)
+        ]
+
+        for existing, desired, result in answer_key:
+            self.assertEqual(
+                TradingAlgorithm._round_order_size(existing, desired),
+                result
+            )
+
+            self.assertEqual(
+                TradingAlgorithm._round_order_size(
+                    -1 * existing, -1 * desired
+                ),
+                -1 * result
+            )
+
     @parameterized.expand([
         (TestOrderAlgorithm,),
         (TestOrderValueAlgorithm,),

@@ -413,15 +413,11 @@ class TestTargetPercentAlgorithm(TradingAlgorithm):
         if not self.ordered:
             assert not self.portfolio.positions
         else:
-            # Since you can't own fractional shares (at least in this
-            # example), we want to make sure that our target amount is
-            # no more than a share's value away from our current
-            # holdings.
             target_value = self.portfolio.portfolio_value * 0.002
             position_value = self.portfolio.positions[0].amount * \
                 self.sale_price
 
-            assert abs(target_value - position_value) <= self.sale_price, \
+            assert abs(target_value - position_value) <= (2 * self.sale_price), \
                 "Orders not filled correctly"
 
             assert self.portfolio.positions[0].last_sale_price == \
@@ -461,13 +457,18 @@ class TestTargetValueAlgorithm(TradingAlgorithm):
                 "Orders not filled at current price."
 
         self.order_target_value(self.sid(0), 20)
-        self.target_shares = np.round(20 / data.current(sid(0), "price"))
-
+        current_position_size = self.portfolio.positions[0].amount
         if isinstance(self.sid(0), Equity):
-            self.target_shares = np.round(20 / data.current(sid(0), "price"))
-        if isinstance(self.sid(0), Future):
-            self.target_shares = np.round(
-                20 / (data.current(sid(0), "price") * self.sid(0).multiplier))
+            desired_position_size = (20 / data.current(sid(0), "price"))
+        else:
+            desired_position_size = \
+                (20 / (data.current(sid(0), "price") * self.sid(0).multiplier))
+
+        new_order_size = self._round_order_size(
+            current_position_size,
+            desired_position_size - current_position_size
+        )
+        self.target_shares = current_position_size + new_order_size
 
 
 class FutureFlipAlgo(TestAlgorithm):
