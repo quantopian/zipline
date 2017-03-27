@@ -53,6 +53,8 @@ CHAIN_PREDICATES = {
     'PA': partial(delivery_predicate, set(['H', 'M', 'U', 'Z']))
 }
 
+ADJUSTMENT_STYLES = {'add', 'mul', None}
+
 
 cdef class ContinuousFuture:
     """

@@ -1201,7 +1201,11 @@ class TradingAlgorithm(object):
 
     @api_method
     @preprocess(root_symbol_str=ensure_upper_case)
-    def continuous_future(self, root_symbol_str, offset, roll):
+    def continuous_future(self,
+                          root_symbol_str,
+                          offset,
+                          roll,
+                          adjustment='mul'):
         """Create a specifier for a continuous contract.
 
         Parameters
@@ -1215,6 +1219,10 @@ class TradingAlgorithm(object):
         roll_style : str
             How rolls are determined.
 
+        adjustment : str
+            Method for adjusting lookback prices between rolls. Options are
+            'mul', 'add', and None. Defaults to 'mul'.
+
         Returns
         -------
         continuous_future : ContinuousFuture
@@ -1224,6 +1232,7 @@ class TradingAlgorithm(object):
             root_symbol_str,
             offset,
             roll,
+            adjustment,
         )
 
     @api_method
