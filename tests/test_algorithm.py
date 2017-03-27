@@ -912,8 +912,8 @@ def before_trading_start(context, data):
             (0, 0),
             (10, 10),
             (1.1, 1),
-            (1.5, 2),
-            (1.9998, 2),
+            (1.5, 1),
+            (1.9998, 1),
             (1.99991, 2),
         ]
 
@@ -925,7 +925,7 @@ def before_trading_start(context, data):
 
             self.assertEqual(
                 -1 * answer,
-                -1 * TradingAlgorithm._round_order(input)
+                TradingAlgorithm._round_order(-1 * input)
             )
 
     @parameterized.expand([
