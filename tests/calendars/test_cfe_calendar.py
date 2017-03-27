@@ -40,3 +40,15 @@ class CFECalendarTestCase(ExchangeCalendarTestBase, TestCase):
         )
         self.assertEqual(12, market_close.hour)
         self.assertEqual(15, market_close.minute)
+
+    def test_adhoc_holidays(self):
+        # hurricane sandy: oct 29 2012, oct 30 2012
+        # national days of mourning:
+        # - apr 27 1994
+        # - june 11 2004
+        # - jan 2 2007
+        for day in ["1994-04-27", "2004-06-11", "2007-01-02",
+                    "2012-10-29", "2012-10-30"]:
+            self.assertFalse(
+                self.calendar.is_session(pd.Timestamp(day, tz='UTC'))
+            )
