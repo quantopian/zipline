@@ -73,22 +73,20 @@ cpdef void _minute_to_session_low(intp_t[:] close_locs,
 cpdef void _minute_to_session_close(intp_t[:] close_locs,
                                     float64_t[:] data,
                                     float64_t[:] out):
-    cdef intp_t i, close_loc, loc = 0
+    cdef intp_t i, prev_close_loc, loc = 0
     cdef float64_t val
-    loc = len(data) - 1
     num_out = len(close_locs)
-    for j in range(num_out, 0, -1):
-        i = j - 1
+    for i in range(num_out - 1, -1, -1):
         if i > 0:
-            close_loc = close_locs[i - 1]
+            prev_close_loc = close_locs[i - 1]
         else:
-            close_loc = -1
+            prev_close_loc = -1
+        loc = close_locs[i]
         val = data[loc]
-        while isnan(val) and loc > close_loc:
+        while isnan(val) and loc > prev_close_loc:
             loc -= 1
             val = data[loc]
         out[i] = val
-        loc = close_loc
 
 
 @boundscheck(False)
