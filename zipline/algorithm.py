@@ -1422,7 +1422,7 @@ class TradingAlgorithm(object):
 
     def _calculate_order(self, asset, amount,
                          limit_price=None, stop_price=None, style=None):
-        amount = self._round_order(amount)
+        amount = self.round_order(amount)
 
         # Raises a ZiplineError if invalid parameters are detected.
         self.validate_order_params(asset,
@@ -1439,10 +1439,15 @@ class TradingAlgorithm(object):
         return amount, style
 
     @staticmethod
-    def _round_order(amount):
-        # Truncate to the integer share count that's either within .0001 of
-        # amount or closer to zero.
-        # E.g. 3.9999 -> 4.0; 5.5 -> 5.0; -5.5 -> -5.0
+    def round_order(amount):
+        """
+        Convert number of shares to an integer.
+
+        By default, truncates to the integer share count that's either within
+        .0001 of amount or closer to zero.
+
+        E.g. 3.9999 -> 4.0; 5.5 -> 5.0; -5.5 -> -5.0
+        """
         return int(round_if_near_integer(amount))
 
     def validate_order_params(self,

@@ -920,12 +920,12 @@ def before_trading_start(context, data):
         for input, answer in answer_key:
             self.assertEqual(
                 answer,
-                TradingAlgorithm._round_order(input)
+                TradingAlgorithm.round_order(input)
             )
 
             self.assertEqual(
                 -1 * answer,
-                TradingAlgorithm._round_order(-1 * input)
+                TradingAlgorithm.round_order(-1 * input)
             )
 
     @parameterized.expand([
