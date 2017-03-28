@@ -23,10 +23,15 @@ cpdef void _minute_to_session_open(intp_t[:] close_locs,
     cdef intp_t i, close_loc, loc = 0
     cdef float64_t val
     for i, close_loc in enumerate(close_locs):
-        val = data[loc]
+        val = nan
+        # Start by getting the price value at the opening minute of each day.
+        # If the value is NaN, continue looking forward until we either find a
+        # valid value or reach the closing minute, at which point the value is
+        # just kept as a NaN. We increment 'loc' after obtaining the value to
+        # ensure we do not reach an out of bounds index.
         while isnan(val) and loc <= close_loc:
-            loc += 1
             val = data[loc]
+            loc += 1
         out[i] = val
         loc = close_loc + 1
 
@@ -75,17 +80,22 @@ cpdef void _minute_to_session_close(intp_t[:] close_locs,
                                     float64_t[:] out):
     cdef intp_t i, prev_close_loc, loc = 0
     cdef float64_t val
-    num_out = len(close_locs)
+    num_out = len(out)
     for i in range(num_out - 1, -1, -1):
         if i > 0:
             prev_close_loc = close_locs[i - 1]
         else:
             prev_close_loc = -1
         loc = close_locs[i]
-        val = data[loc]
+        val = nan
+        # Start by getting the price value at the closing minute of each day.
+        # If the value is NaN, continue looking back until we either find a
+        # valid value or reach the closing minute of the previous day, at which
+        # point the value is just kept as a NaN. We decrement 'loc' after
+        # obtaining the value to ensure we do not reach a negative index.
         while isnan(val) and loc > prev_close_loc:
-            loc -= 1
             val = data[loc]
+            loc -= 1
         out[i] = val
 
 

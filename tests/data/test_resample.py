@@ -143,6 +143,8 @@ _FUTURE_CASES = (
             ('none_missing', 'day_0_back'))),
     (1003, (('missing_last', 'day_0_back'),
             ('missing_first', 'day_1_front'))),
+    (1004, (('all_missing', 'day_0_back'),
+            ('none_missing', 'day_1_front'))),
 )
 
 FUTURE_CASES = OrderedDict()
@@ -207,13 +209,19 @@ EXPECTED_AGGREGATION = {
         'close': [nan, 103.3, 102.3, 101.3, 103.3, 102.3],
         'volume': [0, 1003, 2005, 3006, 4009, 5011],
     }, columns=OHLCV),
-    # Equity 3 straddles two days.
     1003: DataFrame({
         'open': [107.5, 107.5, 107.5, nan, 103.5, 103.5],
         'high': [107.9, 108.9, 108.9, nan, 103.9, 103.9],
         'low': [107.1, 107.1, 107.1, nan, 103.1, 102.1],
         'close': [107.3, 108.3, 108.3, nan, 103.3, 102.3],
         'volume': [1007, 2015, 2015, 0, 1003, 2005],
+    }, columns=OHLCV),
+    1004: DataFrame({
+        'open': [nan, nan, nan, 101.5, 101.5, 101.5],
+        'high': [nan, nan, nan, 101.9, 103.9, 103.9],
+        'low': [nan, nan, nan, 101.1, 101.1, 101.1],
+        'close': [nan, nan, nan, 101.3, 103.3, 102.3],
+        'volume': [0, 0, 0, 1001, 2004, 3006],
     }, columns=OHLCV),
 }
 
@@ -236,7 +244,11 @@ EXPECTED_SESSIONS = {
     1003: DataFrame(EXPECTED_AGGREGATION[1003].iloc[[2, 5]].values,
                     columns=OHLCV,
                     index=pd.to_datetime(['2016-03-16', '2016-03-17'],
-                                         utc=True))
+                                         utc=True)),
+    1004: DataFrame(EXPECTED_AGGREGATION[1004].iloc[[2, 5]].values,
+                    columns=OHLCV,
+                    index=pd.to_datetime(['2016-03-16', '2016-03-17'],
+                                         utc=True)),
 }
 
 
@@ -513,7 +525,7 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
     TRADING_CALENDAR_STRS = ('us_futures',)
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
-    ASSET_FINDER_FUTURE_SIDS = 1001, 1002, 1003
+    ASSET_FINDER_FUTURE_SIDS = 1001, 1002, 1003, 1004
 
     START_DATE = pd.Timestamp('2016-03-16', tz='UTC')
     END_DATE = pd.Timestamp('2016-03-17', tz='UTC')
