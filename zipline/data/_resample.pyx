@@ -47,7 +47,7 @@ cpdef void _minute_to_session_high(intp_t[:] close_locs,
             val = nan
         out[i] = val
         loc = close_loc + 1
-        
+
 
 @boundscheck(False)
 @wraparound(False)
@@ -105,4 +105,4 @@ cpdef void _minute_to_session_volume(intp_t[:] close_locs,
             val += data[loc]
             loc += 1
         out[i] = val
-        loc = close_loc + 1    
+        loc = close_loc + 1
