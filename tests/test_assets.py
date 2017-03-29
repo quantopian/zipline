@@ -161,7 +161,10 @@ def build_lookup_generic_cases(asset_finder_type):
         ]
         fof14 = finder.retrieve_asset(fof14_sid)
         cf = finder.create_continuous_future(
-            root_symbol=fof14.root_symbol, offset=0, roll_style='volume',
+            root_symbol=fof14.root_symbol,
+            offset=0,
+            roll_style='volume',
+            adjustment=None,
         )
 
         dupe_0_start = dupe_0.start_date

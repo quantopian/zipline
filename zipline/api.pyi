@@ -60,7 +60,7 @@ def cancel_order(order_param):
         The order_id or order object to cancel.
     """
 
-def continuous_future(root_symbol_str, offset, roll):
+def continuous_future(root_symbol_str, offset, roll, adjustment='mul'):
     """Create a specifier for a continuous contract.
 
     Parameters
@@ -73,6 +73,10 @@ def continuous_future(root_symbol_str, offset, roll):
 
     roll_style : str
         How rolls are determined.
+
+    adjustment : str
+        Method for adjusting lookback prices between rolls. Options are
+        'mul', 'add', and None. Defaults to 'mul'.
 
     Returns
     -------

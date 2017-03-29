@@ -16,6 +16,7 @@ from abc import ABCMeta
 import array
 import binascii
 from collections import deque, namedtuple
+from functools import partial
 from numbers import Integral
 from operator import itemgetter, attrgetter
 import struct
@@ -54,9 +55,10 @@ from . import (
     Asset, Equity, Future,
 )
 from . continuous_futures import (
-    OrderedContracts,
+    ADJUSTMENT_STYLES,
+    CHAIN_PREDICATES,
     ContinuousFuture,
-    CHAIN_PREDICATES
+    OrderedContracts,
 )
 from .asset_writer import (
     check_version_info,
@@ -1016,7 +1018,17 @@ class AssetFinder(object):
             self._ordered_contracts[root_symbol] = oc
             return oc
 
-    def create_continuous_future(self, root_symbol, offset, roll_style):
+    def create_continuous_future(self,
+                                 root_symbol,
+                                 offset,
+                                 roll_style,
+                                 adjustment):
+        if adjustment not in ADJUSTMENT_STYLES:
+            raise ValueError(
+                'Invalid adjustment style {!r}. Allowed adjustment styles are '
+                '{}.'.format(adjustment, list(ADJUSTMENT_STYLES))
+            )
+
         oc = self.get_ordered_contracts(root_symbol)
         exchange = self._get_root_symbol_exchange(root_symbol)
 
@@ -1029,37 +1041,26 @@ class AssetFinder(object):
         add_sid = _encode_continuous_future_sid(root_symbol, offset,
                                                 roll_style,
                                                 'add')
-        mul_cf = ContinuousFuture(mul_sid,
-                                  root_symbol,
-                                  offset,
-                                  roll_style,
-                                  oc.start_date,
-                                  oc.end_date,
-                                  exchange,
-                                  'mul')
-        add_cf = ContinuousFuture(add_sid,
-                                  root_symbol,
-                                  offset,
-                                  roll_style,
-                                  oc.start_date,
-                                  oc.end_date,
-                                  exchange,
-                                  'add')
-        cf = ContinuousFuture(sid,
-                              root_symbol,
-                              offset,
-                              roll_style,
-                              oc.start_date,
-                              oc.end_date,
-                              exchange,
-                              adjustment_children={
-                                  'mul': mul_cf,
-                                  'add': add_cf
-                              })
+
+        cf_template = partial(
+            ContinuousFuture,
+            root_symbol=root_symbol,
+            offset=offset,
+            roll_style=roll_style,
+            start_date=oc.start_date,
+            end_date=oc.end_date,
+            exchange=exchange,
+        )
+
+        cf = cf_template(sid=sid)
+        mul_cf = cf_template(sid=mul_sid, adjustment='mul')
+        add_cf = cf_template(sid=add_sid, adjustment='add')
+
         self._asset_cache[cf.sid] = cf
-        self._asset_cache[add_cf.sid] = add_cf
         self._asset_cache[mul_cf.sid] = mul_cf
-        return cf
+        self._asset_cache[add_cf.sid] = add_cf
+
+        return {None: cf, 'mul': mul_cf, 'add': add_cf}[adjustment]
 
     def _make_sids(tblattr):
         def _(self):
