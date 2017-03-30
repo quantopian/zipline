@@ -399,6 +399,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
 
         returns = factory.create_returns_from_range(sim_params90s)
         returns = returns[:-10]  # truncate the returns series to end mid-month
+        # Testing if this fails.
         metrics = risk.RiskReport(returns, sim_params90s,
                                   trading_calendar=self.trading_calendar,
                                   treasury_curves=self.env.treasury_curves,
