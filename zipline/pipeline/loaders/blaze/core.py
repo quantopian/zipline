@@ -149,8 +149,10 @@ from datashape import (
     Date,
     DateTime,
     Option,
+    String,
     isrecord,
     isscalar,
+    integral,
 )
 import numpy as np
 from odo import odo
@@ -159,6 +161,7 @@ from six import with_metaclass, PY2, itervalues, iteritems
 from toolz import (
     complement,
     compose,
+    first,
     flip,
     groupby,
     identity,
@@ -166,6 +169,7 @@ from toolz import (
     merge,
 )
 import toolz.curried.operator as op
+from toolz.curried.operator import getitem
 
 from zipline.pipeline.common import (
     AD_FIELD_NAME,
@@ -204,57 +208,6 @@ traversable_nodes = (
 )
 is_invalid_deltas_node = complement(flip(isinstance, valid_deltas_node_types))
 get__name__ = op.attrgetter('__name__')
-
-
-_expr_data_base = namedtuple(
-    'ExprData', 'expr deltas checkpoints odo_kwargs apply_deltas_adjustments'
-)
-
-
-class ExprData(_expr_data_base):
-    """A pair of expressions and data resources. The expressions will be
-    computed using the resources as the starting scope.
-
-    Parameters
-    ----------
-    expr : Expr
-        The baseline values.
-    deltas : Expr, optional
-        The deltas for the data.
-    checkpoints : Expr, optional
-        The forward fill checkpoints for the data.
-    odo_kwargs : dict, optional
-        The keyword arguments to forward to the odo calls internally.
-    apply_deltas_adjustments : bool, optional
-        Whether or not deltas adjustments should be applied to the baseline
-        values. If False, only novel deltas will be applied.
-    """
-    def __new__(cls,
-                expr,
-                deltas=None,
-                checkpoints=None,
-                odo_kwargs=None,
-                apply_deltas_adjustments=True):
-        return super(ExprData, cls).__new__(
-            cls,
-            expr,
-            deltas,
-            checkpoints,
-            odo_kwargs or {},
-            apply_deltas_adjustments,
-        )
-
-    def __repr__(self):
-        # If the expressions have _resources() then the repr will
-        # drive computation so we take the str here.
-        cls = type(self)
-        return super(ExprData, cls).__repr__(cls(
-            str(self.expr),
-            str(self.deltas),
-            str(self.checkpoints),
-            self.odo_kwargs,
-            self.apply_deltas_adjustments,
-        ))
 
 
 class InvalidField(with_metaclass(ABCMeta)):
@@ -318,12 +271,16 @@ def datashape_type_to_numpy(type_):
         type_ = type_.ty
     if isinstance(type_, DateTime):
         return np.dtype('datetime64[ns]')
+    if isinstance(type_, String):
+        return np.dtype(object)
+    if type_ in integral:
+        return np.dtype('int64')
     else:
         return type_.to_numpy_dtype()
 
 
 @memoize
-def new_dataset(expr, deltas, missing_values):
+def new_dataset(expr, missing_values):
     """
     Creates or returns a dataset from a pair of blaze expressions.
 
@@ -331,8 +288,6 @@ def new_dataset(expr, deltas, missing_values):
     ----------
     expr : Expr
         The blaze expression representing the first known values.
-    deltas : Expr
-        The blaze expression representing the deltas to the data.
     missing_values : frozenset((name, value) pairs
         Association pairs column name and missing_value for that column.
 
@@ -722,10 +677,11 @@ def from_blaze(expr,
     # Create or retrieve the Pipeline API dataset.
     if missing_values is None:
         missing_values = {}
-    ds = new_dataset(dataset_expr, deltas, frozenset(missing_values.items()))
+    ds = new_dataset(dataset_expr, frozenset(missing_values.items()))
 
     # Register our new dataset with the loader.
-    (loader if loader is not None else global_loader)[ds] = ExprData(
+    (loader if loader is not None else global_loader).register_dataset(
+        ds,
         bind_expression_to_resources(dataset_expr, resources),
         bind_expression_to_resources(deltas, resources)
         if deltas is not None else
@@ -929,7 +885,64 @@ def adjustments_from_deltas_with_sids(dense_dates,
     return dict(adjustments)  # no subclasses of dict
 
 
-class BlazeLoader(dict):
+_expr_data_base = namedtuple(
+    'ExprData', 'expr deltas checkpoints odo_kwargs apply_deltas_adjustments'
+)
+
+
+class ExprData(_expr_data_base):
+    """A pair of expressions and data resources. The expressions will be
+    computed using the resources as the starting scope.
+
+    Parameters
+    ----------
+    expr : Expr
+        The baseline values.
+    deltas : Expr, optional
+        The deltas for the data.
+    checkpoints : Expr, optional
+        The forward fill checkpoints for the data.
+    odo_kwargs : dict, optional
+        The keyword arguments to forward to the odo calls internally.
+    apply_deltas_adjustments : bool, optional
+        Whether or not deltas adjustments should be applied to the baseline
+        values. If False, only novel deltas will be applied.
+    """
+    def __new__(cls,
+                expr,
+                deltas=None,
+                checkpoints=None,
+                odo_kwargs=None,
+                apply_deltas_adjustments=True):
+        return super(ExprData, cls).__new__(
+            cls,
+            expr,
+            deltas,
+            checkpoints,
+            odo_kwargs or {},
+            apply_deltas_adjustments,
+        )
+
+    def __repr__(self):
+        # If the expressions have _resources() then the repr will
+        # drive computation so we take the str here.
+        cls = type(self)
+        return super(ExprData, cls).__repr__(cls(
+            str(self.expr),
+            str(self.deltas),
+            str(self.checkpoints),
+            self.odo_kwargs,
+            self.apply_deltas_adjustments,
+        ))
+
+    def __hash__(self):
+        return id(self)
+
+    def __eq__(self, other):
+        return self is other
+
+
+class BlazeLoader(object):
     """A PipelineLoader for datasets constructed with ``from_blaze``.
 
     Parameters
@@ -966,13 +979,14 @@ class BlazeLoader(dict):
                  data_query_time=None,
                  data_query_tz=None,
                  pool=SequentialPool()):
-        self.update(dsmap or {})
         check_data_query_args(data_query_time, data_query_tz)
         self._data_query_time = data_query_time
         self._data_query_tz = data_query_tz
 
         # explicitly public
         self.pool = pool
+
+        self._table_expressions = (dsmap or {}).copy()
 
     @classmethod
     @memoize(cache=WeakKeyDictionary())
@@ -982,35 +996,124 @@ class BlazeLoader(dict):
     def __hash__(self):
         return id(self)
 
+    def __contains__(self, column):
+        return column in self._table_expressions
+
+    def __getitem__(self, column):
+        return self._table_expressions[column]
+
+    def __iter__(self):
+        return iter(self._table_expressions)
+
+    def __len__(self):
+        return len(self._table_expressions)
+
     def __call__(self, column):
-        if column.dataset in self:
+        if column in self:
             return self
         raise KeyError(column)
 
-    def __repr__(self):
-        return '<%s: %s>' % (
-            type(self).__name__,
-            super(BlazeLoader, self).__repr__(),
+    def register_dataset(self,
+                         dataset,
+                         expr,
+                         deltas=None,
+                         checkpoints=None,
+                         odo_kwargs=None,
+                         apply_deltas_adjustments=True):
+        """Explicitly map a datset to a collection of blaze expressions.
+
+        Parameters
+        ----------
+        dataset : DataSet
+            The pipeline dataset to map to the given expressions.
+        expr : Expr
+            The baseline values.
+        deltas : Expr, optional
+            The deltas for the data.
+        checkpoints : Expr, optional
+            The forward fill checkpoints for the data.
+        odo_kwargs : dict, optional
+            The keyword arguments to forward to the odo calls internally.
+        apply_deltas_adjustments : bool, optional
+            Whether or not deltas adjustments should be applied to the baseline
+            values. If False, only novel deltas will be applied.
+
+        See Also
+        --------
+        :func:`zipline.pipeline.loaders.blaze.from_blaze`
+        """
+        expr_data = ExprData(
+            expr,
+            deltas,
+            checkpoints,
+            odo_kwargs,
+            apply_deltas_adjustments,
+        )
+        for column in dataset.columns:
+            self._table_expressions[column] = expr_data
+
+    def register_column(self,
+                        column,
+                        expr,
+                        deltas=None,
+                        checkpoints=None,
+                        odo_kwargs=None,
+                        apply_deltas_adjustments=True):
+        """Explicitly map a single bound column to a collection of blaze
+        expressions. The expressions need to have ``timestamp`` and ``as_of``
+        columns.
+
+        Parameters
+        ----------
+        column : BoundColumn
+            The pipeline dataset to map to the given expressions.
+        expr : Expr
+            The baseline values.
+        deltas : Expr, optional
+            The deltas for the data.
+        checkpoints : Expr, optional
+            The forward fill checkpoints for the data.
+        odo_kwargs : dict, optional
+            The keyword arguments to forward to the odo calls internally.
+        apply_deltas_adjustments : bool, optional
+            Whether or not deltas adjustments should be applied to the baseline
+            values. If False, only novel deltas will be applied.
+
+        See Also
+        --------
+        :func:`zipline.pipeline.loaders.blaze.from_blaze`
+        """
+        self._table_expressions[column] = ExprData(
+            expr,
+            deltas,
+            checkpoints,
+            odo_kwargs,
+            apply_deltas_adjustments,
         )
 
     def load_adjusted_array(self, columns, dates, assets, mask):
         return merge(
             self.pool.imap_unordered(
                 partial(self._load_dataset, dates, assets, mask),
-                itervalues(groupby(getdataset, columns)),
+                itervalues(groupby(getitem(self._table_expressions), columns)),
             ),
         )
 
     def _load_dataset(self, dates, assets, mask, columns):
         try:
-            (dataset,) = set(map(getdataset, columns))
+            (expr_data,) = {self._table_expressions[c] for c in columns}
         except ValueError:
-            raise AssertionError('all columns must come from the same dataset')
+            raise AssertionError(
+                'all columns must share the same expression data',
+            )
 
-        expr, deltas, checkpoints, odo_kwargs, apply_deltas_adjustments = self[
-            dataset
-        ]
-        have_sids = (dataset.ndim == 2)
+        (expr,
+         deltas,
+         checkpoints,
+         odo_kwargs,
+         apply_deltas_adjustments) = expr_data
+
+        have_sids = (first(columns).dataset.ndim == 2)
         asset_idx = pd.Series(index=assets, data=np.arange(len(assets)))
         assets = list(map(int, assets))  # coerce from numpy.int64
         added_query_fields = {AD_FIELD_NAME, TS_FIELD_NAME} | (
