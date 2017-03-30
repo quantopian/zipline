@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from zipline.data.session_bars import SessionBarReader
 
 
@@ -162,6 +163,8 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
         sid = (rf.get_contract_center(asset.root_symbol,
                                       dt,
                                       asset.offset))
+        if sid is None:
+            return pd.NaT
         contract = rf.asset_finder.retrieve_asset(sid)
         return self._bar_reader.get_last_traded_dt(contract, dt)
 
@@ -346,6 +349,8 @@ class ContinuousFutureMinuteBarReader(SessionBarReader):
         sid = (rf.get_contract_center(asset.root_symbol,
                                       dt,
                                       asset.offset))
+        if sid is None:
+            return pd.NaT
         contract = rf.asset_finder.retrieve_asset(sid)
         return self._bar_reader.get_last_traded_dt(contract, dt)
 
