@@ -231,20 +231,21 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
 
         loader = BlazeLoader()
 
-        from_blaze(
+        ds = from_blaze(
             expr,
             loader=loader,
             no_deltas_rule='ignore',
             no_checkpoints_rule='ignore',
         )
 
-        self.assertEqual(len(loader), 1)
-        exprdata, = loader.values()
+        self.assertEqual(len(loader), 2)  # added the two columns
+        for column in ds.columns:
+            exprdata = loader[column]
 
-        assert_isidentical(
-            exprdata.expr,
-            bz.transform(expr, timestamp=expr.asof_date),
-        )
+            assert_isidentical(
+                exprdata.expr,
+                bz.transform(expr, timestamp=expr.asof_date),
+            )
 
     def test_from_blaze_no_resources_dataset_expr(self):
         expr = bz.symbol('expr', self.dshape)
@@ -339,19 +340,20 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             no_deltas_rule=select_level(deltas),
             no_checkpoints_rule=select_level(checkpoints),
         )
-        self.assertEqual(len(loader), 1)
-        exprdata = loader[ds]
-        self.assertTrue(exprdata.expr.isidentical(expr.ds))
-        if deltas:
-            self.assertTrue(exprdata.deltas.isidentical(expr.ds_deltas))
-        else:
-            self.assertIsNone(exprdata.deltas)
-        if checkpoints:
-            self.assertTrue(
-                exprdata.checkpoints.isidentical(expr.ds_checkpoints),
-            )
-        else:
-            self.assertIsNone(exprdata.checkpoints)
+        self.assertEqual(len(loader), 3)  # added the three columns
+        for column in ds.columns:
+            exprdata = loader[column]
+            self.assertTrue(exprdata.expr.isidentical(expr.ds))
+            if deltas:
+                self.assertTrue(exprdata.deltas.isidentical(expr.ds_deltas))
+            else:
+                self.assertIsNone(exprdata.deltas)
+            if checkpoints:
+                self.assertTrue(
+                    exprdata.checkpoints.isidentical(expr.ds_checkpoints),
+                )
+            else:
+                self.assertIsNone(exprdata.checkpoints)
 
     @parameter_space(deltas={True, False}, checkpoints={True, False})
     def test_auto_metadata_fail_warn(self, deltas, checkpoints):
@@ -1955,9 +1957,6 @@ class MiscTestCase(ZiplineTestCase):
             " checkpoints='checkpoints', odo_kwargs={'a': 'b'}, "
             "apply_deltas_adjustments=True)",
         )
-
-    def test_blaze_loader_repr(self):
-        assert_equal(repr(BlazeLoader()), '<BlazeLoader: {}>')
 
     def test_blaze_loader_lookup_failure(self):
         class D(DataSet):
