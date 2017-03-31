@@ -21,6 +21,7 @@ from pandas_datareader.data import DataReader
 import pytz
 from six import iteritems
 from six.moves.urllib_error import HTTPError
+import zipline
 
 from .benchmarks import get_benchmark_returns
 from . import treasuries, treasuries_can
@@ -42,6 +43,9 @@ INDEX_MAPPING = {
     '^FTSE':  # use US treasuries until UK bonds implemented
     (treasuries, 'treasury_curves.csv', 'www.federalreserve.gov'),
 }
+
+zipline_dir = os.path.dirname(zipline.__file__)
+MARKET_DATA_DIR = os.path.join(zipline_dir, 'resources', 'market_data')
 
 ONE_HOUR = pd.Timedelta(hours=1)
 
@@ -194,51 +198,23 @@ def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day):
         A trading day delta.  Used to find the day before first_date so we can
         get the close of the day prior to first_date.
 
-    We attempt to download data unless we already have data stored at the data
-    cache for `symbol` whose first entry is before or on `first_date` and whose
-    last entry is on or after `last_date`.
+    We attempt to download data unless we already have data stored in source or
+    in the data cache for `symbol` whose first entry is before or on
+    `first_date` and whose last entry is on or after `last_date`.
 
     If we perform a download and the cache criteria are not satisfied, we wait
     at least one hour before attempting a redownload.  This is determined by
     comparing the current time to the result of os.path.getmtime on the cache
     path.
     """
-    path = get_data_filepath(get_benchmark_filename(symbol))
+    filename = get_benchmark_filename(symbol)
+    data = _load_cached_data(filename, first_date, last_date, now, 'benchmark')
+    if data is not None:
+        return data
 
-    # If the path does not exist, it means the first download has not happened
-    # yet, so don't try to read from 'path'.
-    if os.path.exists(path):
-        try:
-            data = pd.Series.from_csv(path).tz_localize('UTC')
-            if has_data_for_dates(data, first_date, last_date):
-                return data
-
-            # Don't re-download if we've successfully downloaded and written a
-            # file in the last hour.
-            last_download_time = last_modified_time(path)
-            if (now - last_download_time) <= ONE_HOUR:
-                logger.warn(
-                    "Refusing to download new benchmark data because a "
-                    "download succeeded at %s." % last_download_time
-                )
-                return data
-
-        except (OSError, IOError, ValueError) as e:
-            # These can all be raised by various versions of pandas on various
-            # classes of malformed input.  Treat them all as cache misses.
-            logger.info(
-                "Loading data for {path} failed with error [{error}].".format(
-                    path=path, error=e,
-                )
-            )
-    logger.info(
-        "Cache at {path} does not have data from {start} to {end}.\n"
-        "Downloading benchmark data for '{symbol}'.",
-        start=first_date,
-        end=last_date,
-        symbol=symbol,
-        path=path,
-    )
+    # If no cached data was found or it was missing any dates then download the
+    # necessary data.
+    logger.info('Downloading benchmark data for {symbol!r}.', symbol=symbol)
 
     try:
         data = get_benchmark_returns(
@@ -246,7 +222,7 @@ def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day):
             first_date - trading_day,
             last_date,
         )
-        data.to_csv(path)
+        data.to_csv(get_data_filepath(filename))
     except (OSError, IOError, HTTPError):
         logger.exception('failed to cache the new benchmark returns')
         raise
@@ -255,14 +231,14 @@ def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day):
     return data
 
 
-def ensure_treasury_data(bm_symbol, first_date, last_date, now):
+def ensure_treasury_data(symbol, first_date, last_date, now):
     """
     Ensure we have treasury data from treasury module associated with
-    `bm_symbol`.
+    `symbol`.
 
     Parameters
     ----------
-    bm_symbol : str
+    symbol : str
         Benchmark symbol for which we're loading associated treasury curves.
     first_date : pd.Timestamp
         First date required to be in the cache.
@@ -273,9 +249,9 @@ def ensure_treasury_data(bm_symbol, first_date, last_date, now):
         re-download data that isn't available due to scheduling quirks or other
         failures.
 
-    We attempt to download data unless we already have data stored in the cache
-    for `module_name` whose first entry is before or on `first_date` and whose
-    last entry is on or after `last_date`.
+    We attempt to download data unless we already have data stored in source or
+    in the cache for `module_name` whose first entry is before or on
+    `first_date` and whose last entry is on or after `last_date`.
 
     If we perform a download and the cache criteria are not satisfied, we wait
     at least one hour before attempting a redownload.  This is determined by
@@ -283,16 +259,58 @@ def ensure_treasury_data(bm_symbol, first_date, last_date, now):
     path.
     """
     loader_module, filename, source = INDEX_MAPPING.get(
-        bm_symbol, INDEX_MAPPING['^GSPC']
+        symbol, INDEX_MAPPING['^GSPC'],
     )
     first_date = max(first_date, loader_module.earliest_possible_date())
+
+    data = _load_cached_data(filename, first_date, last_date, now, 'treasury')
+    if data is not None:
+        return data
+
+    # If no cached data was found or it was missing any dates then download the
+    # necessary data.
+    logger.info('Downloading treasury data for {symbol!r}.', symbol=symbol)
+
+    try:
+        data = loader_module.get_treasury_data(first_date, last_date)
+        data.to_csv(get_data_filepath(filename))
+    except (OSError, IOError, HTTPError):
+        logger.exception('failed to cache treasury data')
+    if not has_data_for_dates(data, first_date, last_date):
+        logger.warn("Still don't have expected data after redownload!")
+    return data
+
+
+def _load_cached_data(filename, first_date, last_date, now, resource_name):
+    if resource_name == 'benchmark':
+        from_csv = pd.Series.from_csv
+    else:
+        from_csv = pd.DataFrame.from_csv
+
+    # First try to retrieve the data from a static csv file in source.
+    source_path = os.path.join(MARKET_DATA_DIR, filename)
+    try:
+        data = from_csv(source_path).tz_localize('UTC')
+        if has_data_for_dates(data, first_date, last_date):
+            return data
+    except (OSError, IOError, ValueError) as e:
+        # These can all be raised by various versions of pandas on various
+        # classes of malformed input.
+        logger.info(
+            'Loading data from source path {path!r} failed with error '
+            '[{error}].',
+            path=source_path,
+            error=e,
+        )
+
+    # If the data in source was missing any dates then check the cache.
     path = get_data_filepath(filename)
 
     # If the path does not exist, it means the first download has not happened
     # yet, so don't try to read from 'path'.
     if os.path.exists(path):
         try:
-            data = pd.DataFrame.from_csv(path).tz_localize('UTC')
+            data = from_csv(path).tz_localize('UTC')
             if has_data_for_dates(data, first_date, last_date):
                 return data
 
@@ -301,8 +319,10 @@ def ensure_treasury_data(bm_symbol, first_date, last_date, now):
             last_download_time = last_modified_time(path)
             if (now - last_download_time) <= ONE_HOUR:
                 logger.warn(
-                    "Refusing to download new treasury data because a "
-                    "download succeeded at %s." % last_download_time
+                    "Refusing to download new {resource} data because a "
+                    "download succeeded at {time}.",
+                    resource=resource_name,
+                    time=last_download_time,
                 )
                 return data
 
@@ -310,19 +330,18 @@ def ensure_treasury_data(bm_symbol, first_date, last_date, now):
             # These can all be raised by various versions of pandas on various
             # classes of malformed input.  Treat them all as cache misses.
             logger.info(
-                "Loading data for {path} failed with error [{error}].".format(
-                    path=path, error=e,
-                )
+                "Loading data for {path} failed with error [{error}].",
+                path=path,
+                error=e,
             )
 
-    try:
-        data = loader_module.get_treasury_data(first_date, last_date)
-        data.to_csv(path)
-    except (OSError, IOError, HTTPError):
-        logger.exception('failed to cache treasury data')
-    if not has_data_for_dates(data, first_date, last_date):
-        logger.warn("Still don't have expected data after redownload!")
-    return data
+    logger.info(
+        "Cache at {path} does not have data from {start} to {end}.\n",
+        start=first_date,
+        end=last_date,
+        path=path,
+    )
+    return None
 
 
 def _load_raw_yahoo_data(indexes=None, stocks=None, start=None, end=None):

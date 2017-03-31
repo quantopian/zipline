@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from unittest import TestCase
 
@@ -17,6 +18,11 @@ from ..data.data_portal import (
     DataPortal,
     DEFAULT_MINUTE_HISTORY_PREFETCH,
     DEFAULT_DAILY_HISTORY_PREFETCH,
+)
+from ..data.loader import (
+    get_benchmark_filename,
+    INDEX_MAPPING,
+    MARKET_DATA_DIR,
 )
 from ..data.resample import (
     minute_frame_to_session_frame,
@@ -484,7 +490,50 @@ class WithTradingEnvironment(WithAssetFinder,
 
     @classmethod
     def make_load_function(cls):
-        return None
+        def load(*args, **kwargs):
+            symbol = '^GSPC'
+
+            filename = get_benchmark_filename(symbol)
+            source_path = os.path.join(MARKET_DATA_DIR, filename)
+            benchmark_returns = \
+                pd.Series.from_csv(source_path).tz_localize('UTC')
+
+            filename = INDEX_MAPPING[symbol][1]
+            source_path = os.path.join(MARKET_DATA_DIR, filename)
+            treasury_curves = \
+                pd.DataFrame.from_csv(source_path).tz_localize('UTC')
+
+            # The TradingEnvironment ordinarily uses cached benchmark returns
+            # and treasury curves data, but when running the zipline tests this
+            # cache is not always updated to include the appropriate dates
+            # required by both the futures and equity calendars. In order to
+            # create more reliable and consistent data throughout the entirety
+            # of the tests, we read static benchmark returns and treasury curve
+            # csv files from source. If a test using the TradingEnvironment
+            # fixture attempts to run outside of the static date range of the
+            # csv files, raise an exception warning the user to either update
+            # the csv files in source or to use a date range within the current
+            # bounds.
+            static_start_date = benchmark_returns.index[0].date()
+            static_end_date = benchmark_returns.index[-1].date()
+            warning_message = (
+                'The TradingEnvironment fixture uses static data between '
+                '{static_start} and {static_end}. To use a start and end date '
+                'of {given_start} and {given_end} you will have to update the '
+                'files in {resource_dir} to include the missing dates.'.format(
+                    static_start=static_start_date,
+                    static_end=static_end_date,
+                    given_start=cls.START_DATE.date(),
+                    given_end=cls.END_DATE.date(),
+                    resource_dir=MARKET_DATA_DIR,
+                )
+            )
+            if cls.START_DATE.date() < static_start_date or \
+                    cls.END_DATE.date() > static_end_date:
+                raise Warning(warning_message)
+
+            return benchmark_returns, treasury_curves
+        return load
 
     @classmethod
     def make_trading_environment(cls):
