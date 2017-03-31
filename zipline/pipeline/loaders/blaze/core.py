@@ -695,7 +695,9 @@ def from_blaze(expr,
         deltas,
         checkpoints,
     )
-
+    # Need to get measure again because it might have changed after adding TS
+    # field above.
+    measure = dataset_expr.dshape.measure
     if deltas is not None and (sorted(deltas.dshape.measure.fields) !=
                                sorted(measure.fields)):
         raise TypeError(
@@ -1212,6 +1214,7 @@ def get_materialized_checkpoints(checkpoints, colnames, lower_dt, odo_kwargs):
     odo_kwargs : dict, optional
         The extra keyword arguments to pass to ``odo``.
     """
+    import pdb; pdb.set_trace()
     if checkpoints is not None:
         ts = checkpoints[TS_FIELD_NAME]
         checkpoints_ts = odo(

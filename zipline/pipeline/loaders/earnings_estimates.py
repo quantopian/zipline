@@ -59,6 +59,10 @@ metadata_columns = frozenset({
     FISCAL_YEAR_FIELD_NAME,
 })
 
+quarter_caching_metadata_columns = metadata_columns | frozenset({
+    NORMALIZED_QUARTERS,
+})
+
 
 def required_estimates_fields(columns):
     """
@@ -136,7 +140,8 @@ class EarningsEstimatesLoader(PipelineLoader):
     """
     def __init__(self,
                  estimates,
-                 name_map):
+                 name_map,
+                 quarter_caching=None):
         validate_column_specs(
             estimates,
             name_map
@@ -162,6 +167,7 @@ class EarningsEstimatesLoader(PipelineLoader):
         }
 
         self.name_map = name_map
+        self.quarter_caching = quarter_caching
 
     @abstractmethod
     def get_zeroth_quarter_idx(self, stacked_last_per_qtr):
@@ -692,15 +698,24 @@ class EarningsEstimatesLoader(PipelineLoader):
         # Get a DataFrame indexed by date with a MultiIndex of columns of [
         # self.estimates.columns, normalized_quarters, sid], where each cell
         # contains the latest data for that day.
-        last_per_qtr = last_in_date_group(
-            self.estimates,
-            dates,
-            assets_with_data,
-            reindex=True,
-            extra_groupers=[NORMALIZED_QUARTERS],
-        )
-        # Forward fill values for each quarter/sid/dataset column.
-        ffill_across_cols(last_per_qtr, columns, self.name_map)
+        if self.quarter_caching is None:
+            last_per_qtr = last_in_date_group(
+                self.estimates,
+                dates,
+                assets_with_data,
+                reindex=True,
+                extra_groupers=[NORMALIZED_QUARTERS],
+            )
+            # Forward fill values for each quarter/sid/dataset column.
+            ffill_across_cols(last_per_qtr, columns, self.name_map)
+
+        else:
+            import pdb; pdb.set_trace()
+            cached_last_per_qtr = self.quarter_caching.set_index([TS_FIELD_NAME, SID_FIELD_NAME, NORMALIZED_QUARTERS])
+            last_per_qtr = cached_last_per_qtr.unstack(-1).unstack(-1)
+            ffill_across_cols(last_per_qtr, columns, self.name_map)
+            last_per_qtr = last_per_qtr.tz_localize('utc').reindex(dates, method='ffill')
+
         # Stack quarter and sid into the index.
         stacked_last_per_qtr = last_per_qtr.stack(
             [SID_FIELD_NAME, NORMALIZED_QUARTERS],
@@ -717,6 +732,7 @@ class EarningsEstimatesLoader(PipelineLoader):
         stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] = pd.to_datetime(
             stacked_last_per_qtr[EVENT_DATE_FIELD_NAME]
         )
+
         return last_per_qtr, stacked_last_per_qtr
 
 
@@ -873,7 +889,8 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
                  name_map,
                  split_adjustments_loader,
                  split_adjusted_column_names,
-                 split_adjusted_asof):
+                 split_adjusted_asof,
+                 quarter_caching=None):
         validate_split_adjusted_column_specs(name_map,
                                              split_adjusted_column_names)
         self._split_adjustments = split_adjustments_loader
@@ -882,7 +899,8 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         self._split_adjustment_dict = {}
         super(SplitAdjustedEstimatesLoader, self).__init__(
             estimates,
-            name_map
+            name_map,
+            quarter_caching=quarter_caching
         )
 
     @abstractmethod

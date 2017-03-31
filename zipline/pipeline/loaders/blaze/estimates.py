@@ -1,4 +1,6 @@
 from datashape import istabular
+from odo import odo
+import pandas as pd
 
 from .core import (
     bind_expression_to_resources,
@@ -13,14 +15,18 @@ from zipline.pipeline.common import (
 from zipline.pipeline.loaders.base import PipelineLoader
 from zipline.pipeline.loaders.blaze.utils import load_raw_data
 from zipline.pipeline.loaders.earnings_estimates import (
-    NextEarningsEstimatesLoader,
-    PreviousEarningsEstimatesLoader,
-    required_estimates_fields,
     metadata_columns,
+    NextEarningsEstimatesLoader,
+    NextSplitAdjustedEarningsEstimatesLoader,
+    PreviousEarningsEstimatesLoader,
     PreviousSplitAdjustedEarningsEstimatesLoader,
-    NextSplitAdjustedEarningsEstimatesLoader)
+    quarter_caching_metadata_columns,
+    required_estimates_fields,
+    SIMULATION_DATES,
+)
 from zipline.pipeline.loaders.utils import (
     check_data_query_args,
+    normalize_timestamp_to_query_time,
 )
 from zipline.utils.input_validation import ensure_timezone, optionally
 from zipline.utils.preprocess import preprocess
@@ -83,7 +89,9 @@ class BlazeEstimatesLoader(PipelineLoader):
                  odo_kwargs=None,
                  data_query_time=None,
                  data_query_tz=None,
-                 checkpoints=None):
+                 checkpoints=None,
+                 quarter_caching=None,
+                 quarter_caching_checkpoints=None):
 
         dshape = expr.dshape
         if not istabular(dshape):
@@ -104,25 +112,40 @@ class BlazeEstimatesLoader(PipelineLoader):
         self._data_query_time = data_query_time
         self._data_query_tz = data_query_tz
         self._checkpoints = checkpoints
+        self._quarter_caching = quarter_caching
+        self._quarter_caching_checkpoints = quarter_caching_checkpoints
 
     def load_adjusted_array(self, columns, dates, assets, mask):
         # Only load requested columns.
         requested_column_names = [self._columns[column.name]
                                   for column in columns]
-
+        all_columns = sorted(metadata_columns.union(requested_column_names))
         raw = load_raw_data(
             assets,
             dates,
             self._data_query_time,
             self._data_query_tz,
-            self._expr[sorted(metadata_columns.union(requested_column_names))],
+            self._expr[all_columns],
             self._odo_kwargs,
             checkpoints=self._checkpoints,
         )
-
+        all_quarter_caching_columns = sorted(
+            quarter_caching_metadata_columns.union(requested_column_names)
+        )
+        import pdb; pdb.set_trace()
+        quarter_cached_data = load_raw_data(
+            assets,
+            dates,
+            self._data_query_time,
+            self._data_query_tz,
+            self._quarter_caching[all_quarter_caching_columns],
+            self._odo_kwargs,
+            checkpoints=self._quarter_caching_checkpoints,
+        )
         return self.loader(
             raw,
             {column.name: self._columns[column.name] for column in columns},
+            quarter_cached_data,
         ).load_adjusted_array(
             columns,
             dates,
@@ -160,29 +183,41 @@ class BlazeSplitAdjustedEstimatesLoader(BlazeEstimatesLoader):
         # Only load requested columns.
         requested_column_names = [self._columns[column.name]
                                   for column in columns]
-
         requested_spilt_adjusted_columns = [
             column_name
             for column_name in self._split_adjusted_column_names
             if column_name in requested_column_names
         ]
-
+        all_columns = sorted(metadata_columns.union(requested_column_names))
         raw = load_raw_data(
             assets,
             dates,
             self._data_query_time,
             self._data_query_tz,
-            self._expr[sorted(metadata_columns.union(requested_column_names))],
+            self._expr[all_columns],
             self._odo_kwargs,
             checkpoints=self._checkpoints,
         )
-
+        all_quarter_caching_columns = sorted(
+            quarter_caching_metadata_columns.union(requested_column_names)
+        )
+        import pdb; pdb.set_trace()
+        quarter_cached_data = load_raw_data(
+            assets,
+            dates,
+            self._data_query_time,
+            self._data_query_tz,
+            self._quarter_caching[all_quarter_caching_columns],
+            self._odo_kwargs,
+            checkpoints=self._quarter_caching_checkpoints,
+        )
         return self.loader(
             raw,
             {column.name: self._columns[column.name] for column in columns},
             self._split_adjustments,
             requested_spilt_adjusted_columns,
             self._split_adjusted_asof,
+            quarter_cached_data
         ).load_adjusted_array(
             columns,
             dates,
