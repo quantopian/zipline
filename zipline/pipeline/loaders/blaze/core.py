@@ -1283,7 +1283,10 @@ def ffill_query_in_range(expr,
 
     if computed_lower is not None:
         # only constrain the lower date if we computed a new lower date
-        pred &= expr[ts_field] >= computed_lower
+        # We want gt here because for data points in the base table where
+        # ts_field == computed lower, those will already be included in
+        # checkpoints, and we don't want duplicates.
+        pred &= expr[ts_field] > computed_lower
 
     raw = pd.concat(
         (
