@@ -363,7 +363,7 @@ class FinanceTestCase(WithLogger,
 
     def test_blotter_processes_splits(self):
         blotter = Blotter('daily', self.env.asset_finder,
-                          slippage_func=FixedSlippage())
+                          equity_slippage=FixedSlippage())
 
         # set up two open limit orders with very low limit prices,
         # one for sid 1 and one for sid 2
