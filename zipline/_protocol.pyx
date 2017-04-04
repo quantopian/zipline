@@ -486,7 +486,7 @@ cdef class BarData:
                 )
                 for asset in assets
             ]
-            return pd.Series(data=tradeable, index=assets)
+            return pd.Series(data=tradeable, index=assets, dtype=bool)
 
     cdef bool _can_trade_for_asset(self, asset, dt, adjusted_dt, data_portal):
         cdef object session_label
