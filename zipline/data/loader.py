@@ -21,7 +21,6 @@ from pandas_datareader.data import DataReader
 import pytz
 from six import iteritems
 from six.moves.urllib_error import HTTPError
-import zipline
 
 from .benchmarks import get_benchmark_returns
 from . import treasuries, treasuries_can
@@ -43,9 +42,6 @@ INDEX_MAPPING = {
     '^FTSE':  # use US treasuries until UK bonds implemented
     (treasuries, 'treasury_curves.csv', 'www.federalreserve.gov'),
 }
-
-zipline_dir = os.path.dirname(zipline.__file__)
-MARKET_DATA_DIR = os.path.join(zipline_dir, 'resources', 'market_data')
 
 ONE_HOUR = pd.Timedelta(hours=1)
 
@@ -198,9 +194,9 @@ def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day):
         A trading day delta.  Used to find the day before first_date so we can
         get the close of the day prior to first_date.
 
-    We attempt to download data unless we already have data stored in source or
-    in the data cache for `symbol` whose first entry is before or on
-    `first_date` and whose last entry is on or after `last_date`.
+    We attempt to download data unless we already have data stored at the data
+    cache for `symbol` whose first entry is before or on `first_date` and whose
+    last entry is on or after `last_date`.
 
     If we perform a download and the cache criteria are not satisfied, we wait
     at least one hour before attempting a redownload.  This is determined by
@@ -249,9 +245,9 @@ def ensure_treasury_data(symbol, first_date, last_date, now):
         re-download data that isn't available due to scheduling quirks or other
         failures.
 
-    We attempt to download data unless we already have data stored in source or
-    in the cache for `module_name` whose first entry is before or on
-    `first_date` and whose last entry is on or after `last_date`.
+    We attempt to download data unless we already have data stored in the cache
+    for `module_name` whose first entry is before or on `first_date` and whose
+    last entry is on or after `last_date`.
 
     If we perform a download and the cache criteria are not satisfied, we wait
     at least one hour before attempting a redownload.  This is determined by
@@ -287,23 +283,7 @@ def _load_cached_data(filename, first_date, last_date, now, resource_name):
     else:
         from_csv = pd.DataFrame.from_csv
 
-    # First try to retrieve the data from a static csv file in source.
-    source_path = os.path.join(MARKET_DATA_DIR, filename)
-    try:
-        data = from_csv(source_path).tz_localize('UTC')
-        if has_data_for_dates(data, first_date, last_date):
-            return data
-    except (OSError, IOError, ValueError) as e:
-        # These can all be raised by various versions of pandas on various
-        # classes of malformed input.
-        logger.info(
-            'Loading data from source path {path!r} failed with error '
-            '[{error}].',
-            path=source_path,
-            error=e,
-        )
-
-    # If the data in source was missing any dates then check the cache.
+    # Path for the cache.
     path = get_data_filepath(filename)
 
     # If the path does not exist, it means the first download has not happened

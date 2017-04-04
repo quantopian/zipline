@@ -12,6 +12,8 @@ import responses
 from .core import (
     create_daily_bar_data,
     create_minute_bar_data,
+    make_simple_equity_info,
+    tmp_asset_finder,
     tmp_dir,
 )
 from ..data.data_portal import (
@@ -22,19 +24,6 @@ from ..data.data_portal import (
 from ..data.loader import (
     get_benchmark_filename,
     INDEX_MAPPING,
-    MARKET_DATA_DIR,
-)
-from ..data.resample import (
-    minute_frame_to_session_frame,
-    MinuteResampleSessionBarReader
-)
-from ..data.us_equity_pricing import (
-    SQLiteAdjustmentReader,
-    SQLiteAdjustmentWriter,
-)
-from ..data.us_equity_pricing import (
-    BcolzDailyBarReader,
-    BcolzDailyBarWriter,
 )
 from ..data.minute_bars import (
     BcolzMinuteBarReader,
@@ -42,12 +31,22 @@ from ..data.minute_bars import (
     US_EQUITIES_MINUTES_PER_DAY,
     FUTURES_MINUTES_PER_DAY,
 )
-
+from ..data.resample import (
+    minute_frame_to_session_frame,
+    MinuteResampleSessionBarReader
+)
+from ..data.us_equity_pricing import (
+    BcolzDailyBarReader,
+    BcolzDailyBarWriter,
+    SQLiteAdjustmentReader,
+    SQLiteAdjustmentWriter,
+)
 from ..finance.trading import TradingEnvironment
 from ..utils import factory
 from ..utils.classproperty import classproperty
 from ..utils.final import FinalMeta, final
-from .core import tmp_asset_finder, make_simple_equity_info
+
+import zipline
 from zipline.assets import Equity, Future
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.pipeline import SimplePipelineEngine
@@ -56,6 +55,8 @@ from zipline.protocol import BarData
 from zipline.utils.calendars import (
     get_calendar,
     register_calendar)
+
+zipline_dir = os.path.dirname(zipline.__file__)
 
 
 class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
@@ -487,6 +488,7 @@ class WithTradingEnvironment(WithAssetFinder,
     :class:`zipline.finance.trading.TradingEnvironment`
     """
     TRADING_ENV_FUTURE_CHAIN_PREDICATES = None
+    MARKET_DATA_DIR = os.path.join(zipline_dir, 'resources', 'market_data')
 
     @classmethod
     def make_load_function(cls):
@@ -494,12 +496,12 @@ class WithTradingEnvironment(WithAssetFinder,
             symbol = '^GSPC'
 
             filename = get_benchmark_filename(symbol)
-            source_path = os.path.join(MARKET_DATA_DIR, filename)
+            source_path = os.path.join(cls.MARKET_DATA_DIR, filename)
             benchmark_returns = \
                 pd.Series.from_csv(source_path).tz_localize('UTC')
 
             filename = INDEX_MAPPING[symbol][1]
-            source_path = os.path.join(MARKET_DATA_DIR, filename)
+            source_path = os.path.join(cls.MARKET_DATA_DIR, filename)
             treasury_curves = \
                 pd.DataFrame.from_csv(source_path).tz_localize('UTC')
 
@@ -525,12 +527,12 @@ class WithTradingEnvironment(WithAssetFinder,
                     static_end=static_end_date,
                     given_start=cls.START_DATE.date(),
                     given_end=cls.END_DATE.date(),
-                    resource_dir=MARKET_DATA_DIR,
+                    resource_dir=cls.MARKET_DATA_DIR,
                 )
             )
             if cls.START_DATE.date() < static_start_date or \
                     cls.END_DATE.date() > static_end_date:
-                raise Warning(warning_message)
+                raise AssertionError(warning_message)
 
             return benchmark_returns, treasury_curves
         return load
