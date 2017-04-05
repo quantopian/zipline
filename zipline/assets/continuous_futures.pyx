@@ -86,7 +86,6 @@ cdef class ContinuousFuture:
     cdef readonly object exchange
 
     cdef readonly object adjustment
-    cdef readonly object _adjustment_children
 
     _kwargnames = frozenset({
         'sid',
@@ -105,8 +104,7 @@ cdef class ContinuousFuture:
                  object start_date,
                  object end_date,
                  object exchange,
-                 object adjustment=None,
-                 dict adjustment_children=None):
+                 object adjustment=None):
 
         self.sid = sid
         self.sid_hash = hash(sid)
@@ -117,7 +115,6 @@ cdef class ContinuousFuture:
         self.start_date = start_date
         self.end_date = end_date
         self.adjustment = adjustment
-        self._adjustment_children = adjustment_children
 
 
     def __int__(self):
@@ -255,11 +252,6 @@ cdef class ContinuousFuture:
         calendar = get_calendar(self.exchange)
         return calendar.is_open_on_minute(dt_minute)
 
-    def adj(self, style):
-        try:
-            return self._adjustment_children[style]
-        except KeyError:
-            return None
 
 cdef class ContractNode(object):
 
