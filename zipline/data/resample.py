@@ -384,6 +384,23 @@ class DailyHistoryAggregator(object):
         closes = []
         session_label = self._trading_calendar.minute_to_session_label(dt)
 
+        def _get_filled_close(asset):
+            """
+            Returns the most recent non-nan close for the asset in this
+            session. If there has been no data in this session on or before the
+            `dt`, returns `nan`
+            """
+            window = self._minute_reader.load_raw_arrays(
+                ['close'],
+                market_open,
+                dt,
+                [asset],
+            )[0]
+            try:
+                return window[~np.isnan(window)][-1]
+            except IndexError:
+                return np.NaN
+
         for asset in assets:
             if not asset.is_alive_for_session(session_label):
                 closes.append(np.NaN)
@@ -412,9 +429,7 @@ class DailyHistoryAggregator(object):
                         val = self._minute_reader.get_value(
                             asset, dt, 'close')
                         if pd.isnull(val):
-                            val = self.closes(
-                                [asset],
-                                pd.Timestamp(prev_dt, tz='UTC'))[0]
+                            val = _get_filled_close(asset)
                         entries[asset] = (dt_value, val)
                         closes.append(val)
                         continue
@@ -422,8 +437,7 @@ class DailyHistoryAggregator(object):
                     val = self._minute_reader.get_value(
                         asset, dt, 'close')
                     if pd.isnull(val):
-                        val = self.closes([asset],
-                                          pd.Timestamp(prev_dt, tz='UTC'))[0]
+                        val = _get_filled_close(asset)
                     entries[asset] = (dt_value, val)
                     closes.append(val)
                     continue
