@@ -1329,9 +1329,9 @@ class OrderedContractsTestCase(WithAssetFinder,
     @classmethod
     def make_root_symbols_info(self):
         return pd.DataFrame({
-            'root_symbol': ['FO', 'BA'],
-            'root_symbol_id': [1, 2],
-            'exchange': ['CME', 'CME']})
+            'root_symbol': ['FO', 'BA', 'BZ'],
+            'root_symbol_id': [1, 2, 3],
+            'exchange': ['CME', 'CME', 'CME']})
 
     @classmethod
     def make_futures_info(self):
@@ -1372,8 +1372,32 @@ class OrderedContractsTestCase(WithAssetFinder,
             'multiplier': [1000.0] * 3,
             'exchange': ['CME'] * 3,
         })
+        # BZ is set up to test the case where the first contract in a chain has
+        # an auto close date before its start date.
+        bz_frame = DataFrame({
+            'root_symbol': ['BZ'] * 3,
+            'asset_name': ['Baz'] * 3,
+            'symbol': ['BZF16', 'BZG16', 'BZH16'],
+            'sid': range(8, 11),
+            'start_date': pd.date_range('2015-01-02', periods=3, tz='UTC'),
+            'end_date': pd.date_range(
+                '2015-01-15', periods=3, freq='M', tz='UTC',
+            ),
+            'notice_date': pd.date_range(
+                '2014-12-31', periods=3, freq='M', tz='UTC',
+            ),
+            'expiration_date': pd.date_range(
+                '2015-01-15', periods=3, freq='M', tz='UTC',
+            ),
+            'auto_close_date': pd.date_range(
+                '2014-12-29', periods=3, freq='M', tz='UTC',
+            ),
+            'tick_size': [0.001] * 3,
+            'multiplier': [1000.0] * 3,
+            'exchange': ['CME'] * 3,
+        })
 
-        return pd.concat([fo_frame, ba_frame])
+        return pd.concat([fo_frame, ba_frame, bz_frame])
 
     def test_contract_at_offset(self):
         contract_sids = array([1, 2, 3, 4], dtype=int64)
@@ -1470,6 +1494,16 @@ class OrderedContractsTestCase(WithAssetFinder,
             [5, 7], list(chain),
             "Contract BAG16 (sid=6) should be ommitted from chain, since "
             "it does not satisfy the roll predicate.")
+
+    def test_auto_close_before_start(self):
+        contract_sids = array([8, 9, 10], dtype=int64)
+        contracts = self.asset_finder.retrieve_all(contract_sids)
+        oc = OrderedContracts('BZ', deque(contracts))
+
+        # The OrderedContracts chain should omit BZF16 and start with BZG16.
+        self.assertEqual(oc.start_date, contracts[1].start_date)
+        self.assertEqual(oc.end_date, contracts[-1].end_date)
+        self.assertEqual(oc.contract_before_auto_close(oc.start_date.value), 9)
 
 
 class NoPrefetchContinuousFuturesTestCase(ContinuousFuturesTestCase):
