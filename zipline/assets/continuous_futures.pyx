@@ -333,6 +333,12 @@ cdef class OrderedContracts(object):
         while contracts:
             contract = contracts.popleft()
 
+            # It is possible that the first contract in our list has a start
+            # date on or after its auto close date. In that case the contract
+            # is not tradable, so do not include it in the chain.
+            if prev is None and contract.start_date >= contract.auto_close_date:
+                continue
+
             # Prevent contract chains with gaps between auto close and start of
             # next contract.
             # This is in lieu of more explicit support for
@@ -345,7 +351,7 @@ cdef class OrderedContracts(object):
 
             self._start_date = min(contract.start_date.value, self._start_date)
             self._end_date = max(contract.end_date.value, self._end_date)
-            
+
             curr = ContractNode(contract)
             self.sid_to_contract[contract.sid] = curr
             if self._head_contract is None:
@@ -355,7 +361,7 @@ cdef class OrderedContracts(object):
             curr.prev = prev
             prev.next = curr
             prev = curr
-    
+
     cpdef long_t contract_before_auto_close(self, long_t dt_value):
         """
         Get the contract with next upcoming auto close date.
@@ -393,7 +399,7 @@ cdef class OrderedContracts(object):
             if curr.contract.start_date.value <= dt_value:
                 contracts.append(curr.contract.sid)
             curr = curr.next
-            
+
         return array(contracts, dtype='int64')
 
     property start_date:
