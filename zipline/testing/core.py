@@ -406,7 +406,7 @@ def check_arrays(x, y, err_msg='', verbose=True, check_dtypes=True):
         )
         # Fill NaTs with zero for comparison.
         x = np.where(x_isnat, np.zeros_like(x), x)
-        y = np.where(x_isnat, np.zeros_like(x), x)
+        y = np.where(y_isnat, np.zeros_like(y), y)
 
     return assert_array_equal(x, y, err_msg=err_msg, verbose=verbose)
 
