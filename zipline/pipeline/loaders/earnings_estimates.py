@@ -710,7 +710,6 @@ class EarningsEstimatesLoader(PipelineLoader):
             ffill_across_cols(last_per_qtr, columns, self.name_map)
 
         else:
-            import pdb; pdb.set_trace()
             cached_last_per_qtr = self.quarter_caching.set_index([TS_FIELD_NAME, SID_FIELD_NAME, NORMALIZED_QUARTERS])
             last_per_qtr = cached_last_per_qtr.unstack(-1).unstack(-1)
             ffill_across_cols(last_per_qtr, columns, self.name_map)

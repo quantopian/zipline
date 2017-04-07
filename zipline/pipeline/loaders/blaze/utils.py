@@ -12,7 +12,8 @@ def load_raw_data(assets,
                   data_query_tz,
                   expr,
                   odo_kwargs,
-                  checkpoints=None):
+                  checkpoints=None,
+                  normalize_ts_to_query_time=True):
     """
     Given an expression representing data to load, perform normalization and
     forward-filling and return the data, materialized. Only accepts data with a
@@ -60,7 +61,7 @@ def load_raw_data(assets,
         sids[~sids.isin(assets)].index,
         inplace=True
     )
-    if data_query_time is not None:
+    if data_query_time is not None and normalize_ts_to_query_time:
         normalize_timestamp_to_query_time(
             raw,
             data_query_time,

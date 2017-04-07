@@ -132,7 +132,6 @@ class BlazeEstimatesLoader(PipelineLoader):
         all_quarter_caching_columns = sorted(
             quarter_caching_metadata_columns.union(requested_column_names)
         )
-        import pdb; pdb.set_trace()
         quarter_cached_data = load_raw_data(
             assets,
             dates,
@@ -141,6 +140,9 @@ class BlazeEstimatesLoader(PipelineLoader):
             self._quarter_caching[all_quarter_caching_columns],
             self._odo_kwargs,
             checkpoints=self._quarter_caching_checkpoints,
+            # The quarter cached data is already normalized; we don't want to
+            # normalize twice - that may result in incorrect dates.
+            normalize_ts_to_query_time=False,
         )
         return self.loader(
             raw,
@@ -201,7 +203,6 @@ class BlazeSplitAdjustedEstimatesLoader(BlazeEstimatesLoader):
         all_quarter_caching_columns = sorted(
             quarter_caching_metadata_columns.union(requested_column_names)
         )
-        import pdb; pdb.set_trace()
         quarter_cached_data = load_raw_data(
             assets,
             dates,
@@ -210,6 +211,9 @@ class BlazeSplitAdjustedEstimatesLoader(BlazeEstimatesLoader):
             self._quarter_caching[all_quarter_caching_columns],
             self._odo_kwargs,
             checkpoints=self._quarter_caching_checkpoints,
+            # The quarter cached data is already normalized; we don't want to
+            # normalize twice - that may result in incorrect dates.
+            normalize_ts_to_query_time=False,
         )
         return self.loader(
             raw,

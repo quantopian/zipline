@@ -1214,7 +1214,7 @@ def get_materialized_checkpoints(checkpoints, colnames, lower_dt, odo_kwargs):
     odo_kwargs : dict, optional
         The extra keyword arguments to pass to ``odo``.
     """
-    import pdb; pdb.set_trace()
+
     if checkpoints is not None:
         ts = checkpoints[TS_FIELD_NAME]
         checkpoints_ts = odo(
