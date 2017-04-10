@@ -149,9 +149,6 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
                 self._volume_for_bar += abs(txn.amount)
                 yield order, txn
 
-    def __call__(self, bar_data, asset, current_orders):
-        return self.simulate(bar_data, asset, current_orders)
-
     def __eq__(self, other):
         return self.asdict() == other.asdict()
 

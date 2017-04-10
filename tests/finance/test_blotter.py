@@ -16,22 +16,22 @@ from nose_parameterized import parameterized
 
 import pandas as pd
 
+from zipline.assets import Equity
 from zipline.finance.blotter import Blotter
-from zipline.finance.order import ORDER_STATUS, Order
+from zipline.finance.cancel_policy import EODCancel, NeverCancel
+from zipline.finance.commission import PerTrade
 from zipline.finance.execution import (
     LimitOrder,
     MarketOrder,
     StopLimitOrder,
     StopOrder,
 )
-
-from zipline.gens.sim_engine import SESSION_END, BAR
-from zipline.finance.cancel_policy import EODCancel, NeverCancel
+from zipline.finance.order import ORDER_STATUS, Order
 from zipline.finance.slippage import (
     DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT,
     FixedSlippage,
 )
-from zipline.utils.classproperty import classproperty
+from zipline.gens.sim_engine import BAR, SESSION_END
 from zipline.testing.fixtures import (
     WithCreateBarData,
     WithDataPortal,
@@ -39,6 +39,7 @@ from zipline.testing.fixtures import (
     WithSimParams,
     ZiplineTestCase,
 )
+from zipline.utils.classproperty import classproperty
 
 
 class BlotterTestCase(WithCreateBarData,
@@ -55,6 +56,7 @@ class BlotterTestCase(WithCreateBarData,
         super(BlotterTestCase, cls).init_class_fixtures()
         cls.asset_24 = cls.asset_finder.retrieve_asset(24)
         cls.asset_25 = cls.asset_finder.retrieve_asset(25)
+        cls.future_cl = cls.asset_finder.retrieve_asset(1000)
 
     @classmethod
     def make_equity_daily_bar_data(cls):
@@ -77,6 +79,23 @@ class BlotterTestCase(WithCreateBarData,
                 'volume': [100, 400],
             },
             index=cls.sim_params.sessions,
+        )
+
+    @classmethod
+    def make_futures_info(cls):
+        return pd.DataFrame.from_dict(
+            {
+                1000: {
+                    'symbol': 'CLF06',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': cls.END_DATE,
+                    'expiration_date': cls.END_DATE,
+                    'auto_close_date': cls.END_DATE,
+                    'exchange': 'CME',
+                },
+            },
+            orient='index',
         )
 
     @classproperty
@@ -220,7 +239,7 @@ class BlotterTestCase(WithCreateBarData,
         # Reset for paranoia
         blotter = Blotter(self.sim_params.data_frequency,
                           self.asset_finder)
-        blotter.slippage_func = FixedSlippage()
+        blotter.slippage_models[Equity] = FixedSlippage()
         filled_id = blotter.order(self.asset_24, 100, MarketOrder())
         filled_order = None
         blotter.current_dt = self.sim_params.sessions[-1]
@@ -363,3 +382,40 @@ class BlotterTestCase(WithCreateBarData,
                                  blotter1.open_orders[asset][i-1].id)
                 self.assertEqual(order_id,
                                  blotter2.open_orders[asset][i-1].id)
+
+    def test_slippage_and_commission_dispatching(self):
+        blotter = Blotter(
+            self.sim_params.data_frequency,
+            self.asset_finder,
+            equity_slippage=FixedSlippage(spread=0.0),
+            future_slippage=FixedSlippage(spread=2.0),
+            equity_commission=PerTrade(cost=1.0),
+            future_commission=PerTrade(cost=2.0),
+        )
+        blotter.order(self.asset_24, 1, MarketOrder())
+        blotter.order(self.future_cl, 1, MarketOrder())
+
+        bar_data = self.create_bardata(
+            simulation_dt_func=lambda: self.sim_params.sessions[-1],
+        )
+        txns, commissions, _ = blotter.get_transactions(bar_data)
+
+        # The equity transaction should have the same price as its current
+        # price because the slippage spread is zero. Its commission should be
+        # $1.00.
+        equity_txn = txns[0]
+        self.assertEqual(
+            equity_txn.price,
+            bar_data.current(equity_txn.sid, 'price'),
+        )
+        self.assertEqual(commissions[0]['cost'], 1.0)
+
+        # The future transaction price should be 1.0 more than its current
+        # price because half of the 'future_slippage' spread is added. Its
+        # commission should be $2.00.
+        future_txn = txns[1]
+        self.assertEqual(
+            future_txn.price,
+            bar_data.current(future_txn.sid, 'price') + 1.0,
+        )
+        self.assertEqual(commissions[1]['cost'], 2.0)
