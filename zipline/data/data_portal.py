@@ -650,47 +650,37 @@ class DataPortal(object):
 
     def _get_minute_spot_value(self, asset, column, dt, ffill=False):
         reader = self._get_pricing_reader('minute')
-        try:
-            result = reader.get_value(
-                asset.sid, dt, column
-            )
-        except NoDataOnDate:
-            if not ffill:
+
+        if ffill:
+            # If forward filling, we want the last minute with values (up to
+            # and including dt).
+            query_dt = reader.get_last_traded_dt(asset, dt)
+
+            if pd.isnull(query_dt):
+                # no last traded dt, bail
                 if column == 'volume':
                     return 0
                 else:
                     return np.nan
+        else:
+            # If not forward filling, we just want dt.
+            query_dt = dt
 
-        if not ffill:
-            return result
-
-        # we are looking for price, and didn't find one. have to go hunting.
-        last_traded_dt = reader.get_last_traded_dt(asset, dt)
-
-        if last_traded_dt is pd.NaT:
-            # no last traded dt, bail
+        try:
+            result = reader.get_value(asset.sid, query_dt, column)
+        except NoDataOnDate:
             if column == 'volume':
                 return 0
             else:
                 return np.nan
 
-        # get the value as of the last traded dt
-        result = reader.get_value(
-            asset.sid,
-            last_traded_dt,
-            column
-        )
-
-        if np.isnan(result):
-            return np.nan
-
-        if dt == last_traded_dt or dt.date() == last_traded_dt.date():
+        if not ffill or (dt == query_dt) or (dt.date() == query_dt.date()):
             return result
 
         # the value we found came from a different day, so we have to adjust
         # the data if there are any adjustments on that day barrier
         return self.get_adjusted_value(
-            asset, column, last_traded_dt,
+            asset, column, query_dt,
             dt, "minute", spot_value=result
         )
 
