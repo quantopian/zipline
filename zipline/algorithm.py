@@ -1203,8 +1203,8 @@ class TradingAlgorithm(object):
     @preprocess(root_symbol_str=ensure_upper_case)
     def continuous_future(self,
                           root_symbol_str,
-                          offset,
-                          roll,
+                          offset=0,
+                          roll='volume',
                           adjustment='mul'):
         """Create a specifier for a continuous contract.
 
@@ -1213,15 +1213,15 @@ class TradingAlgorithm(object):
         root_symbol_str : str
             The root symbol for the future chain.
 
-        offset : int
-            The distance from the primary contract.
+        offset : int, optional
+            The distance from the primary contract. Default is 0.
 
-        roll_style : str
-            How rolls are determined.
+        roll_style : str, optional
+            How rolls are determined. Default is 'volume'.
 
-        adjustment : str
+        adjustment : str, optional
             Method for adjusting lookback prices between rolls. Options are
-            'mul', 'add', and None. Defaults to 'mul'.
+            'mul', 'add', and None. Default is 'mul'.
 
         Returns
         -------
