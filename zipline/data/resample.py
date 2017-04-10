@@ -521,7 +521,7 @@ class MinuteResampleSessionBarReader(SessionBarReader):
         sessions = self._calendar.sessions_in_range(start_dt, end_dt)
         m_closes = np.zeros(len(sessions), dtype=np.dtype('datetime64[ns]'))
         for i, s in enumerate(sessions):
-            close = self._calendar.open_and_close_for_session(s)[1]
+            close = self._calendar.session_close(s)
             m_closes[i] = close.value
         m_locs = np.searchsorted(dts, m_closes)
         results = []
