@@ -19,6 +19,7 @@ from six import with_metaclass
 
 DEFAULT_PER_SHARE_COST = 0.0075         # 0.75 cents per share
 DEFAULT_MINIMUM_COST_PER_TRADE = 1.0    # $1 per trade
+DEFAULT_FUTURE_COST_PER_TRADE = 2.35
 
 
 class CommissionModel(with_metaclass(abc.ABCMeta)):

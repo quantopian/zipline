@@ -598,10 +598,12 @@ class EventLoaderUtilsTestCase(ZiplineTestCase):
                          boundary_dates]
     moscow_boundary_dates = [date.tz_localize('Europe/Moscow') for date in
                              boundary_dates]
-    mixed_tz_dates = [pd.Timestamp('2013-01-24'),
+    mixed_tz_dates = [pd.Timestamp('2013-12-30'),
+                      pd.Timestamp('2013-01-24'),
                       pd.Timestamp('2013-01-31 20:00:00'),
                       pd.Timestamp('2013-04-04'),
-                      pd.Timestamp('2013-04-21')]
+                      pd.Timestamp('2013-04-21'),
+                      pd.Timestamp('2013-06-01')]
     us_dates = pd.to_datetime(us_boundary_dates + mixed_tz_dates,
                               utc=True).tz_localize(None)
     moscow_dates = pd.to_datetime(moscow_boundary_dates + mixed_tz_dates,
@@ -619,10 +621,12 @@ class EventLoaderUtilsTestCase(ZiplineTestCase):
         [pd.Timestamp('2013-01-04'),
          pd.Timestamp('2013-01-05'),
          pd.Timestamp('2013-01-05'),
+         pd.Timestamp('2013-12-30'),
          pd.Timestamp('2013-01-24'),
          pd.Timestamp('2013-02-01'),
          pd.Timestamp('2013-04-04'),
-         pd.Timestamp('2013-04-21')]
+         pd.Timestamp('2013-04-21'),
+         pd.Timestamp('2013-06-01')]
     ).values
 
     # Russia's TZ offset is +4
@@ -630,10 +634,12 @@ class EventLoaderUtilsTestCase(ZiplineTestCase):
         [pd.Timestamp('2013-01-04'),
          pd.Timestamp('2013-01-05'),
          pd.Timestamp('2013-01-05'),
+         pd.Timestamp('2013-12-30'),
          pd.Timestamp('2013-01-24'),
          pd.Timestamp('2013-01-31'),
          pd.Timestamp('2013-04-04'),
-         pd.Timestamp('2013-04-21')]
+         pd.Timestamp('2013-04-21'),
+         pd.Timestamp('2013-06-01')]
     ).values
 
     # Test with timezones on either side of the meridian
@@ -652,7 +658,4 @@ class EventLoaderUtilsTestCase(ZiplineTestCase):
                                                        ts_field='timestamp')
 
             timestamps = result['timestamp'].values
-            check_arrays(
-                timestamps,
-                expected[scrambler]
-            )
+            check_arrays(np.sort(timestamps), np.sort(expected[scrambler]))

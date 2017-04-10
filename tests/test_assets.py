@@ -139,6 +139,7 @@ def build_lookup_generic_cases(asset_finder_type):
                 'root_symbol': 'FO',
                 'start_date': unique_start.value,
                 'end_date': unique_end.value,
+                'auto_close_date': unique_end.value,
                 'exchange': 'FUT',
             },
         ],
