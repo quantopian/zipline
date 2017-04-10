@@ -713,7 +713,7 @@ class EarningsEstimatesLoader(PipelineLoader):
         )
         stacked_last_per_qtr = stacked_last_per_qtr.sort_values(
             EVENT_DATE_FIELD_NAME,
-        )
+        ).sort_index()
         stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] = pd.to_datetime(
             stacked_last_per_qtr[EVENT_DATE_FIELD_NAME]
         )
