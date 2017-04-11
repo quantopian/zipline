@@ -660,6 +660,18 @@ class TradingCalendar(with_metaclass(ABCMeta)):
             'market_close'
         ].tz_localize('UTC')
 
+    def session_opens_in_range(self, start_session_label, end_session_label):
+        return self.schedule.loc[
+            start_session_label:end_session_label,
+            'market_open',
+        ].dt.tz_localize('UTC')
+
+    def session_closes_in_range(self, start_session_label, end_session_label):
+        return self.schedule.loc[
+            start_session_label:end_session_label,
+            'market_close',
+        ].dt.tz_localize('UTC')
+
     @property
     def all_sessions(self):
         return self.schedule.index
