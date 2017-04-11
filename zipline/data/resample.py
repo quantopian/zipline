@@ -530,7 +530,7 @@ class MinuteResampleSessionBarReader(SessionBarReader):
         # is the last minute in the data. Otherwise, we need to get all the
         # session closes and find their indices in the range of minutes.
         if start_session == end_session:
-            close_ilocs = np.array([len(minute_data[0]) - 1])
+            close_ilocs = np.array([len(minute_data[0]) - 1], dtype=np.int64)
         else:
             minutes = self._calendar.minutes_in_range(
                 range_open,
