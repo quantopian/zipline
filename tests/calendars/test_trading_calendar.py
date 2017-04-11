@@ -34,6 +34,7 @@ from zipline.errors import (
     InvalidCalendarName,
 )
 
+from zipline.testing.predicates import assert_equal
 from zipline.utils.calendars import(
     register_calendar,
     deregister_calendar,
@@ -682,6 +683,22 @@ class ExchangeCalendarTestBase(object):
 
             self.assertEqual(open_answer, found_open)
             self.assertEqual(close_answer, found_close)
+
+    def test_session_opens_in_range(self):
+        found_opens = self.calendar.session_opens_in_range(
+            self.answers.index[0],
+            self.answers.index[-1],
+        )
+
+        assert_equal(found_opens, self.answers['market_open'])
+
+    def test_session_closes_in_range(self):
+        found_closes = self.calendar.session_closes_in_range(
+            self.answers.index[0],
+            self.answers.index[-1],
+        )
+
+        assert_equal(found_closes, self.answers['market_close'])
 
     def test_daylight_savings(self):
         # 2004 daylight savings switches:
