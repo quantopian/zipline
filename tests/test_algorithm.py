@@ -127,7 +127,6 @@ from zipline.test_algorithms import (
     TestTargetAlgorithm,
     TestTargetPercentAlgorithm,
     TestTargetValueAlgorithm,
-    TestBatchTargetPercentAlgorithm,
     SetLongOnlyAlgorithm,
     SetAssetDateBoundsAlgorithm,
     SetMaxPositionSizeAlgorithm,
@@ -963,7 +962,6 @@ def before_trading_start(context, data):
         ('order_percent', TestOrderPercentAlgorithm,),
         ('order_target_percent', TestTargetPercentAlgorithm,),
         ('order_target_value', TestTargetValueAlgorithm,),
-        ('batch_order_target_percent', TestBatchTargetPercentAlgorithm,),
     ])
     def test_order_methods(self, test_name, algo_class):
         algo = algo_class(
@@ -1809,8 +1807,8 @@ def handle_data(context, data):
         )
         test_algo.run(self.data_portal)
 
-    def test_batch_order_target_percent_matches_multi_order(self):
-        weights = pd.Series([.3, .7])
+    def test_batch_market_order_matches_multiple_manual_orders(self):
+        share_counts = pd.Series([50, 100])
 
         multi_blotter = RecordBatchBlotter(self.SIM_PARAMS_DATA_FREQUENCY)
         multi_test_algo = TradingAlgorithm(
@@ -1818,7 +1816,7 @@ def handle_data(context, data):
                 from collections import OrderedDict
                 from six import iteritems
 
-                from zipline.api import sid, order_target_percent
+                from zipline.api import sid, order
 
 
                 def initialize(context):
@@ -1827,14 +1825,14 @@ def handle_data(context, data):
 
                 def handle_data(context, data):
                     if not context.placed:
-                        for asset, weight in iteritems(OrderedDict(zip(
-                            context.assets, {weights}
+                        for asset, shares in iteritems(OrderedDict(zip(
+                            context.assets, {share_counts}
                         ))):
-                            order_target_percent(asset, weight)
+                            order(asset, shares)
 
                         context.placed = True
 
-            """).format(weights=list(weights)),
+            """).format(share_counts=list(share_counts)),
             blotter=multi_blotter,
             env=self.env,
         )
@@ -1844,9 +1842,9 @@ def handle_data(context, data):
         batch_blotter = RecordBatchBlotter(self.SIM_PARAMS_DATA_FREQUENCY)
         batch_test_algo = TradingAlgorithm(
             script=dedent("""\
-                from collections import OrderedDict
+                import pandas as pd
 
-                from zipline.api import sid, batch_order_target_percent
+                from zipline.api import sid, batch_market_order
 
 
                 def initialize(context):
@@ -1855,9 +1853,9 @@ def handle_data(context, data):
 
                 def handle_data(context, data):
                     if not context.placed:
-                        orders = batch_order_target_percent(OrderedDict(zip(
-                            context.assets, {weights}
-                        )))
+                        orders = batch_market_order(pd.Series(
+                            index=context.assets, data={share_counts}
+                        ))
                         assert len(orders) == 2, \
                             "len(orders) was %s but expected 2" % len(orders)
                         for o in orders:
@@ -1865,7 +1863,7 @@ def handle_data(context, data):
 
                         context.placed = True
 
-            """).format(weights=list(weights)),
+            """).format(share_counts=list(share_counts)),
             blotter=batch_blotter,
             env=self.env,
         )
@@ -1881,16 +1879,15 @@ def handle_data(context, data):
             )
         assert_equal(multi_stats, batch_stats)
 
-    def test_batch_order_target_percent_filters_null_orders(self):
-        weights = pd.Series([1, 0])
+    def test_batch_market_order_filters_null_orders(self):
+        share_counts = [50, 0]
 
         batch_blotter = RecordBatchBlotter(self.SIM_PARAMS_DATA_FREQUENCY)
         batch_test_algo = TradingAlgorithm(
             script=dedent("""\
-                from collections import OrderedDict
+                import pandas as pd
 
-                from zipline.api import sid, batch_order_target_percent
-
+                from zipline.api import sid, batch_market_order
 
                 def initialize(context):
                     context.assets = [sid(0), sid(3)]
@@ -1898,9 +1895,9 @@ def handle_data(context, data):
 
                 def handle_data(context, data):
                     if not context.placed:
-                        orders = batch_order_target_percent(OrderedDict(zip(
-                            context.assets, {weights}
-                        )))
+                        orders = batch_market_order(pd.Series(
+                            index=context.assets, data={share_counts}
+                        ))
                         assert len(orders) == 1, \
                             "len(orders) was %s but expected 1" % len(orders)
                         for o in orders:
@@ -1908,7 +1905,7 @@ def handle_data(context, data):
 
                         context.placed = True
 
-            """).format(weights=list(weights)),
+            """).format(share_counts=share_counts),
             blotter=batch_blotter,
             env=self.env,
         )

@@ -13,11 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import Iterable
-try:
-    # optional cython based OrderedDict
-    from cyordereddict import OrderedDict
-except ImportError:
-    from collections import OrderedDict
 from copy import copy
 import operator as op
 import warnings
@@ -38,7 +33,6 @@ from six import (
     itervalues,
     string_types,
     viewkeys,
-    viewvalues,
 )
 
 from zipline._protocol import handle_non_market_minutes
@@ -107,9 +101,11 @@ from zipline.utils.input_validation import (
     coerce_string,
     ensure_upper_case,
     error_keywords,
+    expect_dtypes,
     expect_types,
     optional,
 )
+from zipline.utils.numpy_utils import int64_dtype
 from zipline.utils.calendars.trading_calendar import days_at_time
 from zipline.utils.cache import CachedObject, Expired
 from zipline.utils.calendars import get_calendar
@@ -2039,35 +2035,28 @@ class TradingAlgorithm(object):
         return self._calculate_order_target_amount(asset, target_amount)
 
     @api_method
-    @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
-    def batch_order_target_percent(self, weights):
-        """Place orders towards a given portfolio of weights.
+    @expect_types(share_counts=pd.Series)
+    @expect_dtypes(share_counts=int64_dtype)
+    def batch_market_order(self, share_counts):
+        """Place a batch market order for multiple assets.
 
         Parameters
         ----------
-        weights : collections.Mapping[Asset -> float]
+        share_counts : pd.Series[Asset -> int]
+            Map from asset to number of shares to order for that asset.
 
         Returns
         -------
-        order_ids : pd.Series[Asset -> str]
-            The unique identifiers for the orders that were placed.
-
-        See Also
-        --------
-        :func:`zipline.api.order_target_percent`
+        order_ids : pd.Index[str]
+            Index of ids for newly-created orders.
         """
-        order_args = OrderedDict()
-        for asset, target in iteritems(weights):
-            if self._can_order_asset(asset):
-                amount = self._calculate_order_target_percent_amount(
-                    asset, target,
-                )
-                amount, style = self._calculate_order(asset, amount)
-                order_args[asset] = (asset, amount, style)
-
-        order_ids = self.blotter.batch_order(viewvalues(order_args))
-        order_ids = pd.Series(data=order_ids, index=order_args)
-        return order_ids[~order_ids.isnull()]
+        style = MarketOrder()
+        order_args = [
+            (asset, amount, style)
+            for (asset, amount) in iteritems(share_counts)
+            if amount
+        ]
+        return self.blotter.batch_order(order_args)
 
     @error_keywords(sid='Keyword argument `sid` is no longer supported for '
                         'get_open_orders. Use `asset` instead.')
