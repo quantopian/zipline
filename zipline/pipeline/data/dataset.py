@@ -36,7 +36,7 @@ class Column(object):
         self.dtype = dtype
         self.missing_value = missing_value
         self.doc = doc
-        self.metadata = metadata if metadata is not None else {}
+        self.metadata = metadata.copy() if metadata is not None else {}
 
     def bind(self, name):
         """
