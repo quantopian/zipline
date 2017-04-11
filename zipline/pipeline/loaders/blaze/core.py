@@ -776,7 +776,15 @@ def overwrite_novel_deltas(baseline, deltas, dates):
         ignore_index=True,
         copy=False,
     )
-    cat.sort_values(TS_FIELD_NAME, inplace=True)
+    # We use mergesort here to preserve the order for ties.
+    # We want 'na_position' to be first so that we have non-na values, if any,
+    # last for groupbys later.
+    cat.sort_values(
+        TS_FIELD_NAME,
+        inplace=True,
+        kind='mergesort',
+        na_position='first'
+    ).reset_index(drop=True)
     return cat, non_novel_deltas
 
 
