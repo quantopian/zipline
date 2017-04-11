@@ -128,6 +128,16 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             # Numexpr doesn't know how to use LabelArrays.
             return ArrayPredicate(term=self, op=operator.ne, opargs=(other,))
 
+    def bad_compare(self, other):
+        raise TypeError('cannot compare values of type' % type(self).__name__)
+
+    __gt__ = bad_compare
+    __ge__ = bad_compare
+    __le__ = bad_compare
+    __lt__ = bad_compare
+
+    del bad_compare
+
     @string_classifiers_only
     @expect_types(prefix=(bytes, unicode))
     def startswith(self, prefix):
