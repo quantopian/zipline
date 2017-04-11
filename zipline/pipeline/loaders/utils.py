@@ -185,11 +185,11 @@ def normalize_data_query_bounds(lower, upper, time, tz):
             lower,
             time,
             tz,
-        ), normalize_data_query_time(
+        ).tz_localize(None), normalize_data_query_time(
             upper,
             time,
             tz,
-        )
+        ).tz_localize(None)
     return lower.tz_localize(None), upper.tz_localize(None)
 
 
