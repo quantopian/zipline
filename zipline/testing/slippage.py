@@ -1,3 +1,4 @@
+from zipline.assets import Equity
 from zipline.finance.slippage import SlippageModel
 from zipline.utils.sentinel import sentinel
 
@@ -18,6 +19,8 @@ class TestingSlippage(SlippageModel):
     zipline.finance.slippage.SlippageModel
     """
     ALL = sentinel('ALL')
+
+    allowed_asset_types = (Equity,)
 
     def __init__(self, filled_per_tick):
         self.filled_per_tick = filled_per_tick

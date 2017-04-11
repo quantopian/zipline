@@ -82,6 +82,17 @@ Please use VolumeShareSlippage or FixedSlippage.
 """.strip()
 
 
+class IncompatibleSlippageModel(ZiplineError):
+    """
+    Raised if a user tries to set a futures slippage model for equities or vice
+    versa.
+    """
+    msg = """
+You attempted to set an incompatible slippage model for {asset_type}. \
+The slippage model '{given_model}' only supports {supported_asset_types}.
+""".strip()
+
+
 class SetSlippagePostInit(ZiplineError):
     # Raised if a users script calls set_slippage magic
     # after the initialize method has returned.
@@ -127,6 +138,17 @@ class UnsupportedCommissionModel(ZiplineError):
     msg = """
 You attempted to set commission with an unsupported class. \
 Please use PerShare or PerTrade.
+""".strip()
+
+
+class IncompatibleCommissionModel(ZiplineError):
+    """
+    Raised if a user tries to set a futures commission model for equities or
+    vice versa.
+    """
+    msg = """
+You attempted to set an incompatible commission model for {asset_type}. \
+The commission model '{given_model}' only supports {supported_asset_types}.
 """.strip()
 
 

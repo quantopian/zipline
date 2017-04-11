@@ -28,7 +28,7 @@ from zipline.finance.execution import (
 )
 from zipline.finance.order import ORDER_STATUS, Order
 from zipline.finance.slippage import (
-    DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT,
+    DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT,
     FixedSlippage,
 )
 from zipline.gens.sim_engine import BAR, SESSION_END
@@ -292,7 +292,7 @@ class BlotterTestCase(WithCreateBarData,
 
             order_size = 100
             expected_filled = int(trade_amt *
-                                  DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT)
+                                  DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT)
             expected_open = order_size - expected_filled
             expected_status = ORDER_STATUS.OPEN if expected_open else \
                 ORDER_STATUS.FILLED

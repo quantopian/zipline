@@ -49,6 +49,8 @@ from zipline.errors import (
     AttachPipelineAfterInitialize,
     CannotOrderDelistedAsset,
     HistoryInInitialize,
+    IncompatibleCommissionModel,
+    IncompatibleSlippageModel,
     NoSuchPipeline,
     OrderDuringInitialize,
     OrderInBeforeTradingStart,
@@ -61,14 +63,11 @@ from zipline.errors import (
     SetCommissionPostInit,
     SetSlippagePostInit,
     UnsupportedCancelPolicy,
-    UnsupportedCommissionModel,
     UnsupportedDatetimeFormat,
     UnsupportedOrderParameters,
-    UnsupportedSlippageModel,
 )
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.blotter import Blotter
-from zipline.finance.commission import CommissionModel
 from zipline.finance.controls import (
     LongOnly,
     MaxOrderCount,
@@ -85,7 +84,6 @@ from zipline.finance.execution import (
 )
 from zipline.finance.performance import PerformanceTracker
 from zipline.finance.asset_restrictions import Restrictions
-from zipline.finance.slippage import SlippageModel
 from zipline.finance.cancel_policy import NeverCancel, CancelPolicy
 from zipline.finance.asset_restrictions import (
     NoRestrictions,
@@ -1656,34 +1654,51 @@ class TradingAlgorithm(object):
         return dt
 
     @api_method
-    def set_slippage(self, slippage):
-        """Set the slippage model for the simulation.
+    def set_slippage(self, us_equities=None, us_futures=None):
+        """Set the slippage models for the simulation.
 
         Parameters
         ----------
-        slippage : SlippageModel
-            The slippage model to use.
+        us_equities : EquitySlippageModel
+            The slippage model to use for trading US equities.
+        us_futures : FutureSlippageModel
+            The slippage model to use for trading US futures.
 
         See Also
         --------
         :class:`zipline.finance.slippage.SlippageModel`
         """
-        if not isinstance(slippage, SlippageModel):
-            raise UnsupportedSlippageModel()
         if self.initialized:
             raise SetSlippagePostInit()
-        # TODO: Create separate API methods for setting Equity and Future
-        # slippage models.
-        self.blotter.slippage_models[Equity] = slippage
+
+        if us_equities is not None:
+            if Equity not in us_equities.allowed_asset_types:
+                raise IncompatibleSlippageModel(
+                    asset_type='equities',
+                    given_model=us_equities,
+                    supported_asset_types=us_equities.allowed_asset_types,
+                )
+            self.blotter.slippage_models[Equity] = us_equities
+
+        if us_futures is not None:
+            if Future not in us_futures.allowed_asset_types:
+                raise IncompatibleSlippageModel(
+                    asset_type='futures',
+                    given_model=us_futures,
+                    supported_asset_types=us_futures.allowed_asset_types,
+                )
+            self.blotter.slippage_models[Future] = us_futures
 
     @api_method
-    def set_commission(self, commission):
-        """Sets the commission model for the simulation.
+    def set_commission(self, us_equities=None, us_futures=None):
+        """Sets the commission models for the simulation.
 
         Parameters
         ----------
-        commission : CommissionModel
-            The commission model to use.
+        us_equities : EquityCommissionModel
+            The commission model to use for trading US equities.
+        us_futures : FutureCommissionModel
+            The commission model to use for trading US futures.
 
         See Also
         --------
@@ -1691,15 +1706,26 @@ class TradingAlgorithm(object):
         :class:`zipline.finance.commission.PerTrade`
         :class:`zipline.finance.commission.PerDollar`
         """
-        if not isinstance(commission, CommissionModel):
-            raise UnsupportedCommissionModel()
-
         if self.initialized:
             raise SetCommissionPostInit()
 
-        # TODO: Create separate API methods for setting Equity and Future
-        # commission models.
-        self.blotter.commission_models[Equity] = commission
+        if us_equities is not None:
+            if Equity not in us_equities.allowed_asset_types:
+                raise IncompatibleCommissionModel(
+                    asset_type='equities',
+                    given_model=us_equities,
+                    supported_asset_types=us_equities.allowed_asset_types,
+                )
+            self.blotter.commission_models[Equity] = us_equities
+
+        if us_futures is not None:
+            if Future not in us_futures.allowed_asset_types:
+                raise IncompatibleCommissionModel(
+                    asset_type='futures',
+                    given_model=us_futures,
+                    supported_asset_types=us_futures.allowed_asset_types,
+                )
+            self.blotter.commission_models[Future] = us_futures
 
     @api_method
     def set_cancel_policy(self, cancel_policy):
