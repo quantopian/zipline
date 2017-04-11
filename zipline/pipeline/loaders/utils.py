@@ -190,7 +190,7 @@ def normalize_data_query_bounds(lower, upper, time, tz):
             time,
             tz,
         )
-    return lower, upper
+    return lower.tz_localize(None), upper.tz_localize(None)
 
 
 _midnight = datetime.time(0, 0)
