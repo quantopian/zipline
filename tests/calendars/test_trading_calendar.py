@@ -452,8 +452,10 @@ class ExchangeCalendarTestBase(object):
         (2, 1),
     ])
     def test_minute_index_to_session_labels(self, interval, offset):
-        minutes = self.calendar.minutes_for_sessions_in_range('2011-01-04',
-                                                              '2011-04-04')
+        minutes = self.calendar.minutes_for_sessions_in_range(
+            pd.Timestamp('2011-01-04', tz='UTC'),
+            pd.Timestamp('2011-04-04', tz='UTC'),
+        )
         minutes = minutes[range(offset, len(minutes), interval)]
 
         np.testing.assert_array_equal(
