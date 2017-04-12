@@ -236,7 +236,12 @@ def normalize_timestamp_to_query_time(df,
     #  on tha DatetimeIndex, some of the dates will be shifted by an hour
     # (similarly to the previously mentioned bug). Therefore, we must sort
     # the df here to ensure that we get the normalize correctly.
-    df.sort_values(ts_field, inplace=True)
+    df.sort_values(
+        ts_field,
+        inplace=True,
+        kind='mergesort',
+        na_position='first'
+    )
     dtidx = pd.DatetimeIndex(df.loc[:, ts_field], tz='utc')
     dtidx_local_time = dtidx.tz_convert(tz)
     to_roll_forward = mask_between_time(
@@ -327,7 +332,6 @@ def last_in_date_group(df,
     if extra_groupers is None:
         extra_groupers = []
     idx += extra_groupers
-
     last_in_group = df.drop(TS_FIELD_NAME, axis=1).groupby(
         idx,
         sort=False,
