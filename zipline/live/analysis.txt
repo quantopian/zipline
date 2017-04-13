@@ -38,3 +38,8 @@ Blotter                    BlotterLive
 DataPortal                 DataPortalLive
 AlgorithmSimulator         AlgorithmTrader
 TradingAlgorithm           TradingAlgorithmLive
+
+New Classes
+==================
+Broker
+IBBroker
