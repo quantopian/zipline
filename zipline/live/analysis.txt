@@ -1,4 +1,5 @@
 
+DataPortal: "Interface to all of the data that a zipline simulation needs."
 DataPortal's methods used in TradingAlgorithm
 line 586: used to create a trading_client (AlgorithmSimulatior)
 line 625: get a list of all the assets in the trading universe
@@ -6,6 +7,7 @@ line 975: fetch_csv, data from external csv is added to DataPortal.
 line 1566 & 1580: tracks portfolio positions
 line 2099: get historical data
 
+Blotter is the class for placing orders
 Blotter's methods used in TradingAlgorithm
 line 1421: used to order assets in order()
 line 1480 & 1439: limit & stop orders
@@ -14,10 +16,6 @@ line 1692: order cancellation policy
 line 2010: batch order
 line 2060, 2061, 2076 : submit orders, cancel orders
 
-Other notes
-TradingAlgorithm.on_dt_changed() is called by the simulation loop, this would need to be called by something similar to
-simulation.
-
 AlgorithmSimulator (in zipline/gens/tradesimulation.py)
 used as the trading_client in TradingAlgorithm, the trading_client has methods/attributes called in the following places
  in TradingAlgorithm:
@@ -25,3 +23,18 @@ line 593: transform(), creates a generator work loop for TradingAlgorithm._creat
 line 1321: current_data.current(asset, "price") used to get the last price of asset
 line 1477: current_data used to validate_order_params
 line 2153: current_data used in validate_account_controls
+
+Other notes:
+TradingAlgorithm.on_dt_changed() is called by the simulation loop, this would need to be called by something similar to
+simulation.
+Blotter and DataPortal both need to access the broker.  Data comes in through DataPortal and out through Blotter.
+We should create an abstract class called: Broker, (perhaps a Singleton) that both DataPortal and Blotter will have
+access to.  (Perhaps others will need access as well.)  The IB specific code will be placed in IBBroker which inherits
+from Broker.
+
+Simulation Class           Live Trading Class
+==============================================
+Blotter                    BlotterLive
+DataPortal                 DataPortalLive
+AlgorithmSimulator         AlgorithmTrader
+TradingAlgorithm           TradingAlgorithmLive
