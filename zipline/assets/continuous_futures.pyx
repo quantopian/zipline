@@ -339,13 +339,6 @@ cdef class OrderedContracts(object):
             if prev is None and contract.start_date >= contract.auto_close_date:
                 continue
 
-            # Prevent contract chains with gaps between auto close and start of
-            # next contract.
-            # This is in lieu of more explicit support for
-            # contracts with quarterly rolls. e.g. Eurodollar
-            if prev is not None and contract.start_date > prev.contract.auto_close_date:
-                continue
-
             if not chain_predicate(contract):
                 continue
 
