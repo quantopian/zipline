@@ -347,7 +347,7 @@ class TestSplitPerformance(WithSimParams, WithTmpDir, ZiplineTestCase):
         # check the last position to make sure it's been updated
         position = latest_positions[0]
 
-        self.assertEqual(1, position['sid'])
+        self.assertEqual(self.asset1, position['sid'])
         self.assertEqual(33, position['amount'])
         self.assertEqual(60, position['cost_basis'])
         self.assertEqual(60, position['last_sale_price'])
@@ -1326,8 +1326,8 @@ class TestPositionPerformance(WithInstanceTmpDir, WithTradingCalendars,
             "should be just one position")
 
         self.assertEqual(
-            pp.positions[1].sid,
-            txn.sid,
+            pp.positions[1].asset,
+            txn.asset,
             "position should be in security with id 1")
 
         self.assertEqual(
@@ -1437,8 +1437,8 @@ single short-sale transaction"""
             "should be just one position")
 
         self.assertEqual(
-            pp.positions[1].sid,
-            txn.sid,
+            pp.positions[1].asset,
+            txn.asset,
             "position should be in security from the transaction"
         )
 
@@ -1494,8 +1494,8 @@ single short-sale transaction"""
         )
 
         self.assertEqual(
-            pp.positions[1].sid,
-            txn.sid,
+            pp.positions[1].asset,
+            txn.asset,
             "position should be in security from the transaction"
         )
 
@@ -1556,8 +1556,8 @@ cost of sole txn in test"
             "should be just one position"
         )
         self.assertEqual(
-            ppTotal.positions[1].sid,
-            txn.sid,
+            ppTotal.positions[1].asset,
+            txn.asset,
             "position should be in security from the transaction"
         )
 
@@ -1834,7 +1834,7 @@ shares in position"
         self.create_environment_stuff(num_days=8)
 
         history_args = (
-            1,
+            self.asset1,
             [10, 9, 11, 8, 9, 12, 13, 14],
             [200, -100, -100, 100, -300, 100, 500, 400],
             oneday,
@@ -1974,6 +1974,16 @@ class TestPositionTracker(WithTradingEnvironment,
     ASSET_FINDER_EQUITY_SIDS = 1, 2
 
     @classmethod
+    def init_class_fixtures(cls):
+        super(TestPositionTracker, cls).init_class_fixtures()
+
+        cls.EQUITY1 = cls.asset_finder.retrieve_asset(1)
+        cls.EQUITY2 = cls.asset_finder.retrieve_asset(2)
+        cls.FUTURE3 = cls.asset_finder.retrieve_asset(3)
+        cls.FUTURE4 = cls.asset_finder.retrieve_asset(4)
+        cls.FUTURE5 = cls.asset_finder.retrieve_asset(1032201401)
+
+    @classmethod
     def make_futures_info(cls):
         return pd.DataFrame.from_dict(
             {
@@ -2017,13 +2027,13 @@ class TestPositionTracker(WithTradingEnvironment,
     def test_position_values_and_exposures(self):
         pt = perf.PositionTracker(self.env.asset_finder, None)
         dt = pd.Timestamp("1984/03/06 3:00PM")
-        pos1 = perf.Position(1, amount=np.float64(10.0),
+        pos1 = perf.Position(self.EQUITY1, amount=np.float64(10.0),
                              last_sale_date=dt, last_sale_price=10)
-        pos2 = perf.Position(2, amount=np.float64(-20.0),
+        pos2 = perf.Position(self.EQUITY2, amount=np.float64(-20.0),
                              last_sale_date=dt, last_sale_price=10)
-        pos3 = perf.Position(3, amount=np.float64(30.0),
+        pos3 = perf.Position(self.FUTURE3, amount=np.float64(30.0),
                              last_sale_date=dt, last_sale_price=10)
-        pos4 = perf.Position(4, amount=np.float64(-40.0),
+        pos4 = perf.Position(self.FUTURE4, amount=np.float64(-40.0),
                              last_sale_date=dt, last_sale_price=10)
         pt.update_positions({1: pos1, 2: pos2, 3: pos3, 4: pos4})
 
@@ -2049,11 +2059,11 @@ class TestPositionTracker(WithTradingEnvironment,
     def test_update_positions(self):
         pt = perf.PositionTracker(self.env.asset_finder, None)
         dt = pd.Timestamp("2014/01/01 3:00PM")
-        pos1 = perf.Position(1, amount=np.float64(10.0),
+        pos1 = perf.Position(self.EQUITY1, amount=np.float64(10.0),
                              last_sale_date=dt, last_sale_price=10)
-        pos2 = perf.Position(2, amount=np.float64(-20.0),
+        pos2 = perf.Position(self.EQUITY2, amount=np.float64(-20.0),
                              last_sale_date=dt, last_sale_price=10)
-        pos3 = perf.Position(1032201401, amount=np.float64(30.0),
+        pos3 = perf.Position(self.FUTURE5, amount=np.float64(30.0),
                              last_sale_date=dt, last_sale_price=100)
 
         # Call update_positions twice. When the second call is made,
@@ -2063,8 +2073,8 @@ class TestPositionTracker(WithTradingEnvironment,
         # were to be stored as a dict, then its order could change in arbitrary
         # ways when the second update_positions call is made. Hence we also
         # store it as an OrderedDict.
-        pt.update_positions({1: pos1, 1032201401: pos3})
-        pt.update_positions({2: pos2})
+        pt.update_positions({self.EQUITY1: pos1, self.FUTURE5: pos3})
+        pt.update_positions({self.EQUITY2: pos2})
 
         pos_stats = pt.stats()
         # Test long-only methods
@@ -2087,19 +2097,17 @@ class TestPositionTracker(WithTradingEnvironment,
         self.assertEqual(100 + 150000 - 200, pos_stats.net_exposure)
 
     def test_close_position(self):
-        future_sid = 1032201401
-        equity_sid = 1
         pt = perf.PositionTracker(self.env.asset_finder, None)
         dt = pd.Timestamp('2017/01/04 3:00PM')
 
         pos1 = perf.Position(
-            sid=future_sid,
+            asset=self.FUTURE5,
             amount=np.float64(30.0),
             last_sale_date=dt,
             last_sale_price=100,
         )
         pos2 = perf.Position(
-            sid=equity_sid,
+            asset=self.EQUITY1,
             amount=np.float64(10.0),
             last_sale_date=dt,
             last_sale_price=10,
@@ -2110,10 +2118,9 @@ class TestPositionTracker(WithTradingEnvironment,
         # OrderedDicts. If `future_sid` is not removed from the multipliers
         # dictionaries, equities will hit the incorrect multiplier when
         # computing `pt.stats()`.
-        pt.update_positions({future_sid: pos1, equity_sid: pos2})
+        pt.update_positions({self.FUTURE5: pos1, self.EQUITY1: pos2})
 
-        asset_to_close = self.env.asset_finder.retrieve_asset(future_sid)
-        txn = create_txn(asset_to_close, dt, 100, -30)
+        txn = create_txn(self.FUTURE5, dt, 100, -30)
         pt.execute_transaction(txn)
 
         pos_stats = pt.stats()

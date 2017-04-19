@@ -275,10 +275,10 @@ class PerformanceTracker(object):
         self.todays_performance.record_order(event)
 
     def process_commission(self, commission):
-        sid = commission['sid']
+        asset = commission['asset']
         cost = commission['cost']
 
-        self.position_tracker.handle_commission(sid, cost)
+        self.position_tracker.handle_commission(asset, cost)
         self.cumulative_performance.handle_commission(cost)
         self.todays_performance.handle_commission(cost)
 

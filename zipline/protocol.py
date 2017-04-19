@@ -16,6 +16,8 @@ from warnings import warn
 
 import pandas as pd
 
+from zipline.assets import Asset
+from zipline.utils.input_validation import expect_types
 from .utils.enum import enum
 from zipline._protocol import BarData  # noqa
 
@@ -225,13 +227,16 @@ class Account(object):
 
 
 class Position(object):
-
-    def __init__(self, sid):
-        self.sid = sid
+    @expect_types(asset=Asset)
+    def __init__(self, asset):
+        self.asset = asset
         self.amount = 0
         self.cost_basis = 0.0  # per share
         self.last_sale_price = 0.0
         self.last_sale_date = None
+
+        # for backwards compatibility
+        self.sid = asset
 
     def __repr__(self):
         return "Position({0})".format(self.__dict__)

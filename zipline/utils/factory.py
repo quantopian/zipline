@@ -21,6 +21,8 @@ import pandas as pd
 import numpy as np
 from datetime import timedelta, datetime
 
+from zipline.assets import Asset
+from zipline.finance.transaction import Transaction
 from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.sources import SpecificEquityTrades
 from zipline.finance.trading import SimulationParameters
@@ -30,7 +32,7 @@ from zipline.data.loader import (  # For backwards compatibility
     load_bars_from_yahoo,
 )
 from zipline.utils.calendars import get_calendar
-
+from zipline.utils.input_validation import expect_types
 
 __all__ = ['load_from_yahoo', 'load_bars_from_yahoo']
 
@@ -150,27 +152,27 @@ def create_split(sid, ratio, date):
     })
 
 
-def create_txn(sid, price, amount, datetime):
-    txn = Event({
-        'sid': sid,
-        'amount': amount,
-        'dt': datetime,
-        'price': price,
-        'type': DATASOURCE_TYPE.TRANSACTION,
-        'source_id': 'MockTransactionSource'
-    })
-    return txn
+@expect_types(asset=Asset)
+def create_txn(asset, price, amount, datetime, order_id):
+    return Transaction(
+        asset=asset,
+        price=price,
+        amount=amount,
+        dt=datetime,
+        order_id=order_id,
+    )
 
 
-def create_txn_history(sid, priceList, amtList, interval, sim_params,
+@expect_types(asset=Asset)
+def create_txn_history(asset, priceList, amtList, interval, sim_params,
                        trading_calendar):
     txns = []
     current = sim_params.first_open
 
     for price, amount in zip(priceList, amtList):
-        current = get_next_trading_dt(current, interval, trading_calendar)
+        dt = get_next_trading_dt(current, interval, trading_calendar)
 
-        txns.append(create_txn(sid, price, amount, current))
+        txns.append(create_txn(asset, price, amount, dt, None))
         current = current + interval
     return txns
 

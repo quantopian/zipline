@@ -154,7 +154,7 @@ class BlotterTestCase(WithCreateBarData,
         blotter = Blotter('minute', self.asset_finder,
                           cancel_policy=EODCancel())
 
-        # Make two orders for the same sid, so we can test that we are not
+        # Make two orders for the same asset, so we can test that we are not
         # mutating the orders list as we are cancelling orders
         blotter.order(self.asset_24, 100, MarketOrder())
         blotter.order(self.asset_24, -100, MarketOrder())
@@ -343,7 +343,7 @@ class BlotterTestCase(WithCreateBarData,
 
         other_order = Order(
             dt=blotter.current_dt,
-            sid=self.asset_25,
+            asset=self.asset_25,
             amount=1
         )
 
@@ -406,7 +406,7 @@ class BlotterTestCase(WithCreateBarData,
         equity_txn = txns[0]
         self.assertEqual(
             equity_txn.price,
-            bar_data.current(equity_txn.sid, 'price'),
+            bar_data.current(equity_txn.asset, 'price'),
         )
         self.assertEqual(commissions[0]['cost'], 1.0)
 
@@ -416,6 +416,6 @@ class BlotterTestCase(WithCreateBarData,
         future_txn = txns[1]
         self.assertEqual(
             future_txn.price,
-            bar_data.current(future_txn.sid, 'price') + 1.0,
+            bar_data.current(future_txn.asset, 'price') + 1.0,
         )
         self.assertEqual(commissions[1]['cost'], 2.0)

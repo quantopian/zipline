@@ -185,8 +185,8 @@ class PerformancePeriod(object):
         self._account_store = zp.Account()
         self.serialize_positions = serialize_positions
 
-        # This dict contains the known cash flow multipliers for sids and is
-        # keyed on sid
+        # This dict contains the known cash flow multipliers for assets and is
+        # keyed on asset
         self._execution_cash_flow_multipliers = {}
 
     _position_tracker = None
@@ -362,7 +362,7 @@ class PerformancePeriod(object):
     def handle_execution(self, txn):
         self.cash_flow += self._calculate_execution_cash_flow(txn)
 
-        asset = self.asset_finder.retrieve_asset(txn.sid)
+        asset = self.asset_finder.retrieve_asset(txn.asset)
         if isinstance(asset, Future):
             try:
                 old_price = self._payout_last_sale_prices[asset]
@@ -392,15 +392,15 @@ class PerformancePeriod(object):
         # Check if the multiplier is cached. If it is not, look up the asset
         # and cache the multiplier.
         try:
-            multiplier = self._execution_cash_flow_multipliers[txn.sid]
+            multiplier = self._execution_cash_flow_multipliers[txn.asset]
         except KeyError:
-            asset = self.asset_finder.retrieve_asset(txn.sid)
+            asset = self.asset_finder.retrieve_asset(txn.asset)
             # Futures experience no cash flow on transactions
             if isinstance(asset, Future):
                 multiplier = 0
             else:
                 multiplier = 1
-            self._execution_cash_flow_multipliers[txn.sid] = multiplier
+            self._execution_cash_flow_multipliers[txn.asset] = multiplier
 
         # Calculate and return the cash flow given the multiplier
         return -1 * txn.price * txn.amount * multiplier

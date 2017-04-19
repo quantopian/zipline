@@ -126,7 +126,7 @@ class SlippageTestCase(WithCreateBarData,
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': 100,
                 'filled': 0,
-                'sid': self.ASSET133,
+                'asset': self.ASSET133,
                 'limit': 3.5})
         ]
 
@@ -148,7 +148,7 @@ class SlippageTestCase(WithCreateBarData,
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': 100,
                 'filled': 0,
-                'sid': self.ASSET133,
+                'asset': self.ASSET133,
                 'limit': 3.5})
         ]
 
@@ -170,7 +170,7 @@ class SlippageTestCase(WithCreateBarData,
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': 100,
                 'filled': 0,
-                'sid': self.ASSET133,
+                'asset': self.ASSET133,
                 'limit': 3.6})
         ]
 
@@ -194,7 +194,7 @@ class SlippageTestCase(WithCreateBarData,
             # we ordered 100 shares, but default volume slippage only allows
             # for 2.5% of the volume.  2.5% * 2000 = 50 shares
             'amount': int(50),
-            'sid': int(133),
+            'asset': self.ASSET133,
             'order_id': open_orders[0].id
         }
 
@@ -209,7 +209,7 @@ class SlippageTestCase(WithCreateBarData,
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': -100,
                 'filled': 0,
-                'sid': self.ASSET133,
+                'asset': self.ASSET133,
                 'limit': 3.5})
         ]
 
@@ -231,7 +231,7 @@ class SlippageTestCase(WithCreateBarData,
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': -100,
                 'filled': 0,
-                'sid': self.ASSET133,
+                'asset': self.ASSET133,
                 'limit': 3.5})
         ]
 
@@ -253,7 +253,7 @@ class SlippageTestCase(WithCreateBarData,
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': -100,
                 'filled': 0,
-                'sid': self.ASSET133,
+                'asset': self.ASSET133,
                 'limit': 3.4})
         ]
 
@@ -275,7 +275,7 @@ class SlippageTestCase(WithCreateBarData,
             'dt': datetime.datetime(
                 2006, 1, 5, 14, 32, tzinfo=pytz.utc),
             'amount': int(-50),
-            'sid': int(133)
+            'asset': self.ASSET133,
         }
 
         self.assertIsNotNone(txn)
@@ -293,7 +293,7 @@ class SlippageTestCase(WithCreateBarData,
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': 100,
                 'filled': 0,
-                'sid': self.ASSET133,
+                'asset': self.ASSET133,
                 'stop': 4.0,
                 'limit': 3.0})
         ]
@@ -328,7 +328,7 @@ class SlippageTestCase(WithCreateBarData,
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': 100,
                 'filled': 0,
-                'sid': self.ASSET133,
+                'asset': self.ASSET133,
                 'stop': 4.0,
                 'limit': 3.5})
         ]
@@ -363,7 +363,7 @@ class SlippageTestCase(WithCreateBarData,
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': 100,
                 'filled': 0,
-                'sid': self.ASSET133,
+                'asset': self.ASSET133,
                 'stop': 4.0,
                 'limit': 3.6})
         ]
@@ -398,7 +398,7 @@ class SlippageTestCase(WithCreateBarData,
             'dt': datetime.datetime(
                 2006, 1, 5, 14, 34, tzinfo=pytz.utc),
             'amount': int(50),
-            'sid': int(133)
+            'asset': self.ASSET133
         }
 
         for key, value in expected_txn.items():
@@ -411,7 +411,7 @@ class SlippageTestCase(WithCreateBarData,
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': -100,
                 'filled': 0,
-                'sid': self.ASSET133,
+                'asset': self.ASSET133,
                 'stop': 3.0,
                 'limit': 4.0})
         ]
@@ -446,7 +446,7 @@ class SlippageTestCase(WithCreateBarData,
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': -100,
                 'filled': 0,
-                'sid': self.ASSET133,
+                'asset': self.ASSET133,
                 'stop': 3.0,
                 'limit': 3.5})
         ]
@@ -481,7 +481,7 @@ class SlippageTestCase(WithCreateBarData,
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': -100,
                 'filled': 0,
-                'sid': self.ASSET133,
+                'asset': self.ASSET133,
                 'stop': 3.0,
                 'limit': 3.4})
         ]
@@ -516,7 +516,7 @@ class SlippageTestCase(WithCreateBarData,
             'dt': datetime.datetime(
                 2006, 1, 5, 14, 32, tzinfo=pytz.utc),
             'amount': int(-50),
-            'sid': int(133)
+            'asset': self.ASSET133,
         }
 
         for key, value in expected_txn.items():
@@ -574,7 +574,7 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
                 dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 amount=100,
                 filled=0,
-                sid=self.ASSET133
+                asset=self.ASSET133
             )
         ]
 
@@ -596,7 +596,7 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
             'dt': datetime.datetime(
                 2006, 1, 5, 14, 31, tzinfo=pytz.utc),
             'amount': int(5),
-            'sid': int(133),
+            'asset': self.ASSET133,
             'commission': None,
             'type': DATASOURCE_TYPE.TRANSACTION,
             'order_id': open_orders[0].id
@@ -613,7 +613,7 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
                 dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 amount=100,
                 filled=0,
-                sid=self.ASSET133
+                asset=self.ASSET133
             )
         ]
 
@@ -684,7 +684,6 @@ class OrdersStopTestCase(WithSimParams,
                 'dt': pd.Timestamp('2006-01-05 14:30', tz='UTC'),
                 'amount': 100,
                 'filled': 0,
-                'sid': 133,
                 'stop': 3.5
             },
             'event': {
@@ -693,7 +692,6 @@ class OrdersStopTestCase(WithSimParams,
                 'price': 4.0,
                 'high': 3.15,
                 'low': 2.85,
-                'sid': 133,
                 'close': 4.0,
                 'open': 3.5
             },
@@ -702,7 +700,6 @@ class OrdersStopTestCase(WithSimParams,
                     'price': 4.00025,
                     'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
                     'amount': 50,
-                    'sid': 133,
                 }
             }
         },
@@ -711,7 +708,6 @@ class OrdersStopTestCase(WithSimParams,
                 'dt': pd.Timestamp('2006-01-05 14:30', tz='UTC'),
                 'amount': 100,
                 'filled': 0,
-                'sid': 133,
                 'stop': 3.6
             },
             'event': {
@@ -720,7 +716,6 @@ class OrdersStopTestCase(WithSimParams,
                 'price': 3.5,
                 'high': 3.15,
                 'low': 2.85,
-                'sid': 133,
                 'close': 3.5,
                 'open': 4.0
             },
@@ -733,7 +728,6 @@ class OrdersStopTestCase(WithSimParams,
                 'dt': pd.Timestamp('2006-01-05 14:30', tz='UTC'),
                 'amount': -100,
                 'filled': 0,
-                'sid': 133,
                 'stop': 3.4
             },
             'event': {
@@ -742,7 +736,6 @@ class OrdersStopTestCase(WithSimParams,
                 'price': 3.5,
                 'high': 3.15,
                 'low': 2.85,
-                'sid': 133,
                 'close': 3.5,
                 'open': 3.0
             },
@@ -755,7 +748,6 @@ class OrdersStopTestCase(WithSimParams,
                 'dt': pd.Timestamp('2006-01-05 14:30', tz='UTC'),
                 'amount': -100,
                 'filled': 0,
-                'sid': 133,
                 'stop': 3.5
             },
             'event': {
@@ -764,7 +756,6 @@ class OrdersStopTestCase(WithSimParams,
                 'price': 3.0,
                 'high': 3.15,
                 'low': 2.85,
-                'sid': 133,
                 'close': 3.0,
                 'open': 3.0
             },
@@ -773,7 +764,6 @@ class OrdersStopTestCase(WithSimParams,
                     'price': 2.9998125,
                     'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
                     'amount': -50,
-                    'sid': 133,
                 }
             }
         },
@@ -785,8 +775,12 @@ class OrdersStopTestCase(WithSimParams,
     ])
     def test_orders_stop(self, name, order_data, event_data, expected):
         data = order_data
-        data['sid'] = self.ASSET133
+        data['asset'] = self.ASSET133
         order = Order(**data)
+
+        if expected['transaction']:
+            expected['transaction']['asset'] = self.ASSET133
+        event_data['asset'] = self.ASSET133
 
         assets = (
             (133, pd.DataFrame(

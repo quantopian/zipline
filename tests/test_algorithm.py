@@ -3802,7 +3802,7 @@ class TestOrderCancelation(WithDataPortal,
                     np.copysign(389, direction),
                     daily_positions[0]["amount"],
                 )
-                self.assertEqual(1, results.positions[0][0]["sid"].sid)
+                self.assertEqual(1, results.positions[0][0]["sid"])
 
             # should be an order on day1, but no more orders afterwards
             np.testing.assert_array_equal([1, 0, 0],
@@ -4067,7 +4067,6 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
         resources = self.make_data(auto_close_delta, 'daily', capital_base)
 
         assets = resources.assets
-        sids = [asset.sid for asset in assets]
         final_prices = resources.final_prices
 
         # Prices at which we expect our orders to be filled.
@@ -4174,14 +4173,14 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
                 self.test_days[1]
             )[1]
 
-        for sid, txn in zip(sids, initial_fills):
+        for asset, txn in zip(assets, initial_fills):
             self.assertDictContainsSubset(
                 {
                     'amount': order_size,
                     'commission': None,
                     'dt': last_minute_of_session,
-                    'price': initial_fill_prices[sid],
-                    'sid': sid,
+                    'price': initial_fill_prices[asset],
+                    'sid': asset,
                 },
                 txn,
             )
@@ -4203,7 +4202,7 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
                 'commission': 0.0,
                 'dt': assets[0].auto_close_date,
                 'price': fp0,
-                'sid': sids[0],
+                'sid': assets[0],
                 'order_id': None,  # Auto-close txns emit Nones for order_id.
             },
         )
@@ -4218,7 +4217,7 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
                 'commission': 0.0,
                 'dt': assets[1].auto_close_date,
                 'price': fp1,
-                'sid': sids[1],
+                'sid': assets[1],
                 'order_id': None,  # Auto-close txns emit Nones for order_id.
             },
         )
@@ -4313,7 +4312,6 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
 
         env = resources.env
         assets = resources.assets
-        sids = [a.sid for a in assets]
         final_prices = resources.final_prices
         backtest_minutes = resources.trade_data_by_sid[0].index.tolist()
 
@@ -4390,14 +4388,14 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
         # the backtest, which is still on the first day in minute mode.
         initial_fills = transactions.iloc[0]
         self.assertEqual(len(initial_fills), len(assets))
-        for sid, txn in zip(sids, initial_fills):
+        for asset, txn in zip(assets, initial_fills):
             self.assertDictContainsSubset(
                 {
                     'amount': order_size,
                     'commission': None,
                     'dt': backtest_minutes[1],
-                    'price': initial_fill_prices[sid],
-                    'sid': sid,
+                    'price': initial_fill_prices[asset],
+                    'sid': asset,
                 },
                 txn,
             )
@@ -4419,7 +4417,7 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
                 'commission': 0.0,
                 'dt': assets[0].auto_close_date,
                 'price': fp0,
-                'sid': sids[0],
+                'sid': assets[0],
                 'order_id': None,  # Auto-close txns emit Nones for order_id.
             },
         )
@@ -4434,7 +4432,7 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
                 'commission': 0.0,
                 'dt': assets[1].auto_close_date,
                 'price': fp1,
-                'sid': sids[1],
+                'sid': assets[1],
                 'order_id': None,  # Auto-close txns emit Nones for order_id.
             },
         )
