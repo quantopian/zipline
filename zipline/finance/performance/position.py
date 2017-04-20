@@ -173,7 +173,11 @@ class Position(object):
             return
 
         prev_cost = self.cost_basis * self.amount
-        new_cost = prev_cost + cost
+        if isinstance(asset, Future):
+            cost_to_use = cost / asset.multiplier
+        else:
+            cost_to_use = cost
+        new_cost = prev_cost + cost_to_use
         self.cost_basis = new_cost / self.amount
 
     def __repr__(self):
