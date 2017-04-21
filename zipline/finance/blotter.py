@@ -34,7 +34,7 @@ warning_logger = Logger('AlgoWarning')
 
 
 class Blotter(object):
-    def __init__(self, data_frequency, asset_finder, equity_slippage=None,
+    def __init__(self, data_frequency, equity_slippage=None,
                  future_slippage=None, equity_commission=None,
                  future_commission=None, cancel_policy=None):
         # these orders are aggregated by asset
@@ -42,8 +42,6 @@ class Blotter(object):
 
         # keep a dict of orders by their own id
         self.orders = {}
-
-        self.asset_finder = asset_finder
 
         # holding orders that have come in since the last event.
         self.new_orders = []

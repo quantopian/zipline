@@ -275,8 +275,7 @@ class FinanceTestCase(WithLogger,
             else:
                 slippage_func = None
 
-            blotter = Blotter(sim_params.data_frequency, self.env.asset_finder,
-                              slippage_func)
+            blotter = Blotter(sim_params.data_frequency, slippage_func)
 
             start_date = sim_params.first_open
 
@@ -366,22 +365,19 @@ class FinanceTestCase(WithLogger,
             )
 
     def test_blotter_processes_splits(self):
-        blotter = Blotter('daily', self.env.asset_finder,
-                          equity_slippage=FixedSlippage())
+        blotter = Blotter('daily',  equity_slippage=FixedSlippage())
 
         # set up two open limit orders with very low limit prices,
         # one for sid 1 and one for sid 2
-        blotter.order(
-            blotter.asset_finder.retrieve_asset(1), 100, LimitOrder(10))
-        blotter.order(
-            blotter.asset_finder.retrieve_asset(2), 100, LimitOrder(10))
+        blotter.order(self.asset_finder.retrieve_asset(1), 100, LimitOrder(10))
+        blotter.order(self.asset_finder.retrieve_asset(2), 100, LimitOrder(10))
 
         # send in a split for sid 2
         blotter.process_splits([(2, 0.3333)])
 
         for sid in [1, 2]:
             order_lists = \
-                blotter.open_orders[blotter.asset_finder.retrieve_asset(sid)]
+                blotter.open_orders[self.asset_finder.retrieve_asset(sid)]
             self.assertIsNotNone(order_lists)
             self.assertEqual(1, len(order_lists))
 
