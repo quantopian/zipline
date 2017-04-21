@@ -1121,24 +1121,24 @@ class DataPortal(object):
 
             self._asset_end_dates[sid] = asset.end_date
 
-    def get_splits(self, sids, dt):
+    def get_splits(self, assets, dt):
         """
         Returns any splits for the given sids and the given dt.
 
         Parameters
         ----------
-        sids : container
-            Sids for which we want splits.
+        assets : container
+            Assets for which we want splits.
         dt : pd.Timestamp
             The date for which we are checking for splits. Note: this is
             expected to be midnight UTC.
 
         Returns
         -------
-        splits : list[(int, float)]
-            List of splits, where each split is a (sid, ratio) tuple.
+        splits : list[(asset, float)]
+            List of splits, where each split is a (asset, ratio) tuple.
         """
-        if self._adjustment_reader is None or not sids:
+        if self._adjustment_reader is None or not assets:
             return {}
 
         # convert dt to # of seconds since epoch, because that's what we use
@@ -1149,7 +1149,9 @@ class DataPortal(object):
             "SELECT sid, ratio FROM SPLITS WHERE effective_date = ?",
             (seconds,)).fetchall()
 
-        splits = [split for split in splits if split[0] in sids]
+        splits = [split for split in splits if split[0] in assets]
+        splits = [(self.asset_finder.retrieve_asset(split[0]), split[1])
+                  for split in splits]
 
         return splits
 
