@@ -89,29 +89,12 @@ class Blotter(object):
         self.current_dt = dt
 
     def order(self, sid, amount, style, order_id=None):
-        """Place an order.
 
-        Parameters
-        ----------
-        asset : zipline.assets.Asset
-            The asset that this order is for.
-        amount : int
-            The amount of shares to order. If ``amount`` is positive, this is
-            the number of shares to buy or cover. If ``amount`` is negative,
-            this is the number of shares to sell or short.
-        style : zipline.finance.execution.ExecutionStyle
-            The execution style for the order.
-        order_id : str, optional
-            The unique identifier for this order.
+        # something could be done with amount to further divide
+        # between buy by share count OR buy shares up to a dollar amount
+        # numeric == share count  AND  "$dollar.cents" == cost amount
 
-        Returns
-        -------
-        order_id : str or None
-            The unique identifier for this order, or None if no order was
-            placed.
-
-        Notes
-        -----
+        """
         amount > 0 :: Buy/Cover
         amount < 0 :: Sell/Short
         Market order:    order(sid, amount)
@@ -120,13 +103,9 @@ class Blotter(object):
         StopLimit order: order(sid, amount, style=StopLimitOrder(limit_price,
                                stop_price))
         """
-        # something could be done with amount to further divide
-        # between buy by share count OR buy shares up to a dollar amount
-        # numeric == share count  AND  "$dollar.cents" == cost amount
-
         if amount == 0:
             # Don't bother placing orders for 0 shares.
-            return None
+            return
         elif amount > self.max_shares:
             # Arbitrary limit of 100 billion (US) shares will never be
             # exceeded except by a buggy algorithm.
@@ -149,47 +128,25 @@ class Blotter(object):
 
         return order.id
 
-    def batch_order(self, order_arg_lists):
-        """Place a batch of orders.
-
-        Parameters
-        ----------
-        order_arg_lists : iterable[tuple]
-            Tuples of args that `order` expects.
-
-        Returns
-        -------
-        order_ids : list[str or None]
-            The unique identifier (or None) for each of the orders placed
-            (or not placed).
-
-        Notes
-        -----
-        This is required for `Blotter` subclasses to be able to place a batch
-        of orders, instead of being passed the order requests one at a time.
-        """
-        return [self.order(*order_args) for order_args in order_arg_lists]
 
     def cancel(self, order_id, relay_status=True):
         if order_id not in self.orders:
-            return
-
+                return
         cur_order = self.orders[order_id]
+        #        if cur_order.open:
+        order_list = self.open_orders[cur_order.sid]
+        if cur_order in order_list:
+            order_list.remove(cur_order)
+            
+        if cur_order in self.new_orders:
+            self.new_orders.remove(cur_order)
+        cur_order.cancel()
+        cur_order.dt = self.current_dt
 
-        if cur_order.open:
-            order_list = self.open_orders[cur_order.sid]
-            if cur_order in order_list:
-                order_list.remove(cur_order)
-
-            if cur_order in self.new_orders:
-                self.new_orders.remove(cur_order)
-            cur_order.cancel()
-            cur_order.dt = self.current_dt
-
-            if relay_status:
-                # we want this order's new status to be relayed out
-                # along with newly placed orders.
-                self.new_orders.append(cur_order)
+        if relay_status:
+            # we want this order's new status to be relayed out
+            # along with newly placed orders.
+            self.new_orders.append(cur_order)
 
     def cancel_all_orders_for_asset(self, asset, warn=False,
                                     relay_status=True):
@@ -198,7 +155,7 @@ class Blotter(object):
         """
         # (sadly) open_orders is a defaultdict, so this will always succeed.
         orders = self.open_orders[asset]
-
+        #print("before cancel in blotter, orders %s"%(str(orders)))
         # We're making a copy here because `cancel` mutates the list of open
         # orders in place.  The right thing to do here would be to make
         # self.open_orders no longer a defaultdict.  If we do that, then we
@@ -246,6 +203,8 @@ class Blotter(object):
                         )
                     )
 
+        # print("not orders bool in blotter: %s"%(not orders))
+        #print("orders, before assert in blotter: %s"%(orders))
         assert not orders
         del self.open_orders[asset]
 
