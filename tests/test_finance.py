@@ -369,11 +369,16 @@ class FinanceTestCase(WithLogger,
 
         # set up two open limit orders with very low limit prices,
         # one for sid 1 and one for sid 2
-        blotter.order(self.asset_finder.retrieve_asset(1), 100, LimitOrder(10))
-        blotter.order(self.asset_finder.retrieve_asset(2), 100, LimitOrder(10))
+        asset1 = self.asset_finder.retrieve_asset(1)
+        asset2 = self.asset_finder.retrieve_asset(2)
+        asset133 = self.asset_finder.retrieve_asset(133)
 
-        # send in a split for sid 2
-        blotter.process_splits([(2, 0.3333)])
+        blotter.order(asset1, 100, LimitOrder(10))
+        blotter.order(asset2, 100, LimitOrder(10))
+
+        # send in splits for assets 133 and 2.  We have no open orders for
+        # asset 133 so it should be ignored.
+        blotter.process_splits([(asset133, 0.5), (asset2, 0.3333)])
 
         for sid in [1, 2]:
             order_lists = \
@@ -381,19 +386,19 @@ class FinanceTestCase(WithLogger,
             self.assertIsNotNone(order_lists)
             self.assertEqual(1, len(order_lists))
 
-        aapl_order = blotter.open_orders[1][0]
-        fls_order = blotter.open_orders[2][0]
+        asset1_order = blotter.open_orders[1][0]
+        asset2_order = blotter.open_orders[2][0]
 
-        # make sure the aapl order didn't change
-        self.assertEqual(100, aapl_order.amount)
-        self.assertEqual(10, aapl_order.limit)
-        self.assertEqual(1, aapl_order.asset)
+        # make sure the asset1 order didn't change
+        self.assertEqual(100, asset1_order.amount)
+        self.assertEqual(10, asset1_order.limit)
+        self.assertEqual(1, asset1_order.asset)
 
-        # make sure the fls order did change
+        # make sure the asset2 order did change
         # to 300 shares at 3.33
-        self.assertEqual(300, fls_order.amount)
-        self.assertEqual(3.33, fls_order.limit)
-        self.assertEqual(2, fls_order.asset)
+        self.assertEqual(300, asset2_order.amount)
+        self.assertEqual(3.33, asset2_order.limit)
+        self.assertEqual(2, asset2_order.asset)
 
 
 class TradingEnvironmentTestCase(WithLogger,

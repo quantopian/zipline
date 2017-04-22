@@ -311,7 +311,7 @@ class Blotter(object):
         """
         for asset, ratio in splits:
             if asset not in self.open_orders:
-                return
+                continue
 
             orders_to_modify = self.open_orders[asset]
             for order in orders_to_modify:
