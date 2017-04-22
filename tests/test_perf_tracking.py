@@ -276,6 +276,7 @@ class TestSplitPerformance(WithSimParams, WithTmpDir, ZiplineTestCase):
     def init_class_fixtures(cls):
         super(TestSplitPerformance, cls).init_class_fixtures()
         cls.asset1 = cls.env.asset_finder.retrieve_asset(1)
+        cls.asset2 = cls.env.asset_finder.retrieve_asset(2)
 
     def test_multiple_splits(self):
         # if multiple positions all have splits at the same time, verify that
@@ -284,17 +285,14 @@ class TestSplitPerformance(WithSimParams, WithTmpDir, ZiplineTestCase):
                                                self.trading_calendar,
                                                self.env)
 
-        asset1 = self.asset_finder.retrieve_asset(1)
-        asset2 = self.asset_finder.retrieve_asset(2)
-
         perf_tracker.position_tracker.positions[1] = \
-            Position(asset1, amount=10, cost_basis=10, last_sale_price=11)
+            Position(self.asset1, amount=10, cost_basis=10, last_sale_price=11)
 
         perf_tracker.position_tracker.positions[2] = \
-            Position(asset2, amount=10, cost_basis=10, last_sale_price=11)
+            Position(self.asset2, amount=10, cost_basis=10, last_sale_price=11)
 
         leftover_cash = perf_tracker.position_tracker.handle_splits(
-            [(1, 0.333), (2, 0.333)]
+            [(self.asset1, 0.333), (self.asset2, 0.333)]
         )
 
         # we used to have 10 shares that each cost us $10, total $100
@@ -329,7 +327,7 @@ class TestSplitPerformance(WithSimParams, WithTmpDir, ZiplineTestCase):
         # set up a split with ratio 3 occurring at the start of the second
         # day.
         splits = {
-            events[1].dt: [(1, 3)]
+            events[1].dt: [(self.asset1, 3)]
         }
 
         results = calculate_results(self.sim_params,
@@ -1106,8 +1104,7 @@ class TestPositionPerformance(WithInstanceTmpDir, WithTradingCalendars,
         txn1 = create_txn(self.asset1, trades_1[0].dt, 10.0, 100)
         txn2 = create_txn(self.asset2, trades_1[0].dt, 10.0, -100)
 
-        pt = perf.PositionTracker(self.env.asset_finder,
-                                  self.sim_params.data_frequency)
+        pt = perf.PositionTracker(self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                     self.sim_params.data_frequency)
         pp.position_tracker = pt
@@ -1199,8 +1196,7 @@ class TestPositionPerformance(WithInstanceTmpDir, WithTradingCalendars,
             self.sim_params,
             {1: trades})
         txn = create_txn(self.asset1, trades[1].dt, 10.0, 1000)
-        pt = perf.PositionTracker(self.env.asset_finder,
-                                  self.sim_params.data_frequency)
+        pt = perf.PositionTracker(self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                     self.sim_params.data_frequency)
         pp.position_tracker = pt
@@ -1291,8 +1287,7 @@ class TestPositionPerformance(WithInstanceTmpDir, WithTradingCalendars,
             self.sim_params,
             {1: trades})
         txn = create_txn(self.asset1, trades[1].dt, 10.0, 100)
-        pt = perf.PositionTracker(self.env.asset_finder,
-                                  self.sim_params.data_frequency)
+        pt = perf.PositionTracker(self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                     self.sim_params.data_frequency,
                                     period_open=self.sim_params.start_session,
@@ -1410,8 +1405,7 @@ single short-sale transaction"""
             {1: trades})
 
         txn = create_txn(self.asset1, trades[1].dt, 10.0, -100)
-        pt = perf.PositionTracker(self.env.asset_finder,
-                                  self.sim_params.data_frequency)
+        pt = perf.PositionTracker(self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(
             1000.0, self.env.asset_finder,
             self.sim_params.data_frequency)
@@ -1530,8 +1524,7 @@ single short-sale transaction"""
         )
 
         # now run a performance period encompassing the entire trade sample.
-        ptTotal = perf.PositionTracker(self.env.asset_finder,
-                                       self.sim_params.data_frequency)
+        ptTotal = perf.PositionTracker(self.sim_params.data_frequency)
         ppTotal = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                          self.sim_params.data_frequency)
         ppTotal.position_tracker = pt
@@ -1638,8 +1631,7 @@ trade after cover"""
 
         short_txn = create_txn(self.asset1, trades[1].dt, 10.0, -100)
         cover_txn = create_txn(self.asset1, trades[6].dt, 7.0, 100)
-        pt = perf.PositionTracker(self.env.asset_finder,
-                                  self.sim_params.data_frequency)
+        pt = perf.PositionTracker(self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                     self.sim_params.data_frequency)
         pp.position_tracker = pt
@@ -1725,8 +1717,7 @@ shares in position"
             self.sim_params,
             {1: trades})
 
-        pt = perf.PositionTracker(self.env.asset_finder,
-                                  self.sim_params.data_frequency)
+        pt = perf.PositionTracker(self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(
             1000.0,
             self.env.asset_finder,
@@ -1792,8 +1783,7 @@ shares in position"
 
         self.assertEqual(pp.pnl, -800, "this period goes from +400 to -400")
 
-        pt3 = perf.PositionTracker(self.env.asset_finder,
-                                   self.sim_params.data_frequency)
+        pt3 = perf.PositionTracker(self.sim_params.data_frequency)
         pp3 = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                      self.sim_params.data_frequency)
         pp3.position_tracker = pt3
@@ -1845,8 +1835,7 @@ shares in position"
 
         transactions = factory.create_txn_history(*history_args)
 
-        pt = perf.PositionTracker(self.env.asset_finder,
-                                  self.sim_params.data_frequency)
+        pt = perf.PositionTracker(self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                     self.sim_params.data_frequency)
         pp.position_tracker = pt
@@ -1885,8 +1874,7 @@ shares in position"
             self.sim_params,
             {1: trades})
         txn = create_txn(self.asset1, trades[0].dt, 10.0, 100)
-        pt = perf.PositionTracker(self.env.asset_finder,
-                                  self.sim_params.data_frequency)
+        pt = perf.PositionTracker(self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                     self.sim_params.data_frequency,
                                     period_open=self.sim_params.start_session,
@@ -1929,8 +1917,7 @@ shares in position"
             self.sim_params,
             {1: trades})
         txn = create_txn(self.asset1, trades[0].dt, 10.0, 100)
-        pt = perf.PositionTracker(self.env.asset_finder,
-                                  self.sim_params.data_frequency)
+        pt = perf.PositionTracker(self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                     self.sim_params.data_frequency,
                                     period_open=self.sim_params.start_session,
@@ -2003,8 +1990,7 @@ class TestPositionTracker(WithTradingEnvironment,
         """
         sim_params = factory.create_simulation_parameters(num_days=4)
 
-        pt = perf.PositionTracker(self.env.asset_finder,
-                                  sim_params.data_frequency)
+        pt = perf.PositionTracker(sim_params.data_frequency)
         pos_stats = pt.stats()
 
         stats = [
@@ -2025,17 +2011,27 @@ class TestPositionTracker(WithTradingEnvironment,
             self.assertNotIsInstance(val, (bool, np.bool_))
 
     def test_position_values_and_exposures(self):
-        pt = perf.PositionTracker(self.env.asset_finder, None)
+        pt = perf.PositionTracker(None)
         dt = pd.Timestamp("1984/03/06 3:00PM")
-        pos1 = perf.Position(self.EQUITY1, amount=np.float64(10.0),
-                             last_sale_date=dt, last_sale_price=10)
-        pos2 = perf.Position(self.EQUITY2, amount=np.float64(-20.0),
-                             last_sale_date=dt, last_sale_price=10)
-        pos3 = perf.Position(self.FUTURE3, amount=np.float64(30.0),
-                             last_sale_date=dt, last_sale_price=10)
-        pos4 = perf.Position(self.FUTURE4, amount=np.float64(-40.0),
-                             last_sale_date=dt, last_sale_price=10)
-        pt.update_positions({1: pos1, 2: pos2, 3: pos3, 4: pos4})
+        pt.update_position(
+            self.EQUITY1, amount=np.float64(10.0),
+            last_sale_date=dt, last_sale_price=10
+        )
+
+        pt.update_position(
+            self.EQUITY2, amount=np.float64(-20.0),
+            last_sale_date=dt, last_sale_price=10
+        )
+
+        pt.update_position(
+            self.FUTURE3, amount=np.float64(30.0),
+            last_sale_date=dt, last_sale_price=10
+        )
+
+        pt.update_position(
+            self.FUTURE4, amount=np.float64(-40.0),
+            last_sale_date=dt, last_sale_price=10
+        )
 
         # Test long-only methods
         pos_stats = pt.stats()
@@ -2092,24 +2088,35 @@ class TestPositionTracker(WithTradingEnvironment,
         self.assertEqual(10.5, future_pos.cost_basis)
 
     def test_update_positions(self):
-        pt = perf.PositionTracker(self.env.asset_finder, None)
+        pt = perf.PositionTracker(None)
         dt = pd.Timestamp("2014/01/01 3:00PM")
-        pos1 = perf.Position(self.EQUITY1, amount=np.float64(10.0),
-                             last_sale_date=dt, last_sale_price=10)
-        pos2 = perf.Position(self.EQUITY2, amount=np.float64(-20.0),
-                             last_sale_date=dt, last_sale_price=10)
-        pos3 = perf.Position(self.FUTURE5, amount=np.float64(30.0),
-                             last_sale_date=dt, last_sale_price=100)
+        # pos1 = perf.Position(self.EQUITY1, amount=np.float64(10.0),
+        #                      last_sale_date=dt, last_sale_price=10)
+        # pos2 = perf.Position(self.EQUITY2, amount=np.float64(-20.0),
+        #                      last_sale_date=dt, last_sale_price=10)
+        # pos3 = perf.Position(self.FUTURE5, amount=np.float64(30.0),
+        #                      last_sale_date=dt, last_sale_price=100)
 
-        # Call update_positions twice. When the second call is made,
-        # self.positions will already contain data. The order of this data
-        # needs to be preserved so that it is consistent with the order of the
-        # data stored in the multipliers OrderedDict()'s. If self.positions
-        # were to be stored as a dict, then its order could change in arbitrary
-        # ways when the second update_positions call is made. Hence we also
-        # store it as an OrderedDict.
-        pt.update_positions({self.EQUITY1: pos1, self.FUTURE5: pos3})
-        pt.update_positions({self.EQUITY2: pos2})
+        pt.update_position(
+            self.EQUITY1,
+            amount=np.float64(10.0),
+            last_sale_price=10,
+            last_sale_date=dt
+        )
+
+        pt.update_position(
+            self.EQUITY2,
+            amount=np.float64(-20.0),
+            last_sale_price=10,
+            last_sale_date=dt
+        )
+
+        pt.update_position(
+            self.FUTURE5,
+            amount=np.float64(30.0),
+            last_sale_price=100,
+            last_sale_date=dt
+        )
 
         pos_stats = pt.stats()
         # Test long-only methods
@@ -2132,28 +2139,18 @@ class TestPositionTracker(WithTradingEnvironment,
         self.assertEqual(100 + 150000 - 200, pos_stats.net_exposure)
 
     def test_close_position(self):
-        pt = perf.PositionTracker(self.env.asset_finder, None)
+        pt = perf.PositionTracker(None)
         dt = pd.Timestamp('2017/01/04 3:00PM')
 
-        pos1 = perf.Position(
-            asset=self.FUTURE5,
-            amount=np.float64(30.0),
-            last_sale_date=dt,
-            last_sale_price=100,
-        )
-        pos2 = perf.Position(
-            asset=self.EQUITY1,
-            amount=np.float64(10.0),
-            last_sale_date=dt,
-            last_sale_price=10,
+        pt.update_position(
+            asset=self.FUTURE5, amount=np.float64(30.0),
+            last_sale_date=dt, last_sale_price=100
         )
 
-        # Update the positions dictionary with `future_sid` first. The order
-        # matters because it affects the multipliers dictionaries, which are
-        # OrderedDicts. If `future_sid` is not removed from the multipliers
-        # dictionaries, equities will hit the incorrect multiplier when
-        # computing `pt.stats()`.
-        pt.update_positions({self.FUTURE5: pos1, self.EQUITY1: pos2})
+        pt.update_position(
+            asset=self.EQUITY1, amount=np.float64(10.0),
+            last_sale_date=dt, last_sale_price=10
+        )
 
         txn = create_txn(self.FUTURE5, dt, 100, -30)
         pt.execute_transaction(txn)

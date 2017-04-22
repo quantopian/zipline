@@ -108,7 +108,7 @@ class BlotterTestCase(WithCreateBarData,
                            (StopLimitOrder(10, 20), 10, 20)])
     def test_blotter_order_types(self, style_obj, expected_lmt, expected_stp):
 
-        blotter = Blotter('daily', self.asset_finder)
+        blotter = Blotter('daily')
 
         blotter.order(self.asset_24, 100, style_obj)
         result = blotter.open_orders[self.asset_24][0]
@@ -117,7 +117,7 @@ class BlotterTestCase(WithCreateBarData,
         self.assertEqual(result.stop, expected_stp)
 
     def test_cancel(self):
-        blotter = Blotter('daily', self.asset_finder)
+        blotter = Blotter('daily')
 
         oid_1 = blotter.order(self.asset_24, 100, MarketOrder())
         oid_2 = blotter.order(self.asset_24, 200, MarketOrder())
@@ -261,8 +261,7 @@ class BlotterTestCase(WithCreateBarData,
         status indication. When a fill happens, the order should switch
         status to OPEN/FILLED as necessary
         """
-        blotter = Blotter(self.sim_params.data_frequency,
-                          self.asset_finder)
+        blotter = Blotter(self.sim_params.data_frequency)
         # Nothing happens on held of a non-existent order
         blotter.hold(56)
         self.assertEqual(blotter.new_orders, [])

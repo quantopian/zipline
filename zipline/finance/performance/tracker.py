@@ -98,7 +98,6 @@ class PerformanceTracker(object):
         self.emission_rate = sim_params.emission_rate
 
         self.position_tracker = PositionTracker(
-            asset_finder=env.asset_finder,
             data_frequency=self.sim_params.data_frequency
         )
 

@@ -20,11 +20,6 @@ import numpy as np
 from collections import namedtuple
 from math import isnan
 
-try:
-    # optional cython based OrderedDict
-    from cyordereddict import OrderedDict
-except ImportError:
-    from collections import OrderedDict
 from six import iteritems, itervalues
 
 from zipline.finance.performance.position import Position
@@ -32,11 +27,9 @@ from zipline.finance.transaction import Transaction
 from zipline.utils.input_validation import expect_types
 import zipline.protocol as zp
 from zipline.assets import (
-    Equity,
     Future,
     Asset
 )
-from zipline.errors import PositionTrackerMissingAssetFinder
 from . position import positiondict
 
 log = logbook.Logger('Performance')
@@ -55,18 +48,17 @@ PositionStats = namedtuple('PositionStats',
                             'net_value'])
 
 
-def calc_position_values(amounts,
-                         last_sale_prices,
-                         value_multipliers):
-    iter_amount_price_multiplier = zip(
-        amounts,
-        last_sale_prices,
-        itervalues(value_multipliers),
-    )
-    return [
-        price * amount * multiplier for
-        price, amount, multiplier in iter_amount_price_multiplier
-    ]
+def calc_position_values(positions):
+    values = []
+
+    for position in positions:
+        if isinstance(position.asset, Future):
+            # Futures don't have an inherent position value.
+            values.append(0)
+        else:
+            values.append(position.last_sale_price * position.amount)
+
+    return values
 
 
 def calc_net(values):
@@ -74,18 +66,18 @@ def calc_net(values):
     return sum(values, np.float64())
 
 
-def calc_position_exposures(amounts,
-                            last_sale_prices,
-                            exposure_multipliers):
-    iter_amount_price_multiplier = zip(
-        amounts,
-        last_sale_prices,
-        itervalues(exposure_multipliers),
-    )
-    return [
-        price * amount * multiplier for
-        price, amount, multiplier in iter_amount_price_multiplier
-    ]
+def calc_position_exposures(positions):
+    exposures = []
+
+    for position in positions:
+        exposure = position.amount * position.last_sale_price
+
+        if isinstance(position.asset, Future):
+            exposure *= position.asset.multiplier
+
+        exposures.append(exposure)
+
+    return exposures
 
 
 def calc_long_value(position_values):
@@ -122,43 +114,14 @@ def calc_gross_value(long_value, short_value):
 
 class PositionTracker(object):
 
-    def __init__(self, asset_finder, data_frequency):
-        self.asset_finder = asset_finder
-
+    def __init__(self, data_frequency):
         # asset => position object
         self.positions = positiondict()
-        # Arrays for quick calculations of positions value
-        self._position_value_multipliers = OrderedDict()
-        self._position_exposure_multipliers = OrderedDict()
         self._unpaid_dividends = {}
         self._unpaid_stock_dividends = {}
         self._positions_store = zp.Positions()
 
         self.data_frequency = data_frequency
-
-    def _update_asset(self, asset):
-        try:
-            self._position_value_multipliers[asset]
-            self._position_exposure_multipliers[asset]
-        except KeyError:
-            # Check if there is an AssetFinder
-            if self.asset_finder is None:
-                raise PositionTrackerMissingAssetFinder()
-
-            # Collect the value multipliers from applicable assets
-            asset = self.asset_finder.retrieve_asset(asset)
-            if isinstance(asset, Equity):
-                self._position_value_multipliers[asset] = 1
-                self._position_exposure_multipliers[asset] = 1
-            if isinstance(asset, Future):
-                self._position_value_multipliers[asset] = 0
-                self._position_exposure_multipliers[asset] = asset.multiplier
-
-    def update_positions(self, positions):
-        # update positions in batch
-        self.positions.update(positions)
-        for asset, pos in iteritems(positions):
-            self._update_asset(asset)
 
     @expect_types(asset=Asset)
     def update_position(self, asset, amount=None, last_sale_price=None,
@@ -171,7 +134,6 @@ class PositionTracker(object):
 
         if amount is not None:
             position.amount = amount
-            self._update_asset(asset=asset)
         if last_sale_price is not None:
             position.last_sale_price = last_sale_price
         if last_sale_date is not None:
@@ -193,11 +155,7 @@ class PositionTracker(object):
         position.update(txn)
 
         if position.amount == 0:
-            # if this position now has 0 shares, remove it from our internal
-            # bookkeeping.
             del self.positions[asset]
-            del self._position_value_multipliers[asset]
-            del self._position_exposure_multipliers[asset]
 
             try:
                 # if this position exists in our user-facing dictionary,
@@ -205,8 +163,6 @@ class PositionTracker(object):
                 del self._positions_store[asset]
             except KeyError:
                 pass
-        else:
-            self._update_asset(asset)
 
     @expect_types(asset=Asset)
     def handle_commission(self, asset, cost):
@@ -221,8 +177,7 @@ class PositionTracker(object):
         Parameters
         ----------
         splits: list
-            A list of splits.  Each split is a tuple of (sid, ratio), where
-            sid is an integer.
+            A list of splits.  Each split is a tuple of (asset, ratio).
 
         Returns
         -------
@@ -232,14 +187,12 @@ class PositionTracker(object):
         total_leftover_cash = 0
 
         for split in splits:
-            sid = split[0]
-            asset = self.asset_finder.retrieve_asset(sid)
+            asset = split[0]
             if asset in self.positions:
                 # Make the position object handle the split. It returns the
                 # leftover cash from a fractional share, if there is any.
                 position = self.positions[asset]
                 leftover_cash = position.handle_split(asset, split[1])
-                self._update_asset(split[0])
                 total_leftover_cash += leftover_cash
 
         return total_leftover_cash
@@ -316,7 +269,6 @@ class PositionTracker(object):
                     Position(payment_asset)
 
             position.amount += share_count
-            self._update_asset(payment_asset)
 
         return net_cash_payment
 
@@ -408,16 +360,9 @@ class PositionTracker(object):
             amounts.append(pos.amount)
             last_sale_prices.append(pos.last_sale_price)
 
-        position_values = calc_position_values(
-            amounts,
-            last_sale_prices,
-            self._position_value_multipliers
-        )
-
+        position_values = calc_position_values(itervalues(self.positions))
         position_exposures = calc_position_exposures(
-            amounts,
-            last_sale_prices,
-            self._position_exposure_multipliers
+            itervalues(self.positions)
         )
 
         long_value = calc_long_value(position_values)
