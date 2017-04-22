@@ -140,7 +140,6 @@ class PerformanceTracker(object):
             keep_orders=False,
             # don't serialize positions for cumulative period
             serialize_positions=False,
-            asset_finder=self.asset_finder,
             name="Cumulative"
         )
         self.cumulative_performance.position_tracker = self.position_tracker
@@ -156,7 +155,6 @@ class PerformanceTracker(object):
             keep_transactions=True,
             keep_orders=True,
             serialize_positions=True,
-            asset_finder=self.asset_finder,
             name="Daily"
         )
         self.todays_performance.position_tracker = self.position_tracker

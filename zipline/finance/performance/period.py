@@ -139,7 +139,6 @@ class PerformancePeriod(object):
     def __init__(
             self,
             starting_cash,
-            asset_finder,
             data_frequency,
             period_open=None,
             period_close=None,
@@ -148,7 +147,6 @@ class PerformancePeriod(object):
             serialize_positions=True,
             name=None):
 
-        self.asset_finder = asset_finder
         self.data_frequency = data_frequency
 
         # Start and end of the entire period
@@ -362,7 +360,7 @@ class PerformancePeriod(object):
     def handle_execution(self, txn):
         self.cash_flow += self._calculate_execution_cash_flow(txn)
 
-        asset = self.asset_finder.retrieve_asset(txn.asset)
+        asset = txn.asset
         if isinstance(asset, Future):
             try:
                 old_price = self._payout_last_sale_prices[asset]
@@ -394,7 +392,7 @@ class PerformancePeriod(object):
         try:
             multiplier = self._execution_cash_flow_multipliers[txn.asset]
         except KeyError:
-            asset = self.asset_finder.retrieve_asset(txn.asset)
+            asset = txn.asset
             # Futures experience no cash flow on transactions
             if isinstance(asset, Future):
                 multiplier = 0
