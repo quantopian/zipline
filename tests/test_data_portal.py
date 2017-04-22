@@ -401,6 +401,10 @@ class DataPortalTestBase(WithDataPortal,
                          "Asset 10000 had a trade on fourth minute, so should "
                          "return that as the last trade on the fifth.")
 
+    def test_get_empty_splits(self):
+        splits = self.data_portal.get_splits([], self.trading_days[2])
+        self.assertEqual([], splits)
+
 
 class TestDataPortal(DataPortalTestBase):
     DATA_PORTAL_LAST_AVAILABLE_SESSION = None

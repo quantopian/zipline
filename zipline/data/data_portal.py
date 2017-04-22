@@ -1139,7 +1139,7 @@ class DataPortal(object):
             List of splits, where each split is a (asset, ratio) tuple.
         """
         if self._adjustment_reader is None or not assets:
-            return {}
+            return []
 
         # convert dt to # of seconds since epoch, because that's what we use
         # in the adjustments db
