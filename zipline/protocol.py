@@ -235,8 +235,10 @@ class Position(object):
         self.last_sale_price = 0.0
         self.last_sale_date = None
 
+    @property
+    def sid(self):
         # for backwards compatibility
-        self.sid = asset
+        return self.asset
 
     def __repr__(self):
         return "Position({0})".format(self.__dict__)

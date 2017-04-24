@@ -183,10 +183,6 @@ class PerformancePeriod(object):
         self._account_store = zp.Account()
         self.serialize_positions = serialize_positions
 
-        # This dict contains the known cash flow multipliers for assets and is
-        # keyed on asset
-        self._execution_cash_flow_multipliers = {}
-
     _position_tracker = None
 
     def initialize(self, starting_cash, starting_value, starting_exposure):
@@ -383,25 +379,15 @@ class PerformancePeriod(object):
             except KeyError:
                 self.processed_transactions[txn.dt] = [txn]
 
-    def _calculate_execution_cash_flow(self, txn):
+    @staticmethod
+    def _calculate_execution_cash_flow(txn):
         """
         Calculates the cash flow from executing the given transaction
         """
-        # Check if the multiplier is cached. If it is not, look up the asset
-        # and cache the multiplier.
-        try:
-            multiplier = self._execution_cash_flow_multipliers[txn.asset]
-        except KeyError:
-            asset = txn.asset
-            # Futures experience no cash flow on transactions
-            if isinstance(asset, Future):
-                multiplier = 0
-            else:
-                multiplier = 1
-            self._execution_cash_flow_multipliers[txn.asset] = multiplier
+        if txn.asset is Future:
+            return 0.0
 
-        # Calculate and return the cash flow given the multiplier
-        return -1 * txn.price * txn.amount * multiplier
+        return -1 * txn.price * txn.amount
 
     # backwards compat. TODO: remove?
     @property

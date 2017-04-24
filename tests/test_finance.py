@@ -380,9 +380,8 @@ class FinanceTestCase(WithLogger,
         # asset 133 so it should be ignored.
         blotter.process_splits([(asset133, 0.5), (asset2, 0.3333)])
 
-        for sid in [1, 2]:
-            order_lists = \
-                blotter.open_orders[self.asset_finder.retrieve_asset(sid)]
+        for asset in [asset1, asset2]:
+            order_lists = blotter.open_orders[asset]
             self.assertIsNotNone(order_lists)
             self.assertEqual(1, len(order_lists))
 

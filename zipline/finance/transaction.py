@@ -39,6 +39,8 @@ class Transaction(object):
         py = copy(self.__dict__)
         del py['type']
         del py['asset']
+
+        # Adding 'sid' for backwards compatibility with downstrean consumers.
         py['sid'] = self.asset
 
         return py

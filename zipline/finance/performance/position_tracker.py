@@ -54,7 +54,7 @@ def calc_position_values(positions):
     for position in positions:
         if isinstance(position.asset, Future):
             # Futures don't have an inherent position value.
-            values.append(0)
+            values.append(0.0)
         else:
             values.append(position.last_sale_price * position.amount)
 
@@ -186,13 +186,12 @@ class PositionTracker(object):
         """
         total_leftover_cash = 0
 
-        for split in splits:
-            asset = split[0]
+        for asset, ratio in splits:
             if asset in self.positions:
                 # Make the position object handle the split. It returns the
                 # leftover cash from a fractional share, if there is any.
                 position = self.positions[asset]
-                leftover_cash = position.handle_split(asset, split[1])
+                leftover_cash = position.handle_split(asset, ratio)
                 total_leftover_cash += leftover_cash
 
         return total_leftover_cash

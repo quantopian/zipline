@@ -87,8 +87,10 @@ class Order(object):
         if self.broker_order_id is None:
             del dct['broker_order_id']
 
+        # Adding 'sid' for backwards compatibility with downstream consumers.
         dct['sid'] = self.asset
         dct['status'] = self.status
+
         return dct
 
     @property
