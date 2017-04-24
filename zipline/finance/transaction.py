@@ -18,14 +18,13 @@ from copy import copy
 
 from zipline.assets import Asset
 from zipline.protocol import DATASOURCE_TYPE
+from zipline.utils.input_validation import expect_types
 
 
 class Transaction(object):
-
-    def __init__(self, sid, amount, dt, price, order_id, commission=None):
-        assert isinstance(sid, Asset)
-
-        self.sid = sid
+    @expect_types(asset=Asset)
+    def __init__(self, asset, amount, dt, price, order_id, commission=None):
+        self.asset = asset
         self.amount = amount
         self.dt = dt
         self.price = price
@@ -39,6 +38,11 @@ class Transaction(object):
     def to_dict(self):
         py = copy(self.__dict__)
         del py['type']
+        del py['asset']
+
+        # Adding 'sid' for backwards compatibility with downstrean consumers.
+        py['sid'] = self.asset
+
         return py
 
 
@@ -53,7 +57,7 @@ def create_transaction(order, dt, price, amount):
         raise Exception("Transaction magnitude must be at least 1.")
 
     transaction = Transaction(
-        sid=order.sid,
+        asset=order.asset,
         amount=int(amount),
         dt=dt,
         price=price,

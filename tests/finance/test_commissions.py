@@ -21,16 +21,16 @@ class CommissionUnitTests(WithAssetFinder, ZiplineTestCase):
         asset1 = self.asset_finder.retrieve_asset(1)
 
         # one order
-        order = Order(dt=None, sid=asset1, amount=500)
+        order = Order(dt=None, asset=asset1, amount=500)
 
         # three fills
-        txn1 = Transaction(sid=asset1, amount=230, dt=None,
+        txn1 = Transaction(asset=asset1, amount=230, dt=None,
                            price=100, order_id=order.id)
 
-        txn2 = Transaction(sid=asset1, amount=170, dt=None,
+        txn2 = Transaction(asset=asset1, amount=170, dt=None,
                            price=101, order_id=order.id)
 
-        txn3 = Transaction(sid=asset1, amount=100, dt=None,
+        txn3 = Transaction(asset=asset1, amount=100, dt=None,
                            price=102, order_id=order.id)
 
         return order, [txn1, txn2, txn3]

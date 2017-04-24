@@ -322,7 +322,6 @@ class TradingAlgorithm(object):
         if not self.blotter:
             self.blotter = Blotter(
                 data_frequency=self.data_frequency,
-                asset_finder=self.asset_finder,
                 # Default to NeverCancel in zipline
                 cancel_policy=self.cancel_policy,
             )
