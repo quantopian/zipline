@@ -1186,6 +1186,37 @@ class WithConstantEquityMinuteBarData(WithEquityMinuteBarData):
         return ((sid, frame) for sid in sids)
 
 
+class WithConstantFutureMinuteBarData(WithFutureMinuteBarData):
+
+    FUTURE_MINUTE_CONSTANT_LOW = 3.0
+    FUTURE_MINUTE_CONSTANT_OPEN = 4.0
+    FUTURE_MINUTE_CONSTANT_CLOSE = 5.0
+    FUTURE_MINUTE_CONSTANT_HIGH = 6.0
+    FUTURE_MINUTE_CONSTANT_VOLUME = 100.0
+
+    @classmethod
+    def make_future_minute_bar_data(cls):
+        trading_calendar = cls.trading_calendars[Future]
+
+        sids = cls.asset_finder.futures_sids
+        minutes = trading_calendar.minutes_for_sessions_in_range(
+            cls.future_minute_bar_days[0],
+            cls.future_minute_bar_days[-1],
+        )
+        frame = pd.DataFrame(
+            {
+                'open': cls.FUTURE_MINUTE_CONSTANT_OPEN,
+                'high': cls.FUTURE_MINUTE_CONSTANT_HIGH,
+                'low': cls.FUTURE_MINUTE_CONSTANT_LOW,
+                'close': cls.FUTURE_MINUTE_CONSTANT_CLOSE,
+                'volume': cls.FUTURE_MINUTE_CONSTANT_VOLUME,
+            },
+            index=minutes,
+        )
+
+        return ((sid, frame) for sid in sids)
+
+
 class WithAdjustmentReader(WithBcolzEquityDailyBarReader):
     """
     ZiplineTestCase mixin providing cls.adjustment_reader as a class level
