@@ -384,7 +384,7 @@ class PerformancePeriod(object):
         """
         Calculates the cash flow from executing the given transaction
         """
-        if txn.asset is Future:
+        if isinstance(txn.asset, Future):
             return 0.0
 
         return -1 * txn.price * txn.amount
