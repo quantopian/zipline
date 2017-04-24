@@ -748,6 +748,16 @@ class ScheduleFunctionWithoutCalendar(ZiplineError):
     )
 
 
+class ScheduleFunctionInvalidCalendar(ZiplineError):
+    """
+    Raised when schedule_function is called with an invalid calendar argument.
+    """
+    msg = (
+        "Invalid calendar '{given_calendar}' passed to schedule_function. "
+        "Allowed options are {allowed_calendars}."
+    )
+
+
 class UnsupportedPipelineOutput(ZiplineError):
     """
     Raised when a 1D term is added as a column to a pipeline.
