@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import abc
-from abc import abstractmethod, abstractproperty
+from abc import abstractmethod
 from collections import defaultdict
 
 from six import with_metaclass
@@ -39,12 +39,8 @@ class CommissionModel(with_metaclass(abc.ABCMeta)):
     on each transaction.
     """
 
-    @abstractproperty
-    def allowed_asset_types(self):
-        """
-        Return a tuple of asset types that are compatible with the given model.
-        """
-        raise NotImplementedError('allowed_asset_types')
+    # Asset types that are compatible with the given model.
+    allowed_asset_types = (Equity, Future)
 
     @abstractmethod
     def calculate(self, order, transaction):

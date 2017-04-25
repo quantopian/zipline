@@ -80,19 +80,16 @@ def fill_price_worse_than_limit_price(fill_price, order):
 class SlippageModel(with_metaclass(ABCMeta)):
     """Abstract interface for defining a slippage model.
     """
+
+    # Asset types that are compatible with the given model.
+    allowed_asset_types = (Equity, Future)
+
     def __init__(self):
         self._volume_for_bar = 0
 
     @property
     def volume_for_bar(self):
         return self._volume_for_bar
-
-    @abstractproperty
-    def allowed_asset_types(self):
-        """
-        Return a tuple of asset types that are compatible with the given model.
-        """
-        raise NotImplementedError('allowed_asset_types')
 
     @abstractproperty
     def process_order(self, data, order):
