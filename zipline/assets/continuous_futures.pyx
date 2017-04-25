@@ -47,10 +47,23 @@ def delivery_predicate(codes, contract):
     delivery_code = contract.symbol[-3]
     return delivery_code in codes
 
+march_cycle_delivery_predicate = partial(delivery_predicate,
+                                         set(['H', 'M', 'U', 'Z']))
+
 CHAIN_PREDICATES = {
-    'ME': partial(delivery_predicate, set(['H', 'M', 'U', 'Z'])),
+    'ME': march_cycle_delivery_predicate,
     'PL': partial(delivery_predicate, set(['F', 'J', 'N', 'V'])),
-    'PA': partial(delivery_predicate, set(['H', 'M', 'U', 'Z']))
+    'PA': march_cycle_delivery_predicate,
+
+    # The majority of trading in these currency futures is done on a
+    # March quarterly cycle (Mar, Jun, Sep, Dec) but contracts are
+    # listed for the first 3 consecutive months from the present day. We
+    # want the continuous futures to be composed of just the quarterly
+    # contracts.
+    'JY': march_cycle_delivery_predicate,
+    'CD': march_cycle_delivery_predicate,
+    'AD': march_cycle_delivery_predicate,
+    'BP': march_cycle_delivery_predicate,
 }
 
 ADJUSTMENT_STYLES = {'add', 'mul', None}
