@@ -539,7 +539,7 @@ class TestAPIShim(WithCreateBarData,
 
             self.assertEqual(1, len(w))
             self.assertEqual(
-                w[0].message.message,
+                str(w[0].message),
                 "Referencing positions by integer is deprecated. Use an asset "
                 "instead."
             )
@@ -555,7 +555,7 @@ class TestAPIShim(WithCreateBarData,
 
             self.assertEqual(1, len(w))
             self.assertEqual(
-                w[0].message.message,
+                str(w[0].message),
                 "Position lookup expected a value of type Asset but got str"
                 " instead."
             )
