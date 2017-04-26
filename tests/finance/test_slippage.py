@@ -839,6 +839,20 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
         self.assertIsNone(price)
         self.assertIsNone(amount)
 
+    def test_low_transaction_volume(self):
+        # With a volume limit of 0.001, and a bar volume of 100, we should
+        # compute a transaction volume of 100 * 0.001 = 0.1, which gets rounded
+        # down to zero. In this case we expect no amount to be transacted.
+        model = VolatilityVolumeShare(volume_limit=0.001)
+
+        minute = pd.Timestamp('2006-03-01 11:35AM', tz='UTC')
+        data = self.create_bardata(simulation_dt_func=lambda: minute)
+        order = Order(dt=data.current_dt, asset=self.ASSET, amount=10)
+        price, amount = model.process_order(data, order)
+
+        self.assertIsNone(price)
+        self.assertIsNone(amount)
+
 
 class MarketImpactTestCase(WithCreateBarData, ZiplineTestCase):
 

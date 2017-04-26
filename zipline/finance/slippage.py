@@ -360,6 +360,11 @@ class MarketImpactBase(object):
             min(self.get_txn_volume(data, order), abs(order.open_amount))
         )
 
+        # If the computed transaction volume is zero or a decimal value, 'int'
+        # will round it down to zero. In that case just bail.
+        if txn_volume == 0:
+            return None, None
+
         if mean_volume == 0 or np.isnan(volatility):
             # If this is the first day the contract exists or there is no
             # volume history, default to a conservative estimate of impact.
