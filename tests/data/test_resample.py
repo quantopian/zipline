@@ -16,12 +16,11 @@ from numbers import Real
 
 from nose_parameterized import parameterized
 from numpy.testing import assert_almost_equal
-from numpy import nan, array, full
+from numpy import nan, array, full, isnan
 import pandas as pd
 from pandas import DataFrame
 from six import iteritems
 
-from zipline.data.bar_reader import NoDataOnDate
 from zipline.data.resample import (
     minute_frame_to_session_frame,
     DailyHistoryAggregator,
@@ -863,11 +862,9 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
                             "first session should be 10.")
         tday = pd.Timestamp('2015-11-26', tz='UTC')
 
-        with self.assertRaises(NoDataOnDate):
-            self.reader.get_value(1, tday, 'close')
+        self.assertTrue(isnan(self.reader.get_value(1, tday, 'close')))
 
-        with self.assertRaises(NoDataOnDate):
-            self.reader.get_value(1, tday, 'volume')
+        self.assertEqual(self.reader.get_value(1, tday, 'volume'), 0)
 
     def test_last_availabe_dt(self):
         self.assertEqual(self.reader.last_available_dt, self.END_DATE)
