@@ -21,7 +21,6 @@ import pandas as pd
 from pandas import DataFrame
 from six import iteritems
 
-from zipline.data.bar_reader import NoDataOnDate
 from zipline.data.resample import (
     minute_frame_to_session_frame,
     DailyHistoryAggregator,
