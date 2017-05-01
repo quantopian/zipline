@@ -235,8 +235,7 @@ class WithHistory(WithCreateBarData, WithDataPortal):
                 'declared_date',
                 'pay_date',
                 'amount',
-                'sid',
-            ],
+                'sid'],
         )
 
     @classmethod
@@ -248,6 +247,40 @@ class WithHistory(WithCreateBarData, WithDataPortal):
             freq = '1d'
         else:
             freq = '1m'
+
+        cal = self.trading_calendar
+        equity_cal = self.trading_calendars[Equity]
+
+        def reindex_to_primary_calendar(a, field):
+            """
+            Reindex an array of prices from a window on the NYSE
+            calendar by the window on the primary calendar with the same
+            dt and window size.
+            """
+            if mode == 'daily':
+                dts = cal.sessions_window(dt, -9)
+
+                # `dt` may not be a session on the equity calendar, so
+                # find the next valid session.
+                equity_sess = equity_cal.minute_to_session_label(dt)
+                equity_dts = equity_cal.sessions_window(equity_sess, -9)
+            elif mode == 'minute':
+                dts = cal.minutes_window(dt, -10)
+                equity_dts = equity_cal.minutes_window(dt, -10)
+
+            output = pd.Series(
+                index=equity_dts,
+                data=a,
+            ).reindex(dts)
+
+            # Fill after reindexing, to ensure we don't forward fill
+            # with values that are being dropped.
+            if field == 'volume':
+                return output.fillna(0)
+            elif field == 'price':
+                return output.fillna(method='ffill')
+            else:
+                return output
 
         fields = fields if fields is not None else ALL_FIELDS
         assets = assets if assets is not None else [self.ASSET2, self.ASSET3]
@@ -330,11 +363,19 @@ class WithHistory(WithCreateBarData, WithDataPortal):
                         asset3_answer_key = np.full(10, np.nan)
                         asset3_answer_key[-position_from_end] = \
                             value_for_asset3
+                        asset3_answer_key = reindex_to_primary_calendar(
+                            asset3_answer_key,
+                            field,
+                        )
 
                         if asset == self.ASSET2:
                             np.testing.assert_array_equal(
-                                np.array(
-                                    range(base + idx - 9, base + idx + 1)),
+                                reindex_to_primary_calendar(
+                                    np.array(
+                                        range(base + idx - 9, base + idx + 1)
+                                    ),
+                                    field,
+                                ),
                                 asset_series
                             )
 
@@ -347,12 +388,19 @@ class WithHistory(WithCreateBarData, WithDataPortal):
                         asset3_answer_key = np.zeros(10)
                         asset3_answer_key[-position_from_end] = \
                             value_for_asset3 * 100
+                        asset3_answer_key = reindex_to_primary_calendar(
+                            asset3_answer_key,
+                            field,
+                        )
 
                         if asset == self.ASSET2:
                             np.testing.assert_array_equal(
-                                np.array(
-                                    range(base + idx - 9, base + idx + 1)
-                                ) * 100,
+                                reindex_to_primary_calendar(
+                                    np.array(
+                                        range(base + idx - 9, base + idx + 1)
+                                    ) * 100,
+                                    field,
+                                ),
                                 asset_series
                             )
 
@@ -369,20 +417,38 @@ class WithHistory(WithCreateBarData, WithDataPortal):
                         if asset == self.ASSET2:
                             # at idx 9, the data is 2 to 11
                             np.testing.assert_array_equal(
-                                range(idx - 7, idx + 3),
+                                reindex_to_primary_calendar(
+                                    range(idx - 7, idx + 3),
+                                    field=field,
+                                ),
                                 asset_series
                             )
 
                         if asset == self.ASSET3:
-                            first_part = asset_series[0:-position_from_end]
-                            second_part = asset_series[-position_from_end:]
+                            # Second part begins on the session after
+                            # `position_from_end` on the NYSE calendar.
+                            second_begin = (
+                                dt - equity_cal.day * (position_from_end - 1)
+                            )
+
+                            # First part goes up until the start of the
+                            # second part, because we forward-fill.
+                            first_end = second_begin - cal.day
+
+                            first_part = asset_series[:first_end]
+                            second_part = asset_series[second_begin:]
 
                             decile_count = ((idx + 1) // 10)
 
                             # in our test data, asset3 prices will be nine
                             # NaNs, then ten 11s, ten 21s, ten 31s...
 
-                            if decile_count == 1:
+                            if len(second_part) >= 10:
+                                np.testing.assert_array_equal(
+                                    np.full(len(first_part), np.nan),
+                                    first_part
+                                )
+                            elif decile_count == 1:
                                 np.testing.assert_array_equal(
                                     np.full(len(first_part), np.nan),
                                     first_part
@@ -1386,7 +1452,10 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     @classmethod
     def create_df_for_asset(cls, start_day, end_day, interval=1,
                             force_zeroes=False):
-        sessions = cls.trading_calendar.sessions_in_range(start_day, end_day)
+        sessions = cls.trading_calendars[Equity].sessions_in_range(
+            start_day,
+            end_day,
+        )
         sessions_count = len(sessions)
 
         # default to 2 because the low array subtracts 1, and we don't
@@ -1455,7 +1524,9 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         # get the first 30 days of 2015
         jan5 = pd.Timestamp('2015-01-05')
 
-        days = self.trading_calendar.sessions_window(jan5, 30)
+        # Regardless of the calendar used for this test, equities will
+        # only have data on NYSE sessions.
+        days = self.trading_calendars[Equity].sessions_window(jan5, 30)
 
         for idx, day in enumerate(days):
             self.verify_regular_dt(idx, day, 'daily')
@@ -1806,20 +1877,31 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
         offsets = np.arange(4)
 
-        def assert_window_prices(window, starting_price):
-            np.testing.assert_almost_equal(window.loc[:, self.ASSET1],
-                                           starting_price + offsets)
+        def assert_window_prices(window, prices):
+            np.testing.assert_almost_equal(window.loc[:, self.ASSET1], prices)
 
         # Window 1 starts on the 23rd day of data for ASSET 1.
-        assert_window_prices(window_1, 23)
+        assert_window_prices(window_1, 23 + offsets)
         # Window 2 starts on the 21st day of data for ASSET 1.
-        assert_window_prices(window_2, 21)
+        assert_window_prices(window_2, 21 + offsets)
         # Window 3 starts on the 23rd day of data for ASSET 1.
-        assert_window_prices(window_3, 23)
+        assert_window_prices(window_3, 23 + offsets)
+
         # Window 4 starts on the 11th day of data for ASSET 1.
-        assert_window_prices(window_4, 11)
+        if not self.trading_calendar.is_session('2014-01-20'):
+            assert_window_prices(window_4, 11 + offsets)
+        else:
+            # If not on the NYSE calendar, it is possible that MLK day
+            # (2014-01-20) is an active trading session. In that case,
+            # we expect a nan value for this asset.
+            assert_window_prices(window_4, [12, nan, 13, 14])
 
 
 class NoPrefetchDailyEquityHistoryTestCase(DailyEquityHistoryTestCase):
     DATA_PORTAL_MINUTE_HISTORY_PREFETCH = 0
     DATA_PORTAL_DAILY_HISTORY_PREFETCH = 0
+
+
+class DailyEquityHistoryOnFuturesCalendarTestCase(DailyEquityHistoryTestCase):
+    TRADING_CALENDAR_STRS = ('NYSE', 'us_futures')
+    TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
