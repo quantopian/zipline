@@ -423,18 +423,21 @@ class WithHistory(WithCreateBarData, WithDataPortal):
                             )
 
                         if asset == self.ASSET3:
-                            first_end = (
-                                dt -
-                                (self.nyse_calendar.day * position_from_end)
-                            )
+                            cal = self.trading_calendar
+                            nyse_cal = self.nyse_calendar
+
+                            # Second part begins on the session after
+                            # `position_from_end` on the NYSE calendar.
                             second_begin = (
-                                dt -
-                                (self.trading_calendar.day * position_from_end)
+                                dt - nyse_cal.day * (position_from_end - 1)
                             )
+
+                            # First part goes up until the start of the
+                            # second part, because we forward-fill.
+                            first_end = second_begin - cal.day
+
                             first_part = asset_series[:first_end]
-                            second_part = asset_series[
-                                (second_begin + self.trading_calendar.day):
-                            ]
+                            second_part = asset_series[second_begin:]
 
                             decile_count = ((idx + 1) // 10)
 
