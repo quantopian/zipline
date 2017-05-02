@@ -810,23 +810,25 @@ class DataPortal(object):
             return daily_data
 
     def _handle_minute_history_out_of_bounds(self, bar_count):
+        cal = self.trading_calendar
+
         first_trading_minute_loc = (
-            self.trading_calendar.all_minutes.get_loc(
+            cal.all_minutes.get_loc(
                 self._first_trading_minute
             )
             if self._first_trading_minute is not None else None
         )
 
-        suggested_start_day = (
-            self.trading_calendar.all_minutes[
+        suggested_start_day = cal.minute_to_session_label(
+            cal.all_minutes[
                 first_trading_minute_loc + bar_count
-            ] + self.trading_calendar.day
-        ).date()
+            ] + cal.day
+        )
 
         raise HistoryWindowStartsBeforeData(
             first_trading_day=self._first_trading_day.date(),
             bar_count=bar_count,
-            suggested_start_day=suggested_start_day,
+            suggested_start_day=suggested_start_day.date(),
         )
 
     def _get_history_minute_window(self, assets, end_dt, bar_count,
