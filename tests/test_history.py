@@ -1224,34 +1224,58 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         )
 
     def test_minute_different_lifetimes(self):
+        cal = self.trading_calendar
+        equity_cal = self.trading_calendars[Equity]
+
         # at trading start, only asset1 existed
         day = self.trading_calendar.next_session_label(self.TRADING_START_DT)
 
-        asset1_minutes = \
-            self.trading_calendar.minutes_for_sessions_in_range(
-                self.ASSET1.start_date,
-                self.ASSET1.end_date
-            )
+        # Range containing 100 equity minutes, possibly more on other
+        # calendars (i.e. futures).
+        window_start = pd.Timestamp('2014-01-03 19:22', tz='UTC')
+        window_end = pd.Timestamp('2014-01-06 14:31', tz='UTC')
+        bar_count = len(cal.minutes_in_range(window_start, window_end))
 
-        asset1_idx = asset1_minutes.searchsorted(
-            self.trading_calendar.open_and_close_for_session(day)[0]
+        equity_cal = self.trading_calendars[Equity]
+        first_equity_open, _ = equity_cal.open_and_close_for_session(day)
+
+        asset1_minutes = equity_cal.minutes_for_sessions_in_range(
+            self.ASSET1.start_date,
+            self.ASSET1.end_date
         )
+        asset1_idx = asset1_minutes.searchsorted(first_equity_open)
 
         window = self.data_portal.get_history_window(
             [self.ASSET1, self.ASSET2],
-            self.trading_calendar.open_and_close_for_session(day)[0],
-            100,
+            first_equity_open,
+            bar_count,
             '1m',
             'close'
         )
 
+        expected = range(asset1_idx - 97, asset1_idx + 3)
+
+        # First 99 bars occur on the previous day,
         np.testing.assert_array_equal(
-            range(asset1_idx - 97, asset1_idx + 3),
-            window[self.ASSET1]
+            window[self.ASSET1][:99],
+            expected[:99],
+        )
+        # Any interim bars are not active equity minutes, so should all
+        # be nan.
+        np.testing.assert_array_equal(
+            window[self.ASSET1][99:-1],
+            np.full(len(window) - 100, np.nan),
+        )
+        # Final bar in the window is the first equity bar of `day`.
+        np.testing.assert_array_equal(
+            window[self.ASSET1][-1:],
+            expected[-1:],
         )
 
+        # All NaNs for ASSET2, since it hasn't started yet.
         np.testing.assert_array_equal(
-            np.full(100, np.nan), window[self.ASSET2]
+            window[self.ASSET2],
+            np.full(len(window), np.nan),
         )
 
     def test_history_window_before_first_trading_day(self):
