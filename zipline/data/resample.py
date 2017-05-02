@@ -653,7 +653,10 @@ class ReindexBarReader(with_metaclass(ABCMeta)):
         try:
             return self._reader.get_value(sid, dt, field)
         except NoDataOnDate:
-            return np.nan
+            if field == 'volume':
+                return 0.0
+            else:
+                return np.nan
 
     @abstractmethod
     def _outer_dts(self, start_dt, end_dt):
