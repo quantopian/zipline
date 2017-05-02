@@ -16,7 +16,7 @@ import abc
 from abc import abstractmethod
 from collections import defaultdict
 
-from six import with_metaclass
+from six import with_metaclass, iteritems
 from toolz import merge
 
 from zipline.assets import Equity, Future
@@ -68,6 +68,18 @@ class CommissionModel(with_metaclass(abc.ABCMeta)):
             this order.
         """
         raise NotImplementedError('calculate')
+
+    def __eq__(self, other):
+        return self.asdict() == other.asdict()
+
+    def __hash__(self):
+        return hash((
+            type(self),
+            tuple(sorted(iteritems(self.asdict())))
+        ))
+
+    def asdict(self):
+        return self.__dict__
 
 
 class EquityCommissionModel(CommissionModel):

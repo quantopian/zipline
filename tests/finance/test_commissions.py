@@ -79,6 +79,16 @@ class CommissionUnitTests(WithAssetFinder, ZiplineTestCase):
         self.assertEqual(0, model.calculate(order, txns[1]))
         self.assertEqual(0, model.calculate(order, txns[2]))
 
+    def test_equality_and_comparison(self):
+        perdollar1 = PerDollar(cost=0.2)
+        perdollar2 = PerDollar(cost=0.2)
+
+        self.assertEqual(perdollar1, perdollar2)
+        self.assertEqual(hash(perdollar1), hash(perdollar2))
+
+        self.assertEqual(perdollar1.__dict__, perdollar1.asdict())
+        self.assertEqual(perdollar2.__dict__, perdollar2.asdict())
+
     def test_per_trade(self):
         # Test per trade model for equities.
         model = PerTrade(cost=10)
