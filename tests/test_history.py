@@ -1197,12 +1197,16 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         #
         # five minutes into the day after the early close, get 20 1m bars
 
-        dt = pd.Timestamp('2014-07-07 13:35:00', tz='UTC')
+        cal = self.trading_calendar
+
+        window_start = pd.Timestamp('2014-07-03 16:46:00', tz='UTC')
+        window_end = pd.Timestamp('2014-07-07 13:35:00', tz='UTC')
+        bar_count = len(cal.minutes_in_range(window_start, window_end))
 
         window = self.data_portal.get_history_window(
             [self.HALF_DAY_TEST_ASSET],
-            dt,
-            20,
+            window_end,
+            bar_count,
             '1m',
             'close'
         )[self.HALF_DAY_TEST_ASSET]
@@ -1211,10 +1215,20 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         # first minute of 7/7 is the 600th trading minute for this asset
         # this asset's first minute had a close value of 2, so every value is
         # 2 + (minute index)
-        np.testing.assert_array_equal(range(587, 607), window)
+        expected = range(587, 607)
+
+        # First 15 bars on occur at the end of 2014-07-03.
+        np.testing.assert_array_equal(window[:15], expected[:15])
+        # Interim bars (only on other calendars) should all be nan.
+        np.testing.assert_array_equal(
+            window[15:-5],
+            np.full(len(window) - 20, np.nan),
+        )
+        # Last 5 bars occur at the start of 2014-07-07.
+        np.testing.assert_array_equal(window[-5:], expected[-5:])
 
         self.assertEqual(
-            window.index[-6],
+            window.index[14],
             pd.Timestamp('2014-07-03 17:00', tz='UTC')
         )
 
