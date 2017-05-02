@@ -1350,11 +1350,16 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         day = pd.Timestamp('2015-01-08', tz='UTC')
         minutes = self.trading_calendar.minutes_for_session(day)
 
+        equity_cal = self.trading_calendars[Equity]
+        equity_minutes = equity_cal.minutes_for_session(day)
+        equity_open, equity_close = equity_minutes[0], equity_minutes[-1]
+
         # minute data, baseline:
         # Jan 5: 2 to 391
         # Jan 6: 392 to 781
         # Jan 7: 782 to 1172
-        for idx, minute in enumerate(minutes):
+        for minute in minutes:
+            idx = equity_minutes.searchsorted(min(minute, equity_close))
 
             window = self.data_portal.get_history_window(
                 [self.ASSET2],
@@ -1385,9 +1390,22 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                 self.assertEqual(window[0], 22873500)
                 self.assertEqual(window[1], 38083500)
 
+            # XXX
+            if minute == day:
+                continue
+
             last_val = -1
 
-            if field == 'open':
+            if minute < equity_open:
+                # If before the equity calendar open, we don't yet
+                # have data (but price is forward-filled).
+                if field == 'volume':
+                    last_val = 0
+                elif field == 'price':
+                    last_val = window[1]
+                else:
+                    last_val = nan
+            elif field == 'open':
                 if idx == 0:
                     last_val = np.nan
                 else:
