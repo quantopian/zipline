@@ -820,7 +820,8 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         # 10 minutes
         asset = self.env.asset_finder.retrieve_asset(sid)
 
-        minutes = self.trading_calendar.minutes_for_session(
+        # Check the first hour of equities trading.
+        minutes = self.trading_calendars[Equity].minutes_for_session(
             pd.Timestamp('2015-01-05', tz='UTC')
         )[0:60]
 
