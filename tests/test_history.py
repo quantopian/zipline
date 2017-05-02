@@ -855,7 +855,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     def test_minute_after_asset_stopped(self):
         # SHORT_ASSET's last day was 2015-01-06
         # get some history windows that straddle the end
-        minutes = self.trading_calendar.minutes_for_session(
+        minutes = self.trading_calendars[Equity].minutes_for_session(
             pd.Timestamp('2015-01-07', tz='UTC')
         )[0:60]
 
@@ -869,15 +869,6 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
         # Reset data portal because it has advanced past next test date.
         data_portal = self.make_data_portal()
-
-        # choose a window that contains the last minute of the asset
-        bar_data = BarData(
-            data_portal=data_portal,
-            simulation_dt_func=lambda: minutes[15],
-            data_frequency='minute',
-            restrictions=NoRestrictions(),
-            trading_calendar=self.trading_calendar,
-        )
 
         #                             close  high  low  open  price  volume
         # 2015-01-06 20:47:00+00:00    768   770  767   769    768   76800
@@ -911,9 +902,29 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         # 2015-01-07 14:45:00+00:00    NaN   NaN  NaN   NaN    NaN       0
         # 2015-01-07 14:46:00+00:00    NaN   NaN  NaN   NaN    NaN       0
 
-        window = bar_data.history(self.SHORT_ASSET, ALL_FIELDS, 30, '1m')
+        # choose a window that contains the last minute of the asset
+        window_start = pd.Timestamp('2015-01-06 20:47', tz='UTC')
+        window_end = pd.Timestamp('2015-01-07 14:46', tz='UTC')
 
-        # there should be 14 values and 16 NaNs/0s
+        bar_data = BarData(
+            data_portal=data_portal,
+            simulation_dt_func=lambda: minutes[15],
+            data_frequency='minute',
+            restrictions=NoRestrictions(),
+            trading_calendar=self.trading_calendar,
+        )
+
+        bar_count = len(
+            self.trading_calendar.minutes_in_range(window_start, window_end)
+        )
+        window = bar_data.history(
+            self.SHORT_ASSET,
+            ALL_FIELDS,
+            bar_count,
+            '1m',
+        )
+
+        # Window should start with 14 values and end with 16 NaNs/0s.
         for field in ALL_FIELDS:
             if field == 'volume':
                 np.testing.assert_array_equal(
