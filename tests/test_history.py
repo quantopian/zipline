@@ -22,7 +22,7 @@ from six import iteritems
 
 from zipline import TradingAlgorithm
 from zipline._protocol import handle_non_market_minutes, BarData
-from zipline.assets import Asset
+from zipline.assets import Asset, Equity
 from zipline.errors import (
     HistoryInInitialize,
     HistoryWindowStartsBeforeData,
@@ -538,19 +538,21 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
     @classmethod
     def make_equity_minute_bar_data(cls):
+        equities_cal = cls.trading_calendars[Equity]
+
         data = {}
         sids = {2, 5, cls.SHORT_ASSET_SID, cls.HALF_DAY_TEST_ASSET_SID}
         for sid in sids:
             asset = cls.asset_finder.retrieve_asset(sid)
             data[sid] = create_minute_df_for_asset(
-                cls.trading_calendar,
+                equities_cal,
                 asset.start_date,
                 asset.end_date,
                 start_val=2,
             )
 
         data[1] = create_minute_df_for_asset(
-            cls.trading_calendar,
+            equities_cal,
             pd.Timestamp('2014-01-03', tz='utc'),
             pd.Timestamp('2016-01-29', tz='utc'),
             start_val=2,
@@ -558,9 +560,9 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
         asset2 = cls.asset_finder.retrieve_asset(2)
         data[asset2.sid] = create_minute_df_for_asset(
-            cls.trading_calendar,
+            equities_cal,
             asset2.start_date,
-            cls.trading_calendar.previous_session_label(asset2.end_date),
+            equities_cal.previous_session_label(asset2.end_date),
             start_val=2,
             minute_blacklist=[
                 pd.Timestamp('2015-01-08 14:31', tz='UTC'),
@@ -575,29 +577,29 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         # the thousands place.
         data[cls.MERGER_ASSET_SID] = data[cls.SPLIT_ASSET_SID] = pd.concat((
             create_minute_df_for_asset(
-                cls.trading_calendar,
+                equities_cal,
                 pd.Timestamp('2015-01-05', tz='UTC'),
                 pd.Timestamp('2015-01-05', tz='UTC'),
                 start_val=8000),
             create_minute_df_for_asset(
-                cls.trading_calendar,
+                equities_cal,
                 pd.Timestamp('2015-01-06', tz='UTC'),
                 pd.Timestamp('2015-01-06', tz='UTC'),
                 start_val=2000),
             create_minute_df_for_asset(
-                cls.trading_calendar,
+                equities_cal,
                 pd.Timestamp('2015-01-07', tz='UTC'),
                 pd.Timestamp('2015-01-07', tz='UTC'),
                 start_val=1000),
             create_minute_df_for_asset(
-                cls.trading_calendar,
+                equities_cal,
                 pd.Timestamp('2015-01-08', tz='UTC'),
                 pd.Timestamp('2015-01-08', tz='UTC'),
                 start_val=1000)
         ))
         asset3 = cls.asset_finder.retrieve_asset(3)
         data[3] = create_minute_df_for_asset(
-            cls.trading_calendar,
+            equities_cal,
             asset3.start_date,
             asset3.end_date,
             start_val=2,
@@ -1265,11 +1267,17 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         day = pd.Timestamp('2015-01-07', tz='UTC')
         minutes = self.trading_calendar.minutes_for_session(day)
 
+        equity_cal = self.trading_calendars[Equity]
+        equity_minutes = equity_cal.minutes_for_session(day)
+        equity_open, equity_close = equity_minutes[0], equity_minutes[-1]
+
         # minute data, baseline:
         # Jan 5: 2 to 391
         # Jan 6: 392 to 781
         # Jan 7: 782 to 1172
-        for idx, minute in enumerate(minutes):
+        for minute in minutes:
+            idx = equity_minutes.searchsorted(min(minute, equity_close))
+
             for field in ALL_FIELDS:
 
                 window = self.data_portal.get_history_window(
@@ -1300,7 +1308,20 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
                 last_val = -1
 
-                if field == 'open':
+                # XXX
+                if minute == day:
+                    continue
+
+                if minute < equity_open:
+                    # If before the equity calendar open, we don't yet
+                    # have data (but price is forward-filled).
+                    if field == 'volume':
+                        last_val = 0
+                    elif field == 'price':
+                        last_val = window[1]
+                    else:
+                        last_val = nan
+                elif field == 'open':
                     last_val = 783
                 elif field == 'high':
                     # since we increase monotonically, it's just the last
@@ -1318,7 +1339,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
                     last_val = sum(np.array(range(782, 782 + idx + 1)) * 100)
 
-                self.assertEqual(window[-1], last_val)
+                np.testing.assert_equal(window[-1], last_val)
 
     @parameterized.expand(ALL_FIELDS)
     def test_daily_history_blended_gaps(self, field):
@@ -1900,6 +1921,11 @@ class NoPrefetchDailyEquityHistoryTestCase(DailyEquityHistoryTestCase):
     DATA_PORTAL_DAILY_HISTORY_PREFETCH = 0
 
 
-class DailyEquityHistoryOnFuturesCalendarTestCase(DailyEquityHistoryTestCase):
+class MinuteEquityHistoryFuturesCalendarTestCase(MinuteEquityHistoryTestCase):
+    TRADING_CALENDAR_STRS = ('NYSE', 'us_futures')
+    TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
+
+
+class DailyEquityHistoryFuturesCalendarTestCase(DailyEquityHistoryTestCase):
     TRADING_CALENDAR_STRS = ('NYSE', 'us_futures')
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
