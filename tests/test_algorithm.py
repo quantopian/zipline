@@ -2261,7 +2261,7 @@ class TestCapitalChanges(WithLogger,
 
     @classmethod
     def make_equity_daily_bar_data(cls):
-        days = cls.trading_calendar.minutes_in_range(
+        days = cls.trading_calendar.sessions_in_range(
             pd.Timestamp('2006-01-03', tz='UTC'),
             pd.Timestamp('2006-01-09', tz='UTC')
         )

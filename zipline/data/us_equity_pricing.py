@@ -50,6 +50,7 @@ from six import (
     string_types,
     viewkeys,
 )
+from toolz import compose
 
 from zipline.data.session_bars import SessionBarReader
 from zipline.data.bar_reader import (
@@ -162,21 +163,6 @@ def winsorise_uint32(df, invalid_data_behavior, column, *columns):
     return df
 
 
-@expect_element(invalid_data_behavior={'warn', 'raise', 'ignore'})
-def to_ctable(raw_data, invalid_data_behavior):
-    if isinstance(raw_data, ctable):
-        # we already have a ctable so do nothing
-        return raw_data
-
-    winsorise_uint32(raw_data, invalid_data_behavior, 'volume', *OHLC)
-    processed = (raw_data[list(OHLC)] * 1000).astype('uint32')
-    dates = raw_data.index.values.astype('datetime64[s]')
-    check_uint32_safe(dates.max().view(np.int64), 'day')
-    processed['day'] = dates.astype('uint32')
-    processed['volume'] = raw_data.volume.astype('uint32')
-    return ctable.fromdataframe(processed)
-
-
 class BcolzDailyBarWriter(object):
     """
     Class capable of writing daily OHLCV data to disk in a format that can
@@ -257,7 +243,10 @@ class BcolzDailyBarWriter(object):
             The newly-written table.
         """
         ctx = maybe_show_progress(
-            ((sid, to_ctable(df, invalid_data_behavior)) for sid, df in data),
+            (
+                (sid, self.to_ctable(df, invalid_data_behavior))
+                for sid, df in data
+            ),
             show_progress=show_progress,
             item_show_func=self.progress_bar_item_show_func,
             label=self.progress_bar_message,
@@ -355,15 +344,30 @@ class BcolzDailyBarWriter(object):
             last_row[asset_key] = total_rows + nrows - 1
             total_rows += nrows
 
+            table_day_to_session = compose(
+                self._calendar.minute_to_session_label,
+                partial(Timestamp, unit='s', tz='UTC'),
+            )
+            asset_first_day = table_day_to_session(table['day'][0])
+            asset_last_day = table_day_to_session(table['day'][-1])
+
+            asset_sessions = sessions[
+                sessions.slice_indexer(asset_first_day, asset_last_day)
+            ]
+            assert len(table) == len(asset_sessions), (
+                'Got {} rows for daily bars table with first day={}, last '
+                'day={}, expected {} rows.'.format(
+                    len(table),
+                    asset_first_day.date(),
+                    asset_last_day.date(),
+                    len(asset_sessions),
+                )
+            )
+
             # Calculate the number of trading days between the first date
             # in the stored data and the first date of **this** asset. This
             # offset used for output alignment by the reader.
-            asset_first_day = table['day'][0]
-            calendar_offset[asset_key] = sessions.get_loc(
-                self._calendar.minute_to_session_label(
-                    Timestamp(asset_first_day, unit='s', tz='UTC')
-                )
-            )
+            calendar_offset[asset_key] = sessions.get_loc(asset_first_day)
 
         # This writes the table to disk.
         full_table = ctable(
@@ -388,6 +392,20 @@ class BcolzDailyBarWriter(object):
         full_table.attrs['end_session_ns'] = self._end_session.value
         full_table.flush()
         return full_table
+
+    @expect_element(invalid_data_behavior={'warn', 'raise', 'ignore'})
+    def to_ctable(self, raw_data, invalid_data_behavior):
+        if isinstance(raw_data, ctable):
+            # we already have a ctable so do nothing
+            return raw_data
+
+        winsorise_uint32(raw_data, invalid_data_behavior, 'volume', *OHLC)
+        processed = (raw_data[list(OHLC)] * 1000).astype('uint32')
+        dates = raw_data.index.values.astype('datetime64[s]')
+        check_uint32_safe(dates.max().view(np.int64), 'day')
+        processed['day'] = dates.astype('uint32')
+        processed['volume'] = raw_data.volume.astype('uint32')
+        return ctable.fromdataframe(processed)
 
 
 class BcolzDailyBarReader(SessionBarReader):
