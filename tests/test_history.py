@@ -1055,11 +1055,16 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
         np.testing.assert_array_equal(np.array(range(382, 392)), window1)
 
-        # straddling the first dividend
+        # straddling the first dividend (10 active equity minutes)
+        window2_start = pd.Timestamp('2015-01-05 20:56', tz='UTC')
+        window2_end = pd.Timestamp('2015-01-06 14:35', tz='UTC')
+        window2_count = len(
+            self.trading_calendar.minutes_in_range(window2_start, window2_end)
+        )
         window2 = self.data_portal.get_history_window(
             [self.DIVIDEND_ASSET],
-            pd.Timestamp('2015-01-06 14:35', tz='UTC'),
-            10,
+            window2_end,
+            window2_count,
             '1m',
             'close'
         )[self.DIVIDEND_ASSET]
@@ -1072,13 +1077,21 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         )
 
         # second half of window is unadjusted
-        np.testing.assert_array_equal(range(392, 397), window2[5:])
+        np.testing.assert_array_equal(range(392, 397), window2[-5:])
 
-        # straddling both dividends
+        # straddling both dividends (on the equities calendar, this is
+        # 5 minutes of 1/7, 390 of 1/6, and 5 minutes of 1/5).
+        window3_start = pd.Timestamp('2015-01-05 20:56', tz='UTC')
+        window3_end = pd.Timestamp('2015-01-07 14:35', tz='UTC')
+        window3_minutes = self.trading_calendar.minutes_in_range(
+            window3_start,
+            window3_end,
+        )
+        window3_count = len(window3_minutes)
         window3 = self.data_portal.get_history_window(
             [self.DIVIDEND_ASSET],
-            pd.Timestamp('2015-01-07 14:35', tz='UTC'),
-            400,    # 5 minutes of 1/7, 390 of 1/6, and 5 minutes of 1/5
+            window3_end,
+            window3_count,
             '1m',
             'close'
         )[self.DIVIDEND_ASSET]
@@ -1089,14 +1102,21 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
             window3[0:5]
         )
 
-        # next 390 minutes should be hit by 0.96 (second dividend)
+        # next 390 minutes (the 2015-01-06 session) should be hit by 0.96
+        # (second dividend)
+        middle_day_open_i = window3_minutes.searchsorted(
+            pd.Timestamp('2015-01-06 14:31', tz='UTC')
+        )
+        middle_day_close_i = window3_minutes.searchsorted(
+            pd.Timestamp('2015-01-06 21:00', tz='UTC')
+        )
         np.testing.assert_array_almost_equal(
             np.array(range(392, 782), dtype='float64') * 0.96,
-            window3[5:395]
+            window3[middle_day_open_i:middle_day_close_i + 1]
         )
 
         # last 5 minutes should not be adjusted
-        np.testing.assert_array_equal(np.array(range(782, 787)), window3[395:])
+        np.testing.assert_array_equal(np.array(range(782, 787)), window3[-5:])
 
     def test_passing_iterable_to_history_regular_hours(self):
         # regular hours
