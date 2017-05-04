@@ -831,26 +831,30 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                                    fields=[field])
 
     def test_minute_midnight(self):
-        midnight = pd.Timestamp('2015-01-06', tz='UTC')
-        last_minute = self.trading_calendar.open_and_close_for_session(
-            self.trading_calendar.minute_to_session_label(
-                midnight,
-                direction="previous"
-            )
-        )[1]
+        # Most trading calendars aren't open at midnight on Sunday.
+        sunday_midnight = pd.Timestamp('2015-01-09', tz='UTC')
 
-        midnight_bar_data = self.create_bardata(
-            lambda: midnight,
-        )
-        yesterday_bar_data = self.create_bardata(
-            lambda: last_minute
-        )
+        # Find the closest prior minute when the trading calendar was
+        # open (note that if the calendar is open at `sunday_midnight`,
+        # this will be `sunday_midnight`).
+        trading_minutes = self.trading_calendar.all_minutes
+        last_minute = trading_minutes[trading_minutes <= sunday_midnight][-1]
 
-        with handle_non_market_minutes(midnight_bar_data):
+        sunday_midnight_bar_data = self.create_bardata(lambda: sunday_midnight)
+        last_minute_bar_data = self.create_bardata(lambda: last_minute)
+
+        # Ensure that we get the same results at midnight on Sunday as
+        # the last open minute.
+        with handle_non_market_minutes(sunday_midnight_bar_data):
             for field in ALL_FIELDS:
                 np.testing.assert_array_equal(
-                    midnight_bar_data.history(self.ASSET2, field, 30, '1m'),
-                    yesterday_bar_data.history(self.ASSET2, field, 30, '1m')
+                    sunday_midnight_bar_data.history(
+                        self.ASSET2,
+                        field,
+                        30,
+                        '1m',
+                    ),
+                    last_minute_bar_data.history(self.ASSET2, field, 30, '1m')
                 )
 
     def test_minute_after_asset_stopped(self):
