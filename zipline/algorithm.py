@@ -2160,6 +2160,7 @@ class TradingAlgorithm(object):
                 bar_count,
                 frequency,
                 field,
+                self.data_frequency,
                 ffill,
             )
         else:
@@ -2176,6 +2177,7 @@ class TradingAlgorithm(object):
                 bar_count,
                 frequency,
                 field,
+                self.data_frequency,
                 ffill,
             )
 
