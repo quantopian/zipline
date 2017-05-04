@@ -265,6 +265,7 @@ class TestAPIShim(WithCreateBarData,
                         5,
                         "1m",
                         "volume",
+                        "minute",
                         True
                     )
                 else:
@@ -274,6 +275,7 @@ class TestAPIShim(WithCreateBarData,
                         5,
                         "1m",
                         "volume",
+                        "minute",
                     )
 
         test_sim_params = SimulationParameters(

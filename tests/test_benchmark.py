@@ -101,7 +101,12 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
         # should be the equivalent of getting the price history, then doing
         # a pct_change on it
         manually_calculated = self.data_portal.get_history_window(
-            [1], days_to_use[-1], len(days_to_use), "1d", "close"
+            [1],
+            days_to_use[-1],
+            len(days_to_use),
+            "1d",
+            "close",
+            "daily",
         )[1].pct_change()
 
         # compare all the fields except the first one, for which we don't have
@@ -187,6 +192,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
                 len(days_to_use),
                 "1d",
                 "close",
+                "daily",
             )[2].pct_change()
 
             for idx, day in enumerate(days_to_use[1:]):
