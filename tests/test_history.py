@@ -248,26 +248,28 @@ class WithHistory(WithCreateBarData, WithDataPortal):
         else:
             freq = '1m'
 
+        cal = self.trading_calendar
+        equity_cal = self.trading_calendars[Equity]
+
         def reindex_to_primary_calendar(a, field):
             """
             Reindex an array of prices from a window on the NYSE
             calendar by the window on the primary calendar with the same
             dt and window size.
             """
-
             if mode == 'daily':
                 dts = self.trading_calendar.sessions_window(dt, -9)
 
-                # `dt` may not be a session on the NYSE calendar, so
-                # `find the next valid session.
-                nyse_sess = self.nyse_calendar.minute_to_session_label(dt)
-                nyse_dts = self.nyse_calendar.sessions_window(nyse_sess, -9)
+                # `dt` may not be a session on the equity calendar, so
+                # find the next valid session.
+                equity_sess = equity_cal.minute_to_session_label(dt)
+                equity_dts = equity_cal.sessions_window(equity_sess, -9)
             elif mode == 'minute':
                 dts = self.trading_calendar.minutes_window(dt, -10)
-                nyse_dts = self.nyse_calendar.minutes_window(dt, -10)
+                equity_dts = equity_cal.minutes_window(dt, -10)
 
             output = pd.Series(
-                index=nyse_dts,
+                index=equity_dts,
                 data=a,
             ).reindex(dts)
 
@@ -423,13 +425,10 @@ class WithHistory(WithCreateBarData, WithDataPortal):
                             )
 
                         if asset == self.ASSET3:
-                            cal = self.trading_calendar
-                            nyse_cal = self.nyse_calendar
-
                             # Second part begins on the session after
                             # `position_from_end` on the NYSE calendar.
                             second_begin = (
-                                dt - nyse_cal.day * (position_from_end - 1)
+                                dt - equity_cal.day * (position_from_end - 1)
                             )
 
                             # First part goes up until the start of the
@@ -1629,7 +1628,10 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     @classmethod
     def create_df_for_asset(cls, start_day, end_day, interval=1,
                             force_zeroes=False):
-        sessions = cls.nyse_calendar.sessions_in_range(start_day, end_day)
+        sessions = cls.trading_calendars[Equity].sessions_in_range(
+            start_day,
+            end_day,
+        )
         sessions_count = len(sessions)
 
         # default to 2 because the low array subtracts 1, and we don't
@@ -1700,7 +1702,7 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
         # Regardless of the calendar used for this test, equities will
         # only have data on NYSE sessions.
-        days = self.nyse_calendar.sessions_window(jan5, 30)
+        days = self.trading_calendars[Equity].sessions_window(jan5, 30)
 
         for idx, day in enumerate(days):
             self.verify_regular_dt(idx, day, 'daily')
