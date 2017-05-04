@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from sys import maxsize
+import re
 
 from nose_parameterized import parameterized
 from numpy import (
@@ -399,9 +400,12 @@ class BcolzDailyBarWriterMissingDataTestCase(WithAssetFinder,
 
         # There are 21 sessions between the start and end date for this
         # asset, and we excluded one.
-        expected_msg = (
-            'Got 20 rows for daily bars table with first day=2015-06-02, last '
-            'day=2015-06-30, expected 21 rows.'
+        expected_msg = re.escape(
+            "Got 20 rows for daily bars table with first day=2015-06-02, last "
+            "day=2015-06-30, expected 21 rows.\n"
+            "Missing sessions: "
+            "[Timestamp('2015-06-15 00:00:00+0000', tz='UTC')]\n"
+            "Extra sessions: []"
         )
         with self.assertRaisesRegexp(AssertionError, expected_msg):
             writer.write(bar_data)

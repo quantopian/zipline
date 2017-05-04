@@ -42,6 +42,7 @@ from pandas import (
     NaT,
     read_csv,
     read_sql,
+    to_datetime,
     Timestamp,
 )
 from pandas.tslib import iNaT
@@ -356,11 +357,25 @@ class BcolzDailyBarWriter(object):
             ]
             assert len(table) == len(asset_sessions), (
                 'Got {} rows for daily bars table with first day={}, last '
-                'day={}, expected {} rows.'.format(
+                'day={}, expected {} rows.\n'
+                'Missing sessions: {}\n'
+                'Extra sessions: {}'.format(
                     len(table),
                     asset_first_day.date(),
                     asset_last_day.date(),
                     len(asset_sessions),
+                    asset_sessions.difference(
+                        to_datetime(
+                            np.array(table['day']),
+                            unit='s',
+                            utc=True,
+                        )
+                    ).tolist(),
+                    to_datetime(
+                        np.array(table['day']),
+                        unit='s',
+                        utc=True,
+                    ).difference(asset_sessions).tolist(),
                 )
             )
 
