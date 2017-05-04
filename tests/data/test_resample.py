@@ -864,7 +864,7 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
 
         self.assertTrue(isnan(self.reader.get_value(1, tday, 'close')))
 
-        self.assertTrue(isnan(self.reader.get_value(1, tday, 'volume')))
+        self.assertEqual(self.reader.get_value(1, tday, 'volume'), 0)
 
     def test_last_availabe_dt(self):
         self.assertEqual(self.reader.last_available_dt, self.END_DATE)
