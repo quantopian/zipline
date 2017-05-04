@@ -830,7 +830,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                                    assets=[asset],
                                    fields=[field])
 
-    def test_minute_midnight(self):
+    def test_minute_sunday_midnight(self):
         # Most trading calendars aren't open at midnight on Sunday.
         sunday_midnight = pd.Timestamp('2015-01-09', tz='UTC')
 
@@ -1195,50 +1195,70 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
             'price': np.arange(382, 392) / 2.0,
         }
 
+        # Use a window looking back to 3:51pm from 8:45am the following day.
+        # This contains the last ten minutes of the equity session for
+        # 2015-01-05.
+        window_start = pd.Timestamp('2015-01-05 20:51', tz='UTC')
+        window_end = pd.Timestamp('2015-01-06 13:44', tz='UTC')
+        window_length = len(
+            self.trading_calendar.minutes_in_range(window_start, window_end)
+        )
+
         with handle_non_market_minutes(bar_data):
             # Single field, single asset
             for field in ALL_FIELDS:
-                values = bar_data.history(self.SPLIT_ASSET, field, 10, '1m')
-                np.testing.assert_array_equal(values.values,
+                values = bar_data.history(
+                    self.SPLIT_ASSET,
+                    field,
+                    window_length,
+                    '1m',
+                )
+
+                # The first 10 bars the `values` correspond to the last
+                # 10 minutes in the 2015-01-05 session.
+                np.testing.assert_array_equal(values.values[:10],
                                               adj_expected[field],
                                               err_msg=field)
 
             # Multi field, single asset
             values = bar_data.history(
-                self.SPLIT_ASSET, ['open', 'volume'], 10, '1m'
+                self.SPLIT_ASSET, ['open', 'volume'], window_length, '1m'
             )
-            np.testing.assert_array_equal(values.open.values,
+            np.testing.assert_array_equal(values.open.values[:10],
                                           adj_expected['open'])
-            np.testing.assert_array_equal(values.volume.values,
+            np.testing.assert_array_equal(values.volume.values[:10],
                                           adj_expected['volume'])
 
             # Single field, multi asset
             values = bar_data.history(
-                [self.SPLIT_ASSET, self.ASSET2], 'open', 10, '1m'
+                [self.SPLIT_ASSET, self.ASSET2], 'open', window_length, '1m'
             )
-            np.testing.assert_array_equal(values[self.SPLIT_ASSET].values,
+            np.testing.assert_array_equal(values[self.SPLIT_ASSET].values[:10],
                                           adj_expected['open'])
-            np.testing.assert_array_equal(values[self.ASSET2].values,
+            np.testing.assert_array_equal(values[self.ASSET2].values[:10],
                                           expected['open'] * 2)
 
             # Multi field, multi asset
             values = bar_data.history(
-                [self.SPLIT_ASSET, self.ASSET2], ['open', 'volume'], 10, '1m'
+                [self.SPLIT_ASSET, self.ASSET2],
+                ['open', 'volume'],
+                window_length,
+                '1m',
             )
             np.testing.assert_array_equal(
-                values.open[self.SPLIT_ASSET].values,
+                values.open[self.SPLIT_ASSET].values[:10],
                 adj_expected['open']
             )
             np.testing.assert_array_equal(
-                values.volume[self.SPLIT_ASSET].values,
+                values.volume[self.SPLIT_ASSET].values[:10],
                 adj_expected['volume']
             )
             np.testing.assert_array_equal(
-                values.open[self.ASSET2].values,
+                values.open[self.ASSET2].values[:10],
                 expected['open'] * 2
             )
             np.testing.assert_array_equal(
-                values.volume[self.ASSET2].values,
+                values.volume[self.ASSET2].values[:10],
                 expected['volume'] / 2
             )
 
