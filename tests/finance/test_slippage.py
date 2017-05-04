@@ -97,16 +97,6 @@ class SlippageTestCase(WithCreateBarData,
         super(SlippageTestCase, cls).init_class_fixtures()
         cls.ASSET133 = cls.env.asset_finder.retrieve_asset(133)
 
-    def test_equality_and_comparison(self):
-        vol1 = VolumeShareSlippage(volume_limit=0.2)
-        vol2 = VolumeShareSlippage(volume_limit=0.2)
-
-        self.assertEqual(vol1, vol2)
-        self.assertEqual(hash(vol1), hash(vol2))
-
-        self.assertEqual(vol1.__dict__, vol1.asdict())
-        self.assertEqual(vol2.__dict__, vol2.asdict())
-
     def test_allowed_asset_types(self):
         # Custom equities model.
         class MyEquitiesModel(EquitySlippageModel):
