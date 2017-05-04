@@ -968,9 +968,10 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
         for asset in [self.SPLIT_ASSET, self.MERGER_ASSET]:
             # before any of the adjustments, last 10 minutes of jan 5
+            equity_cal = self.trading_calendars[Equity]
             window1 = self.data_portal.get_history_window(
                 [asset],
-                self.trading_calendar.open_and_close_for_session(jan5)[1],
+                equity_cal.open_and_close_for_session(jan5)[1],
                 10,
                 '1m',
                 'close'
@@ -979,11 +980,19 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
             np.testing.assert_array_equal(
                 np.array(range(8380, 8390)), window1)
 
-            # straddling the first event
+            # straddling the first event - begins with the last 5 equity
+            # minutes on 2015-01-05, ends with the first 5 on
+            # 2015-01-06.
+            window2_start = pd.Timestamp('2015-01-05 20:56', tz='UTC')
+            window2_end = pd.Timestamp('2015-01-06 14:35', tz='UTC')
+            window2_count = len(self.trading_calendar.minutes_in_range(
+                window2_start,
+                window2_end,
+            ))
             window2 = self.data_portal.get_history_window(
                 [asset],
                 pd.Timestamp('2015-01-06 14:35', tz='UTC'),
-                10,
+                window2_count,
                 '1m',
                 'close'
             )[asset]
@@ -994,22 +1003,33 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                  2096.5,
                  2096.75,
                  2097,
-                 2097.25,
-                 # Split occurs. The value of the thousands place should
-                 # match.
-                 2000,
+                 2097.25],
+                window2[:5],
+            )
+            # Split occurs. The value of the thousands place should
+            # match.
+            np.testing.assert_array_equal(
+                [2000,
                  2001,
                  2002,
                  2003,
                  2004],
-                window2
+                window2[-5:],
             )
 
-            # straddling both events!
+            # straddling both events! on the equities calendar this is 5
+            # minutes of 1/7, 390 of 1/6, and 5 minutes of 1/5.
+            window3_start = pd.Timestamp('2015-01-05 20:56', tz='UTC')
+            window3_end = pd.Timestamp('2015-01-07 14:35', tz='UTC')
+            window3_minutes = self.trading_calendar.minutes_in_range(
+                window3_start,
+                window3_end,
+            )
+            window3_count = len(window3_minutes)
             window3 = self.data_portal.get_history_window(
                 [asset],
                 pd.Timestamp('2015-01-07 14:35', tz='UTC'),
-                400,    # 5 minutes of 1/7, 390 of 1/6, and 5 minutes of 1/5
+                window3_count,
                 '1m',
                 'close'
             )[asset]
@@ -1020,14 +1040,21 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                 window3[0:5]
             )
 
-            # next 390 minutes should be 2000-2390, but halved
+            # next 390 minutes (the 2015-01-06 session) should be
+            # 2000-2390, but halved
+            middle_day_open_i = window3_minutes.searchsorted(
+                pd.Timestamp('2015-01-06 14:31', tz='UTC')
+            )
+            middle_day_close_i = window3_minutes.searchsorted(
+                pd.Timestamp('2015-01-06 21:00', tz='UTC')
+            )
             np.testing.assert_array_equal(
                 np.array(range(2000, 2390), dtype='float64') / 2,
-                window3[5:395]
+                window3[middle_day_open_i:middle_day_close_i + 1]
             )
 
             # final 5 minutes should be 1000-1004
-            np.testing.assert_array_equal(range(1000, 1005), window3[395:])
+            np.testing.assert_array_equal(range(1000, 1005), window3[-5:])
 
             # after last event
             window4 = self.data_portal.get_history_window(
