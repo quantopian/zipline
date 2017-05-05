@@ -193,8 +193,6 @@ class VolumeShareSlippage(SlippageModel):
     """
     Model slippage as a function of the volume of contracts traded.
     """
-    allowed_asset_types = (Equity, Future)
-
     def __init__(self, volume_limit=DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT,
                  price_impact=0.1):
 
@@ -271,8 +269,6 @@ class FixedSlippage(SlippageModel):
     spread : float, optional
         spread / 2 will be added to buys and subtracted from sells.
     """
-    allowed_asset_types = (Equity, Future)
-
     def __init__(self, spread=0.0):
         super(FixedSlippage, self).__init__()
         self.spread = spread
