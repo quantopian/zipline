@@ -915,6 +915,7 @@ class _WithMinuteBarDataBase(WithTradingEnvironment):
     MINUTE_BAR_LOOKBACK_DAYS = 0
     MINUTE_BAR_START_DATE = alias('START_DATE')
     MINUTE_BAR_END_DATE = alias('END_DATE')
+    OHLC_RATIOS_PER_SID = None
 
 
 class WithEquityMinuteBarData(_WithMinuteBarDataBase):
@@ -1087,7 +1088,8 @@ class WithBcolzEquityMinuteBarReader(WithEquityMinuteBarData, WithTmpDir):
             cls.trading_calendars[Equity],
             days[0],
             days[-1],
-            US_EQUITIES_MINUTES_PER_DAY
+            US_EQUITIES_MINUTES_PER_DAY,
+            ohlc_ratios_per_sid=cls.OHLC_RATIOS_PER_SID,
         )
         writer.write(cls.make_equity_minute_bar_data())
 
@@ -1148,6 +1150,7 @@ class WithBcolzFutureMinuteBarReader(WithFutureMinuteBarData, WithTmpDir):
             days[0],
             days[-1],
             FUTURES_MINUTES_PER_DAY,
+            ohlc_ratios_per_sid=cls.OHLC_RATIOS_PER_SID,
         )
         writer.write(cls.make_future_minute_bar_data())
 

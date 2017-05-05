@@ -533,7 +533,7 @@ class HistoryLoader(with_metaclass(ABCMeta)):
         return concatenate(
             [window.get(end_ix) for window in block],
             axis=1,
-        ).round(3)
+        )
 
 
 class DailyHistoryLoader(HistoryLoader):
