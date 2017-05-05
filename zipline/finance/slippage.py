@@ -14,7 +14,7 @@
 # limitations under the License.
 from __future__ import division
 
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 import math
 from six import with_metaclass, iteritems
 from toolz import merge
@@ -91,7 +91,7 @@ class SlippageModel(with_metaclass(ABCMeta)):
     def volume_for_bar(self):
         return self._volume_for_bar
 
-    @abstractproperty
+    @abstractmethod
     def process_order(self, data, order):
         """Process how orders get filled.
 
@@ -198,10 +198,10 @@ class VolumeShareSlippage(SlippageModel):
     def __init__(self, volume_limit=DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT,
                  price_impact=0.1):
 
+        super(VolumeShareSlippage, self).__init__()
+
         self.volume_limit = volume_limit
         self.price_impact = price_impact
-
-        super(VolumeShareSlippage, self).__init__()
 
     def __repr__(self):
         return """
@@ -274,6 +274,7 @@ class FixedSlippage(SlippageModel):
     allowed_asset_types = (Equity, Future)
 
     def __init__(self, spread=0.0):
+        super(FixedSlippage, self).__init__()
         self.spread = spread
 
     def __repr__(self):
