@@ -32,7 +32,6 @@ from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.finance.order import Order
 from zipline.finance.slippage import (
     fill_price_worse_than_limit_price,
-    MarketImpactBase,
     NO_DATA_VOLATILITY_SLIPPAGE_IMPACT,
     VolatilityVolumeShare,
     VolumeShareSlippage,
@@ -875,7 +874,7 @@ class MarketImpactTestCase(WithCreateBarData, ZiplineTestCase):
         data = self.create_bardata(simulation_dt_func=lambda: minute)
         asset = self.asset_finder.retrieve_asset(1)
 
-        mean_volume, volatility = MarketImpactBase()._get_window_data(
+        mean_volume, volatility = VolatilityVolumeShare(0.0)._get_window_data(
             data, asset, window_length=20,
         )
 
