@@ -444,6 +444,7 @@ class DataPortalTestBase(WithDataPortal,
         minutes = self.nyse_calendar.minutes_for_session(self.trading_days[1])
         minute = minutes[0]
 
+        # Equity prices should be rounded to three decimal places.
         expected_equity_values = {
             'open': 1.006,
             'high': 1.006,
