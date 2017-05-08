@@ -61,6 +61,7 @@ def _run(handle_data,
          start,
          end,
          output,
+         trading_calendar,
          print_algo,
          local_namespace,
          environ):
@@ -159,11 +160,13 @@ def _run(handle_data,
         namespace=namespace,
         env=env,
         get_pipeline_loader=choose_loader,
+        trading_calendar=trading_calendar,
         sim_params=create_simulation_parameters(
             start=start,
             end=end,
             capital_base=capital_base,
             data_frequency=data_frequency,
+            trading_calendar=trading_calendar,
         ),
         **{
             'initialize': initialize,
@@ -251,6 +254,7 @@ def run_algorithm(start,
                   data=None,
                   bundle=None,
                   bundle_timestamp=None,
+                  trading_calendar=None,
                   default_extension=True,
                   extensions=(),
                   strict_extensions=True,
@@ -295,6 +299,8 @@ def run_algorithm(start,
         The datetime to lookup the bundle data for. This defaults to the
         current time.
         This argument is mutually exclusive with ``data``.
+    trading_calendar : TradingCalendar, optional
+        The trading calendar to use for your backtest.
     default_extension : bool, optional
         Should the default zipline extension be loaded. This is found at
         ``$ZIPLINE_ROOT/extension.py``
@@ -355,6 +361,7 @@ def run_algorithm(start,
         start=start,
         end=end,
         output=os.devnull,
+        trading_calendar=trading_calendar,
         print_algo=False,
         local_namespace=False,
         environ=environ,

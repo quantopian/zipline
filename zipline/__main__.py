@@ -173,6 +173,12 @@ def ipython_only(option):
     " be written to stdout.",
 )
 @click.option(
+    '--trading-calendar',
+    metavar='TRADING-CALENDAR',
+    default='NYSE',
+    help="The calendar you want to use e.g. LSE. NYSE is the default."
+)
+@click.option(
     '--print-algo/--no-print-algo',
     is_flag=True,
     default=False,
@@ -196,6 +202,7 @@ def run(ctx,
         start,
         end,
         output,
+        trading_calendar,
         print_algo,
         local_namespace):
     """Run a backtest for the given algorithm.
@@ -235,6 +242,7 @@ def run(ctx,
         start=start,
         end=end,
         output=output,
+        trading_calendar=trading_calendar,
         print_algo=print_algo,
         local_namespace=local_namespace,
         environ=os.environ,

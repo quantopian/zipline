@@ -288,10 +288,12 @@ class TradingAlgorithm(object):
             )
 
         # If a schedule has been provided, pop it. Otherwise, use NYSE.
-        self.trading_calendar = kwargs.pop(
+        calendar = kwargs.pop(
             'trading_calendar',
-            get_calendar("NYSE")
+            "NYSE"
         )
+
+        self.trading_calendar = get_calendar(calendar)
 
         self.sim_params = kwargs.pop('sim_params', None)
         if self.sim_params is None:
