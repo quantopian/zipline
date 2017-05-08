@@ -30,7 +30,7 @@ from nose_parameterized import parameterized
 from numpy import full, int32, int64
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
-from six import PY2, viewkeys
+from six import viewkeys
 import sqlalchemy as sa
 
 from zipline.assets import (
@@ -379,30 +379,9 @@ class TestFuture(WithAssetFinder, ZiplineTestCase):
         cls.future = cls.asset_finder.lookup_future_symbol('OMH15')
         cls.future2 = cls.asset_finder.lookup_future_symbol('CLG06')
 
-    def test_str(self):
-        strd = str(self.future)
-        self.assertEqual("Future(2468 [OMH15])", strd)
-
     def test_repr(self):
         reprd = repr(self.future)
-        self.assertIn("Future", reprd)
-        self.assertIn("2468", reprd)
-        self.assertIn("OMH15", reprd)
-        self.assertIn("root_symbol=%s'OM'" % ('u' if PY2 else ''), reprd)
-        self.assertIn(
-            "notice_date=Timestamp('2014-01-20 00:00:00+0000', tz='UTC')",
-            reprd,
-        )
-        self.assertIn(
-            "expiration_date=Timestamp('2014-02-20 00:00:00+0000'",
-            reprd,
-        )
-        self.assertIn(
-            "auto_close_date=Timestamp('2014-01-18 00:00:00+0000'",
-            reprd,
-        )
-        self.assertIn("tick_size=0.01", reprd)
-        self.assertIn("multiplier=500", reprd)
+        self.assertEqual("Future(2468 [OMH15])", reprd)
 
     def test_reduce(self):
         assert_equal(
