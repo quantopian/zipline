@@ -26,13 +26,15 @@ import numpy as np
 import pandas as pd
 import pytz
 
-from zipline.assets import Equity
+from zipline.assets import Equity, Future
 from zipline.data.data_portal import DataPortal
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.finance.order import Order
 from zipline.finance.slippage import (
+    EquitySlippageModel,
     fill_price_worse_than_limit_price,
-    NO_DATA_VOLATILITY_SLIPPAGE_IMPACT,
+    FutureSlippageModel,
+    SlippageModel,
     VolatilityVolumeShare,
     VolumeShareSlippage,
 )
@@ -104,6 +106,47 @@ class SlippageTestCase(WithCreateBarData,
 
         self.assertEqual(vol1.__dict__, vol1.asdict())
         self.assertEqual(vol2.__dict__, vol2.asdict())
+
+    def test_allowed_asset_types(self):
+        # Custom equities model.
+        class MyEquitiesModel(EquitySlippageModel):
+            def process_order(self, data, order):
+                return 0, 0
+
+        self.assertEqual(MyEquitiesModel.allowed_asset_types, (Equity,))
+
+        # Custom futures model.
+        class MyFuturesModel(FutureSlippageModel):
+            def process_order(self, data, order):
+                return 0, 0
+
+        self.assertEqual(MyFuturesModel.allowed_asset_types, (Future,))
+
+        # Custom model for both equities and futures.
+        class MyMixedModel(EquitySlippageModel, FutureSlippageModel):
+            def process_order(self, data, order):
+                return 0, 0
+
+        self.assertEqual(MyMixedModel.allowed_asset_types, (Equity, Future))
+
+        # Equivalent custom model for both equities and futures.
+        class MyMixedModel(SlippageModel):
+            def process_order(self, data, order):
+                return 0, 0
+
+        self.assertEqual(MyMixedModel.allowed_asset_types, (Equity, Future))
+
+        SomeType = type('SomeType', (object,), {})
+
+        # A custom model that defines its own allowed types should take
+        # precedence over the parent class definitions.
+        class MyCustomModel(EquitySlippageModel, FutureSlippageModel):
+            allowed_asset_types = (SomeType,)
+
+            def process_order(self, data, order):
+                return 0, 0
+
+        self.assertEqual(MyCustomModel.allowed_asset_types, (SomeType,))
 
     def test_fill_price_worse_than_limit_price(self):
         non_limit_order = TestOrder(limit=None, direction=1)
@@ -725,13 +768,13 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
     @classmethod
     def make_futures_info(cls):
         return pd.DataFrame({
-            'sid': [1000],
-            'root_symbol': ['CL'],
-            'symbol': ['CLF07'],
-            'start_date': [cls.ASSET_START_DATE],
-            'end_date': [cls.END_DATE],
-            'multiplier': [500],
-            'exchange': ['CME'],
+            'sid': [1000, 1001],
+            'root_symbol': ['CL', 'FV'],
+            'symbol': ['CLF07', 'FVF07'],
+            'start_date': [cls.ASSET_START_DATE, cls.START_DATE],
+            'end_date': [cls.END_DATE, cls.END_DATE],
+            'multiplier': [500, 500],
+            'exchange': ['CME', 'CME'],
         })
 
     @classmethod
@@ -799,27 +842,31 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
 
     def test_calculate_impact_without_history(self):
         model = VolatilityVolumeShare(volume_limit=1)
-        minutes = [
+        late_start_asset = self.asset_finder.retrieve_asset(1000)
+        early_start_asset = self.asset_finder.retrieve_asset(1001)
+
+        cases = [
+            # History will look for data before the start date.
+            (pd.Timestamp('2006-01-05 11:35AM', tz='UTC'), early_start_asset),
             # Start day of the futures contract; no history yet.
-            pd.Timestamp('2006-02-10 11:35AM', tz='UTC'),
+            (pd.Timestamp('2006-02-10 11:35AM', tz='UTC'), late_start_asset),
             # Only a week's worth of history data.
-            pd.Timestamp('2006-02-17 11:35AM', tz='UTC'),
+            (pd.Timestamp('2006-02-17 11:35AM', tz='UTC'), late_start_asset),
         ]
 
-        for minute in minutes:
+        for minute, asset in cases:
             data = self.create_bardata(simulation_dt_func=lambda: minute)
 
-            order = Order(dt=data.current_dt, asset=self.ASSET, amount=10)
+            order = Order(dt=data.current_dt, asset=asset, amount=10)
             price, amount = model.process_order(data, order)
 
             avg_price = (
-                data.current(self.ASSET, 'high') +
-                data.current(self.ASSET, 'low')
+                data.current(asset, 'high') + data.current(asset, 'low')
             ) / 2
             expected_price = \
-                avg_price + (avg_price * NO_DATA_VOLATILITY_SLIPPAGE_IMPACT)
+                avg_price * (1 + model.NO_DATA_VOLATILITY_SLIPPAGE_IMPACT)
 
-            self.assertEqual(price, expected_price)
+            self.assertAlmostEqual(price, expected_price, delta=0.001)
             self.assertEqual(amount, 10)
 
     def test_impacted_price_worse_than_limit(self):

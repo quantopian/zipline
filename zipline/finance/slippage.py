@@ -15,14 +15,16 @@
 from __future__ import division
 
 from abc import ABCMeta, abstractmethod
+from itertools import chain
 import math
-from six import with_metaclass, iteritems
-from toolz import merge
 
 import numpy as np
 from pandas import isnull
+from six import with_metaclass, iteritems
+from toolz import merge
 
 from zipline.assets import Equity, Future
+from zipline.errors import HistoryWindowStartsBeforeData
 from zipline.finance.constants import ROOT_SYMBOL_TO_ETA
 from zipline.finance.transaction import create_transaction
 from zipline.utils.cache import ExpiringCache
@@ -36,8 +38,7 @@ LIMIT = 1 << 3
 SQRT_252 = math.sqrt(252)
 
 DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT = 0.025
-DEFAULT_FUTURE_VOLUME_SLIPPAGE_BAR_LIMIT = 0.025
-NO_DATA_VOLATILITY_SLIPPAGE_IMPACT = 10.0 / 10000
+DEFAULT_FUTURE_VOLUME_SLIPPAGE_BAR_LIMIT = 0.05
 
 
 class LiquidityExceeded(Exception):
@@ -77,7 +78,45 @@ def fill_price_worse_than_limit_price(fill_price, order):
     return False
 
 
-class SlippageModel(with_metaclass(ABCMeta)):
+class SlippageModelMeta(ABCMeta):
+    """
+    This metaclass allows users to create custom slippage models that support
+    both equities and futures by subclassing EquityFutureModel and
+    FutureSlippageModel together.
+
+    Take for example the following custom model:
+
+        class MyCustomSlippage(EquitySlippageModel, FutureSlippageModel):
+            def process_order(self, data, order):
+                ...
+
+    Ordinarily the first parent class in the MRO ('EquitySlippageModel' in this
+    example) would override the 'allowed_asset_types' class attribute to only
+    include equities. However, this is probably not the expected behavior for a
+    reasonable user, so the metaclass will handle this specific case by
+    manually allowing both equities and futures for the class being created.
+    """
+
+    def __new__(mcls, name, bases, dict_):
+        if 'allowed_asset_types' not in dict_:
+            allowed_asset_types = tuple(
+                chain.from_iterable(
+                    marker.allowed_asset_types
+                    for marker in bases
+                    if isinstance(marker, AssetSlippageMarker)
+                )
+            )
+            if allowed_asset_types:
+                dict_['allowed_asset_types'] = allowed_asset_types
+
+        return super(SlippageModelMeta, mcls).__new__(mcls, name, bases, dict_)
+
+
+class AssetSlippageMarker(SlippageModelMeta):
+    pass
+
+
+class SlippageModel(with_metaclass(SlippageModelMeta)):
     """Abstract interface for defining a slippage model.
     """
 
@@ -175,14 +214,14 @@ class SlippageModel(with_metaclass(ABCMeta)):
         return self.__dict__
 
 
-class EquitySlippageModel(SlippageModel):
+class EquitySlippageModel(with_metaclass(AssetSlippageMarker, SlippageModel)):
     """
     Base class for slippage models which only support equities.
     """
     allowed_asset_types = (Equity,)
 
 
-class FutureSlippageModel(SlippageModel):
+class FutureSlippageModel(with_metaclass(AssetSlippageMarker, SlippageModel)):
     """
     Base class for slippage models which only support futures.
     """
@@ -293,6 +332,8 @@ class MarketImpactBase(SlippageModel):
     according to a history lookback.
     """
 
+    NO_DATA_VOLATILITY_SLIPPAGE_IMPACT = 10.0 / 10000
+
     def __init__(self):
         super(MarketImpactBase, self).__init__()
         self._window_data_cache = ExpiringCache()
@@ -365,7 +406,7 @@ class MarketImpactBase(SlippageModel):
         if mean_volume == 0 or np.isnan(volatility):
             # If this is the first day the contract exists or there is no
             # volume history, default to a conservative estimate of impact.
-            simulated_impact = price * NO_DATA_VOLATILITY_SLIPPAGE_IMPACT
+            simulated_impact = price * self.NO_DATA_VOLATILITY_SLIPPAGE_IMPACT
         else:
             simulated_impact = self.get_simulated_impact(
                 order=order,
@@ -404,14 +445,20 @@ class MarketImpactBase(SlippageModel):
         try:
             values = self._window_data_cache.get(asset, data.current_session)
         except KeyError:
-            # Add a day because we want 'window_length' complete days,
-            # excluding the current day.
-            volume_history = data.history(
-                asset, 'volume', window_length + 1, '1d',
-            )
-            close_history = data.history(
-                asset, 'close', window_length + 1, '1d',
-            )
+            try:
+                # Add a day because we want 'window_length' complete days,
+                # excluding the current day.
+                volume_history = data.history(
+                    asset, 'volume', window_length + 1, '1d',
+                )
+                close_history = data.history(
+                    asset, 'close', window_length + 1, '1d',
+                )
+            except HistoryWindowStartsBeforeData:
+                # If there is not enough data to do a full history call, return
+                # values as if there was no data.
+                return 0, np.NaN
+
             # Exclude the first value of the percent change array because it is
             # always just NaN.
             close_volatility = close_history[:-1].pct_change()[1:].std(
@@ -450,6 +497,8 @@ class VolatilityVolumeShare(MarketImpactBase):
         for all futures contracts is the same. If given a dictionary, it must
         map root symbols to the eta for contracts of that symbol.
     """
+
+    NO_DATA_VOLATILITY_SLIPPAGE_IMPACT = 7.5 / 10000
     allowed_asset_types = (Future,)
 
     def __init__(self, volume_limit, eta=ROOT_SYMBOL_TO_ETA):
