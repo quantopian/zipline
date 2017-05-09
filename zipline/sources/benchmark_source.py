@@ -146,6 +146,7 @@ class BenchmarkSource(object):
                 bar_count=len(minutes) + 1,
                 frequency="1m",
                 field="price",
+                data_frequency=self.emission_rate,
                 ffill=True
             )[asset]
 
@@ -163,6 +164,7 @@ class BenchmarkSource(object):
                     bar_count=len(trading_days) + 1,
                     frequency="1d",
                     field="price",
+                    data_frequency=self.emission_rate,
                     ffill=True
                 )[asset]
                 return benchmark_series.pct_change()[1:]
@@ -175,6 +177,7 @@ class BenchmarkSource(object):
                     bar_count=len(trading_days),
                     frequency="1d",
                     field="price",
+                    data_frequency=self.emission_rate,
                     ffill=True
                 )[asset]
 

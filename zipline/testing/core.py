@@ -714,7 +714,7 @@ class FakeDataPortal(DataPortal):
             return 1.0
 
     def get_history_window(self, assets, end_dt, bar_count, frequency, field,
-                           ffill=True):
+                           data_frequency, ffill=True):
         if frequency == "1d":
             end_idx = \
                 self.trading_calendar.all_sessions.searchsorted(end_dt)

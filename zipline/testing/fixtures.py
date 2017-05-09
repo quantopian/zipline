@@ -433,7 +433,10 @@ class WithTradingCalendars(object):
 
         cls.trading_calendars = {}
 
-        for cal_str in cls.TRADING_CALENDAR_STRS:
+        for cal_str in (
+            set(cls.TRADING_CALENDAR_STRS) |
+            {cls.TRADING_CALENDAR_PRIMARY_CAL}
+        ):
             # Set name to allow aliasing.
             calendar = get_calendar(cal_str)
             setattr(cls,
