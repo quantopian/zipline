@@ -670,7 +670,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf],
             Timestamp('2016-03-04 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1d', 'sid')
+            30, '1d', 'sid', 'minute')
 
         self.assertEqual(window.loc['2016-01-26', cf],
                          0,
@@ -696,7 +696,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf],
             Timestamp('2016-04-06 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1d', 'sid')
+            30, '1d', 'sid', 'minute')
 
         self.assertEqual(window.loc['2016-02-25', cf],
                          1,
@@ -724,7 +724,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf],
             Timestamp('2016-01-11 18:01', tz='US/Eastern').tz_convert('UTC'),
-            3, '1d', 'sid')
+            3, '1d', 'sid', 'minute')
 
         self.assertEqual(window.loc['2016-01-08', cf],
                          10,
@@ -745,7 +745,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf],
             Timestamp('2016-03-04 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1d', 'sid')
+            30, '1d', 'sid', 'minute')
 
         self.assertEqual(window.loc['2016-01-26', cf],
                          1,
@@ -771,7 +771,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf],
             Timestamp('2016-04-06 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1d', 'sid')
+            30, '1d', 'sid', 'minute')
 
         self.assertEqual(window.loc['2016-02-25', cf],
                          2,
@@ -799,7 +799,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf],
             Timestamp('2016-03-04 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1d', 'sid')
+            30, '1d', 'sid', 'minute')
 
         # Volume cuts out for FOF16 on 2016-01-25
         self.assertEqual(window.loc['2016-01-26', cf],
@@ -826,7 +826,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf],
             Timestamp('2016-04-06 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1d', 'sid')
+            30, '1d', 'sid', 'minute')
 
         self.assertEqual(window.loc['2016-02-25', cf],
                          1,
@@ -863,7 +863,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf.sid],
             Timestamp('2016-01-26 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1m', 'sid')
+            30, '1m', 'sid', 'minute')
 
         self.assertEqual(window.loc['2016-01-26 22:32', cf],
                          0,
@@ -882,7 +882,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf],
             Timestamp('2016-01-27 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1m', 'sid')
+            30, '1m', 'sid', 'minute')
 
         self.assertEqual(window.loc['2016-01-27 22:32', cf],
                          1,
@@ -896,7 +896,9 @@ def record_current_contract(algo, data):
         cf = self.data_portal.asset_finder.create_continuous_future(
             'FO', 0, 'calendar', None)
         window = self.data_portal.get_history_window(
-            [cf.sid], Timestamp('2016-03-06', tz='UTC'), 30, '1d', 'close')
+            [cf.sid],
+            Timestamp('2016-03-06', tz='UTC'),
+            30, '1d', 'close', 'daily')
 
         assert_almost_equal(
             window.loc['2016-01-26', cf],
@@ -915,7 +917,9 @@ def record_current_contract(algo, data):
 
         # Advance the window a month.
         window = self.data_portal.get_history_window(
-            [cf.sid], Timestamp('2016-04-06', tz='UTC'), 30, '1d', 'close')
+            [cf.sid],
+            Timestamp('2016-04-06', tz='UTC'),
+            30, '1d', 'close', 'daily')
 
         assert_almost_equal(
             window.loc['2016-02-24', cf],
@@ -946,7 +950,9 @@ def record_current_contract(algo, data):
         cf = self.data_portal.asset_finder.create_continuous_future(
             'MA', 0, 'volume', None)
         window = self.data_portal.get_history_window(
-            [cf.sid], Timestamp('2016-03-06', tz='UTC'), 30, '1d', 'close')
+            [cf.sid],
+            Timestamp('2016-03-06', tz='UTC'),
+            30, '1d', 'close', 'daily')
 
         assert_almost_equal(
             window.loc['2016-01-26', cf],
@@ -965,7 +971,9 @@ def record_current_contract(algo, data):
 
         # Advance the window a month.
         window = self.data_portal.get_history_window(
-            [cf.sid], Timestamp('2016-04-06', tz='UTC'), 30, '1d', 'close')
+            [cf.sid],
+            Timestamp('2016-04-06', tz='UTC'),
+            30, '1d', 'close', 'daily')
 
         assert_almost_equal(
             window.loc['2016-02-24', cf],
@@ -991,7 +999,8 @@ def record_current_contract(algo, data):
             'FO', 0, 'calendar', 'add')
         window = self.data_portal.get_history_window(
             [cf, cf_mul, cf_add],
-            Timestamp('2016-03-06', tz='UTC'), 30, '1d', 'close')
+            Timestamp('2016-03-06', tz='UTC'),
+            30, '1d', 'close', 'daily')
 
         # Unadjusted value is: 115011.44
         # Adjustment is based on hop from 115231.44 to 125231.44
@@ -1034,7 +1043,8 @@ def record_current_contract(algo, data):
         # Advance the window a month.
         window = self.data_portal.get_history_window(
             [cf, cf_mul, cf_add],
-            Timestamp('2016-04-06', tz='UTC'), 30, '1d', 'close')
+            Timestamp('2016-04-06', tz='UTC'),
+            30, '1d', 'close', 'daily')
 
         # Unadjusted value: 115221.44
         # Adjustments based on hops:
@@ -1116,7 +1126,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf.sid],
             Timestamp('2016-02-25 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1m', 'close')
+            30, '1m', 'close', 'minute')
 
         self.assertEqual(window.loc['2016-02-25 22:32', cf],
                          115231.412,
@@ -1135,7 +1145,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf],
             Timestamp('2016-02-28 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1m', 'close')
+            30, '1m', 'close', 'minute')
 
         self.assertEqual(window.loc['2016-02-26 22:32', cf],
                          125241.412,
@@ -1155,7 +1165,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf, cf_mul, cf_add],
             Timestamp('2016-02-25 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1m', 'close')
+            30, '1m', 'close', 'minute')
 
         # Unadjusted: 115231.412
         # Adjustment based on roll:
@@ -1198,7 +1208,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf, cf_mul, cf_add],
             Timestamp('2016-02-28 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1m', 'close')
+            30, '1m', 'close', 'minute')
 
         # No adjustments in this window.
         self.assertEqual(window.loc['2016-02-26 22:32', cf_mul],
@@ -1219,7 +1229,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf, cf_mul, cf_add],
             Timestamp('2016-02-25 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1m', 'close')
+            30, '1m', 'close', 'minute')
 
         # Unadjusted: 115231.412
         # Adjustment based on roll:
@@ -1262,7 +1272,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf, cf_mul, cf_add],
             Timestamp('2016-02-28 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1m', 'close')
+            30, '1m', 'close', 'minute')
 
         # No adjustments in this window.
         self.assertEqual(window.loc['2016-02-26 22:32', cf_mul],
