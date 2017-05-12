@@ -14,8 +14,7 @@
 # limitations under the License.
 from __future__ import division
 
-from abc import ABCMeta, abstractmethod
-from itertools import chain
+from abc import abstractmethod
 import math
 
 import numpy as np
@@ -26,6 +25,7 @@ from toolz import merge
 from zipline.assets import Equity, Future
 from zipline.errors import HistoryWindowStartsBeforeData
 from zipline.finance.constants import ROOT_SYMBOL_TO_ETA
+from zipline.finance.shared import AllowedAssetMarker, FinancialModelMeta
 from zipline.finance.transaction import create_transaction
 from zipline.utils.cache import ExpiringCache
 from zipline.utils.dummy import DummyMapping
@@ -78,45 +78,7 @@ def fill_price_worse_than_limit_price(fill_price, order):
     return False
 
 
-class SlippageModelMeta(ABCMeta):
-    """
-    This metaclass allows users to create custom slippage models that support
-    both equities and futures by subclassing EquityFutureModel and
-    FutureSlippageModel together.
-
-    Take for example the following custom model:
-
-        class MyCustomSlippage(EquitySlippageModel, FutureSlippageModel):
-            def process_order(self, data, order):
-                ...
-
-    Ordinarily the first parent class in the MRO ('EquitySlippageModel' in this
-    example) would override the 'allowed_asset_types' class attribute to only
-    include equities. However, this is probably not the expected behavior for a
-    reasonable user, so the metaclass will handle this specific case by
-    manually allowing both equities and futures for the class being created.
-    """
-
-    def __new__(mcls, name, bases, dict_):
-        if 'allowed_asset_types' not in dict_:
-            allowed_asset_types = tuple(
-                chain.from_iterable(
-                    marker.allowed_asset_types
-                    for marker in bases
-                    if isinstance(marker, AssetSlippageMarker)
-                )
-            )
-            if allowed_asset_types:
-                dict_['allowed_asset_types'] = allowed_asset_types
-
-        return super(SlippageModelMeta, mcls).__new__(mcls, name, bases, dict_)
-
-
-class AssetSlippageMarker(SlippageModelMeta):
-    pass
-
-
-class SlippageModel(with_metaclass(SlippageModelMeta)):
+class SlippageModel(with_metaclass(FinancialModelMeta)):
     """Abstract interface for defining a slippage model.
     """
 
@@ -214,14 +176,14 @@ class SlippageModel(with_metaclass(SlippageModelMeta)):
         return self.__dict__
 
 
-class EquitySlippageModel(with_metaclass(AssetSlippageMarker, SlippageModel)):
+class EquitySlippageModel(with_metaclass(AllowedAssetMarker, SlippageModel)):
     """
     Base class for slippage models which only support equities.
     """
     allowed_asset_types = (Equity,)
 
 
-class FutureSlippageModel(with_metaclass(AssetSlippageMarker, SlippageModel)):
+class FutureSlippageModel(with_metaclass(AllowedAssetMarker, SlippageModel)):
     """
     Base class for slippage models which only support futures.
     """

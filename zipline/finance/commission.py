@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import abc
 from abc import abstractmethod
 from collections import defaultdict
 
@@ -21,6 +20,7 @@ from toolz import merge
 
 from zipline.assets import Equity, Future
 from zipline.finance.constants import FUTURE_EXCHANGE_FEES_BY_SYMBOL
+from zipline.finance.shared import AllowedAssetMarker, FinancialModelMeta
 from zipline.utils.dummy import DummyMapping
 
 DEFAULT_PER_SHARE_COST = 0.0075              # 0.75 cents per share
@@ -30,7 +30,7 @@ DEFAULT_MINIMUM_COST_PER_EQUITY_TRADE = 1.0  # $1 per trade
 DEFAULT_MINIMUM_COST_PER_FUTURE_TRADE = 1.0  # $1 per trade
 
 
-class CommissionModel(with_metaclass(abc.ABCMeta)):
+class CommissionModel(with_metaclass(FinancialModelMeta)):
     """
     Abstract commission model interface.
 
@@ -70,14 +70,16 @@ class CommissionModel(with_metaclass(abc.ABCMeta)):
         raise NotImplementedError('calculate')
 
 
-class EquityCommissionModel(CommissionModel):
+class EquityCommissionModel(with_metaclass(AllowedAssetMarker,
+                                           CommissionModel)):
     """
     Base class for commission models which only support equities.
     """
     allowed_asset_types = (Equity,)
 
 
-class FutureCommissionModel(CommissionModel):
+class FutureCommissionModel(with_metaclass(AllowedAssetMarker,
+                                           CommissionModel)):
     """
     Base class for commission models which only support futures.
     """
@@ -253,7 +255,7 @@ class PerContract(FutureCommissionModel):
         )
 
 
-class PerEquityTrade(EquityCommissionModel):
+class PerTrade(CommissionModel):
     """
     Calculates a commission for a transaction based on a per trade cost.
 
@@ -352,7 +354,3 @@ class PerDollar(EquityCommissionModel):
         """
         cost_per_share = transaction.price * self.cost_per_dollar
         return abs(transaction.amount) * cost_per_share
-
-
-# Alias PerTrade for backwards compatibility.
-PerTrade = PerEquityTrade

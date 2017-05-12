@@ -5,8 +5,12 @@ from nose_parameterized import parameterized
 from pandas import DataFrame
 
 from zipline import TradingAlgorithm
+from zipline.assets import Equity, Future
 from zipline.errors import IncompatibleCommissionModel
 from zipline.finance.commission import (
+    CommissionModel,
+    EquityCommissionModel,
+    FutureCommissionModel,
     PerContract,
     PerDollar,
     PerFutureTrade,
@@ -78,6 +82,47 @@ class CommissionUnitTests(WithAssetFinder, ZiplineTestCase):
 
         self.assertEqual(0, model.calculate(order, txns[1]))
         self.assertEqual(0, model.calculate(order, txns[2]))
+
+    def test_allowed_asset_types(self):
+        # Custom equities model.
+        class MyEquitiesModel(EquityCommissionModel):
+            def calculate(self, order, transaction):
+                return 0
+
+        self.assertEqual(MyEquitiesModel.allowed_asset_types, (Equity,))
+
+        # Custom futures model.
+        class MyFuturesModel(FutureCommissionModel):
+            def calculate(self, order, transaction):
+                return 0
+
+        self.assertEqual(MyFuturesModel.allowed_asset_types, (Future,))
+
+        # Custom model for both equities and futures.
+        class MyMixedModel(EquityCommissionModel, FutureCommissionModel):
+            def calculate(self, order, transaction):
+                return 0
+
+        self.assertEqual(MyMixedModel.allowed_asset_types, (Equity, Future))
+
+        # Equivalent custom model for both equities and futures.
+        class MyMixedModel(CommissionModel):
+            def calculate(self, order, transaction):
+                return 0
+
+        self.assertEqual(MyMixedModel.allowed_asset_types, (Equity, Future))
+
+        SomeType = type('SomeType', (object,), {})
+
+        # A custom model that defines its own allowed types should take
+        # precedence over the parent class definitions.
+        class MyCustomModel(EquityCommissionModel, FutureCommissionModel):
+            allowed_asset_types = (SomeType,)
+
+            def calculate(self, order, transaction):
+                return 0
+
+        self.assertEqual(MyCustomModel.allowed_asset_types, (SomeType,))
 
     def test_per_trade(self):
         # Test per trade model for equities.
