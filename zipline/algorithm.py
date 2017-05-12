@@ -124,7 +124,6 @@ from zipline.utils.events import (
 from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.math_utils import (
     tolerant_equals,
-    round_if_near_integer,
 )
 from zipline.utils.pandas_utils import clear_dataframe_indexer_caches
 from zipline.utils.preprocess import preprocess
@@ -1454,14 +1453,9 @@ class TradingAlgorithm(object):
     @staticmethod
     def round_order(amount):
         """
-        Convert number of shares to an integer.
-
-        By default, truncates to the integer share count that's either within
-        .0001 of amount or closer to zero.
-
-        E.g. 3.9999 -> 4.0; 5.5 -> 5.0; -5.5 -> -5.0
+        Round number of shares to the nearest integer.
         """
-        return int(round_if_near_integer(amount))
+        return int(round(amount))
 
     def validate_order_params(self,
                               asset,

@@ -96,7 +96,6 @@ from zipline.finance.execution import (
     StopOrder,
 )
 from zipline.finance.controls import AssetDateBounds
-from zipline.utils.math_utils import round_if_near_integer
 
 
 class TestAlgorithm(TradingAlgorithm):
@@ -396,7 +395,7 @@ class TestOrderPercentAlgorithm(TradingAlgorithm):
                 (data.current(sid(0), "price") *
                     self.sid(0).contract_multiplier)
 
-        new_shares = int(round_if_near_integer(new_shares))
+        new_shares = int(round(new_shares))
         self.target_shares += new_shares
 
 
