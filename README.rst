@@ -4,8 +4,8 @@
     :align: center
     :alt: Zipline
 
-Zipline
-=======
+Zipline-live
+============
 
 |travis status|
 |appveyor status|
@@ -174,8 +174,9 @@ Contributions
 If you would like to contribute, please see our Contribution Requests:
 https://github.com/quantopian/zipline/wiki/Contribution-Requests
 
-.. |travis status| image:: https://travis-ci.org/zipline-live/zipline.png?branch=master
-   :target: https://travis-ci.org/zipline-live/zipline
+
+.. |travis status| image:: https://travis-ci.org/zipline-live/zipline.svg?branch=live
+    :target: https://travis-ci.org/zipline-live/zipline
 .. |appveyor status| image:: https://ci.appveyor.com/api/projects/status/jkuo1hca8v8aueym?svg=true
    :target: https://ci.appveyor.com/project/pbharrin/zipline/branch/live
 .. |Coverage Status| image:: https://coveralls.io/repos/github/zipline-live/zipline/badge.svg?branch=live
