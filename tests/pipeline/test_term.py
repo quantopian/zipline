@@ -71,6 +71,7 @@ class SomeFactor(Factor):
     window_length = 5
     inputs = [SomeDataSet.foo, SomeDataSet.bar]
 
+
 SomeFactorAlias = SomeFactor
 
 

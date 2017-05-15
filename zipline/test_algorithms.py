@@ -789,6 +789,7 @@ def handle_data_api(context, data):
 
     record(incr=context.incr)
 
+
 ###########################
 # AlgoScripts as strings
 noop_algo = """
