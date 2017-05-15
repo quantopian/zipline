@@ -805,6 +805,7 @@ class AnnualizedVolatility(CustomFactor):
     def compute(self, today, assets, out, returns, annualization_factor):
         out[:] = nanstd(returns, axis=0) * (annualization_factor ** .5)
 
+
 # Convenience aliases.
 EWMA = ExponentialWeightedMovingAverage
 EWMSTD = ExponentialWeightedMovingStdDev
