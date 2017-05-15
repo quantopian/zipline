@@ -6,7 +6,11 @@ import pandas as pd
 from datetime import time
 from collections import defaultdict
 
-from itertools import izip_longest
+# fix to allow zip_longest on Python 2.X and 3.X
+try:                # Python 3
+    from itertools import zip_longest
+except ImportError: # Python 2
+    from itertools import izip_longest as zip_longest
 
 from mock import patch
 
@@ -77,7 +81,7 @@ class TestRealtimeClock(TestCase):
 
                 rtc_events = list(rtc)
 
-            for rtc_event, msc_event in izip_longest(rtc_events, msc_events):
+            for rtc_event, msc_event in zip_longest(rtc_events, msc_events):
                 self.assertEquals(rtc_event, msc_event)
 
             self.assertEquals(len(rtc_events), len(msc_events))
