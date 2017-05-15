@@ -88,6 +88,7 @@ class RealtimeClock(object):
                 else:
                     sleep(1)
             elif server_time == self.execution_closes[0].tz_localize('UTC'):
+                self._last_emit = server_time
                 yield server_time, BAR
                 if self.minute_emission:
                     yield server_time, MINUTE_END
