@@ -37,18 +37,21 @@ class TestRealtimeClock(TestCase):
 
     def advance_clock(self, x):
         """Mock function for sleep. Advances the internal clock by 1 min"""
-        # The internal clock advance time must be 1 minute to match with MinutesSimulationClock
+        # The internal clock advance time must be 1 minute to match
+        # MinutesSimulationClock's update frequency
         self.internal_clock += pd.Timedelta('1 min')
 
     def get_clock(self, arg, *args, **kwargs):
-        """Mock function for pandas.to_datetime which is used to query the current time in RealtimeClock"""
+        """Mock function for pandas.to_datetime which is used to query the
+        current time in RealtimeClock"""
         assert arg == "now"
         return self.internal_clock
 
     def test_crosscheck_realtimeclock_with_minutesimulationclock(self):
         """Tests that RealtimeClock behaves like MinuteSimulationClock"""
         for minute_emission in (False, True):
-            # MinuteSimulationClock also relies on to_datetime, shall not be created in the patch block
+            # MinuteSimulationClock also relies on to_datetime, shall not be
+            # created in the patch block
             msc = MinuteSimulationClock(
                 self.sessions,
                 self.opens,
@@ -67,7 +70,8 @@ class TestRealtimeClock(TestCase):
                     days_at_time(self.sessions, time(8, 45), "US/Eastern"),
                     minute_emission
                 ))
-                self.internal_clock = pd.Timestamp("2017-04-20 00:00", tz='UTC')
+                self.internal_clock = \
+                    pd.Timestamp("2017-04-20 00:00", tz='UTC')
                 to_dt.side_effect = self.get_clock
                 sleep.side_effect = self.advance_clock
 
@@ -79,10 +83,11 @@ class TestRealtimeClock(TestCase):
             self.assertEquals(len(rtc_events), len(msc_events))
 
     def test_time_skew(self):
-        """Tests that RealtimeClock's time_skew parameter behaves as expected"""
+        """Tests that RealtimeClock's time_skew parameter behaves as
+        expected"""
         for time_skew in (pd.Timedelta("2 hour"), pd.Timedelta("-120 sec")):
             with patch('zipline.gens.realtimeclock.pd.to_datetime') as to_dt, \
-                 patch('zipline.gens.realtimeclock.sleep') as sleep:
+                    patch('zipline.gens.realtimeclock.sleep') as sleep:
                 clock = RealtimeClock(
                     self.sessions,
                     self.opens,
@@ -114,7 +119,7 @@ class TestRealtimeClock(TestCase):
         msc_events = list(msc)
 
         with patch('zipline.gens.realtimeclock.pd.to_datetime') as to_dt, \
-             patch('zipline.gens.realtimeclock.sleep') as sleep:
+                patch('zipline.gens.realtimeclock.sleep') as sleep:
             rtc = RealtimeClock(
                 self.sessions,
                 self.opens,
@@ -130,10 +135,10 @@ class TestRealtimeClock(TestCase):
             rtc_events = list(rtc)
 
         # Count the mid-day position in the MinuteSimulationClock's events:
-        # [2017-05-07 16:42:35.531282] INFO: Trade Simulation: Processing tick: 2017-04-20 00:00:00+00:00 - 1 (SESSION_START)
-        # [2017-05-07 16:42:35.531622] INFO: Trade Simulation: Processing tick: 2017-04-20 12:45:00+00:00 - 4 (BEFORE_TRADING_START)
-        # [2017-05-07 16:42:35.532042] INFO: Trade Simulation: Processing tick: 2017-04-20 13:31:00+00:00 - 0 (BAR)
-        msc_midday_position = 2 + 90 - 1 #  2 = SESSION_START + BEFORE_TRADING_START, 90-1 minutes
-        self.assertEquals(rtc_events[0], msc_events[0]) # Session start bar
+        # Simulation Tick: 2017-04-20 00:00:00+00:00 - 1 (SESSION_START)
+        # Simulation Tick: 2017-04-20 12:45:00+00:00 - 4 (BEFORE_TRADING_START)
+        # Simulation Tick: 2017-04-20 13:31:00+00:00 - 0 (BAR)
+        msc_midday_position = 2 + 90 - 1
+        self.assertEquals(rtc_events[0], msc_events[0])  # Session start bar
         # BEFORE_TRADING_START is not fired as we're in mid-day
         self.assertEquals(rtc_events[1:], msc_events[msc_midday_position:])
