@@ -62,6 +62,7 @@ script:
       if [[ -f "$RECIPE_OUTPUT" && "$DO_UPLOAD" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload "$RECIPE_OUTPUT" -u quantopian --label ci; fi
     done
 
+  # TODO: is the below code needed?
   # unshallow the clone so the conda build can clone it.
   - git fetch --unshallow
   - exec 3>&1; ZP_OUT=$(conda build conda/zipline --python=$CONDA_PY --numpy=$CONDA_NPY -c quantopian -c https://conda.anaconda.org/quantopian/label/ci | tee >(cat - >&3))
