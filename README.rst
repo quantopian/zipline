@@ -176,7 +176,7 @@ https://github.com/quantopian/zipline/wiki/Contribution-Requests
 
 .. |travis status| image:: https://travis-ci.org/zipline-live/zipline.png?branch=master
    :target: https://travis-ci.org/zipline-live/zipline
-.. |appveyor status| image:: https://ci.appveyor.com/api/projects/status/3dg18e6227dvstw6/branch/master?svg=true
+.. |appveyor status| image:: https://ci.appveyor.com/api/projects/status/2clf2cypslurxx1s/branch/live?svg=true
    :target: https://ci.appveyor.com/project/quantopian/zipline/branch/master
 .. |Coverage Status| image:: https://coveralls.io/repos/zipline-live/zipline/badge.png
    :target: https://coveralls.io/r/zipline-live/zipline
