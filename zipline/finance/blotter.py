@@ -148,6 +148,9 @@ class Blotter(object):
             id=order_id
         )
 
+        if asset.sid == 6683:
+            log.info('%s Ordering %s' % (type(self).__name__, order))
+
         self.open_orders[order.asset].append(order)
         self.orders[order.id] = order
         self.new_orders.append(order)
@@ -181,6 +184,9 @@ class Blotter(object):
 
         cur_order = self.orders[order_id]
 
+        if cur_order.sid.sid == 6683:
+            log.info('%s dt %s Ordering %s' % (type(self).__name__, self.current_dt, cur_order))
+
         if cur_order.open:
             order_list = self.open_orders[cur_order.asset]
             if cur_order in order_list:
@@ -203,6 +209,9 @@ class Blotter(object):
         """
         # (sadly) open_orders is a defaultdict, so this will always succeed.
         orders = self.open_orders[asset]
+
+        if asset.sid == 6683:
+            log.info('%s dt %s Cancelling all' % (type(self).__name__, self.current_dt))
 
         # We're making a copy here because `cancel` mutates the list of open
         # orders in place.  The right thing to do here would be to make
@@ -258,6 +267,7 @@ class Blotter(object):
         if self.cancel_policy.should_cancel(event):
             warn = self.cancel_policy.warn_on_cancel
             for asset in copy(self.open_orders):
+
                 self.cancel_all_orders_for_asset(asset, warn,
                                                  relay_status=False)
 
@@ -362,6 +372,9 @@ class Blotter(object):
         if self.open_orders:
             for asset, asset_orders in iteritems(self.open_orders):
                 slippage = self.slippage_models[type(asset)]
+
+                if asset.sid == 6683:
+                    log.info('%s dt %s transacting asset orders %s' % (type(self).__name__, self.current_dt, asset_orders))
 
                 for order, txn in \
                         slippage.simulate(bar_data, asset, asset_orders):
