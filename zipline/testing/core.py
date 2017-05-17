@@ -859,6 +859,8 @@ class tmp_trading_env(tmp_asset_finder):
 
     Parameters
     ----------
+    load : callable, optional
+        Function that returns benchmark returns and treasury curves.
     finder_cls : type, optional
         The type of asset finder to create from the assets db.
     **frames
@@ -869,8 +871,13 @@ class tmp_trading_env(tmp_asset_finder):
     empty_trading_env
     tmp_asset_finder
     """
+    def __init__(self, load=None, *args, **kwargs):
+        super(tmp_trading_env, self).__init__(*args, **kwargs)
+        self._load = load
+
     def __enter__(self):
         return TradingEnvironment(
+            load=self._load,
             asset_db_path=super(tmp_trading_env, self).__enter__().engine,
         )
 
