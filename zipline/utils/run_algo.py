@@ -129,7 +129,7 @@ def _run(handle_data,
                 "invalid url %r, must begin with 'sqlite:///'" %
                 str(bundle_data.asset_finder.engine.url),
             )
-        env = TradingEnvironment(asset_db_path=connstr)
+        env = TradingEnvironment(asset_db_path=connstr, environ=environ)
         first_trading_day =\
             bundle_data.equity_minute_bar_reader.first_trading_day
         data = DataPortal(
@@ -152,7 +152,7 @@ def _run(handle_data,
                 "No PipelineLoader registered for column %s." % column
             )
     else:
-        env = None
+        env = TradingEnvironment(environ=environ)
         choose_loader = None
 
     perf = TradingAlgorithm(

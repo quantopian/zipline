@@ -29,6 +29,7 @@ from toolz import concat, curry
 from zipline.assets import AssetFinder, AssetDBWriter
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.data.data_portal import DataPortal
+from zipline.data.loader import get_benchmark_filename, INDEX_MAPPING
 from zipline.data.minute_bars import (
     BcolzMinuteBarReader,
     BcolzMinuteBarWriter,
@@ -52,6 +53,7 @@ from zipline.utils.calendars import get_calendar
 from zipline.utils.input_validation import expect_dimensions
 from zipline.utils.numpy_utils import as_column, isnat
 from zipline.utils.pandas_utils import timedelta_to_integral_seconds
+from zipline.utils.paths import ensure_directory
 from zipline.utils.sentinel import sentinel
 
 import numpy as np
@@ -1488,6 +1490,19 @@ def patch_read_csv(url_map, module=pd, strict=False):
 
     with patch.object(module, 'read_csv', patched_read_csv):
         yield
+
+
+def copy_market_data(src_market_data_dir, dest_root_dir):
+    symbol = '^GSPC'
+    filenames = (get_benchmark_filename(symbol), INDEX_MAPPING[symbol][1])
+
+    ensure_directory(os.path.join(dest_root_dir, 'data'))
+
+    for filename in filenames:
+        shutil.copyfile(
+            os.path.join(src_market_data_dir, filename),
+            os.path.join(dest_root_dir, 'data', filename)
+        )
 
 
 @curry

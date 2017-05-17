@@ -88,6 +88,7 @@ from zipline.finance.asset_restrictions import (
 )
 from zipline.testing import (
     FakeDataPortal,
+    copy_market_data,
     create_daily_df_for_asset,
     create_data_portal,
     create_data_portal_from_trade_history,
@@ -99,6 +100,7 @@ from zipline.testing import (
     tmp_trading_env,
     to_utc,
     trades_by_sid_to_dfs,
+    tmp_dir,
 )
 from zipline.testing import RecordBatchBlotter
 from zipline.testing.fixtures import (
@@ -4760,13 +4762,18 @@ class TestPanelData(WithTradingEnvironment, ZiplineTestCase):
             check_panels()
             price_record.loc[:] = np.nan
 
-        run_algorithm(
-            start=start_dt,
-            end=end_dt,
-            capital_base=1,
-            initialize=initialize,
-            handle_data=handle_data,
-            data_frequency=data_frequency,
-            data=panel
-        )
-        check_panels()
+        with tmp_dir() as tmpdir:
+            root = tmpdir.getpath('example_data/root')
+            copy_market_data(self.MARKET_DATA_DIR, root)
+
+            run_algorithm(
+                start=start_dt,
+                end=end_dt,
+                capital_base=1,
+                initialize=initialize,
+                handle_data=handle_data,
+                data_frequency=data_frequency,
+                data=panel,
+                environ={'ZIPLINE_ROOT': root},
+            )
+            check_panels()
