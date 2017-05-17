@@ -695,11 +695,8 @@ def create_data_portal_from_trade_history(asset_finder, trading_calendar,
 
 
 class FakeDataPortal(DataPortal):
-    def __init__(self, env=None, trading_calendar=None,
+    def __init__(self, env, trading_calendar=None,
                  first_trading_day=None):
-        if env is None:
-            env = TradingEnvironment()
-
         if trading_calendar is None:
             trading_calendar = get_calendar("NYSE")
 

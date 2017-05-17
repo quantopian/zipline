@@ -566,7 +566,7 @@ class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
         )
 
         algo.run(
-            FakeDataPortal(),
+            FakeDataPortal(self.env),
             # Yes, I really do want to use the start and end dates I passed to
             # TradingAlgorithm.
             overwrite_sim_params=False,
@@ -606,7 +606,7 @@ class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
         )
 
         algo.run(
-            FakeDataPortal(),
+            FakeDataPortal(self.env),
             overwrite_sim_params=False,
         )
 
@@ -654,7 +654,7 @@ class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
         )
 
         algo.run(
-            FakeDataPortal(),
+            FakeDataPortal(self.env),
             overwrite_sim_params=False,
         )
 
