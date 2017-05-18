@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from datetime import time
+from datetime import datetime
 from os.path import (
     abspath,
     dirname,
@@ -66,6 +67,23 @@ class FakeCalendar(TradingCalendar):
     @property
     def close_time(self):
         return time(11, 49)
+
+
+class CalendarStartEndTestCase(TestCase):
+    @parameterized.expand([
+        (pd.Timestamp('2010-1-4'), pd.Timestamp('2010-1-8')),
+        (datetime(2010, 1, 4), datetime(2010, 1, 8)),
+        ('2010-1-4', '2010-1-8'),
+    ])
+    def test_start_end(self, start, end):
+        """
+        Check TradingCalendar with defined start/end dates.
+        """
+        calendar = FakeCalendar(start=start, end=end)
+        expected_first = pd.Timestamp(start, tz='UTC')
+        expected_last = pd.Timestamp(end, tz='UTC')
+        self.assertTrue(calendar.first_trading_session == expected_first)
+        self.assertTrue(calendar.last_trading_session == expected_last)
 
 
 class CalendarRegistrationTestCase(TestCase):
