@@ -29,6 +29,7 @@ from toolz import concat, curry
 from zipline.assets import AssetFinder, AssetDBWriter
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.data.data_portal import DataPortal
+from zipline.data.loader import get_benchmark_filename, INDEX_MAPPING
 from zipline.data.minute_bars import (
     BcolzMinuteBarReader,
     BcolzMinuteBarWriter,
@@ -52,6 +53,7 @@ from zipline.utils.calendars import get_calendar
 from zipline.utils.input_validation import expect_dimensions
 from zipline.utils.numpy_utils import as_column, isnat
 from zipline.utils.pandas_utils import timedelta_to_integral_seconds
+from zipline.utils.paths import ensure_directory
 from zipline.utils.sentinel import sentinel
 
 import numpy as np
@@ -695,11 +697,8 @@ def create_data_portal_from_trade_history(asset_finder, trading_calendar,
 
 
 class FakeDataPortal(DataPortal):
-    def __init__(self, env=None, trading_calendar=None,
+    def __init__(self, env, trading_calendar=None,
                  first_trading_day=None):
-        if env is None:
-            env = TradingEnvironment()
-
         if trading_calendar is None:
             trading_calendar = get_calendar("NYSE")
 
@@ -862,6 +861,8 @@ class tmp_trading_env(tmp_asset_finder):
 
     Parameters
     ----------
+    load : callable, optional
+        Function that returns benchmark returns and treasury curves.
     finder_cls : type, optional
         The type of asset finder to create from the assets db.
     **frames
@@ -872,8 +873,13 @@ class tmp_trading_env(tmp_asset_finder):
     empty_trading_env
     tmp_asset_finder
     """
+    def __init__(self, load=None, *args, **kwargs):
+        super(tmp_trading_env, self).__init__(*args, **kwargs)
+        self._load = load
+
     def __enter__(self):
         return TradingEnvironment(
+            load=self._load,
             asset_db_path=super(tmp_trading_env, self).__enter__().engine,
         )
 
@@ -1484,6 +1490,19 @@ def patch_read_csv(url_map, module=pd, strict=False):
 
     with patch.object(module, 'read_csv', patched_read_csv):
         yield
+
+
+def copy_market_data(src_market_data_dir, dest_root_dir):
+    symbol = '^GSPC'
+    filenames = (get_benchmark_filename(symbol), INDEX_MAPPING[symbol][1])
+
+    ensure_directory(os.path.join(dest_root_dir, 'data'))
+
+    for filename in filenames:
+        shutil.copyfile(
+            os.path.join(src_market_data_dir, filename),
+            os.path.join(dest_root_dir, 'data', filename)
+        )
 
 
 @curry

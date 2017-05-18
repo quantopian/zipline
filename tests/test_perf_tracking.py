@@ -57,7 +57,6 @@ from zipline.testing.fixtures import (
     WithSimParams,
     WithTmpDir,
     WithTradingEnvironment,
-    WithTradingCalendars,
     ZiplineTestCase,
 )
 from zipline.utils.calendars import get_calendar
@@ -1029,7 +1028,8 @@ class TestDividendPerformanceHolidayStyle(TestDividendPerformance):
     END_DATE = pd.Timestamp('2003-12-08', tz='utc')
 
 
-class TestPositionPerformance(WithInstanceTmpDir, WithTradingCalendars,
+class TestPositionPerformance(WithInstanceTmpDir,
+                              WithTradingEnvironment,
                               ZiplineTestCase):
 
     def create_environment_stuff(self,
@@ -1054,6 +1054,7 @@ class TestPositionPerformance(WithInstanceTmpDir, WithTradingCalendars,
         self.env = self.enter_instance_context(tmp_trading_env(
             equities=equities,
             futures=futures,
+            load=self.make_load_function(),
         ))
         self.sim_params = create_simulation_parameters(
             start=start,

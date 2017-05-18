@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
 
 import logbook
 import pandas as pd
@@ -86,11 +87,12 @@ class TradingEnvironment(object):
         trading_calendar=None,
         asset_db_path=':memory:',
         future_chain_predicates=CHAIN_PREDICATES,
+        environ=None,
     ):
 
         self.bm_symbol = bm_symbol
         if not load:
-            load = load_market_data
+            load = partial(load_market_data, environ=environ)
 
         if not trading_calendar:
             trading_calendar = get_calendar("NYSE")

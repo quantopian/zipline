@@ -88,11 +88,11 @@ from zipline.finance.asset_restrictions import (
 )
 from zipline.testing import (
     FakeDataPortal,
+    copy_market_data,
     create_daily_df_for_asset,
     create_data_portal,
     create_data_portal_from_trade_history,
     create_minute_df_for_asset,
-    empty_trading_env,
     make_test_handler,
     make_trade_data_for_asset_info,
     parameter_space,
@@ -100,6 +100,7 @@ from zipline.testing import (
     tmp_trading_env,
     to_utc,
     trades_by_sid_to_dfs,
+    tmp_dir,
 )
 from zipline.testing import RecordBatchBlotter
 from zipline.testing.fixtures import (
@@ -108,7 +109,6 @@ from zipline.testing.fixtures import (
     WithSimParams,
     WithTradingEnvironment,
     WithTmpDir,
-    WithTradingCalendars,
     ZiplineTestCase,
 )
 from zipline.test_algorithms import (
@@ -314,6 +314,7 @@ def handle_data(algo, data):
             initialize=lambda context: None,
             handle_data=lambda context, data: None,
             sim_params=self.sim_params,
+            env=self.env,
         )
 
         # Verify that api methods get resolved dynamically by patching them out
@@ -785,7 +786,8 @@ def log_nyse_close(context, data):
                 for i, date in enumerate(dates)
             ]
         )
-        with tmp_trading_env(equities=metadata) as env:
+        with tmp_trading_env(equities=metadata,
+                             load=self.make_load_function()) as env:
             algo = TradingAlgorithm(env=env)
 
             # Set the period end to a date after the period end
@@ -852,7 +854,8 @@ class TestTransformAlgorithm(WithLogger,
     def init_class_fixtures(cls):
         super(TestTransformAlgorithm, cls).init_class_fixtures()
         cls.futures_env = cls.enter_class_context(
-            tmp_trading_env(futures=cls.make_futures_info()),
+            tmp_trading_env(futures=cls.make_futures_info(),
+                            load=cls.make_load_function()),
         )
 
     def test_invalid_order_parameters(self):
@@ -892,7 +895,8 @@ def before_trading_start(context, data):
     def test_run_twice(self):
         algo1 = TestRegisterTransformAlgorithm(
             sim_params=self.sim_params,
-            sids=[0, 1]
+            sids=[0, 1],
+            env=self.env,
         )
 
         res1 = algo1.run(self.data_portal)
@@ -901,7 +905,8 @@ def before_trading_start(context, data):
         # use the newly instantiated environment.
         algo2 = TestRegisterTransformAlgorithm(
             sim_params=self.sim_params,
-            sids=[0, 1]
+            sids=[0, 1],
+            env=self.env,
         )
 
         res2 = algo2.run(self.data_portal)
@@ -1062,7 +1067,8 @@ def before_trading_start(context, data):
         }] * 2)
         equities['symbol'] = ['A', 'B']
         with TempDirectory() as tempdir, \
-                tmp_trading_env(equities=equities) as env:
+                tmp_trading_env(equities=equities,
+                                load=self.make_load_function()) as env:
             sim_params = SimulationParameters(
                 start_session=start_session,
                 end_session=period_end,
@@ -1569,15 +1575,16 @@ class TestAlgoScript(WithLogger,
 
     def test_noop(self):
         algo = TradingAlgorithm(initialize=initialize_noop,
-                                handle_data=handle_data_noop)
+                                handle_data=handle_data_noop,
+                                env=self.env)
         algo.run(self.data_portal)
 
     def test_noop_string(self):
-        algo = TradingAlgorithm(script=noop_algo)
+        algo = TradingAlgorithm(script=noop_algo, env=self.env)
         algo.run(self.data_portal)
 
     def test_no_handle_data(self):
-        algo = TradingAlgorithm(script=no_handle_data)
+        algo = TradingAlgorithm(script=no_handle_data, env=self.env)
         algo.run(self.data_portal)
 
     def test_api_calls(self):
@@ -1593,7 +1600,8 @@ class TestAlgoScript(WithLogger,
     def test_api_get_environment(self):
         platform = 'zipline'
         algo = TradingAlgorithm(script=api_get_environment_algo,
-                                platform=platform)
+                                platform=platform,
+                                env=self.env)
         algo.run(self.data_portal)
         self.assertEqual(algo.environment, platform)
 
@@ -1779,6 +1787,7 @@ def handle_data(context, data):
         test_algo = TradingAlgorithm(
             script=record_variables,
             sim_params=self.sim_params,
+            env=self.env,
         )
         set_algo_instance(test_algo)
 
@@ -3169,7 +3178,8 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
             orient='index',
         )
         with TempDirectory() as tempdir, \
-                tmp_trading_env(equities=metadata) as env:
+                tmp_trading_env(equities=metadata,
+                                load=self.make_load_function()) as env:
             sim_params = factory.create_simulation_parameters(
                 start=start,
                 num_days=4,
@@ -3296,7 +3306,8 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
             'sid': 999,
         }])
         with TempDirectory() as tempdir, \
-                tmp_trading_env(equities=metadata) as env:
+                tmp_trading_env(equities=metadata,
+                                load=self.make_load_function()) as env:
             algo = SetAssetDateBoundsAlgorithm(
                 sim_params=self.sim_params,
                 env=env,
@@ -3318,7 +3329,8 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
             'sid': 999,
         }])
         with TempDirectory() as tempdir, \
-                tmp_trading_env(equities=metadata) as env:
+                tmp_trading_env(equities=metadata,
+                                load=self.make_load_function()) as env:
             data_portal = create_data_portal(
                 env.asset_finder,
                 tempdir,
@@ -3341,7 +3353,8 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
             'sid': 999,
         }])
         with TempDirectory() as tempdir, \
-                tmp_trading_env(equities=metadata) as env:
+                tmp_trading_env(equities=metadata,
+                                load=self.make_load_function()) as env:
             data_portal = create_data_portal(
                 env.asset_finder,
                 tempdir,
@@ -3768,7 +3781,7 @@ class TestFuturesAlgo(WithDataPortal, WithSimParams, ZiplineTestCase):
             self.assertEqual(txn['price'], expected_price)
 
 
-class TestTradingAlgorithm(ZiplineTestCase):
+class TestTradingAlgorithm(WithTradingEnvironment, ZiplineTestCase):
     def test_analyze_called(self):
         self.perf_ref = None
 
@@ -3785,11 +3798,11 @@ class TestTradingAlgorithm(ZiplineTestCase):
             initialize=initialize,
             handle_data=handle_data,
             analyze=analyze,
+            env=self.env,
         )
 
-        with empty_trading_env() as env:
-            data_portal = FakeDataPortal(env)
-            results = algo.run(data_portal)
+        data_portal = FakeDataPortal(self.env)
+        results = algo.run(data_portal)
 
         self.assertIs(results, self.perf_ref)
 
@@ -3989,7 +4002,7 @@ class TestOrderCancelation(WithDataPortal,
             self.assertFalse(log_catcher.has_warnings)
 
 
-class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
+class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
     """
     Tests if delisted equities are properly removed from a portfolio holding
     positions in said equities.
@@ -4020,7 +4033,10 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
 
         sids = asset_info.index
 
-        env = self.enter_instance_context(tmp_trading_env(equities=asset_info))
+        env = self.enter_instance_context(
+            tmp_trading_env(equities=asset_info,
+                            load=self.make_load_function())
+        )
 
         if frequency == 'daily':
             dates = self.test_days
@@ -4642,7 +4658,7 @@ class TestOrderAfterDelist(WithTradingEnvironment, ZiplineTestCase):
                 self.assertEqual(expected_message, w.message)
 
 
-class AlgoInputValidationTestCase(ZiplineTestCase):
+class AlgoInputValidationTestCase(WithTradingEnvironment, ZiplineTestCase):
 
     def test_reject_passing_both_api_methods_and_script(self):
         script = dedent(
@@ -4668,11 +4684,12 @@ class AlgoInputValidationTestCase(ZiplineTestCase):
             with self.assertRaises(ValueError):
                 TradingAlgorithm(
                     script=script,
+                    env=self.env,
                     **{method: lambda *args, **kwargs: None}
                 )
 
 
-class TestPanelData(ZiplineTestCase):
+class TestPanelData(WithTradingEnvironment, ZiplineTestCase):
 
     @parameterized.expand([
         ('daily',
@@ -4694,6 +4711,9 @@ class TestPanelData(ZiplineTestCase):
 
             def dt_transform(dt):
                 return dt
+        else:
+            raise AssertionError('Unexpected data_frequency: %s' %
+                                 data_frequency)
 
         sids = range(1, 3)
         dfs = {}
@@ -4734,19 +4754,26 @@ class TestPanelData(ZiplineTestCase):
                                  'prev_close']].values.astype('float64')
             )
 
-        trading_algo = TradingAlgorithm(initialize=initialize,
-                                        handle_data=handle_data)
-        trading_algo.run(data=panel)
-        check_panels()
-        price_record.loc[:] = np.nan
+        with tmp_trading_env(load=self.make_load_function()) as env:
+            trading_algo = TradingAlgorithm(initialize=initialize,
+                                            handle_data=handle_data,
+                                            env=env)
+            trading_algo.run(data=panel)
+            check_panels()
+            price_record.loc[:] = np.nan
 
-        run_algorithm(
-            start=start_dt,
-            end=end_dt,
-            capital_base=1,
-            initialize=initialize,
-            handle_data=handle_data,
-            data_frequency=data_frequency,
-            data=panel
-        )
-        check_panels()
+        with tmp_dir() as tmpdir:
+            root = tmpdir.getpath('example_data/root')
+            copy_market_data(self.MARKET_DATA_DIR, root)
+
+            run_algorithm(
+                start=start_dt,
+                end=end_dt,
+                capital_base=1,
+                initialize=initialize,
+                handle_data=handle_data,
+                data_frequency=data_frequency,
+                data=panel,
+                environ={'ZIPLINE_ROOT': root},
+            )
+            check_panels()
