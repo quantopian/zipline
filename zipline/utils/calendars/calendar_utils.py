@@ -52,11 +52,15 @@ class TradingCalendarDispatcher(object):
         Calendar name aliases.
     """
     def __init__(self, calendars, calendar_factories, aliases):
-        self._calendars = calendars
+        self._calendars = {}
+        for configuration, calendar in calendars.items():
+            if isinstance(configuration, str):
+                configuration = (configuration, None, None)
+            self._calendars[configuration] = calendar
         self._calendar_factories = calendar_factories
         self._aliases = aliases
 
-    def get_calendar(self, name):
+    def get_calendar(self, name, start=None, end=None):
         """
         Retrieves an instance of an TradingCalendar whose name is given.
 
@@ -64,6 +68,10 @@ class TradingCalendarDispatcher(object):
         ----------
         name : str
             The name of the TradingCalendar to be retrieved.
+        start : str or datetime/timestamp, default is None
+            The calendar start datetime/timestamp.
+        end : str or datetime/timestamp, default is None
+            The calendar end datetime/timestamp.
 
         Returns
         -------
@@ -72,8 +80,9 @@ class TradingCalendarDispatcher(object):
         """
         canonical_name = self.resolve_alias(name)
 
+        configuration = (canonical_name, start, end)
         try:
-            return self._calendars[canonical_name]
+            return self._calendars[configuration]
         except KeyError:
             # We haven't loaded this calendar yet, so make a new one.
             pass
@@ -85,16 +94,39 @@ class TradingCalendarDispatcher(object):
             raise InvalidCalendarName(calendar_name=name)
 
         # Cache the calendar for future use.
-        calendar = self._calendars[canonical_name] = factory()
+        calendar = self._calendars[configuration] = factory(start, end)
         return calendar
 
-    def has_calendar(self, name):
+    def has_calendar(self, name, start=None, end=None):
         """
         Do we have (or have the ability to make) a calendar with ``name``?
+
+        Parameters
+        ----------
+        name : str
+            The name of the TradingCalendar to be retrieved.
+        start : str or datetime/timestamp, default is None
+            The calendar start datetime/timestamp.
+        end : str or datetime/timestamp, default is None
+            The calendar end datetime/timestamp.
         """
         return (
-            name in self._calendars
+            (name, start, end) in self._calendars
             or name in self._calendar_factories
+            or name in self._aliases
+        )
+
+    def has_calendar_type(self, name):
+        """
+        Do we have a registered calendar type with ``name``?
+
+        Parameters
+        ----------
+        name : str
+            The name of the TradingCalendar to be retrieved.
+        """
+        return (
+            name in self._calendar_factories
             or name in self._aliases
         )
 
@@ -118,13 +150,14 @@ class TradingCalendarDispatcher(object):
         CalendarNameCollision
             If a calendar is already registered with the given calendar's name.
         """
+        configuration = (name, calendar.start, calendar.end)
         if force:
-            self.deregister_calendar(name)
+            self.deregister_calendar(*configuration)
 
-        if self.has_calendar(name):
+        if self.has_calendar(*configuration):
             raise CalendarNameCollision(calendar_name=name)
 
-        self._calendars[name] = calendar
+        self._calendars[configuration] = calendar
 
     def register_calendar_type(self, name, calendar_type, force=False):
         """
@@ -150,9 +183,9 @@ class TradingCalendarDispatcher(object):
             If a calendar is already registered with the given calendar's name.
         """
         if force:
-            self.deregister_calendar(name)
+            self.deregister_calendar_type(name)
 
-        if self.has_calendar(name):
+        if self.has_calendar_type(name):
             raise CalendarNameCollision(calendar_name=name)
 
         self._calendar_factories[name] = calendar_type
@@ -227,7 +260,7 @@ class TradingCalendarDispatcher(object):
 
         return name
 
-    def deregister_calendar(self, name):
+    def deregister_calendar(self, name, start=None, end=None):
         """
         If a calendar is registered with the given name, it is de-registered.
 
@@ -235,8 +268,26 @@ class TradingCalendarDispatcher(object):
         ----------
         cal_name : str
             The name of the calendar to be deregistered.
+        start : str or datetime/timestamp, default is None
+            The calendar start datetime/timestamp.
+        end : str or datetime/timestamp, default is None
+            The calendar end datetime/timestamp.
         """
-        self._calendars.pop(name, None)
+        self._calendars.pop((name, start, end), None)
+
+    def deregister_calendar_type(self, name):
+        """
+        If a calendar type is registered with the given name, it is
+        de-registered.
+
+        Parameters
+        ----------
+        cal_name : str
+            The name of the calendar type to be deregistered.
+        """
+        for configuration, calendar in list(self._calendars.items()):
+            if configuration[0] == name:
+                self.deregister_calendar(*configuration)
         self._calendar_factories.pop(name, None)
         self._aliases.pop(name, None)
 
@@ -261,6 +312,7 @@ global_calendar_dispatcher = TradingCalendarDispatcher(
 get_calendar = global_calendar_dispatcher.get_calendar
 clear_calendars = global_calendar_dispatcher.clear_calendars
 deregister_calendar = global_calendar_dispatcher.deregister_calendar
+deregister_calendar_type = global_calendar_dispatcher.deregister_calendar_type
 register_calendar = global_calendar_dispatcher.register_calendar
 register_calendar_type = global_calendar_dispatcher.register_calendar_type
 register_calendar_alias = global_calendar_dispatcher.register_calendar_alias

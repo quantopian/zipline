@@ -80,6 +80,8 @@ class TradingCalendar(with_metaclass(ABCMeta)):
         # Convert start/end to pandas.Timestamp
         start = pd.Timestamp(start, tz='UTC')
         end = pd.Timestamp(end, tz='UTC')
+        self.start = start
+        self.end = end
 
         # Midnight in UTC for each trading day.
 
