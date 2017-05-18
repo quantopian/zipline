@@ -1,6 +1,11 @@
 """
 Tests for TradingCalendarDispatcher.
 """
+from datetime import datetime
+
+import pandas as pd
+from nose_parameterized import parameterized
+
 from zipline.errors import (
     CalendarNameCollision,
     CyclicCalendarAlias,
@@ -93,3 +98,18 @@ class CalendarAliasTestCase(ZiplineTestCase):
 
         expected = "Cycle in calendar aliases: ['C' -> 'A' -> 'B' -> 'C']"
         self.assertEqual(str(e.exception), expected)
+
+    @parameterized.expand([
+        (pd.Timestamp('2010-1-4'), pd.Timestamp('2010-1-8')),
+        (datetime(2010, 1, 4), datetime(2010, 1, 8)),
+        ('2010-1-4', '2010-1-8'),
+    ])
+    def test_start_end(self, start, end):
+        """
+        Check TradingCalendar with defined start/end dates.
+        """
+        calendar = self.dispatcher.get_calendar('NYSE', start=start, end=end)
+        expected_first = pd.Timestamp(start, tz='UTC')
+        expected_last = pd.Timestamp(end, tz='UTC')
+        self.assertTrue(calendar.first_trading_session == expected_first)
+        self.assertTrue(calendar.last_trading_session == expected_last)

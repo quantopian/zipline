@@ -56,7 +56,7 @@ class TradingCalendarDispatcher(object):
         self._calendar_factories = calendar_factories
         self._aliases = aliases
 
-    def get_calendar(self, name):
+    def get_calendar(self, name, start=None, end=None):
         """
         Retrieves an instance of an TradingCalendar whose name is given.
 
@@ -64,6 +64,10 @@ class TradingCalendarDispatcher(object):
         ----------
         name : str
             The name of the TradingCalendar to be retrieved.
+        start : str or datetime/timestamp, default is None
+            The calendar start datetime/timestamp.
+        end : str or datetime/timestamp, default is None
+            The calendar end datetime/timestamp.
 
         Returns
         -------
@@ -72,8 +76,9 @@ class TradingCalendarDispatcher(object):
         """
         canonical_name = self.resolve_alias(name)
 
+        configuration = (canonical_name, start, end)
         try:
-            return self._calendars[canonical_name]
+            return self._calendars[configuration]
         except KeyError:
             # We haven't loaded this calendar yet, so make a new one.
             pass
@@ -85,7 +90,7 @@ class TradingCalendarDispatcher(object):
             raise InvalidCalendarName(calendar_name=name)
 
         # Cache the calendar for future use.
-        calendar = self._calendars[canonical_name] = factory()
+        calendar = self._calendars[configuration] = factory(start, end)
         return calendar
 
     def has_calendar(self, name):
