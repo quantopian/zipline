@@ -11,10 +11,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from zipline.gens.brokers.broker import Broker
-
 from collections import namedtuple, defaultdict
 from time import sleep
+
+import pandas as pd
+
+from zipline.gens.brokers.broker import Broker
 
 import zipline.protocol as zp
 from zipline.api import symbol as symbol_lookup
@@ -71,6 +73,7 @@ class TWSConnection(EClientSocket, EWrapper):
         self.accounts_download_complete = False
         self.positions = {}
         self.portfolio = {}
+        self.time_skew = None
 
         log.info("Connecting: {}:{}:{}".format(host, int(port),
                                                int(client_id)))
@@ -78,6 +81,11 @@ class TWSConnection(EClientSocket, EWrapper):
 
         self._download_account_details()
         log.info("Managed accounts: {}".format(self.managed_accounts))
+
+        self.reqCurrentTime()
+        while self.time_skew is None:
+            sleep(0.1)
+        log.info("Local - Server Time Skew: {}".format(self.time_skew))
 
     def _download_account_details(self):
         self.reqManagedAccts()
@@ -277,6 +285,8 @@ class TWSConnection(EClientSocket, EWrapper):
 
     def currentTime(self, time):
         log_message('currentTime', vars())
+        self.time_skew = (pd.to_datetime('now', utc=True) -
+                          pd.to_datetime(long(time), unit='s', utc=True))
 
     def deltaNeutralValidation(self, req_id, under_comp):
         log_message('deltaNeutralValidation', vars())
@@ -390,6 +400,10 @@ class IBBroker(Broker):
         z_account.net_liquidation = float(ib_account['NetLiquidation'])
 
         return z_account
+
+    @property
+    def time_skew(self):
+        return self._tws.time_skew
 
     def order(self, asset, amount, limit_price, stop_price, style):
         raise NotImplementedError()

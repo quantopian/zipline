@@ -4,6 +4,11 @@ from runpy import run_path
 import sys
 import warnings
 
+from functools import partial
+
+import pandas as pd
+
+
 import click
 try:
     from pygments import highlight
@@ -15,13 +20,16 @@ except:
 from toolz import valfilter, concatv
 
 from zipline.algorithm import TradingAlgorithm
+from zipline.algorithm_live import LiveTradingAlgorithm
 from zipline.data.bundles.core import load
 from zipline.data.data_portal import DataPortal
+from zipline.data.data_portal_live import DataPortalLive
 from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.utils.calendars import get_calendar
 from zipline.utils.factory import create_simulation_parameters
+from zipline.gens.brokers import IBBroker
 import zipline.utils.paths as pth
 
 
@@ -63,7 +71,9 @@ def _run(handle_data,
          output,
          print_algo,
          local_namespace,
-         environ):
+         environ,
+         live_trading,
+         tws_uri):
     """Run a backtest for the given algorithm.
 
     This is shared between the cli and :func:`zipline.run_algo`.
@@ -112,6 +122,8 @@ def _run(handle_data,
         else:
             click.echo(algotext)
 
+    broker = IBBroker(tws_uri) if live_trading else None
+
     if bundle is not None:
         bundle_data = load(
             bundle,
@@ -132,7 +144,11 @@ def _run(handle_data,
         env = TradingEnvironment(asset_db_path=connstr)
         first_trading_day =\
             bundle_data.equity_minute_bar_reader.first_trading_day
-        data = DataPortal(
+
+        DataPortalClass = (partial(DataPortalLive, broker=broker)
+                           if live_trading
+                           else DataPortal)
+        data = DataPortalClass(
             env.asset_finder, get_calendar("NYSE"),
             first_trading_day=first_trading_day,
             equity_minute_reader=bundle_data.equity_minute_bar_reader,
@@ -155,7 +171,15 @@ def _run(handle_data,
         env = None
         choose_loader = None
 
-    perf = TradingAlgorithm(
+    if live_trading:
+        start = pd.Timestamp.utcnow()
+        end = start + pd.Timedelta('1', 'D')
+    TradingAlgorithmClass = (partial(LiveTradingAlgorithm,
+                                     live_trading=live_trading,
+                                     broker=broker)
+                             if live_trading else TradingAlgorithm)
+
+    perf = TradingAlgorithmClass(
         namespace=namespace,
         env=env,
         get_pipeline_loader=choose_loader,
