@@ -33,6 +33,10 @@ class Broker(object):
     def account(self):
         pass
 
+    @abstractproperty
+    def time_skew(self):
+        pass
+
     @abstractmethod
     def order(self, asset, amount, limit_price, stop_price, style):
         pass

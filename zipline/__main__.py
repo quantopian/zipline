@@ -184,6 +184,19 @@ def ipython_only(option):
     default=None,
     help='Should the algorithm methods be resolved in the local namespace.'
 ))
+@click.option(
+    '--live-trading',
+    is_flag=True,
+    default=False,
+    help='Live trading using IB TWS'
+)
+@click.option(
+    '--tws-uri',
+    default=None,
+    metavar='TWS-URI',
+    show_default=True,
+    help='Connection to TWS: host:port:client-id.',
+)
 @click.pass_context
 def run(ctx,
         algofile,
@@ -197,21 +210,29 @@ def run(ctx,
         end,
         output,
         print_algo,
-        local_namespace):
+        local_namespace,
+        live_trading,
+        tws_uri):
     """Run a backtest for the given algorithm.
     """
     # check that the start and end dates are passed correctly
-    if start is None and end is None:
+    if not live_trading and start is None and end is None:
         # check both at the same time to avoid the case where a user
         # does not pass either of these and then passes the first only
         # to be told they need to pass the second argument also
         ctx.fail(
             "must specify dates with '-s' / '--start' and '-e' / '--end'",
         )
-    if start is None:
+    if not live_trading and start is None:
         ctx.fail("must specify a start date with '-s' / '--start'")
-    if end is None:
+    if not live_trading and end is None:
         ctx.fail("must specify an end date with '-e' / '--end'")
+
+    if live_trading and tws_uri is None:
+        ctx.fail("must specify tws-uri if live-trading is specified")
+
+    if live_trading and data_frequency != 'minute':
+        ctx.fail("must use '--data-frequency minute' with live trading")
 
     if (algotext is not None) == (algofile is not None):
         ctx.fail(
@@ -238,6 +259,8 @@ def run(ctx,
         print_algo=print_algo,
         local_namespace=local_namespace,
         environ=os.environ,
+        live_trading=live_trading,
+        tws_uri=tws_uri
     )
 
     if output == '-':
