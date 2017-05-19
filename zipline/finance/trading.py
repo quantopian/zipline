@@ -64,12 +64,8 @@ class TradingEnvironment(object):
         The benchmark symbol
     exchange_tz : tz-coercable, optional
         The timezone of the exchange.
-    min_date : datetime, optional
-        The oldest date that we know about in this environment.
-    max_date : datetime, optional
-        The most recent date that we know about in this environment.
-    env_trading_calendar : pd.DatetimeIndex, optional
-        The calendar of datetimes that define our market hours.
+    trading_calendar : TradingCalendar, optional
+        The trading calendar to work with in this environment.
     asset_db_path : str or sa.engine.Engine, optional
         The path to the assets db or sqlalchemy Engine object to use to
         construct an AssetFinder.
