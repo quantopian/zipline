@@ -10,7 +10,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from datetime import time
 import pandas as pd
 import logbook
 
@@ -25,6 +25,8 @@ from zipline.utils.api_support import (
     ZiplineAPI,
     disallowed_in_before_trading_start)
 
+from zipline.utils.calendars.trading_calendar import days_at_time
+
 log = logbook.Logger("Live Trading")
 
 
@@ -35,23 +37,55 @@ class LiveAlgorithmExecutor(AlgorithmSimulator):
 
 class LiveTradingAlgorithm(TradingAlgorithm):
     def __init__(self, *args, **kwargs):
-        super(self.__class__, self).__init__(*args, **kwargs)
-
         self.live_trading = kwargs.pop('live_trading', False)
         self.broker = kwargs.pop('broker', None)
+
+        super(self.__class__, self).__init__(*args, **kwargs)
 
         log.info("Yippie, live!")
 
     def _create_clock(self):
-        sim_clock = TradingAlgorithm._create_clock()
+        # This method is taken from TradingAlgorithm.
+        # The clock has been replaced to use RealtimeClock
+        trading_o_and_c = self.trading_calendar.schedule.ix[
+            self.sim_params.sessions]
+        market_closes = trading_o_and_c['market_close']
+        minutely_emission = False
+
+        if self.sim_params.data_frequency == 'minute':
+            market_opens = trading_o_and_c['market_open']
+
+            minutely_emission = self.sim_params.emission_rate == "minute"
+        else:
+            # in daily mode, we want to have one bar per session, timestamped
+            # as the last minute of the session.
+            market_opens = market_closes
+
+        # The calendar's execution times are the minutes over which we actually
+        # want to run the clock. Typically the execution times simply adhere to
+        # the market open and close times. In the case of the futures calendar,
+        # for example, we only want to simulate over a subset of the full 24
+        # hour calendar, so the execution times dictate a market open time of
+        # 6:31am US/Eastern and a close of 5:00pm US/Eastern.
+        execution_opens = \
+            self.trading_calendar.execution_time_from_open(market_opens)
+        execution_closes = \
+            self.trading_calendar.execution_time_from_close(market_closes)
+
+        # FIXME generalize these values
+        before_trading_start_minutes = days_at_time(
+            self.sim_params.sessions,
+            time(8, 45),
+            "US/Eastern"
+        )
 
         return RealtimeClock(
-            sim_clock.sessions,
-            sim_clock.execution_opens,
-            sim_clock.execution_closes,
-            sim_clock.before_trading_start_minutes,
-            sim_clock.minutely_emission,
-            self.broker.time_skew
+            self.sim_params.sessions,
+            execution_opens,
+            execution_closes,
+            before_trading_start_minutes,
+            minute_emission=minutely_emission,
+            time_skew=self.broker.time_skew
         )
 
     def _create_generator(self, sim_params):

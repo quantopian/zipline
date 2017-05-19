@@ -145,7 +145,7 @@ def _run(handle_data,
         first_trading_day =\
             bundle_data.equity_minute_bar_reader.first_trading_day
 
-        DataPortalClass = (partial(DataPortalLive, broker=broker)
+        DataPortalClass = (partial(DataPortalLive, broker)
                            if live_trading
                            else DataPortal)
         data = DataPortalClass(
@@ -153,7 +153,7 @@ def _run(handle_data,
             first_trading_day=first_trading_day,
             equity_minute_reader=bundle_data.equity_minute_bar_reader,
             equity_daily_reader=bundle_data.equity_daily_bar_reader,
-            adjustment_reader=bundle_data.adjustment_reader,
+            adjustment_reader=bundle_data.adjustment_reader
         )
 
         pipeline_loader = USEquityPricingLoader(
