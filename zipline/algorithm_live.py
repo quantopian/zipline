@@ -42,7 +42,7 @@ class LiveTradingAlgorithm(TradingAlgorithm):
 
         super(self.__class__, self).__init__(*args, **kwargs)
 
-        log.info("Yippie, live!")
+        log.info("initialization done")
 
     def _create_clock(self):
         # This method is taken from TradingAlgorithm.
@@ -92,7 +92,6 @@ class LiveTradingAlgorithm(TradingAlgorithm):
         # Call the simulation trading algorithm for side-effects:
         # it creates the perf tracker
         _ = TradingAlgorithm._create_generator(self, sim_params)
-        log.info("Live trading")
         self.trading_client = LiveAlgorithmExecutor(
             self,
             sim_params,

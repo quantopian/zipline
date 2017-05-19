@@ -21,7 +21,6 @@ log = Logger('DataPortalLive')
 class DataPortalLive(DataPortal):
     def __init__(self, broker, *args, **kwargs):
         self.broker = broker
-
         super(DataPortalLive, self).__init__(*args, **kwargs)
 
     def get_spot_value(self, assets, field, dt, data_frequency):

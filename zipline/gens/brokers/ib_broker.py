@@ -65,6 +65,7 @@ class TWSConnection(EClientSocket, EWrapper):
         host, port, client_id = self.tws_uri.split(':')
 
         self._next_ticker_id = 0
+        self._next_order_id = 0
         self.managed_accounts = None
         self.ticker_id_to_symbol = {}
         self.last_tick = defaultdict(dict)
@@ -83,24 +84,35 @@ class TWSConnection(EClientSocket, EWrapper):
         log.info("Managed accounts: {}".format(self.managed_accounts))
 
         self.reqCurrentTime()
-        while self.time_skew is None:
+        while (self.time_skew is None or
+               self.time_skew is False):
             sleep(0.1)
-        log.info("Local - Server Time Skew: {}".format(self.time_skew))
+
+        log.info("Local-Broker Time Skew: {}".format(self.time_skew))
 
     def _download_account_details(self):
         self.reqManagedAccts()
-        while not self.managed_accounts:
+        while (self.managed_accounts is None or
+               self.managed_accounts is False):
             sleep(0.1)
 
         for account in self.managed_accounts:
             self.reqAccountUpdates(subscribe=True, acctCode=account)
-        while not self.accounts_download_complete:
+        while (self.accounts_download_complete is None or
+               self.accounts_download_complete is False):
             sleep(0.1)
 
-    def _get_next_ticker_id(self):
+    @property
+    def next_ticker_id(self):
         ticker_id = self._next_ticker_id
         self._next_ticker_id += 1
         return ticker_id
+
+    @property
+    def next_order_id(self):
+        order_id = self._next_order_id
+        self._next_order_id += 1
+        return order_id
 
     def subscribe_to_market_data(self,
                                  symbol,
@@ -113,12 +125,12 @@ class TWSConnection(EClientSocket, EWrapper):
         contract.m_exchange = exchange
         contract.m_currency = currency
 
-        ticker_id = self._get_next_ticker_id
+        ticker_id = self.next_ticker_id
 
         self.ticker_id_to_symbol[ticker_id] = symbol
 
         tick_list = "233"  # RTVolume, return tick_type == 48
-        self.reqMktData(self._get_next_ticker_id, contract, tick_list, False)
+        self.reqMktData(self.next_ticker_id, contract, tick_list, False)
 
     def _process_tick(self, ticker_id, tick_type, value):
         try:
