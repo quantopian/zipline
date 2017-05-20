@@ -33,7 +33,6 @@ class LiveAlgorithmExecutor(AlgorithmSimulator):
 
 class LiveTradingAlgorithm(TradingAlgorithm):
     def __init__(self, *args, **kwargs):
-        self.live_trading = kwargs.pop('live_trading', False)
         self.broker = kwargs.pop('broker', None)
 
         super(self.__class__, self).__init__(*args, **kwargs)

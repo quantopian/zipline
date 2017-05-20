@@ -1,5 +1,7 @@
 import errno
 import os
+
+from importlib import import_module
 from functools import wraps
 
 import click
@@ -185,17 +187,16 @@ def ipython_only(option):
     help='Should the algorithm methods be resolved in the local namespace.'
 ))
 @click.option(
-    '--live-trading',
-    is_flag=True,
-    default=False,
-    help='Live trading using IB TWS'
+    '--broker',
+    default=None,
+    help='Broker'
 )
 @click.option(
-    '--tws-uri',
+    '--broker-uri',
     default=None,
-    metavar='TWS-URI',
+    metavar='BROKER-URI',
     show_default=True,
-    help='Connection to TWS: host:port:client-id.',
+    help='Connection to broker',
 )
 @click.pass_context
 def run(ctx,
@@ -211,28 +212,45 @@ def run(ctx,
         output,
         print_algo,
         local_namespace,
-        live_trading,
-        tws_uri):
+        broker,
+        broker_uri):
     """Run a backtest for the given algorithm.
     """
     # check that the start and end dates are passed correctly
-    if not live_trading and start is None and end is None:
+    if not broker and start is None and end is None:
         # check both at the same time to avoid the case where a user
         # does not pass either of these and then passes the first only
         # to be told they need to pass the second argument also
         ctx.fail(
             "must specify dates with '-s' / '--start' and '-e' / '--end'",
         )
-    if not live_trading and start is None:
+
+    if not broker and start is None:
         ctx.fail("must specify a start date with '-s' / '--start'")
-    if not live_trading and end is None:
+    if not broker and end is None:
         ctx.fail("must specify an end date with '-e' / '--end'")
 
-    if live_trading and tws_uri is None:
-        ctx.fail("must specify tws-uri if live-trading is specified")
+    if broker and broker_uri is None:
+        ctx.fail("must specify broker-uri if broker is specified")
 
-    if live_trading and data_frequency != 'minute':
+    if broker and data_frequency != 'minute':
         ctx.fail("must use '--data-frequency minute' with live trading")
+
+    brokerobj = None
+    if broker:
+        mod_name = 'zipline.gens.brokers.%s_broker' % broker.lower()
+        try:
+            bmod = import_module(mod_name)
+        except ImportError:
+            ctx.fail("unsupported broker: can't import module %s" % mod_name)
+
+        cl_name = '%sBroker' % broker.upper()
+        try:
+            bclass = getattr(bmod, cl_name)
+        except AttributeError:
+            ctx.fail("unsupported broker: can't import class %s from %s" %
+                     (cl_name, mod_name))
+        brokerobj = bclass(broker_uri)
 
     if (algotext is not None) == (algofile is not None):
         ctx.fail(
@@ -259,8 +277,7 @@ def run(ctx,
         print_algo=print_algo,
         local_namespace=local_namespace,
         environ=os.environ,
-        live_trading=live_trading,
-        tws_uri=tws_uri
+        broker=brokerobj,
     )
 
     if output == '-':

@@ -29,7 +29,6 @@ from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.utils.calendars import get_calendar
 from zipline.utils.factory import create_simulation_parameters
-from zipline.gens.brokers import IBBroker
 import zipline.utils.paths as pth
 
 
@@ -72,8 +71,7 @@ def _run(handle_data,
          print_algo,
          local_namespace,
          environ,
-         live_trading,
-         tws_uri):
+         broker):
     """Run a backtest for the given algorithm.
 
     This is shared between the cli and :func:`zipline.run_algo`.
@@ -122,8 +120,6 @@ def _run(handle_data,
         else:
             click.echo(algotext)
 
-    broker = IBBroker(tws_uri) if live_trading else None
-
     if bundle is not None:
         bundle_data = load(
             bundle,
@@ -146,7 +142,7 @@ def _run(handle_data,
             bundle_data.equity_minute_bar_reader.first_trading_day
 
         DataPortalClass = (partial(DataPortalLive, broker)
-                           if live_trading
+                           if broker
                            else DataPortal)
         data = DataPortalClass(
             env.asset_finder, get_calendar("NYSE"),
@@ -171,13 +167,12 @@ def _run(handle_data,
         env = None
         choose_loader = None
 
-    if live_trading:
+    if broker:
         start = pd.Timestamp.utcnow()
         end = start + pd.Timedelta('1', 'D')
-    TradingAlgorithmClass = (partial(LiveTradingAlgorithm,
-                                     live_trading=live_trading,
-                                     broker=broker)
-                             if live_trading else TradingAlgorithm)
+
+    TradingAlgorithmClass = (partial(LiveTradingAlgorithm, broker=broker)
+                             if broker else TradingAlgorithm)
 
     perf = TradingAlgorithmClass(
         namespace=namespace,
@@ -384,6 +379,5 @@ def run_algorithm(start,
         print_algo=False,
         local_namespace=False,
         environ=environ,
-        live_trading=live_trading,
-        tws_uri=tws_uri
+        broker=None,
     )
