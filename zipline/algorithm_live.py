@@ -11,7 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from datetime import time
-import pandas as pd
 import logbook
 
 from zipline.algorithm import TradingAlgorithm
@@ -20,9 +19,6 @@ from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.errors import OrderInBeforeTradingStart
 from zipline.utils.api_support import (
     api_method,
-    require_initialized,
-    require_not_initialized,
-    ZiplineAPI,
     disallowed_in_before_trading_start)
 
 from zipline.utils.calendars.trading_calendar import days_at_time
@@ -91,7 +87,7 @@ class LiveTradingAlgorithm(TradingAlgorithm):
     def _create_generator(self, sim_params):
         # Call the simulation trading algorithm for side-effects:
         # it creates the perf tracker
-        _ = TradingAlgorithm._create_generator(self, sim_params)
+        TradingAlgorithm._create_generator(self, sim_params)
         self.trading_client = LiveAlgorithmExecutor(
             self,
             sim_params,
