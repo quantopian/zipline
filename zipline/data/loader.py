@@ -35,7 +35,7 @@ logger = logbook.Logger('Loader')
 
 # Mapping from index symbol to appropriate bond data
 INDEX_MAPPING = {
-    '^GSPC':
+    'SPY':
     (treasuries, 'treasury_curves.csv', 'www.federalreserve.gov'),
     '^GSPTSE':
     (treasuries_can, 'treasury_curves_can.csv', 'bankofcanada.ca'),
@@ -91,7 +91,7 @@ def has_data_for_dates(series_or_df, first_date, last_date):
     return (first <= first_date) and (last >= last_date)
 
 
-def load_market_data(trading_day=None, trading_days=None, bm_symbol='^GSPC'):
+def load_market_data(trading_day=None, trading_days=None, bm_symbol='SPY'):
     """
     Load benchmark returns and treasury yield curves for the given calendar and
     benchmark symbol.
@@ -114,8 +114,8 @@ def load_market_data(trading_day=None, trading_days=None, bm_symbol='^GSPC'):
         A calendar of trading days.  Also used for determining what cached
         dates we should expect to have cached. Defaults to the NYSE calendar.
     bm_symbol : str, optional
-        Symbol for the benchmark index to load.  Defaults to '^GSPC', the Yahoo
-        ticker for the S&P 500.
+        Symbol for the benchmark index to load.  Defaults to 'SPY', the Google
+        ticker for the SPDR S&P 500 ETF.
 
     Returns
     -------
@@ -255,7 +255,7 @@ def ensure_treasury_data(symbol, first_date, last_date, now):
     path.
     """
     loader_module, filename, source = INDEX_MAPPING.get(
-        symbol, INDEX_MAPPING['^GSPC'],
+        symbol, INDEX_MAPPING['SPY'],
     )
     first_date = max(first_date, loader_module.earliest_possible_date())
 
@@ -328,7 +328,7 @@ def _load_raw_yahoo_data(indexes=None, stocks=None, start=None, end=None):
     """Load closing prices from yahoo finance.
 
     :Optional:
-        indexes : dict (Default: {'SPX': '^GSPC'})
+        indexes : dict (Default: {'SPX': 'SPY'})
             Financial indexes to load.
         stocks : list (Default: ['AAPL', 'GE', 'IBM', 'MSFT',
                                  'XOM', 'AA', 'JNJ', 'PEP', 'KO'])
