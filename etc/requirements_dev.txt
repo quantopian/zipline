@@ -44,11 +44,11 @@ mistune==0.7
 backports.ssl-match-hostname==3.4.0.2;python_version<'3.0'
 certifi==2015.4.28
 
-# tornado and pyparsing are required by matplotlib
+# matplotlib dependencies:
 tornado==4.2.1
 pyparsing==2.0.3
-
-matplotlib==1.4.3
+cycler==0.10.0
+matplotlib==1.5.3
 
 Markdown==2.6.2
 
