@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 from collections import namedtuple, defaultdict
 from time import sleep
 
@@ -27,6 +28,9 @@ from ib.ext.EWrapper import EWrapper
 from ib.ext.Contract import Contract
 
 from logbook import Logger
+
+if sys.version_info > (3,):
+    long = int
 
 log = Logger('IB Broker')
 
