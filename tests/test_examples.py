@@ -54,8 +54,6 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             serialization='pickle',
         )
 
-        copy_market_data(WithTradingEnvironment.MARKET_DATA_DIR,
-                         cls.tmpdir.getpath('example_data/root'))
 
     @parameterized.expand(examples.EXAMPLE_MODULES)
     def test_example(self, example_name):

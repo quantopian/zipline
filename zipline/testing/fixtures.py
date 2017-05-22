@@ -500,7 +500,7 @@ class WithTradingEnvironment(WithAssetFinder,
     @classmethod
     def make_load_function(cls):
         def load(*args, **kwargs):
-            symbol = '^GSPC'
+            symbol = 'SPY'
 
             filename = get_benchmark_filename(symbol)
             source_path = os.path.join(cls.MARKET_DATA_DIR, filename)
