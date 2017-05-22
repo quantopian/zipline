@@ -75,15 +75,40 @@ class CalendarStartEndTestCase(TestCase):
         (datetime(2010, 1, 4), datetime(2010, 1, 8)),
         ('2010-1-4', '2010-1-8'),
     ])
-    def test_start_end(self, start, end):
+    def test_start_end_types(self, start, end):
         """
-        Check TradingCalendar with defined start/end dates.
+        Check TradingCalendar with start/end dates using different types.
         """
         calendar = FakeCalendar(start=start, end=end)
-        expected_first = pd.Timestamp(start, tz='UTC')
-        expected_last = pd.Timestamp(end, tz='UTC')
-        self.assertTrue(calendar.first_trading_session == expected_first)
-        self.assertTrue(calendar.last_trading_session == expected_last)
+
+        # Check calendar first/last trading session
+        first_session = pd.Timestamp(start, tz='UTC')
+        last_session = pd.Timestamp(end, tz='UTC')
+        self.assertTrue(calendar.first_trading_session == first_session)
+        self.assertTrue(calendar.last_trading_session == last_session)
+
+    @parameterized.expand([
+        ('2010-1-4', '2010-1-8', '2010-1-4', '2010-1-8'),
+        ('2010-1-2', '2010-1-10', '2010-1-4', '2010-1-8'),
+    ])
+    def test_start_end_attributes(self, start, end, first, last):
+        """
+        Start/end attributes do not need to match the first/last trading
+        session in the calendar.
+        """
+        calendar = FakeCalendar(start=start, end=end)
+
+        # Check calendar start/end attributes
+        start = pd.Timestamp(start, tz='UTC')
+        end = pd.Timestamp(end, tz='UTC')
+        self.assertTrue(calendar.start == start)
+        self.assertTrue(calendar.end == end)
+
+        # Check calendar first/last trading session
+        first = pd.Timestamp(first, tz='UTC')
+        last = pd.Timestamp(last, tz='UTC')
+        self.assertTrue(calendar.first_trading_session == first)
+        self.assertTrue(calendar.last_trading_session == last)
 
 
 class CalendarRegistrationTestCase(TestCase):
