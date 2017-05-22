@@ -278,7 +278,9 @@ def run_algorithm(start,
                   default_extension=True,
                   extensions=(),
                   strict_extensions=True,
-                  environ=os.environ):
+                  environ=os.environ,
+                  live_trading=False,
+                  tws_uri=None):
     """Run a trading algorithm.
 
     Parameters
@@ -382,4 +384,6 @@ def run_algorithm(start,
         print_algo=False,
         local_namespace=False,
         environ=environ,
+        live_trading=live_trading,
+        tws_uri=tws_uri
     )
