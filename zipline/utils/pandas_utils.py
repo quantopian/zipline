@@ -258,7 +258,7 @@ def categorical_df_concat(df_list, inplace=False):
         new_categories = sorted(
             set().union(
                 *(frame[col].cat.categories for frame in df_list)
-            )
+            ) - {None}
         )
 
         for df in df_list:
