@@ -4,8 +4,7 @@
     :align: center
     :alt: Zipline
 
-Zipline
-=======
+=============
 
 |Gitter|
 |version status|
@@ -14,9 +13,7 @@ Zipline
 |Coverage Status|
 
 Zipline is a Pythonic algorithmic trading library. It is an event-driven
-system that supports both backtesting and live-trading.
-
-Zipline is currently used in production as the backtesting and live-trading
+system that supports both backtesting and live-trading. Zipline is currently used in production as the backtesting and live-trading
 engine powering `Quantopian <https://www.quantopian.com>`_ -- a free,
 community-centered, hosted platform for building and executing trading
 strategies.
@@ -26,11 +23,9 @@ community! <https://groups.google.com/forum/#!forum/zipline>`_
 
 `Documentation <http://www.zipline.io>`_
 
-Want to contribute? See our `open
-requests <https://github.com/quantopian/zipline/wiki/Contribution-Requests>`_
-and our `general
-guidelines <https://github.com/quantopian/zipline#contributions>`_
-below.
+Want to contribute? See our `development guidelines`__
+
+__ http://zipline.io/development-guidelines.html
 
 Features
 ========
@@ -94,7 +89,7 @@ Once set up, you can install Zipline from our ``Quantopian`` channel:
 
 .. code-block:: bash
 
-    conda install -c Quantopian zipline
+    $ conda install -c Quantopian zipline
 
 Currently supported platforms include:
 
@@ -155,24 +150,15 @@ line, run:
 
 .. code:: bash
 
-    zipline ingest
-	  
-.. code:: bash
-
-    zipline run -f dual_moving_average.py --start 2011-1-1 --end 2012-1-1 -o dma.pickle
+    $ zipline ingest
+    $ zipline run -f dual_moving_average.py --start 2011-1-1 --end 2012-1-1 -o dma.pickle
 
 This will download the AAPL price data from `quantopian-quandl` in the
 specified time range and stream it through the algorithm and save the
 resulting performance dataframe to dma.pickle which you can then load
 and analyze from within python.
 
-You can find other examples in the zipline/examples directory.
-
-Contributions
-=============
-
-If you would like to contribute, please see our Contribution Requests:
-https://github.com/quantopian/zipline/wiki/Contribution-Requests
+You can find other examples in the ``zipline/examples`` directory.
 
 .. |Gitter| image:: https://badges.gitter.im/Join%20Chat.svg
    :target: https://gitter.im/quantopian/zipline?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
