@@ -1,5 +1,5 @@
-Zipline Release Process
------------------------
+Release Process
+---------------
 
 .. include:: dev-doc-message.txt
 
