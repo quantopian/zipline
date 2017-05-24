@@ -21,7 +21,7 @@
 #
 #    docker exec -it zipline zipline run -f /projects/my_algo.py --start 2015-1-1 --end 2016-1-1 /projects/result.pickle
 #
-FROM python:2.7
+FROM python:3.5
 
 #
 # set up environment
