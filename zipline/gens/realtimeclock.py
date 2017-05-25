@@ -95,6 +95,9 @@ class RealtimeClock(object):
                 yield server_time, SESSION_END
 
                 return
+            elif server_time > self.execution_closes[0].tz_localize('UTC'):
+                # Return with no yield if the algo is started in after hours
+                return
             else:
                 # We should never end up in this branch
                 raise RuntimeError("Invalid state in RealtimeClock")
