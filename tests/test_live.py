@@ -14,7 +14,7 @@ except ImportError:                     # Python 2
 
 from mock import patch
 
-from zipline.gens.realtimeclock import RealtimeClock
+from zipline.gens.realtimeclock import RealtimeClock, SESSION_START
 from zipline.gens.sim_engine import MinuteSimulationClock
 
 from zipline.utils.calendars import get_calendar
@@ -146,3 +146,26 @@ class TestRealtimeClock(TestCase):
         self.assertEquals(rtc_events[0], msc_events[0])  # Session start bar
         # BEFORE_TRADING_START is not fired as we're in mid-day
         self.assertEquals(rtc_events[1:], msc_events[msc_midday_position:])
+
+    def test_afterhours_start(self):
+        """Tests that RealtimeClock returns immediately if started after RTH"""
+        with patch('zipline.gens.realtimeclock.pd.to_datetime') as to_dt, \
+                patch('zipline.gens.realtimeclock.sleep') as sleep:
+            rtc = RealtimeClock(
+                self.sessions,
+                self.opens,
+                self.closes,
+                days_at_time(self.sessions, time(8, 45), "US/Eastern"),
+                False
+            )
+
+            to_dt.side_effect = self.get_clock
+            sleep.side_effect = self.advance_clock
+            self.internal_clock = pd.Timestamp("2017-04-20 20:05", tz='UTC')
+
+            events = list(rtc)
+            self.assertEquals(len(events), 1)
+
+            # Event 0 is SESSION_START which always triggered.
+            _, event_type = events[0]
+            self.assertEquals(event_type, SESSION_START)
