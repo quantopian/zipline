@@ -14,6 +14,7 @@
 # limitations under the License.
 import numpy as np
 import pandas as pd
+from pandas.util.testing import assert_series_equal
 
 from zipline.data.data_portal import DataPortal
 from zipline.errors import (
@@ -116,6 +117,12 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
                 source.get_value(day),
                 manually_calculated[idx + 1]
             )
+
+        # compare a slice of the data
+        assert_series_equal(
+            source.get_range(days_to_use[1], days_to_use[10]),
+            manually_calculated[1:11]
+        )
 
     def test_asset_not_trading(self):
         benchmark = self.env.asset_finder.retrieve_asset(3)

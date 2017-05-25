@@ -72,6 +72,9 @@ class BenchmarkSource(object):
     def get_value(self, dt):
         return self._precalculated_series.loc[dt]
 
+    def get_range(self, start_dt, end_dt):
+        return self._precalculated_series.loc[start_dt:end_dt]
+
     def _validate_benchmark(self, benchmark_asset):
         # check if this security has a stock dividend.  if so, raise an
         # error suggesting that the user pick a different asset to use
