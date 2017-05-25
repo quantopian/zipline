@@ -1174,7 +1174,7 @@ class TradingAlgorithm(object):
         if self.initialized:
             raise SetBenchmarkOutsideInitialize()
 
-        self.benchmark_asset = self.asset_finder.retrieve_asset(benchmark)
+        self.benchmark_sid = self.benchmark
 
     @api_method
     @preprocess(symbol_str=ensure_upper_case)
