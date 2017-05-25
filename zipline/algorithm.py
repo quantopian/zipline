@@ -541,13 +541,22 @@ class TradingAlgorithm(object):
         )
 
     def _create_benchmark_source(self):
+        if self.benchmark_sid is not None:
+            benchmark_asset = self.asset_finder.retrieve_asset(
+                self.benchmark_sid)
+            benchmark_returns = None
+        else:
+            benchmark_asset = None
+            # get benchmark info from trading environment, which defaults to
+            # downloading data from Yahoo.
+            benchmark_returns = self.trading_environment.benchmark_returns
         return BenchmarkSource(
-            benchmark_sid=self.benchmark_sid,
-            env=self.trading_environment,
+            benchmark_asset=benchmark_asset,
             trading_calendar=self.trading_calendar,
             sessions=self.sim_params.sessions,
             data_portal=self.data_portal,
             emission_rate=self.sim_params.emission_rate,
+            benchmark_returns=benchmark_returns,
         )
 
     def _create_generator(self, sim_params):

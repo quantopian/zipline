@@ -96,7 +96,10 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
         days_to_use = self.sim_params.sessions[1:]
 
         source = BenchmarkSource(
-            1, self.env, self.trading_calendar, days_to_use, self.data_portal
+            self.env.asset_finder.retrieve_asset(1),
+            self.trading_calendar,
+            days_to_use,
+            self.data_portal
         )
 
         # should be the equivalent of getting the price history, then doing
@@ -131,30 +134,28 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
 
         with self.assertRaises(BenchmarkAssetNotAvailableTooEarly) as exc:
             BenchmarkSource(
-                3,
-                self.env,
+                benchmark,
                 self.trading_calendar,
                 self.sim_params.sessions[1:],
                 self.data_portal
             )
 
         self.assertEqual(
-            '3 does not exist on %s. It started trading on %s.' %
+            'Equity(3 [C]) does not exist on %s. It started trading on %s.' %
             (self.sim_params.sessions[1], benchmark_start),
             exc.exception.message
         )
 
         with self.assertRaises(BenchmarkAssetNotAvailableTooLate) as exc2:
             BenchmarkSource(
-                3,
-                self.env,
+                benchmark,
                 self.trading_calendar,
                 self.sim_params.sessions[120:],
                 self.data_portal
             )
 
         self.assertEqual(
-            '3 does not exist on %s. It stopped trading on %s.' %
+            'Equity(3 [C]) does not exist on %s. It stopped trading on %s.' %
             (self.sim_params.sessions[-1], benchmark_end),
             exc2.exception.message
         )
@@ -182,8 +183,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
             )
 
             source = BenchmarkSource(
-                2,
-                self.env,
+                self.env.asset_finder.retrieve_asset(2),
                 self.trading_calendar,
                 self.sim_params.sessions,
                 data_portal
@@ -214,11 +214,14 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
 
         with self.assertRaises(InvalidBenchmarkAsset) as exc:
             BenchmarkSource(
-                4, self.env, self.trading_calendar,
-                self.sim_params.sessions, self.data_portal
+                self.env.asset_finder.retrieve_asset(4),
+                self.trading_calendar,
+                self.sim_params.sessions,
+                self.data_portal
             )
 
-        self.assertEqual("4 cannot be used as the benchmark because it has a "
-                         "stock dividend on 2006-03-16 00:00:00.  Choose "
-                         "another asset to use as the benchmark.",
+        self.assertEqual("Equity(4 [D]) cannot be used as the benchmark "
+                         "because it has a stock dividend on 2006-03-16 "
+                         "00:00:00.  Choose another asset to use as the "
+                         "benchmark.",
                          exc.exception.message)
