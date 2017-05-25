@@ -49,8 +49,6 @@ class BenchmarkSource(object):
                     self.data_portal
                 )
         elif benchmark_returns is not None:
-            # get benchmark info from trading environment, which defaults to
-            # downloading data from Yahoo.
             daily_series = benchmark_returns[sessions[0]:sessions[-1]]
 
             if self.emission_rate == "minute":
