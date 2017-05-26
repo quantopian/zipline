@@ -13,10 +13,12 @@
 from datetime import time
 import logbook
 
+import zipline.protocol as zp
 from zipline.algorithm import TradingAlgorithm
 from zipline.gens.realtimeclock import RealtimeClock
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.errors import OrderInBeforeTradingStart
+from zipline.utils.input_validation import error_keywords
 from zipline.utils.api_support import (
     api_method,
     disallowed_in_before_trading_start)
@@ -34,6 +36,7 @@ class LiveAlgorithmExecutor(AlgorithmSimulator):
 class LiveTradingAlgorithm(TradingAlgorithm):
     def __init__(self, *args, **kwargs):
         self.broker = kwargs.pop('broker', None)
+        self.orders = {}
 
         super(self.__class__, self).__init__(*args, **kwargs)
 
@@ -113,17 +116,28 @@ class LiveTradingAlgorithm(TradingAlgorithm):
               limit_price=None,
               stop_price=None,
               style=None):
-        raise NotImplementedError()
+        amount, style = self._calculate_order(asset, amount,
+                                              limit_price, stop_price, style)
+
+        return self.broker.order(asset, amount, limit_price, stop_price, style)
 
     @api_method
     def batch_market_order(self, share_counts):
         raise NotImplementedError()
 
+    @error_keywords(sid='Keyword argument `sid` is no longer supported for '
+                        'get_open_orders. Use `asset` instead.')
+    @api_method
     def get_open_orders(self, asset=None):
-        raise NotImplementedError()
+        return self.broker.get_open_orders(asset)
 
+    @api_method
     def get_order(self, order_id):
-        raise NotImplementedError()
+        return self.broker.get_order(order_id)
 
+    @api_method
     def cancel_order(self, order_param):
-        raise NotImplementedError()
+        order_id = order_param
+        if isinstance(order_param, zp.Order):
+            order_id = order_param.id
+        self.broker.cancel_order(order_id)
