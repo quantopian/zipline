@@ -1,4 +1,4 @@
-Zipline development guidelines
+Zipline Development Guidelines
 ==============================
 
 Commit messages
@@ -23,9 +23,9 @@ Standard acronyms to start the commit message with are:
 
 Some commit style guidelines:
 
-Commit lines should be no longer than 72 characters. First line of the commit should include a the aforementioned prefix. There should be an empty line between the commit subject and the body of the commit. In general, the message should be in the imperative tense. Best practice is to include not only what change, by why.
+Commit lines should be no longer than [72 characters](https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project). The first line of the commit should include one of the above prefixes. There should be an empty line between the commit subject and the body of the commit. In general, the message should be in the imperative tense. Best practice is to include not only what the change is, but why the change was made.
 
-.e.g.
+e.g.
 
 .. code-block:: bash
 
@@ -36,6 +36,7 @@ Commit lines should be no longer than 72 characters. First line of the commit sh
 
    At least one of those calculations, max_leverage, was causing a
    divide by zero error.
+   
    Instead of papering over that error, the entire calculation was
    a bit suspect so removing, with possibility of adding it back in
    later with handling the case (or raising appropriate errors) when
@@ -43,8 +44,6 @@ Commit lines should be no longer than 72 characters. First line of the commit sh
 
 Pulling in Pull Requests (PRs)
 ------------------------------
-
-Pulling in Pull Requests (PRs)
 
 .. code-block:: bash
 
