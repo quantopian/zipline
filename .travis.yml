@@ -44,6 +44,7 @@ install:
   - pip install -r etc/requirements_dev.txt --cache-dir=$CACHE_DIR
   - pip install -r etc/requirements_blaze.txt --cache-dir=$CACHE_DIR  # this uses git requirements right now
   - pip install -r etc/requirements_talib.txt --cache-dir=$CACHE_DIR
+  - pip install -r etc/requirements_live_ib.txt --cache-dir=$CACHE_DIR
   - pip install -e .[all] --cache-dir=$CACHE_DIR
 before_script:
   - pip freeze | sort
