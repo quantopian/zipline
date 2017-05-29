@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from datetime import time
+from datetime import datetime
 from os.path import (
     abspath,
     dirname,
@@ -37,6 +38,7 @@ from zipline.errors import (
 from zipline.testing.predicates import assert_equal
 from zipline.utils.calendars import (
     deregister_calendar,
+    deregister_calendar_type,
     get_calendar,
     register_calendar,
 )
@@ -68,6 +70,23 @@ class FakeCalendar(TradingCalendar):
         return time(11, 49)
 
 
+class CalendarStartEndTestCase(TestCase):
+    @parameterized.expand([
+        (pd.Timestamp('2010-1-4'), pd.Timestamp('2010-1-8')),
+        (datetime(2010, 1, 4), datetime(2010, 1, 8)),
+        ('2010-1-4', '2010-1-8'),
+    ])
+    def test_start_end(self, start, end):
+        """
+        Check TradingCalendar with defined start/end dates.
+        """
+        calendar = FakeCalendar(start=start, end=end)
+        expected_first = pd.Timestamp(start, tz='UTC')
+        expected_last = pd.Timestamp(end, tz='UTC')
+        self.assertTrue(calendar.first_trading_session == expected_first)
+        self.assertTrue(calendar.last_trading_session == expected_last)
+
+
 class CalendarRegistrationTestCase(TestCase):
     def setUp(self):
         self.dummy_cal_type = FakeCalendar
@@ -81,7 +100,8 @@ class CalendarRegistrationTestCase(TestCase):
 
         # Try to register and retrieve the calendar
         register_calendar('DMY', dummy_cal)
-        retr_cal = get_calendar('DMY')
+        retr_cal = get_calendar('DMY', start=dummy_cal.start,
+                                end=dummy_cal.end)
         self.assertEqual(dummy_cal, retr_cal)
 
         # Try to register again, expecting a name collision
@@ -89,39 +109,38 @@ class CalendarRegistrationTestCase(TestCase):
             register_calendar('DMY', dummy_cal)
 
         # Deregister the calendar and ensure that it is removed
-        deregister_calendar('DMY')
+        deregister_calendar('DMY', start=dummy_cal.start, end=dummy_cal.end)
         with self.assertRaises(InvalidCalendarName):
-            get_calendar('DMY')
+            get_calendar('DMY', start=dummy_cal.start, end=dummy_cal.end)
 
     def test_register_calendar_type(self):
         register_calendar_type("DMY", self.dummy_cal_type)
         retr_cal = get_calendar("DMY")
         self.assertEqual(self.dummy_cal_type, type(retr_cal))
 
-    def test_both_places_are_checked(self):
-        dummy_cal = self.dummy_cal_type()
-
-        # if instance is registered, can't register type with same name
-        register_calendar('DMY', dummy_cal)
+        # Try to register again, expecting a name collision
         with self.assertRaises(CalendarNameCollision):
-            register_calendar_type('DMY', type(dummy_cal))
+            register_calendar_type('DMY', self.dummy_cal_type)
 
-        deregister_calendar('DMY')
-
-        # if type is registered, can't register instance with same name
-        register_calendar_type('DMY', type(dummy_cal))
-
-        with self.assertRaises(CalendarNameCollision):
-            register_calendar('DMY', dummy_cal)
+        # Deregister the calendar type and ensure that it is removed
+        deregister_calendar_type('DMY')
+        with self.assertRaises(InvalidCalendarName):
+            get_calendar('DMY')
 
     def test_force_registration(self):
-        register_calendar("DMY", self.dummy_cal_type())
-        first_dummy = get_calendar("DMY")
+        # Build a fake calendar
+        dummy_cal = self.dummy_cal_type()
+
+        # Try to register and retrieve the calendar
+        register_calendar("DMY", dummy_cal)
+        first_dummy = get_calendar("DMY", start=dummy_cal.start,
+                                   end=dummy_cal.end)
 
         # force-register a new instance
         register_calendar("DMY", self.dummy_cal_type(), force=True)
 
-        second_dummy = get_calendar("DMY")
+        second_dummy = get_calendar("DMY", start=dummy_cal.start,
+                                    end=dummy_cal.end)
 
         self.assertNotEqual(first_dummy, second_dummy)
 

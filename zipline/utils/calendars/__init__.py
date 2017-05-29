@@ -20,6 +20,7 @@ from .calendar_utils import (
     register_calendar,
     register_calendar_type,
     deregister_calendar,
+    deregister_calendar_type,
     clear_calendars
 )
 

@@ -63,8 +63,26 @@ class TradingCalendar(with_metaclass(ABCMeta)):
     used for convenience.
 
     For each session, we store the open and close time in UTC time.
+
+    Parameters
+    ----------
+    start : str or datetime/timestamp, default is None
+        The calendar start datetime/timestamp.
+    end : str or datetime/timestamp, default is None
+        The calendar end datetime/timestamp.
     """
-    def __init__(self, start=start_default, end=end_default):
+    def __init__(self, start=None, end=None):
+        # Set default start/end dates if not defined
+        if not start:
+            start = start_default
+        if not end:
+            end = end_default
+        # Convert start/end to pandas.Timestamp
+        start = pd.Timestamp(start, tz='UTC')
+        end = pd.Timestamp(end, tz='UTC')
+        self.start = start
+        self.end = end
+
         # Midnight in UTC for each trading day.
 
         # In pandas 0.18.1, pandas calls into its own code here in a way that

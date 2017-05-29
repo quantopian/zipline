@@ -1,6 +1,11 @@
 """
 Tests for TradingCalendarDispatcher.
 """
+from datetime import datetime
+
+import pandas as pd
+from nose_parameterized import parameterized
+
 from zipline.errors import (
     CalendarNameCollision,
     CyclicCalendarAlias,
@@ -8,6 +13,7 @@ from zipline.errors import (
 )
 from zipline.testing import ZiplineTestCase
 from zipline.utils.calendars.calendar_utils import TradingCalendarDispatcher
+from zipline.utils.calendars.calendar_utils import get_calendar
 from zipline.utils.calendars.exchange_calendar_ice import ICEExchangeCalendar
 
 
@@ -66,7 +72,7 @@ class CalendarAliasTestCase(ZiplineTestCase):
         )
 
     def test_remove_aliases(self):
-        self.dispatcher.deregister_calendar('ICE_ALIAS_ALIAS')
+        self.dispatcher.deregister_calendar_type('ICE_ALIAS_ALIAS')
         with self.assertRaises(InvalidCalendarName):
             self.dispatcher.get_calendar('ICE_ALIAS_ALIAS')
 
@@ -93,3 +99,20 @@ class CalendarAliasTestCase(ZiplineTestCase):
 
         expected = "Cycle in calendar aliases: ['C' -> 'A' -> 'B' -> 'C']"
         self.assertEqual(str(e.exception), expected)
+
+
+class GetCalendarStartEndCase(ZiplineTestCase):
+    @parameterized.expand([
+        (pd.Timestamp('2010-1-4'), pd.Timestamp('2010-1-8')),
+        (datetime(2010, 1, 4), datetime(2010, 1, 8)),
+        ('2010-1-4', '2010-1-8'),
+    ])
+    def test_start_end(self, start, end):
+        """
+        Check `get_calendar()` with defined start/end dates.
+        """
+        calendar = get_calendar('NYSE', start=start, end=end)
+        expected_first = pd.Timestamp(start, tz='UTC')
+        expected_last = pd.Timestamp(end, tz='UTC')
+        self.assertTrue(calendar.first_trading_session == expected_first)
+        self.assertTrue(calendar.last_trading_session == expected_last)
