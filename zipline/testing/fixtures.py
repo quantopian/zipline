@@ -1,3 +1,5 @@
+from itertools import repeat
+import os
 import sqlite3
 from unittest import TestCase
 
@@ -11,6 +13,8 @@ import responses
 from .core import (
     create_daily_bar_data,
     create_minute_bar_data,
+    make_simple_equity_info,
+    tmp_asset_finder,
     tmp_dir,
 )
 from ..data.data_portal import (
@@ -18,17 +22,9 @@ from ..data.data_portal import (
     DEFAULT_MINUTE_HISTORY_PREFETCH,
     DEFAULT_DAILY_HISTORY_PREFETCH,
 )
-from ..data.resample import (
-    minute_frame_to_session_frame,
-    MinuteResampleSessionBarReader
-)
-from ..data.us_equity_pricing import (
-    SQLiteAdjustmentReader,
-    SQLiteAdjustmentWriter,
-)
-from ..data.us_equity_pricing import (
-    BcolzDailyBarReader,
-    BcolzDailyBarWriter,
+from ..data.loader import (
+    get_benchmark_filename,
+    INDEX_MAPPING,
 )
 from ..data.minute_bars import (
     BcolzMinuteBarReader,
@@ -36,20 +32,35 @@ from ..data.minute_bars import (
     US_EQUITIES_MINUTES_PER_DAY,
     FUTURES_MINUTES_PER_DAY,
 )
-
+from ..data.resample import (
+    minute_frame_to_session_frame,
+    MinuteResampleSessionBarReader
+)
+from ..data.us_equity_pricing import (
+    BcolzDailyBarReader,
+    BcolzDailyBarWriter,
+    SQLiteAdjustmentReader,
+    SQLiteAdjustmentWriter,
+)
 from ..finance.trading import TradingEnvironment
 from ..utils import factory
 from ..utils.classproperty import classproperty
 from ..utils.final import FinalMeta, final
-from .core import tmp_asset_finder, make_simple_equity_info
+
+import zipline
 from zipline.assets import Equity, Future
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.pipeline import SimplePipelineEngine
+from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.protocol import BarData
 from zipline.utils.calendars import (
     get_calendar,
     register_calendar)
+from zipline.utils.paths import ensure_directory
+
+zipline_dir = os.path.dirname(zipline.__file__)
 
 
 class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
@@ -426,7 +437,10 @@ class WithTradingCalendars(object):
 
         cls.trading_calendars = {}
 
-        for cal_str in cls.TRADING_CALENDAR_STRS:
+        for cal_str in (
+            set(cls.TRADING_CALENDAR_STRS) |
+            {cls.TRADING_CALENDAR_PRIMARY_CAL}
+        ):
             # Set name to allow aliasing.
             calendar = get_calendar(cal_str)
             setattr(cls,
@@ -481,10 +495,54 @@ class WithTradingEnvironment(WithAssetFinder,
     :class:`zipline.finance.trading.TradingEnvironment`
     """
     TRADING_ENV_FUTURE_CHAIN_PREDICATES = None
+    MARKET_DATA_DIR = os.path.join(zipline_dir, 'resources', 'market_data')
 
     @classmethod
     def make_load_function(cls):
-        return None
+        def load(*args, **kwargs):
+            symbol = '^GSPC'
+
+            filename = get_benchmark_filename(symbol)
+            source_path = os.path.join(cls.MARKET_DATA_DIR, filename)
+            benchmark_returns = \
+                pd.Series.from_csv(source_path).tz_localize('UTC')
+
+            filename = INDEX_MAPPING[symbol][1]
+            source_path = os.path.join(cls.MARKET_DATA_DIR, filename)
+            treasury_curves = \
+                pd.DataFrame.from_csv(source_path).tz_localize('UTC')
+
+            # The TradingEnvironment ordinarily uses cached benchmark returns
+            # and treasury curves data, but when running the zipline tests this
+            # cache is not always updated to include the appropriate dates
+            # required by both the futures and equity calendars. In order to
+            # create more reliable and consistent data throughout the entirety
+            # of the tests, we read static benchmark returns and treasury curve
+            # csv files from source. If a test using the TradingEnvironment
+            # fixture attempts to run outside of the static date range of the
+            # csv files, raise an exception warning the user to either update
+            # the csv files in source or to use a date range within the current
+            # bounds.
+            static_start_date = benchmark_returns.index[0].date()
+            static_end_date = benchmark_returns.index[-1].date()
+            warning_message = (
+                'The TradingEnvironment fixture uses static data between '
+                '{static_start} and {static_end}. To use a start and end date '
+                'of {given_start} and {given_end} you will have to update the '
+                'files in {resource_dir} to include the missing dates.'.format(
+                    static_start=static_start_date,
+                    static_end=static_end_date,
+                    given_start=cls.START_DATE.date(),
+                    given_end=cls.END_DATE.date(),
+                    resource_dir=cls.MARKET_DATA_DIR,
+                )
+            )
+            if cls.START_DATE.date() < static_start_date or \
+                    cls.END_DATE.date() > static_end_date:
+                raise AssertionError(warning_message)
+
+            return benchmark_returns, treasury_curves
+        return load
 
     @classmethod
     def make_trading_environment(cls):
@@ -964,7 +1022,7 @@ class WithFutureMinuteBarData(_WithMinuteBarDataBase):
 
     @classmethod
     def make_future_minute_bar_data(cls):
-        trading_calendar = get_calendar('CME')
+        trading_calendar = get_calendar('us_futures')
         return create_minute_bar_data(
             trading_calendar.minutes_for_sessions_in_range(
                 cls.future_minute_bar_days[0],
@@ -976,8 +1034,7 @@ class WithFutureMinuteBarData(_WithMinuteBarDataBase):
     @classmethod
     def init_class_fixtures(cls):
         super(WithFutureMinuteBarData, cls).init_class_fixtures()
-        # To be replaced by quanto calendar.
-        trading_calendar = get_calendar('CME')
+        trading_calendar = get_calendar('us_futures')
         cls.future_minute_bar_days = _trading_days_for_minute_bars(
             trading_calendar,
             pd.Timestamp(cls.FUTURE_MINUTE_BAR_START_DATE),
@@ -1079,6 +1136,7 @@ class WithBcolzFutureMinuteBarReader(WithFutureMinuteBarData, WithTmpDir):
     zipline.testing.create_minute_bar_data
     """
     BCOLZ_FUTURE_MINUTE_BAR_PATH = 'minute_future_pricing'
+    OHLC_RATIOS_PER_SID = None
 
     @classmethod
     def make_bcolz_future_minute_bar_rootdir_path(cls):
@@ -1087,7 +1145,7 @@ class WithBcolzFutureMinuteBarReader(WithFutureMinuteBarData, WithTmpDir):
     @classmethod
     def init_class_fixtures(cls):
         super(WithBcolzFutureMinuteBarReader, cls).init_class_fixtures()
-        trading_calendar = get_calendar('CME')
+        trading_calendar = get_calendar('us_futures')
         cls.bcolz_future_minute_bar_path = p = \
             cls.make_bcolz_future_minute_bar_rootdir_path()
         days = cls.future_minute_bar_days
@@ -1098,6 +1156,7 @@ class WithBcolzFutureMinuteBarReader(WithFutureMinuteBarData, WithTmpDir):
             days[0],
             days[-1],
             FUTURES_MINUTES_PER_DAY,
+            ohlc_ratios_per_sid=cls.OHLC_RATIOS_PER_SID,
         )
         writer.write(cls.make_future_minute_bar_data())
 
@@ -1129,6 +1188,37 @@ class WithConstantEquityMinuteBarData(WithEquityMinuteBarData):
                 'low': cls.EQUITY_MINUTE_CONSTANT_LOW,
                 'close': cls.EQUITY_MINUTE_CONSTANT_CLOSE,
                 'volume': cls.EQUITY_MINUTE_CONSTANT_VOLUME,
+            },
+            index=minutes,
+        )
+
+        return ((sid, frame) for sid in sids)
+
+
+class WithConstantFutureMinuteBarData(WithFutureMinuteBarData):
+
+    FUTURE_MINUTE_CONSTANT_LOW = 3.0
+    FUTURE_MINUTE_CONSTANT_OPEN = 4.0
+    FUTURE_MINUTE_CONSTANT_CLOSE = 5.0
+    FUTURE_MINUTE_CONSTANT_HIGH = 6.0
+    FUTURE_MINUTE_CONSTANT_VOLUME = 100.0
+
+    @classmethod
+    def make_future_minute_bar_data(cls):
+        trading_calendar = cls.trading_calendars[Future]
+
+        sids = cls.asset_finder.futures_sids
+        minutes = trading_calendar.minutes_for_sessions_in_range(
+            cls.future_minute_bar_days[0],
+            cls.future_minute_bar_days[-1],
+        )
+        frame = pd.DataFrame(
+            {
+                'open': cls.FUTURE_MINUTE_CONSTANT_OPEN,
+                'high': cls.FUTURE_MINUTE_CONSTANT_HIGH,
+                'low': cls.FUTURE_MINUTE_CONSTANT_LOW,
+                'close': cls.FUTURE_MINUTE_CONSTANT_CLOSE,
+                'volume': cls.FUTURE_MINUTE_CONSTANT_VOLUME,
             },
             index=minutes,
         )
@@ -1221,6 +1311,47 @@ class WithAdjustmentReader(WithBcolzEquityDailyBarReader):
             stock_dividends=cls.make_stock_dividends_data(),
         )
         cls.adjustment_reader = SQLiteAdjustmentReader(conn)
+
+
+class WithEquityPricingPipelineEngine(WithAdjustmentReader,
+                                      WithTradingSessions):
+    """
+    Mixin providing the following as a class-level fixtures.
+        - cls.data_root_dir
+        - cls.findata_dir
+        - cls.pipeline_engine
+        - cls.adjustments_db_path
+
+    """
+    @classmethod
+    def init_class_fixtures(cls):
+        cls.data_root_dir = cls.enter_class_context(tmp_dir())
+        cls.findata_dir = cls.data_root_dir.makedir('findata')
+        super(WithEquityPricingPipelineEngine, cls).init_class_fixtures()
+
+        loader = USEquityPricingLoader(
+            cls.bcolz_equity_daily_bar_reader,
+            SQLiteAdjustmentReader(cls.adjustments_db_path),
+        )
+        dispatcher = dict(
+            zip(USEquityPricing.columns, repeat(loader))
+        ).__getitem__
+
+        cls.pipeline_engine = SimplePipelineEngine(
+            get_loader=dispatcher,
+            calendar=cls.nyse_sessions,
+            asset_finder=cls.asset_finder,
+        )
+
+    @classmethod
+    def make_adjustment_db_conn_str(cls):
+        cls.adjustments_db_path = os.path.join(
+            cls.findata_dir,
+            'adjustments',
+            cls.END_DATE.strftime("%Y-%m-%d-adjustments.db")
+        )
+        ensure_directory(os.path.dirname(cls.adjustments_db_path))
+        return cls.adjustments_db_path
 
 
 class WithSeededRandomPipelineEngine(WithTradingSessions, WithAssetFinder):

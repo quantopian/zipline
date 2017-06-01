@@ -117,16 +117,11 @@ The following code implements a simple dual moving average algorithm.
 
 .. code:: python
 
-    from zipline.api import (
-        history,
-        order_target,
-        record,
-        symbol,
-    )
-
+    from zipline.api import order_target, record, symbol
 
     def initialize(context):
         context.i = 0
+        context.asset = symbol('AAPL')
 
 
     def handle_data(context, data):
@@ -136,34 +131,37 @@ The following code implements a simple dual moving average algorithm.
             return
 
         # Compute averages
-        # history() has to be called with the same params
+        # data.history() has to be called with the same params
         # from above and returns a pandas dataframe.
-        short_mavg = history(100, '1d', 'price').mean()
-        long_mavg = history(300, '1d', 'price').mean()
-
-        sym = symbol('AAPL')
+        short_mavg = data.history(context.asset, 'price', bar_count=100, frequency="1d").mean()
+        long_mavg = data.history(context.asset, 'price', bar_count=300, frequency="1d").mean()
 
         # Trading logic
-        if short_mavg[sym] > long_mavg[sym]:
+        if short_mavg > long_mavg:
             # order_target orders as many shares as needed to
             # achieve the desired number of shares.
-            order_target(sym, 100)
-        elif short_mavg[sym] < long_mavg[sym]:
-            order_target(sym, 0)
+            order_target(context.asset, 100)
+        elif short_mavg < long_mavg:
+            order_target(context.asset, 0)
 
         # Save values for later inspection
-        record(AAPL=data[sym].price,
-               short_mavg=short_mavg[sym],
-               long_mavg=long_mavg[sym])
+        record(AAPL=data.current(context.asset, 'price'),
+               short_mavg=short_mavg,
+               long_mavg=long_mavg)
+
 
 You can then run this algorithm using the Zipline CLI. From the command
 line, run:
 
 .. code:: bash
 
+    zipline ingest
+	  
+.. code:: bash
+
     zipline run -f dual_moving_average.py --start 2011-1-1 --end 2012-1-1 -o dma.pickle
 
-This will download the AAPL price data from Yahoo! Finance in the
+This will download the AAPL price data from `quantopian-quandl` in the
 specified time range and stream it through the algorithm and save the
 resulting performance dataframe to dma.pickle which you can then load
 and analyze from within python.

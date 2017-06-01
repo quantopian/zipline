@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
 
 import logbook
 import pandas as pd
@@ -63,12 +64,8 @@ class TradingEnvironment(object):
         The benchmark symbol
     exchange_tz : tz-coercable, optional
         The timezone of the exchange.
-    min_date : datetime, optional
-        The oldest date that we know about in this environment.
-    max_date : datetime, optional
-        The most recent date that we know about in this environment.
-    env_trading_calendar : pd.DatetimeIndex, optional
-        The calendar of datetimes that define our market hours.
+    trading_calendar : TradingCalendar, optional
+        The trading calendar to work with in this environment.
     asset_db_path : str or sa.engine.Engine, optional
         The path to the assets db or sqlalchemy Engine object to use to
         construct an AssetFinder.
@@ -86,11 +83,12 @@ class TradingEnvironment(object):
         trading_calendar=None,
         asset_db_path=':memory:',
         future_chain_predicates=CHAIN_PREDICATES,
+        environ=None,
     ):
 
         self.bm_symbol = bm_symbol
         if not load:
-            load = load_market_data
+            load = partial(load_market_data, environ=environ)
 
         if not trading_calendar:
             trading_calendar = get_calendar("NYSE")

@@ -187,10 +187,11 @@ class FinanceTestCase(WithLogger,
         # if present, expect transaction amounts to match orders exactly.
         complete_fill = params.get('complete_fill')
 
-        sid = 1
-        metadata = make_simple_equity_info([sid], self.start, self.end)
+        asset1 = self.asset_finder.retrieve_asset(1)
+        metadata = make_simple_equity_info([asset1.sid], self.start, self.end)
         with TempDirectory() as tempdir, \
-                tmp_trading_env(equities=metadata) as env:
+                tmp_trading_env(equities=metadata,
+                                load=self.make_load_function()) as env:
 
             if trade_interval < timedelta(days=1):
                 sim_params = factory.create_simulation_parameters(
@@ -206,7 +207,7 @@ class FinanceTestCase(WithLogger,
 
                 price_data = np.array([10.1] * len(minutes))
                 assets = {
-                    sid: pd.DataFrame({
+                    asset1.sid: pd.DataFrame({
                         "open": price_data,
                         "high": price_data,
                         "low": price_data,
@@ -275,8 +276,7 @@ class FinanceTestCase(WithLogger,
             else:
                 slippage_func = None
 
-            blotter = Blotter(sim_params.data_frequency, self.env.asset_finder,
-                              slippage_func)
+            blotter = Blotter(sim_params.data_frequency, slippage_func)
 
             start_date = sim_params.first_open
 
@@ -305,7 +305,7 @@ class FinanceTestCase(WithLogger,
                     # place an order
                     direction = alternator ** len(order_list)
                     order_id = blotter.order(
-                        blotter.asset_finder.retrieve_asset(sid),
+                        asset1,
                         order_amount * direction,
                         MarketOrder())
                     order_list.append(blotter.orders[order_id])
@@ -333,7 +333,7 @@ class FinanceTestCase(WithLogger,
 
             for i in range(order_count):
                 order = order_list[i]
-                self.assertEqual(order.sid, sid)
+                self.assertEqual(order.asset, asset1)
                 self.assertEqual(order.amount, order_amount * alternator ** i)
 
             if complete_fill:
@@ -351,48 +351,54 @@ class FinanceTestCase(WithLogger,
 
             self.assertEqual(len(transactions), expected_txn_count)
 
-            cumulative_pos = tracker.position_tracker.positions[sid]
+            cumulative_pos = tracker.position_tracker.positions[asset1]
             if total_volume == 0:
                 self.assertIsNone(cumulative_pos)
             else:
                 self.assertEqual(total_volume, cumulative_pos.amount)
 
-            # the open orders should not contain sid.
+            # the open orders should not contain the asset.
             oo = blotter.open_orders
-            self.assertNotIn(sid, oo, "Entry is removed when no open orders")
+            self.assertNotIn(
+                asset1,
+                oo,
+                "Entry is removed when no open orders"
+            )
 
     def test_blotter_processes_splits(self):
-        blotter = Blotter('daily', self.env.asset_finder,
-                          slippage_func=FixedSlippage())
+        blotter = Blotter('daily',  equity_slippage=FixedSlippage())
 
         # set up two open limit orders with very low limit prices,
         # one for sid 1 and one for sid 2
-        blotter.order(
-            blotter.asset_finder.retrieve_asset(1), 100, LimitOrder(10))
-        blotter.order(
-            blotter.asset_finder.retrieve_asset(2), 100, LimitOrder(10))
+        asset1 = self.asset_finder.retrieve_asset(1)
+        asset2 = self.asset_finder.retrieve_asset(2)
+        asset133 = self.asset_finder.retrieve_asset(133)
 
-        # send in a split for sid 2
-        blotter.process_splits([(2, 0.3333)])
+        blotter.order(asset1, 100, LimitOrder(10))
+        blotter.order(asset2, 100, LimitOrder(10))
 
-        for sid in [1, 2]:
-            order_lists = blotter.open_orders[sid]
+        # send in splits for assets 133 and 2.  We have no open orders for
+        # asset 133 so it should be ignored.
+        blotter.process_splits([(asset133, 0.5), (asset2, 0.3333)])
+
+        for asset in [asset1, asset2]:
+            order_lists = blotter.open_orders[asset]
             self.assertIsNotNone(order_lists)
             self.assertEqual(1, len(order_lists))
 
-        aapl_order = blotter.open_orders[1][0].to_dict()
-        fls_order = blotter.open_orders[2][0].to_dict()
+        asset1_order = blotter.open_orders[1][0]
+        asset2_order = blotter.open_orders[2][0]
 
-        # make sure the aapl order didn't change
-        self.assertEqual(100, aapl_order['amount'])
-        self.assertEqual(10, aapl_order['limit'])
-        self.assertEqual(1, aapl_order['sid'])
+        # make sure the asset1 order didn't change
+        self.assertEqual(100, asset1_order.amount)
+        self.assertEqual(10, asset1_order.limit)
+        self.assertEqual(1, asset1_order.asset)
 
-        # make sure the fls order did change
+        # make sure the asset2 order did change
         # to 300 shares at 3.33
-        self.assertEqual(300, fls_order['amount'])
-        self.assertEqual(3.33, fls_order['limit'])
-        self.assertEqual(2, fls_order['sid'])
+        self.assertEqual(300, asset2_order.amount)
+        self.assertEqual(3.33, asset2_order.limit)
+        self.assertEqual(2, asset2_order.asset)
 
 
 class TradingEnvironmentTestCase(WithLogger,

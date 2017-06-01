@@ -31,8 +31,8 @@ def main(env, do_upload):
                "--python", env['CONDA_PY'],
                "--numpy", env['CONDA_NPY'],
                "--skip-existing",
-               "-c", "quantopian",
-               "-c", "https://conda.anaconda.org/quantopian/label/ci"]
+               "-c", "quantopian/label/ci",
+               "-c", "quantopian"]
 
         output = None
 

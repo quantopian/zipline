@@ -113,6 +113,22 @@ def handle_data(context, data):
     assert iter_list == items_list
 """
 
+reference_missing_position_by_int_algo = """
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    context.portfolio.positions[24]
+"""
+
+reference_missing_position_by_unexpected_type_algo = """
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    context.portfolio.positions["foobar"]
+"""
+
 
 class TestAPIShim(WithCreateBarData,
                   WithDataPortal,
@@ -249,6 +265,7 @@ class TestAPIShim(WithCreateBarData,
                         5,
                         "1m",
                         "volume",
+                        "minute",
                         True
                     )
                 else:
@@ -258,6 +275,7 @@ class TestAPIShim(WithCreateBarData,
                         5,
                         "1m",
                         "volume",
+                        "minute",
                     )
 
         test_sim_params = SimulationParameters(
@@ -513,3 +531,33 @@ class TestAPIShim(WithCreateBarData,
                     self.assertEqual("Iterating over the assets in `data` is "
                                      "deprecated.",
                                      str(warning.message))
+
+    def test_reference_empty_position_by_int(self):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("default", ZiplineDeprecationWarning)
+
+            algo = self.create_algo(reference_missing_position_by_int_algo)
+            algo.run(self.data_portal)
+
+            self.assertEqual(1, len(w))
+            self.assertEqual(
+                str(w[0].message),
+                "Referencing positions by integer is deprecated. Use an asset "
+                "instead."
+            )
+
+    def test_reference_empty_position_by_unexpected_type(self):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("default", ZiplineDeprecationWarning)
+
+            algo = self.create_algo(
+                reference_missing_position_by_unexpected_type_algo
+            )
+            algo.run(self.data_portal)
+
+            self.assertEqual(1, len(w))
+            self.assertEqual(
+                str(w[0].message),
+                "Position lookup expected a value of type Asset but got str"
+                " instead."
+            )

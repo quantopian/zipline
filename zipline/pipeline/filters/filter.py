@@ -502,7 +502,33 @@ class SingleAsset(Filter):
         return out
 
 
-class StaticAssets(Filter):
+class StaticSids(Filter):
+    """
+    A Filter that computes True for a specific set of predetermined sids.
+
+    ``StaticSids`` is mostly useful for debugging or for interactively
+    computing pipeline terms for a fixed set of sids that are known ahead of
+    time.
+
+    Parameters
+    ----------
+    sids : iterable[int]
+        An iterable of sids for which to filter.
+    """
+    inputs = ()
+    window_length = 0
+    params = ('sids',)
+
+    def __new__(cls, sids):
+        sids = frozenset(sids)
+        return super(StaticSids, cls).__new__(cls, sids=sids)
+
+    def _compute(self, arrays, dates, sids, mask):
+        my_columns = sids.isin(self.params['sids'])
+        return repeat_first_axis(my_columns, len(mask)) & mask
+
+
+class StaticAssets(StaticSids):
     """
     A Filter that computes True for a specific set of predetermined assets.
 
@@ -515,14 +541,6 @@ class StaticAssets(Filter):
     assets : iterable[Asset]
         An iterable of assets for which to filter.
     """
-    inputs = ()
-    window_length = 0
-    params = ('sids',)
-
     def __new__(cls, assets):
         sids = frozenset(asset.sid for asset in assets)
-        return super(StaticAssets, cls).__new__(cls, sids=sids)
-
-    def _compute(self, arrays, dates, sids, mask):
-        my_columns = sids.isin(self.params['sids'])
-        return repeat_first_axis(my_columns, len(mask)) & mask
+        return super(StaticAssets, cls).__new__(cls, sids)

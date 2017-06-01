@@ -21,8 +21,9 @@ import pandas as pd
 
 from zipline import examples
 from zipline.data.bundles import register, unregister
-from zipline.testing import test_resource_path
-from zipline.testing.fixtures import WithTmpDir, ZiplineTestCase
+from zipline.testing import test_resource_path, copy_market_data
+from zipline.testing.fixtures import WithTmpDir, ZiplineTestCase, \
+    WithTradingEnvironment
 from zipline.testing.predicates import assert_equal
 from zipline.utils.cache import dataframe_cache
 
@@ -52,6 +53,9 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             ),
             serialization='pickle',
         )
+
+        copy_market_data(WithTradingEnvironment.MARKET_DATA_DIR,
+                         cls.tmpdir.getpath('example_data/root'))
 
     @parameterized.expand(examples.EXAMPLE_MODULES)
     def test_example(self, example_name):

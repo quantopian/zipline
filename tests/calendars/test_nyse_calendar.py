@@ -226,3 +226,17 @@ class NYSECalendarTestCase(ExchangeCalendarTestBase, TestCase):
         self.assertFalse(self.calendar.is_open_on_minute(wednesday_before))
         self.assertTrue(self.calendar.is_open_on_minute(friday_after_open))
         self.assertTrue(self.calendar.is_open_on_minute(friday_after))
+
+
+class CalendarStartEndTestCase(TestCase):
+    def test_start_end(self):
+        """
+        Check TradingCalendar with defined start/end dates.
+        """
+        start = pd.Timestamp('2010-1-3', tz='UTC')
+        end = pd.Timestamp('2010-1-10', tz='UTC')
+        calendar = NYSEExchangeCalendar(start=start, end=end)
+        expected_first = pd.Timestamp('2010-1-4', tz='UTC')
+        expected_last = pd.Timestamp('2010-1-8', tz='UTC')
+        self.assertTrue(calendar.first_trading_session == expected_first)
+        self.assertTrue(calendar.last_trading_session == expected_last)

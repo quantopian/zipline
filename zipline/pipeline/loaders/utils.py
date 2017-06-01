@@ -231,6 +231,12 @@ def normalize_timestamp_to_query_time(df,
         # don't mutate the dataframe in place
         df = df.copy()
 
+    # There is a pandas bug (0.18.1) where if the timestamps in a
+    # normalized DatetimeIndex are not sorted and one calls `tz_localize(None)`
+    #  on tha DatetimeIndex, some of the dates will be shifted by an hour
+    # (similarly to the previously mentioned bug). Therefore, we must sort
+    # the df here to ensure that we get the normalize correctly.
+    df.sort_values(ts_field, inplace=True)
     dtidx = pd.DatetimeIndex(df.loc[:, ts_field], tz='utc')
     dtidx_local_time = dtidx.tz_convert(tz)
     to_roll_forward = mask_between_time(
