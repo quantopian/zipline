@@ -15,7 +15,7 @@ from zipline.testing import (
 )
 from zipline.testing.fixtures import (
     WithLogger,
-    WithTradingCalendars,
+    WithTradingEnvironment,
     ZiplineTestCase,
 )
 from zipline.utils import factory
@@ -82,7 +82,9 @@ class IterateRLAlgo(TradingAlgorithm):
                 self.found = True
 
 
-class SecurityListTestCase(WithLogger, WithTradingCalendars, ZiplineTestCase):
+class SecurityListTestCase(WithLogger,
+                           WithTradingEnvironment,
+                           ZiplineTestCase):
 
     @classmethod
     def init_class_fixtures(cls):
@@ -103,6 +105,7 @@ class SecurityListTestCase(WithLogger, WithTradingCalendars, ZiplineTestCase):
                 'symbol': symbol,
                 'exchange': "TEST",
             } for symbol in symbols]),
+            load=cls.make_load_function(),
         ))
 
         cls.sim_params = factory.create_simulation_parameters(
@@ -122,6 +125,7 @@ class SecurityListTestCase(WithLogger, WithTradingCalendars, ZiplineTestCase):
                 'symbol': symbol,
                 'exchange': "TEST",
             } for symbol in symbols]),
+            load=cls.make_load_function(),
         ))
 
         cls.tempdir = cls.enter_class_context(tmp_dir())
@@ -304,7 +308,8 @@ class SecurityListTestCase(WithLogger, WithTradingCalendars, ZiplineTestCase):
         }])
         with TempDirectory() as new_tempdir, \
                 security_list_copy(), \
-                tmp_trading_env(equities=equities) as env:
+                tmp_trading_env(equities=equities,
+                                load=self.make_load_function()) as env:
             # add a delete statement removing bzq
             # write a new delete statement file to disk
             add_security_data([], ['BZQ'])

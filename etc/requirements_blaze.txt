@@ -17,4 +17,4 @@ MarkupSafe==0.23
 Werkzeug==0.10.4
 psutil==4.3.0
 
--e git://github.com/quantopian/blaze.git@729493f0c8adaf5066bc9e7d4897f39fe30a1188#egg=blaze-dev
+-e git://github.com/quantopian/blaze.git@310605323449e375e81a0cf04011c507cd126ef6#egg=blaze-dev

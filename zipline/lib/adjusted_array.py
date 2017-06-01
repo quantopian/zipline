@@ -227,6 +227,7 @@ class AdjustedArray(object):
             offset,
             window_length,
             perspective_offset,
+            rounding_places=None,
         )
 
     def inspect(self):

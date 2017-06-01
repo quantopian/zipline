@@ -25,6 +25,7 @@ from toolz import curry
 
 from zipline.utils.input_validation import preprocess
 from zipline.utils.memoize import lazyval
+from zipline.utils.sentinel import sentinel
 
 from .context_tricks import nop_context
 
@@ -50,6 +51,7 @@ __all__ = [
     # Factory API
     'date_rules',
     'time_rules',
+    'calendars',
     'make_eventrule',
 ]
 
@@ -601,6 +603,11 @@ class time_rules(object):
     market_open = AfterOpen
     market_close = BeforeClose
     every_minute = Always
+
+
+class calendars(object):
+    US_EQUITIES = sentinel('US_EQUITIES')
+    US_FUTURES = sentinel('US_FUTURES')
 
 
 def make_eventrule(date_rule, time_rule, cal, half_days=True):

@@ -82,6 +82,17 @@ Please use VolumeShareSlippage or FixedSlippage.
 """.strip()
 
 
+class IncompatibleSlippageModel(ZiplineError):
+    """
+    Raised if a user tries to set a futures slippage model for equities or vice
+    versa.
+    """
+    msg = """
+You attempted to set an incompatible slippage model for {asset_type}. \
+The slippage model '{given_model}' only supports {supported_asset_types}.
+""".strip()
+
+
 class SetSlippagePostInit(ZiplineError):
     # Raised if a users script calls set_slippage magic
     # after the initialize method has returned.
@@ -127,6 +138,17 @@ class UnsupportedCommissionModel(ZiplineError):
     msg = """
 You attempted to set commission with an unsupported class. \
 Please use PerShare or PerTrade.
+""".strip()
+
+
+class IncompatibleCommissionModel(ZiplineError):
+    """
+    Raised if a user tries to set a futures commission model for equities or
+    vice versa.
+    """
+    msg = """
+You attempted to set an incompatible commission model for {asset_type}. \
+The commission model '{given_model}' only supports {supported_asset_types}.
 """.strip()
 
 
@@ -665,18 +687,6 @@ class UnsupportedDatetimeFormat(ZiplineError):
            "coercible to a pandas.Timestamp object.")
 
 
-class PositionTrackerMissingAssetFinder(ZiplineError):
-    """
-    Raised by a PositionTracker if it is asked to update an Asset but does not
-    have an AssetFinder
-    """
-    msg = (
-        "PositionTracker attempted to update its Asset information but does "
-        "not have an AssetFinder. This may be caused by a failure to properly "
-        "de-serialize a TradingAlgorithm."
-    )
-
-
 class AssetDBVersionError(ZiplineError):
     """
     Raised by an AssetDBWriter or AssetFinder if the version number in the
@@ -745,6 +755,16 @@ class ScheduleFunctionWithoutCalendar(ZiplineError):
     msg = (
         "To use schedule_function, the TradingAlgorithm must be running on an "
         "ExchangeTradingSchedule, rather than {schedule}."
+    )
+
+
+class ScheduleFunctionInvalidCalendar(ZiplineError):
+    """
+    Raised when schedule_function is called with an invalid calendar argument.
+    """
+    msg = (
+        "Invalid calendar '{given_calendar}' passed to schedule_function. "
+        "Allowed options are {allowed_calendars}."
     )
 
 

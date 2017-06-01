@@ -34,21 +34,18 @@ def attach_pipeline(pipeline, name, chunks=None):
     :func:`zipline.api.pipeline_output`
     """
 
-def batch_order_target_percent(weights):
-    """Place orders towards a given portfolio of weights.
+def batch_market_order(share_counts):
+    """Place a batch market order for multiple assets.
 
     Parameters
     ----------
-    weights : collections.Mapping[Asset -> float]
+    share_counts : pd.Series[Asset -> int]
+        Map from asset to number of shares to order for that asset.
 
     Returns
     -------
-    order_ids : pd.Series[Asset -> str]
-        The unique identifiers for the orders that were placed.
-
-    See Also
-    --------
-    :func:`zipline.api.order_target_percent`
+    order_ids : pd.Index[str]
+        Index of ids for newly-created orders.
     """
 
 def cancel_order(order_param):
@@ -60,7 +57,7 @@ def cancel_order(order_param):
         The order_id or order object to cancel.
     """
 
-def continuous_future(root_symbol_str, offset, roll):
+def continuous_future(root_symbol_str, offset=0, roll='volume', adjustment='mul'):
     """Create a specifier for a continuous contract.
 
     Parameters
@@ -68,11 +65,15 @@ def continuous_future(root_symbol_str, offset, roll):
     root_symbol_str : str
         The root symbol for the future chain.
 
-    offset : int
-        The distance from the primary contract.
+    offset : int, optional
+        The distance from the primary contract. Default is 0.
 
-    roll_style : str
-        How rolls are determined.
+    roll_style : str, optional
+        How rolls are determined. Default is 'volume'.
+
+    adjustment : str, optional
+        Method for adjusting lookback prices between rolls. Options are
+        'mul', 'add', and None. Default is 'mul'.
 
     Returns
     -------

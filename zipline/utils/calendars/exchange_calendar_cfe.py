@@ -1,4 +1,5 @@
 from datetime import time
+from itertools import chain
 
 from pandas.tseries.holiday import (
     USPresidentsDay,
@@ -16,7 +17,9 @@ from zipline.utils.calendars.us_holidays import (
     USBlackFridayInOrAfter1993,
     USNewYearsDay,
     USIndependenceDay,
-    Christmas
+    Christmas,
+    HurricaneSandyClosings,
+    USNationalDaysofMourning,
 )
 
 
@@ -69,3 +72,10 @@ class CFEExchangeCalendar(TradingCalendar):
                 USBlackFridayInOrAfter1993,
             ])
         )]
+
+    @property
+    def adhoc_holidays(self):
+        return list(chain(
+            HurricaneSandyClosings,
+            USNationalDaysofMourning,
+        ))

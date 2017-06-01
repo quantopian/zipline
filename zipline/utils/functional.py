@@ -5,6 +5,8 @@ from six import viewkeys
 from six.moves import map, zip
 from toolz import curry, flip
 
+from .sentinel import sentinel
+
 
 @curry
 def apply(f, *args, **kwargs):
@@ -56,8 +58,6 @@ def apply(f, *args, **kwargs):
 
 # Alias for use as a class decorator.
 instance = apply
-
-from zipline.utils.sentinel import sentinel
 
 
 def mapall(funcs, seq):

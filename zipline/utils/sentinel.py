@@ -57,4 +57,6 @@ def sentinel(name, doc=None):
 
     sentinel._cache[name] = Sentinel  # cache result
     return Sentinel
+
+
 sentinel._cache = {}

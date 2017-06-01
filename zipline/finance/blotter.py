@@ -18,28 +18,35 @@ from copy import copy
 
 from six import iteritems
 
+from zipline.assets import Equity, Future, Asset
 from zipline.finance.order import Order
-from zipline.finance.slippage import VolumeShareSlippage
-from zipline.finance.commission import PerShare
+from zipline.finance.slippage import (
+    DEFAULT_FUTURE_VOLUME_SLIPPAGE_BAR_LIMIT,
+    VolatilityVolumeShare,
+    VolumeShareSlippage,
+)
+from zipline.finance.commission import (
+    DEFAULT_PER_CONTRACT_COST,
+    FUTURE_EXCHANGE_FEES_BY_SYMBOL,
+    PerContract,
+    PerShare,
+)
 from zipline.finance.cancel_policy import NeverCancel
+from zipline.utils.input_validation import expect_types
 
 log = Logger('Blotter')
 warning_logger = Logger('AlgoWarning')
 
 
 class Blotter(object):
-    def __init__(self, data_frequency, asset_finder, slippage_func=None,
-                 commission=None, cancel_policy=None):
-        # these orders are aggregated by sid
+    def __init__(self, data_frequency, equity_slippage=None,
+                 future_slippage=None, equity_commission=None,
+                 future_commission=None, cancel_policy=None):
+        # these orders are aggregated by asset
         self.open_orders = defaultdict(list)
 
         # keep a dict of orders by their own id
         self.orders = {}
-
-        # all our legacy order management code works with integer sids.
-        # this lets us convert those to assets when needed.  ideally, we'd just
-        # revamp all the legacy code to work with assets.
-        self.asset_finder = asset_finder
 
         # holding orders that have come in since the last event.
         self.new_orders = []
@@ -47,8 +54,19 @@ class Blotter(object):
 
         self.max_shares = int(1e+11)
 
-        self.slippage_func = slippage_func or VolumeShareSlippage()
-        self.commission = commission or PerShare()
+        self.slippage_models = {
+            Equity: equity_slippage or VolumeShareSlippage(),
+            Future: future_slippage or VolatilityVolumeShare(
+                volume_limit=DEFAULT_FUTURE_VOLUME_SLIPPAGE_BAR_LIMIT,
+            ),
+        }
+        self.commission_models = {
+            Equity: equity_commission or PerShare(),
+            Future: future_commission or PerContract(
+                cost=DEFAULT_PER_CONTRACT_COST,
+                exchange_fee=FUTURE_EXCHANGE_FEES_BY_SYMBOL,
+            ),
+        }
 
         self.data_frequency = data_frequency
 
@@ -57,15 +75,15 @@ class Blotter(object):
     def __repr__(self):
         return """
 {class_name}(
-    slippage={slippage_func},
-    commission={commission},
+    slippage_models={slippage_models},
+    commission_models={commission_models},
     open_orders={open_orders},
     orders={orders},
     new_orders={new_orders},
     current_dt={current_dt})
 """.strip().format(class_name=self.__class__.__name__,
-                   slippage_func=self.slippage_func,
-                   commission=self.commission,
+                   slippage_models=self.slippage_models,
+                   commission_models=self.commission_models,
                    open_orders=self.open_orders,
                    orders=self.orders,
                    new_orders=self.new_orders,
@@ -74,7 +92,8 @@ class Blotter(object):
     def set_date(self, dt):
         self.current_dt = dt
 
-    def order(self, sid, amount, style, order_id=None):
+    @expect_types(asset=Asset)
+    def order(self, asset, amount, style, order_id=None):
         """Place an order.
 
         Parameters
@@ -100,10 +119,10 @@ class Blotter(object):
         -----
         amount > 0 :: Buy/Cover
         amount < 0 :: Sell/Short
-        Market order:    order(sid, amount)
-        Limit order:     order(sid, amount, style=LimitOrder(limit_price))
-        Stop order:      order(sid, amount, style=StopOrder(stop_price))
-        StopLimit order: order(sid, amount, style=StopLimitOrder(limit_price,
+        Market order:    order(asset, amount)
+        Limit order:     order(asset, amount, style=LimitOrder(limit_price))
+        Stop order:      order(asset, amount, style=StopOrder(stop_price))
+        StopLimit order: order(asset, amount, style=StopLimitOrder(limit_price,
                                stop_price))
         """
         # something could be done with amount to further divide
@@ -122,14 +141,14 @@ class Blotter(object):
         is_buy = (amount > 0)
         order = Order(
             dt=self.current_dt,
-            sid=sid,
+            asset=asset,
             amount=amount,
             stop=style.get_stop_price(is_buy),
             limit=style.get_limit_price(is_buy),
             id=order_id
         )
 
-        self.open_orders[order.sid].append(order)
+        self.open_orders[order.asset].append(order)
         self.orders[order.id] = order
         self.new_orders.append(order)
 
@@ -163,7 +182,7 @@ class Blotter(object):
         cur_order = self.orders[order_id]
 
         if cur_order.open:
-            order_list = self.open_orders[cur_order.sid]
+            order_list = self.open_orders[cur_order.asset]
             if cur_order in order_list:
                 order_list.remove(cur_order)
 
@@ -203,7 +222,7 @@ class Blotter(object):
                         'filled by the end of day and '
                         'were canceled.'.format(
                             order_amt=order.amount,
-                            order_sym=order.sid.symbol,
+                            order_sym=order.asset.symbol,
                             order_filled=order.filled,
                             order_failed=order.amount - order.filled,
                         )
@@ -217,7 +236,7 @@ class Blotter(object):
                         'filled by the end of day and '
                         'were canceled.'.format(
                             order_amt=order.amount,
-                            order_sym=order.sid.symbol,
+                            order_sym=order.asset.symbol,
                             order_filled=-1 * order.filled,
                             order_failed=-1 * (order.amount - order.filled),
                         )
@@ -228,7 +247,7 @@ class Blotter(object):
                         '{order_sym} failed to fill by the end of day '
                         'and was canceled.'.format(
                             order_amt=order.amount,
-                            order_sym=order.sid.symbol,
+                            order_sym=order.asset.symbol,
                         )
                     )
 
@@ -254,7 +273,7 @@ class Blotter(object):
 
         cur_order = self.orders[order_id]
 
-        order_list = self.open_orders[cur_order.sid]
+        order_list = self.open_orders[cur_order.asset]
         if cur_order in order_list:
             order_list.remove(cur_order)
 
@@ -292,20 +311,19 @@ class Blotter(object):
         Parameters
         ----------
         splits: list
-            A list of splits.  Each split is a tuple of (sid, ratio).
+            A list of splits.  Each split is a tuple of (asset, ratio).
 
         Returns
         -------
         None
         """
-        for split in splits:
-            sid = split[0]
-            if sid not in self.open_orders:
-                return
+        for asset, ratio in splits:
+            if asset not in self.open_orders:
+                continue
 
-            orders_to_modify = self.open_orders[sid]
+            orders_to_modify = self.open_orders[asset]
             for order in orders_to_modify:
-                order.handle_split(split[1])
+                order.handle_split(ratio)
 
     def get_transactions(self, bar_data):
         """
@@ -330,7 +348,7 @@ class Blotter(object):
 
         commissions_list: List
             commissions_list: list of commissions resulting from filling the
-            open orders.  A commission is an object with "sid" and "cost"
+            open orders.  A commission is an object with "asset" and "cost"
             parameters.
 
         closed_orders: List
@@ -342,20 +360,17 @@ class Blotter(object):
         commissions = []
 
         if self.open_orders:
-            assets = self.asset_finder.retrieve_all(self.open_orders)
-            asset_dict = {asset.sid: asset for asset in assets}
-
-            for sid, asset_orders in iteritems(self.open_orders):
-                asset = asset_dict[sid]
+            for asset, asset_orders in iteritems(self.open_orders):
+                slippage = self.slippage_models[type(asset)]
 
                 for order, txn in \
-                        self.slippage_func(bar_data, asset, asset_orders):
-                    additional_commission = \
-                        self.commission.calculate(order, txn)
+                        slippage.simulate(bar_data, asset, asset_orders):
+                    commission = self.commission_models[type(asset)]
+                    additional_commission = commission.calculate(order, txn)
 
                     if additional_commission > 0:
                         commissions.append({
-                            "sid": order.sid,
+                            "asset": order.asset,
                             "order": order,
                             "cost": additional_commission
                         })
@@ -386,15 +401,15 @@ class Blotter(object):
         """
         # remove all closed orders from our open_orders dict
         for order in closed_orders:
-            sid = order.sid
-            sid_orders = self.open_orders[sid]
+            asset = order.asset
+            asset_orders = self.open_orders[asset]
             try:
-                sid_orders.remove(order)
+                asset_orders.remove(order)
             except ValueError:
                 continue
 
-        # now clear out the sids from our open_orders dict that have
+        # now clear out the assets from our open_orders dict that have
         # zero open orders
-        for sid in list(self.open_orders.keys()):
-            if len(self.open_orders[sid]) == 0:
-                del self.open_orders[sid]
+        for asset in list(self.open_orders.keys()):
+            if len(self.open_orders[asset]) == 0:
+                del self.open_orders[asset]

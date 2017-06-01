@@ -20,7 +20,7 @@ Position Tracking
     +-----------------+----------------------------------------------------+
     | key             | value                                              |
     +=================+====================================================+
-    | sid             | the sid for the asset held in this position        |
+    | asset           | the asset held in this position                    |
     +-----------------+----------------------------------------------------+
     | amount          | whole number of shares in the position             |
     +-----------------+----------------------------------------------------+
@@ -37,15 +37,19 @@ from collections import OrderedDict
 import numpy as np
 import logbook
 
+from zipline.assets import Future, Asset
+from zipline.utils.input_validation import expect_types
+
 log = logbook.Logger('Performance')
 
 
 class Position(object):
 
-    def __init__(self, sid, amount=0, cost_basis=0.0,
+    @expect_types(asset=Asset)
+    def __init__(self, asset, amount=0, cost_basis=0.0,
                  last_sale_price=0.0, last_sale_date=None):
 
-        self.sid = sid
+        self.asset = asset
         self.amount = amount
         self.cost_basis = cost_basis  # per share
         self.last_sale_price = last_sale_price
@@ -72,15 +76,16 @@ class Position(object):
             )
         }
 
-    def handle_split(self, sid, ratio):
+    @expect_types(asset=Asset)
+    def handle_split(self, asset, ratio):
         """
         Update the position by the split ratio, and return the resulting
         fractional share that will be converted into cash.
 
         Returns the unused cash.
         """
-        if self.sid != sid:
-            raise Exception("updating split with the wrong sid!")
+        if self.asset != asset:
+            raise Exception("updating split with the wrong asset!")
 
         # adjust the # of shares by the ratio
         # (if we had 100 shares, and the ratio is 3,
@@ -113,9 +118,9 @@ class Position(object):
         return return_cash
 
     def update(self, txn):
-        if self.sid != txn.sid:
+        if self.asset != txn.asset:
             raise Exception('updating position with txn for a '
-                            'different sid')
+                            'different asset')
 
         total_shares = self.amount + txn.amount
 
@@ -145,7 +150,8 @@ class Position(object):
 
         self.amount = total_shares
 
-    def adjust_commission_cost_basis(self, sid, cost):
+    @expect_types(asset=Asset)
+    def adjust_commission_cost_basis(self, asset, cost):
         """
         A note about cost-basis in zipline: all positions are considered
         to share a cost basis, even if they were executed in different
@@ -156,8 +162,8 @@ class Position(object):
         all shares in a position.
         """
 
-        if sid != self.sid:
-            raise Exception('Updating a commission for a different sid?')
+        if asset != self.asset:
+            raise Exception('Updating a commission for a different asset?')
         if cost == 0.0:
             return
 
@@ -167,14 +173,18 @@ class Position(object):
             return
 
         prev_cost = self.cost_basis * self.amount
-        new_cost = prev_cost + cost
+        if isinstance(asset, Future):
+            cost_to_use = cost / asset.multiplier
+        else:
+            cost_to_use = cost
+        new_cost = prev_cost + cost_to_use
         self.cost_basis = new_cost / self.amount
 
     def __repr__(self):
-        template = "sid: {sid}, amount: {amount}, cost_basis: {cost_basis}, \
+        template = "asset: {asset}, amount: {amount}, cost_basis: {cost_basis}, \
 last_sale_price: {last_sale_price}"
         return template.format(
-            sid=self.sid,
+            asset=self.asset,
             amount=self.amount,
             cost_basis=self.cost_basis,
             last_sale_price=self.last_sale_price
@@ -186,7 +196,7 @@ last_sale_price: {last_sale_price}"
         Returns a dict object of the form:
         """
         return {
-            'sid': self.sid,
+            'sid': self.asset,
             'amount': self.amount,
             'cost_basis': self.cost_basis,
             'last_sale_price': self.last_sale_price

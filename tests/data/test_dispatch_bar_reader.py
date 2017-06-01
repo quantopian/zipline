@@ -42,8 +42,8 @@ class AssetDispatchSessionBarTestCase(WithBcolzEquityDailyBarReader,
                                       WithTradingSessions,
                                       ZiplineTestCase):
 
-    TRADING_CALENDAR_STRS = ('CME', 'NYSE')
-    TRADING_CALENDAR_PRIMARY_CAL = 'CME'
+    TRADING_CALENDAR_STRS = ('us_futures', 'NYSE')
+    TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 3
 
@@ -54,7 +54,7 @@ class AssetDispatchSessionBarTestCase(WithBcolzEquityDailyBarReader,
     def make_future_minute_bar_data(cls):
         m_opens = [
             cls.trading_calendar.open_and_close_for_session(session)[0]
-            for session in cls.trading_sessions['CME']]
+            for session in cls.trading_sessions['us_futures']]
         yield 10001, DataFrame({
             'open': [10000.5, 10001.5, nan],
             'high': [10000.9, 10001.9, nan],
@@ -171,8 +171,8 @@ class AssetDispatchMinuteBarTestCase(WithBcolzEquityMinuteBarReader,
                                      WithBcolzFutureMinuteBarReader,
                                      ZiplineTestCase):
 
-    TRADING_CALENDAR_STRS = ('CME', 'NYSE')
-    TRADING_CALENDAR_PRIMARY_CAL = 'CME'
+    TRADING_CALENDAR_STRS = ('us_futures', 'NYSE')
+    TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 3
 
