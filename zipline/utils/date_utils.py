@@ -1,29 +1,6 @@
 from toolz import partition_all
 
 
-def roll_dates_to_previous_session(sessions, *dates):
-    """
-    Roll `dates` to the last session of `calendar`. Return input date if it
-    is a valid session.
-
-    Parameters
-    ----------
-    sessions : pandas.tseries.index.DatetimeIndex
-        The list of valid session dates.
-    *dates : pd.Timestamp
-        The dates for which the last trading date is needed.
-
-    Returns
-    -------
-    rolled_dates: pandas.tseries.index.DatetimeIndex
-        The last trading date of the input dates, inclusive.
-
-    """
-    # Find the previous index value if there is no exact match.
-    locs = [sessions.get_loc(dt, method='ffill') for dt in dates]
-    return sessions[locs].tolist()
-
-
 def compute_date_range_chunks(sessions, start_date, end_date, chunksize):
     """Compute the start and end dates to run a pipeline for.
 

@@ -173,8 +173,16 @@ class TestCatDFConcat(ZiplineTestCase):
             ),
         ]
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError) as cm:
             categorical_df_concat(mismatched_dtypes)
+        self.assertEqual(
+            str(cm.exception),
+            "Input DataFrames must have the same columns/dtypes."
+        )
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError) as cm:
             categorical_df_concat(mismatched_column_names)
+        self.assertEqual(
+            str(cm.exception),
+            "Input DataFrames must have the same columns/dtypes."
+        )
