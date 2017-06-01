@@ -55,7 +55,7 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
         )
 
 
-    @parameterized.expand(examples.EXAMPLE_MODULES)
+    @parameterized.expand(sorted(examples.EXAMPLE_MODULES))
     def test_example(self, example_name):
         actual_perf = examples.run_example(
             example_name,
