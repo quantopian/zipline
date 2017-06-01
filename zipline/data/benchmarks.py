@@ -32,11 +32,13 @@ def get_benchmark_returns(symbol, first_date, last_date):
     last_date : pd.Timestamp
         Last date for which we want to get data.
 
-    The furthest date that Google goes back to is 2001-06-26. It has missing
+    The furthest date that Google goes back to is 1993-02-01. It has missing
     data for 2008-12-15, 2009-08-11, and 2012-02-02, so we add data for the
     dates for which Google is missing data.
 
-    We're also limited to the last 4000 days worth of data.
+    We're also limited to 4000 days worth of data per request. If we make a
+    request for data that extends past 4000 trading days, we'll still only
+    receive 4000 days of data.
 
     first_date is **not** included because we need the close from day N - 1 to
     compute the returns for day N.

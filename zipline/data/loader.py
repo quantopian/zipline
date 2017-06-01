@@ -31,6 +31,7 @@ from ..utils.paths import (
 from ..utils.deprecate import deprecated
 from zipline.utils.calendars import get_calendar
 
+
 logger = logbook.Logger('Loader')
 
 # Mapping from index symbol to appropriate bond data
@@ -136,10 +137,7 @@ def load_market_data(trading_day=None, trading_days=None, bm_symbol='SPY',
     if trading_days is None:
         trading_days = get_calendar('NYSE').all_sessions
 
-    # We want the latest 4000 trading days
-    # because Google Finance only allows downloading data
-    # up to the 4000 latest trading days
-    first_date = trading_days[-4000]
+    first_date = trading_days[0]
     now = pd.Timestamp.utcnow()
 
     # We expect to have benchmark and treasury data that's current up until
