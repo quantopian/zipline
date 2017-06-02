@@ -97,6 +97,7 @@ install:
   # this uses git requirements right now
   - pip install -r etc/requirements_blaze.txt --cache-dir=%CACHE_DIR%
   - pip install -r etc/requirements_talib.txt --cache-dir=%CACHE_DIR%
+  - pip install -r etc/requirements_live_ib.txt --cache-dir=%CACHE_DIR%
   - pip install -e .[all] --cache-dir=%CACHE_DIR%
   - pip freeze | sort
 
@@ -107,3 +108,4 @@ test_script:
 branches:
   only:
     - master
+    - live

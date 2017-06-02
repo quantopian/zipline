@@ -78,7 +78,7 @@ class TradingEnvironment(object):
     def __init__(
         self,
         load=None,
-        bm_symbol='^GSPC',
+        bm_symbol='SPY',
         exchange_tz="US/Eastern",
         trading_calendar=None,
         asset_db_path=':memory:',
