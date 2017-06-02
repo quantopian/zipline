@@ -258,10 +258,11 @@ def categorical_df_concat(df_list, inplace=False):
         new_categories = sorted(
             set().union(
                 *(frame[col].cat.categories for frame in df_list)
-            ) - {None}
+            )
         )
 
-        for df in df_list:
-            df[col].cat.set_categories(new_categories, inplace=True)
+        with ignore_pandas_nan_categorical_warning():
+            for df in df_list:
+                df[col].cat.set_categories(new_categories, inplace=True)
 
     return pd.concat(df_list)
