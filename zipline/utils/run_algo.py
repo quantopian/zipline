@@ -4,6 +4,11 @@ from runpy import run_path
 import sys
 import warnings
 
+from functools import partial
+
+import pandas as pd
+
+
 import click
 try:
     from pygments import highlight
@@ -15,8 +20,10 @@ except:
 from toolz import valfilter, concatv
 
 from zipline.algorithm import TradingAlgorithm
+from zipline.algorithm_live import LiveTradingAlgorithm
 from zipline.data.bundles.core import load
 from zipline.data.data_portal import DataPortal
+from zipline.data.data_portal_live import DataPortalLive
 from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders import USEquityPricingLoader
@@ -63,7 +70,8 @@ def _run(handle_data,
          output,
          print_algo,
          local_namespace,
-         environ):
+         environ,
+         broker):
     """Run a backtest for the given algorithm.
 
     This is shared between the cli and :func:`zipline.run_algo`.
@@ -132,12 +140,16 @@ def _run(handle_data,
         env = TradingEnvironment(asset_db_path=connstr, environ=environ)
         first_trading_day =\
             bundle_data.equity_minute_bar_reader.first_trading_day
-        data = DataPortal(
+
+        DataPortalClass = (partial(DataPortalLive, broker)
+                           if broker
+                           else DataPortal)
+        data = DataPortalClass(
             env.asset_finder, get_calendar("NYSE"),
             first_trading_day=first_trading_day,
             equity_minute_reader=bundle_data.equity_minute_bar_reader,
             equity_daily_reader=bundle_data.equity_daily_bar_reader,
-            adjustment_reader=bundle_data.adjustment_reader,
+            adjustment_reader=bundle_data.adjustment_reader
         )
 
         pipeline_loader = USEquityPricingLoader(
@@ -155,7 +167,14 @@ def _run(handle_data,
         env = TradingEnvironment(environ=environ)
         choose_loader = None
 
-    perf = TradingAlgorithm(
+    if broker:
+        start = pd.Timestamp.utcnow()
+        end = start + pd.Timedelta('1', 'D')
+
+    TradingAlgorithmClass = (partial(LiveTradingAlgorithm, broker=broker)
+                             if broker else TradingAlgorithm)
+
+    perf = TradingAlgorithmClass(
         namespace=namespace,
         env=env,
         get_pipeline_loader=choose_loader,
@@ -254,7 +273,9 @@ def run_algorithm(start,
                   default_extension=True,
                   extensions=(),
                   strict_extensions=True,
-                  environ=os.environ):
+                  environ=os.environ,
+                  live_trading=False,
+                  tws_uri=None):
     """Run a trading algorithm.
 
     Parameters
@@ -358,4 +379,5 @@ def run_algorithm(start,
         print_algo=False,
         local_namespace=False,
         environ=environ,
+        broker=None,
     )

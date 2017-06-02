@@ -1,5 +1,7 @@
 import errno
 import os
+
+from importlib import import_module
 from functools import wraps
 
 import click
@@ -184,6 +186,18 @@ def ipython_only(option):
     default=None,
     help='Should the algorithm methods be resolved in the local namespace.'
 ))
+@click.option(
+    '--broker',
+    default=None,
+    help='Broker'
+)
+@click.option(
+    '--broker-uri',
+    default=None,
+    metavar='BROKER-URI',
+    show_default=True,
+    help='Connection to broker',
+)
 @click.pass_context
 def run(ctx,
         algofile,
@@ -197,21 +211,46 @@ def run(ctx,
         end,
         output,
         print_algo,
-        local_namespace):
+        local_namespace,
+        broker,
+        broker_uri):
     """Run a backtest for the given algorithm.
     """
     # check that the start and end dates are passed correctly
-    if start is None and end is None:
+    if not broker and start is None and end is None:
         # check both at the same time to avoid the case where a user
         # does not pass either of these and then passes the first only
         # to be told they need to pass the second argument also
         ctx.fail(
             "must specify dates with '-s' / '--start' and '-e' / '--end'",
         )
-    if start is None:
+
+    if not broker and start is None:
         ctx.fail("must specify a start date with '-s' / '--start'")
-    if end is None:
+    if not broker and end is None:
         ctx.fail("must specify an end date with '-e' / '--end'")
+
+    if broker and broker_uri is None:
+        ctx.fail("must specify broker-uri if broker is specified")
+
+    if broker and data_frequency != 'minute':
+        ctx.fail("must use '--data-frequency minute' with live trading")
+
+    brokerobj = None
+    if broker:
+        mod_name = 'zipline.gens.brokers.%s_broker' % broker.lower()
+        try:
+            bmod = import_module(mod_name)
+        except ImportError:
+            ctx.fail("unsupported broker: can't import module %s" % mod_name)
+
+        cl_name = '%sBroker' % broker.upper()
+        try:
+            bclass = getattr(bmod, cl_name)
+        except AttributeError:
+            ctx.fail("unsupported broker: can't import class %s from %s" %
+                     (cl_name, mod_name))
+        brokerobj = bclass(broker_uri)
 
     if (algotext is not None) == (algofile is not None):
         ctx.fail(
@@ -238,6 +277,7 @@ def run(ctx,
         print_algo=print_algo,
         local_namespace=local_namespace,
         environ=os.environ,
+        broker=brokerobj,
     )
 
     if output == '-':

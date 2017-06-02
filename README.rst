@@ -4,11 +4,9 @@
     :align: center
     :alt: Zipline
 
-Zipline
-=======
+Zipline-live
+============
 
-|Gitter|
-|version status|
 |travis status|
 |appveyor status|
 |Coverage Status|
@@ -174,15 +172,14 @@ Contributions
 If you would like to contribute, please see our Contribution Requests:
 https://github.com/quantopian/zipline/wiki/Contribution-Requests
 
-.. |Gitter| image:: https://badges.gitter.im/Join%20Chat.svg
-   :target: https://gitter.im/quantopian/zipline?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
-.. |version status| image:: https://img.shields.io/pypi/pyversions/zipline.svg
-   :target: https://pypi.python.org/pypi/zipline
-.. |travis status| image:: https://travis-ci.org/quantopian/zipline.png?branch=master
-   :target: https://travis-ci.org/quantopian/zipline
-.. |appveyor status| image:: https://ci.appveyor.com/api/projects/status/3dg18e6227dvstw6/branch/master?svg=true
-   :target: https://ci.appveyor.com/project/quantopian/zipline/branch/master
-.. |Coverage Status| image:: https://coveralls.io/repos/quantopian/zipline/badge.png
-   :target: https://coveralls.io/r/quantopian/zipline
+
+.. |travis status| image:: https://travis-ci.org/zipline-live/zipline.svg?branch=live
+    :target: https://travis-ci.org/zipline-live/zipline
+.. |appveyor status| image:: https://ci.appveyor.com/api/projects/status/jkuo1hca8v8aueym?svg=true
+   :target: https://ci.appveyor.com/project/pbharrin/zipline/branch/live
+.. |Coverage Status| image:: https://coveralls.io/repos/github/zipline-live/zipline/badge.svg?branch=live
+   :target: https://coveralls.io/github/zipline-live/zipline?branch=live
+
+
 
 .. _`Zipline Install Documentation` : http://www.zipline.io/install.html
