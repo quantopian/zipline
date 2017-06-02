@@ -5,6 +5,7 @@ across different functions.
 import re
 from six import iteritems
 from textwrap import dedent
+from toolz import curry
 
 PIPELINE_DOWNSAMPLING_FREQUENCY_DOC = dedent(
     """\
@@ -98,3 +99,21 @@ def templated_docstring(**docs):
         f.__doc__ = format_docstring(f.__name__, f.__doc__, docs)
         return f
     return decorator
+
+
+@curry
+def copydoc(from_, to):
+    """Copies the docstring from one function to another.
+    Parameters
+    ----------
+    from_ : any
+        The object to copy the docstring from.
+    to : any
+        The object to copy the docstring to.
+    Returns
+    -------
+    to : any
+        ``to`` with the docstring from ``from_``
+    """
+    to.__doc__ = from_.__doc__
+    return to

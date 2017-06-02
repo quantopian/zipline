@@ -12,7 +12,6 @@ from six import (
     with_metaclass,
 )
 from numpy import array
-from odo.utils import copydoc
 from pandas import DataFrame, MultiIndex
 from toolz import groupby, juxt
 from toolz.curried.operator import getitem
@@ -30,6 +29,7 @@ from .term import AssetExists, InputDates, LoadableTerm
 
 from zipline.utils.date_utils import compute_date_range_chunks
 from zipline.utils.pandas_utils import categorical_df_concat
+from zipline.utils.sharedoc import copydoc
 
 
 class PipelineEngine(with_metaclass(ABCMeta)):
