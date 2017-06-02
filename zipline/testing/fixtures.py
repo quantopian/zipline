@@ -1,4 +1,3 @@
-from itertools import repeat
 import os
 import sqlite3
 from unittest import TestCase
@@ -1333,12 +1332,15 @@ class WithEquityPricingPipelineEngine(WithAdjustmentReader,
             cls.bcolz_equity_daily_bar_reader,
             SQLiteAdjustmentReader(cls.adjustments_db_path),
         )
-        dispatcher = dict(
-            zip(USEquityPricing.columns, repeat(loader))
-        ).__getitem__
+
+        def get_loader(column):
+            if column in USEquityPricing.columns:
+                return loader
+            else:
+                raise AssertionError("No loader registered for %s" % column)
 
         cls.pipeline_engine = SimplePipelineEngine(
-            get_loader=dispatcher,
+            get_loader=get_loader,
             calendar=cls.nyse_sessions,
             asset_finder=cls.asset_finder,
         )
