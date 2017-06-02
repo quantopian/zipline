@@ -92,7 +92,7 @@ def has_data_for_dates(series_or_df, first_date, last_date):
 
 
 def load_market_data(trading_day=None, trading_days=None, bm_symbol='SPY',
-                     environ = None):
+                     environ=None):
     """
     Load benchmark returns and treasury yield curves for the given calendar and
     benchmark symbol.
