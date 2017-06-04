@@ -5,7 +5,7 @@
 #
 # Note: the dev build requires a quantopian/zipline image, which you can build as follows:
 #
-#    docker build -t quantopian/zipline -f Dockerfile
+#    docker build -t quantopian/zipline -f Dockerfile .
 #
 # To run the container:
 #
