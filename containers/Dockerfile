@@ -32,20 +32,27 @@ ENTRYPOINT ["/tini", "--"]
 
 ENV PROJECT_DIR=/projects \
     NOTEBOOK_PORT=8888 \
+    JUPYTER_HOME=/root/.jupyter \
     SSL_CERT_PEM=/root/.jupyter/jupyter.pem \
     SSL_CERT_KEY=/root/.jupyter/jupyter.key \
     PW_HASH="u'sha1:31cb67870a35:1a2321318481f00b0efdf3d1f71af523d3ffc505'" \
     CONFIG_PATH=/root/.jupyter/jupyter_notebook_config.py
 
+#
 # install TA-Lib and other prerequisites
+#
 
 RUN mkdir ${PROJECT_DIR}
+RUN mkdir -p ${JUPYTER_HOME}
 RUN apt-get -y update
 RUN apt-get -y install libxft-dev libfreetype6-dev libpng-dev libopenblas-dev liblapack-dev gfortran
 RUN curl -L https://downloads.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz | tar xvz
 
+
+#
 # build and install zipline from source.  install TA-Lib after to ensure
 # numpy is available.
+#
 
 WORKDIR /ta-lib
 
