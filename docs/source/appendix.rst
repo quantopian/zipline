@@ -177,8 +177,10 @@ Pipeline API
    :member-order: groupwise
 
 .. autoclass:: zipline.pipeline.factors.Factor
-   :members: top, bottom, rank, percentile_between, isnan, notnan, isfinite,
-             eq, __add__, __sub__, __mul__, __div__, __mod__, __pow__, __lt__,
+   :members: bottom, deciles, demean, linear_regression, pearsonr,
+             percentile_between, quantiles, quartiles, quintiles, rank,
+             spearmanr, top, winsorize, zscore, isnan, notnan, isfinite, eq,
+             __add__, __sub__, __mul__, __div__, __mod__, __pow__, __lt__,
              __le__, __ne__, __ge__, __gt__
    :exclude-members: dtype
    :member-order: bysource
