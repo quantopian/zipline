@@ -183,54 +183,6 @@ Pipeline API
    :exclude-members: dtype
    :member-order: bysource
 
-.. autoclass:: zipline.pipeline.factors.Latest
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.MaxDrawdown
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.Returns
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.RSI
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.BusinessDaysUntilNextEarnings
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.BusinessDaysSincePreviousEarnings
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.SimpleMovingAverage
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.VWAP
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.WeightedAverageValue
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.ExponentialWeightedMovingAverage
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.ExponentialWeightedMovingStdDev
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.AverageDollarVolume
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.BollingerBands
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.RollingPearsonOfReturns
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.RollingSpearmanOfReturns
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.RollingLinearRegressionOfReturns
-   :members:
-
 .. autoclass:: zipline.pipeline.filters.Filter
    :members: __and__, __or__
    :exclude-members: dtype
@@ -242,6 +194,57 @@ Pipeline API
 .. autoclass:: zipline.pipeline.data.USEquityPricing
    :members: open, high, low, close, volume
    :undoc-members:
+
+Built-in Factors
+````````````````
+
+.. autoclass:: zipline.pipeline.factors.AverageDollarVolume
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.BollingerBands
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.BusinessDaysSincePreviousEvent
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.BusinessDaysUntilNextEvent
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.ExponentialWeightedMovingAverage
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.ExponentialWeightedMovingStdDev
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.Latest
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.MaxDrawdown
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.Returns
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.RollingLinearRegressionOfReturns
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.RollingPearsonOfReturns
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.RollingSpearmanOfReturns
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.RSI
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.SimpleMovingAverage
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.VWAP
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.WeightedAverageValue
+   :members:
 
 
 Asset Metadata
