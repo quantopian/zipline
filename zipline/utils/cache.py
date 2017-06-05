@@ -32,8 +32,8 @@ class CachedObject(object):
         Expiration date of `value`. The cache is considered invalid for dates
         **strictly greater** than `expires`.
 
-    Usage
-    -----
+    Examples
+    --------
     >>> from pandas import Timestamp, Timedelta
     >>> expires = Timestamp('2014', tz='UTC')
     >>> obj = CachedObject(1, expires)
@@ -86,8 +86,8 @@ class ExpiringCache(object):
         `__del__`, `__getitem__`, `__setitem__`
         If `None`, than a dict is used as a default.
 
-    Usage
-    -----
+    Examples
+    --------
     >>> from pandas import Timestamp, Timedelta
     >>> expires = Timestamp('2014', tz='UTC')
     >>> value = 1

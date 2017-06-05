@@ -370,8 +370,8 @@ class ExecutionPlan(TermGraph):
         which describes how many additional rows of `term`'s inputs we need to
         load, and which is determined entirely by `Term` itself.
 
-        Example
-        -------
+        Examples
+        --------
         Our graph contains the following terms:
 
             A = SimpleMovingAverage([USEquityPricing.high], window_length=5)

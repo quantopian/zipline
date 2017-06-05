@@ -49,8 +49,8 @@ def rowwise_rank(array, mask=None):
     Take a 2D array and return the 0-indexed sorted position of each element in
     the array for each row.
 
-    Example
-    -------
+    Examples
+    --------
     In [5]: data
     Out[5]:
     array([[-0.141, -1.103, -1.0171,  0.7812,  0.07  ],

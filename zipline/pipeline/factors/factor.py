@@ -410,8 +410,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         groupby : zipline.pipeline.Classifier, optional
             A classifier defining partitions over which to compute means.
 
-        Example
-        -------
+        Examples
+        --------
         Let ``f`` be a Factor which would produce the following output::
 
                          AAPL   MSFT    MCD     BK
@@ -562,8 +562,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         ``zscore()`` is only supported on Factors of dtype float64.
 
-        Example
-        -------
+        Examples
+        --------
         See :meth:`~zipline.pipeline.factors.Factor.demean` for an in-depth
         example of the semantics for ``mask`` and ``groupby``.
 
@@ -674,8 +674,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             A new Factor that will compute correlations between `target` and
             the columns of `self`.
 
-        Example
-        -------
+        Examples
+        --------
         Suppose we want to create a factor that computes the correlation
         between AAPL's 10-day returns and the 10-day returns of all other
         assets, computing each correlation over 30 days. This can be achieved
@@ -739,8 +739,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             A new Factor that will compute correlations between `target` and
             the columns of `self`.
 
-        Example
-        -------
+        Examples
+        --------
         Suppose we want to create a factor that computes the correlation
         between AAPL's 10-day returns and the 10-day returns of all other
         assets, computing each correlation over 30 days. This can be achieved
@@ -803,8 +803,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             A new Factor that will compute linear regressions of `target`
             against the columns of `self`.
 
-        Example
-        -------
+        Examples
+        --------
         Suppose we want to create a factor that regresses AAPL's 10-day returns
         against the 10-day returns of all other assets, computing each
         regression over 30 days. This can be achieved by doing the following::

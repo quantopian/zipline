@@ -285,8 +285,8 @@ def chrange(start, stop):
     chars: iterable[str]
         Iterable of strings beginning with start and ending with stop.
 
-    Example
-    -------
+    Examples
+    --------
     >>> chrange('A', 'C')
     ['A', 'B', 'C']
     """
@@ -1106,8 +1106,8 @@ def parameter_space(__fail_fast=False, **params):
     The decorated test function will be called with the cross-product of all
     possible inputs
 
-    Usage
-    -----
+    Examples
+    --------
     >>> from unittest import TestCase
     >>> class SomeTestCase(TestCase):
     ...     @parameter_space(x=[1, 2], y=[2, 3])

@@ -86,8 +86,8 @@ def templated_docstring(**docs):
     """
     Decorator allowing the use of templated docstrings.
 
-    Usage
-    -----
+    Examples
+    --------
     >>> @templated_docstring(foo='bar')
     ... def my_func(self, foo):
     ...     '''{foo}'''

@@ -859,8 +859,8 @@ def days_at_time(days, t, tz, day_offset=0):
     day_offset : int
         The number of days we want to offset @days by
 
-    Example
-    -------
+    Examples
+    --------
     In the example below, the times switch from 13:45 to 12:45 UTC because
     March 13th is the daylight savings transition for US/Eastern.  All the
     times are still 8:45 when interpreted in US/Eastern.
