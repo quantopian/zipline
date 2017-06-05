@@ -242,6 +242,25 @@ Built-in Factors
 .. autoclass:: zipline.pipeline.factors.WeightedAverageValue
    :members:
 
+Pipeline Engine
+```````````````
+
+.. autoclass:: zipline.pipeline.engine.PipelineEngine
+   :members: run_pipeline, run_chunked_pipeline
+   :member-order: bysource
+
+.. autoclass:: zipline.pipeline.engine.SimplePipelineEngine
+   :members: __init__, run_pipeline, run_chunked_pipeline
+   :member-order: bysource
+
+.. autofunction:: zipline.pipeline.engine.default_populate_initial_workspace
+
+Data Loaders
+````````````
+
+.. autoclass:: zipline.pipeline.loaders.equity_pricing_loader.USEquityPricingLoader
+   :members: __init__, from_files, load_adjusted_array
+   :member-order: bysource
 
 Asset Metadata
 ~~~~~~~~~~~~~~
