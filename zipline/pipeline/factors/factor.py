@@ -881,34 +881,37 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         winsorized : zipline.pipeline.Factor
             A Factor producing a winsorized version of self.
 
-        Example
-        -------
+        Examples
+        --------
+        .. code-block:: python
 
-        price = USEquityPricing.close.latest
-        columns={
-            'PRICE': price,
-            'WINSOR_1: price.winsorize(
-                min_percentile=0.25, max_percentile=0.75
-            ),
-            'WINSOR_2': price.winsorize(
-                min_percentile=0.50, max_percentile=1.0
-            ),
-            'WINSOR_3': price.winsorize(
-                min_percentile=0.0, max_percentile=0.5
-            ),
+            price = USEquityPricing.close.latest
+            columns={
+                'PRICE': price,
+                'WINSOR_1: price.winsorize(
+                    min_percentile=0.25, max_percentile=0.75
+                ),
+                'WINSOR_2': price.winsorize(
+                    min_percentile=0.50, max_percentile=1.0
+                ),
+                'WINSOR_3': price.winsorize(
+                    min_percentile=0.0, max_percentile=0.5
+                ),
 
-        }
+            }
 
         Given a pipeline with columns, defined above, the result for a
         given day could look like:
 
-                'PRICE' 'WINSOR_1' 'WINSOR_2' 'WINSOR_3'
-        Asset_1    1        2          4          3
-        Asset_2    2        2          4          3
-        Asset_3    3        3          4          3
-        Asset_4    4        4          4          4
-        Asset_5    5        5          5          4
-        Asset_6    6        5          5          4
+        ::
+
+                    'PRICE' 'WINSOR_1' 'WINSOR_2' 'WINSOR_3'
+            Asset_1    1        2          4          3
+            Asset_2    2        2          4          3
+            Asset_3    3        3          4          3
+            Asset_4    4        4          4          4
+            Asset_5    5        5          5          4
+            Asset_6    6        5          5          4
 
         See Also
         --------

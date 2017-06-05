@@ -37,7 +37,8 @@ class PipelineEngine(with_metaclass(ABCMeta)):
     @abstractmethod
     def run_pipeline(self, pipeline, start_date, end_date):
         """
-        Compute values for `pipeline` between `start_date` and `end_date`.
+        Compute values for ``pipeline`` between ``start_date`` and
+        ``end_date``.
 
         Returns a DataFrame with a MultiIndex of (date, asset) pairs.
 
@@ -55,14 +56,14 @@ class PipelineEngine(with_metaclass(ABCMeta)):
         result : pd.DataFrame
             A frame of computed results.
 
-            The columns `result` correspond to the entries of
+            The ``result`` columns correspond to the entries of
             `pipeline.columns`, which should be a dictionary mapping strings to
-            instances of `zipline.pipeline.term.Term`.
+            instances of :class:`zipline.pipeline.term.Term`.
 
-            For each date between `start_date` and `end_date`, `result` will
-            contain a row for each asset that passed `pipeline.screen`.  A
-            screen of None indicates that a row should be returned for each
-            asset that existed each day.
+            For each date between ``start_date`` and ``end_date``, ``result``
+            will contain a row for each asset that passed `pipeline.screen`.
+            A screen of ``None`` indicates that a row should be returned for
+            each asset that existed each day.
         """
         raise NotImplementedError("run_pipeline")
 
@@ -90,18 +91,18 @@ class PipelineEngine(with_metaclass(ABCMeta)):
         result : pd.DataFrame
             A frame of computed results.
 
-            The columns `result` correspond to the entries of
+            The ``result`` columns correspond to the entries of
             `pipeline.columns`, which should be a dictionary mapping strings to
-            instances of `zipline.pipeline.term.Term`.
+            instances of :class:`zipline.pipeline.term.Term`.
 
-            For each date between `start_date` and `end_date`, `result` will
-            contain a row for each asset that passed `pipeline.screen`.  A
-            screen of None indicates that a row should be returned for each
-            asset that existed each day.
+            For each date between ``start_date`` and ``end_date``, ``result``
+            will contain a row for each asset that passed `pipeline.screen`.
+            A screen of ``None`` indicates that a row should be returned for
+            each asset that existed each day.
 
         See Also
         --------
-        :meth:`PipelineEngine.run_pipeline`
+        :meth:`zipline.pipeline.engine.PipelineEngine.run_pipeline`
         """
         raise NotImplementedError("run_chunked_pipeline")
 
@@ -217,15 +218,6 @@ class SimplePipelineEngine(PipelineEngine):
         """
         Compute a pipeline.
 
-        Parameters
-        ----------
-        pipeline : zipline.pipeline.Pipeline
-            The pipeline to run.
-        start_date : pd.Timestamp
-            Start date of the computed matrix.
-        end_date : pd.Timestamp
-            End date of the computed matrix.
-
         The algorithm implemented here can be broken down into the following
         stages:
 
@@ -256,10 +248,33 @@ class SimplePipelineEngine(PipelineEngine):
         Step 2 is performed in ``SimplePipelineEngine.compute_chunk``.
         Steps 3, 4, and 5 are performed in ``SimplePiplineEngine._to_narrow``.
 
+        Parameters
+        ----------
+        pipeline : zipline.pipeline.Pipeline
+            The pipeline to run.
+        start_date : pd.Timestamp
+            Start date of the computed matrix.
+        end_date : pd.Timestamp
+            End date of the computed matrix.
+
+        Returns
+        -------
+        result : pd.DataFrame
+            A frame of computed results.
+
+            The ``result`` columns correspond to the entries of
+            `pipeline.columns`, which should be a dictionary mapping strings to
+            instances of :class:`zipline.pipeline.term.Term`.
+
+            For each date between ``start_date`` and ``end_date``, ``result``
+            will contain a row for each asset that passed `pipeline.screen`.
+            A screen of ``None`` indicates that a row should be returned for
+            each asset that existed each day.
+
         See Also
         --------
-        :meth:`PipelineEngine.run_pipeline`
-        :meth:`PipelineEngine.run_chunked_pipeline`
+        :meth:`zipline.pipeline.engine.PipelineEngine.run_pipeline`
+        :meth:`zipline.pipeline.engine.PipelineEngine.run_chunked_pipeline`
         """
         if end_date < start_date:
             raise ValueError(
