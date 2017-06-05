@@ -187,10 +187,6 @@ Pipeline API
    :members: __and__, __or__
    :exclude-members: dtype
 
-.. autoclass:: zipline.pipeline.data.EarningsCalendar
-   :members: next_announcement, previous_announcement
-   :undoc-members:
-
 .. autoclass:: zipline.pipeline.data.USEquityPricing
    :members: open, high, low, close, volume
    :undoc-members:
@@ -309,9 +305,6 @@ Readers
    :members:
 
 .. autoclass:: zipline.assets.AssetFinder
-   :members:
-
-.. autoclass:: zipline.assets.AssetFinderCachedEquities
    :members:
 
 .. autoclass:: zipline.data.data_portal.DataPortal
