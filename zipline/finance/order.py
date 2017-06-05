@@ -44,7 +44,8 @@ class Order(object):
     # to cut down on the memory footprint of this object.
     __slots__ = ["id", "dt", "reason", "created", "asset", "amount", "filled",
                  "commission", "_status", "stop", "limit", "stop_reached",
-                 "limit_reached", "direction", "type", "broker_order_id"]
+                 "limit_reached", "direction", "type", "broker_order_id",
+                 "arrival_price"]
 
     @expect_types(asset=Asset)
     def __init__(self, dt, asset, amount, stop=None, limit=None, filled=0,
@@ -75,6 +76,7 @@ class Order(object):
         self.direction = math.copysign(1, self.amount)
         self.type = zp.DATASOURCE_TYPE.ORDER
         self.broker_order_id = None
+        self.arrival_price = None
 
     def make_id(self):
         return uuid.uuid4().hex
@@ -180,7 +182,7 @@ class Order(object):
         return (stop_reached, limit_reached, sl_stop_reached)
 
     def handle_split(self, ratio):
-        # update the amount, limit_price, and stop_price
+        # update the amount, limit_price, stop_price, and arrival_price
         # by the split's ratio
 
         # info here: http://finra.complinet.com/en/display/display_plain.html?
@@ -196,6 +198,9 @@ class Order(object):
 
         if self.stop is not None:
             self.stop = round(self.stop * ratio, 2)
+
+        if self.arrival_price is not None:
+            self.arrival_price = round(self.arrival_price * ratio, 2)
 
     @property
     def status(self):

@@ -4320,8 +4320,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
         (first_auto_close_transaction,) = transactions_for_date(
             assets[0].auto_close_date
         )
-        self.assertEqual(
-            first_auto_close_transaction,
+        self.assertDictContainsSubset(
             {
                 'amount': -order_size,
                 'commission': 0.0,
@@ -4330,13 +4329,13 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
                 'sid': assets[0],
                 'order_id': None,  # Auto-close txns emit Nones for order_id.
             },
+            first_auto_close_transaction,
         )
 
         (second_auto_close_transaction,) = transactions_for_date(
             assets[1].auto_close_date
         )
-        self.assertEqual(
-            second_auto_close_transaction,
+        self.assertDictContainsSubset(
             {
                 'amount': -order_size,
                 'commission': 0.0,
@@ -4345,6 +4344,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
                 'sid': assets[1],
                 'order_id': None,  # Auto-close txns emit Nones for order_id.
             },
+            second_auto_close_transaction,
         )
 
     def test_cancel_open_orders(self):
@@ -4535,8 +4535,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
         (first_auto_close_transaction,) = transactions_for_date(
             assets[0].auto_close_date
         )
-        self.assertEqual(
-            first_auto_close_transaction,
+        self.assertDictContainsSubset(
             {
                 'amount': -order_size,
                 'commission': 0.0,
@@ -4545,13 +4544,13 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
                 'sid': assets[0],
                 'order_id': None,  # Auto-close txns emit Nones for order_id.
             },
+            first_auto_close_transaction,
         )
 
         (second_auto_close_transaction,) = transactions_for_date(
             assets[1].auto_close_date
         )
-        self.assertEqual(
-            second_auto_close_transaction,
+        self.assertDictContainsSubset(
             {
                 'amount': -order_size,
                 'commission': 0.0,
@@ -4560,6 +4559,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
                 'sid': assets[1],
                 'order_id': None,  # Auto-close txns emit Nones for order_id.
             },
+            second_auto_close_transaction,
         )
 
 
@@ -4580,6 +4580,7 @@ class TestOrderAfterDelist(WithTradingEnvironment, ZiplineTestCase):
                     'auto_close_date': cls.day_4,
                     'symbol': "ASSET1",
                     'exchange': "TEST",
+                    'arrival_price': None,
                 },
                 # Asset whose auto close date is before its end date.
                 2: {

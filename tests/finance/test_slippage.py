@@ -672,7 +672,7 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
 
         # TODO: Make expected_txn an Transaction object and ensure there
         # is a __eq__ for that class.
-        self.assertEquals(expected_txn, txn.__dict__)
+        self.assertDictContainsSubset(expected_txn, txn.__dict__)
 
         open_orders = [
             Order(
@@ -737,7 +737,7 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
         }
 
         self.assertIsNotNone(txn)
-        self.assertEquals(expected_txn, txn.__dict__)
+        self.assertDictContainsSubset(expected_txn, txn.__dict__)
 
 
 class VolatilityVolumeShareTestCase(WithCreateBarData,

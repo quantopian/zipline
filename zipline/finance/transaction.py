@@ -31,6 +31,7 @@ class Transaction(object):
         self.order_id = order_id
         self.commission = commission
         self.type = DATASOURCE_TYPE.TRANSACTION
+        self.arrival_price = None
 
     def __getitem__(self, name):
         return self.__dict__[name]

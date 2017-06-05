@@ -408,3 +408,25 @@ class BlotterTestCase(WithCreateBarData,
             bar_data.current(future_txn.asset, 'price') + 1.0,
         )
         self.assertEqual(commissions[1]['cost'], 2.0)
+
+    def test_arrival_price(self):
+        blotter = Blotter(self.sim_params.data_frequency)
+        order_id1 = blotter.order(self.asset_24, 1, MarketOrder())
+        order_id2 = blotter.order(self.asset_25, 1, MarketOrder())
+
+        bar_data = self.create_bardata(
+            simulation_dt_func=lambda: self.sim_params.sessions[-1],
+        )
+        txns, _, _ = blotter.get_transactions(bar_data)
+
+        self.assertIsNotNone(blotter.orders[order_id1].arrival_price)
+        self.assertIsNotNone(blotter.orders[order_id2].arrival_price)
+
+        for txn in txns:
+            self.assertIsNotNone(txn.arrival_price)
+
+        original_arrival_price = blotter.orders[order_id1].arrival_price
+        blotter.orders[order_id1].handle_split(3)
+
+        self.assertEqual(blotter.orders[order_id1].arrival_price,
+                         original_arrival_price * 3)

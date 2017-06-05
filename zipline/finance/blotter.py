@@ -361,6 +361,12 @@ class Blotter(object):
 
         if self.open_orders:
             for asset, asset_orders in iteritems(self.open_orders):
+                arrival_price = bar_data.current(asset, "close")
+
+                for asset_order in asset_orders:
+                    if asset_order.arrival_price is None:
+                        asset_order.arrival_price = arrival_price
+
                 slippage = self.slippage_models[type(asset)]
 
                 for order, txn in \
@@ -379,6 +385,8 @@ class Blotter(object):
                     order.commission += additional_commission
 
                     order.dt = txn.dt
+
+                    txn.arrival_price = arrival_price
 
                     transactions.append(txn)
 
