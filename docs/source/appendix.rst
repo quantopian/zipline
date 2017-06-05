@@ -176,6 +176,10 @@ Pipeline API
    :members:
    :member-order: groupwise
 
+.. autoclass:: zipline.pipeline.filters.Filter
+   :members: __and__, __or__
+   :exclude-members: dtype
+
 .. autoclass:: zipline.pipeline.factors.Factor
    :members: bottom, deciles, demean, linear_regression, pearsonr,
              percentile_between, quantiles, quartiles, quintiles, rank,
@@ -185,9 +189,9 @@ Pipeline API
    :exclude-members: dtype
    :member-order: bysource
 
-.. autoclass:: zipline.pipeline.filters.Filter
-   :members: __and__, __or__
-   :exclude-members: dtype
+.. autoclass:: zipline.pipeline.term.Term
+   :members:
+   :exclude-members: compute_extra_rows, dependencies, inputs, mask, windowed
 
 .. autoclass:: zipline.pipeline.data.USEquityPricing
    :members: open, high, low, close, volume
