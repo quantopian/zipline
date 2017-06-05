@@ -31,11 +31,12 @@ from ..utils.paths import (
 from ..utils.deprecate import deprecated
 from zipline.utils.calendars import get_calendar
 
+
 logger = logbook.Logger('Loader')
 
 # Mapping from index symbol to appropriate bond data
 INDEX_MAPPING = {
-    '^GSPC':
+    'SPY':
     (treasuries, 'treasury_curves.csv', 'www.federalreserve.gov'),
     '^GSPTSE':
     (treasuries_can, 'treasury_curves_can.csv', 'bankofcanada.ca'),
@@ -91,13 +92,13 @@ def has_data_for_dates(series_or_df, first_date, last_date):
     return (first <= first_date) and (last >= last_date)
 
 
-def load_market_data(trading_day=None, trading_days=None, bm_symbol='^GSPC',
+def load_market_data(trading_day=None, trading_days=None, bm_symbol='SPY',
                      environ=None):
     """
     Load benchmark returns and treasury yield curves for the given calendar and
     benchmark symbol.
 
-    Benchmarks are downloaded as a Series from Yahoo Finance.  Treasury curves
+    Benchmarks are downloaded as a Series from Google Finance.  Treasury curves
     are US Treasury Bond rates and are downloaded from 'www.federalreserve.gov'
     by default.  For Canadian exchanges, a loader for Canadian bonds from the
     Bank of Canada is also available.
@@ -115,7 +116,7 @@ def load_market_data(trading_day=None, trading_days=None, bm_symbol='^GSPC',
         A calendar of trading days.  Also used for determining what cached
         dates we should expect to have cached. Defaults to the NYSE calendar.
     bm_symbol : str, optional
-        Symbol for the benchmark index to load.  Defaults to '^GSPC', the Yahoo
+        Symbol for the benchmark index to load.  Defaults to 'SPY', the Google
         ticker for the S&P 500.
 
     Returns
@@ -215,7 +216,13 @@ def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day,
 
     # If no cached data was found or it was missing any dates then download the
     # necessary data.
-    logger.info('Downloading benchmark data for {symbol!r}.', symbol=symbol)
+    logger.info(
+        ('Downloading benchmark data for {symbol!r} '
+            'from {first_date} to {last_date}'),
+        symbol=symbol,
+        first_date=first_date - trading_day,
+        last_date=last_date
+    )
 
     try:
         data = get_benchmark_returns(
@@ -225,7 +232,7 @@ def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day,
         )
         data.to_csv(get_data_filepath(filename, environ))
     except (OSError, IOError, HTTPError):
-        logger.exception('failed to cache the new benchmark returns')
+        logger.exception('Failed to cache the new benchmark returns')
         raise
     if not has_data_for_dates(data, first_date, last_date):
         logger.warn("Still don't have expected data after redownload!")
@@ -260,7 +267,7 @@ def ensure_treasury_data(symbol, first_date, last_date, now, environ=None):
     path.
     """
     loader_module, filename, source = INDEX_MAPPING.get(
-        symbol, INDEX_MAPPING['^GSPC'],
+        symbol, INDEX_MAPPING['SPY'],
     )
     first_date = max(first_date, loader_module.earliest_possible_date())
 
@@ -297,7 +304,8 @@ def _load_cached_data(filename, first_date, last_date, now, resource_name,
     # yet, so don't try to read from 'path'.
     if os.path.exists(path):
         try:
-            data = from_csv(path).tz_localize('UTC')
+            data = from_csv(path)
+            data.index = data.index.to_datetime().tz_localize('UTC')
             if has_data_for_dates(data, first_date, last_date):
                 return data
 
@@ -335,7 +343,7 @@ def _load_raw_yahoo_data(indexes=None, stocks=None, start=None, end=None):
     """Load closing prices from yahoo finance.
 
     :Optional:
-        indexes : dict (Default: {'SPX': '^GSPC'})
+        indexes : dict (Default: {'SPX': '^SPY'})
             Financial indexes to load.
         stocks : list (Default: ['AAPL', 'GE', 'IBM', 'MSFT',
                                  'XOM', 'AA', 'JNJ', 'PEP', 'KO'])

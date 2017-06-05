@@ -12,50 +12,50 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import numpy as np
 import pandas as pd
 
-from six.moves.urllib_parse import urlencode
+import pandas_datareader.data as pd_reader
 
 
-def format_yahoo_index_url(symbol, start_date, end_date):
+def get_benchmark_returns(symbol, first_date, last_date):
     """
-    Format a URL for querying Yahoo Finance for Index data.
-    """
-    return (
-        'https://ichart.finance.yahoo.com/table.csv?' + urlencode({
-            's': symbol,
-            # start_date month, zero indexed
-            'a': start_date.month - 1,
-            # start_date day
-            'b': start_date.day,
-            # start_date year
-            'c': start_date.year,
-            # end_date month, zero indexed
-            'd': end_date.month - 1,
-            # end_date day
-            'e': end_date.day,
-            # end_date year
-            'f': end_date.year,
-            # daily frequency
-            'g': 'd',
-        })
-    )
+    Get a Series of benchmark returns from Google associated with `symbol`.
+    Default is `SPY`.
 
+    Parameters
+    ----------
+    symbol : str
+        Benchmark symbol for which we're getting the returns.
+    first_date : pd.Timestamp
+        First date for which we want to get data.
+    last_date : pd.Timestamp
+        Last date for which we want to get data.
 
-def get_benchmark_returns(symbol, start_date, end_date):
-    """
-    Get a Series of benchmark returns from Yahoo.
+    The furthest date that Google goes back to is 1993-02-01. It has missing
+    data for 2008-12-15, 2009-08-11, and 2012-02-02, so we add data for the
+    dates for which Google is missing data.
 
-    Returns a Series with returns from (start_date, end_date].
+    We're also limited to 4000 days worth of data per request. If we make a
+    request for data that extends past 4000 trading days, we'll still only
+    receive 4000 days of data.
 
-    start_date is **not** included because we need the close from day N - 1 to
+    first_date is **not** included because we need the close from day N - 1 to
     compute the returns for day N.
     """
-    return pd.read_csv(
-        format_yahoo_index_url(symbol, start_date, end_date),
-        parse_dates=['Date'],
-        index_col='Date',
-        usecols=["Adj Close", "Date"],
-        squeeze=True,  # squeeze tells pandas to make this a Series
-                       # instead of a 1-column DataFrame
-    ).sort_index().tz_localize('UTC').pct_change(1).iloc[1:]
+    data = pd_reader.DataReader(
+        symbol,
+        'google',
+        first_date,
+        last_date
+    )
+
+    data = data['Close']
+
+    data[pd.Timestamp('2008-12-15')] = np.nan
+    data[pd.Timestamp('2009-08-11')] = np.nan
+    data[pd.Timestamp('2012-02-02')] = np.nan
+
+    data = data.fillna(method='ffill')
+
+    return data.sort_index().tz_localize('UTC').pct_change(1).iloc[1:]

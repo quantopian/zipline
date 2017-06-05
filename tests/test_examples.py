@@ -21,11 +21,12 @@ import pandas as pd
 
 from zipline import examples
 from zipline.data.bundles import register, unregister
-from zipline.testing import test_resource_path, copy_market_data
-from zipline.testing.fixtures import WithTmpDir, ZiplineTestCase, \
-    WithTradingEnvironment
+from zipline.testing import test_resource_path
+from zipline.testing.fixtures import WithTmpDir, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
 from zipline.utils.cache import dataframe_cache
+from zipline.utils.paths import ensure_file
+
 
 # Otherwise the next line sometimes complains about being run too late.
 _multiprocess_can_split_ = False
@@ -54,10 +55,11 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             serialization='pickle',
         )
 
-        copy_market_data(WithTradingEnvironment.MARKET_DATA_DIR,
-                         cls.tmpdir.getpath('example_data/root'))
+        market_data = ('SPY_benchmark.csv', 'treasury_curves.csv')
+        for data in market_data:
+            ensure_file(cls.tmpdir.getpath('example_data/root/data/' + data))
 
-    @parameterized.expand(examples.EXAMPLE_MODULES)
+    @parameterized.expand(sorted(examples.EXAMPLE_MODULES))
     def test_example(self, example_name):
         actual_perf = examples.run_example(
             example_name,
