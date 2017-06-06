@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.data.dataset &mdash; Zipline 1.1.0 documentation</title>
+  <title>zipline.pipeline.loaders.equity_pricing_loader &mdash; Zipline 1.1.0 documentation</title>
   
 
   
@@ -323,7 +323,7 @@
       
           <li><a href="../../../index.html">Module code</a> &raquo;</li>
       
-    <li>zipline.pipeline.data.dataset</li>
+    <li>zipline.pipeline.loaders.equity_pricing_loader</li>
       <li class="wy-breadcrumbs-aside">
         
           
@@ -334,238 +334,148 @@
 </div>
           <div role="main" class="document">
             
-  <h1>Source code for zipline.pipeline.data.dataset</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">dataset.py</span>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">total_ordering</span>
-<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">iteritems</span><span class="p">,</span>
-    <span class="n">with_metaclass</span><span class="p">,</span>
+  <h1>Source code for zipline.pipeline.loaders.equity_pricing_loader</h1><div class="highlight"><pre>
+<span class="c"># Copyright 2015 Quantopian, Inc.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">iinfo</span><span class="p">,</span>
+    <span class="n">uint32</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">zipline.pipeline.classifiers</span> <span class="kn">import</span> <span class="n">Classifier</span><span class="p">,</span> <span class="n">Latest</span> <span class="k">as</span> <span class="n">LatestClassifier</span>
-<span class="kn">from</span> <span class="nn">zipline.pipeline.factors</span> <span class="kn">import</span> <span class="n">Factor</span><span class="p">,</span> <span class="n">Latest</span> <span class="k">as</span> <span class="n">LatestFactor</span>
-<span class="kn">from</span> <span class="nn">zipline.pipeline.filters</span> <span class="kn">import</span> <span class="n">Filter</span><span class="p">,</span> <span class="n">Latest</span> <span class="k">as</span> <span class="n">LatestFilter</span>
-<span class="kn">from</span> <span class="nn">zipline.pipeline.sentinels</span> <span class="kn">import</span> <span class="n">NotSpecified</span>
-<span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">AssetExists</span><span class="p">,</span>
-    <span class="n">LoadableTerm</span><span class="p">,</span>
-    <span class="n">validate_dtype</span><span class="p">,</span>
+<span class="kn">from</span> <span class="nn">zipline.data.us_equity_pricing</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BcolzDailyBarReader</span><span class="p">,</span>
+    <span class="n">SQLiteAdjustmentReader</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="n">ensure_dtype</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="n">NoDefaultMissingValue</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.preprocess</span> <span class="kn">import</span> <span class="n">preprocess</span>
+<span class="kn">from</span> <span class="nn">zipline.lib.adjusted_array</span> <span class="kn">import</span> <span class="n">AdjustedArray</span>
+<span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="n">NoFurtherDataError</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.calendars</span> <span class="kn">import</span> <span class="n">get_calendar</span>
+
+<span class="kn">from</span> <span class="nn">.base</span> <span class="kn">import</span> <span class="n">PipelineLoader</span>
+
+<span class="n">UINT32_MAX</span> <span class="o">=</span> <span class="n">iinfo</span><span class="p">(</span><span class="n">uint32</span><span class="p">)</span><span class="o">.</span><span class="n">max</span>
 
 
-<span class="k">class</span> <span class="nc">Column</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="USEquityPricingLoader"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.loaders.equity_pricing_loader.USEquityPricingLoader">[docs]</a><span class="k">class</span> <span class="nc">USEquityPricingLoader</span><span class="p">(</span><span class="n">PipelineLoader</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    An abstract column of data, not yet associated with a dataset.</span>
+<span class="sd">    PipelineLoader for US Equity Pricing data</span>
+
+<span class="sd">    Delegates loading of baselines and adjustments.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="nd">@preprocess</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">ensure_dtype</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">missing_value</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span> <span class="o">=</span> <span class="n">missing_value</span>
 
-    <span class="k">def</span> <span class="nf">bind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Bind a `Column` object to its name.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">_BoundColumnDescr</span><span class="p">(</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">missing_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span><span class="p">,</span>
-            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-        <span class="p">)</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw_price_loader</span><span class="p">,</span> <span class="n">adjustments_loader</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">raw_price_loader</span> <span class="o">=</span> <span class="n">raw_price_loader</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adjustments_loader</span> <span class="o">=</span> <span class="n">adjustments_loader</span>
 
+        <span class="n">cal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_price_loader</span><span class="o">.</span><span class="n">trading_calendar</span> <span class="ow">or</span> \
+            <span class="n">get_calendar</span><span class="p">(</span><span class="s">&quot;NYSE&quot;</span><span class="p">)</span>
 
-<span class="k">class</span> <span class="nc">_BoundColumnDescr</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Intermediate class that sits on `DataSet` objects and returns memoized</span>
-<span class="sd">    `BoundColumn` objects when requested.</span>
-
-<span class="sd">    This exists so that subclasses of DataSets don&#39;t share columns with their</span>
-<span class="sd">    parent classes.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">missing_value</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="c"># Validating and calculating default missing values here guarantees</span>
-        <span class="c"># that we fail quickly if the user passes an unsupporte dtype or fails</span>
-        <span class="c"># to provide a missing value for a dtype that requires one</span>
-        <span class="c"># (e.g. int64), but still enables us to provide an error message that</span>
-        <span class="c"># points to the name of the failing column.</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span> <span class="o">=</span> <span class="n">validate_dtype</span><span class="p">(</span>
-                <span class="n">termname</span><span class="o">=</span><span class="s">&quot;Column(name={name!r})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">),</span>
-                <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
-                <span class="n">missing_value</span><span class="o">=</span><span class="n">missing_value</span><span class="p">,</span>
-            <span class="p">)</span>
-        <span class="k">except</span> <span class="n">NoDefaultMissingValue</span><span class="p">:</span>
-            <span class="c"># Re-raise with a more specific message.</span>
-            <span class="k">raise</span> <span class="n">NoDefaultMissingValue</span><span class="p">(</span>
-                <span class="s">&quot;Failed to create Column with name {name!r} and&quot;</span>
-                <span class="s">&quot; dtype {dtype} because no missing_value was provided</span><span class="se">\n\n</span><span class="s">&quot;</span>
-                <span class="s">&quot;Columns with dtype {dtype} require a missing_value.</span><span class="se">\n</span><span class="s">&quot;</span>
-                <span class="s">&quot;Please pass missing_value to Column() or use a different&quot;</span>
-                <span class="s">&quot; dtype.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
-            <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
-
-    <span class="k">def</span> <span class="nf">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Produce a concrete BoundColumn object when accessed.</span>
-
-<span class="sd">        We don&#39;t bind to datasets at class creation time so that subclasses of</span>
-<span class="sd">        DataSets produce different BoundColumns.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">BoundColumn</span><span class="p">(</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">missing_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span><span class="p">,</span>
-            <span class="n">dataset</span><span class="o">=</span><span class="n">owner</span><span class="p">,</span>
-            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-        <span class="p">)</span>
-
-
-<span class="k">class</span> <span class="nc">BoundColumn</span><span class="p">(</span><span class="n">LoadableTerm</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    A column of data that&#39;s been concretely bound to a particular dataset.</span>
-
-<span class="sd">    Instances of this class are dynamically created upon access to attributes</span>
-<span class="sd">    of DataSets (for example, USEquityPricing.close is an instance of this</span>
-<span class="sd">    class).</span>
-
-<span class="sd">    Attributes</span>
-<span class="sd">    ----------</span>
-<span class="sd">    dtype : numpy.dtype</span>
-<span class="sd">        The dtype of data produced when this column is loaded.</span>
-<span class="sd">    latest : zipline.pipeline.data.Factor or zipline.pipeline.data.Filter</span>
-<span class="sd">        A Filter, Factor, or Classifier computing the most recently known value</span>
-<span class="sd">        of this column on each date.</span>
-
-<span class="sd">        Produces a Filter if self.dtype == ``np.bool_``.</span>
-<span class="sd">        Produces a Classifier if self.dtype == ``np.int64``</span>
-<span class="sd">        Otherwise produces a Factor.</span>
-<span class="sd">    dataset : zipline.pipeline.data.DataSet</span>
-<span class="sd">        The dataset to which this column is bound.</span>
-<span class="sd">    name : str</span>
-<span class="sd">        The name of this column.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">mask</span> <span class="o">=</span> <span class="n">AssetExists</span><span class="p">()</span>
-    <span class="n">window_safe</span> <span class="o">=</span> <span class="bp">True</span>
-
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">missing_value</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">BoundColumn</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
-            <span class="n">cls</span><span class="p">,</span>
-            <span class="n">domain</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">domain</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">missing_value</span><span class="o">=</span><span class="n">missing_value</span><span class="p">,</span>
-            <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>
-            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-            <span class="n">ndim</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span> <span class="o">=</span> <span class="n">dataset</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">BoundColumn</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_all_sessions</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">all_sessions</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_static_identity</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">(</span>
-            <span class="nb">super</span><span class="p">(</span><span class="n">BoundColumn</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_static_identity</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span>
-            <span class="n">dataset</span><span class="p">,</span>
-            <span class="n">name</span><span class="p">,</span>
+<div class="viewcode-block" id="USEquityPricingLoader.from_files"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.loaders.equity_pricing_loader.USEquityPricingLoader.from_files">[docs]</a>    <span class="k">def</span> <span class="nf">from_files</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">pricing_path</span><span class="p">,</span> <span class="n">adjustments_path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a loader from a bcolz equity pricing dir and a SQLite</span>
+<span class="sd">        adjustments path.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pricing_path : str</span>
+<span class="sd">            Path to a bcolz directory written by a BcolzDailyBarWriter.</span>
+<span class="sd">        adjusments_path : str</span>
+<span class="sd">            Path to an adjusments db written by a SQLiteAdjustmentWriter.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">cls</span><span class="p">(</span>
+            <span class="n">BcolzDailyBarReader</span><span class="p">(</span><span class="n">pricing_path</span><span class="p">),</span>
+            <span class="n">SQLiteAdjustmentReader</span><span class="p">(</span><span class="n">adjustments_path</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">load_adjusted_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="c"># load_adjusted_array is called with dates on which the user&#39;s algo</span>
+        <span class="c"># will be shown data, which means we need to return the data that would</span>
+        <span class="c"># be known at the start of each date.  We assume that the latest data</span>
+        <span class="c"># known on day N is the data from day (N - 1), so we shift all query</span>
+        <span class="c"># dates back by a day.</span>
+        <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span> <span class="o">=</span> <span class="n">_shift_dates</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_all_sessions</span><span class="p">,</span> <span class="n">dates</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">shift</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">colnames</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">]</span>
+        <span class="n">raw_arrays</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_price_loader</span><span class="o">.</span><span class="n">load_raw_arrays</span><span class="p">(</span>
+            <span class="n">colnames</span><span class="p">,</span>
+            <span class="n">start_date</span><span class="p">,</span>
+            <span class="n">end_date</span><span class="p">,</span>
+            <span class="n">assets</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">adjustments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjustments_loader</span><span class="o">.</span><span class="n">load_adjustments</span><span class="p">(</span>
+            <span class="n">colnames</span><span class="p">,</span>
+            <span class="n">dates</span><span class="p">,</span>
+            <span class="n">assets</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        The dataset to which this column is bound.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">c_raw</span><span class="p">,</span> <span class="n">c_adjs</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">columns</span><span class="p">,</span> <span class="n">raw_arrays</span><span class="p">,</span> <span class="n">adjustments</span><span class="p">):</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">AdjustedArray</span><span class="p">(</span>
+                <span class="n">c_raw</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+                <span class="n">mask</span><span class="p">,</span>
+                <span class="n">c_adjs</span><span class="p">,</span>
+                <span class="n">c</span><span class="o">.</span><span class="n">missing_value</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span></div>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        The name of this column.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">qualname</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        The fully-qualified name of this column.</span>
-
-<span class="sd">        Generated by doing &#39;.&#39;.join([self.dataset.__name__, self.name]).</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="s">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">])</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">latest</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span>
-        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="n">Filter</span><span class="o">.</span><span class="n">ALLOWED_DTYPES</span><span class="p">:</span>
-            <span class="n">Latest</span> <span class="o">=</span> <span class="n">LatestFilter</span>
-        <span class="k">elif</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="n">Classifier</span><span class="o">.</span><span class="n">ALLOWED_DTYPES</span><span class="p">:</span>
-            <span class="n">Latest</span> <span class="o">=</span> <span class="n">LatestClassifier</span>
+<span class="k">def</span> <span class="nf">_shift_dates</span><span class="p">(</span><span class="n">dates</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">,</span> <span class="n">shift</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">dates</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">start_date</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">start_date</span> <span class="o">&lt;</span> <span class="n">dates</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="n">NoFurtherDataError</span><span class="p">(</span>
+                <span class="n">msg</span><span class="o">=</span><span class="p">(</span>
+                    <span class="s">&quot;Pipeline Query requested data starting on {query_start}, &quot;</span>
+                    <span class="s">&quot;but first known date is {calendar_start}&quot;</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">query_start</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">start_date</span><span class="p">),</span>
+                    <span class="n">calendar_start</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">dates</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="n">Factor</span><span class="o">.</span><span class="n">ALLOWED_DTYPES</span><span class="p">,</span> <span class="s">&quot;Unknown dtype </span><span class="si">%s</span><span class="s">.&quot;</span> <span class="o">%</span> <span class="n">dtype</span>
-            <span class="n">Latest</span> <span class="o">=</span> <span class="n">LatestFactor</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Query start </span><span class="si">%s</span><span class="s"> not in calendar&quot;</span> <span class="o">%</span> <span class="n">start_date</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">Latest</span><span class="p">(</span>
-            <span class="n">inputs</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="p">,),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">missing_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span><span class="p">,</span>
-            <span class="n">ndim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span>
+    <span class="c"># Make sure that shifting doesn&#39;t push us out of the calendar.</span>
+    <span class="k">if</span> <span class="n">start</span> <span class="o">&lt;</span> <span class="n">shift</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">NoFurtherDataError</span><span class="p">(</span>
+            <span class="n">msg</span><span class="o">=</span><span class="p">(</span>
+                <span class="s">&quot;Pipeline Query requested data from {shift}&quot;</span>
+                <span class="s">&quot; days before {query_start}, but first known date is only &quot;</span>
+                <span class="s">&quot;{start} days earlier.&quot;</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">shift</span><span class="o">=</span><span class="n">shift</span><span class="p">,</span> <span class="n">query_start</span><span class="o">=</span><span class="n">start_date</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">),</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;{qualname}::{dtype}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="n">qualname</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">qualname</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">short_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">qualname</span>
-
-
-<span class="nd">@total_ordering</span>
-<span class="k">class</span> <span class="nc">DataSetMeta</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Metaclass for DataSets</span>
-
-<span class="sd">    Supplies name and dataset information to Column attributes.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">mcls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dict_</span><span class="p">):</span>
-        <span class="n">newtype</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DataSetMeta</span><span class="p">,</span> <span class="n">mcls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">mcls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dict_</span><span class="p">)</span>
-        <span class="c"># collect all of the column names that we inherit from our parents</span>
-        <span class="n">column_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span><span class="o">.</span><span class="n">union</span><span class="p">(</span>
-            <span class="o">*</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="s">&#39;_column_names&#39;</span><span class="p">,</span> <span class="p">())</span> <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">bases</span><span class="p">)</span>
-        <span class="p">)</span>
-        <span class="k">for</span> <span class="n">maybe_colname</span><span class="p">,</span> <span class="n">maybe_column</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">dict_</span><span class="p">):</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">maybe_column</span><span class="p">,</span> <span class="n">Column</span><span class="p">):</span>
-                <span class="c"># add column names defined on our class</span>
-                <span class="n">bound_column_descr</span> <span class="o">=</span> <span class="n">maybe_column</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">maybe_colname</span><span class="p">)</span>
-                <span class="nb">setattr</span><span class="p">(</span><span class="n">newtype</span><span class="p">,</span> <span class="n">maybe_colname</span><span class="p">,</span> <span class="n">bound_column_descr</span><span class="p">)</span>
-                <span class="n">column_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">maybe_colname</span><span class="p">)</span>
-
-        <span class="n">newtype</span><span class="o">.</span><span class="n">_column_names</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">column_names</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">newtype</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">columns</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span>
-            <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">colname</span><span class="p">)</span> <span class="k">for</span> <span class="n">colname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_column_names</span>
-        <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">__lt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">id</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&#39;&lt;DataSet: </span><span class="si">%r</span><span class="s">&gt;&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">__name__</span>
-
-
-<span class="k">class</span> <span class="nc">DataSet</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">DataSetMeta</span><span class="p">,</span> <span class="nb">object</span><span class="p">)):</span>
-    <span class="n">domain</span> <span class="o">=</span> <span class="bp">None</span>
-    <span class="n">ndim</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">dates</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">end_date</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">end_date</span> <span class="o">&gt;</span> <span class="n">dates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="n">NoFurtherDataError</span><span class="p">(</span>
+                <span class="n">msg</span><span class="o">=</span><span class="p">(</span>
+                    <span class="s">&quot;Pipeline Query requesting data up to {query_end}, &quot;</span>
+                    <span class="s">&quot;but last known date is {calendar_end}&quot;</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">query_end</span><span class="o">=</span><span class="n">end_date</span><span class="p">,</span>
+                    <span class="n">calendar_end</span><span class="o">=</span><span class="n">dates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Query end </span><span class="si">%s</span><span class="s"> not in calendar&quot;</span> <span class="o">%</span> <span class="n">end_date</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dates</span><span class="p">[</span><span class="n">start</span> <span class="o">-</span> <span class="n">shift</span><span class="p">],</span> <span class="n">dates</span><span class="p">[</span><span class="n">end</span> <span class="o">-</span> <span class="n">shift</span><span class="p">]</span>
 </pre></div>
 
           </div>

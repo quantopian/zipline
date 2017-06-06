@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.data.dataset &mdash; Zipline 1.1.0 documentation</title>
+  <title>zipline.pipeline.factors.events &mdash; Zipline 1.1.0 documentation</title>
   
 
   
@@ -323,7 +323,7 @@
       
           <li><a href="../../../index.html">Module code</a> &raquo;</li>
       
-    <li>zipline.pipeline.data.dataset</li>
+    <li>zipline.pipeline.factors.events</li>
       <li class="wy-breadcrumbs-aside">
         
           
@@ -334,238 +334,86 @@
 </div>
           <div role="main" class="document">
             
-  <h1>Source code for zipline.pipeline.data.dataset</h1><div class="highlight"><pre>
+  <h1>Source code for zipline.pipeline.factors.events</h1><div class="highlight"><pre>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">dataset.py</span>
+<span class="sd">Factors describing information about event data (e.g. earnings</span>
+<span class="sd">announcements, acquisitions, dividends, etc.).</span>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">total_ordering</span>
-<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">iteritems</span><span class="p">,</span>
-    <span class="n">with_metaclass</span><span class="p">,</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">newaxis</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">NaTD</span><span class="p">,</span>
+    <span class="n">busday_count_mask_NaT</span><span class="p">,</span>
+    <span class="n">datetime64D_dtype</span><span class="p">,</span>
+    <span class="n">float64_dtype</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">zipline.pipeline.classifiers</span> <span class="kn">import</span> <span class="n">Classifier</span><span class="p">,</span> <span class="n">Latest</span> <span class="k">as</span> <span class="n">LatestClassifier</span>
-<span class="kn">from</span> <span class="nn">zipline.pipeline.factors</span> <span class="kn">import</span> <span class="n">Factor</span><span class="p">,</span> <span class="n">Latest</span> <span class="k">as</span> <span class="n">LatestFactor</span>
-<span class="kn">from</span> <span class="nn">zipline.pipeline.filters</span> <span class="kn">import</span> <span class="n">Filter</span><span class="p">,</span> <span class="n">Latest</span> <span class="k">as</span> <span class="n">LatestFilter</span>
-<span class="kn">from</span> <span class="nn">zipline.pipeline.sentinels</span> <span class="kn">import</span> <span class="n">NotSpecified</span>
-<span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">AssetExists</span><span class="p">,</span>
-    <span class="n">LoadableTerm</span><span class="p">,</span>
-    <span class="n">validate_dtype</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="n">ensure_dtype</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="n">NoDefaultMissingValue</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.preprocess</span> <span class="kn">import</span> <span class="n">preprocess</span>
+<span class="kn">from</span> <span class="nn">.factor</span> <span class="kn">import</span> <span class="n">Factor</span>
 
 
-<span class="k">class</span> <span class="nc">Column</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="BusinessDaysSincePreviousEvent"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.BusinessDaysSincePreviousEvent">[docs]</a><span class="k">class</span> <span class="nc">BusinessDaysSincePreviousEvent</span><span class="p">(</span><span class="n">Factor</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    An abstract column of data, not yet associated with a dataset.</span>
+<span class="sd">    Abstract class for business days since a previous event.</span>
+<span class="sd">    Returns the number of **business days** (not trading days!) since</span>
+<span class="sd">    the most recent event date for each asset.</span>
+
+<span class="sd">    This doesn&#39;t use trading days for symmetry with</span>
+<span class="sd">    BusinessDaysUntilNextEarnings.</span>
+
+<span class="sd">    Assets which announced or will announce the event today will produce a</span>
+<span class="sd">    value of 0.0. Assets that announced the event on the previous business</span>
+<span class="sd">    day will produce a value of 1.0.</span>
+
+<span class="sd">    Assets for which the event date is `NaT` will produce a value of `NaN`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="nd">@preprocess</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">ensure_dtype</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">missing_value</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span> <span class="o">=</span> <span class="n">missing_value</span>
+    <span class="n">window_length</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">float64_dtype</span>
 
-    <span class="k">def</span> <span class="nf">bind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Bind a `Column` object to its name.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">_BoundColumnDescr</span><span class="p">(</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">missing_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span><span class="p">,</span>
-            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-        <span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+
+        <span class="c"># Coerce from [ns] to [D] for numpy busday_count.</span>
+        <span class="n">announce_dates</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)</span>
+
+        <span class="c"># Set masked values to NaT.</span>
+        <span class="n">announce_dates</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">NaTD</span>
+
+        <span class="c"># Convert row labels into a column vector for broadcasted comparison.</span>
+        <span class="n">reference_dates</span> <span class="o">=</span> <span class="n">dates</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)[:,</span> <span class="n">newaxis</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">busday_count_mask_NaT</span><span class="p">(</span><span class="n">announce_dates</span><span class="p">,</span> <span class="n">reference_dates</span><span class="p">)</span></div>
 
 
-<span class="k">class</span> <span class="nc">_BoundColumnDescr</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="BusinessDaysUntilNextEvent"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.BusinessDaysUntilNextEvent">[docs]</a><span class="k">class</span> <span class="nc">BusinessDaysUntilNextEvent</span><span class="p">(</span><span class="n">Factor</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Intermediate class that sits on `DataSet` objects and returns memoized</span>
-<span class="sd">    `BoundColumn` objects when requested.</span>
+<span class="sd">    Abstract class for business days since a next event.</span>
+<span class="sd">    Returns the number of **business days** (not trading days!) until</span>
+<span class="sd">    the next known event date for each asset.</span>
 
-<span class="sd">    This exists so that subclasses of DataSets don&#39;t share columns with their</span>
-<span class="sd">    parent classes.</span>
+<span class="sd">    This doesn&#39;t use trading days because the trading calendar includes</span>
+<span class="sd">    information that may not have been available to the algorithm at the time</span>
+<span class="sd">    when `compute` is called.</span>
+
+<span class="sd">    For example, the NYSE closings September 11th 2001, would not have been</span>
+<span class="sd">    known to the algorithm on September 10th.</span>
+
+<span class="sd">    Assets that announced or will announce the event today will produce a value</span>
+<span class="sd">    of 0.0.  Assets that will announce the event on the next upcoming business</span>
+<span class="sd">    day will produce a value of 1.0.</span>
+
+<span class="sd">    Assets for which the event date is `NaT` will produce a value of `NaN`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">missing_value</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="c"># Validating and calculating default missing values here guarantees</span>
-        <span class="c"># that we fail quickly if the user passes an unsupporte dtype or fails</span>
-        <span class="c"># to provide a missing value for a dtype that requires one</span>
-        <span class="c"># (e.g. int64), but still enables us to provide an error message that</span>
-        <span class="c"># points to the name of the failing column.</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span> <span class="o">=</span> <span class="n">validate_dtype</span><span class="p">(</span>
-                <span class="n">termname</span><span class="o">=</span><span class="s">&quot;Column(name={name!r})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">),</span>
-                <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
-                <span class="n">missing_value</span><span class="o">=</span><span class="n">missing_value</span><span class="p">,</span>
-            <span class="p">)</span>
-        <span class="k">except</span> <span class="n">NoDefaultMissingValue</span><span class="p">:</span>
-            <span class="c"># Re-raise with a more specific message.</span>
-            <span class="k">raise</span> <span class="n">NoDefaultMissingValue</span><span class="p">(</span>
-                <span class="s">&quot;Failed to create Column with name {name!r} and&quot;</span>
-                <span class="s">&quot; dtype {dtype} because no missing_value was provided</span><span class="se">\n\n</span><span class="s">&quot;</span>
-                <span class="s">&quot;Columns with dtype {dtype} require a missing_value.</span><span class="se">\n</span><span class="s">&quot;</span>
-                <span class="s">&quot;Please pass missing_value to Column() or use a different&quot;</span>
-                <span class="s">&quot; dtype.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
-            <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+    <span class="n">window_length</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">float64_dtype</span>
 
-    <span class="k">def</span> <span class="nf">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Produce a concrete BoundColumn object when accessed.</span>
+    <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
 
-<span class="sd">        We don&#39;t bind to datasets at class creation time so that subclasses of</span>
-<span class="sd">        DataSets produce different BoundColumns.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">BoundColumn</span><span class="p">(</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">missing_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span><span class="p">,</span>
-            <span class="n">dataset</span><span class="o">=</span><span class="n">owner</span><span class="p">,</span>
-            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="c"># Coerce from [ns] to [D] for numpy busday_count.</span>
+        <span class="n">announce_dates</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)</span>
 
+        <span class="c"># Set masked values to NaT.</span>
+        <span class="n">announce_dates</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">NaTD</span>
 
-<span class="k">class</span> <span class="nc">BoundColumn</span><span class="p">(</span><span class="n">LoadableTerm</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    A column of data that&#39;s been concretely bound to a particular dataset.</span>
-
-<span class="sd">    Instances of this class are dynamically created upon access to attributes</span>
-<span class="sd">    of DataSets (for example, USEquityPricing.close is an instance of this</span>
-<span class="sd">    class).</span>
-
-<span class="sd">    Attributes</span>
-<span class="sd">    ----------</span>
-<span class="sd">    dtype : numpy.dtype</span>
-<span class="sd">        The dtype of data produced when this column is loaded.</span>
-<span class="sd">    latest : zipline.pipeline.data.Factor or zipline.pipeline.data.Filter</span>
-<span class="sd">        A Filter, Factor, or Classifier computing the most recently known value</span>
-<span class="sd">        of this column on each date.</span>
-
-<span class="sd">        Produces a Filter if self.dtype == ``np.bool_``.</span>
-<span class="sd">        Produces a Classifier if self.dtype == ``np.int64``</span>
-<span class="sd">        Otherwise produces a Factor.</span>
-<span class="sd">    dataset : zipline.pipeline.data.DataSet</span>
-<span class="sd">        The dataset to which this column is bound.</span>
-<span class="sd">    name : str</span>
-<span class="sd">        The name of this column.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">mask</span> <span class="o">=</span> <span class="n">AssetExists</span><span class="p">()</span>
-    <span class="n">window_safe</span> <span class="o">=</span> <span class="bp">True</span>
-
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">missing_value</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">BoundColumn</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
-            <span class="n">cls</span><span class="p">,</span>
-            <span class="n">domain</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">domain</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">missing_value</span><span class="o">=</span><span class="n">missing_value</span><span class="p">,</span>
-            <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>
-            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-            <span class="n">ndim</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span> <span class="o">=</span> <span class="n">dataset</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">BoundColumn</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_static_identity</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">(</span>
-            <span class="nb">super</span><span class="p">(</span><span class="n">BoundColumn</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_static_identity</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span>
-            <span class="n">dataset</span><span class="p">,</span>
-            <span class="n">name</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        The dataset to which this column is bound.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        The name of this column.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">qualname</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        The fully-qualified name of this column.</span>
-
-<span class="sd">        Generated by doing &#39;.&#39;.join([self.dataset.__name__, self.name]).</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="s">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">])</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">latest</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span>
-        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="n">Filter</span><span class="o">.</span><span class="n">ALLOWED_DTYPES</span><span class="p">:</span>
-            <span class="n">Latest</span> <span class="o">=</span> <span class="n">LatestFilter</span>
-        <span class="k">elif</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="n">Classifier</span><span class="o">.</span><span class="n">ALLOWED_DTYPES</span><span class="p">:</span>
-            <span class="n">Latest</span> <span class="o">=</span> <span class="n">LatestClassifier</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="n">Factor</span><span class="o">.</span><span class="n">ALLOWED_DTYPES</span><span class="p">,</span> <span class="s">&quot;Unknown dtype </span><span class="si">%s</span><span class="s">.&quot;</span> <span class="o">%</span> <span class="n">dtype</span>
-            <span class="n">Latest</span> <span class="o">=</span> <span class="n">LatestFactor</span>
-
-        <span class="k">return</span> <span class="n">Latest</span><span class="p">(</span>
-            <span class="n">inputs</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="p">,),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">missing_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span><span class="p">,</span>
-            <span class="n">ndim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;{qualname}::{dtype}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="n">qualname</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">qualname</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">short_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">qualname</span>
-
-
-<span class="nd">@total_ordering</span>
-<span class="k">class</span> <span class="nc">DataSetMeta</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Metaclass for DataSets</span>
-
-<span class="sd">    Supplies name and dataset information to Column attributes.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">mcls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dict_</span><span class="p">):</span>
-        <span class="n">newtype</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DataSetMeta</span><span class="p">,</span> <span class="n">mcls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">mcls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dict_</span><span class="p">)</span>
-        <span class="c"># collect all of the column names that we inherit from our parents</span>
-        <span class="n">column_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span><span class="o">.</span><span class="n">union</span><span class="p">(</span>
-            <span class="o">*</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="s">&#39;_column_names&#39;</span><span class="p">,</span> <span class="p">())</span> <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">bases</span><span class="p">)</span>
-        <span class="p">)</span>
-        <span class="k">for</span> <span class="n">maybe_colname</span><span class="p">,</span> <span class="n">maybe_column</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">dict_</span><span class="p">):</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">maybe_column</span><span class="p">,</span> <span class="n">Column</span><span class="p">):</span>
-                <span class="c"># add column names defined on our class</span>
-                <span class="n">bound_column_descr</span> <span class="o">=</span> <span class="n">maybe_column</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">maybe_colname</span><span class="p">)</span>
-                <span class="nb">setattr</span><span class="p">(</span><span class="n">newtype</span><span class="p">,</span> <span class="n">maybe_colname</span><span class="p">,</span> <span class="n">bound_column_descr</span><span class="p">)</span>
-                <span class="n">column_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">maybe_colname</span><span class="p">)</span>
-
-        <span class="n">newtype</span><span class="o">.</span><span class="n">_column_names</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">column_names</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">newtype</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">columns</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span>
-            <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">colname</span><span class="p">)</span> <span class="k">for</span> <span class="n">colname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_column_names</span>
-        <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">__lt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">id</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&#39;&lt;DataSet: </span><span class="si">%r</span><span class="s">&gt;&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">__name__</span>
-
-
-<span class="k">class</span> <span class="nc">DataSet</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">DataSetMeta</span><span class="p">,</span> <span class="nb">object</span><span class="p">)):</span>
-    <span class="n">domain</span> <span class="o">=</span> <span class="bp">None</span>
-    <span class="n">ndim</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="c"># Convert row labels into a column vector for broadcasted comparison.</span>
+        <span class="n">reference_dates</span> <span class="o">=</span> <span class="n">dates</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)[:,</span> <span class="n">newaxis</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">busday_count_mask_NaT</span><span class="p">(</span><span class="n">reference_dates</span><span class="p">,</span> <span class="n">announce_dates</span><span class="p">)</span></div>
 </pre></div>
 
           </div>

@@ -307,13 +307,13 @@ have.
 help some bundles generate queries for the days needed.
 
 ``start_session``
-````````````
+`````````````````
 
 ``start_session`` is a :class:`pandas.Timestamp` object indicating the first
 day that the bundle should load data for.
 
 ``end_session``
-````````````
+```````````````
 
 ``end_session`` is a :class:`pandas.Timestamp` object indicating the last day
 that the bundle should load data for.
