@@ -25,7 +25,7 @@ from zipline.testing import test_resource_path
 from zipline.testing.fixtures import WithTmpDir, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
 from zipline.utils.cache import dataframe_cache
-from zipline.utils.paths import ensure_file
+from zipline.utils.paths import update_modified_time
 
 
 # Otherwise the next line sometimes complains about being run too late.
@@ -57,7 +57,11 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
 
         market_data = ('SPY_benchmark.csv', 'treasury_curves.csv')
         for data in market_data:
-            ensure_file(cls.tmpdir.getpath('example_data/root/data/' + data))
+            update_modified_time(
+                cls.tmpdir.getpath(
+                    'example_data/root/data/' + data
+                )
+            )
 
     @parameterized.expand(sorted(examples.EXAMPLE_MODULES))
     def test_example(self, example_name):
