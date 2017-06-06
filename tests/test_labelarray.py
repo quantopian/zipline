@@ -1,10 +1,13 @@
 from itertools import product
 from operator import eq, ne
-import numpy as np
 import warnings
+
+import numpy as np
+from toolz import take
 
 from zipline.lib.labelarray import LabelArray
 from zipline.testing import check_arrays, parameter_space, ZiplineTestCase
+from zipline.testing.predicates import assert_equal
 from zipline.utils.compat import unicode
 
 
@@ -337,3 +340,108 @@ class LabelArrayTestCase(ZiplineTestCase):
         # Write the whole array.
         arr[:] = orig_arr
         check_arrays(arr, orig_arr)
+
+    @staticmethod
+    def check_roundtrip(arr):
+        assert_equal(
+            arr.as_string_array(),
+            LabelArray(
+                arr.as_string_array(),
+                arr.missing_value,
+            ).as_string_array(),
+        )
+
+    @staticmethod
+    def create_categories(width, plus_one):
+        length = int(width / 8) + plus_one
+        return [
+            ''.join(cs)
+            for cs in take(
+                2 ** width + plus_one,
+                product([chr(c) for c in range(256)], repeat=length),
+            )
+        ]
+
+    def test_narrow_code_storage(self):
+        create_categories = self.create_categories
+        check_roundtrip = self.check_roundtrip
+
+        # uint8
+        categories = create_categories(8, plus_one=False)
+        arr = LabelArray(
+            [],
+            missing_value=categories[0],
+            categories=categories,
+        )
+        self.assertEqual(arr.itemsize, 1)
+        check_roundtrip(arr)
+
+        # uint8 inference
+        arr = LabelArray(categories, missing_value=categories[0])
+        self.assertEqual(arr.itemsize, 1)
+        check_roundtrip(arr)
+
+        # just over uint8
+        categories = create_categories(8, plus_one=True)
+        arr = LabelArray(
+            [],
+            missing_value=categories[0],
+            categories=categories,
+        )
+        self.assertEqual(arr.itemsize, 2)
+        check_roundtrip(arr)
+
+        # fits in uint16
+        categories = create_categories(16, plus_one=False)
+        arr = LabelArray(
+            [], missing_value=categories[0],
+            categories=categories,
+        )
+        self.assertEqual(arr.itemsize, 2)
+        check_roundtrip(arr)
+
+        # uint16 inference
+        arr = LabelArray(categories, missing_value=categories[0])
+        self.assertEqual(arr.itemsize, 2)
+        check_roundtrip(arr)
+
+        # just over uint16
+        categories = create_categories(16, plus_one=True)
+        arr = LabelArray(
+            [],
+            missing_value=categories[0],
+            categories=categories,
+        )
+        self.assertEqual(arr.itemsize, 4)
+        check_roundtrip(arr)
+
+        # uint32 inference
+        arr = LabelArray(categories, missing_value=categories[0])
+        self.assertEqual(arr.itemsize, 4)
+        check_roundtrip(arr)
+
+        # NOTE: we could do this for 32 and 64; however, no one has enough RAM
+        # or time for that.
+
+    def test_narrow_condense_back_to_valid_size(self):
+        categories = ['a'] * (2 ** 8 + 1)
+        arr = LabelArray(categories, missing_value=categories[0])
+        assert_equal(arr.itemsize, 1)
+        self.check_roundtrip(arr)
+
+        # longer than int16 but still fits when deduped
+        categories = self.create_categories(16, plus_one=False)
+        categories.append(categories[0])
+        arr = LabelArray(categories, missing_value=categories[0])
+        assert_equal(arr.itemsize, 2)
+        self.check_roundtrip(arr)
+
+    def manual_narrow_condense_back_to_valid_size_slow(self):
+        """This test is really slow so we don't want it run by default.
+        """
+        # tests that we don't try to create an 'int24' (which is meaningless)
+        categories = self.create_categories(24, plus_one=False)
+        categories.append(categories[0])
+        arr = LabelArray(categories, missing_value=categories[0])
+        assert_equal(arr.itemsize, 4)
+        self.check_roundtrip(arr)

@@ -9,6 +9,7 @@ from .filter import (
     PercentileFilter,
     SingleAsset,
     StaticAssets,
+    StaticSids,
 )
 from .smoothing import All, Any, AtLeastN
 
@@ -26,4 +27,5 @@ __all__ = [
     'PercentileFilter',
     'SingleAsset',
     'StaticAssets',
+    'StaticSids',
 ]

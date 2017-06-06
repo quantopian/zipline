@@ -1,3 +1,4 @@
+from zipline.assets import Equity
 from zipline.finance.slippage import SlippageModel
 from zipline.utils.sentinel import sentinel
 
@@ -19,7 +20,10 @@ class TestingSlippage(SlippageModel):
     """
     ALL = sentinel('ALL')
 
+    allowed_asset_types = (Equity,)
+
     def __init__(self, filled_per_tick):
+        super(TestingSlippage, self).__init__()
         self.filled_per_tick = filled_per_tick
 
     def process_order(self, data, order):

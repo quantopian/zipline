@@ -14,6 +14,7 @@
 # limitations under the License.
 import numpy as np
 import pandas as pd
+from pandas.util.testing import assert_series_equal
 
 from zipline.data.data_portal import DataPortal
 from zipline.errors import (
@@ -95,13 +96,21 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
         days_to_use = self.sim_params.sessions[1:]
 
         source = BenchmarkSource(
-            1, self.env, self.trading_calendar, days_to_use, self.data_portal
+            self.env.asset_finder.retrieve_asset(1),
+            self.trading_calendar,
+            days_to_use,
+            self.data_portal
         )
 
         # should be the equivalent of getting the price history, then doing
         # a pct_change on it
         manually_calculated = self.data_portal.get_history_window(
-            [1], days_to_use[-1], len(days_to_use), "1d", "close"
+            [1],
+            days_to_use[-1],
+            len(days_to_use),
+            "1d",
+            "close",
+            "daily",
         )[1].pct_change()
 
         # compare all the fields except the first one, for which we don't have
@@ -112,6 +121,12 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
                 manually_calculated[idx + 1]
             )
 
+        # compare a slice of the data
+        assert_series_equal(
+            source.get_range(days_to_use[1], days_to_use[10]),
+            manually_calculated[1:11]
+        )
+
     def test_asset_not_trading(self):
         benchmark = self.env.asset_finder.retrieve_asset(3)
         benchmark_start = benchmark.start_date
@@ -119,30 +134,28 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
 
         with self.assertRaises(BenchmarkAssetNotAvailableTooEarly) as exc:
             BenchmarkSource(
-                3,
-                self.env,
+                benchmark,
                 self.trading_calendar,
                 self.sim_params.sessions[1:],
                 self.data_portal
             )
 
         self.assertEqual(
-            '3 does not exist on %s. It started trading on %s.' %
+            'Equity(3 [C]) does not exist on %s. It started trading on %s.' %
             (self.sim_params.sessions[1], benchmark_start),
             exc.exception.message
         )
 
         with self.assertRaises(BenchmarkAssetNotAvailableTooLate) as exc2:
             BenchmarkSource(
-                3,
-                self.env,
+                benchmark,
                 self.trading_calendar,
                 self.sim_params.sessions[120:],
                 self.data_portal
             )
 
         self.assertEqual(
-            '3 does not exist on %s. It stopped trading on %s.' %
+            'Equity(3 [C]) does not exist on %s. It stopped trading on %s.' %
             (self.sim_params.sessions[-1], benchmark_end),
             exc2.exception.message
         )
@@ -170,8 +183,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
             )
 
             source = BenchmarkSource(
-                2,
-                self.env,
+                self.env.asset_finder.retrieve_asset(2),
                 self.trading_calendar,
                 self.sim_params.sessions,
                 data_portal
@@ -187,6 +199,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
                 len(days_to_use),
                 "1d",
                 "close",
+                "daily",
             )[2].pct_change()
 
             for idx, day in enumerate(days_to_use[1:]):
@@ -201,11 +214,14 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
 
         with self.assertRaises(InvalidBenchmarkAsset) as exc:
             BenchmarkSource(
-                4, self.env, self.trading_calendar,
-                self.sim_params.sessions, self.data_portal
+                self.env.asset_finder.retrieve_asset(4),
+                self.trading_calendar,
+                self.sim_params.sessions,
+                self.data_portal
             )
 
-        self.assertEqual("4 cannot be used as the benchmark because it has a "
-                         "stock dividend on 2006-03-16 00:00:00.  Choose "
-                         "another asset to use as the benchmark.",
+        self.assertEqual("Equity(4 [D]) cannot be used as the benchmark "
+                         "because it has a stock dividend on 2006-03-16 "
+                         "00:00:00.  Choose another asset to use as the "
+                         "benchmark.",
                          exc.exception.message)

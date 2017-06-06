@@ -1,7 +1,7 @@
 Development
 -----------
 
-:Release: 1.0.3
+:Release: 1.1.1
 :Date: TBD
 
 .. warning::
@@ -56,6 +56,4 @@ None
 Miscellaneous
 ~~~~~~~~~~~~~
 
-* Changed the short-opt for ``--before`` in the ``zipline clean``
-  entrypoint. The new argument is ``-e``. The old argument, ``-b``, conflicted
-  with the ``--bundle`` short-opt (:issue:`1625`).
+None

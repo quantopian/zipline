@@ -549,7 +549,9 @@ class BcolzMinuteBarWriter(object):
         with open(sizes_path, mode='r') as f:
             sizes = f.read()
         data = json.loads(sizes)
-        num_days = data['shape'][0] / self._minutes_per_day
+        # use integer division so that the result is an int
+        # for pandas index later https://github.com/pandas-dev/pandas/blob/master/pandas/tseries/base.py#L247 # noqa
+        num_days = data['shape'][0] // self._minutes_per_day
         if num_days == 0:
             # empty container
             return pd.NaT

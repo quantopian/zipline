@@ -385,7 +385,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
     def test_partial_month(self):
 
         start_session = self.trading_calendar.minute_to_session_label(
-            pd.Timestamp("1991-01-01", tz='UTC')
+            pd.Timestamp("1993-02-01", tz='UTC')
         )
 
         # 1992 and 1996 were leap years

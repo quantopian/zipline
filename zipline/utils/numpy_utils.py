@@ -8,6 +8,7 @@ from warnings import (
     filterwarnings,
 )
 
+import numpy as np
 from numpy import (
     broadcast,
     busday_count,
@@ -49,7 +50,24 @@ NaTmap = {
     dtype('datetime64[%s]' % unit): datetime64('NaT', unit)
     for unit in ('ns', 'us', 'ms', 's', 'm', 'D')
 }
-NaT_for_dtype = NaTmap.__getitem__
+
+
+def NaT_for_dtype(dtype):
+    """Retrieve NaT with the same units as ``dtype``.
+
+    Parameters
+    ----------
+    dtype : dtype-coercable
+        The dtype to lookup the NaT value for.
+
+    Returns
+    -------
+    NaT : dtype
+        The NaT value for the given dtype.
+    """
+    return NaTmap[np.dtype(dtype)]
+
+
 NaTns = NaT_for_dtype(datetime64ns_dtype)
 NaTD = NaT_for_dtype(datetime64D_dtype)
 
@@ -69,12 +87,28 @@ INT_DTYPES_BY_SIZE_BYTES = OrderedDict([
     (8, dtype('int64')),
 ])
 
+UNSIGNED_INT_DTYPES_BY_SIZE_BYTES = OrderedDict([
+    (1, dtype('uint8')),
+    (2, dtype('uint16')),
+    (4, dtype('uint32')),
+    (8, dtype('uint64')),
+])
+
 
 def int_dtype_with_size_in_bytes(size):
     try:
         return INT_DTYPES_BY_SIZE_BYTES[size]
     except KeyError:
         raise ValueError("No integral dtype whose size is %d bytes." % size)
+
+
+def unsigned_int_dtype_with_size_in_bytes(size):
+    try:
+        return UNSIGNED_INT_DTYPES_BY_SIZE_BYTES[size]
+    except KeyError:
+        raise ValueError(
+            "No unsigned integral dtype whose size is %d bytes." % size
+        )
 
 
 class NoDefaultMissingValue(Exception):

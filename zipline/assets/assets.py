@@ -16,6 +16,7 @@ from abc import ABCMeta
 import array
 import binascii
 from collections import deque, namedtuple
+from functools import partial
 from numbers import Integral
 from operator import itemgetter, attrgetter
 import struct
@@ -54,9 +55,10 @@ from . import (
     Asset, Equity, Future,
 )
 from . continuous_futures import (
-    OrderedContracts,
+    ADJUSTMENT_STYLES,
+    CHAIN_PREDICATES,
     ContinuousFuture,
-    CHAIN_PREDICATES
+    OrderedContracts,
 )
 from .asset_writer import (
     check_version_info,
@@ -318,6 +320,14 @@ class AssetFinder(object):
             pass
         try:
             del type(self).fuzzy_symbol_ownership_map[self]
+        except KeyError:
+            pass
+        try:
+            del type(self).equity_supplementary_map[self]
+        except KeyError:
+            pass
+        try:
+            del type(self).equity_supplementary_map_by_sid[self]
         except KeyError:
             pass
 
@@ -996,8 +1006,13 @@ class AssetFinder(object):
 
         fields = (fc_cols.exchange,)
 
-        return sa.select(fields).where(
-            fc_cols.root_symbol == root_symbol).execute().fetchone()[0]
+        exchange = sa.select(fields).where(
+            fc_cols.root_symbol == root_symbol).execute().scalar()
+
+        if exchange is not None:
+            return exchange
+        else:
+            raise SymbolNotFound(symbol=root_symbol)
 
     def get_ordered_contracts(self, root_symbol):
         try:
@@ -1011,7 +1026,17 @@ class AssetFinder(object):
             self._ordered_contracts[root_symbol] = oc
             return oc
 
-    def create_continuous_future(self, root_symbol, offset, roll_style):
+    def create_continuous_future(self,
+                                 root_symbol,
+                                 offset,
+                                 roll_style,
+                                 adjustment):
+        if adjustment not in ADJUSTMENT_STYLES:
+            raise ValueError(
+                'Invalid adjustment style {!r}. Allowed adjustment styles are '
+                '{}.'.format(adjustment, list(ADJUSTMENT_STYLES))
+            )
+
         oc = self.get_ordered_contracts(root_symbol)
         exchange = self._get_root_symbol_exchange(root_symbol)
 
@@ -1024,37 +1049,26 @@ class AssetFinder(object):
         add_sid = _encode_continuous_future_sid(root_symbol, offset,
                                                 roll_style,
                                                 'add')
-        mul_cf = ContinuousFuture(mul_sid,
-                                  root_symbol,
-                                  offset,
-                                  roll_style,
-                                  oc.start_date,
-                                  oc.end_date,
-                                  exchange,
-                                  'mul')
-        add_cf = ContinuousFuture(add_sid,
-                                  root_symbol,
-                                  offset,
-                                  roll_style,
-                                  oc.start_date,
-                                  oc.end_date,
-                                  exchange,
-                                  'add')
-        cf = ContinuousFuture(sid,
-                              root_symbol,
-                              offset,
-                              roll_style,
-                              oc.start_date,
-                              oc.end_date,
-                              exchange,
-                              adjustment_children={
-                                  'mul': mul_cf,
-                                  'add': add_cf
-                              })
+
+        cf_template = partial(
+            ContinuousFuture,
+            root_symbol=root_symbol,
+            offset=offset,
+            roll_style=roll_style,
+            start_date=oc.start_date,
+            end_date=oc.end_date,
+            exchange=exchange,
+        )
+
+        cf = cf_template(sid=sid)
+        mul_cf = cf_template(sid=mul_sid, adjustment='mul')
+        add_cf = cf_template(sid=add_sid, adjustment='add')
+
         self._asset_cache[cf.sid] = cf
-        self._asset_cache[add_cf.sid] = add_cf
         self._asset_cache[mul_cf.sid] = mul_cf
-        return cf
+        self._asset_cache[add_cf.sid] = add_cf
+
+        return {None: cf, 'mul': mul_cf, 'add': add_cf}[adjustment]
 
     def _make_sids(tblattr):
         def _(self):
@@ -1172,6 +1186,10 @@ class AssetFinder(object):
                 else:
                     raise SymbolNotFound(symbol=asset_convertible_or_iterable)
 
+        # If the input is a ContinuousFuture just return it as-is.
+        elif isinstance(asset_convertible_or_iterable, ContinuousFuture):
+            return asset_convertible_or_iterable, missing
+
         # Interpret input as iterable.
         try:
             iterator = iter(asset_convertible_or_iterable)
@@ -1182,7 +1200,10 @@ class AssetFinder(object):
             )
 
         for obj in iterator:
-            self._lookup_generic_scalar(obj, as_of_date, matches, missing)
+            if isinstance(obj, ContinuousFuture):
+                matches.append(obj)
+            else:
+                self._lookup_generic_scalar(obj, as_of_date, matches, missing)
         return matches, missing
 
     def map_identifier_index_to_sids(self, index, as_of_date):
@@ -1343,6 +1364,7 @@ class PricingDataAssociable(with_metaclass(ABCMeta)):
     Includes Asset, Future, ContinuousFuture
     """
     pass
+
 
 PricingDataAssociable.register(Asset)
 PricingDataAssociable.register(Future)

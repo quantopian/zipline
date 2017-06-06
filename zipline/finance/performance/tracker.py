@@ -98,7 +98,6 @@ class PerformanceTracker(object):
         self.emission_rate = sim_params.emission_rate
 
         self.position_tracker = PositionTracker(
-            asset_finder=env.asset_finder,
             data_frequency=self.sim_params.data_frequency
         )
 
@@ -141,7 +140,6 @@ class PerformanceTracker(object):
             keep_orders=False,
             # don't serialize positions for cumulative period
             serialize_positions=False,
-            asset_finder=self.asset_finder,
             name="Cumulative"
         )
         self.cumulative_performance.position_tracker = self.position_tracker
@@ -157,7 +155,6 @@ class PerformanceTracker(object):
             keep_transactions=True,
             keep_orders=True,
             serialize_positions=True,
-            asset_finder=self.asset_finder,
             name="Daily"
         )
         self.todays_performance.position_tracker = self.position_tracker
@@ -275,10 +272,10 @@ class PerformanceTracker(object):
         self.todays_performance.record_order(event)
 
     def process_commission(self, commission):
-        sid = commission['sid']
+        asset = commission['asset']
         cost = commission['cost']
 
-        self.position_tracker.handle_commission(sid, cost)
+        self.position_tracker.handle_commission(asset, cost)
         self.cumulative_performance.handle_commission(cost)
         self.todays_performance.handle_commission(cost)
 

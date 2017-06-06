@@ -26,15 +26,19 @@ from toolz import sliding_window
 
 from six import with_metaclass
 
-from zipline.assets import Equity
+from zipline.assets import Equity, Future
 from zipline.assets.continuous_futures import ContinuousFuture
 from zipline.lib._int64window import AdjustedArrayWindow as Int64Window
 from zipline.lib._float64window import AdjustedArrayWindow as Float64Window
 from zipline.lib.adjustment import Float64Multiply, Float64Add
 from zipline.utils.cache import ExpiringCache
+from zipline.utils.math_utils import number_of_decimal_places
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import float64_dtype
 from zipline.utils.pandas_utils import find_in_sorted_index
+
+# Default number of decimal places used for rounding asset prices.
+DEFAULT_ASSET_PRICE_DECIMALS = 3
 
 
 class HistoryCompatibleUSEquityAdjustmentReader(object):
@@ -343,6 +347,21 @@ class HistoryLoader(with_metaclass(ABCMeta)):
     def _array(self, start, end, assets, field):
         pass
 
+    def _decimal_places_for_asset(self, asset, reference_date):
+        if isinstance(asset, Future) and asset.tick_size:
+            return number_of_decimal_places(asset.tick_size)
+        elif isinstance(asset, ContinuousFuture):
+            # Tick size should be the same for all contracts of a continuous
+            # future, so arbitrarily get the contract with next upcoming auto
+            # close date.
+            oc = self._asset_finder.get_ordered_contracts(asset.root_symbol)
+            contract_sid = oc.contract_before_auto_close(reference_date.value)
+            if contract_sid is not None:
+                contract = self._asset_finder.retrieve_asset(contract_sid)
+                if contract.tick_size:
+                    return number_of_decimal_places(contract.tick_size)
+        return DEFAULT_ASSET_PRICE_DECIMALS
+
     def _ensure_sliding_windows(self, assets, dts, field,
                                 is_perspective_after):
         """
@@ -438,7 +457,8 @@ class HistoryLoader(with_metaclass(ABCMeta)):
                     adjs,
                     offset,
                     size,
-                    int(is_perspective_after)
+                    int(is_perspective_after),
+                    self._decimal_places_for_asset(asset, dts[-1]),
                 )
                 sliding_window = SlidingWindow(window, size, start_ix, offset)
                 asset_windows[asset] = sliding_window
@@ -533,7 +553,7 @@ class HistoryLoader(with_metaclass(ABCMeta)):
         return concatenate(
             [window.get(end_ix) for window in block],
             axis=1,
-        ).round(3)
+        )
 
 
 class DailyHistoryLoader(HistoryLoader):

@@ -5,6 +5,7 @@ import shutil
 import tarfile
 
 import click
+import matplotlib
 import numpy as np
 import pandas as pd
 
@@ -13,6 +14,8 @@ from zipline.data.bundles import clean, ingest, register, yahoo_equities
 from zipline.testing import test_resource_path, tmp_dir
 from zipline.utils.cache import dataframe_cache
 
+
+matplotlib.use('Agg')
 
 INPUT_DATA_START_DATE = pd.Timestamp('2004-01-02')
 INPUT_DATA_END_DATE = pd.Timestamp('2014-12-31')

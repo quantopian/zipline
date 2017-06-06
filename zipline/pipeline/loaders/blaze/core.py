@@ -1104,6 +1104,11 @@ class BlazeLoader(dict):
             materialized_deltas,
             dates,
         )
+        # If we ever have cases where we find out about multiple asof_dates'
+        # data on the same TS, we want to make sure that last_in_date_group
+        # selects the correct last asof_date's value.
+        sparse_output.sort_values(AD_FIELD_NAME, inplace=True)
+        non_novel_deltas.sort_values(AD_FIELD_NAME, inplace=True)
         if AD_FIELD_NAME not in requested_columns:
             sparse_output.drop(AD_FIELD_NAME, axis=1, inplace=True)
 

@@ -23,7 +23,7 @@ single tool to install Python and non-Python dependencies, or if you're already
 using `Anaconda <http://continuum.io/downloads>`_ as your Python distribution,
 you can skip to the :ref:`Installing with Conda <conda>` section.
 
-Once you've installed the necessary additional depdendencies (see below for
+Once you've installed the necessary additional dependencies (see below for
 your particular platform), you should be able to simply run
 
 .. code-block:: bash

@@ -33,6 +33,7 @@ from .finance.slippage import (
 )
 from .utils import math_utils, events
 from .utils.events import (
+    calendars,
     date_rules,
     time_rules
 )
@@ -53,5 +54,6 @@ __all__ = [
     'execution',
     'math_utils',
     'slippage',
-    'time_rules'
+    'time_rules',
+    'calendars',
 ]

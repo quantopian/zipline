@@ -231,6 +231,12 @@ def normalize_timestamp_to_query_time(df,
         # don't mutate the dataframe in place
         df = df.copy()
 
+    # There is a pandas bug (0.18.1) where if the timestamps in a
+    # normalized DatetimeIndex are not sorted and one calls `tz_localize(None)`
+    #  on tha DatetimeIndex, some of the dates will be shifted by an hour
+    # (similarly to the previously mentioned bug). Therefore, we must sort
+    # the df here to ensure that we get the normalize correctly.
+    df.sort_values(ts_field, inplace=True)
     dtidx = pd.DatetimeIndex(df.loc[:, ts_field], tz='utc')
     dtidx_local_time = dtidx.tz_convert(tz)
     to_roll_forward = mask_between_time(
@@ -281,15 +287,17 @@ def last_in_date_group(df,
                        assets,
                        reindex=True,
                        have_sids=True,
-                       extra_groupers=[]):
+                       extra_groupers=None):
     """
     Determine the last piece of information known on each date in the date
-    index for each group.
+    index for each group. Input df MUST be sorted such that the correct last
+    item is chosen from each group.
 
     Parameters
     ----------
     df : pd.DataFrame
-        The DataFrame containing the data to be grouped.
+        The DataFrame containing the data to be grouped. Must be sorted so that
+        the correct last item is chosen from each group.
     dates : pd.DatetimeIndex
         The dates to use for grouping and reindexing.
     assets : pd.Int64Index
@@ -316,6 +324,8 @@ def last_in_date_group(df,
     )]]
     if have_sids:
         idx += [SID_FIELD_NAME]
+    if extra_groupers is None:
+        extra_groupers = []
     idx += extra_groupers
 
     last_in_group = df.drop(TS_FIELD_NAME, axis=1).groupby(

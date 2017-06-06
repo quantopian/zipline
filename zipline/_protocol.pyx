@@ -82,48 +82,40 @@ cdef class check_parameters(object):
             for i, arg in enumerate(args[1:]):
                 expected_type = self.types[i]
 
-                if isinstance(arg, expected_type):
-                    continue
-
-                elif (i == 0 or i == 1) and _is_iterable(arg):
+                if (i == 0 or i == 1) and _is_iterable(arg):
                     if len(arg) == 0:
                         continue
+                    arg = arg[0]
 
-                    if isinstance(arg[0], expected_type):
-                        continue
+                if not isinstance(arg, expected_type):
+                    expected_type_name = expected_type.__name__ \
+                        if not _is_iterable(expected_type) \
+                        else ', '.join([type_.__name__ for type_ in expected_type])
 
-                expected_type_name = expected_type.__name__ \
-                    if not _is_iterable(expected_type) \
-                    else ', '.join([type_.__name__ for type_ in expected_type])
-
-                raise TypeError("Expected %s argument to be of type %s%s" %
-                                (self.keyword_names[i],
-                                 'or iterable of type ' if i in (0, 1) else '',
-                                 expected_type_name)
-                )
+                    raise TypeError("Expected %s argument to be of type %s%s" %
+                        (self.keyword_names[i],
+                         'or iterable of type ' if i in (0, 1) else '',
+                         expected_type_name)
+                    )
 
             # verify type of each kwarg
             for keyword, arg in iteritems(kwargs):
-                if isinstance(arg, self.keys_to_types[keyword]):
-                    continue
-                elif keyword in ('assets', 'fields') and _is_iterable(arg):
+                if keyword in ('assets', 'fields') and _is_iterable(arg):
                     if len(arg) == 0:
                         continue
+                    arg = arg[0]
+                if not isinstance(arg, self.keys_to_types[keyword]):
+                    expected_type = self.keys_to_types[keyword].__name__ \
+                        if not _is_iterable(self.keys_to_types[keyword]) \
+                        else ', '.join([type_.__name__ for type_ in
+                            self.keys_to_types[keyword]])
 
-                    if isinstance(arg[0], self.keys_to_types[keyword]):
-                        continue
-
-                expected_type = self.keys_to_types[keyword].__name__ \
-                    if not _is_iterable(self.keys_to_types[keyword]) \
-                    else ', '.join([type_.__name__ for type_ in
-                                    self.keys_to_types[keyword]])
-
-                raise TypeError("Expected %s argument to be of type %s%s" %
-                                (keyword,
-                                 'or iterable of type ' if keyword in
-                                 ('assets', 'fields') else '',
-                                 expected_type)
-                )
+                    raise TypeError("Expected %s argument to be of type %s%s" %
+                                    (keyword,
+                                     'or iterable of type ' if keyword in
+                                     ('assets', 'fields') else '',
+                                     expected_type)
+                    )
 
             return func(*args, **kwargs)
 
@@ -488,12 +480,13 @@ cdef class BarData:
                 assets, dt, adjusted_dt, data_portal
             )
         else:
-            return pd.Series(data={
-                asset: self._can_trade_for_asset(
+            tradeable = [
+                self._can_trade_for_asset(
                     asset, dt, adjusted_dt, data_portal
                 )
                 for asset in assets
-            })
+            ]
+            return pd.Series(data=tradeable, index=assets, dtype=bool)
 
     cdef bool _can_trade_for_asset(self, asset, dt, adjusted_dt, data_portal):
         cdef object session_label
@@ -655,7 +648,8 @@ cdef class BarData:
                 self._get_current_minute(),
                 bar_count,
                 frequency,
-                fields
+                fields,
+                self.data_frequency,
             )
 
             if self._adjust_minutes:
@@ -687,7 +681,8 @@ cdef class BarData:
                         self._get_current_minute(),
                         bar_count,
                         frequency,
-                        field
+                        field,
+                        self.data_frequency,
                     )[assets] for field in fields
                 }
 
@@ -715,7 +710,8 @@ cdef class BarData:
                         self._get_current_minute(),
                         bar_count,
                         frequency,
-                        field
+                        field,
+                        self.data_frequency,
                     ) for field in fields
                 }
 
@@ -755,6 +751,12 @@ cdef class BarData:
             return self._trading_calendar.minute_to_session_label(
                 self.simulation_dt_func(),
                 direction="next"
+            )
+
+    property current_session_minutes:
+        def __get__(self):
+            return self._trading_calendar.minutes_for_session(
+                self.current_session
             )
 
     #################

@@ -13,11 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import Iterable
-try:
-    # optional cython based OrderedDict
-    from cyordereddict import OrderedDict
-except ImportError:
-    from collections import OrderedDict
 from copy import copy
 import operator as op
 import warnings
@@ -38,7 +33,6 @@ from six import (
     itervalues,
     string_types,
     viewkeys,
-    viewvalues,
 )
 
 from zipline._protocol import handle_non_market_minutes
@@ -47,27 +41,27 @@ from zipline.data.data_portal import DataPortal
 from zipline.data.us_equity_pricing import PanelBarReader
 from zipline.errors import (
     AttachPipelineAfterInitialize,
+    CannotOrderDelistedAsset,
     HistoryInInitialize,
+    IncompatibleCommissionModel,
+    IncompatibleSlippageModel,
     NoSuchPipeline,
     OrderDuringInitialize,
+    OrderInBeforeTradingStart,
     PipelineOutputDuringInitialize,
     RegisterAccountControlPostInit,
     RegisterTradingControlPostInit,
+    ScheduleFunctionInvalidCalendar,
     SetBenchmarkOutsideInitialize,
+    SetCancelPolicyPostInit,
     SetCommissionPostInit,
     SetSlippagePostInit,
-    UnsupportedCommissionModel,
+    UnsupportedCancelPolicy,
     UnsupportedDatetimeFormat,
     UnsupportedOrderParameters,
-    UnsupportedSlippageModel,
-    CannotOrderDelistedAsset,
-    UnsupportedCancelPolicy,
-    SetCancelPolicyPostInit,
-    OrderInBeforeTradingStart
 )
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.blotter import Blotter
-from zipline.finance.commission import PerShare, CommissionModel
 from zipline.finance.controls import (
     LongOnly,
     MaxOrderCount,
@@ -84,17 +78,13 @@ from zipline.finance.execution import (
 )
 from zipline.finance.performance import PerformanceTracker
 from zipline.finance.asset_restrictions import Restrictions
-from zipline.finance.slippage import (
-    VolumeShareSlippage,
-    SlippageModel
-)
 from zipline.finance.cancel_policy import NeverCancel, CancelPolicy
 from zipline.finance.asset_restrictions import (
     NoRestrictions,
     StaticRestrictions,
     SecurityListRestrictions,
 )
-from zipline.assets import Asset, Future
+from zipline.assets import Asset, Equity, Future
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.pipeline import Pipeline
 from zipline.pipeline.engine import (
@@ -111,9 +101,11 @@ from zipline.utils.input_validation import (
     coerce_string,
     ensure_upper_case,
     error_keywords,
+    expect_dtypes,
     expect_types,
     optional,
 )
+from zipline.utils.numpy_utils import int64_dtype
 from zipline.utils.calendars.trading_calendar import days_at_time
 from zipline.utils.cache import CachedObject, Expired
 from zipline.utils.calendars import get_calendar
@@ -125,13 +117,14 @@ from zipline.utils.events import (
     make_eventrule,
     date_rules,
     time_rules,
+    calendars,
     AfterOpen,
     BeforeClose
 )
 from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.math_utils import (
     tolerant_equals,
-    round_if_near_integer
+    round_if_near_integer,
 )
 from zipline.utils.pandas_utils import clear_dataframe_indexer_caches
 from zipline.utils.preprocess import preprocess
@@ -323,11 +316,8 @@ class TradingAlgorithm(object):
         if not self.blotter:
             self.blotter = Blotter(
                 data_frequency=self.data_frequency,
-                asset_finder=self.asset_finder,
-                slippage_func=VolumeShareSlippage(),
-                commission=PerShare(),
                 # Default to NeverCancel in zipline
-                cancel_policy=self.cancel_policy
+                cancel_policy=self.cancel_policy,
             )
 
         # The symbol lookup date specifies the date to use when resolving
@@ -493,16 +483,16 @@ class TradingAlgorithm(object):
     capital_base={capital_base}
     sim_params={sim_params},
     initialized={initialized},
-    slippage={slippage},
-    commission={commission},
+    slippage_models={slippage_models},
+    commission_models={commission_models},
     blotter={blotter},
     recorded_vars={recorded_vars})
 """.strip().format(class_name=self.__class__.__name__,
                    capital_base=self.sim_params.capital_base,
                    sim_params=repr(self.sim_params),
                    initialized=self.initialized,
-                   slippage=repr(self.blotter.slippage_func),
-                   commission=repr(self.blotter.commission),
+                   slippage_models=repr(self.blotter.slippage_models),
+                   commission_models=repr(self.blotter.commission_models),
                    blotter=repr(self.blotter),
                    recorded_vars=repr(self.recorded_vars))
 
@@ -551,13 +541,22 @@ class TradingAlgorithm(object):
         )
 
     def _create_benchmark_source(self):
+        if self.benchmark_sid is not None:
+            benchmark_asset = self.asset_finder.retrieve_asset(
+                self.benchmark_sid)
+            benchmark_returns = None
+        else:
+            benchmark_asset = None
+            # get benchmark info from trading environment, which defaults to
+            # downloading data from Yahoo.
+            benchmark_returns = self.trading_environment.benchmark_returns
         return BenchmarkSource(
-            benchmark_sid=self.benchmark_sid,
-            env=self.trading_environment,
+            benchmark_asset=benchmark_asset,
             trading_calendar=self.trading_calendar,
             sessions=self.sim_params.sessions,
             data_portal=self.data_portal,
             emission_rate=self.sim_params.emission_rate,
+            benchmark_returns=benchmark_returns,
         )
 
     def _create_generator(self, sim_params):
@@ -1086,6 +1085,8 @@ class TradingAlgorithm(object):
             The rule for the times to execute this function.
         half_days : bool, optional
             Should this rule fire on half days?
+        calendar : Sentinel, optional
+            Calendar used to reconcile date and time rules.
 
         See Also
         --------
@@ -1111,7 +1112,19 @@ class TradingAlgorithm(object):
         # Check the type of the algorithm's schedule before pulling calendar
         # Note that the ExchangeTradingSchedule is currently the only
         # TradingSchedule class, so this is unlikely to be hit
-        cal = calendar or self.trading_calendar
+        if calendar is None:
+            cal = self.trading_calendar
+        elif calendar is calendars.US_EQUITIES:
+            cal = get_calendar('NYSE')
+        elif calendar is calendars.US_FUTURES:
+            cal = get_calendar('us_futures')
+        else:
+            raise ScheduleFunctionInvalidCalendar(
+                given_calendar=calendar,
+                allowed_calendars=(
+                    '[calendars.US_EQUITIES, calendars.US_FUTURES]'
+                ),
+            )
 
         self.add_event(
             make_eventrule(date_rule, time_rule, cal, half_days),
@@ -1201,7 +1214,11 @@ class TradingAlgorithm(object):
 
     @api_method
     @preprocess(root_symbol_str=ensure_upper_case)
-    def continuous_future(self, root_symbol_str, offset, roll):
+    def continuous_future(self,
+                          root_symbol_str,
+                          offset=0,
+                          roll='volume',
+                          adjustment='mul'):
         """Create a specifier for a continuous contract.
 
         Parameters
@@ -1209,11 +1226,15 @@ class TradingAlgorithm(object):
         root_symbol_str : str
             The root symbol for the future chain.
 
-        offset : int
-            The distance from the primary contract.
+        offset : int, optional
+            The distance from the primary contract. Default is 0.
 
-        roll_style : str
-            How rolls are determined.
+        roll_style : str, optional
+            How rolls are determined. Default is 'volume'.
+
+        adjustment : str, optional
+            Method for adjusting lookback prices between rolls. Options are
+            'mul', 'add', and None. Default is 'mul'.
 
         Returns
         -------
@@ -1224,6 +1245,7 @@ class TradingAlgorithm(object):
             root_symbol_str,
             offset,
             roll,
+            adjustment,
         )
 
     @api_method
@@ -1422,10 +1444,7 @@ class TradingAlgorithm(object):
 
     def _calculate_order(self, asset, amount,
                          limit_price=None, stop_price=None, style=None):
-        # Truncate to the integer share count that's either within .0001 of
-        # amount or closer to zero.
-        # E.g. 3.9999 -> 4.0; 5.5 -> 5.0; -5.5 -> -5.0
-        amount = int(round_if_near_integer(amount))
+        amount = self.round_order(amount)
 
         # Raises a ZiplineError if invalid parameters are detected.
         self.validate_order_params(asset,
@@ -1440,6 +1459,18 @@ class TradingAlgorithm(object):
                                                         stop_price,
                                                         style)
         return amount, style
+
+    @staticmethod
+    def round_order(amount):
+        """
+        Convert number of shares to an integer.
+
+        By default, truncates to the integer share count that's either within
+        .0001 of amount or closer to zero.
+
+        E.g. 3.9999 -> 4.0; 5.5 -> 5.0; -5.5 -> -5.0
+        """
+        return int(round_if_near_integer(amount))
 
     def validate_order_params(self,
                               asset,
@@ -1628,32 +1659,51 @@ class TradingAlgorithm(object):
         return dt
 
     @api_method
-    def set_slippage(self, slippage):
-        """Set the slippage model for the simulation.
+    def set_slippage(self, us_equities=None, us_futures=None):
+        """Set the slippage models for the simulation.
 
         Parameters
         ----------
-        slippage : SlippageModel
-            The slippage model to use.
+        us_equities : EquitySlippageModel
+            The slippage model to use for trading US equities.
+        us_futures : FutureSlippageModel
+            The slippage model to use for trading US futures.
 
         See Also
         --------
         :class:`zipline.finance.slippage.SlippageModel`
         """
-        if not isinstance(slippage, SlippageModel):
-            raise UnsupportedSlippageModel()
         if self.initialized:
             raise SetSlippagePostInit()
-        self.blotter.slippage_func = slippage
+
+        if us_equities is not None:
+            if Equity not in us_equities.allowed_asset_types:
+                raise IncompatibleSlippageModel(
+                    asset_type='equities',
+                    given_model=us_equities,
+                    supported_asset_types=us_equities.allowed_asset_types,
+                )
+            self.blotter.slippage_models[Equity] = us_equities
+
+        if us_futures is not None:
+            if Future not in us_futures.allowed_asset_types:
+                raise IncompatibleSlippageModel(
+                    asset_type='futures',
+                    given_model=us_futures,
+                    supported_asset_types=us_futures.allowed_asset_types,
+                )
+            self.blotter.slippage_models[Future] = us_futures
 
     @api_method
-    def set_commission(self, commission):
-        """Sets the commission model for the simulation.
+    def set_commission(self, us_equities=None, us_futures=None):
+        """Sets the commission models for the simulation.
 
         Parameters
         ----------
-        commission : CommissionModel
-            The commission model to use.
+        us_equities : EquityCommissionModel
+            The commission model to use for trading US equities.
+        us_futures : FutureCommissionModel
+            The commission model to use for trading US futures.
 
         See Also
         --------
@@ -1661,13 +1711,26 @@ class TradingAlgorithm(object):
         :class:`zipline.finance.commission.PerTrade`
         :class:`zipline.finance.commission.PerDollar`
         """
-        if not isinstance(commission, CommissionModel):
-            raise UnsupportedCommissionModel()
-
         if self.initialized:
             raise SetCommissionPostInit()
 
-        self.blotter.commission = commission
+        if us_equities is not None:
+            if Equity not in us_equities.allowed_asset_types:
+                raise IncompatibleCommissionModel(
+                    asset_type='equities',
+                    given_model=us_equities,
+                    supported_asset_types=us_equities.allowed_asset_types,
+                )
+            self.blotter.commission_models[Equity] = us_equities
+
+        if us_futures is not None:
+            if Future not in us_futures.allowed_asset_types:
+                raise IncompatibleCommissionModel(
+                    asset_type='futures',
+                    given_model=us_futures,
+                    supported_asset_types=us_futures.allowed_asset_types,
+                )
+            self.blotter.commission_models[Future] = us_futures
 
     @api_method
     def set_cancel_policy(self, cancel_policy):
@@ -1981,35 +2044,28 @@ class TradingAlgorithm(object):
         return self._calculate_order_target_amount(asset, target_amount)
 
     @api_method
-    @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
-    def batch_order_target_percent(self, weights):
-        """Place orders towards a given portfolio of weights.
+    @expect_types(share_counts=pd.Series)
+    @expect_dtypes(share_counts=int64_dtype)
+    def batch_market_order(self, share_counts):
+        """Place a batch market order for multiple assets.
 
         Parameters
         ----------
-        weights : collections.Mapping[Asset -> float]
+        share_counts : pd.Series[Asset -> int]
+            Map from asset to number of shares to order for that asset.
 
         Returns
         -------
-        order_ids : pd.Series[Asset -> str]
-            The unique identifiers for the orders that were placed.
-
-        See Also
-        --------
-        :func:`zipline.api.order_target_percent`
+        order_ids : pd.Index[str]
+            Index of ids for newly-created orders.
         """
-        order_args = OrderedDict()
-        for asset, target in iteritems(weights):
-            if self._can_order_asset(asset):
-                amount = self._calculate_order_target_percent_amount(
-                    asset, target,
-                )
-                amount, style = self._calculate_order(asset, amount)
-                order_args[asset] = (asset, amount, style)
-
-        order_ids = self.blotter.batch_order(viewvalues(order_args))
-        order_ids = pd.Series(data=order_ids, index=order_args)
-        return order_ids[~order_ids.isnull()]
+        style = MarketOrder()
+        order_args = [
+            (asset, amount, style)
+            for (asset, amount) in iteritems(share_counts)
+            if amount
+        ]
+        return self.blotter.batch_order(order_args)
 
     @error_keywords(sid='Keyword argument `sid` is no longer supported for '
                         'get_open_orders. Use `asset` instead.')
@@ -2102,6 +2158,7 @@ class TradingAlgorithm(object):
                 bar_count,
                 frequency,
                 field,
+                self.data_frequency,
                 ffill,
             )
         else:
@@ -2118,6 +2175,7 @@ class TradingAlgorithm(object):
                 bar_count,
                 frequency,
                 field,
+                self.data_frequency,
                 ffill,
             )
 

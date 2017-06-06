@@ -21,7 +21,7 @@ from zipline.utils.input_validation import (
 )
 from zipline.utils.numpy_utils import (
     bool_dtype,
-    int_dtype_with_size_in_bytes,
+    unsigned_int_dtype_with_size_in_bytes,
     is_object,
 )
 from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning
@@ -80,6 +80,7 @@ class CategoryMismatch(ValueError):
                 right=right[mismatches],
             )
         )
+
 
 _NotPassed = sentinel('_NotPassed')
 
@@ -175,7 +176,7 @@ class LabelArray(ndarray):
             )
         categories.setflags(write=False)
 
-        return cls._from_codes_and_metadata(
+        return cls.from_codes_and_metadata(
             codes=codes.reshape(values.shape),
             categories=categories,
             reverse_categories=reverse_categories,
@@ -183,13 +184,24 @@ class LabelArray(ndarray):
         )
 
     @classmethod
-    def _from_codes_and_metadata(cls,
-                                 codes,
-                                 categories,
-                                 reverse_categories,
-                                 missing_value):
+    def from_codes_and_metadata(cls,
+                                codes,
+                                categories,
+                                reverse_categories,
+                                missing_value):
         """
-        View codes as a LabelArray and set LabelArray metadata on the result.
+        Rehydrate a LabelArray from the codes and metadata.
+
+        Parameters
+        ----------
+        codes : np.ndarray[integral]
+            The codes for the label array.
+        categories : np.ndarray[object]
+            The unique string categories.
+        reverse_categories : dict[str, int]
+            The mapping from category to its code-index.
+        missing_value : any
+            The value used to represent missing data.
         """
         ret = codes.view(type=cls, dtype=np.void)
         ret._categories = categories
@@ -289,7 +301,7 @@ class LabelArray(ndarray):
         """
         return self.view(
             type=ndarray,
-            dtype=int_dtype_with_size_in_bytes(self.itemsize),
+            dtype=unsigned_int_dtype_with_size_in_bytes(self.itemsize),
         )
 
     def as_string_array(self):
@@ -384,7 +396,9 @@ class LabelArray(ndarray):
 
         # Result is a scalar value, which will be an instance of np.void.
         # Map it back to one of our category entries.
-        index = result.view(int_dtype_with_size_in_bytes(self.itemsize))
+        index = result.view(
+            unsigned_int_dtype_with_size_in_bytes(self.itemsize),
+        )
         return self.categories[index]
 
     def is_missing(self):
@@ -514,11 +528,11 @@ class LabelArray(ndarray):
         Make an empty LabelArray with the same categories as ``self``, filled
         with ``self.missing_value``.
         """
-        return type(self)._from_codes_and_metadata(
+        return type(self).from_codes_and_metadata(
             codes=np.full(
                 shape,
                 self.reverse_categories[self.missing_value],
-                dtype=int_dtype_with_size_in_bytes(self.itemsize),
+                dtype=unsigned_int_dtype_with_size_in_bytes(self.itemsize),
             ),
             categories=self.categories,
             reverse_categories=self.reverse_categories,

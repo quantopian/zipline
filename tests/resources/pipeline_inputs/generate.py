@@ -37,5 +37,6 @@ def main():
         print("Writing %s -> %s" % (symbol, dest))
         data.to_csv(dest, index_label='day')
 
+
 if __name__ == '__main__':
     main()

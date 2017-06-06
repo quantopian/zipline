@@ -18,12 +18,12 @@ from zipline.api import order, record, symbol
 
 
 def initialize(context):
-    pass
+    context.asset = symbol('AAPL')
 
 
 def handle_data(context, data):
-    order(symbol('AAPL'), 10)
-    record(AAPL=data.current(symbol('AAPL'), 'price'))
+    order(context.asset, 10)
+    record(AAPL=data.current(context.asset, 'price'))
 
 
 # Note: this function can be removed if running
