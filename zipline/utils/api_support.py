@@ -68,8 +68,8 @@ def require_not_initialized(exception):
     TradingAlgorithm.initialize.  `exception` will be raised if the method is
     called after initialize.
 
-    Usage
-    -----
+    Examples
+    --------
     @require_not_initialized(SomeException("Don't do that!"))
     def method(self):
         # Do stuff that should only be allowed during initialize.
@@ -90,8 +90,8 @@ def require_initialized(exception):
     TradingAlgorithm.initialize.  `exception` will be raised if the method is
     called before initialize has completed.
 
-    Usage
-    -----
+    Examples
+    --------
     @require_initialized(SomeException("Don't do that!"))
     def method(self):
         # Do stuff that should only be allowed after initialize.
@@ -112,8 +112,8 @@ def disallowed_in_before_trading_start(exception):
     TradingAlgorithm.before_trading_start.  `exception` will be raised if the
     method is called inside `before_trading_start`.
 
-    Usage
-    -----
+    Examples
+    --------
     @disallowed_in_before_trading_start(SomeException("Don't do that!"))
     def method(self):
         # Do stuff that is not allowed inside before_trading_start.

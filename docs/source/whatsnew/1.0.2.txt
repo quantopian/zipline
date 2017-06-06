@@ -81,7 +81,7 @@ Enhancements
 - Disallow regressions of length 1. (:issue:`1466`)
 
 Experimental
-~~~~~~~~~~~
+~~~~~~~~~~~~
 
 - Add support for comingled Future and Equity history windows, and enable other
   Future data access via data portal. (:issue:`1435`) (:issue:`1432`)
@@ -111,7 +111,7 @@ Bug Fixes
 
 - Alpha and sharpe ratio are now annualized. (:issue:`1322`)
 
-- Fix units during reading and writing of daily bar ``first_trading_day ``
+- Fix units during reading and writing of daily bar ``first_trading_day``
   attribute. (:issue:`1245`)
 
 - Optional dispatch modules, when missing, no longer cause a `NameError`.
@@ -131,7 +131,7 @@ Bug Fixes
 
 - Fix ``AverageDollarVolume`` NaN handling. (:issue:`1309`)
 
-  Performance
+Performance
 ~~~~~~~~~~~
 
 - Performance improvements to blaze core loader. (:issue:`1227`)
@@ -157,7 +157,7 @@ Testing
   fixtures. (:issue:`1243`)
 
 Data Format Changes
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 - ``BcolzDailyBarReader`` and ``BcolzDailyBarWriter`` use trading calendar instance,
   instead of trading days serialized to ``JSON``. (:issue:`1330`)

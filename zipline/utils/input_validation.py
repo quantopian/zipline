@@ -91,8 +91,8 @@ def optionally(preprocessor):
     optional_preprocessor : callable[callable, str, any -> any]
         A preprocessor that delegates to `preprocessor` when `arg is not None`.
 
-    Usage
-    -----
+    Examples
+    --------
     >>> def preprocessor(func, argname, arg):
     ...     if not isinstance(arg, int):
     ...         raise TypeError('arg must be int')
@@ -136,8 +136,8 @@ def ensure_dtype(func, argname, arg):
     """
     Argument preprocessor that converts the input into a numpy dtype.
 
-    Usage
-    -----
+    Examples
+    --------
     >>> import numpy as np
     >>> from zipline.utils.preprocess import preprocess
     >>> @preprocess(dtype=ensure_dtype)
@@ -163,8 +163,8 @@ def ensure_dtype(func, argname, arg):
 def ensure_timezone(func, argname, arg):
     """Argument preprocessor that converts the input into a tzinfo object.
 
-    Usage
-    -----
+    Examples
+    --------
     >>> from zipline.utils.preprocess import preprocess
     >>> @preprocess(tz=ensure_timezone)
     ... def foo(tz):
@@ -191,8 +191,8 @@ def ensure_timestamp(func, argname, arg):
     """Argument preprocessor that converts the input into a pandas Timestamp
     object.
 
-    Usage
-    -----
+    Examples
+    --------
     >>> from zipline.utils.preprocess import preprocess
     >>> @preprocess(ts=ensure_timestamp)
     ... def foo(ts):
@@ -220,8 +220,8 @@ def expect_dtypes(__funcname=_qualified_name, **named):
     """
     Preprocessing decorator that verifies inputs have expected numpy dtypes.
 
-    Usage
-    -----
+    Examples
+    --------
     >>> from numpy import dtype, arange, int8, float64
     >>> @expect_dtypes(x=dtype(int8))
     ... def foo(x, y):
@@ -288,8 +288,8 @@ def expect_kinds(**named):
     """
     Preprocessing decorator that verifies inputs have expected dtype kinds.
 
-    Usage
-    -----
+    Examples
+    --------
     >>> from numpy import int64, int32, float32
     >>> @expect_kinds(x='i')
     ... def foo(x):
@@ -351,8 +351,8 @@ def expect_types(__funcname=_qualified_name, **named):
     """
     Preprocessing decorator that verifies inputs have expected types.
 
-    Usage
-    -----
+    Examples
+    --------
     >>> @expect_types(x=int, y=str)
     ... def foo(x, y):
     ...    return x, y
@@ -478,8 +478,8 @@ def expect_element(__funcname=_qualified_name, **named):
     Preprocessing decorator that verifies inputs are elements of some
     expected collection.
 
-    Usage
-    -----
+    Examples
+    --------
     >>> @expect_element(x=('a', 'b'))
     ... def foo(x):
     ...    return x.upper()
@@ -537,8 +537,8 @@ def expect_bounded(__funcname=_qualified_name, **named):
     ``None`` may be passed as ``min_value`` or ``max_value`` to signify that
     the input is only bounded above or below.
 
-    Usage
-    -----
+    Examples
+    --------
     >>> @expect_bounded(x=(1, 5))
     ... def foo(x):
     ...    return x + 1
@@ -616,8 +616,8 @@ def expect_strictly_bounded(__funcname=_qualified_name, **named):
     ``None`` may be passed as ``min_value`` or ``max_value`` to signify that
     the input is only bounded above or below.
 
-    Usage
-    -----
+    Examples
+    --------
     >>> @expect_strictly_bounded(x=(1, 5))
     ... def foo(x):
     ...    return x + 1
@@ -711,8 +711,8 @@ def expect_dimensions(__funcname=_qualified_name, **dimensions):
     Preprocessing decorator that verifies inputs are numpy arrays with a
     specific dimensionality.
 
-    Usage
-    -----
+    Examples
+    --------
     >>> from numpy import array
     >>> @expect_dimensions(x=1, y=2)
     ... def foo(x, y):
@@ -770,8 +770,8 @@ def coerce(from_, to, **to_kwargs):
     **to_kwargs
         Additional keywords to forward to every call to ``to``.
 
-    Usage
-    -----
+    Examples
+    --------
     >>> @preprocess(x=coerce(float, int), y=coerce(float, int))
     ... def floordiff(x, y):
     ...     return x - y
@@ -803,8 +803,8 @@ def coerce_types(**kwargs):
          Keyword arguments mapping function parameter names to pairs of
          (from_type, to_type).
 
-    Usage
-    -----
+    Examples
+    --------
     >>> @coerce_types(x=(float, int), y=(int, str))
     ... def func(x, y):
     ...     return (x, y)

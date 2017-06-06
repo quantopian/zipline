@@ -410,8 +410,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         groupby : zipline.pipeline.Classifier, optional
             A classifier defining partitions over which to compute means.
 
-        Example
-        -------
+        Examples
+        --------
         Let ``f`` be a Factor which would produce the following output::
 
                          AAPL   MSFT    MCD     BK
@@ -562,8 +562,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         ``zscore()`` is only supported on Factors of dtype float64.
 
-        Example
-        -------
+        Examples
+        --------
         See :meth:`~zipline.pipeline.factors.Factor.demean` for an in-depth
         example of the semantics for ``mask`` and ``groupby``.
 
@@ -674,8 +674,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             A new Factor that will compute correlations between `target` and
             the columns of `self`.
 
-        Example
-        -------
+        Examples
+        --------
         Suppose we want to create a factor that computes the correlation
         between AAPL's 10-day returns and the 10-day returns of all other
         assets, computing each correlation over 30 days. This can be achieved
@@ -739,8 +739,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             A new Factor that will compute correlations between `target` and
             the columns of `self`.
 
-        Example
-        -------
+        Examples
+        --------
         Suppose we want to create a factor that computes the correlation
         between AAPL's 10-day returns and the 10-day returns of all other
         assets, computing each correlation over 30 days. This can be achieved
@@ -803,8 +803,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             A new Factor that will compute linear regressions of `target`
             against the columns of `self`.
 
-        Example
-        -------
+        Examples
+        --------
         Suppose we want to create a factor that regresses AAPL's 10-day returns
         against the 10-day returns of all other assets, computing each
         regression over 30 days. This can be achieved by doing the following::
@@ -881,34 +881,37 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         winsorized : zipline.pipeline.Factor
             A Factor producing a winsorized version of self.
 
-        Example
-        -------
+        Examples
+        --------
+        .. code-block:: python
 
-        price = USEquityPricing.close.latest
-        columns={
-            'PRICE': price,
-            'WINSOR_1: price.winsorize(
-                min_percentile=0.25, max_percentile=0.75
-            ),
-            'WINSOR_2': price.winsorize(
-                min_percentile=0.50, max_percentile=1.0
-            ),
-            'WINSOR_3': price.winsorize(
-                min_percentile=0.0, max_percentile=0.5
-            ),
+            price = USEquityPricing.close.latest
+            columns={
+                'PRICE': price,
+                'WINSOR_1: price.winsorize(
+                    min_percentile=0.25, max_percentile=0.75
+                ),
+                'WINSOR_2': price.winsorize(
+                    min_percentile=0.50, max_percentile=1.0
+                ),
+                'WINSOR_3': price.winsorize(
+                    min_percentile=0.0, max_percentile=0.5
+                ),
 
-        }
+            }
 
         Given a pipeline with columns, defined above, the result for a
         given day could look like:
 
-                'PRICE' 'WINSOR_1' 'WINSOR_2' 'WINSOR_3'
-        Asset_1    1        2          4          3
-        Asset_2    2        2          4          3
-        Asset_3    3        3          4          3
-        Asset_4    4        4          4          4
-        Asset_5    5        5          5          4
-        Asset_6    6        5          5          4
+        ::
+
+                    'PRICE' 'WINSOR_1' 'WINSOR_2' 'WINSOR_3'
+            Asset_1    1        2          4          3
+            Asset_2    2        2          4          3
+            Asset_3    3        3          4          3
+            Asset_4    4        4          4          4
+            Asset_5    5        5          5          4
+            Asset_6    6        5          5          4
 
         See Also
         --------
