@@ -50,11 +50,14 @@ import zipline
 from zipline.assets import Equity, Future
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.pipeline import SimplePipelineEngine
+from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.protocol import BarData
 from zipline.utils.calendars import (
     get_calendar,
     register_calendar)
+from zipline.utils.paths import ensure_directory
 
 zipline_dir = os.path.dirname(zipline.__file__)
 
@@ -433,7 +436,10 @@ class WithTradingCalendars(object):
 
         cls.trading_calendars = {}
 
-        for cal_str in cls.TRADING_CALENDAR_STRS:
+        for cal_str in (
+            set(cls.TRADING_CALENDAR_STRS) |
+            {cls.TRADING_CALENDAR_PRIMARY_CAL}
+        ):
             # Set name to allow aliasing.
             calendar = get_calendar(cal_str)
             setattr(cls,
@@ -493,7 +499,7 @@ class WithTradingEnvironment(WithAssetFinder,
     @classmethod
     def make_load_function(cls):
         def load(*args, **kwargs):
-            symbol = '^GSPC'
+            symbol = 'SPY'
 
             filename = get_benchmark_filename(symbol)
             source_path = os.path.join(cls.MARKET_DATA_DIR, filename)
@@ -1129,6 +1135,7 @@ class WithBcolzFutureMinuteBarReader(WithFutureMinuteBarData, WithTmpDir):
     zipline.testing.create_minute_bar_data
     """
     BCOLZ_FUTURE_MINUTE_BAR_PATH = 'minute_future_pricing'
+    OHLC_RATIOS_PER_SID = None
 
     @classmethod
     def make_bcolz_future_minute_bar_rootdir_path(cls):
@@ -1148,6 +1155,7 @@ class WithBcolzFutureMinuteBarReader(WithFutureMinuteBarData, WithTmpDir):
             days[0],
             days[-1],
             FUTURES_MINUTES_PER_DAY,
+            ohlc_ratios_per_sid=cls.OHLC_RATIOS_PER_SID,
         )
         writer.write(cls.make_future_minute_bar_data())
 
@@ -1179,6 +1187,37 @@ class WithConstantEquityMinuteBarData(WithEquityMinuteBarData):
                 'low': cls.EQUITY_MINUTE_CONSTANT_LOW,
                 'close': cls.EQUITY_MINUTE_CONSTANT_CLOSE,
                 'volume': cls.EQUITY_MINUTE_CONSTANT_VOLUME,
+            },
+            index=minutes,
+        )
+
+        return ((sid, frame) for sid in sids)
+
+
+class WithConstantFutureMinuteBarData(WithFutureMinuteBarData):
+
+    FUTURE_MINUTE_CONSTANT_LOW = 3.0
+    FUTURE_MINUTE_CONSTANT_OPEN = 4.0
+    FUTURE_MINUTE_CONSTANT_CLOSE = 5.0
+    FUTURE_MINUTE_CONSTANT_HIGH = 6.0
+    FUTURE_MINUTE_CONSTANT_VOLUME = 100.0
+
+    @classmethod
+    def make_future_minute_bar_data(cls):
+        trading_calendar = cls.trading_calendars[Future]
+
+        sids = cls.asset_finder.futures_sids
+        minutes = trading_calendar.minutes_for_sessions_in_range(
+            cls.future_minute_bar_days[0],
+            cls.future_minute_bar_days[-1],
+        )
+        frame = pd.DataFrame(
+            {
+                'open': cls.FUTURE_MINUTE_CONSTANT_OPEN,
+                'high': cls.FUTURE_MINUTE_CONSTANT_HIGH,
+                'low': cls.FUTURE_MINUTE_CONSTANT_LOW,
+                'close': cls.FUTURE_MINUTE_CONSTANT_CLOSE,
+                'volume': cls.FUTURE_MINUTE_CONSTANT_VOLUME,
             },
             index=minutes,
         )
@@ -1271,6 +1310,50 @@ class WithAdjustmentReader(WithBcolzEquityDailyBarReader):
             stock_dividends=cls.make_stock_dividends_data(),
         )
         cls.adjustment_reader = SQLiteAdjustmentReader(conn)
+
+
+class WithEquityPricingPipelineEngine(WithAdjustmentReader,
+                                      WithTradingSessions):
+    """
+    Mixin providing the following as a class-level fixtures.
+        - cls.data_root_dir
+        - cls.findata_dir
+        - cls.pipeline_engine
+        - cls.adjustments_db_path
+
+    """
+    @classmethod
+    def init_class_fixtures(cls):
+        cls.data_root_dir = cls.enter_class_context(tmp_dir())
+        cls.findata_dir = cls.data_root_dir.makedir('findata')
+        super(WithEquityPricingPipelineEngine, cls).init_class_fixtures()
+
+        loader = USEquityPricingLoader(
+            cls.bcolz_equity_daily_bar_reader,
+            SQLiteAdjustmentReader(cls.adjustments_db_path),
+        )
+
+        def get_loader(column):
+            if column in USEquityPricing.columns:
+                return loader
+            else:
+                raise AssertionError("No loader registered for %s" % column)
+
+        cls.pipeline_engine = SimplePipelineEngine(
+            get_loader=get_loader,
+            calendar=cls.nyse_sessions,
+            asset_finder=cls.asset_finder,
+        )
+
+    @classmethod
+    def make_adjustment_db_conn_str(cls):
+        cls.adjustments_db_path = os.path.join(
+            cls.findata_dir,
+            'adjustments',
+            cls.END_DATE.strftime("%Y-%m-%d-adjustments.db")
+        )
+        ensure_directory(os.path.dirname(cls.adjustments_db_path))
+        return cls.adjustments_db_path
 
 
 class WithSeededRandomPipelineEngine(WithTradingSessions, WithAssetFinder):

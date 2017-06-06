@@ -1365,6 +1365,7 @@ class PricingDataAssociable(with_metaclass(ABCMeta)):
     """
     pass
 
+
 PricingDataAssociable.register(Asset)
 PricingDataAssociable.register(Future)
 PricingDataAssociable.register(ContinuousFuture)

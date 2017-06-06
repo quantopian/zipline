@@ -34,21 +34,18 @@ def attach_pipeline(pipeline, name, chunks=None):
     :func:`zipline.api.pipeline_output`
     """
 
-def batch_order_target_percent(weights):
-    """Place orders towards a given portfolio of weights.
+def batch_market_order(share_counts):
+    """Place a batch market order for multiple assets.
 
     Parameters
     ----------
-    weights : collections.Mapping[Asset -> float]
+    share_counts : pd.Series[Asset -> int]
+        Map from asset to number of shares to order for that asset.
 
     Returns
     -------
-    order_ids : pd.Series[Asset -> str]
-        The unique identifiers for the orders that were placed.
-
-    See Also
-    --------
-    :func:`zipline.api.order_target_percent`
+    order_ids : pd.Index[str]
+        Index of ids for newly-created orders.
     """
 
 def cancel_order(order_param):

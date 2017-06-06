@@ -29,7 +29,7 @@ six==1.10.0
 # For fetching remote data
 requests==2.9.1
 
-Cython==0.22.1
+Cython==0.25.2
 
 # faster OrderedDict
 cyordereddict==0.2.2

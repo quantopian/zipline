@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from sys import maxsize
+import re
 
 from nose_parameterized import parameterized
 from numpy import (
@@ -31,6 +32,7 @@ from pandas.util.testing import assert_index_equal
 
 from zipline.data.us_equity_pricing import (
     BcolzDailyBarReader,
+    BcolzDailyBarWriter,
     NoDataBeforeDate,
     NoDataAfterDate,
 )
@@ -44,7 +46,10 @@ from zipline.pipeline.loaders.synthetic import (
 )
 from zipline.testing import seconds_to_timestamp
 from zipline.testing.fixtures import (
+    WithAssetFinder,
     WithBcolzEquityDailyBarReader,
+    WithTmpDir,
+    WithTradingCalendars,
     ZiplineTestCase,
 )
 from zipline.utils.calendars import get_calendar
@@ -362,3 +367,45 @@ class BcolzDailyBarNeverReadAllTestCase(BcolzDailyBarTestCase):
     `load_raw_array`.
     """
     BCOLZ_DAILY_BAR_READ_ALL_THRESHOLD = maxsize
+
+
+class BcolzDailyBarWriterMissingDataTestCase(WithAssetFinder,
+                                             WithTmpDir,
+                                             WithTradingCalendars,
+                                             ZiplineTestCase):
+    # Sid 3 is active from 2015-06-02 to 2015-06-30.
+    MISSING_DATA_SID = 3
+    # Leave out data for a day in the middle of the query range.
+    MISSING_DATA_DAY = Timestamp('2015-06-15', tz='UTC')
+
+    @classmethod
+    def make_equity_info(cls):
+        return EQUITY_INFO.loc[EQUITY_INFO.index == cls.MISSING_DATA_SID]
+
+    def test_missing_values_assertion(self):
+        sessions = self.trading_calendar.sessions_in_range(
+            TEST_CALENDAR_START,
+            TEST_CALENDAR_STOP,
+        )
+
+        sessions_with_gap = sessions[sessions != self.MISSING_DATA_DAY]
+        bar_data = make_bar_data(self.make_equity_info(), sessions_with_gap)
+
+        writer = BcolzDailyBarWriter(
+            self.tmpdir.path,
+            self.trading_calendar,
+            sessions[0],
+            sessions[-1],
+        )
+
+        # There are 21 sessions between the start and end date for this
+        # asset, and we excluded one.
+        expected_msg = re.escape(
+            "Got 20 rows for daily bars table with first day=2015-06-02, last "
+            "day=2015-06-30, expected 21 rows.\n"
+            "Missing sessions: "
+            "[Timestamp('2015-06-15 00:00:00+0000', tz='UTC')]\n"
+            "Extra sessions: []"
+        )
+        with self.assertRaisesRegexp(AssertionError, expected_msg):
+            writer.write(bar_data)

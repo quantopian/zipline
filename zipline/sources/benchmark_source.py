@@ -23,19 +23,21 @@ from zipline.errors import (
 
 
 class BenchmarkSource(object):
-    def __init__(self, benchmark_sid, env, trading_calendar, sessions,
-                 data_portal, emission_rate="daily"):
-        self.benchmark_sid = benchmark_sid
-        self.env = env
+    def __init__(self,
+                 benchmark_asset,
+                 trading_calendar,
+                 sessions,
+                 data_portal,
+                 emission_rate="daily",
+                 benchmark_returns=None):
+        self.benchmark_asset = benchmark_asset
         self.sessions = sessions
         self.emission_rate = emission_rate
         self.data_portal = data_portal
 
         if len(sessions) == 0:
             self._precalculated_series = pd.Series()
-        elif self.benchmark_sid:
-            benchmark_asset = self.env.asset_finder.retrieve_asset(
-                self.benchmark_sid)
+        elif benchmark_asset is not None:
 
             self._validate_benchmark(benchmark_asset)
 
@@ -46,11 +48,8 @@ class BenchmarkSource(object):
                     self.sessions,
                     self.data_portal
                 )
-        else:
-            # get benchmark info from trading environment, which defaults to
-            # downloading data from Yahoo.
-            daily_series = \
-                env.benchmark_returns[sessions[0]:sessions[-1]]
+        elif benchmark_returns is not None:
+            daily_series = benchmark_returns[sessions[0]:sessions[-1]]
 
             if self.emission_rate == "minute":
                 # we need to take the env's benchmark returns, which are daily,
@@ -68,28 +67,34 @@ class BenchmarkSource(object):
                 self._precalculated_series = minute_series
             else:
                 self._precalculated_series = daily_series
+        else:
+            raise Exception("Must provide either benchmark_asset or "
+                            "benchmark_returns.")
 
     def get_value(self, dt):
         return self._precalculated_series.loc[dt]
+
+    def get_range(self, start_dt, end_dt):
+        return self._precalculated_series.loc[start_dt:end_dt]
 
     def _validate_benchmark(self, benchmark_asset):
         # check if this security has a stock dividend.  if so, raise an
         # error suggesting that the user pick a different asset to use
         # as benchmark.
         stock_dividends = \
-            self.data_portal.get_stock_dividends(self.benchmark_sid,
+            self.data_portal.get_stock_dividends(self.benchmark_asset,
                                                  self.sessions)
 
         if len(stock_dividends) > 0:
             raise InvalidBenchmarkAsset(
-                sid=str(self.benchmark_sid),
+                sid=str(self.benchmark_asset),
                 dt=stock_dividends[0]["ex_date"]
             )
 
         if benchmark_asset.start_date > self.sessions[0]:
             # the asset started trading after the first simulation day
             raise BenchmarkAssetNotAvailableTooEarly(
-                sid=str(self.benchmark_sid),
+                sid=str(self.benchmark_asset),
                 dt=self.sessions[0],
                 start_dt=benchmark_asset.start_date
             )
@@ -97,7 +102,7 @@ class BenchmarkSource(object):
         if benchmark_asset.end_date < self.sessions[-1]:
             # the asset stopped trading before the last simulation day
             raise BenchmarkAssetNotAvailableTooLate(
-                sid=str(self.benchmark_sid),
+                sid=str(self.benchmark_asset),
                 dt=self.sessions[-1],
                 end_dt=benchmark_asset.end_date
             )
@@ -146,6 +151,7 @@ class BenchmarkSource(object):
                 bar_count=len(minutes) + 1,
                 frequency="1m",
                 field="price",
+                data_frequency=self.emission_rate,
                 ffill=True
             )[asset]
 
@@ -153,7 +159,7 @@ class BenchmarkSource(object):
         else:
             start_date = asset.start_date
             if start_date < trading_days[0]:
-                # get the window of close prices for benchmark_sid from the
+                # get the window of close prices for benchmark_asset from the
                 # last trading day of the simulation, going up to one day
                 # before the simulation start day (so that we can get the %
                 # change on day 1)
@@ -163,6 +169,7 @@ class BenchmarkSource(object):
                     bar_count=len(trading_days) + 1,
                     frequency="1d",
                     field="price",
+                    data_frequency=self.emission_rate,
                     ffill=True
                 )[asset]
                 return benchmark_series.pct_change()[1:]
@@ -175,6 +182,7 @@ class BenchmarkSource(object):
                     bar_count=len(trading_days),
                     frequency="1d",
                     field="price",
+                    data_frequency=self.emission_rate,
                     ffill=True
                 )[asset]
 

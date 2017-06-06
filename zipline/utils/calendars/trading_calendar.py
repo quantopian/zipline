@@ -889,11 +889,7 @@ def days_at_time(days, t, tz, day_offset=0):
 
 def holidays_at_time(calendar, start, end, time, tz):
     return days_at_time(
-        calendar.holidays(
-            # Workaround for https://github.com/pydata/pandas/issues/9825.
-            start.tz_localize(None),
-            end.tz_localize(None),
-        ),
+        calendar.holidays(start, end),
         time,
         tz=tz,
     )

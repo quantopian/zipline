@@ -436,11 +436,6 @@ class TestTargetPercentAlgorithm(TradingAlgorithm):
         return self.order_target_percent(asset, target)
 
 
-class TestBatchTargetPercentAlgorithm(TestTargetPercentAlgorithm):
-    def _order(self, asset, target):
-        return self.batch_order_target_percent({asset: target})
-
-
 class TestTargetValueAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.set_slippage(FixedSlippage())
@@ -793,6 +788,7 @@ def handle_data_api(context, data):
     order(sid(0), 1)
 
     record(incr=context.incr)
+
 
 ###########################
 # AlgoScripts as strings

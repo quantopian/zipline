@@ -139,7 +139,6 @@ class PerformancePeriod(object):
     def __init__(
             self,
             starting_cash,
-            asset_finder,
             data_frequency,
             period_open=None,
             period_close=None,
@@ -148,7 +147,6 @@ class PerformancePeriod(object):
             serialize_positions=True,
             name=None):
 
-        self.asset_finder = asset_finder
         self.data_frequency = data_frequency
 
         # Start and end of the entire period
@@ -184,10 +182,6 @@ class PerformancePeriod(object):
         self._portfolio_store = zp.Portfolio()
         self._account_store = zp.Account()
         self.serialize_positions = serialize_positions
-
-        # This dict contains the known cash flow multipliers for sids and is
-        # keyed on sid
-        self._execution_cash_flow_multipliers = {}
 
     _position_tracker = None
 
@@ -362,7 +356,7 @@ class PerformancePeriod(object):
     def handle_execution(self, txn):
         self.cash_flow += self._calculate_execution_cash_flow(txn)
 
-        asset = self.asset_finder.retrieve_asset(txn.sid)
+        asset = txn.asset
         if isinstance(asset, Future):
             try:
                 old_price = self._payout_last_sale_prices[asset]
@@ -385,25 +379,15 @@ class PerformancePeriod(object):
             except KeyError:
                 self.processed_transactions[txn.dt] = [txn]
 
-    def _calculate_execution_cash_flow(self, txn):
+    @staticmethod
+    def _calculate_execution_cash_flow(txn):
         """
         Calculates the cash flow from executing the given transaction
         """
-        # Check if the multiplier is cached. If it is not, look up the asset
-        # and cache the multiplier.
-        try:
-            multiplier = self._execution_cash_flow_multipliers[txn.sid]
-        except KeyError:
-            asset = self.asset_finder.retrieve_asset(txn.sid)
-            # Futures experience no cash flow on transactions
-            if isinstance(asset, Future):
-                multiplier = 0
-            else:
-                multiplier = 1
-            self._execution_cash_flow_multipliers[txn.sid] = multiplier
+        if isinstance(txn.asset, Future):
+            return 0.0
 
-        # Calculate and return the cash flow given the multiplier
-        return -1 * txn.price * txn.amount * multiplier
+        return -1 * txn.price * txn.amount
 
     # backwards compat. TODO: remove?
     @property

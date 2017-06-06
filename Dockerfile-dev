@@ -3,6 +3,10 @@
 #
 #    docker build -t quantopian/ziplinedev -f Dockerfile-dev .
 #
+# Note: the dev build requires a quantopian/zipline image, which you can build as follows:
+#
+#    docker build -t quantopian/zipline -f Dockerfile
+#
 # To run the container:
 #
 #    docker run -v /path/to/your/notebooks:/projects -v ~/.zipline:/root/.zipline -p 8888:8888/tcp --name ziplinedev -it quantopian/ziplinedev

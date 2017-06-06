@@ -35,10 +35,10 @@ from zipline.errors import (
 )
 
 from zipline.testing.predicates import assert_equal
-from zipline.utils.calendars import(
-    register_calendar,
+from zipline.utils.calendars import (
     deregister_calendar,
     get_calendar,
+    register_calendar,
 )
 from zipline.utils.calendars.calendar_utils import (
     _default_calendar_aliases,

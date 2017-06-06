@@ -76,7 +76,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
     def eq(self, other):
         """
         Construct a Filter returning True for asset/date pairs where the output
-        of ``self`` matches ``other.
+        of ``self`` matches ``other``.
         """
         # We treat this as an error because missing_values have NaN semantics,
         # which means this would return an array of all False, which is almost
