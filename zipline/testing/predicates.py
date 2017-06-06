@@ -358,7 +358,7 @@ def assert_dict_equal(result, expected, path=(), msg='', **kwargs):
             assert_equal(
                 resultv,
                 expectedv,
-                path=path + ('[%r]' % k,),
+                path=path + ('[%r]' % (k,),),
                 msg=msg,
                 **kwargs
             )
