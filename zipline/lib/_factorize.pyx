@@ -15,7 +15,7 @@ cdef inline double log2(double d):
 
 
 cpdef inline smallest_uint_that_can_hold(Py_ssize_t maxval):
-    """Choose the smallest numpy unsigned int dtype that can hold ``size``.
+    """Choose the smallest numpy unsigned int dtype that can hold ``maxval``.
     """
     if maxval < 1:
         # lim x -> 0 log2(x) == -infinity so we floor at uint8
