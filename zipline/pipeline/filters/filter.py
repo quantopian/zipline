@@ -432,6 +432,7 @@ class ArrayPredicate(SingleInputMixin, Filter):
     opargs : tuple[hashable]
         Additional argument to apply to ``op``.
     """
+    params = ('op', 'opargs')
     window_length = 0
 
     @expect_types(term=Term, opargs=tuple)
@@ -445,22 +446,10 @@ class ArrayPredicate(SingleInputMixin, Filter):
             mask=term.mask,
         )
 
-    def _init(self, op, opargs, *args, **kwargs):
-        self._op = op
-        self._opargs = opargs
-        return super(ArrayPredicate, self)._init(*args, **kwargs)
-
-    @classmethod
-    def _static_identity(cls, op, opargs, *args, **kwargs):
-        return (
-            super(ArrayPredicate, cls)._static_identity(*args, **kwargs),
-            op,
-            opargs,
-        )
-
     def _compute(self, arrays, dates, assets, mask):
+        params = self.params
         data = arrays[0]
-        return self._op(data, *self._opargs) & mask
+        return params['op'](data, *params['opargs']) & mask
 
 
 class Latest(LatestMixin, CustomFilter):
