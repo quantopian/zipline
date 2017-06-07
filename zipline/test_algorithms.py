@@ -88,7 +88,7 @@ from zipline.api import (
 )
 from zipline.errors import UnsupportedOrderParameters
 from zipline.assets import Future, Equity
-from zipline.finance.commission import PerShare
+from zipline.finance.commission import PerShare, PerTrade
 from zipline.finance.execution import (
     LimitOrder,
     MarketOrder,
@@ -698,6 +698,10 @@ class TestPositionWeightsAlgorithm(TradingAlgorithm):
     def initialize(self, sids_and_amounts, *args, **kwargs):
         self.ordered = False
         self.sids_and_amounts = sids_and_amounts
+        self.set_commission(us_equities=PerTrade(0), us_futures=PerTrade(0))
+        self.set_slippage(
+            us_equities=FixedSlippage(0), us_futures=FixedSlippage(0),
+        )
 
     def handle_data(self, data):
         if not self.ordered:

@@ -1095,6 +1095,7 @@ class TestPositions(WithLogger,
                     ZiplineTestCase):
     START_DATE = pd.Timestamp('2006-01-03', tz='utc')
     END_DATE = pd.Timestamp('2006-01-06', tz='utc')
+    SIM_PARAMS_CAPITAL_BASE = 1000
 
     ASSET_FINDER_EQUITY_SIDS = (1, 133)
 
@@ -1183,7 +1184,7 @@ class TestPositions(WithLogger,
             self.asset_finder.retrieve_all(sids)
 
         algo = TestPositionWeightsAlgorithm(
-            sids_and_amounts=zip(sids, [1, -1, 1]),
+            sids_and_amounts=zip(sids, [2, -1, 1]),
             sim_params=self.sim_params,
             env=self.env,
         )
@@ -1192,25 +1193,29 @@ class TestPositions(WithLogger,
         expected_position_weights = [
             # No positions held on the first day.
             pd.Series({}),
-            # Each equity's weight is its price times the number of shares
-            # held. For example, we hold a long position in equity_1 so its
-            # weight is (+95.0 * 1) = 95. For a futures contract, its weight is
-            # the unit price times number of shares held times the multiplier.
-            # For future_1000, this is (2.0 * 1 * 100) = 200.
+            # Each equity's position value is its price times the number of
+            # shares held. In this example, we hold a long position in 2 shares
+            # of equity_1 so its weight is (95.0 * 2) = 190.0 divided by the
+            # total portfolio value. The total portfolio value is the sum of
+            # cash ($905.00) plus the value of all equity positions.
+            #
+            # For a futures contract, its weight is the unit price times number
+            # of shares held times the multiplier. For future_1000, this is
+            # (2.0 * 1 * 100) = 200.0 divided by total portfolio value.
             pd.Series({
-                equity_1: 95.0 / (95 + 95 + 200),
-                equity_133: -95.0 / (95 + 95 + 200),
-                future_1000: 200.0 / (95 + 95 + 200),
+                equity_1: 190.0 / (190.0 - 95.0 + 905.0),
+                equity_133: -95.0 / (190.0 - 95.0 + 905.0),
+                future_1000: 200.0 / (190.0 - 95.0 + 905.0),
             }),
             pd.Series({
-                equity_1: 100.0 / (100 + 100 + 200),
-                equity_133: -100.0 / (100 + 100 + 200),
-                future_1000: 200.0 / (100 + 100 + 200),
+                equity_1: 200.0 / (200.0 - 100.0 + 905.0),
+                equity_133: -100.0 / (200.0 - 100.0 + 905.0),
+                future_1000: 200.0 / (200.0 - 100.0 + 905.0),
             }),
             pd.Series({
-                equity_1: 105.0 / (105 + 105 + 200),
-                equity_133: -105.0 / (105 + 105 + 200),
-                future_1000: 200.0 / (105 + 105 + 200),
+                equity_1: 210.0 / (210.0 - 105.0 + 905.0),
+                equity_133: -105.0 / (210.0 - 105.0 + 905.0),
+                future_1000: 200.0 / (210.0 - 105.0 + 905.0),
             }),
         ]
 

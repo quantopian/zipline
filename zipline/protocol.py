@@ -191,7 +191,7 @@ class Portfolio(object):
             )
             for asset, position in self.positions.items()
         })
-        return position_values / position_values.abs().sum()
+        return position_values / self.portfolio_value
 
 
 class Account(object):
