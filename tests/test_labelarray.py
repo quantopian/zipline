@@ -163,7 +163,12 @@ class LabelArrayTestCase(ZiplineTestCase):
 
         # Should work.
         la = LabelArray(self.strs, missing_value=None)
-        la.map(lambda x: None)
+        result = la.map(lambda x: None)
+
+        check_arrays(
+            result,
+            LabelArray(np.full_like(self.strs, None), missing_value=None),
+        )
 
         la = LabelArray(self.strs, missing_value="__MISSING__")
         with self.assertRaises(TypeError):
