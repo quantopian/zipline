@@ -123,6 +123,7 @@ from zipline.test_algorithms import (
     TestOrderPercentAlgorithm,
     TestOrderStyleForwardingAlgorithm,
     TestOrderValueAlgorithm,
+    TestPositionWeightsAlgorithm,
     TestRegisterTransformAlgorithm,
     TestTargetAlgorithm,
     TestTargetPercentAlgorithm,
@@ -1094,11 +1095,64 @@ class TestPositions(WithLogger,
                     ZiplineTestCase):
     START_DATE = pd.Timestamp('2006-01-03', tz='utc')
     END_DATE = pd.Timestamp('2006-01-06', tz='utc')
+    SIM_PARAMS_CAPITAL_BASE = 1000
 
-    sids = ASSET_FINDER_EQUITY_SIDS = [1, 133]
+    ASSET_FINDER_EQUITY_SIDS = (1, 133)
+
+    @classmethod
+    def make_equity_daily_bar_data(cls):
+        frame = pd.DataFrame(
+            {
+                'open': [90, 95, 100, 105],
+                'high': [90, 95, 100, 105],
+                'low': [90, 95, 100, 105],
+                'close': [90, 95, 100, 105],
+                'volume': 100,
+            },
+            index=cls.equity_daily_bar_days,
+        )
+        return ((sid, frame) for sid in cls.asset_finder.equities_sids)
+
+    @classmethod
+    def make_futures_info(cls):
+        return pd.DataFrame.from_dict(
+            {
+                1000: {
+                    'symbol': 'CLF06',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': cls.END_DATE,
+                    'auto_close_date': cls.END_DATE + cls.trading_calendar.day,
+                    'exchange': 'CME',
+                    'multiplier': 100,
+                },
+            },
+            orient='index',
+        )
+
+    @classmethod
+    def make_future_minute_bar_data(cls):
+        trading_calendar = cls.trading_calendars[Future]
+
+        sids = cls.asset_finder.futures_sids
+        minutes = trading_calendar.minutes_for_sessions_in_range(
+            cls.future_minute_bar_days[0],
+            cls.future_minute_bar_days[-1],
+        )
+        frame = pd.DataFrame(
+            {
+                'open': 2.0,
+                'high': 2.0,
+                'low': 2.0,
+                'close': 2.0,
+                'volume': 100,
+            },
+            index=minutes,
+        )
+        return ((sid, frame) for sid in sids)
 
     def test_empty_portfolio(self):
-        algo = EmptyPositionsAlgorithm(self.sids,
+        algo = EmptyPositionsAlgorithm(self.asset_finder.equities_sids,
                                        sim_params=self.sim_params,
                                        env=self.env)
         daily_stats = algo.run(self.data_portal)
@@ -1123,6 +1177,50 @@ class TestPositions(WithLogger,
         # Verify that positions are empty for all dates.
         empty_positions = daily_stats.positions.map(lambda x: len(x) == 0)
         self.assertTrue(empty_positions.all())
+
+    def test_position_weights(self):
+        sids = (1, 133, 1000)
+        equity_1, equity_133, future_1000 = \
+            self.asset_finder.retrieve_all(sids)
+
+        algo = TestPositionWeightsAlgorithm(
+            sids_and_amounts=zip(sids, [2, -1, 1]),
+            sim_params=self.sim_params,
+            env=self.env,
+        )
+        daily_stats = algo.run(self.data_portal)
+
+        expected_position_weights = [
+            # No positions held on the first day.
+            pd.Series({}),
+            # Each equity's position value is its price times the number of
+            # shares held. In this example, we hold a long position in 2 shares
+            # of equity_1 so its weight is (95.0 * 2) = 190.0 divided by the
+            # total portfolio value. The total portfolio value is the sum of
+            # cash ($905.00) plus the value of all equity positions.
+            #
+            # For a futures contract, its weight is the unit price times number
+            # of shares held times the multiplier. For future_1000, this is
+            # (2.0 * 1 * 100) = 200.0 divided by total portfolio value.
+            pd.Series({
+                equity_1: 190.0 / (190.0 - 95.0 + 905.0),
+                equity_133: -95.0 / (190.0 - 95.0 + 905.0),
+                future_1000: 200.0 / (190.0 - 95.0 + 905.0),
+            }),
+            pd.Series({
+                equity_1: 200.0 / (200.0 - 100.0 + 905.0),
+                equity_133: -100.0 / (200.0 - 100.0 + 905.0),
+                future_1000: 200.0 / (200.0 - 100.0 + 905.0),
+            }),
+            pd.Series({
+                equity_1: 210.0 / (210.0 - 105.0 + 905.0),
+                equity_133: -105.0 / (210.0 - 105.0 + 905.0),
+                future_1000: 200.0 / (210.0 - 105.0 + 905.0),
+            }),
+        ]
+
+        for i, expected in enumerate(expected_position_weights):
+            assert_equal(daily_stats.iloc[i]['position_weights'], expected)
 
 
 class TestBeforeTradingStart(WithDataPortal,
