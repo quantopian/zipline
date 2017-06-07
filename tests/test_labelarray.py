@@ -133,15 +133,16 @@ class LabelArrayTestCase(ZiplineTestCase):
 
         assert_equal(numpy_transformed, la_transformed)
 
-    def test_map_ignores_missing_value(self):
-        data = np.array(['A', 'B', 'C'], dtype=object)
-        la = LabelArray(data, missing_value='A')
+    @parameter_space(missing=['A', None])
+    def test_map_ignores_missing_value(self, missing):
+        data = np.array([missing, 'B', 'C'], dtype=object)
+        la = LabelArray(data, missing_value=missing)
 
         def increment_char(c):
             return chr(ord(c) + 1)
 
         result = la.map(increment_char)
-        expected = LabelArray(['A', 'C', 'D'], missing_value='A')
+        expected = LabelArray([missing, 'C', 'D'], missing_value=missing)
         assert_equal(result.as_string_array(), expected.as_string_array())
 
     @parameter_space(
