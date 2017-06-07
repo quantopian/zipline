@@ -472,7 +472,7 @@ class ClassifierTestCase(BasePipelineTestCase):
         __fail_fast=True,
         labelarray_dtype=(categorical_dtype, bytes_dtype, unicode_dtype),
         relabel_func=[
-            lambda s: s[0],
+            lambda s: str(s[0]),
             lambda s: str(len(s)),
             lambda s: str(len([c for c in s if c == 'a'])),
             lambda s: None,
