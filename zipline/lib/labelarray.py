@@ -29,6 +29,7 @@ from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning
 from ._factorize import (
     factorize_strings,
     factorize_strings_known_categories,
+    smallest_uint_that_can_hold,
 )
 
 
@@ -136,6 +137,7 @@ class LabelArray(ndarray):
     http://docs.scipy.org/doc/numpy-1.10.0/user/basics.subclassing.html
     """
     SUPPORTED_SCALAR_TYPES = (bytes, unicode, type(None))
+    SUPPORTED_NON_NONE_SCALAR_TYPES = (bytes, unicode)
 
     @preprocess(
         values=coerce(list, partial(np.asarray, dtype=object)),
@@ -564,6 +566,64 @@ class LabelArray(ndarray):
         # unpack the results form each unique value into their corresponding
         # locations in our indices.
         return results[self.as_int_array()]
+
+    def map(self, f):
+        """
+        Map a function from str -> str element-wise over ``self``.
+
+        ``f`` will be applied exactly once to each non-missing unique value in
+        ``self``. Missing values will always map to ``self.missing_value``.
+        """
+        # f() should only return None if None is our missing value.
+        if self.missing_value is None:
+            allowed_outtypes = self.SUPPORTED_SCALAR_TYPES
+        else:
+            allowed_outtypes = self.SUPPORTED_NON_NONE_SCALAR_TYPES
+
+        def f_to_use(x,
+                     missing_value=self.missing_value,
+                     otypes=allowed_outtypes):
+
+            if x == missing_value:
+                return x
+
+            ret = f(x)
+
+            if not isinstance(ret, otypes):
+                raise TypeError(
+                    "Expected f() to return a string. Got %s." % (
+                        type(ret).__name__
+                    )
+                )
+
+            return ret
+
+        new_categories_with_duplicates = (
+            np.vectorize(f_to_use, otypes=[object])(self.categories)
+        )
+
+        # If f() maps multiple inputs to the same output, then we can end up
+        # with the same code duplicated multiple times. Compress the categories
+        # by running them through np.unique, and then use the reverse lookup
+        # table to compress codes as well.
+        new_categories, bloated_reverse_index = np.unique(
+            new_categories_with_duplicates,
+            return_inverse=True
+        )
+
+        # `reverse_index` will always be a 64 bit integer even if we can hold a
+        # smaller array.
+        reverse_index = bloated_reverse_index.astype(
+            smallest_uint_that_can_hold(len(new_categories))
+        )
+        new_codes = np.take(reverse_index, self.as_int_array())
+
+        return self.from_codes_and_metadata(
+            new_codes,
+            new_categories,
+            dict(zip(new_categories, range(len(new_categories)))),
+            missing_value=self.missing_value,
+        )
 
     def startswith(self, prefix):
         """

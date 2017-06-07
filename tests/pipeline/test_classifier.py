@@ -468,6 +468,70 @@ class ClassifierTestCase(BasePipelineTestCase):
         )
         self.assertEqual(errmsg, expected)
 
+    @parameter_space(
+        __fail_fast=True,
+        labelarray_dtype=(categorical_dtype, bytes_dtype, unicode_dtype),
+        relabel_func=[
+            lambda s: s[0],
+            lambda s: str(len(s)),
+            lambda s: str(len([c for c in s if c == 'a'])),
+            lambda s: None,
+        ]
+    )
+    def test_relabel_strings(self, relabel_func, labelarray_dtype):
+
+        class C(Classifier):
+            inputs = ()
+            dtype = categorical_dtype
+            missing_value = None
+            window_length = 0
+
+        c = C()
+
+        raw = np.asarray(
+            [['a', 'aa', 'aaa', 'abab'],
+             ['bab', 'aba', 'aa', 'bb'],
+             ['a', 'aba', 'abaa', 'abaab'],
+             ['a', 'aa', 'aaa', 'aaaa']],
+            dtype=labelarray_dtype,
+        )
+        raw_relabeled = np.vectorize(relabel_func, otypes=[object])(raw)
+
+        data = LabelArray(raw, missing_value=None)
+
+        terms = {
+            'relabeled': c.relabel(relabel_func),
+        }
+        expected_results = {
+            'relabeled': LabelArray(raw_relabeled, missing_value=None),
+        }
+
+        self.check_terms(
+            terms,
+            expected_results,
+            initial_workspace={c: data},
+            mask=self.build_mask(self.ones_mask(shape=data.shape)),
+        )
+
+    def test_relabel_int_classifier_not_yet_supported(self):
+        class C(Classifier):
+            inputs = ()
+            dtype = int64_dtype
+            missing_value = -1
+            window_length = 0
+
+        c = C()
+
+        with self.assertRaises(TypeError) as e:
+            c.relabel(lambda x: 0 / 0)  # Function should never be called.
+
+        result = str(e.exception)
+        expected = (
+            "relabel() is only defined on Classifiers producing strings "
+            "but it was called on a Classifier of dtype int64."
+        )
+        self.assertEqual(result, expected)
+
 
 class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
     def test_reversability_categorical(self):
