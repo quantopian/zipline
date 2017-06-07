@@ -153,7 +153,7 @@ class LabelArrayTestCase(ZiplineTestCase):
             lambda s: object(),
         ]
     )
-    def test_map_requires_f_to_return_a_string(self, f):
+    def test_map_requires_f_to_return_a_string_or_none(self, f):
         la = LabelArray(self.strs, missing_value=None)
 
         with self.assertRaises(TypeError):

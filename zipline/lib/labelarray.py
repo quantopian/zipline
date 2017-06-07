@@ -591,8 +591,12 @@ class LabelArray(ndarray):
 
             if not isinstance(ret, otypes):
                 raise TypeError(
-                    "Expected f() to return a string. Got %s." % (
-                        type(ret).__name__
+                    "LabelArray.map expected function {f} to return a string"
+                    " or None, but got {type} instead.\n"
+                    "Value was {value}.".format(
+                        f=f.__name__,
+                        type=type(ret).__name__,
+                        value=ret,
                     )
                 )
 
