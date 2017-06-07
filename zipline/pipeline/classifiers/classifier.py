@@ -437,7 +437,7 @@ class Relabel(SingleInputMixin, Classifier):
             result = data.map(relabeler)
             result[~mask] = data.missing_value
         else:
-            raise TypeError(
+            raise NotImplementedError(
                 "Relabeling is not currently supported for "
                 "int-dtype classifiers."
             )
