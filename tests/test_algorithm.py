@@ -1234,19 +1234,20 @@ class TestPositions(WithLogger,
 class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
     START_DATE = pd.Timestamp('2015-01-05', tz='UTC')
     END_DATE = pd.Timestamp('2017-02-01', tz='UTC')
-    # SIM_PARAMS_END = pd.Timestamp('2016-04-01', tz='UTC')
+
     SIM_PARAMS_CAPITAL_BASE = 2000
     DATA_PORTAL_DAILY_HISTORY_PREFETCH = 0
-    # TRADING_CALENDAR_STRS = ('us_futures',)
-    # TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
-    # FUTURE_MINUTE_BAR_START_DATE = pd.Timestamp('2015-01-05', tz='UTC')
-    # SIM_PARAMS_DATA_FREQUENCY = 'minute'
 
     ASSET_FINDER_EQUITY_SIDS = (1,)
 
     @classmethod
     def make_equity_daily_bar_data(cls):
         sessions = cls.equity_daily_bar_days
+
+        # Set our equity to have alternating price values, meaning returns will
+        # alternate consistently from the same positive number to the same
+        # negative number. This makes it easier to manually calculate expected
+        # shortfall.
         prices = np.empty(len(sessions))
         prices[::2] = 900
         prices[1::2] = 1000
@@ -1344,9 +1345,10 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
             index=minutes,
         )
 
-        # Set all futures contracts to have the same OHLCV values, where their
-        # prices are constant throughout each day, and increase by 1 from day
-        # to day.
+        # Set all futures contracts to have alternating price values, meaning
+        # returns will alternate consistently from the same positive number to
+        # the same negative number. This makes it easier to manually calculate
+        # expected shortfall.
         start_indexes = frame.index.get_indexer(session_starts)
         prices = np.empty(len(session_starts))
         prices[::2] = 87
