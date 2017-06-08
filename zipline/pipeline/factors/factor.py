@@ -1594,6 +1594,7 @@ class RecarrayField(SingleInputMixin, Factor):
             mask=factor.mask,
             dtype=factor.dtype,
             missing_value=factor.missing_value,
+            window_safe=factor.window_safe
         )
 
     def _init(self, attribute, *args, **kwargs):
