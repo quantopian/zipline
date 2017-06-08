@@ -86,6 +86,14 @@ class AlgorithmSimulator(object):
 
         def calculate_expected_shortfall(portfolio):
             """
+            Function for computing expected shortfall (also known as CVaR, or
+            Conditional Value at Risk) for a given portfolio according to the
+            assets currently held and their respective weight in the portfolio.
+
+            This function is created here because we want it available as a
+            method on 'context.portfolio' in algorithms, but it requires the
+            'context.data' object in order to retrieve price histories of the
+            assets in the portfolio.
             """
             algo = self.algo
             data_portal = self.data_portal
@@ -134,7 +142,6 @@ class AlgorithmSimulator(object):
             # Series mapping each asset to its portfolio weight.
             weights = portfolio.current_portfolio_weights
 
-            # from nose.tools import set_trace; set_trace()
             assets = map(asset_for_history_call, weights.index)
             prices = self.current_data.history(
                 assets=assets,
@@ -144,7 +151,6 @@ class AlgorithmSimulator(object):
             )
             asset_returns = prices.pct_change()
 
-            # from nose.tools import set_trace; set_trace()
             return conditional_value_at_risk(
                 returns=asset_returns.fillna(0).dot(weights.values),
                 cutoff=CVAR_CUTOFF,
@@ -301,7 +307,6 @@ class AlgorithmSimulator(object):
                 def calculate_minute_capital_changes(dt):
                     return []
 
-            # from nose.tools import set_trace; set_trace()
             for dt, action in self.clock:
                 if action == BAR:
                     for capital_change_packet in every_bar(dt):
