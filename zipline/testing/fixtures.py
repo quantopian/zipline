@@ -1469,7 +1469,7 @@ class WithDataPortal(WithAdjustmentReader,
     DATA_PORTAL_MINUTE_HISTORY_PREFETCH = DEFAULT_MINUTE_HISTORY_PREFETCH
     DATA_PORTAL_DAILY_HISTORY_PREFETCH = DEFAULT_DAILY_HISTORY_PREFETCH
 
-    def make_data_portal(self):
+    def make_data_portal(self, trading_calendar=None):
         if self.DATA_PORTAL_FIRST_TRADING_DAY is None:
             if self.DATA_PORTAL_USE_MINUTE_DATA:
                 self.DATA_PORTAL_FIRST_TRADING_DAY = (
@@ -1482,7 +1482,7 @@ class WithDataPortal(WithAdjustmentReader,
 
         return DataPortal(
             self.env.asset_finder,
-            self.trading_calendar,
+            trading_calendar or self.trading_calendar,
             first_trading_day=self.DATA_PORTAL_FIRST_TRADING_DAY,
             equity_daily_reader=(
                 self.bcolz_equity_daily_bar_reader
