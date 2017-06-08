@@ -1248,6 +1248,9 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         # alternate consistently from the same positive number to the same
         # negative number. This makes it easier to manually calculate expected
         # shortfall.
+        #
+        # The code for creating an alternating array was found here:
+        # https://stackoverflow.com/a/7154925
         prices = np.empty(len(sessions))
         prices[::2] = 900
         prices[1::2] = 1000
@@ -1349,6 +1352,9 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         # returns will alternate consistently from the same positive number to
         # the same negative number. This makes it easier to manually calculate
         # expected shortfall.
+        #
+        # The code for creating an alternating array was found here:
+        # https://stackoverflow.com/a/7154925
         start_indexes = frame.index.get_indexer(session_starts)
         prices = np.empty(len(session_starts))
         prices[::2] = 87
@@ -1434,7 +1440,7 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         # to look back on. After 252 days, we expect the values to alternate
         # according to our alternating portfolio weights.
         session_ends = self.trading_calendar.session_closes_in_range(
-            self.START_DATE, self.END_DATE,
+            self.SIM_PARAMS_START, self.SIM_PARAMS_END,
         )
         session_ends.name = None
         expected = pd.Series(index=session_ends, name='expected_shortfall')
