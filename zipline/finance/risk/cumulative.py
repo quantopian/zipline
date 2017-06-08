@@ -38,6 +38,10 @@ from empyrical import (
     sortino_ratio,
 )
 
+TRADING_DAYS_PER_YEAR = 252
+CVAR_LOOKBACK_DAYS = TRADING_DAYS_PER_YEAR * 2
+CVAR_CUTOFF = 0.05
+
 log = logbook.Logger('Risk Cumulative')
 
 
@@ -136,13 +140,19 @@ class RiskMetricsCumulative(object):
         self.max_drawdown = 0
         self.max_leverages = empty_cont.copy()
         self.max_leverage = 0
+        self.expected_shortfall = empty_cont.copy()
         self.current_max = -np.inf
         self.daily_treasury = pd.Series(index=self.sessions)
         self.treasury_period_return = np.nan
 
         self.num_trading_days = 0
 
-    def update(self, dt, algorithm_returns, benchmark_returns, leverage):
+    def update(self,
+               dt,
+               algorithm_returns,
+               benchmark_returns,
+               leverage,
+               expected_shortfall):
         # Keep track of latest dt for use in to_dict and other methods
         # that report current state.
         self.latest_dt = dt
@@ -281,6 +291,9 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         self.max_leverage = self.calculate_max_leverage()
         self.max_leverages[dt_loc] = self.max_leverage
 
+        if expected_shortfall is not None:
+            self.expected_shortfall[dt_loc] = expected_shortfall
+
     def to_dict(self):
         """
         Creates a dictionary representing the state of the risk report.
@@ -312,6 +325,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             'excess_return': self.excess_returns[dt_loc],
             'max_drawdown': self.max_drawdown,
             'max_leverage': self.max_leverage,
+            'expected_shortfall': self.expected_shortfall[dt_loc],
             'period_label': period_label
         }
 

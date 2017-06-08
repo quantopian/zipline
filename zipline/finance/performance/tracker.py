@@ -350,10 +350,13 @@ class PerformanceTracker(object):
         # cumulative returns
         bench_since_open = (1. + bench_returns).prod() - 1
 
+        # Do not calculate expected shortfall every minute as it requires a
+        # long history call.
         self.cumulative_risk_metrics.update(todays_date,
                                             self.todays_performance.returns,
                                             bench_since_open,
-                                            account.leverage)
+                                            account.leverage,
+                                            expected_shortfall=None)
 
         minute_packet = self.to_dict(emission_type='minute')
         return minute_packet
@@ -385,11 +388,15 @@ class PerformanceTracker(object):
 
             benchmark_value = self.all_benchmark_returns[completed_session]
 
+            portfolio = self.get_portfolio(False)
+            expected_shortfall = portfolio.calculate_expected_shortfall()
+
             self.cumulative_risk_metrics.update(
                 completed_session,
                 self.todays_performance.returns,
                 benchmark_value,
-                account.leverage)
+                account.leverage,
+                expected_shortfall)
 
         # increment the day counter before we move markers forward.
         self.session_count += 1.0
