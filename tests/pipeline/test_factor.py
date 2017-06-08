@@ -30,6 +30,7 @@ from zipline.lib.rank import masked_rankdata_2d
 from zipline.lib.normalize import naive_grouped_rowwise_apply as grouped_apply
 from zipline.pipeline import Classifier, Factor, Filter
 from zipline.pipeline.factors import (
+    CustomFactor,
     Returns,
     RSI,
 )
@@ -1207,6 +1208,20 @@ class TestWindowSafety(TestCase):
 
     def test_zscore_is_window_safe(self):
         self.assertTrue(F().zscore().window_safe)
+
+    @parameter_space(__fail_fast=True, is_window_safe=[True, False])
+    def test_window_safety_propagates_to_recarray_fields(self, is_window_safe):
+
+        class MultipleOutputs(CustomFactor):
+            outputs = ['a', 'b']
+            inputs = ()
+            window_length = 5
+            window_safe = is_window_safe
+
+        mo = MultipleOutputs()
+
+        for attr in mo.a, mo.b:
+            self.assertEqual(attr.window_safe, mo.window_safe)
 
     def test_demean_is_window_safe_if_input_is_window_safe(self):
         self.assertFalse(F().demean().window_safe)
