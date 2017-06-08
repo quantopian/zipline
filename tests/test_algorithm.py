@@ -1114,6 +1114,14 @@ class TestPositions(WithLogger,
         return ((sid, frame) for sid in cls.asset_finder.equities_sids)
 
     @classmethod
+    def make_root_symbols_info(self):
+        return pd.DataFrame({
+            'root_symbol': ['CL'],
+            'root_symbol_id': [1],
+            'exchange': ['CME'],
+        })
+
+    @classmethod
     def make_futures_info(cls):
         return pd.DataFrame.from_dict(
             {
@@ -1221,6 +1229,217 @@ class TestPositions(WithLogger,
 
         for i, expected in enumerate(expected_position_weights):
             assert_equal(daily_stats.iloc[i]['position_weights'], expected)
+
+
+class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
+    START_DATE = pd.Timestamp('2015-01-05', tz='UTC')
+    END_DATE = pd.Timestamp('2017-02-01', tz='UTC')
+    # SIM_PARAMS_END = pd.Timestamp('2016-04-01', tz='UTC')
+    SIM_PARAMS_CAPITAL_BASE = 2000
+    DATA_PORTAL_DAILY_HISTORY_PREFETCH = 0
+    # TRADING_CALENDAR_STRS = ('us_futures',)
+    # TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
+    # FUTURE_MINUTE_BAR_START_DATE = pd.Timestamp('2015-01-05', tz='UTC')
+    # SIM_PARAMS_DATA_FREQUENCY = 'minute'
+
+    ASSET_FINDER_EQUITY_SIDS = (1,)
+
+    @classmethod
+    def make_equity_daily_bar_data(cls):
+        sessions = cls.equity_daily_bar_days
+        prices = np.empty(len(sessions))
+        prices[::2] = 900
+        prices[1::2] = 1000
+        frame = pd.DataFrame(
+            {
+                'open': prices,
+                'high': prices,
+                'low': prices,
+                'close': prices,
+                'volume': 20000,
+            },
+            index=sessions,
+        )
+        return ((sid, frame) for sid in cls.asset_finder.equities_sids)
+
+    @classmethod
+    def make_root_symbols_info(self):
+        return pd.DataFrame({
+            'root_symbol': ['CL'],
+            'root_symbol_id': [1],
+            'exchange': ['CME'],
+        })
+
+    @classmethod
+    def make_futures_info(cls):
+        return pd.DataFrame.from_dict(
+            {
+                1000: {
+                    'symbol': 'CLN15',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': pd.Timestamp('2015-07-08', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2015-07-06', tz='UTC'),
+                    'exchange': 'CME',
+                    'multiplier': 10,
+                },
+                1001: {
+                    'symbol': 'CLF16',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': pd.Timestamp('2016-01-06', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2016-01-04', tz='UTC'),
+                    'exchange': 'CME',
+                    'multiplier': 10,
+                },
+                1002: {
+                    'symbol': 'CLN16',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': pd.Timestamp('2016-07-08', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2016-07-06', tz='UTC'),
+                    'exchange': 'CME',
+                    'multiplier': 10,
+                },
+                1003: {
+                    'symbol': 'CLF17',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': pd.Timestamp('2017-01-06', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2017-01-04', tz='UTC'),
+                    'exchange': 'CME',
+                    'multiplier': 10,
+                },
+                1004: {
+                    'symbol': 'CLN17',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': cls.END_DATE,
+                    'auto_close_date': cls.END_DATE + cls.trading_calendar.day,
+                    'exchange': 'CME',
+                    'multiplier': 10,
+                },
+            },
+            orient='index',
+        )
+
+    @classmethod
+    def make_future_minute_bar_data(cls):
+        trading_calendar = cls.trading_calendars[Equity]
+
+        minutes = trading_calendar.minutes_for_sessions_in_range(
+            cls.START_DATE, cls.END_DATE,
+        )
+        session_starts = trading_calendar.session_opens_in_range(
+            cls.START_DATE, cls.END_DATE,
+        )
+        frame = pd.DataFrame(
+            {
+                'open': np.NaN,
+                'high': np.NaN,
+                'low': np.NaN,
+                'close': np.NaN,
+                'volume': np.NaN,
+            },
+            index=minutes,
+        )
+
+        # Set all futures contracts to have the same OHLCV values, where their
+        # prices are constant throughout each day, and increase by 1 from day
+        # to day.
+        start_indexes = frame.index.get_indexer(session_starts)
+        prices = np.empty(len(session_starts))
+        prices[::2] = 87
+        prices[1::2] = 100
+        frame.iloc[start_indexes] = prices[:, np.newaxis] + np.zeros(5)
+        frame['volume'] = 100
+        frame.fillna(method='ffill', inplace=True)
+
+        return ((sid, frame) for sid in cls.asset_finder.futures_sids)
+
+    def test_expected_shortfall(self):
+        sids = (1, 1004)
+        equity_1, future_1000 = self.asset_finder.retrieve_all(sids)
+
+        algo = TestPositionWeightsAlgorithm(
+            sids_and_amounts=zip(sids, [1, 1]),
+            sim_params=self.sim_params,
+            env=self.env,
+            # trading_calendar=self.trading_calendars[Future],
+        )
+        daily_stats = algo.run(self.data_portal)
+
+        # On the first day of holding positions, we spent $1000.00 on 1 share
+        # of equity_1, and $0 to enter into a long position of future_1000. So
+        # our ending cash is 2000 - 1000 - 0 = 1000. The value of our futures
+        # position is 100 (unit price) * 10 (multiplier) * 1 (shares) = 1000.
+        first_cash = 1000.0
+        first_equity_value = 1000.0
+        first_future_value = 1000.0
+
+        # On the second day of holding positions, we do not spend any cash, but
+        # our future goes down in value by $13.00, which results in a $130.00
+        # loss because the multipler is 10. Also our equity value goes down by
+        # $100, which will affect the portfolio weights.
+        second_cash = 870.0
+        second_equity_value = 900
+        second_future_value = 870.0
+
+        first_weights = pd.Series(
+            [
+                first_equity_value / (first_equity_value + first_cash),
+                first_future_value / (first_equity_value + first_cash),
+            ],
+            index=[equity_1, future_1000],
+        )
+        second_weights = pd.Series(
+            [
+                second_equity_value / (second_equity_value + second_cash),
+                second_future_value / (second_equity_value + second_cash),
+            ],
+            index=[equity_1, future_1000],
+        )
+        assert_equal(first_weights, daily_stats.position_weights[1])
+        assert_equal(second_weights, daily_stats.position_weights[2])
+
+        # $1000.00 --> $900.00 is a returns of -10 percent.
+        equity_low_returns = \
+            (second_equity_value - first_equity_value) / first_equity_value
+
+        # $1000.00 --> $870.00 is a returns of -13 percent.
+        future_low_returns = \
+            (second_future_value - first_future_value) / first_future_value
+
+        asset_returns = pd.Series(
+            [equity_low_returns, future_low_returns],
+            index=[equity_1, future_1000],
+        )
+
+        # For the first set of weights, our holdings in the equity and future
+        # have equal weights of 0.5, the our expected shortfall is simply the
+        # average of their low returns. That is, this should be the average of
+        # -10 percent (-0.1) and -13 percent (-0.13).
+        first_expected_shortfall_value = sum(asset_returns * first_weights)
+
+        # For the second set of weights, the value of our equity is slightly
+        # higher than our future, so its weight is slightly higher. Therefore
+        # the expected shortfall is not an exact average, but rather is tilted
+        # closer to -0.1.
+        second_expected_shortfall_value = sum(asset_returns * second_weights)
+
+        # We expect the first 252 days of expected shortfall values to be NaN
+        # because we only compute it if we have at least a year's worth of data
+        # to look back on. After 252 days, we expect the values to alternate
+        # according to our alternating portfolio weights.
+        session_ends = self.trading_calendar.session_closes_in_range(
+            self.START_DATE, self.END_DATE,
+        )
+        session_ends.name = None
+        expected = pd.Series(index=session_ends, name='expected_shortfall')
+        expected[252::2] = second_expected_shortfall_value
+        expected[253::2] = first_expected_shortfall_value
+
+        assert_equal(daily_stats['expected_shortfall'], expected)
 
 
 class TestBeforeTradingStart(WithDataPortal,
