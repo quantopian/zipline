@@ -1553,7 +1553,7 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         # Since we always hold exactly one contract in sid 1004, we should see
         # our weight transition from being at offset 4 to offset 3, to offset
         # 2, etc.
-        for day, positions in zip(sim_params.sessions[1:], pt_weights[1:]):
+        for day, positions in pt_weights[1:].iterrows():
             if day < future_1000.auto_close_date:
                 expected_offset = 4
             elif day < future_1001.auto_close_date:
@@ -1566,10 +1566,13 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
                 expected_offset = 0
             else:
                 self.fail("Didn't expect a future after offset 0.")
-            self.assertEqual(
-                [equity_1, cf_at_offset[expected_offset]],
-                sorted(positions),
-            )
+
+            held_cf = cf_at_offset[expected_offset]
+            self.assertNotEqual(positions[held_cf], 0.0)
+            self.assertNotEqual(positions[equity_1], 0.0)
+
+            other_cfs = list(set(cf_at_offset) - set([held_cf]))
+            self.assertTrue((positions[other_cfs] == 0).all())
 
         # On the first day of holding positions, we spent $1000.00 on 1 share
         # of equity_1, and $0 to enter into a long position of future_1004. So

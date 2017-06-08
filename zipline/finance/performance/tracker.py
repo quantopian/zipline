@@ -172,9 +172,9 @@ class PerformanceTracker(object):
         self.account_needs_update = True
         self._account = None
 
-        # The weights for each day should be a dictionary mapping assets to
-        # their respective position weights in the current portfolio.
-        self.position_weights = []
+        # The weights of the current portfolio each day should be recorded in a
+        # sparse data frame with assets as the columns.
+        self.position_weights = pd.DataFrame()
 
     def __repr__(self):
         return "%s(%r)" % (
@@ -412,7 +412,8 @@ class PerformanceTracker(object):
             position_weights.index = list(
                 map(convert_futures, position_weights.index),
             )
-            self.position_weights.append(dict(position_weights))
+            self.position_weights = \
+                self.position_weights.append([position_weights]).to_sparse()
 
         # increment the day counter before we move markers forward.
         self.session_count += 1.0
@@ -503,9 +504,8 @@ class PerformanceTracker(object):
         # Create a data frame of asset weights on each day of the simulation.
         # If an asset was not held on a given date, it is assigned a weight of
         # zero.
-        weights = pd.DataFrame(
-            self.position_weights, index=sim_params.sessions,
-        ).fillna(0.0)
+        self.position_weights = self.position_weights.to_dense().fillna(0)
+        self.position_weights.index = sim_params.sessions
 
         # If we are near the start date of our data, just use the data
         # available. Otherwise, use the full default number of lookback days.
@@ -517,7 +517,7 @@ class PerformanceTracker(object):
         )
 
         asset_returns = zp.asset_returns_for_expected_shortfall(
-            assets=list(weights.columns),
+            assets=list(self.position_weights.columns),
             benchmark=self.benchmark_asset,
             data_portal=data_portal,
             end_date=sim_params.end_session,
@@ -527,7 +527,7 @@ class PerformanceTracker(object):
         return pd.Series(
             rolling_expected_shortfall(
                 asset_returns=asset_returns.values,
-                weights=weights.values,
+                weights=self.position_weights.values,
                 cutoff=zp.DEFAULT_EXPECTED_SHORTFALL_CUTOFF,
                 window_length=zp.DEFAULT_EXPECTED_SHORTFALL_LOOKBACK_DAYS,
                 min_periods=zp.DEFAULT_EXPECTED_SHORTFALL_MINIMUM_DAYS,
