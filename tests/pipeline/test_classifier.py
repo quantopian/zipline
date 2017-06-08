@@ -468,6 +468,122 @@ class ClassifierTestCase(BasePipelineTestCase):
         )
         self.assertEqual(errmsg, expected)
 
+    @parameter_space(
+        __fail_fast=True,
+        labelarray_dtype=(categorical_dtype, bytes_dtype, unicode_dtype),
+        relabel_func=[
+            lambda s: str(s[0]),
+            lambda s: str(len(s)),
+            lambda s: str(len([c for c in s if c == 'a'])),
+            lambda s: None,
+        ]
+    )
+    def test_relabel_strings(self, relabel_func, labelarray_dtype):
+
+        class C(Classifier):
+            inputs = ()
+            dtype = categorical_dtype
+            missing_value = None
+            window_length = 0
+
+        c = C()
+
+        raw = np.asarray(
+            [['a', 'aa', 'aaa', 'abab'],
+             ['bab', 'aba', 'aa', 'bb'],
+             ['a', 'aba', 'abaa', 'abaab'],
+             ['a', 'aa', 'aaa', 'aaaa']],
+            dtype=labelarray_dtype,
+        )
+        raw_relabeled = np.vectorize(relabel_func, otypes=[object])(raw)
+
+        data = LabelArray(raw, missing_value=None)
+
+        terms = {
+            'relabeled': c.relabel(relabel_func),
+        }
+        expected_results = {
+            'relabeled': LabelArray(raw_relabeled, missing_value=None),
+        }
+
+        self.check_terms(
+            terms,
+            expected_results,
+            initial_workspace={c: data},
+            mask=self.build_mask(self.ones_mask(shape=data.shape)),
+        )
+
+    @parameter_space(
+        __fail_fast=True,
+        missing_value=[None, 'M'],
+    )
+    def test_relabel_missing_value_interactions(self, missing_value):
+
+        mv = missing_value
+
+        class C(Classifier):
+            inputs = ()
+            dtype = categorical_dtype
+            missing_value = mv
+            window_length = 0
+
+        c = C()
+
+        def relabel_func(s):
+            if s == 'B':
+                return mv
+            return ''.join([s, s])
+
+        raw = np.asarray(
+            [['A', 'B', 'C', mv],
+             [mv, 'A', 'B', 'C'],
+             ['C', mv, 'A', 'B'],
+             ['B', 'C', mv, 'A']],
+            dtype=categorical_dtype,
+        )
+        data = LabelArray(raw, missing_value=mv)
+
+        expected_relabeled_raw = np.asarray(
+            [['AA', mv, 'CC', mv],
+             [mv, 'AA', mv, 'CC'],
+             ['CC', mv, 'AA', mv],
+             [mv, 'CC', mv, 'AA']],
+            dtype=categorical_dtype,
+        )
+
+        terms = {
+            'relabeled': c.relabel(relabel_func),
+        }
+        expected_results = {
+            'relabeled': LabelArray(expected_relabeled_raw, missing_value=mv),
+        }
+
+        self.check_terms(
+            terms,
+            expected_results,
+            initial_workspace={c: data},
+            mask=self.build_mask(self.ones_mask(shape=data.shape)),
+        )
+
+    def test_relabel_int_classifier_not_yet_supported(self):
+        class C(Classifier):
+            inputs = ()
+            dtype = int64_dtype
+            missing_value = -1
+            window_length = 0
+
+        c = C()
+
+        with self.assertRaises(TypeError) as e:
+            c.relabel(lambda x: 0 / 0)  # Function should never be called.
+
+        result = str(e.exception)
+        expected = (
+            "relabel() is only defined on Classifiers producing strings "
+            "but it was called on a Classifier of dtype int64."
+        )
+        self.assertEqual(result, expected)
+
 
 class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
     def test_reversability_categorical(self):

@@ -1,7 +1,7 @@
 """
 An ndarray subclass for working with arrays of strings.
 """
-from functools import partial
+from functools import partial, total_ordering
 from operator import eq, ne
 import re
 
@@ -11,6 +11,7 @@ import pandas as pd
 from toolz import compose
 
 from zipline.utils.compat import unicode
+from zipline.utils.functional import instance
 from zipline.utils.preprocess import preprocess
 from zipline.utils.sentinel import sentinel
 from zipline.utils.input_validation import (
@@ -29,6 +30,7 @@ from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning
 from ._factorize import (
     factorize_strings,
     factorize_strings_known_categories,
+    smallest_uint_that_can_hold,
 )
 
 
@@ -136,6 +138,7 @@ class LabelArray(ndarray):
     http://docs.scipy.org/doc/numpy-1.10.0/user/basics.subclassing.html
     """
     SUPPORTED_SCALAR_TYPES = (bytes, unicode, type(None))
+    SUPPORTED_NON_NONE_SCALAR_TYPES = (bytes, unicode)
 
     @preprocess(
         values=coerce(list, partial(np.asarray, dtype=object)),
@@ -565,6 +568,83 @@ class LabelArray(ndarray):
         # locations in our indices.
         return results[self.as_int_array()]
 
+    def map(self, f):
+        """
+        Map a function from str -> str element-wise over ``self``.
+
+        ``f`` will be applied exactly once to each non-missing unique value in
+        ``self``. Missing values will always map to ``self.missing_value``.
+        """
+        # f() should only return None if None is our missing value.
+        if self.missing_value is None:
+            allowed_outtypes = self.SUPPORTED_SCALAR_TYPES
+        else:
+            allowed_outtypes = self.SUPPORTED_NON_NONE_SCALAR_TYPES
+
+        def f_to_use(x,
+                     missing_value=self.missing_value,
+                     otypes=allowed_outtypes):
+
+            # Don't call f on the missing value; those locations don't exist
+            # semantically. We return _sortable_sentinel rather than None
+            # because the np.unique call below sorts the categories array,
+            # which raises an error on Python 3 because None and str aren't
+            # comparable.
+            if x == missing_value:
+                return _sortable_sentinel
+
+            ret = f(x)
+
+            if not isinstance(ret, otypes):
+                raise TypeError(
+                    "LabelArray.map expected function {f} to return a string"
+                    " or None, but got {type} instead.\n"
+                    "Value was {value}.".format(
+                        f=f.__name__,
+                        type=type(ret).__name__,
+                        value=ret,
+                    )
+                )
+
+            if ret == missing_value:
+                return _sortable_sentinel
+
+            return ret
+
+        new_categories_with_duplicates = (
+            np.vectorize(f_to_use, otypes=[object])(self.categories)
+        )
+
+        # If f() maps multiple inputs to the same output, then we can end up
+        # with the same code duplicated multiple times. Compress the categories
+        # by running them through np.unique, and then use the reverse lookup
+        # table to compress codes as well.
+        new_categories, bloated_inverse_index = np.unique(
+            new_categories_with_duplicates,
+            return_inverse=True
+        )
+
+        if new_categories[0] is _sortable_sentinel:
+            # f_to_use return _sortable_sentinel for locations that should be
+            # missing values in our output. Since np.unique returns the uniques
+            # in sorted order, and since _sortable_sentinel sorts before any
+            # string, we only need to check the first array entry.
+            new_categories[0] = self.missing_value
+
+        # `reverse_index` will always be a 64 bit integer even if we can hold a
+        # smaller array.
+        reverse_index = bloated_inverse_index.astype(
+            smallest_uint_that_can_hold(len(new_categories))
+        )
+        new_codes = np.take(reverse_index, self.as_int_array())
+
+        return self.from_codes_and_metadata(
+            new_codes,
+            new_categories,
+            dict(zip(new_categories, range(len(new_categories)))),
+            missing_value=self.missing_value,
+        )
+
     def startswith(self, prefix):
         """
         Element-wise startswith.
@@ -650,3 +730,15 @@ class LabelArray(ndarray):
             element of self was an element of ``container``.
         """
         return self.map_predicate(container.__contains__)
+
+
+@instance  # This makes _sortable_sentinel a singleton instance.
+@total_ordering
+class _sortable_sentinel(object):
+    """Dummy object that sorts before any other python object.
+    """
+    def __eq__(self, other):
+        return self is other
+
+    def __lt__(self, other):
+        return True
