@@ -11,6 +11,7 @@ import pandas as pd
 from toolz import compose
 
 from zipline.utils.compat import unicode
+from zipline.utils.functional import instance
 from zipline.utils.preprocess import preprocess
 from zipline.utils.sentinel import sentinel
 from zipline.utils.input_validation import (
@@ -623,7 +624,7 @@ class LabelArray(ndarray):
             return_inverse=True
         )
 
-        if new_categories[0] == _sortable_sentinel:
+        if new_categories[0] is _sortable_sentinel:
             # f_to_use return _sortable_sentinel for locations that should be
             # missing values in our output. Since np.unique returns the uniques
             # in sorted order, and since _sortable_sentinel sorts before any
@@ -731,15 +732,13 @@ class LabelArray(ndarray):
         return self.map_predicate(container.__contains__)
 
 
+@instance  # This makes _sortable_sentinel a singleton instance.
 @total_ordering
-class _SortableSentinel(object):
+class _sortable_sentinel(object):
     """Dummy object that sorts before any other python object.
     """
     def __eq__(self, other):
-        return isinstance(other, _SortableSentinel)
+        return self is other
 
     def __lt__(self, other):
-        return not isinstance(other, _SortableSentinel)
-
-
-_sortable_sentinel = _SortableSentinel()
+        return True
