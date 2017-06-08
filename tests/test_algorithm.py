@@ -57,6 +57,7 @@ from zipline.errors import (
     AccountControlViolation,
     CannotOrderDelistedAsset,
     IncompatibleSlippageModel,
+    InsufficientHistoricalData,
     OrderDuringInitialize,
     OrderInBeforeTradingStart,
     RegisterTradingControlPostInit,
@@ -86,23 +87,26 @@ from zipline.finance.asset_restrictions import (
     StaticRestrictions,
     RESTRICTION_STATES,
 )
+import zipline.protocol as zp
 from zipline.testing import (
     FakeDataPortal,
+    RecordBatchBlotter,
     copy_market_data,
     create_daily_df_for_asset,
     create_data_portal,
     create_data_portal_from_trade_history,
     create_minute_df_for_asset,
+    make_alternating_1d_array,
     make_test_handler,
     make_trade_data_for_asset_info,
     parameter_space,
+    prices_with_returns,
     str_to_seconds,
+    tmp_dir,
     tmp_trading_env,
     to_utc,
     trades_by_sid_to_dfs,
-    tmp_dir,
 )
-from zipline.testing import RecordBatchBlotter
 from zipline.testing.fixtures import (
     WithDataPortal,
     WithLogger,
@@ -183,6 +187,7 @@ from zipline.utils.control_flow import nullctx
 import zipline.utils.events
 from zipline.utils.events import date_rules, time_rules, Always
 import zipline.utils.factory as factory
+from zipline.utils.numpy_utils import float64_dtype, int64_dtype
 
 # Because test cases appear to reuse some resources.
 
@@ -1180,19 +1185,25 @@ class TestPositions(WithLogger,
 
     def test_position_weights(self):
         sids = (1, 133, 1000)
+        amounts = (2, -1, 1)
         equity_1, equity_133, future_1000 = \
             self.asset_finder.retrieve_all(sids)
 
         algo = TestPositionWeightsAlgorithm(
-            sids_and_amounts=zip(sids, [2, -1, 1]),
+            sids_and_amounts=zip(sids, amounts),
             sim_params=self.sim_params,
             env=self.env,
         )
         daily_stats = algo.run(self.data_portal)
 
-        expected_position_weights = [
-            # No positions held on the first day.
-            pd.Series({}),
+        expected_index = self.trading_calendar.session_closes_in_range(
+            self.sim_params.sessions[0], self.sim_params.sessions[-1],
+        )
+        expected_index.name = None
+        expected_position_weights = {
+            # The first values are NaN because there are no positions held on
+            # the first day.
+            #
             # Each equity's position value is its price times the number of
             # shares held. In this example, we hold a long position in 2 shares
             # of equity_1 so its weight is (95.0 * 2) = 190.0 divided by the
@@ -1202,25 +1213,577 @@ class TestPositions(WithLogger,
             # For a futures contract, its weight is the unit price times number
             # of shares held times the multiplier. For future_1000, this is
             # (2.0 * 1 * 100) = 200.0 divided by total portfolio value.
-            pd.Series({
-                equity_1: 190.0 / (190.0 - 95.0 + 905.0),
-                equity_133: -95.0 / (190.0 - 95.0 + 905.0),
-                future_1000: 200.0 / (190.0 - 95.0 + 905.0),
-            }),
-            pd.Series({
-                equity_1: 200.0 / (200.0 - 100.0 + 905.0),
-                equity_133: -100.0 / (200.0 - 100.0 + 905.0),
-                future_1000: 200.0 / (200.0 - 100.0 + 905.0),
-            }),
-            pd.Series({
-                equity_1: 210.0 / (210.0 - 105.0 + 905.0),
-                equity_133: -105.0 / (210.0 - 105.0 + 905.0),
-                future_1000: 200.0 / (210.0 - 105.0 + 905.0),
-            }),
+            equity_1.symbol: pd.Series(
+                [
+                    np.nan,
+                    190.0 / (190.0 - 95.0 + 905.0),
+                    200.0 / (200.0 - 100.0 + 905.0),
+                    210.0 / (210.0 - 105.0 + 905.0),
+                ],
+                index=expected_index,
+                name=equity_1.symbol,
+            ),
+            equity_133.symbol: pd.Series(
+                [
+                    np.nan,
+                    -95.0 / (190.0 - 95.0 + 905.0),
+                    -100.0 / (200.0 - 100.0 + 905.0),
+                    -105.0 / (210.0 - 105.0 + 905.0),
+                ],
+                index=expected_index,
+                name=equity_133.symbol,
+            ),
+            future_1000.symbol: pd.Series(
+                [
+                    np.nan,
+                    200.0 / (190.0 - 95.0 + 905.0),
+                    200.0 / (200.0 - 100.0 + 905.0),
+                    200.0 / (210.0 - 105.0 + 905.0),
+                ],
+                index=expected_index,
+                name=future_1000.symbol,
+            ),
+        }
+
+        for symbol, expected in iteritems(expected_position_weights):
+            assert_equal(daily_stats[symbol], expected)
+
+
+class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
+    START_DATE = pd.Timestamp('2014-01-06', tz='UTC')
+    END_DATE = pd.Timestamp('2016-11-09', tz='UTC')
+    SIM_PARAMS_START = pd.Timestamp('2014-01-10', tz='UTC')
+    SIM_PARAMS_END = pd.Timestamp('2016-02-03', tz='UTC')
+
+    SIM_PARAMS_CAPITAL_BASE = 2000
+
+    DATA_PORTAL_DAILY_HISTORY_PREFETCH = 0
+
+    ASSET_FINDER_EQUITY_SIDS = (1, 2, 3, 8554)
+    ASSET_FINDER_EQUITY_SYMBOLS = ('A', 'B', 'C', 'SPY')
+
+    # Dates and prices for testing equities and futures that need fill data.
+    equity_2_start_date = pd.Timestamp('2015-01-06', tz='UTC')
+    equity_2_start_price = 249
+    future_fv_start_date = pd.Timestamp('2015-01-06', tz='UTC')
+    future_fv_start_price = 3
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(TestPortfolio, cls).init_class_fixtures()
+        cls.algorithm = toolz.partial(
+            TestPositionWeightsAlgorithm,
+            env=cls.env,
+            benchmark_sid=8554,
+            calculate_expected_shortfall=True,
+        )
+
+    @classmethod
+    def make_equity_info(cls):
+        equity_info = super(TestPortfolio, cls).make_equity_info()
+        equity_info.loc[2, 'start_date'] = cls.equity_2_start_date
+        return equity_info
+
+    @classmethod
+    def make_equity_daily_bar_data(cls):
+        sessions = cls.equity_daily_bar_days
+
+        def frame(prices, index=sessions):
+            return pd.DataFrame(
+                {
+                    'open': prices,
+                    'high': prices,
+                    'low': prices,
+                    'close': prices,
+                    'volume': 20000,
+                },
+                index=index,
+            )
+
+        # Set our equity to have alternating price values, meaning returns will
+        # alternate consistently from the same positive number to the same
+        # negative number. This makes it easier to manually calculate expected
+        # shortfall.
+        prices = make_alternating_1d_array(
+            length=len(sessions),
+            first_value=900,
+            second_value=1000,
+            dtype=int64_dtype,
+        )
+        yield 1, frame(prices)
+
+        start_price = cls.equity_2_start_price
+        dates_alive = sessions[sessions.get_loc(cls.equity_2_start_date):]
+        prices = np.arange(start_price, start_price + len(dates_alive))
+        yield 2, frame(prices, dates_alive)
+
+        # Create a price series according to how we want returns to look.
+        # Include five returns values of -0.05, five of -0.02, and the rest are
+        # zero or greater. This allows for testing expected shortfall using an
+        # easily known average of low returns.
+        returns = [0, 0, 0, 0, 0, 0, -0.02, 1.0 / 49.0, -0.05, 1.0 / 19.0]
+        returns *= 5
+        while len(returns) < len(sessions) - 1:
+            returns.append(0)
+        prices = prices_with_returns(initial_price=50, returns=returns)
+        yield 3, frame(prices)
+
+        benchmark_returns = make_alternating_1d_array(
+            length=len(sessions) - 1,
+            first_value=0.04,
+            second_value=-0.04,
+            dtype=float64_dtype,
+        )
+        prices = prices_with_returns(
+            initial_price=1050, returns=benchmark_returns,
+        )
+        yield 8554, frame(prices)
+
+    @classmethod
+    def make_futures_info(cls):
+        # Create a chain of contracts expiring every six months, encompassing
+        # at least two years of contracts so that we have enough data to
+        # perform expected shortfall calculations.
+        return pd.DataFrame.from_dict(
+            {
+                1000: {
+                    'symbol': 'CLN14',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': pd.Timestamp('2014-07-09', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2014-07-07', tz='UTC'),
+                    'exchange': 'CME',
+                    'multiplier': 10,
+                },
+                1001: {
+                    'symbol': 'CLF15',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': pd.Timestamp('2015-01-09', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2015-01-07', tz='UTC'),
+                    'exchange': 'CME',
+                    'multiplier': 10,
+                },
+                1002: {
+                    'symbol': 'CLN15',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': pd.Timestamp('2015-07-10', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2015-07-08', tz='UTC'),
+                    'exchange': 'CME',
+                    'multiplier': 10,
+                },
+                1003: {
+                    'symbol': 'CLF16',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': pd.Timestamp('2016-01-08', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2016-01-06', tz='UTC'),
+                    'exchange': 'CME',
+                    'multiplier': 10,
+                },
+                1004: {
+                    'symbol': 'CLN16',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': pd.Timestamp('2016-07-08', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2016-07-06', tz='UTC'),
+                    'exchange': 'CME',
+                    'multiplier': 10,
+                },
+                1005: {
+                    'symbol': 'CLQ16',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': pd.Timestamp('2016-08-10', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2016-08-08', tz='UTC'),
+                    'exchange': 'CME',
+                    'multiplier': 10,
+                },
+                1006: {
+                    'symbol': 'CLU16',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': pd.Timestamp('2016-09-09', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2016-09-07', tz='UTC'),
+                    'exchange': 'CME',
+                    'multiplier': 10,
+                },
+                1007: {
+                    'symbol': 'CLV16',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': pd.Timestamp('2016-10-05', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2016-10-03', tz='UTC'),
+                    'exchange': 'CME',
+                    'multiplier': 10,
+                },
+                1008: {
+                    'symbol': 'CLX16',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': cls.END_DATE,
+                    'auto_close_date': cls.END_DATE,
+                    'exchange': 'CME',
+                    'multiplier': 10,
+                },
+                2000: {
+                    'symbol': 'FVX16',
+                    'root_symbol': 'FV',
+                    'start_date': cls.future_fv_start_date,
+                    'end_date': cls.END_DATE,
+                    'auto_close_date': cls.END_DATE,
+                    'exchange': 'CME',
+                    'multiplier': 10,
+                },
+            },
+            orient='index',
+        )
+
+    @classmethod
+    def make_future_minute_bar_data(cls):
+        calendar = cls.trading_calendar
+
+        sessions = calendar.sessions_in_range(cls.START_DATE, cls.END_DATE)
+        session_starts = calendar.session_opens_in_range(
+            cls.START_DATE, cls.END_DATE,
+        )
+        minutes = calendar.minutes_for_sessions_in_range(
+            cls.START_DATE, cls.END_DATE,
+        )
+
+        frame = pd.DataFrame(
+            {
+                'open': np.NaN,
+                'high': np.NaN,
+                'low': np.NaN,
+                'close': np.NaN,
+                'volume': np.NaN,
+            },
+            index=minutes,
+        )
+
+        # Set all futures contracts to have alternating price values from day
+        # to day, meaning returns will alternate consistently from the same
+        # positive number to the same negative number. This makes it easier to
+        # manually calculate expected shortfall.
+        prices = make_alternating_1d_array(
+            length=len(sessions),
+            first_value=87,
+            second_value=100,
+            dtype=int64_dtype,
+        )
+        start_indexes = frame.index.get_indexer(session_starts)
+        frame.iloc[start_indexes] = np.tile(prices[:, np.newaxis], (1, 5))
+        frame['volume'] = 100
+        frame.fillna(method='ffill', inplace=True)
+
+        for sid in cls.asset_finder.futures_sids:
+            if sid != 2000:
+                yield (sid, frame)
+
+        start_price = cls.future_fv_start_price
+        dates_alive = sessions[sessions.get_loc(cls.future_fv_start_date):]
+        prices = np.arange(start_price, start_price + len(dates_alive))
+        frame = pd.DataFrame(
+            {
+                'open': prices,
+                'high': prices,
+                'low': prices,
+                'close': prices,
+                'volume': 20000,
+            },
+            index=dates_alive,
+        )
+        # Yield a copy of the data frame because we are taking a slice of it.
+        yield 2000, frame.loc[cls.future_fv_start_date:].copy()
+
+    def custom_sim_params(self,
+                          start_date=None,
+                          end_date=None,
+                          capital_base=None,
+                          data_frequency=None,
+                          emission_rate=None,
+                          trading_calendar=None):
+        return factory.create_simulation_parameters(
+            start=start_date or self.sim_params.start_session,
+            end=end_date or self.sim_params.end_session,
+            capital_base=capital_base or self.sim_params.capital_base,
+            data_frequency=data_frequency or self.sim_params.data_frequency,
+            emission_rate=emission_rate or self.sim_params.emission_rate,
+            trading_calendar=trading_calendar or self.trading_calendar,
+        )
+
+    def test_expected_shortfall(self):
+        """
+        Test the expected shortfall calculation performed at the end of
+        backtests.
+        """
+        sids = (1, 1004)
+        amounts = (1, 1)
+        sim_params = self.sim_params
+        af = self.asset_finder
+        equity_1, future_1004 = af.retrieve_all(sids)
+
+        algo = self.algorithm(
+            sids_and_amounts=zip(sids, amounts), sim_params=sim_params,
+        )
+        daily_stats = algo.run(self.data_portal)
+
+        # Test that we correctly converted the future contract being held into
+        # the appropriate continuous futures.
+        pt_weights = algo.perf_tracker.position_weights
+        future_1000, future_1001, future_1002, future_1003 = af.retrieve_all(
+            [1000, 1001, 1002, 1003],
+        )
+        cf_at_offset = [
+            af.create_continuous_future(
+                root_symbol='CL',
+                offset=offset,
+                roll_style='volume',
+                adjustment='mul',
+            )
+            for offset in (0, 1, 2, 3, 4)
         ]
 
-        for i, expected in enumerate(expected_position_weights):
-            assert_equal(daily_stats.iloc[i]['position_weights'], expected)
+        # When we record position weights, we convert the actual contract we
+        # held into a continuous future based on the contract's offset from the
+        # current center of the chain.
+        #
+        # Since we always hold exactly one contract in sid 1004, we should see
+        # our weight transition from being at offset 4 to offset 3, to offset
+        # 2, etc.
+        for day, positions in zip(sim_params.sessions[1:], pt_weights[1:]):
+            if day < future_1000.auto_close_date:
+                expected_offset = 4
+            elif day < future_1001.auto_close_date:
+                expected_offset = 3
+            elif day < future_1002.auto_close_date:
+                expected_offset = 2
+            elif day < future_1003.auto_close_date:
+                expected_offset = 1
+            elif day < future_1004.auto_close_date:
+                expected_offset = 0
+            else:
+                self.fail("Didn't expect a future after offset 0.")
+            self.assertEqual(
+                [equity_1, cf_at_offset[expected_offset]],
+                sorted(positions),
+            )
+
+        # On the first day of holding positions, we spent $1000.00 on 1 share
+        # of equity_1, and $0 to enter into a long position of future_1004. So
+        # our ending cash is 2000 - 1000 - 0 = 1000. The value of our futures
+        # position is 100 (unit price) * 10 (multiplier) * 1 (shares) = 1000.
+        first_cash = 1000.0
+        first_equity_value = 1000.0
+        first_future_value = 1000.0
+
+        # On the second day of holding positions, we do not spend any cash, but
+        # our future goes down in value by $13.00, which results in a $130.00
+        # loss because the multipler is 10. Also our equity value goes down by
+        # $100, which will affect the portfolio weights.
+        second_cash = 870.0
+        second_equity_value = 900
+        second_future_value = 870.0
+
+        first_weights = pd.Series(
+            [
+                first_equity_value / (first_equity_value + first_cash),
+                first_future_value / (first_equity_value + first_cash),
+            ],
+            index=[equity_1, future_1004],
+        )
+        second_weights = pd.Series(
+            [
+                second_equity_value / (second_equity_value + second_cash),
+                second_future_value / (second_equity_value + second_cash),
+            ],
+            index=[equity_1, future_1004],
+        )
+
+        # Test the weights recorded in the algorithm itself.
+        assert_equal(daily_stats[equity_1.symbol][1], first_weights[equity_1])
+        assert_equal(daily_stats[equity_1.symbol][2], second_weights[equity_1])
+        assert_equal(
+            daily_stats[future_1004.symbol][1], first_weights[future_1004],
+        )
+        assert_equal(
+            daily_stats[future_1004.symbol][2], second_weights[future_1004],
+        )
+
+        # $1000.00 --> $900.00 is a return of -10 percent.
+        equity_low_returns = \
+            (second_equity_value - first_equity_value) / first_equity_value
+
+        # $1000.00 --> $870.00 is a return of -13 percent.
+        future_low_returns = \
+            (second_future_value - first_future_value) / first_future_value
+
+        asset_returns = pd.Series(
+            [equity_low_returns, future_low_returns],
+            index=[equity_1, future_1004],
+        )
+
+        # For the first set of weights, our holdings in the equity and future
+        # have equal weights of 0.5, so our expected shortfall is simply the
+        # average of their low returns. That is, this should be the average of
+        # -10 percent (-0.1) and -13 percent (-0.13).
+        first_expected_shortfall_value = sum(asset_returns * first_weights)
+        self.assertEqual(first_expected_shortfall_value, -0.115)
+
+        # For the second set of weights, the value of our equity is slightly
+        # higher than our future, so its weight is slightly higher. Therefore
+        # the expected shortfall is not an exact average, but rather is tilted
+        # closer to -0.1.
+        second_expected_shortfall_value = sum(asset_returns * second_weights)
+        self.assertAlmostEqual(second_expected_shortfall_value, -0.1147458, 7)
+
+        # We expect the first 248 days of expected shortfall values to be NaN
+        # because we only compute it if we have at least a year's worth of data
+        # to look back on. After 248 days, we expect the values to alternate
+        # according to our alternating portfolio weights.
+        expected = pd.Series(
+            data=np.nan, index=sim_params.sessions, name='expected_shortfall',
+        )
+        expected[248::2] = second_expected_shortfall_value
+        expected[249::2] = first_expected_shortfall_value
+
+        actual = pd.DataFrame(
+            algo.risk_report['daily'], index=sim_params.sessions,
+        )['expected_shortfall']
+
+        assert_equal(actual, expected)
+
+    def test_expected_shortfall_averaging(self):
+        """
+        Test an equity with more than one low returns value included in the
+        expected shortfall calculation.
+        """
+        calendar = self.trading_calendar
+        equity_3 = self.asset_finder.retrieve_asset(3)
+
+        # Order the amount of Equity(3) such that its weight in the portfolio
+        # is 1.
+        order_amount = self.sim_params.capital_base / 50
+        start_date = (
+            self.START_DATE +
+            (zp.DEFAULT_EXPECTED_SHORTFALL_MINIMUM_DAYS * calendar.day)
+        )
+        sim_params = self.custom_sim_params(start_date=start_date)
+        algo = self.algorithm(
+            sids_and_amounts=[(equity_3.sid, order_amount)],
+            sim_params=sim_params,
+        )
+        daily_stats = algo.run(self.data_portal)
+
+        recorded_weights = daily_stats[equity_3.symbol]
+        self.assertTrue(np.isnan(recorded_weights[0]))
+        self.assertTrue((recorded_weights[1:].round(4) == 1).all())
+
+        # Equity(3) has five days of -0.05 returns, five days of -0.02 returns,
+        # and the rest are 0% returns. After 252 days of data and using the
+        # bottom 5% of returns values, we should be using 252 * 0.05 = 13 data
+        # points in the expected shortfall calculation.
+        actual = pd.DataFrame(algo.risk_report['daily'])['expected_shortfall']
+        expected = (
+            -0.05 * (5 / 13.0) +
+            -0.02 * (5 / 13.0) +
+            0.0 * (3 / 13.0)
+        )
+        self.assertAlmostEqual(actual[1], expected, 5)
+
+        # By the 248th day we have 500 data points, so the expected shortfall
+        # calculation should be using 500 * 0.05 = 25 data points, and it
+        # should be much more heavily weighted towards zero.
+        expected = (
+            -0.05 * (5 / 25.0) +
+            -0.02 * (5 / 25.0) +
+            0.0 * (15 / 25.0)
+        )
+        self.assertAlmostEqual(actual[247], expected, 5)
+
+    def test_expected_shortfall_method(self):
+        """
+        Test the expected shortfall method on the Portfolio object.
+        """
+        sids = (1, 1004)
+        amounts = (1, 1)
+        equity_1, future_1004 = self.asset_finder.retrieve_all(sids)
+
+        data_portal = self.data_portal
+        calendar = self.trading_calendar
+
+        # We do not allow users to call the expected shortfall method within a
+        # year of the beginning of data, so this algorithm should fail.
+        algo = self.algorithm(
+            sids_and_amounts=zip(sids, amounts),
+            record_cvar=True,
+            sim_params=self.sim_params,
+        )
+        with self.assertRaises(InsufficientHistoricalData):
+            algo.run(data_portal)
+
+        # Record expected shortfall every day within the algorithm itself using
+        # the Portfolio method, then assert that it is consistent with the
+        # expected shortfall values calculated at the end of the backtest.
+        start_date = pd.Timestamp('2016-01-06', tz='UTC')
+        end_date = self.sim_params.end_session
+        algo = self.algorithm(
+            sids_and_amounts=zip(sids, amounts),
+            record_cvar=True,
+            sim_params=self.custom_sim_params(start_date=start_date),
+        )
+        daily_stats = algo.run(data_portal)
+        daily_stats.index = daily_stats.index.normalize()
+        daily_stats.recorded_expected_shortfall.name = 'expected_shortfall'
+
+        expected = pd.DataFrame(
+            algo.risk_report['daily'],
+            index=calendar.sessions_in_range(start_date, end_date),
+        )['expected_shortfall']
+
+        assert_equal(daily_stats.recorded_expected_shortfall, expected)
+
+    @parameterized.expand([
+        (2, equity_2_start_date, equity_2_start_price),
+        (2000, future_fv_start_date, future_fv_start_price),
+    ])
+    def test_expected_shortfall_fill_with_benchmark(self,
+                                                    sid,
+                                                    start_date,
+                                                    order_price):
+        """
+        Equity 2 and future 2000 start a year late, so verify that their
+        expected shortfall calculations use the benchmark pricing data during
+        that period.
+        """
+        sim_params = self.custom_sim_params(start_date=start_date)
+
+        # Order the amount of assets such that their weight in the portfolio is
+        # 1. The reason we need to add 1 to the price is because the order does
+        # not go through until the day after it was placed, at which point the
+        # price has gone up by 1.
+        order_amount = sim_params.capital_base / (order_price + 1)
+        if sid == 2000:
+            future_2000 = self.asset_finder.retrieve_asset(sid)
+            order_amount = order_amount / future_2000.multiplier
+
+        algo = self.algorithm(
+            sids_and_amounts=[(sid, order_amount)], sim_params=sim_params,
+        )
+        algo.run(self.data_portal)
+        daily_stats = pd.DataFrame(algo.risk_report['daily'])
+
+        # The assets being tested have prices that are always increasing, so on
+        # their own their expected shortfall should always be greater than
+        # zero. However, since the benchmark's prices should be filled in for
+        # the first year when computing expected shortfall, we actually expect
+        # it to always be -0.04.
+        self.assertEqual(daily_stats.expected_shortfall[0], 0)
+        self.assertTrue(
+            (daily_stats.expected_shortfall[1:].round(5) == -0.04).all()
+        )
 
 
 class TestBeforeTradingStart(WithDataPortal,
@@ -2373,6 +2936,13 @@ class TestCapitalChanges(WithLogger,
             {
                 0: factory.create_trade_history(
                     0,
+                    np.arange(10.0, 10.0 + len(days), 1.0),
+                    [10000] * len(days),
+                    timedelta(days=1),
+                    cls.sim_params,
+                    cls.trading_calendar),
+                1: factory.create_trade_history(
+                    1,
                     np.arange(10.0, 10.0 + len(days), 1.0),
                     [10000] * len(days),
                     timedelta(days=1),
@@ -4189,11 +4759,16 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
                 volume_step_by_date=10,
                 frequency=frequency
             )
-            reader = BcolzMinuteBarReader(self.tmpdir.path)
+            daily_reader = BcolzDailyBarReader(
+                self.tmpdir.getpath('testdaily.bcolz'),
+            )
+            minute_reader = BcolzMinuteBarReader(self.tmpdir.path)
             data_portal = DataPortal(
-                env.asset_finder, self.trading_calendar,
-                first_trading_day=reader.first_trading_day,
-                equity_minute_reader=reader,
+                env.asset_finder,
+                self.trading_calendar,
+                first_trading_day=minute_reader.first_trading_day,
+                equity_daily_reader=daily_reader,
+                equity_minute_reader=minute_reader,
             )
         else:
             self.fail("Unknown frequency in make_data: %r" % frequency)

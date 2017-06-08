@@ -28,7 +28,7 @@ from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.test_algorithms import NoopAlgorithm
 from zipline.testing.fixtures import (
-    WithDataPortal,
+    WithPortfolio,
     WithSimParams,
     WithTradingEnvironment,
     ZiplineTestCase,
@@ -114,7 +114,7 @@ class BeforeTradingStartsOnlyClock(object):
 
 
 class TestBeforeTradingStartSimulationDt(WithSimParams,
-                                         WithDataPortal,
+                                         WithPortfolio,
                                          ZiplineTestCase):
 
     def test_bts_simulation_dt(self):
@@ -124,12 +124,14 @@ def initialize(context):
 """
         algo = TradingAlgorithm(script=code,
                                 sim_params=self.sim_params,
-                                env=self.env)
+                                env=self.env,
+                                data_portal=self.data_portal)
 
         algo.perf_tracker = PerformanceTracker(
             sim_params=self.sim_params,
             trading_calendar=self.trading_calendar,
             asset_finder=self.asset_finder,
+            portfolio=self.portfolio,
         )
 
         dt = pd.Timestamp("2016-08-04 9:13:14", tz='US/Eastern')

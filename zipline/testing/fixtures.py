@@ -53,7 +53,7 @@ from zipline.pipeline import SimplePipelineEngine
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
-from zipline.protocol import BarData
+from zipline.protocol import BarData, Portfolio
 from zipline.utils.calendars import (
     get_calendar,
     register_calendar)
@@ -358,7 +358,6 @@ class WithAssetFinder(WithDefaultDateBounds):
 
     make_futures_info = _make_info
     make_exchanges_info = _make_info
-    make_root_symbols_info = _make_info
     make_equity_supplementary_mappings = _make_info
 
     del _make_info
@@ -374,6 +373,18 @@ class WithAssetFinder(WithDefaultDateBounds):
             cls.ASSET_FINDER_EQUITY_SYMBOLS,
             cls.ASSET_FINDER_EQUITY_NAMES,
         )
+
+    @classmethod
+    def make_root_symbols_info(cls):
+        futures_info = cls.make_futures_info()
+        if futures_info is not None and 'root_symbol' in futures_info:
+            root_symbols = futures_info.root_symbol.unique().tolist()
+            num_root_symbols = len(root_symbols)
+            return pd.DataFrame({
+                'root_symbol': root_symbols,
+                'root_symbol_id': range(num_root_symbols),
+                'exchange': ['CME'] * num_root_symbols,
+            })
 
     @classmethod
     def make_asset_finder_db_url(cls):
@@ -1747,4 +1758,29 @@ class WithCreateBarData(WithDataPortal):
             self.CREATE_BARDATA_DATA_FREQUENCY,
             self.trading_calendar,
             restrictions or NoRestrictions()
+        )
+
+
+class WithPortfolio(WithDataPortal):
+    """
+    ZiplineTestCase mixin that provides self.portfolio as an instance fixture.
+    """
+    BENCHMARK_SID = None
+
+    def init_instance_fixtures(self):
+        super(WithPortfolio, self).init_instance_fixtures()
+        self.refresh_portfolio()
+
+    def current_dt_callback(self):
+        return pd.Timestamp('now')
+
+    def refresh_portfolio(self):
+        if self.BENCHMARK_SID is not None:
+            benchmark_asset = self.asset_finder.retrieve_asset(
+                self.BENCHMARK_SID,
+            )
+        else:
+            benchmark_asset = None
+        self.portfolio = Portfolio(
+            self.data_portal, self.current_dt_callback, benchmark_asset,
         )

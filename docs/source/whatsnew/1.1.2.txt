@@ -17,7 +17,7 @@ None
 Enhancements
 ~~~~~~~~~~~~
 
-None
+- Adds ``expected_shortfall`` daily stats to algorithms, as well as an ``expected_shortfall`` method to the Portfolio object. (:issue:`1839`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~

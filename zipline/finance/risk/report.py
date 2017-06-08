@@ -67,17 +67,19 @@ log = logbook.Logger('Risk Report')
 
 
 class RiskReport(object):
-    def __init__(self, algorithm_returns, sim_params, trading_calendar,
-                 benchmark_returns, algorithm_leverages=None):
+    def __init__(self, algorithm_returns, expected_shortfalls, sim_params,
+                 trading_calendar, benchmark_returns,
+                 algorithm_leverages=None):
         """
-        algorithm_returns needs to be a list of daily_return objects
-        sorted in date ascending order
+        algorithm_returns and expected_shortfalls need to be lists of daily
+        values sorted in date ascending order
 
         account needs to be a list of account objects sorted in date
         ascending order
         """
 
         self.algorithm_returns = algorithm_returns
+        self.expected_shortfalls = expected_shortfalls
         self.sim_params = sim_params
         self.trading_calendar = trading_calendar
         self.benchmark_returns = benchmark_returns
@@ -119,11 +121,29 @@ class RiskReport(object):
         provided for each period.
         """
         return {
+            'daily': self.daily_metrics(),
             'one_month': [x.to_dict() for x in self.month_periods],
             'three_month': [x.to_dict() for x in self.three_month_periods],
             'six_month': [x.to_dict() for x in self.six_month_periods],
             'twelve_month': [x.to_dict() for x in self.year_periods],
         }
+
+    def daily_metrics(self):
+        values = []
+        num_days = len(self.sim_params.sessions)
+        if num_days == 0:
+            return values
+
+        algorithm_returns = self.algorithm_returns
+        expected_shortfalls = self.expected_shortfalls
+        for i in range(num_days):
+            daily_values = {
+                'algorithm_return': algorithm_returns[i],
+                'expected_shortfall': expected_shortfalls[i],
+            }
+            values.append(daily_values)
+
+        return values
 
     def periods_in_range(self, months_per, start_session, end_session):
         one_day = datetime.timedelta(days=1)

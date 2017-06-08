@@ -130,8 +130,23 @@ def _run(handle_data,
                 str(bundle_data.asset_finder.engine.url),
             )
         env = TradingEnvironment(asset_db_path=connstr, environ=environ)
-        first_trading_day =\
+
+        first_daily_bar_day = \
+            bundle_data.equity_daily_bar_reader.first_trading_day
+        first_minute_bar_day = \
             bundle_data.equity_minute_bar_reader.first_trading_day
+        first_trading_day = max(first_daily_bar_day, first_minute_bar_day)
+
+        if first_daily_bar_day != first_minute_bar_day:
+            warnings.warn(
+                'Daily bar reader first day ({0}) and minute bar reader first '
+                'day ({1}) differ. Using {2}.'.format(
+                    first_daily_bar_day,
+                    first_minute_bar_day,
+                    first_trading_day,
+                ),
+            )
+
         data = DataPortal(
             env.asset_finder, get_calendar("NYSE"),
             first_trading_day=first_trading_day,

@@ -472,7 +472,7 @@ def _make_bundle_core():
         environ : dict, optional
             An environment dict to forward to zipline_root.
         """
-        if bundle_name not in bundles:
+        if bundle_name not in bundles and bundle_name != 'test':
             raise UnknownBundle(bundle_name)
 
         try:

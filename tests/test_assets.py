@@ -369,6 +369,30 @@ class TestFuture(WithAssetFinder, ZiplineTestCase):
                     'multiplier': 1.0,
                     'exchange': 'TEST',
                 },
+                1001: {
+                    'symbol': 'FVF17',
+                    'root_symbol': 'FV',
+                    'start_date': pd.Timestamp('2017-01-04', tz='UTC'),
+                    'end_date': pd.Timestamp('2017-01-20', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2017-01-18', tz='UTC'),
+                    'exchange': 'TEST',
+                },
+                1002: {
+                    'symbol': 'FVG17',
+                    'root_symbol': 'FV',
+                    'start_date': pd.Timestamp('2017-01-04', tz='UTC'),
+                    'end_date': pd.Timestamp('2017-02-17', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2017-02-15', tz='UTC'),
+                    'exchange': 'TEST',
+                },
+                1003: {
+                    'symbol': 'FVH17',
+                    'root_symbol': 'FV',
+                    'start_date': pd.Timestamp('2017-01-04', tz='UTC'),
+                    'end_date': pd.Timestamp('2017-03-17', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2017-03-15', tz='UTC'),
+                    'exchange': 'TEST',
+                },
             },
             orient='index',
         )
@@ -435,6 +459,33 @@ class TestFuture(WithAssetFinder, ZiplineTestCase):
 
         with self.assertRaises(SymbolNotFound):
             TestFuture.asset_finder.lookup_future_symbol('XXX99')
+
+    def test_offset_of_contract(self):
+        asset_finder = self.asset_finder
+        contract_1001, contract_1002, contract_1003 = \
+            self.asset_finder.retrieve_all([1001, 1002, 1003])
+
+        active_is_1001 = pd.Timestamp('2017-01-17', tz='UTC')
+        active_is_1002 = pd.Timestamp('2017-01-18', tz='UTC')
+
+        self.assertEqual(
+            asset_finder.offset_of_contract(contract_1001, active_is_1001),
+            0,
+        )
+        self.assertEqual(
+            asset_finder.offset_of_contract(contract_1002, active_is_1001),
+            1,
+        )
+        self.assertEqual(
+            asset_finder.offset_of_contract(contract_1003, active_is_1001),
+            2,
+        )
+        self.assertEqual(
+            asset_finder.offset_of_contract(contract_1003, active_is_1002),
+            1,
+        )
+        with self.assertRaises(ValueError):
+            asset_finder.offset_of_contract(contract_1001, active_is_1002)
 
 
 class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):

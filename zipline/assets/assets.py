@@ -287,6 +287,10 @@ class AssetFinder(object):
         # retrieve_asset will populate the cache on first retrieval.
         self._caches = (self._asset_cache, self._asset_type_cache) = {}, {}
 
+        # A cache specifically for looking up continuous futures by their
+        # specifications rather than by sid.
+        self._continuous_future_cache = {}
+
         self._future_chain_predicates = future_chain_predicates \
             if future_chain_predicates is not None else {}
         self._ordered_contracts = {}
@@ -1026,6 +1030,28 @@ class AssetFinder(object):
             self._ordered_contracts[root_symbol] = oc
             return oc
 
+    def offset_of_contract(self, asset, date):
+        """
+        Get the offset of the given contract relative to the contract with an
+        offset of zero on the given date.
+        """
+        oc = self.get_ordered_contracts(asset.root_symbol)
+        current_contract_sid = oc.contract_before_auto_close(date.value)
+
+        sid = asset.sid
+        if sid < current_contract_sid:
+            raise ValueError(
+                'The given asset has already expired by the given date!',
+            )
+
+        offset = 0
+        while sid != current_contract_sid:
+            offset += 1
+            current_contract_sid = oc.sid_to_contract[
+                current_contract_sid
+            ].next.contract.sid
+        return offset
+
     def create_continuous_future(self,
                                  root_symbol,
                                  offset,
@@ -1067,8 +1093,31 @@ class AssetFinder(object):
         self._asset_cache[cf.sid] = cf
         self._asset_cache[mul_cf.sid] = mul_cf
         self._asset_cache[add_cf.sid] = add_cf
+        self._continuous_future_cache[
+            (root_symbol, offset, roll_style, None)
+        ] = cf
+        self._continuous_future_cache[
+            (root_symbol, offset, roll_style, 'mul')
+        ] = mul_cf
+        self._continuous_future_cache[
+            (root_symbol, offset, roll_style, 'add')
+        ] = add_cf
 
         return {None: cf, 'mul': mul_cf, 'add': add_cf}[adjustment]
+
+    def get_continuous_future(self,
+                              root_symbol,
+                              offset,
+                              roll_style,
+                              adjustment):
+        try:
+            return self._continuous_future_cache[
+                (root_symbol, offset, roll_style, adjustment)
+            ]
+        except KeyError:
+            return self.create_continuous_future(
+                root_symbol, offset, roll_style, adjustment,
+            )
 
     def _make_sids(tblattr):
         def _(self):
