@@ -219,7 +219,7 @@ def make_future_info(first_sid,
         for ((year, year_str), (month_code, month_num))
         in product(
             zip(years, year_strs),
-            iteritems(month_codes),
+            sorted(iteritems(month_codes)),
         )
     )
 

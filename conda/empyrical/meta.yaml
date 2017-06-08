@@ -23,6 +23,7 @@ requirements:
     - setuptools
     - numpy >=1.9.2
     - pandas >=0.16.1
+    - pandas-datareader >=0.2
     - scipy >=0.15.1
     - pandas-datareader >=0.2
     - bottleneck >=1.0.0
@@ -30,6 +31,7 @@ requirements:
     - python
     - numpy >=1.9.2
     - pandas >=0.16.1
+    - pandas-datareader >=0.2
     - scipy >=0.15.1
     - pandas-datareader >=0.2
     - bottleneck >=1.0.0

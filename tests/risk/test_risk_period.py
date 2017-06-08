@@ -33,6 +33,9 @@ BENCHMARK_BASE = 0.005
 BENCHMARK = [BENCHMARK_BASE] * 251
 DECIMAL_PLACES = 8
 
+EXPECTED_SHORTFALL_BASE = -0.02
+EXPECTED_SHORTFALL = [EXPECTED_SHORTFALL_BASE] * 251
+
 
 class TestRisk(WithTradingEnvironment, ZiplineTestCase):
 
@@ -56,8 +59,13 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             BENCHMARK,
             self.sim_params
         )
+        self.expected_shortfalls = factory.create_returns_from_list(
+            EXPECTED_SHORTFALL,
+            self.sim_params,
+        )
         self.metrics = risk.RiskReport(
             self.algo_returns,
+            self.expected_shortfalls,
             self.sim_params,
             benchmark_returns=self.benchmark_returns,
             trading_calendar=self.trading_calendar,
@@ -293,10 +301,10 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
     def test_treasury_returns(self):
         returns = factory.create_returns_from_range(self.sim_params)
         metrics = risk.RiskReport(returns,
+                                  self.expected_shortfalls,
                                   self.sim_params,
                                   trading_calendar=self.trading_calendar,
                                   benchmark_returns=self.env.benchmark_returns)
-
         # These values are all expected to be zero because we explicity zero
         # out the treasury period returns as they are no longer actually used.
         self.assertEqual(
@@ -333,6 +341,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
 
         returns = factory.create_returns_from_range(sim_params)
         metrics = risk.RiskReport(returns,
+                                  self.expected_shortfalls,
                                   self.sim_params,
                                   trading_calendar=self.trading_calendar,
                                   benchmark_returns=self.env.benchmark_returns)
@@ -357,6 +366,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
         returns = factory.create_returns_from_range(sim_params90s)
         returns = returns[:-10]  # truncate the returns series to end mid-month
         metrics = risk.RiskReport(returns,
+                                  self.expected_shortfalls,
                                   sim_params90s,
                                   trading_calendar=self.trading_calendar,
                                   benchmark_returns=self.env.benchmark_returns)

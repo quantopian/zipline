@@ -131,7 +131,8 @@ from zipline.utils.math_utils import (
 from zipline.utils.preprocess import preprocess
 from zipline.utils.security_list import SecurityList
 
-import zipline.protocol
+import zipline.api as zipline_api
+import zipline.protocol as zp
 from zipline.sources.requests_csv import PandasRequestsCSV
 
 from zipline.gens.sim_engine import MinuteSimulationClock
@@ -407,6 +408,13 @@ class TradingAlgorithm(object):
         if 'data_frequency' in kwargs:
             self.data_frequency = kwargs.pop('data_frequency')
 
+        # Flag for whether or not to compute rolling expected shortfall of the
+        # algorithm. By default this is False because it can be a costly
+        # computation, so only do it if explicitly specified.
+        self.calculate_expected_shortfall = kwargs.pop(
+            'calculate_expected_shortfall', False,
+        )
+
         # Prepare the algo for initialization
         self.initialized = False
         self.initialize_args = args
@@ -562,13 +570,21 @@ class TradingAlgorithm(object):
         if sim_params is not None:
             self.sim_params = sim_params
 
+        benchmark_source = self._create_benchmark_source()
+
         if self.perf_tracker is None:
             # HACK: When running with the `run` method, we set perf_tracker to
             # None so that it will be overwritten here.
+            portfolio = zp.Portfolio(
+                data_portal=self.data_portal,
+                current_dt_callback=zipline_api.get_datetime,
+                benchmark_asset=benchmark_source.benchmark_asset,
+            )
             self.perf_tracker = PerformanceTracker(
                 sim_params=self.sim_params,
                 trading_calendar=self.trading_calendar,
                 asset_finder=self.asset_finder,
+                portfolio=portfolio,
             )
 
             # Set the dt initially to the period start by forcing it to change.
@@ -583,7 +599,7 @@ class TradingAlgorithm(object):
             sim_params,
             self.data_portal,
             self._create_clock(),
-            self._create_benchmark_source(),
+            benchmark_source,
             self.restrictions,
             universe_func=self._calculate_universe
         )
@@ -2137,7 +2153,7 @@ class TradingAlgorithm(object):
             The order_id or order object to cancel.
         """
         order_id = order_param
-        if isinstance(order_param, zipline.protocol.Order):
+        if isinstance(order_param, zp.Order):
             order_id = order_param.id
 
         self.blotter.cancel(order_id)

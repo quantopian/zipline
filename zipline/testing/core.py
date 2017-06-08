@@ -491,35 +491,33 @@ def write_daily_data(tempdir, sim_params, sids, trading_calendar):
 
 def create_data_portal(asset_finder, tempdir, sim_params, sids,
                        trading_calendar, adjustment_reader=None):
-    if sim_params.data_frequency == "daily":
-        daily_path = write_daily_data(tempdir, sim_params, sids,
-                                      trading_calendar)
+    daily_path = write_daily_data(tempdir, sim_params, sids, trading_calendar)
+    equity_daily_reader = BcolzDailyBarReader(daily_path)
 
-        equity_daily_reader = BcolzDailyBarReader(daily_path)
-
-        return DataPortal(
-            asset_finder, trading_calendar,
-            first_trading_day=equity_daily_reader.first_trading_day,
-            equity_daily_reader=equity_daily_reader,
-            adjustment_reader=adjustment_reader
-        )
-    else:
+    if sim_params.data_frequency == 'minute':
         minutes = trading_calendar.minutes_in_range(
             sim_params.first_open,
-            sim_params.last_close
+            sim_params.last_close,
         )
-
         minute_path = write_minute_data(trading_calendar, tempdir, minutes,
                                         sids)
-
         equity_minute_reader = BcolzMinuteBarReader(minute_path)
-
-        return DataPortal(
-            asset_finder, trading_calendar,
-            first_trading_day=equity_minute_reader.first_trading_day,
-            equity_minute_reader=equity_minute_reader,
-            adjustment_reader=adjustment_reader
+        first_trading_day = max(
+            equity_daily_reader.first_trading_day,
+            equity_minute_reader.first_trading_day,
         )
+    else:
+        equity_minute_reader = None
+        first_trading_day = equity_daily_reader.first_trading_day
+
+    return DataPortal(
+        asset_finder,
+        trading_calendar,
+        first_trading_day=first_trading_day,
+        equity_daily_reader=equity_daily_reader,
+        equity_minute_reader=equity_minute_reader,
+        adjustment_reader=adjustment_reader,
+    )
 
 
 def write_bcolz_minute_data(trading_calendar, days, path, data):
@@ -1196,6 +1194,30 @@ def create_empty_splits_mergers_frame():
         ),
         index=pd.DatetimeIndex([]),
     )
+
+
+def prices_with_returns(initial_price, returns):
+    """
+    Create an array of prices that follow the given returns, beginning with the
+    specified starting price.
+    """
+    returns = np.array(returns)
+    out = np.empty(len(returns) + 1)
+    out[0] = initial_price
+    out[1:] = initial_price * (1 + returns).cumprod()
+    return out
+
+
+def make_alternating_1d_array(length,
+                              first_value=0,
+                              second_value=1,
+                              dtype=None):
+    if dtype is None:
+        dtype = type(first_value)
+    alternating = np.empty(length, dtype=dtype)
+    alternating[::2] = first_value
+    alternating[1::2] = second_value
+    return alternating
 
 
 def make_alternating_boolean_array(shape, first_value=True):

@@ -59,14 +59,19 @@ Performance Tracking
 
 from __future__ import division
 
+from functools import partial
 import logbook
 
+import numpy as np
 import pandas as pd
 from pandas.tseries.tools import normalize_date
 
-from zipline.finance.performance.period import PerformancePeriod
 from zipline.errors import NoFurtherDataError
+from zipline.finance.performance.period import PerformancePeriod
 import zipline.finance.risk as risk
+import zipline.protocol as zp
+from zipline.utils.dummy import DummyPortfolio
+from zipline.utils.numpy_utils import rolling_expected_shortfall
 
 from . position_tracker import PositionTracker
 
@@ -77,10 +82,11 @@ class PerformanceTracker(object):
     """
     Tracks the performance of the algorithm.
     """
-    def __init__(self, sim_params, trading_calendar, asset_finder):
+    def __init__(self, sim_params, trading_calendar, asset_finder, portfolio):
         self.sim_params = sim_params
         self.trading_calendar = trading_calendar
         self.asset_finder = asset_finder
+        self.benchmark_asset = portfolio.benchmark_asset
 
         self.period_start = self.sim_params.start_session
         self.period_end = self.sim_params.end_session
@@ -128,6 +134,7 @@ class PerformanceTracker(object):
             # initial cash is your capital base.
             starting_cash=self.capital_base,
             data_frequency=self.sim_params.data_frequency,
+            portfolio=portfolio,
             # the cumulative period will be calculated over the entire test.
             period_open=self.period_start,
             period_close=self.period_end,
@@ -146,6 +153,7 @@ class PerformanceTracker(object):
             # initial cash is your capital base.
             starting_cash=self.capital_base,
             data_frequency=self.sim_params.data_frequency,
+            portfolio=DummyPortfolio(),
             # the daily period will be calculated for the market day
             period_open=self.market_open,
             period_close=self.market_close,
@@ -163,6 +171,10 @@ class PerformanceTracker(object):
 
         self.account_needs_update = True
         self._account = None
+
+        # The weights for each day should be a dictionary mapping assets to
+        # their respective position weights in the current portfolio.
+        self.position_weights = []
 
     def __repr__(self):
         return "%s(%r)" % (
@@ -355,7 +367,7 @@ class PerformanceTracker(object):
         minute_packet = self.to_dict(emission_type='minute')
         return minute_packet
 
-    def handle_market_close(self, dt, data_portal):
+    def handle_market_close(self, dt, data_portal, calculate_position_weights):
         """
         Handles the close of the given day, in both minute and daily emission.
         In daily emission, also updates performance, benchmark and risk metrics
@@ -387,6 +399,20 @@ class PerformanceTracker(object):
                 self.todays_performance.returns,
                 benchmark_value,
                 account.leverage)
+
+        if calculate_position_weights:
+            portfolio = self.get_portfolio(performance_needs_update=False)
+            position_weights = portfolio.current_portfolio_weights()
+
+            # For each day of the simulation, check to see if any futures were
+            # held. If so, convert them to continuous futures.
+            convert_futures = partial(
+                portfolio.asset_for_history_call, date=portfolio.current_date,
+            )
+            position_weights.index = list(
+                map(convert_futures, position_weights.index),
+            )
+            self.position_weights.append(dict(position_weights))
 
         # increment the day counter before we move markers forward.
         self.session_count += 1.0
@@ -435,19 +461,17 @@ class PerformanceTracker(object):
 
         return daily_update
 
-    def handle_simulation_end(self):
+    def handle_simulation_end(self, data_portal, calculate_expected_shortfall):
         """
         When the simulation is complete, run the full period risk report
         and send it out on the results socket.
         """
-
         log_msg = "Simulated {n} trading days out of {m}."
-        log.info(log_msg.format(n=int(self.session_count),
-                                m=self.total_session_count))
-        log.info("first open: {d}".format(
-            d=self.sim_params.first_open))
-        log.info("last close: {d}".format(
-            d=self.sim_params.last_close))
+        log.info(
+            log_msg, n=int(self.session_count), m=self.total_session_count,
+        )
+        log.info("first open: {d}", d=self.sim_params.first_open)
+        log.info("last close: {d}", d=self.sim_params.last_close)
 
         bms = pd.Series(
             index=self.cumulative_risk_metrics.cont_index,
@@ -456,13 +480,57 @@ class PerformanceTracker(object):
             index=self.cumulative_risk_metrics.cont_index,
             data=self.cumulative_risk_metrics.algorithm_returns_cont)
         acl = self.cumulative_risk_metrics.algorithm_cumulative_leverages
+        if calculate_expected_shortfall:
+            es = self._calculate_rolling_expected_shortfall(data_portal)
+        else:
+            es = pd.Series(np.nan, index=self.sim_params.sessions)
 
         risk_report = risk.RiskReport(
-            ars,
-            self.sim_params,
+            algorithm_returns=ars,
+            expected_shortfalls=es,
+            sim_params=self.sim_params,
             benchmark_returns=bms,
             algorithm_leverages=acl,
             trading_calendar=self.trading_calendar,
         )
 
         return risk_report.to_dict()
+
+    def _calculate_rolling_expected_shortfall(self, data_portal):
+        sim_params = self.sim_params
+        lookback_days = zp.DEFAULT_EXPECTED_SHORTFALL_LOOKBACK_DAYS
+
+        # Create a data frame of asset weights on each day of the simulation.
+        # If an asset was not held on a given date, it is assigned a weight of
+        # zero.
+        weights = pd.DataFrame(
+            self.position_weights, index=sim_params.sessions,
+        ).fillna(0.0)
+
+        # If we are near the start date of our data, just use the data
+        # available. Otherwise, use the full default number of lookback days.
+        days_before_start = min(
+            self.trading_calendar.session_distance(
+                data_portal.first_available_session, sim_params.start_session,
+            ),
+            lookback_days,
+        )
+
+        asset_returns = zp.asset_returns_for_expected_shortfall(
+            assets=list(weights.columns),
+            benchmark=self.benchmark_asset,
+            data_portal=data_portal,
+            end_date=sim_params.end_session,
+            lookback_days=len(sim_params.sessions) + days_before_start,
+        )
+
+        return pd.Series(
+            rolling_expected_shortfall(
+                asset_returns=asset_returns.values,
+                weights=weights.values,
+                cutoff=zp.DEFAULT_EXPECTED_SHORTFALL_CUTOFF,
+                window_length=zp.DEFAULT_EXPECTED_SHORTFALL_LOOKBACK_DAYS,
+                min_periods=zp.DEFAULT_EXPECTED_SHORTFALL_MINIMUM_DAYS,
+            ),
+            index=sim_params.sessions,
+        )

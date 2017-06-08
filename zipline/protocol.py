@@ -12,14 +12,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
 from warnings import warn
 
+from empyrical import conditional_value_at_risk
+import numpy as np
 import pandas as pd
 
-from zipline.assets import Asset, Future
-from zipline.utils.input_validation import expect_types
-from .utils.enum import enum
 from zipline._protocol import BarData  # noqa
+from zipline.assets import Asset, Future
+from zipline.errors import InsufficientHistoricalData
+from zipline.utils.cache import ExpiringCache
+from zipline.utils.enum import enum
+from zipline.utils.input_validation import expect_types
 
 
 # Datasource type should completely determine the other fields of a
@@ -58,6 +63,10 @@ DIVIDEND_PAYMENT_FIELDS = [
     'cash_amount',
     'share_count',
 ]
+
+DEFAULT_EXPECTED_SHORTFALL_LOOKBACK_DAYS = 504
+DEFAULT_EXPECTED_SHORTFALL_MINIMUM_DAYS = 252
+DEFAULT_EXPECTED_SHORTFALL_CUTOFF = 0.05
 
 
 class Event(object):
@@ -140,9 +149,63 @@ def asset_multiplier(asset):
     return asset.multiplier if isinstance(asset, Future) else 1
 
 
+def asset_returns_for_expected_shortfall(assets,
+                                         benchmark,
+                                         data_portal,
+                                         end_date,
+                                         lookback_days):
+    if benchmark is not None:
+        # If the algorithm held a position in the benchmark asset, include it
+        # in the expected shortfall calculation. Otherwise, just use it as a
+        # filler for missing values.
+        if benchmark in assets:
+            include_benchmark = True
+        else:
+            assets.append(benchmark)
+            include_benchmark = False
+
+    # NOTE: Using the simulation calendar here is based on the assumption that
+    # this calendar runs on the union of all trading days of all asset classes.
+    # For example, when doing history pricing calls for both equities and
+    # futures, we require equity holidays that are not future holidays to be
+    # forward filled. This keeps the dates aligned when computing returns. It
+    # just so happens that the us_futures calendar is a strict superset of the
+    # NYSE calendar, making this assumption true.
+    prices = data_portal.get_history_window(
+       assets=assets,
+       end_dt=end_date,
+       bar_count=lookback_days,
+       frequency='1d',
+       field='price',
+       data_frequency='daily',
+    )
+
+    # Get returns values for all assets for the entirety of the simulation.
+    asset_returns = prices.pct_change().iloc[1:]
+
+    # Any assets that came into existence after the start date of the
+    # simulation have their missing returns values proxied with the benchmark's
+    # returns values.
+    if benchmark is not None:
+        benchmark_returns = asset_returns[benchmark].values
+        filler_df = pd.DataFrame(
+            np.tile(
+                benchmark_returns[:, np.newaxis],
+                (1, len(asset_returns.columns)),
+            ),
+            index=asset_returns.index,
+            columns=asset_returns.columns,
+        )
+        asset_returns.fillna(filler_df, inplace=True)
+        if not include_benchmark:
+            asset_returns.drop(benchmark, axis=1, inplace=True)
+
+    return asset_returns.fillna(0)
+
+
 class Portfolio(object):
 
-    def __init__(self):
+    def __init__(self, data_portal, current_dt_callback, benchmark_asset=None):
         self.capital_used = 0.0
         self.starting_cash = 0.0
         self.portfolio_value = 0.0
@@ -152,6 +215,12 @@ class Portfolio(object):
         self.positions = Positions()
         self.start_date = None
         self.positions_value = 0.0
+
+        self.benchmark_asset = benchmark_asset
+
+        self._data_portal = data_portal
+        self._current_dt_callback = current_dt_callback
+        self._expiring_cache = ExpiringCache()
 
     def __repr__(self):
         return "Portfolio({0})".format(self.__dict__)
@@ -174,6 +243,9 @@ class Portfolio(object):
     )
 
     @property
+    def current_date(self):
+        return self._current_dt_callback()
+
     def current_portfolio_weights(self):
         """
         Compute each asset's weight in the portfolio by calculating its held
@@ -192,6 +264,91 @@ class Portfolio(object):
             for asset, position in self.positions.items()
         })
         return position_values / self.portfolio_value
+
+    def asset_for_history_call(self, asset, date):
+        if isinstance(asset, Future):
+            # Infer the offset of the given future by comparing it to the
+            # upcoming closing contract according to the given date.
+            asset_finder = self._data_portal.asset_finder
+            offset = asset_finder.offset_of_contract(asset, date)
+            return asset_finder.get_continuous_future(
+                root_symbol=asset.root_symbol,
+                offset=offset,
+                roll_style='volume',
+                adjustment='mul',
+            )
+        return asset
+
+    def expected_shortfall(
+            self,
+            lookback_days=DEFAULT_EXPECTED_SHORTFALL_LOOKBACK_DAYS,
+            cutoff=DEFAULT_EXPECTED_SHORTFALL_CUTOFF):
+        """
+        Function for computing expected shortfall (also known as CVaR, or
+        Conditional Value at Risk) for the portfolio according to the assets
+        currently held and their respective weight in the portfolio.
+
+        Parameters
+        ----------
+
+        lookback_days : int, optional
+            The number of days of asset returns history to use.
+        cutoff : float, optional
+            The percentile cutoff to use for finding the worst returns values.
+
+        Returns
+        -------
+        expected_shortfall : float
+            The expected shortfall of the current portfolio.
+
+        Raises
+        ------
+        InsufficientHistoricalData
+            Raised if there is less than 'lookback_days' days worth of asset
+            data available from the portfolio's current date.
+        """
+        data_portal = self._data_portal
+        current_date = self.current_date
+        benchmark = self.benchmark_asset
+        calendar = data_portal.trading_calendar
+
+        try:
+            return self._expiring_cache.get('expected_shortfall', current_date)
+        except KeyError:
+            pass
+
+        # If we do not have enough data to look back on then the expected
+        # shortfall calculation will not be reliable, so instead of returning
+        # NaN, raise an exception alerting the user that this method cannot be
+        # called over the given simulation dates.
+        data_start = data_portal.first_available_session
+        num_days_of_data = calendar.session_distance(data_start, current_date)
+        if num_days_of_data < lookback_days:
+            suggested_start_date = data_start + (calendar.day * lookback_days)
+            raise InsufficientHistoricalData(
+                method_name='expected_shortfall',
+                lookback_days=lookback_days,
+                suggested_start_date=suggested_start_date.date(),
+            )
+
+        # Series mapping each asset to its portfolio weight.
+        weights = self.current_portfolio_weights()
+
+        convert_futures = partial(
+            self.asset_for_history_call, date=current_date,
+        )
+        assets = list(map(convert_futures, weights.index))
+        asset_returns = asset_returns_for_expected_shortfall(
+            assets, benchmark, data_portal, current_date, lookback_days,
+        )
+
+        expected_shortfall = conditional_value_at_risk(
+            returns=asset_returns.dot(weights.values), cutoff=cutoff,
+        )
+        self._expiring_cache.set(
+            'expected_shortfall', expected_shortfall, current_date,
+        )
+        return expected_shortfall
 
 
 class Account(object):
