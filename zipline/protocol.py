@@ -14,9 +14,11 @@
 # limitations under the License.
 from warnings import warn
 
+from empyrical import conditional_value_at_risk
+import numpy as np
 import pandas as pd
 
-from zipline.assets import Asset, Future
+from zipline.assets import Asset, Equity, Future
 from zipline.utils.input_validation import expect_types
 from .utils.enum import enum
 from zipline._protocol import BarData  # noqa
@@ -58,6 +60,10 @@ DIVIDEND_PAYMENT_FIELDS = [
     'cash_amount',
     'share_count',
 ]
+
+TRADING_DAYS_PER_YEAR = 252
+CVAR_LOOKBACK_DAYS = TRADING_DAYS_PER_YEAR * 2
+CVAR_CUTOFF = 0.05
 
 
 class Event(object):
@@ -192,6 +198,95 @@ class Portfolio(object):
             for asset, position in self.positions.items()
         })
         return position_values / self.portfolio_value
+
+
+class AlgorithmPortfolio(Portfolio):
+
+    def __init__(self, data_portal, benchmark=None):
+        super(AlgorithmPortfolio, self).__init__()
+        self.data_portal = data_portal
+        self.benchmark = benchmark
+        self.current_date = None
+
+    @property
+    def expected_shortfall(self):
+        """
+        Function for computing expected shortfall (also known as CVaR, or
+        Conditional Value at Risk) for the portfolio according to the assets
+        currently held and their respective weight in the portfolio.
+
+        This function requires a data portal in order to retrieve price
+        histories of the assets in the portfolio.
+        """
+        data_portal = self.data_portal
+        current_date = self.current_date
+
+        # If we do not even have a year's worth of data to look back on
+        # then the expected shortfall calculation will not be reliable, so
+        # just return NaN. If we only have between one and two years of
+        # data just use what is available.
+        num_days_of_data = data_portal.trading_calendar.session_distance(
+            self.start_date, current_date,
+        )
+        if num_days_of_data < TRADING_DAYS_PER_YEAR:
+            return np.NaN
+        elif num_days_of_data < CVAR_LOOKBACK_DAYS:
+            num_lookback_days = num_days_of_data
+        else:
+            num_lookback_days = CVAR_LOOKBACK_DAYS
+
+        # Series mapping each asset to its portfolio weight.
+        weights = self.current_portfolio_weights
+
+        assets = map(self._asset_for_history_call, weights.index)
+        prices = data_portal.get_history_window(
+           assets=assets,
+           end_dt=current_date,
+           bar_count=num_lookback_days,
+           frequency='1d',
+           field='price',
+           data_frequency='daily',
+        )
+        asset_returns = prices.pct_change()
+
+        return conditional_value_at_risk(
+            returns=asset_returns.fillna(0).dot(weights.values),
+            cutoff=CVAR_CUTOFF,
+        )
+
+    def _asset_for_history_call(self, asset):
+        calendar = self.data_portal.trading_calendar
+        asset_finder = self.data_portal.asset_finder
+        current_date = self.current_date
+
+        if isinstance(asset, Equity):
+            num_days_of_data = calendar.session_distance(
+                asset.start_date, current_date,
+            )
+            if num_days_of_data < TRADING_DAYS_PER_YEAR and \
+                    self.benchmark is not None:
+                asset = self.benchmark
+        elif isinstance(asset, Future):
+            # Infer the offset of the given future by comparing it to
+            # the upcoming closing contract according to our current
+            # date.
+            oc = asset_finder.get_ordered_contracts(asset.root_symbol)
+            current_contract_sid = oc.contract_before_auto_close(
+                current_date.value,
+            )
+            offset = 0
+            while asset.sid != current_contract_sid:
+                offset += 1
+                current_contract_sid = oc.sid_to_contract[
+                    current_contract_sid
+                ].next.contract.sid
+            return asset_finder.create_continuous_future(
+                root_symbol=asset.root_symbol,
+                offset=offset,
+                roll_style='volume',
+                adjustment='mul',
+            )
+        return asset
 
 
 class Account(object):

@@ -570,6 +570,7 @@ class TradingAlgorithm(object):
                 sim_params=self.sim_params,
                 trading_calendar=self.trading_calendar,
                 env=self.trading_environment,
+                data_portal=self.data_portal,
             )
 
             # Set the dt initially to the period start by forcing it to change.

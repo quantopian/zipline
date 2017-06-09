@@ -65,8 +65,9 @@ import pandas as pd
 from pandas.tseries.tools import normalize_date
 
 from zipline.finance.performance.period import PerformancePeriod
-from zipline.errors import NoFurtherDataError
+from zipline.errors import NoFurtherDataError, SymbolNotFound
 import zipline.finance.risk as risk
+import zipline.protocol as zp
 
 from . position_tracker import PositionTracker
 
@@ -77,7 +78,7 @@ class PerformanceTracker(object):
     """
     Tracks the performance of the algorithm.
     """
-    def __init__(self, sim_params, trading_calendar, env):
+    def __init__(self, sim_params, trading_calendar, env, data_portal):
         self.sim_params = sim_params
         self.trading_calendar = trading_calendar
         self.asset_finder = env.asset_finder
@@ -125,12 +126,20 @@ class PerformanceTracker(object):
                     create_first_day_stats=True
                 )
 
+        try:
+            benchmark = self.asset_finder.lookup_symbol(
+                env.bm_symbol, self.period_start,
+            )
+        except SymbolNotFound:
+            benchmark = None
+
         # this performance period will span the entire simulation from
         # inception.
         self.cumulative_performance = PerformancePeriod(
             # initial cash is your capital base.
             starting_cash=self.capital_base,
             data_frequency=self.sim_params.data_frequency,
+            portfolio=zp.AlgorithmPortfolio(data_portal, benchmark),
             # the cumulative period will be calculated over the entire test.
             period_open=self.period_start,
             period_close=self.period_end,
@@ -149,6 +158,7 @@ class PerformanceTracker(object):
             # initial cash is your capital base.
             starting_cash=self.capital_base,
             data_frequency=self.sim_params.data_frequency,
+            portfolio=zp.AlgorithmPortfolio(data_portal, benchmark),
             # the daily period will be calculated for the market day
             period_open=self.market_open,
             period_close=self.market_close,
@@ -189,7 +199,9 @@ class PerformanceTracker(object):
         if performance_needs_update:
             self.update_performance()
             self.account_needs_update = True
-        return self.cumulative_performance.as_portfolio()
+        portfolio = self.cumulative_performance.as_portfolio()
+        portfolio.current_date = self._current_session
+        return portfolio
 
     def update_performance(self):
         # calculate performance as of last trade
@@ -389,7 +401,7 @@ class PerformanceTracker(object):
             benchmark_value = self.all_benchmark_returns[completed_session]
 
             portfolio = self.get_portfolio(False)
-            expected_shortfall = portfolio.calculate_expected_shortfall()
+            expected_shortfall = portfolio.expected_shortfall
 
             self.cumulative_risk_metrics.update(
                 completed_session,
