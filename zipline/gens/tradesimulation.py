@@ -124,6 +124,9 @@ class AlgorithmSimulator(object):
                             algo.benchmark_sid is not None:
                         asset = algo.sid(algo.benchmark_sid)
                 elif isinstance(asset, Future):
+                    # Infer the offset of the given future by comparing it to
+                    # the upcoming closing contract according to our current
+                    # date.
                     oc = asset_finder.get_ordered_contracts(asset.root_symbol)
                     current_contract_sid = oc.contract_before_auto_close(
                         current_date.value,
