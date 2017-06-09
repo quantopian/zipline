@@ -1114,14 +1114,6 @@ class TestPositions(WithLogger,
         return ((sid, frame) for sid in cls.asset_finder.equities_sids)
 
     @classmethod
-    def make_root_symbols_info(self):
-        return pd.DataFrame({
-            'root_symbol': ['CL'],
-            'root_symbol_id': [1],
-            'exchange': ['CME'],
-        })
-
-    @classmethod
     def make_futures_info(cls):
         return pd.DataFrame.from_dict(
             {
@@ -1348,10 +1340,10 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
             index=minutes,
         )
 
-        # Set all futures contracts to have alternating price values, meaning
-        # returns will alternate consistently from the same positive number to
-        # the same negative number. This makes it easier to manually calculate
-        # expected shortfall.
+        # Set all futures contracts to have alternating price values from day
+        # to day, meaning returns will alternate consistently from the same
+        # positive number to the same negative number. This makes it easier to
+        # manually calculate expected shortfall.
         #
         # The code for creating an alternating array was found here:
         # https://stackoverflow.com/a/7154925
@@ -1373,7 +1365,6 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
             sids_and_amounts=zip(sids, [1, 1]),
             sim_params=self.sim_params,
             env=self.env,
-            # trading_calendar=self.trading_calendars[Future],
         )
         daily_stats = algo.run(self.data_portal)
 
@@ -1410,11 +1401,11 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         assert_equal(first_weights, daily_stats.position_weights[1])
         assert_equal(second_weights, daily_stats.position_weights[2])
 
-        # $1000.00 --> $900.00 is a returns of -10 percent.
+        # $1000.00 --> $900.00 is a return of -10 percent.
         equity_low_returns = \
             (second_equity_value - first_equity_value) / first_equity_value
 
-        # $1000.00 --> $870.00 is a returns of -13 percent.
+        # $1000.00 --> $870.00 is a return of -13 percent.
         future_low_returns = \
             (second_future_value - first_future_value) / first_future_value
 
@@ -1424,7 +1415,7 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         )
 
         # For the first set of weights, our holdings in the equity and future
-        # have equal weights of 0.5, the our expected shortfall is simply the
+        # have equal weights of 0.5, so our expected shortfall is simply the
         # average of their low returns. That is, this should be the average of
         # -10 percent (-0.1) and -13 percent (-0.13).
         first_expected_shortfall_value = sum(asset_returns * first_weights)
