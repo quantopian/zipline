@@ -140,6 +140,7 @@ class PerformancePeriod(object):
             self,
             starting_cash,
             data_frequency,
+            portfolio,
             period_open=None,
             period_close=None,
             keep_transactions=True,
@@ -179,7 +180,7 @@ class PerformancePeriod(object):
         # An object to recycle via assigning new values
         # when returning portfolio information.
         # So as not to avoid creating a new object for each event
-        self._portfolio_store = zp.Portfolio()
+        self._portfolio_store = portfolio
         self._account_store = zp.Account()
         self.serialize_positions = serialize_positions
 

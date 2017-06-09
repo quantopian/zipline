@@ -38,10 +38,6 @@ from empyrical import (
     sortino_ratio,
 )
 
-TRADING_DAYS_PER_YEAR = 252
-CVAR_LOOKBACK_DAYS = TRADING_DAYS_PER_YEAR * 2
-CVAR_CUTOFF = 0.05
-
 log = logbook.Logger('Risk Cumulative')
 
 

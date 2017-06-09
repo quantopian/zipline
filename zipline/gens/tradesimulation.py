@@ -12,21 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from types import MethodType
-
 from contextlib2 import ExitStack
-from empyrical import conditional_value_at_risk
 from logbook import Logger, Processor
-from numpy import NaN
 from pandas.tslib import normalize_date
 from six import viewkeys
 
-from zipline.assets import Equity, Future
-from zipline.finance.risk.cumulative import (
-    CVAR_CUTOFF,
-    CVAR_LOOKBACK_DAYS,
-    TRADING_DAYS_PER_YEAR,
-)
 from zipline.gens.sim_engine import (
     BAR,
     SESSION_START,
@@ -79,89 +69,6 @@ class AlgorithmSimulator(object):
         self.clock = clock
 
         self.benchmark_source = benchmark_source
-
-        # ===============
-        # Portfolio Setup
-        # ===============
-
-        def calculate_expected_shortfall(portfolio):
-            """
-            Function for computing expected shortfall (also known as CVaR, or
-            Conditional Value at Risk) for a given portfolio according to the
-            assets currently held and their respective weight in the portfolio.
-
-            This function is created here because we want it available as a
-            method on 'context.portfolio' in algorithms, but it requires the
-            'context.data' object in order to retrieve price histories of the
-            assets in the portfolio.
-            """
-            algo = self.algo
-            data_portal = self.data_portal
-            asset_finder = data_portal.asset_finder
-            current_date = self.simulation_dt
-            calendar = self.algo.trading_calendar
-
-            # If we do not even have a year's worth of data to look back on
-            # then the expected shortfall calculation will not be reliable, so
-            # just return NaN. If we only have between one and two years of
-            # data just use what is available.
-            num_days_of_data = calendar.session_distance(
-                data_portal._first_trading_day, current_date,
-            )
-            if num_days_of_data < TRADING_DAYS_PER_YEAR:
-                return NaN
-            elif num_days_of_data < CVAR_LOOKBACK_DAYS:
-                num_lookback_days = num_days_of_data
-            else:
-                num_lookback_days = CVAR_LOOKBACK_DAYS
-
-            def asset_for_history_call(asset):
-                if isinstance(asset, Equity):
-                    num_days_of_data = calendar.session_distance(
-                        asset.start_date, current_date,
-                    )
-                    if num_days_of_data < TRADING_DAYS_PER_YEAR and \
-                            algo.benchmark_sid is not None:
-                        asset = algo.sid(algo.benchmark_sid)
-                elif isinstance(asset, Future):
-                    # Infer the offset of the given future by comparing it to
-                    # the upcoming closing contract according to our current
-                    # date.
-                    oc = asset_finder.get_ordered_contracts(asset.root_symbol)
-                    current_contract_sid = oc.contract_before_auto_close(
-                        current_date.value,
-                    )
-                    offset = 0
-                    while asset.sid != current_contract_sid:
-                        offset += 1
-                        current_contract_sid = oc.sid_to_contract[
-                            current_contract_sid
-                        ].next.contract.sid
-                    return algo.continuous_future(
-                        root_symbol_str=asset.root_symbol, offset=offset,
-                    )
-                return asset
-
-            # Series mapping each asset to its portfolio weight.
-            weights = portfolio.current_portfolio_weights
-
-            assets = map(asset_for_history_call, weights.index)
-            prices = self.current_data.history(
-                assets=assets,
-                fields='price',
-                bar_count=num_lookback_days,
-                frequency='1d',
-            )
-            asset_returns = prices.pct_change()
-
-            return conditional_value_at_risk(
-                returns=asset_returns.fillna(0).dot(weights.values),
-                cutoff=CVAR_CUTOFF,
-            )
-
-        self.algo.portfolio.calculate_expected_shortfall = MethodType(
-            calculate_expected_shortfall, self.algo.portfolio,
-        )
 
         # =============
         # Logging Setup
