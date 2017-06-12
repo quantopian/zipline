@@ -271,15 +271,7 @@ class AlgorithmPortfolio(Portfolio):
             # the upcoming closing contract according to our current
             # date.
             oc = asset_finder.get_ordered_contracts(asset.root_symbol)
-            current_contract_sid = oc.contract_before_auto_close(
-                current_date.value,
-            )
-            offset = 0
-            while asset.sid != current_contract_sid:
-                offset += 1
-                current_contract_sid = oc.sid_to_contract[
-                    current_contract_sid
-                ].next.contract.sid
+            offset = oc.offset_of_contract(asset.sid, current_date.value)
             return asset_finder.create_continuous_future(
                 root_symbol=asset.root_symbol,
                 offset=offset,

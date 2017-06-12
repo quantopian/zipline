@@ -1368,8 +1368,36 @@ class OrderedContractsTestCase(WithAssetFinder,
             'multiplier': [1000.0] * 4,
             'exchange': ['CME'] * 4,
         })
+        # Normal future rolling month-to-month.
+        end_date = [
+            pd.Timestamp('2017-01-20', tz='UTC'),
+            pd.Timestamp('2017-02-17', tz='UTC'),
+            pd.Timestamp('2017-03-17', tz='UTC'),
+        ]
+        bu_frame = DataFrame({
+            'root_symbol': ['BU'] * 3,
+            'asset_name': ['Buz'] * 3,
+            'symbol': ['BUF15', 'BUG15', 'BUH15'],
+            'sid': range(12, 15),
+            'start_date': [
+                pd.Timestamp('2017-01-04', tz='UTC'),
+                pd.Timestamp('2017-01-04', tz='UTC'),
+                pd.Timestamp('2017-01-04', tz='UTC'),
+            ],
+            'end_date': end_date,
+            'notice_date': end_date,
+            'expiration_date': end_date,
+            'auto_close_date': [
+                pd.Timestamp('2017-01-18', tz='UTC'),
+                pd.Timestamp('2017-02-15', tz='UTC'),
+                pd.Timestamp('2017-03-15', tz='UTC'),
+            ],
+            'tick_size': [0.001] * 3,
+            'multiplier': [1000.0] * 3,
+            'exchange': ['CME'] * 3,
+        })
 
-        return pd.concat([fo_frame, ba_frame, bz_frame])
+        return pd.concat([fo_frame, ba_frame, bz_frame, bu_frame])
 
     def test_contract_at_offset(self):
         contract_sids = array([1, 2, 3, 4], dtype=int64)
@@ -1390,6 +1418,33 @@ class OrderedContractsTestCase(WithAssetFinder,
         self.assertEquals(None,
                           oc.contract_at_offset(4, 1, start_dates[-1].value),
                           "Offset at end of chain should not crash.")
+
+    def test_offset_of_contract(self):
+        contract_sids = [12, 13, 14]
+        contracts = deque(self.asset_finder.retrieve_all(contract_sids))
+        oc = OrderedContracts('BU', contracts)
+
+        active_is_12 = pd.Timestamp('2017-01-17', tz='UTC').value
+        active_is_13 = pd.Timestamp('2017-01-18', tz='UTC').value
+
+        self.assertEqual(
+            oc.offset_of_contract(12, active_is_12),
+            0,
+        )
+        self.assertEqual(
+            oc.offset_of_contract(13, active_is_12),
+            1,
+        )
+        self.assertEqual(
+            oc.offset_of_contract(14, active_is_12),
+            2,
+        )
+        self.assertEqual(
+            oc.offset_of_contract(14, active_is_13),
+            1,
+        )
+        with self.assertRaises(ValueError):
+            oc.offset_of_contract(12, active_is_13)
 
     def test_active_chain(self):
         contract_sids = array([1, 2, 3, 4], dtype=int64)

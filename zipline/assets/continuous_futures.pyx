@@ -403,6 +403,24 @@ cdef class OrderedContracts(object):
         else:
             return None
 
+    cpdef offset_of_contract(self, long_t sid, long_t dt_value):
+        """
+        Get the offset of the given contract relative to the contract with an
+        offset of zero on the given date.
+        """
+        current_contract_sid = self.contract_before_auto_close(dt_value)
+        if sid < current_contract_sid:
+            raise ValueError(
+                'The given sid has already expired by the given date!',
+            )
+        offset = 0
+        while sid != current_contract_sid:
+            offset += 1
+            current_contract_sid = self.sid_to_contract[
+                current_contract_sid
+            ].next.contract.sid
+        return offset
+
     cpdef long_t[:] active_chain(self, long_t starting_sid, long_t dt_value):
         curr = self.sid_to_contract[starting_sid]
         cdef list contracts = []
