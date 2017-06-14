@@ -1379,10 +1379,15 @@ class TradingAlgorithm(object):
                 # If we are after the asset's end date or auto close date, warn
                 # the user that they can't place an order for this asset, and
                 # return None.
-                log.warn("Cannot place order for {0}, as it has de-listed. "
-                         "Any existing positions for this asset will be "
-                         "liquidated on "
-                         "{1}.".format(asset.symbol, asset.auto_close_date))
+                log.warn(
+                    ("Cannot place order for {asset}, either because "
+                     "your data bundle is not up to date, "
+                     "or the asset has de-listed. "
+                     "Any existing positions for this asset will be "
+                     "liquidated on {date}."),
+                    asset=asset.symbol,
+                    date=asset.auto_close_date
+                )
 
                 return False
 

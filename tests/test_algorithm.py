@@ -4749,9 +4749,11 @@ class TestOrderAfterDelist(WithTradingEnvironment, ZiplineTestCase):
 
             for w in warnings:
                 expected_message = (
-                    'Cannot place order for ASSET{sid}, as it has de-listed. '
+                    'Cannot place order for {asset}, either because your data '
+                    'bundle is not up to date, or the asset has de-listed. '
                     'Any existing positions for this asset will be liquidated '
-                    'on {date}.'.format(sid=sid, date=asset.auto_close_date)
+                    'on {date}.'.format(asset=asset.symbol,
+                                        date=asset.auto_close_date)
                 )
                 self.assertEqual(expected_message, w.message)
 
