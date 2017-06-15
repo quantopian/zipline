@@ -72,3 +72,5 @@ zipline.iml
 .idea
 
 TAGS
+
+.ipynb_checkpoints/
