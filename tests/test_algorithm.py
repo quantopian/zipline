@@ -1226,6 +1226,7 @@ class TestPositions(WithLogger,
 class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
     START_DATE = pd.Timestamp('2015-01-05', tz='UTC')
     END_DATE = pd.Timestamp('2017-02-01', tz='UTC')
+    # SIM_PARAMS_START = pd.Timestamp('2015-01-12', tz='UTC')
 
     SIM_PARAMS_CAPITAL_BASE = 2000
     DATA_PORTAL_DAILY_HISTORY_PREFETCH = 0
@@ -1398,6 +1399,7 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
             ],
             index=[equity_1, future_1000],
         )
+        # from nose.tools import set_trace; set_trace()
         assert_equal(first_weights, daily_stats.position_weights[1])
         assert_equal(second_weights, daily_stats.position_weights[2])
 
