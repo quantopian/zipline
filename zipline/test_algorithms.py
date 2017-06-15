@@ -709,7 +709,9 @@ class TestPositionWeightsAlgorithm(TradingAlgorithm):
                 self.order(self.sid(s), amount)
             self.ordered = True
 
-        self.record(position_weights=self.portfolio.current_portfolio_weights)
+        self.record(
+            position_weights=self.portfolio.current_portfolio_weights(),
+        )
 
 
 class InvalidOrderAlgorithm(TradingAlgorithm):

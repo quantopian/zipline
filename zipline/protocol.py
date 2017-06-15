@@ -61,9 +61,8 @@ DIVIDEND_PAYMENT_FIELDS = [
     'share_count',
 ]
 
-TRADING_DAYS_PER_YEAR = 252
-CVAR_LOOKBACK_DAYS = TRADING_DAYS_PER_YEAR * 2
-CVAR_CUTOFF = 0.05
+DEFAULT_CVAR_LOOKBACK_DAYS = 504
+DEFAULT_CVAR_CUTOFF = 0.05
 
 
 class Event(object):
@@ -148,7 +147,7 @@ def asset_multiplier(asset):
 
 class Portfolio(object):
 
-    def __init__(self):
+    def __init__(self, data_portal, current_dt_callback, benchmark_asset=None):
         self.capital_used = 0.0
         self.starting_cash = 0.0
         self.portfolio_value = 0.0
@@ -158,6 +157,10 @@ class Portfolio(object):
         self.positions = Positions()
         self.start_date = None
         self.positions_value = 0.0
+
+        self.data_portal = data_portal
+        self.benchmark = benchmark_asset
+        self._current_dt_callback = current_dt_callback
 
     def __repr__(self):
         return "Portfolio({0})".format(self.__dict__)
@@ -180,6 +183,9 @@ class Portfolio(object):
     )
 
     @property
+    def current_date(self):
+        return self._current_dt_callback()
+
     def current_portfolio_weights(self):
         """
         Compute each asset's weight in the portfolio by calculating its held
@@ -199,24 +205,11 @@ class Portfolio(object):
         })
         return position_values / self.portfolio_value
 
-
-class AlgorithmPortfolio(Portfolio):
-
-    def __init__(self, data_portal, benchmark=None):
-        super(AlgorithmPortfolio, self).__init__()
-        self.data_portal = data_portal
-        self.benchmark = benchmark
-        self.current_date = None
-
-    @property
-    def expected_shortfall(self):
+    def expected_shortfall(self, lookback_days=DEFAULT_CVAR_LOOKBACK_DAYS):
         """
         Function for computing expected shortfall (also known as CVaR, or
         Conditional Value at Risk) for the portfolio according to the assets
         currently held and their respective weight in the portfolio.
-
-        This function requires a data portal in order to retrieve price
-        histories of the assets in the portfolio.
         """
         data_portal = self.data_portal
         current_date = self.current_date
@@ -228,15 +221,15 @@ class AlgorithmPortfolio(Portfolio):
         num_days_of_data = data_portal.trading_calendar.session_distance(
             self.start_date, current_date,
         )
-        if num_days_of_data < TRADING_DAYS_PER_YEAR:
+        if num_days_of_data < lookback_days / 2:
             return np.NaN
-        elif num_days_of_data < CVAR_LOOKBACK_DAYS:
+        elif num_days_of_data < lookback_days:
             num_lookback_days = num_days_of_data
         else:
-            num_lookback_days = CVAR_LOOKBACK_DAYS
+            num_lookback_days = lookback_days
 
         # Series mapping each asset to its portfolio weight.
-        weights = self.current_portfolio_weights
+        weights = self.current_portfolio_weights()
 
         assets = map(self._asset_for_history_call, weights.index)
         prices = data_portal.get_history_window(
@@ -251,10 +244,17 @@ class AlgorithmPortfolio(Portfolio):
 
         return conditional_value_at_risk(
             returns=asset_returns.fillna(0).dot(weights.values),
-            cutoff=CVAR_CUTOFF,
+            cutoff=DEFAULT_CVAR_CUTOFF,
         )
 
     def _asset_for_history_call(self, asset):
+        # NOTE: Using the simulation calendar here is based on the assumption
+        # that this calendar runs on the union of all trading days of all asset
+        # classes. For example, when doing history pricing calls for both
+        # equities and futures, we require equity holidays that are not future
+        # holidays to be forward filled. This keeps the dates aligned when
+        # computing returns. It just so happens that the us_futures calendar is
+        # a strict superset of the NYSE calendar, making this assumption true.
         calendar = self.data_portal.trading_calendar
         asset_finder = self.data_portal.asset_finder
         current_date = self.current_date
@@ -263,7 +263,7 @@ class AlgorithmPortfolio(Portfolio):
             num_days_of_data = calendar.session_distance(
                 asset.start_date, current_date,
             )
-            if num_days_of_data < TRADING_DAYS_PER_YEAR and \
+            if num_days_of_data < (DEFAULT_CVAR_LOOKBACK_DAYS / 2) and \
                     self.benchmark is not None:
                 asset = self.benchmark
         elif isinstance(asset, Future):

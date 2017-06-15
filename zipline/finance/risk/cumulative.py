@@ -297,7 +297,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             self.benchmark_volatility[dt_loc],
             'algo_volatility':
             self.algorithm_volatility[dt_loc],
-            'treasury_period_return': self.treasury_period_return,
+            'treasury_period_return': 0.0,
             # Though the two following keys say period return,
             # they would be more accurately called the cumulative return.
             # However, the keys need to stay the same, for now, for backwards

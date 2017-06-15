@@ -563,14 +563,22 @@ class TradingAlgorithm(object):
         if sim_params is not None:
             self.sim_params = sim_params
 
+        benchmark_source = self._create_benchmark_source()
+
         if self.perf_tracker is None:
             # HACK: When running with the `run` method, we set perf_tracker to
             # None so that it will be overwritten here.
+            # from nose.tools import set_trace; set_trace()
+            portfolio = zipline.protocol.Portfolio(
+                data_portal=self.data_portal,
+                current_dt_callback=self.get_datetime,
+                benchmark_asset=benchmark_source.benchmark_asset,
+            )
             self.perf_tracker = PerformanceTracker(
                 sim_params=self.sim_params,
                 trading_calendar=self.trading_calendar,
                 env=self.trading_environment,
-                data_portal=self.data_portal,
+                portfolio=portfolio,
             )
 
             # Set the dt initially to the period start by forcing it to change.
@@ -585,7 +593,7 @@ class TradingAlgorithm(object):
             sim_params,
             self.data_portal,
             self._create_clock(),
-            self._create_benchmark_source(),
+            benchmark_source,
             self.restrictions,
             universe_func=self._calculate_universe
         )
@@ -845,6 +853,7 @@ class TradingAlgorithm(object):
             [p['period_close'] for p in daily_perfs], tz='UTC'
         )
         daily_stats = pd.DataFrame(daily_perfs, index=daily_dts)
+        # from nose.tools import set_trace; set_trace()
 
         return daily_stats
 
