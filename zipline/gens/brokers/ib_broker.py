@@ -18,6 +18,7 @@ from math import fabs
 
 from six import itervalues
 import pandas as pd
+import numpy as np
 
 from zipline.gens.brokers.broker import Broker
 from zipline.finance.order import (Order as ZPOrder,
@@ -34,6 +35,7 @@ from ib.ext.EClientSocket import EClientSocket
 from ib.ext.EWrapper import EWrapper
 from ib.ext.Contract import Contract
 from ib.ext.Order import Order
+from ib.ext.EClientErrors import EClientErrors
 
 from logbook import Logger
 
@@ -41,14 +43,6 @@ if sys.version_info > (3,):
     long = int
 
 log = Logger('IB Broker')
-
-
-RTVolumeBar = namedtuple('RTVolumeBar', ['last_trade_price',
-                                         'last_trade_size',
-                                         'last_trade_time',
-                                         'total_volume',
-                                         'vwap',
-                                         'single_trade_flag'])
 
 Position = namedtuple('Position', ['contract', 'position', 'market_price',
                                    'market_value', 'average_cost',
@@ -80,9 +74,10 @@ class TWSConnection(EClientSocket, EWrapper):
         self._next_ticker_id = 0
         self._next_order_id = None
         self.managed_accounts = None
+        self.symbol_to_ticker_id = {}
         self.ticker_id_to_symbol = {}
         self.last_tick = defaultdict(dict)
-        self.realtime_bars = {}
+        self.bars = {}
         self.accounts = {}
         self.accounts_download_complete = False
         self.positions = {}
@@ -134,6 +129,10 @@ class TWSConnection(EClientSocket, EWrapper):
                                  sec_type='STK',
                                  exchange='SMART',
                                  currency='USD'):
+        if symbol in self.symbol_to_ticker_id:
+            # Already subscribed to market data
+            return
+
         contract = Contract()
         contract.m_symbol = symbol
         contract.m_secType = sec_type
@@ -142,19 +141,19 @@ class TWSConnection(EClientSocket, EWrapper):
 
         ticker_id = self.next_ticker_id
 
+        self.symbol_to_ticker_id[symbol] = ticker_id
         self.ticker_id_to_symbol[ticker_id] = symbol
 
         tick_list = "233"  # RTVolume, return tick_type == 48
-        self.reqMktData(self.next_ticker_id, contract, tick_list, False)
+        self.reqMktData(ticker_id, contract, tick_list, False)
 
     def _process_tick(self, ticker_id, tick_type, value):
         try:
-            instr = self.ticker_id_to_symbol[ticker_id]
+            symbol = self.ticker_id_to_symbol[ticker_id]
         except KeyError:
             log.error("Tick {} for id={} is not registered".format(tick_type,
                                                                    ticker_id))
             return
-
         if tick_type == 48:
             # RT Volume Bar. Format:
             # Last trade price; Last trade size;Last trade time;Total volume;\
@@ -169,22 +168,32 @@ class TWSConnection(EClientSocket, EWrapper):
             if len(last_trade_price) == 0:
                 return
 
-            rt_volume_bar = RTVolumeBar(last_trade_price=float(
-                                        last_trade_price),
-                                        last_trade_size=int(last_trade_size),
-                                        last_trade_time=float(last_trade_time),
-                                        total_volume=int(total_volume),
-                                        vwap=float(vwap),
-                                        single_trade_flag=single_trade_flag)
-            log.debug("RT Volume Bar: {}".format(rt_volume_bar))
-            self.realtime_bars[instr].append(rt_volume_bar)
+            last_trade_dt = pd.to_datetime(float(last_trade_time), unit='ms',
+                                           utc=True)
+
+            self._add_bar(symbol, float(last_trade_price),
+                          int(last_trade_size), last_trade_dt,
+                          int(total_volume), float(vwap),
+                          single_trade_flag)
+
+    def _add_bar(self, symbol, last_trade_price, last_trade_size,
+                 last_trade_time, total_volume, vwap, single_trade_flag):
+        bar = pd.DataFrame(index=pd.DatetimeIndex([last_trade_time]),
+                           data={'last_trade_price': last_trade_price,
+                                 'last_trade_size': last_trade_size,
+                                 'total_volume': total_volume,
+                                 'vwap': vwap,
+                                 'single_trade_flag': single_trade_flag})
+
+        if symbol not in self.bars:
+            self.bars[symbol] = bar
+        else:
+            self.bars[symbol] = self.bars[symbol].append(bar)
 
     def tickPrice(self, ticker_id, field, price, can_auto_execute):
-        log_message('tickPrice', vars())
         self._process_tick(ticker_id, tick_type=field, value=price)
 
     def tickSize(self, ticker_id, field, size):
-        log_message('tickSize', vars())
         self._process_tick(ticker_id, tick_type=field, value=size)
 
     def tickOptionComputation(self,
@@ -193,11 +202,9 @@ class TWSConnection(EClientSocket, EWrapper):
         log_message('tickOptionComputation', vars())
 
     def tickGeneric(self, ticker_id, tick_type, value):
-        log_message('tickGeneric', vars())
         self._process_tick(ticker_id, tick_type=tick_type, value=value)
 
     def tickString(self, ticker_id, tick_type, value):
-        log_message('tickString', vars())
         self._process_tick(ticker_id, tick_type=tick_type, value=value)
 
     def tickEFP(self, ticker_id, tick_type, basis_points,
@@ -218,7 +225,6 @@ class TWSConnection(EClientSocket, EWrapper):
         log_message('openOrderEnd', vars())
 
     def updateAccountValue(self, key, value, currency, account_name):
-        log_message('updateAccountValue', vars())
         self.accounts.setdefault(account_name, {})
         self.accounts[account_name].setdefault(currency, {})
         self.accounts[account_name][currency].setdefault(key, {})
@@ -234,8 +240,6 @@ class TWSConnection(EClientSocket, EWrapper):
                         unrealized_pnl,
                         realized_pnl,
                         account_name):
-        log_message('updatePortfolio', vars())
-
         symbol = contract.m_symbol
 
         position = Position(contract=contract,
@@ -250,14 +254,12 @@ class TWSConnection(EClientSocket, EWrapper):
         self.positions[symbol] = position
 
     def updateAccountTime(self, time_stamp):
-        log_message('updateAccountTime', vars())
+        pass
 
     def accountDownloadEnd(self, account_name):
-        log_message('accountDownloadEnd', vars())
         self.accounts_download_complete = True
 
     def nextValidId(self, order_id):
-        log_message('nextValidId', vars())
         self._next_order_id = order_id
 
     def contractDetails(self, req_id, contract_details):
@@ -279,7 +281,17 @@ class TWSConnection(EClientSocket, EWrapper):
         log_message('connectionClosed', {})
 
     def error(self, id_=None, error_code=None, error_msg=None):
-        log_message('error', vars())
+        if isinstance(error_code, int):
+            if error_code < 1000:
+                log.error("[{}] {} ({})".format(error_code, error_msg, id_))
+            else:
+                log.info("[{}] {}".format(error_code, error_msg, id_))
+        elif isinstance(error_code, EClientErrors.CodeMsgPair):
+            log.error("[{}] {}".format(error_code.code(),
+                                       error_code.msg(),
+                                       id_))
+        else:
+            log.error("[{}] {} ({})".format(error_code, error_msg, id_))
 
     def updateMktDepth(self, ticker_id, position, operation, side, price,
                        size):
@@ -293,7 +305,6 @@ class TWSConnection(EClientSocket, EWrapper):
         log_message('updateNewsBulletin', vars())
 
     def managedAccounts(self, accounts_list):
-        log_message('managedAccounts', vars())
         self.managed_accounts = accounts_list.split(',')
 
     def receiveFA(self, fa_data_type, xml):
@@ -314,7 +325,6 @@ class TWSConnection(EClientSocket, EWrapper):
         log_message('commissionReport', vars())
 
     def currentTime(self, time):
-        log_message('currentTime', vars())
         self.time_skew = (pd.to_datetime('now', utc=True) -
                           pd.to_datetime(long(time), unit='s', utc=True))
 
@@ -373,7 +383,8 @@ class IBBroker(Broker):
             try:
                 z_position = zp.Position(symbol_lookup(symbol))
             except SymbolNotFound:
-                log.warn("Symbol {} not found in the data base.", symbol)
+                # The symbol might not have been ingested to the db therefore
+                # it needs to be skipped.
                 continue
             z_position.amount = int(ib_position.position)
             z_position.cost_basis = float(ib_position.market_price)
@@ -534,4 +545,40 @@ class IBBroker(Broker):
         # TODO: Add commission if the order is executed
 
     def get_spot_value(self, assets, field, dt, data_frequency):
-        raise NotImplementedError()
+        symbol = str(assets.symbol)
+
+        if symbol not in self._tws.bars:
+            self._tws.subscribe_to_market_data(symbol)
+            return pd.NaT if field == 'last_traded' else np.NaN
+
+        bars = self._tws.bars[symbol]
+
+        last_event_time = bars.index[-1]
+
+        minute_start = (last_event_time - pd.Timedelta('1 min')) \
+            .time()
+        minute_end = last_event_time.time()
+
+        if bars.empty:
+            return pd.NaT if field == 'last_traded' else np.NaN
+        else:
+            if field == 'price':
+                return bars.last_trade_price.iloc[-1]
+            elif field == 'last_traded':
+                return last_event_time or pd.NaT
+
+            minute_df = bars.between_time(minute_start, minute_end,
+                                          include_start=True, include_end=True)
+            if minute_df.empty:
+                return np.NaN
+            else:
+                if field == 'open':
+                    return minute_df.last_trade_price.iloc[0]
+                elif field == 'close':
+                    return minute_df.last_trade_price.iloc[-1]
+                elif field == 'high':
+                    return minute_df.last_trade_price.max()
+                elif field == 'low':
+                    return minute_df.last_trade_price.min()
+                elif field == 'volume':
+                    return minute_df.last_trade_size.sum()

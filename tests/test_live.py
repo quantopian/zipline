@@ -12,11 +12,13 @@ try:                                    # Python 3
 except ImportError:                     # Python 2
     from itertools import izip_longest as zip_longest
 
-from mock import patch
+from mock import patch, sentinel
 
 from zipline.gens.realtimeclock import RealtimeClock, SESSION_START
 from zipline.gens.sim_engine import MinuteSimulationClock
-
+from zipline.gens.brokers.ib_broker import IBBroker
+from zipline.testing.fixtures import WithSimParams
+from zipline.testing import ZiplineTestCase
 from zipline.utils.calendars import get_calendar
 from zipline.utils.calendars.trading_calendar import days_at_time
 
@@ -169,3 +171,44 @@ class TestRealtimeClock(TestCase):
             # Event 0 is SESSION_START which always triggered.
             _, event_type = events[0]
             self.assertEquals(event_type, SESSION_START)
+
+
+class TestIBBroker(WithSimParams, ZiplineTestCase):
+    ASSET_FINDER_EQUITY_SIDS = (1, )
+
+    @patch('zipline.gens.brokers.ib_broker.TWSConnection')
+    def test_get_spot_value(self, tws):
+        dt = None  # dt is not used in real broker
+        data_freq = 'minute'
+        asset = self.env.asset_finder.retrieve_asset(1)
+        bars = {'last_trade_price': [12, 10, 11, 14],
+                'last_trade_size': [1, 2, 3, 4],
+                'total_volume': [10, 10, 10, 10],
+                'vwap': [12.1, 10.1, 11.1, 14.1],
+                'single_trade_flag': [0, 1, 0, 1]}
+        last_trade_times = [pd.to_datetime('2017-06-16 10:30:00', utc=True),
+                            pd.to_datetime('2017-06-16 10:30:11', utc=True),
+                            pd.to_datetime('2017-06-16 10:30:30', utc=True),
+                            pd.to_datetime('2017-06-17 10:31:9', utc=True)]
+        index = pd.DatetimeIndex(last_trade_times)
+        broker = IBBroker(sentinel.tws_uri)
+        tws.return_value.bars = {asset.symbol: pd.DataFrame(
+            index=index, data=bars)}
+
+        price = broker.get_spot_value(asset, 'price', dt, data_freq)
+        last_trade = broker.get_spot_value(asset, 'last_traded', dt, data_freq)
+        open_ = broker.get_spot_value(asset, 'open', dt, data_freq)
+        high = broker.get_spot_value(asset, 'high', dt, data_freq)
+        low = broker.get_spot_value(asset, 'low', dt, data_freq)
+        close = broker.get_spot_value(asset, 'close', dt, data_freq)
+        volume = broker.get_spot_value(asset, 'volume', dt, data_freq)
+
+        # Only the last minute is taken into account, therefore
+        # the first bar is ignored
+        assert price == bars['last_trade_price'][-1]
+        assert last_trade == last_trade_times[-1]
+        assert open_ == bars['last_trade_price'][1]
+        assert high == max(bars['last_trade_price'][1:])
+        assert low == min(bars['last_trade_price'][1:])
+        assert close == bars['last_trade_price'][-1]
+        assert volume == sum(bars['last_trade_size'][1:])

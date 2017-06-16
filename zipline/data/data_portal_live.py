@@ -24,18 +24,10 @@ class DataPortalLive(DataPortal):
         super(DataPortalLive, self).__init__(*args, **kwargs)
 
     def get_spot_value(self, assets, field, dt, data_frequency):
-        return super(DataPortalLive, self).get_spot_value(assets,
-                                                          field,
-                                                          dt,
-                                                          data_frequency)
+        return self.broker.get_spot_value(assets, field, dt, data_frequency)
 
     def get_adjusted_value(self, asset, field, dt,
                            perspective_dt,
                            data_frequency,
                            spot_value=None):
-        return super(DataPortalLive, self).get_adjusted_value(self, asset,
-                                                              field,
-                                                              dt,
-                                                              perspective_dt,
-                                                              data_frequency,
-                                                              spot_value)
+        raise NotImplementedError("get_adjusted_value is not implemented yet!")
