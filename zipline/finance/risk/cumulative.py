@@ -133,7 +133,7 @@ class RiskMetricsCumulative(object):
         self.max_drawdown = 0
         self.max_leverages = empty_cont.copy()
         self.max_leverage = 0
-        self.expected_shortfall = empty_cont.copy()
+        self.position_weights = np.full(self.cont_len, np.nan, dtype=object)
         self.current_max = -np.inf
         self.daily_treasury = pd.Series(index=self.sessions)
         self.treasury_period_return = np.nan
@@ -145,7 +145,7 @@ class RiskMetricsCumulative(object):
                algorithm_returns,
                benchmark_returns,
                leverage,
-               expected_shortfall):
+               portfolio):
         # Keep track of latest dt for use in to_dict and other methods
         # that report current state.
         self.latest_dt = dt
@@ -280,8 +280,9 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         self.max_leverage = self.calculate_max_leverage()
         self.max_leverages[dt_loc] = self.max_leverage
 
-        if expected_shortfall is not None:
-            self.expected_shortfall[dt_loc] = expected_shortfall
+        if portfolio is not None:
+            position_weights = portfolio.current_portfolio_weights()
+            self.position_weights[dt_loc] = position_weights
 
     def to_dict(self):
         """
@@ -313,7 +314,6 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             'excess_return': self.excess_returns[dt_loc],
             'max_drawdown': self.max_drawdown,
             'max_leverage': self.max_leverage,
-            'expected_shortfall': self.expected_shortfall[dt_loc],
             'period_label': period_label
         }
 

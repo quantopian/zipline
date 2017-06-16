@@ -266,3 +266,55 @@ def categorical_df_concat(df_list, inplace=False):
                 df[col].cat.set_categories(new_categories, inplace=True)
 
     return pd.concat(df_list)
+
+
+def sliding_apply(df, window_length, f, min_periods=None):
+    """
+    Apply a function over rolling windows of a dataframe. This is different
+    than pd.DataFrame.rolling().apply() because the function given to
+    ``apply`` is not fed the entire dataframe view, only individual columns.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The dataframe over which to roll the given function.
+    window_length : int
+        The number of rows to view in each iteration.
+    f : function[pd.DataFrame --> XXX]
+        Function mapping each dataframe window to the desired output.
+    min_periods : int, optional
+        The minimum number of rows required to perform the operation done by
+        the given function. If given, the number of rows in each iteration
+        increments until reaching the ``window_length``, at which point the
+        windows start to move along the dataframe as usual. If omitted, this
+        value is set to the ``window_length``.
+
+    Returns
+    -------
+    function_outputs : generator
+        Iterable of the return values of ``f`` called on each window.
+
+    Notes
+    -----
+    For some reason pandas errors when sliding over a dataframe with a
+    RangeIndex, so this function currently fails for dataframes with a
+    RangeIndex.
+    """
+    if min_periods is None:
+        min_periods = window_length
+    elif min_periods > window_length:
+        raise ValueError(
+            "'min_periods' argument ({0}) can't be more than the given window "
+            "length ({1}).".format(min_periods, window_length)
+        )
+
+    slider = pd.lib.BlockSlider(df)
+
+    while min_periods < window_length:
+        slider.move(0, min_periods)
+        min_periods += 1
+        yield f(slider.dummy)
+
+    for start in range(len(df) - (window_length - 1)):
+        slider.move(start, start + window_length)
+        yield f(slider.dummy)

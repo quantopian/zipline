@@ -7,7 +7,8 @@ from zipline.testing import parameter_space, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
 from zipline.utils.pandas_utils import (
     categorical_df_concat,
-    nearest_unequal_elements
+    nearest_unequal_elements,
+    sliding_apply,
 )
 
 
@@ -186,3 +187,68 @@ class TestCatDFConcat(ZiplineTestCase):
             str(cm.exception),
             "Input DataFrames must have the same columns/dtypes."
         )
+
+
+class TestSlidingApply(ZiplineTestCase):
+
+    def test_simple_windows(self):
+        df = pd.DataFrame(
+            [
+                [1,   2,  3],
+                [4,   5,  6],
+                [7,   8,  9],
+                [10, 11, 12],
+            ],
+            index=range(4),
+        )
+
+        result = list(sliding_apply(df, window_length=2, f=pd.DataFrame.sum))
+        self.assertEqual(len(result), 3)
+        assert_equal(result[0], pd.Series([5, 7, 9]))
+        assert_equal(result[1], pd.Series([11, 13, 15]))
+        assert_equal(result[2], pd.Series([17, 19, 21]))
+
+        def custom_function(df):
+            """
+            Take the dot product of each dataframe window with a constant
+            vector, then take the minimum value of the resulting array. This
+            returns a scalar value.
+            """
+            return min(df.dot([0.5, 0.3, 0.2]))
+
+        result = list(sliding_apply(df, 3, custom_function))
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0], (1 * 0.5) + (2 * 0.3) + (3 * 0.2))
+        self.assertEqual(result[1], (4 * 0.5) + (5 * 0.3) + (6 * 0.2))
+
+    def test_min_periods(self):
+        df = pd.DataFrame(
+            [
+                [1,   2,  3],
+                [4,   5,  6],
+                [7,   8,  9],
+                [10, 11, 12],
+            ],
+            index=range(4),
+        )
+
+        # With 'min_periods' being 1, all four rows of the dataframe should be
+        # operated on.
+        result = list(
+            sliding_apply(
+                df=df, window_length=3, f=pd.DataFrame.sum, min_periods=1,
+            )
+        )
+        self.assertEqual(len(result), 4)
+
+        # With only one row we just get back the row as-is.
+        assert_equal(result[0], pd.Series([1, 2, 3]))
+
+        # Sum of rows 0 to 1.
+        assert_equal(result[1], pd.Series([5, 7, 9]))
+
+        # Sum of rows 0 to 2.
+        assert_equal(result[2], pd.Series([12, 15, 18]))
+
+        # Sum of rows 1 to 3.
+        assert_equal(result[3], pd.Series([21, 24, 27]))
