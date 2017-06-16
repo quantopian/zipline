@@ -249,27 +249,6 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
                 for x in self.metrics.year_periods),
             True)
 
-    def test_algorithm_information(self):
-        # The information ratio is calculated by a empyrical function
-        # testing of period information ratio will be limited to determine
-        # if the value is numerical. This tests for its existence and format.
-        np.testing.assert_equal(
-            all(isinstance(x.information, float)
-                for x in self.metrics.month_periods),
-            True)
-        np.testing.assert_equal(
-            all(isinstance(x.information, float)
-                for x in self.metrics.three_month_periods),
-            True)
-        np.testing.assert_equal(
-            all(isinstance(x.information, float)
-                for x in self.metrics.six_month_periods),
-            True)
-        np.testing.assert_equal(
-            all(isinstance(x.information, float)
-                for x in self.metrics.year_periods),
-            True)
-
     def test_algorithm_beta(self):
         # Beta is calculated by a empyrical function so testing
         # of period beta will be limited to determine if the value is
@@ -571,7 +550,6 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             "algorithm_volatility",
             "sharpe",
             "sortino",
-            "information",
             "beta",
             "alpha",
             "max_drawdown",
@@ -579,6 +557,6 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             "algorithm_returns",
             "benchmark_returns",
         ]
-        representation = test_period.__repr__()
+        representation = repr(test_period)
 
-        assert all([metric in representation for metric in metrics])
+        assert all(metric in representation for metric in metrics)
