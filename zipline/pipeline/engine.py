@@ -82,9 +82,8 @@ class PipelineEngine(with_metaclass(ABCMeta)):
             The start date to run the pipeline for.
         end_date : pd.Timestamp
             The end date to run the pipeline for.
-        chunksize : int or None
-            The number of days to execute at a time. If None, then
-            results will be calculated for entire date range at once.
+        chunksize : int
+            The number of days to execute at a time.
 
         Returns
         -------
@@ -329,6 +328,11 @@ class SimplePipelineEngine(PipelineEngine):
             chunksize,
         )
         chunks = [self.run_pipeline(pipeline, s, e) for s, e in ranges]
+
+        if len(chunks) == 1:
+            # OPTIMIZATION: Don't make an extra copy in `categorical_df_concat`
+            # if we don't have to.
+            return chunks[0]
 
         return categorical_df_concat(chunks, inplace=True)
 
