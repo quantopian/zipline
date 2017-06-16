@@ -64,10 +64,9 @@ import logbook
 import pandas as pd
 from pandas.tseries.tools import normalize_date
 
-from zipline.errors import NoFurtherDataError, SymbolNotFound
+from zipline.errors import NoFurtherDataError
 from zipline.finance.performance.period import PerformancePeriod
 import zipline.finance.risk as risk
-import zipline.protocol as zp
 
 from . position_tracker import PositionTracker
 
@@ -361,7 +360,7 @@ class PerformanceTracker(object):
                                             self.todays_performance.returns,
                                             bench_since_open,
                                             account.leverage,
-                                            expected_shortfall=None)
+                                            portfolio=None)
 
         minute_packet = self.to_dict(emission_type='minute')
         return minute_packet
@@ -393,15 +392,12 @@ class PerformanceTracker(object):
 
             benchmark_value = self.all_benchmark_returns[completed_session]
 
-            portfolio = self.get_portfolio(performance_needs_update=False)
-            expected_shortfall = portfolio.expected_shortfall()
-
             self.cumulative_risk_metrics.update(
                 completed_session,
                 self.todays_performance.returns,
                 benchmark_value,
                 account.leverage,
-                expected_shortfall)
+                self.get_portfolio(performance_needs_update=False))
 
         # increment the day counter before we move markers forward.
         self.session_count += 1.0
@@ -480,8 +476,5 @@ class PerformanceTracker(object):
             trading_calendar=self.trading_calendar,
             treasury_curves=self.treasury_curves,
         )
-
-        # from nose.tools import set_trace; set_trace()
-        self.cumulative_risk_metrics.expected_shortfall[:] = 0
 
         return risk_report.to_dict()

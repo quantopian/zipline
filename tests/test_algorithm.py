@@ -1226,12 +1226,13 @@ class TestPositions(WithLogger,
 class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
     START_DATE = pd.Timestamp('2015-01-05', tz='UTC')
     END_DATE = pd.Timestamp('2017-02-01', tz='UTC')
-    # SIM_PARAMS_START = pd.Timestamp('2015-01-12', tz='UTC')
+    # SIM_PARAMS_START = pd.Timestamp('2015-01-07', tz='UTC')
 
     SIM_PARAMS_CAPITAL_BASE = 2000
     DATA_PORTAL_DAILY_HISTORY_PREFETCH = 0
 
-    ASSET_FINDER_EQUITY_SIDS = (1,)
+    ASSET_FINDER_EQUITY_SIDS = (1, 8554)
+    ASSET_FINDER_EQUITY_SYMBOLS = 'A', 'SPY'
 
     @classmethod
     def make_equity_daily_bar_data(cls):
@@ -1257,7 +1258,19 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
             },
             index=sessions,
         )
-        return ((sid, frame) for sid in cls.asset_finder.equities_sids)
+        yield 1, frame
+
+        frame = pd.DataFrame(
+            {
+                'open': 1234,
+                'high': 1234,
+                'low': 1234,
+                'close': 1234,
+                'volume': 20000,
+            },
+            index=sessions,
+        )
+        yield 8554, frame
 
     @classmethod
     def make_root_symbols_info(self):
@@ -1366,6 +1379,7 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
             sids_and_amounts=zip(sids, [1, 1]),
             sim_params=self.sim_params,
             env=self.env,
+            benchmark_sid=8554,
         )
         daily_stats = algo.run(self.data_portal)
 

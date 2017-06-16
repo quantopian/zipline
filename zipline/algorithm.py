@@ -35,6 +35,8 @@ from six import (
     viewkeys,
 )
 
+from empyrical import conditional_value_at_risk
+
 from zipline._protocol import handle_non_market_minutes
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.data.data_portal import DataPortal
@@ -126,11 +128,14 @@ from zipline.utils.math_utils import (
     tolerant_equals,
     round_if_near_integer,
 )
-from zipline.utils.pandas_utils import clear_dataframe_indexer_caches
+from zipline.utils.pandas_utils import (
+    clear_dataframe_indexer_caches,
+    sliding_apply,
+)
 from zipline.utils.preprocess import preprocess
 from zipline.utils.security_list import SecurityList
 
-import zipline.protocol
+import zipline.protocol as zp
 from zipline.sources.requests_csv import PandasRequestsCSV
 
 from zipline.gens.sim_engine import MinuteSimulationClock
@@ -569,7 +574,7 @@ class TradingAlgorithm(object):
             # HACK: When running with the `run` method, we set perf_tracker to
             # None so that it will be overwritten here.
             # from nose.tools import set_trace; set_trace()
-            portfolio = zipline.protocol.Portfolio(
+            portfolio = zp.Portfolio(
                 data_portal=self.data_portal,
                 current_dt_callback=self.get_datetime,
                 benchmark_asset=benchmark_source.benchmark_asset,
@@ -853,7 +858,71 @@ class TradingAlgorithm(object):
             [p['period_close'] for p in daily_perfs], tz='UTC'
         )
         daily_stats = pd.DataFrame(daily_perfs, index=daily_dts)
-        # from nose.tools import set_trace; set_trace()
+
+        weights = pd.DataFrame(
+            map(
+                dict,
+                self.perf_tracker.cumulative_risk_metrics.position_weights,
+            ),
+            index=daily_dts.normalize(),
+        ).fillna(0)
+
+        assets = map(self.portfolio._asset_for_history_call, weights.columns)
+        benchmark = self._create_benchmark_source().benchmark_asset
+        if benchmark is not None:
+            assets.append(benchmark)
+
+        days_before_start = min(
+            self.trading_calendar.session_distance(
+                self.data_portal._first_available_session,
+                self.sim_params.start_session,
+            ),
+            zp.DEFAULT_CVAR_LOOKBACK_DAYS,
+        )
+
+        prices = self.data_portal.get_history_window(
+           assets=assets,
+           end_dt=self.sim_params.end_session,
+           bar_count=len(self.sim_params.sessions) + days_before_start,
+           frequency='1d',
+           field='price',
+           data_frequency='daily',
+        )
+        asset_returns = prices.pct_change().iloc[1:]
+
+        if benchmark is not None:
+            for column in asset_returns:
+                asset_returns[column].fillna(
+                    asset_returns[benchmark], inplace=True,
+                )
+            asset_returns.drop(benchmark, axis=1, inplace=True)
+
+        def cvar_of_df(df):
+            if len(df) < zp.DEFAULT_CVAR_LOOKBACK_DAYS / 2:
+                return np.NaN
+
+            date_to_use = df.index[-1]
+            weights_to_use = weights.loc[date_to_use]
+
+            return conditional_value_at_risk(
+                returns=df.dot(weights_to_use.values),
+                cutoff=zp.DEFAULT_CVAR_CUTOFF,
+            )
+
+        rolling_cvars = pd.Series(
+            sliding_apply(
+                df=asset_returns.fillna(0),
+                window_length=zp.DEFAULT_CVAR_LOOKBACK_DAYS,
+                f=cvar_of_df,
+                min_periods=1,
+            ),
+        )
+        if days_before_start == 0:
+            rolling_cvars = pd.Series([np.NaN]).append(rolling_cvars)
+        else:
+            rolling_cvars = rolling_cvars[days_before_start - 1:]
+        rolling_cvars.index = daily_dts
+        daily_stats['expected_shortfall'] = rolling_cvars
 
         return daily_stats
 
@@ -2136,7 +2205,7 @@ class TradingAlgorithm(object):
             The order_id or order object to cancel.
         """
         order_id = order_param
-        if isinstance(order_param, zipline.protocol.Order):
+        if isinstance(order_param, zp.Order):
             order_id = order_param.id
 
         self.blotter.cancel(order_id)
