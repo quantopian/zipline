@@ -57,6 +57,7 @@ from zipline.errors import (
     AccountControlViolation,
     CannotOrderDelistedAsset,
     IncompatibleSlippageModel,
+    InsufficientHistoricalData,
     OrderDuringInitialize,
     OrderInBeforeTradingStart,
     RegisterTradingControlPostInit,
@@ -1224,9 +1225,10 @@ class TestPositions(WithLogger,
 
 
 class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
-    START_DATE = pd.Timestamp('2015-01-05', tz='UTC')
-    END_DATE = pd.Timestamp('2017-02-01', tz='UTC')
-    # SIM_PARAMS_START = pd.Timestamp('2015-01-07', tz='UTC')
+    START_DATE = pd.Timestamp('2014-01-06', tz='UTC')
+    END_DATE = pd.Timestamp('2016-11-09', tz='UTC')
+    SIM_PARAMS_START = pd.Timestamp('2014-01-10', tz='UTC')
+    SIM_PARAMS_END = pd.Timestamp('2016-02-03', tz='UTC')
 
     SIM_PARAMS_CAPITAL_BASE = 2000
     DATA_PORTAL_DAILY_HISTORY_PREFETCH = 0
@@ -1285,24 +1287,42 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         return pd.DataFrame.from_dict(
             {
                 1000: {
-                    'symbol': 'CLN15',
+                    'symbol': 'CLN14',
                     'root_symbol': 'CL',
                     'start_date': cls.START_DATE,
-                    'end_date': pd.Timestamp('2015-07-08', tz='UTC'),
-                    'auto_close_date': pd.Timestamp('2015-07-06', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-07-09', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2014-07-07', tz='UTC'),
                     'exchange': 'CME',
                     'multiplier': 10,
                 },
                 1001: {
-                    'symbol': 'CLF16',
+                    'symbol': 'CLF15',
                     'root_symbol': 'CL',
                     'start_date': cls.START_DATE,
-                    'end_date': pd.Timestamp('2016-01-06', tz='UTC'),
-                    'auto_close_date': pd.Timestamp('2016-01-04', tz='UTC'),
+                    'end_date': pd.Timestamp('2015-01-09', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2015-01-07', tz='UTC'),
                     'exchange': 'CME',
                     'multiplier': 10,
                 },
                 1002: {
+                    'symbol': 'CLN15',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': pd.Timestamp('2015-07-10', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2015-07-08', tz='UTC'),
+                    'exchange': 'CME',
+                    'multiplier': 10,
+                },
+                1003: {
+                    'symbol': 'CLF16',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': pd.Timestamp('2016-01-08', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2016-01-06', tz='UTC'),
+                    'exchange': 'CME',
+                    'multiplier': 10,
+                },
+                1004: {
                     'symbol': 'CLN16',
                     'root_symbol': 'CL',
                     'start_date': cls.START_DATE,
@@ -1311,17 +1331,35 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
                     'exchange': 'CME',
                     'multiplier': 10,
                 },
-                1003: {
-                    'symbol': 'CLF17',
+                1005: {
+                    'symbol': 'CLQ16',
                     'root_symbol': 'CL',
                     'start_date': cls.START_DATE,
-                    'end_date': pd.Timestamp('2017-01-06', tz='UTC'),
-                    'auto_close_date': pd.Timestamp('2017-01-04', tz='UTC'),
+                    'end_date': pd.Timestamp('2016-08-10', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2016-08-08', tz='UTC'),
                     'exchange': 'CME',
                     'multiplier': 10,
                 },
-                1004: {
-                    'symbol': 'CLN17',
+                1006: {
+                    'symbol': 'CLU16',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': pd.Timestamp('2016-09-09', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2016-09-07', tz='UTC'),
+                    'exchange': 'CME',
+                    'multiplier': 10,
+                },
+                1007: {
+                    'symbol': 'CLV16',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': pd.Timestamp('2016-10-05', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2016-10-03', tz='UTC'),
+                    'exchange': 'CME',
+                    'multiplier': 10,
+                },
+                1008: {
+                    'symbol': 'CLX16',
                     'root_symbol': 'CL',
                     'start_date': cls.START_DATE,
                     'end_date': cls.END_DATE,
@@ -1413,7 +1451,6 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
             ],
             index=[equity_1, future_1000],
         )
-        # from nose.tools import set_trace; set_trace()
         assert_equal(first_weights, daily_stats.position_weights[1])
         assert_equal(second_weights, daily_stats.position_weights[2])
 
@@ -1442,19 +1479,50 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         # closer to -0.1.
         second_expected_shortfall_value = sum(asset_returns * second_weights)
 
-        # We expect the first 252 days of expected shortfall values to be NaN
+        # We expect the first 248 days of expected shortfall values to be NaN
         # because we only compute it if we have at least a year's worth of data
-        # to look back on. After 252 days, we expect the values to alternate
+        # to look back on. After 248 days, we expect the values to alternate
         # according to our alternating portfolio weights.
         session_ends = self.trading_calendar.session_closes_in_range(
             self.SIM_PARAMS_START, self.SIM_PARAMS_END,
         )
         session_ends.name = None
         expected = pd.Series(index=session_ends, name='expected_shortfall')
-        expected[252::2] = second_expected_shortfall_value
-        expected[253::2] = first_expected_shortfall_value
+        expected[248::2] = second_expected_shortfall_value
+        expected[249::2] = first_expected_shortfall_value
 
         assert_equal(daily_stats['expected_shortfall'], expected)
+
+    def test_expected_shortfall_method(self):
+        sids = (1, 1004)
+        equity_1, future_1000 = self.asset_finder.retrieve_all(sids)
+
+        algo = TestPositionWeightsAlgorithm(
+            sids_and_amounts=zip(sids, [1, 1]),
+            record_expected_shortfall=True,
+            start=self.START_DATE,
+            end=self.sim_params.end_session,
+            env=self.env,
+            benchmark_sid=8554,
+        )
+        with self.assertRaises(InsufficientHistoricalData):
+            algo.run(self.data_portal)
+
+        algo = TestPositionWeightsAlgorithm(
+            sids_and_amounts=zip(sids, [1, 1]),
+            record_expected_shortfall=True,
+            start=pd.Timestamp('2016-01-06', tz='UTC'),
+            end=self.sim_params.end_session,
+            env=self.env,
+            benchmark_sid=8554,
+        )
+        daily_stats = algo.run(self.data_portal)
+
+        daily_stats.recorded_expected_shortfall.name = 'expected_shortfall'
+        assert_equal(
+            daily_stats.recorded_expected_shortfall,
+            daily_stats.expected_shortfall,
+        )
 
 
 class TestBeforeTradingStart(WithDataPortal,

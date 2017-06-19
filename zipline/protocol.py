@@ -15,10 +15,15 @@
 from warnings import warn
 
 from empyrical import conditional_value_at_risk
-import numpy as np
 import pandas as pd
 
-from zipline.assets import Asset, Equity, Future
+from zipline.assets import (
+    Asset,
+    AssetConvertible,
+    Future,
+    PricingDataAssociable,
+)
+from zipline.errors import InsufficientHistoricalData
 from zipline.utils.input_validation import expect_types
 from .utils.enum import enum
 from zipline._protocol import BarData  # noqa
@@ -145,6 +150,40 @@ def asset_multiplier(asset):
     return asset.multiplier if isinstance(asset, Future) else 1
 
 
+def assets_for_history_call(assets, asset_finder, date):
+    assets_is_scalar = False
+    if isinstance(assets, (AssetConvertible, PricingDataAssociable)):
+        assets_is_scalar = True
+    else:
+        # If 'assets' was not one of the expected types then it should be an
+        # iterable.
+        try:
+            iter(assets)
+        except TypeError:
+            raise TypeError(
+                "Unexpected 'assets' value of type {}.".format(type(assets))
+            )
+
+    def _asset_for_history_call(asset):
+        if isinstance(asset, Future):
+            # Infer the offset of the given future by comparing it to the
+            # upcoming closing contract according to the given date.
+            oc = asset_finder.get_ordered_contracts(asset.root_symbol)
+            offset = oc.offset_of_contract(asset.sid, date.value)
+            return asset_finder.create_continuous_future(
+                root_symbol=asset.root_symbol,
+                offset=offset,
+                roll_style='volume',
+                adjustment='mul',
+            )
+        return asset
+
+    if assets_is_scalar:
+        return _asset_for_history_call(assets)
+    else:
+        return list(map(_asset_for_history_call, assets))
+
+
 class Portfolio(object):
 
     def __init__(self, data_portal, current_dt_callback, benchmark_asset=None):
@@ -213,41 +252,37 @@ class Portfolio(object):
         """
         data_portal = self.data_portal
         current_date = self.current_date
+        calendar = data_portal.trading_calendar
 
-        # If we do not even have a year's worth of data to look back on
-        # then the expected shortfall calculation will not be reliable, so
-        # just return NaN. If we only have between one and two years of
-        # data just use what is available.
-        num_days_of_data = data_portal.trading_calendar.session_distance(
-            self.start_date, current_date,
+        # If we do not have enough data to look back on then the expected
+        # shortfall calculation will not be reliable, so instead of returning
+        # NaN, raise an exception alerting the user that this method cannot be
+        # called over the given simulation dates.
+        data_start_date = data_portal._first_available_session
+        num_days_of_data = calendar.session_distance(
+            data_start_date, current_date,
         )
-        if num_days_of_data < lookback_days / 2:
-            return np.NaN
-        elif num_days_of_data < lookback_days:
-            num_lookback_days = num_days_of_data
-        else:
-            num_lookback_days = lookback_days
+        if num_days_of_data < lookback_days:
+            suggested_start_date = \
+                data_start_date + (calendar.day * lookback_days)
+            raise InsufficientHistoricalData(
+                method_name='expected_shortfall',
+                lookback_days=lookback_days,
+                suggested_start_date=suggested_start_date.date(),
+            )
 
         # Series mapping each asset to its portfolio weight.
         weights = self.current_portfolio_weights()
 
-        assets = map(self._asset_for_history_call, weights.index)
-        prices = data_portal.get_history_window(
-           assets=assets,
-           end_dt=current_date,
-           bar_count=num_lookback_days,
-           frequency='1d',
-           field='price',
-           data_frequency='daily',
+        assets = assets_for_history_call(
+            assets=weights.index,
+            asset_finder=data_portal.asset_finder,
+            date=current_date,
         )
-        asset_returns = prices.pct_change()
+        benchmark = self.benchmark
+        if benchmark is not None:
+            assets.append(benchmark)
 
-        return conditional_value_at_risk(
-            returns=asset_returns.fillna(0).dot(weights.values),
-            cutoff=DEFAULT_CVAR_CUTOFF,
-        )
-
-    def _asset_for_history_call(self, asset):
         # NOTE: Using the simulation calendar here is based on the assumption
         # that this calendar runs on the union of all trading days of all asset
         # classes. For example, when doing history pricing calls for both
@@ -255,30 +290,27 @@ class Portfolio(object):
         # holidays to be forward filled. This keeps the dates aligned when
         # computing returns. It just so happens that the us_futures calendar is
         # a strict superset of the NYSE calendar, making this assumption true.
-        calendar = self.data_portal.trading_calendar
-        asset_finder = self.data_portal.asset_finder
-        current_date = self.current_date
+        prices = data_portal.get_history_window(
+           assets=assets,
+           end_dt=current_date,
+           bar_count=lookback_days,
+           frequency='1d',
+           field='price',
+           data_frequency='daily',
+        )
+        asset_returns = prices.pct_change().iloc[1:]
 
-        if isinstance(asset, Equity):
-            num_days_of_data = calendar.session_distance(
-                asset.start_date, current_date,
-            )
-            if num_days_of_data < (DEFAULT_CVAR_LOOKBACK_DAYS / 2) and \
-                    self.benchmark is not None:
-                asset = self.benchmark
-        elif isinstance(asset, Future):
-            # Infer the offset of the given future by comparing it to
-            # the upcoming closing contract according to our current
-            # date.
-            oc = asset_finder.get_ordered_contracts(asset.root_symbol)
-            offset = oc.offset_of_contract(asset.sid, current_date.value)
-            return asset_finder.create_continuous_future(
-                root_symbol=asset.root_symbol,
-                offset=offset,
-                roll_style='volume',
-                adjustment='mul',
-            )
-        return asset
+        if benchmark is not None:
+            for column in asset_returns:
+                asset_returns[column].fillna(
+                    asset_returns[benchmark], inplace=True,
+                )
+            asset_returns.drop(benchmark, axis=1, inplace=True)
+
+        return conditional_value_at_risk(
+            returns=asset_returns.fillna(0).dot(weights.values),
+            cutoff=DEFAULT_CVAR_CUTOFF,
+        )
 
 
 class Account(object):

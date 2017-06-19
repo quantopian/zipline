@@ -695,9 +695,14 @@ class TestPositionWeightsAlgorithm(TradingAlgorithm):
     """
     An algorithm that records the weights of its portfolio holdings each day.
     """
-    def initialize(self, sids_and_amounts, *args, **kwargs):
+    def initialize(self,
+                   sids_and_amounts,
+                   record_expected_shortfall=False,
+                   *args,
+                   **kwargs):
         self.ordered = False
         self.sids_and_amounts = sids_and_amounts
+        self.record_expected_shortfall = record_expected_shortfall
         self.set_commission(us_equities=PerTrade(0), us_futures=PerTrade(0))
         self.set_slippage(
             us_equities=FixedSlippage(0), us_futures=FixedSlippage(0),
@@ -710,8 +715,12 @@ class TestPositionWeightsAlgorithm(TradingAlgorithm):
             self.ordered = True
 
         self.record(
-            position_weights=self.portfolio.current_portfolio_weights(),
+            position_weights=self.portfolio.current_portfolio_weights()
         )
+        if self.record_expected_shortfall:
+            self.record(
+                recorded_expected_shortfall=self.portfolio.expected_shortfall()
+            )
 
 
 class InvalidOrderAlgorithm(TradingAlgorithm):

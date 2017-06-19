@@ -713,6 +713,14 @@ class HistoryWindowStartsBeforeData(ZiplineError):
         )
 
 
+class InsufficientHistoricalData(ZiplineError):
+    msg = (
+        "The '{method_name}' method requires {lookback_days} days of "
+        "historical data. To use this method, start the backtest on or after "
+        "{suggested_start_date}."
+    )
+
+
 class NonExistentAssetInTimeFrame(ZiplineError):
     msg = (
         "The target asset '{asset}' does not exist for the entire timeframe "
