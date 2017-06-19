@@ -2092,10 +2092,10 @@ class TestPositionTracker(WithTradingEnvironment,
         for future_pos in [long_future_pos, short_future_pos]:
             self.assertEqual(10, future_pos.cost_basis)
 
-            # send a $5k commission to the futures position.  since self.FUTURE3
-            # has a contract size (multipler) of 1000, this should result in a
-            # $10.5 updated cost basis. (5000 / 1000 = $5, spread out over 10
-            # contracts, is $0.50 extra per contract).
+            # send a $5k commission to the futures position.  since
+            # self.FUTURE3 has a contract size (multipler) of 1000, this should
+            # result in a $10.5 updated cost basis. (5000 / 1000 = $5, spread
+            # out over 10 contracts, is $0.50 extra per contract).
             future_pos.adjust_commission_cost_basis(self.FUTURE3, 5000)
             self.assertEqual(10.5, future_pos.cost_basis)
 
