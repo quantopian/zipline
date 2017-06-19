@@ -867,7 +867,21 @@ class TradingAlgorithm(object):
             index=daily_dts.normalize(),
         ).fillna(0)
 
-        assets = map(self.portfolio._asset_for_history_call, weights.columns)
+        asset_finder = self.data_portal.asset_finder
+        futures_held = set()
+        for day in weights.index:
+            daily_weights = weights.loc[day]
+            for asset in daily_weights.index:
+                if not isinstance(asset, Future):
+                    continue
+                futures_held.add(asset)
+                cf = zp.assets_for_history_call(asset, asset_finder, day)
+                if cf not in weights:
+                    weights[cf] = 0
+                weights.loc[day, cf] = weights.loc[day, asset]
+        weights.drop(futures_held, axis=1, inplace=True)
+        assets = weights.columns.tolist()
+
         benchmark = self._create_benchmark_source().benchmark_asset
         if benchmark is not None:
             assets.append(benchmark)
@@ -902,7 +916,10 @@ class TradingAlgorithm(object):
                 return np.NaN
 
             date_to_use = df.index[-1]
-            weights_to_use = weights.loc[date_to_use]
+            try:
+                weights_to_use = weights.loc[date_to_use]
+            except KeyError:
+                return np.NaN
 
             return conditional_value_at_risk(
                 returns=df.dot(weights_to_use.values),
