@@ -573,7 +573,6 @@ class TradingAlgorithm(object):
         if self.perf_tracker is None:
             # HACK: When running with the `run` method, we set perf_tracker to
             # None so that it will be overwritten here.
-            # from nose.tools import set_trace; set_trace()
             portfolio = zp.Portfolio(
                 data_portal=self.data_portal,
                 current_dt_callback=self.get_datetime,
