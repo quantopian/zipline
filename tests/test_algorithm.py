@@ -1237,6 +1237,13 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
     ASSET_FINDER_EQUITY_SYMBOLS = ('A', 'B', 'SPY')
 
     @classmethod
+    def make_equity_info(cls):
+        equity_info = super(TestPortfolio, cls).make_equity_info()
+        cls.equity_2_start_date = pd.Timestamp('2015-01-05', tz='UTC')
+        equity_info.loc[2, 'start_date'] = equity_2_start_date
+        return equity_info
+
+    @classmethod
     def make_equity_daily_bar_data(cls):
         sessions = cls.equity_daily_bar_days
 
@@ -1273,8 +1280,7 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
             },
             index=sessions,
         )
-        frame.loc[:pd.Timestamp('2015-01-05', tz='UTC')] = np.NaN
-        yield 2, frame
+        yield 2, frame.loc[cls.equity_2_start_date:].copy()
 
         frame = pd.DataFrame(
             {
@@ -1539,19 +1545,25 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         )
 
     def test_expected_shortfall_fill_with_benchmark(self):
+        # Equity 2 starts a year late, so verify that its expected shortfall
+        # calculations use the benchmark pricing data during that period.
         sid = 2
         equity_2 = self.asset_finder.retrieve_asset(sid)
 
         algo = TestPositionWeightsAlgorithm(
             sids_and_amounts=[(sid, 1)],
-            start=pd.Timestamp('2015-01-06', tz='UTC'),
+            start=self.equity_2_start_date,
             end=self.sim_params.end_session,
             env=self.env,
             benchmark_sid=8554,
         )
         daily_stats = algo.run(self.data_portal)
 
-        #
+        # Equity 2 has prices that are always increasing, so on its own its
+        # expected shortfall should always be greater than zero. However, since
+        # the benchmark's prices should be filled in for the first year when
+        # computing expected shortfall for Equity 2, we actually expect it to
+        # always be zero.
         self.assertTrue((daily_stats.expected_shortfall == 0).all())
 
 
