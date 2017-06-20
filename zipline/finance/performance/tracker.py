@@ -191,8 +191,7 @@ class PerformanceTracker(object):
         if performance_needs_update:
             self.update_performance()
             self.account_needs_update = True
-        portfolio = self.cumulative_performance.as_portfolio()
-        return portfolio
+        return self.cumulative_performance.as_portfolio()
 
     def update_performance(self):
         # calculate performance as of last trade
@@ -353,8 +352,8 @@ class PerformanceTracker(object):
         # cumulative returns
         bench_since_open = (1. + bench_returns).prod() - 1
 
-        # Do not calculate expected shortfall every minute as it requires a
-        # long history call.
+        # Pass 'portfolio' as 'None' so that we do not calculate the portfolio
+        # weights every minute.
         self.cumulative_risk_metrics.update(todays_date,
                                             self.todays_performance.returns,
                                             bench_since_open,
