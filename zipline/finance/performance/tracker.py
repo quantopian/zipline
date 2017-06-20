@@ -78,7 +78,6 @@ class PerformanceTracker(object):
     Tracks the performance of the algorithm.
     """
     def __init__(self, sim_params, trading_calendar, env, portfolio):
-        # from nose.tools import set_trace; set_trace()
         self.sim_params = sim_params
         self.trading_calendar = trading_calendar
         self.asset_finder = env.asset_finder
