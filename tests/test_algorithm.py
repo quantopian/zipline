@@ -1233,8 +1233,8 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
     SIM_PARAMS_CAPITAL_BASE = 2000
     DATA_PORTAL_DAILY_HISTORY_PREFETCH = 0
 
-    ASSET_FINDER_EQUITY_SIDS = (1, 8554)
-    ASSET_FINDER_EQUITY_SYMBOLS = 'A', 'SPY'
+    ASSET_FINDER_EQUITY_SIDS = (1, 2, 8554)
+    ASSET_FINDER_EQUITY_SYMBOLS = ('A', 'B', 'SPY')
 
     @classmethod
     def make_equity_daily_bar_data(cls):
@@ -1261,6 +1261,20 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
             index=sessions,
         )
         yield 1, frame
+
+        prices = np.arange(len(sessions))
+        frame = pd.DataFrame(
+            {
+                'open': prices,
+                'high': prices,
+                'low': prices,
+                'close': prices,
+                'volume': 20000,
+            },
+            index=sessions,
+        )
+        frame.loc[:pd.Timestamp('2015-01-05', tz='UTC')] = np.NaN
+        yield 2, frame
 
         frame = pd.DataFrame(
             {
@@ -1523,6 +1537,22 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
             daily_stats.recorded_expected_shortfall,
             daily_stats.expected_shortfall,
         )
+
+    def test_expected_shortfall_fill_with_benchmark(self):
+        sid = 2
+        equity_2 = self.asset_finder.retrieve_asset(sid)
+
+        algo = TestPositionWeightsAlgorithm(
+            sids_and_amounts=[(sid, 1)],
+            start=pd.Timestamp('2015-01-06', tz='UTC'),
+            end=self.sim_params.end_session,
+            env=self.env,
+            benchmark_sid=8554,
+        )
+        daily_stats = algo.run(self.data_portal)
+
+        #
+        self.assertTrue((daily_stats.expected_shortfall == 0).all())
 
 
 class TestBeforeTradingStart(WithDataPortal,
