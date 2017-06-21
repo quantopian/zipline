@@ -309,12 +309,15 @@ def sliding_apply(df, window_length, f, min_periods=None):
         )
 
     slider = pd.lib.BlockSlider(df)
+    num_rows = len(df)
 
     while min_periods < window_length:
         slider.move(0, min_periods)
         min_periods += 1
         yield f(slider.dummy)
+        if min_periods > num_rows:
+            return
 
-    for start in range(len(df) - (window_length - 1)):
+    for start in range(num_rows - (window_length - 1)):
         slider.move(start, start + window_length)
         yield f(slider.dummy)
