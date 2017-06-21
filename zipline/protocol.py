@@ -201,6 +201,8 @@ class Portfolio(object):
         self.benchmark = benchmark_asset
         self._current_dt_callback = current_dt_callback
 
+        self._minute_cache = ExpiringCache()
+
     def __repr__(self):
         return "Portfolio({0})".format(self.__dict__)
 
@@ -253,6 +255,11 @@ class Portfolio(object):
         data_portal = self.data_portal
         current_date = self.current_date
         calendar = data_portal.trading_calendar
+
+        try:
+            return self._minute_cache.get('expected_shortfall', current_date)
+        except KeyError:
+            pass
 
         # If we do not have enough data to look back on then the expected
         # shortfall calculation will not be reliable, so instead of returning
@@ -307,10 +314,12 @@ class Portfolio(object):
                 )
             asset_returns.drop(benchmark, axis=1, inplace=True)
 
-        return conditional_value_at_risk(
+        cvar = conditional_value_at_risk(
             returns=asset_returns.fillna(0).dot(weights.values),
             cutoff=DEFAULT_CVAR_CUTOFF,
         )
+        self._minute_cache.set('expected_shortfall', cvar, current_date)
+        return cvar
 
 
 class Account(object):
