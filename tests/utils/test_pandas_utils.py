@@ -208,6 +208,11 @@ class TestSlidingApply(ZiplineTestCase):
         assert_equal(result[1], pd.Series([11, 13, 15]))
         assert_equal(result[2], pd.Series([17, 19, 21]))
 
+        # A window length greater than the length of the given data frame
+        # should have empty results.
+        result = list(sliding_apply(df, window_length=10, f=pd.DataFrame.sum))
+        self.assertEqual(result, [])
+
         def custom_function(df):
             """
             Take the dot product of each dataframe window with a constant
@@ -231,6 +236,14 @@ class TestSlidingApply(ZiplineTestCase):
             ],
             index=range(4),
         )
+
+        # The 'min_periods' argument cannot be more than 'window_length'.
+        with self.assertRaises(ValueError):
+            list(
+                sliding_apply(
+                    df=df, window_length=2, f=pd.DataFrame.sum, min_periods=3,
+                )
+            )
 
         # With 'min_periods' being 1, all four rows of the dataframe should be
         # operated on.
