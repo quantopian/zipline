@@ -358,7 +358,6 @@ class WithAssetFinder(WithDefaultDateBounds):
 
     make_futures_info = _make_info
     make_exchanges_info = _make_info
-    make_root_symbols_info = _make_info
     make_equity_supplementary_mappings = _make_info
 
     del _make_info
@@ -374,6 +373,18 @@ class WithAssetFinder(WithDefaultDateBounds):
             cls.ASSET_FINDER_EQUITY_SYMBOLS,
             cls.ASSET_FINDER_EQUITY_NAMES,
         )
+
+    @classmethod
+    def make_root_symbols_info(cls):
+        futures_info = cls.make_futures_info()
+        if futures_info is not None and 'root_symbol' in futures_info:
+            root_symbols = futures_info.root_symbol.unique().tolist()
+            num_root_symbols = len(root_symbols)
+            return pd.DataFrame({
+                'root_symbol': root_symbols,
+                'root_symbol_id': range(num_root_symbols),
+                'exchange': ['CME'] * num_root_symbols,
+            })
 
     @classmethod
     def make_asset_finder_db_url(cls):

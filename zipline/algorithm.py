@@ -858,15 +858,16 @@ class TradingAlgorithm(object):
         )
         daily_stats = pd.DataFrame(daily_perfs, index=daily_dts)
 
+        sim_params = self.sim_params
+        data_portal = self.data_portal
+        perf_tracker = self.perf_tracker
+
         weights = pd.DataFrame(
-            map(
-                dict,
-                self.perf_tracker.cumulative_risk_metrics.position_weights,
-            ),
+            perf_tracker.cumulative_risk_metrics.position_weights.tolist(),
             index=daily_dts.normalize(),
         ).fillna(0)
 
-        asset_finder = self.data_portal.asset_finder
+        asset_finder = data_portal.asset_finder
         futures_held = set()
         for day in weights.index:
             daily_weights = weights.loc[day]
@@ -887,16 +888,16 @@ class TradingAlgorithm(object):
 
         days_before_start = min(
             self.trading_calendar.session_distance(
-                self.data_portal._first_available_session,
-                self.sim_params.start_session,
+                data_portal._first_available_session,
+                sim_params.start_session,
             ),
             zp.DEFAULT_CVAR_LOOKBACK_DAYS,
         )
 
-        prices = self.data_portal.get_history_window(
+        prices = data_portal.get_history_window(
            assets=assets,
-           end_dt=self.sim_params.end_session,
-           bar_count=len(self.sim_params.sessions) + days_before_start,
+           end_dt=sim_params.end_session,
+           bar_count=len(sim_params.sessions) + days_before_start,
            frequency='1d',
            field='price',
            data_frequency='daily',

@@ -1239,8 +1239,8 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
     @classmethod
     def make_equity_info(cls):
         equity_info = super(TestPortfolio, cls).make_equity_info()
-        cls.equity_2_start_date = pd.Timestamp('2015-01-05', tz='UTC')
-        equity_info.loc[2, 'start_date'] = equity_2_start_date
+        cls.equity_2_start_date = pd.Timestamp('2015-01-06', tz='UTC')
+        equity_info.loc[2, 'start_date'] = cls.equity_2_start_date
         return equity_info
 
     @classmethod
@@ -1431,10 +1431,11 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
 
     def test_expected_shortfall(self):
         sids = (1, 1004)
+        order_amounts = (1, 1)
         equity_1, future_1000 = self.asset_finder.retrieve_all(sids)
 
         algo = TestPositionWeightsAlgorithm(
-            sids_and_amounts=zip(sids, [1, 1]),
+            sids_and_amounts=zip(sids, order_amounts),
             sim_params=self.sim_params,
             env=self.env,
             benchmark_sid=8554,
@@ -1515,10 +1516,11 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
 
     def test_expected_shortfall_method(self):
         sids = (1, 1004)
+        order_amounts = (1, 1)
         equity_1, future_1000 = self.asset_finder.retrieve_all(sids)
 
         algo = TestPositionWeightsAlgorithm(
-            sids_and_amounts=zip(sids, [1, 1]),
+            sids_and_amounts=zip(sids, order_amounts),
             record_expected_shortfall=True,
             start=self.START_DATE,
             end=self.sim_params.end_session,
@@ -1548,10 +1550,10 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         # Equity 2 starts a year late, so verify that its expected shortfall
         # calculations use the benchmark pricing data during that period.
         sid = 2
-        equity_2 = self.asset_finder.retrieve_asset(sid)
+        order_amount = 1
 
         algo = TestPositionWeightsAlgorithm(
-            sids_and_amounts=[(sid, 1)],
+            sids_and_amounts=[(sid, order_amount)],
             start=self.equity_2_start_date,
             end=self.sim_params.end_session,
             env=self.env,

@@ -133,7 +133,9 @@ class RiskMetricsCumulative(object):
         self.max_drawdown = 0
         self.max_leverages = empty_cont.copy()
         self.max_leverage = 0
-        self.position_weights = np.full(self.cont_len, np.nan, dtype=object)
+        self.position_weights = np.full(
+            len(sim_params.sessions), np.nan, dtype=object,
+        )
         self.current_max = -np.inf
         self.daily_treasury = pd.Series(index=self.sessions)
         self.treasury_period_return = np.nan
@@ -282,7 +284,9 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
 
         if portfolio is not None:
             position_weights = portfolio.current_portfolio_weights()
-            self.position_weights[dt_loc] = position_weights
+            self.position_weights[dt_loc] = dict(position_weights)
+        else:
+            self.position_weights[dt_loc] = {}
 
     def to_dict(self):
         """
