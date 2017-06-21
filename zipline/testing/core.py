@@ -491,35 +491,28 @@ def write_daily_data(tempdir, sim_params, sids, trading_calendar):
 
 def create_data_portal(asset_finder, tempdir, sim_params, sids,
                        trading_calendar, adjustment_reader=None):
-    if sim_params.data_frequency == "daily":
-        daily_path = write_daily_data(tempdir, sim_params, sids,
-                                      trading_calendar)
-
-        equity_daily_reader = BcolzDailyBarReader(daily_path)
-
-        return DataPortal(
-            asset_finder, trading_calendar,
-            first_trading_day=equity_daily_reader.first_trading_day,
-            equity_daily_reader=equity_daily_reader,
-            adjustment_reader=adjustment_reader
-        )
-    else:
+    if sim_params.data_frequency == 'minute':
         minutes = trading_calendar.minutes_in_range(
             sim_params.first_open,
             sim_params.last_close
         )
-
         minute_path = write_minute_data(trading_calendar, tempdir, minutes,
                                         sids)
-
         equity_minute_reader = BcolzMinuteBarReader(minute_path)
+    else:
+        equity_minute_reader = None
 
-        return DataPortal(
-            asset_finder, trading_calendar,
-            first_trading_day=equity_minute_reader.first_trading_day,
-            equity_minute_reader=equity_minute_reader,
-            adjustment_reader=adjustment_reader
-        )
+    daily_path = write_daily_data(tempdir, sim_params, sids, trading_calendar)
+    equity_daily_reader = BcolzDailyBarReader(daily_path)
+
+    return DataPortal(
+        asset_finder,
+        trading_calendar,
+        first_trading_day=equity_daily_reader.first_trading_day,
+        equity_daily_reader=equity_daily_reader,
+        equity_minute_reader=equity_minute_reader,
+        adjustment_reader=adjustment_reader,
+    )
 
 
 def write_bcolz_minute_data(trading_calendar, days, path, data):
