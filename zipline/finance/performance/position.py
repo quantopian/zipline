@@ -172,13 +172,13 @@ class Position(object):
         if self.amount == 0:
             return
 
-        prev_cost = self.cost_basis * abs(self.amount)
+        prev_cost = self.cost_basis * self.amount
         if isinstance(asset, Future):
             cost_to_use = cost / asset.multiplier
         else:
             cost_to_use = cost
         new_cost = prev_cost + cost_to_use
-        self.cost_basis = new_cost / abs(self.amount)
+        self.cost_basis = new_cost / self.amount
 
     def __repr__(self):
         template = "asset: {asset}, amount: {amount}, cost_basis: {cost_basis}, \

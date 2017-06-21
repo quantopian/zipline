@@ -2049,7 +2049,7 @@ class TestPositionTracker(WithTradingEnvironment,
     def test_cost_basis(self):
         dt = pd.Timestamp("2015-12-10 15:00", tz='UTC')
 
-        long_equity_pos = perf.Position(
+        equity_pos = perf.Position(
             self.EQUITY1,
             amount=10,
             last_sale_date=dt,
@@ -2057,15 +2057,7 @@ class TestPositionTracker(WithTradingEnvironment,
             last_sale_price=11,
         )
 
-        short_equity_pos = perf.Position(
-            self.EQUITY1,
-            amount=-10,
-            last_sale_date=dt,
-            cost_basis=10,
-            last_sale_price=11,
-        )
-
-        long_future_pos = perf.Position(
+        future_pos = perf.Position(
             self.FUTURE3,
             amount=10,
             last_sale_date=dt,
@@ -2073,31 +2065,21 @@ class TestPositionTracker(WithTradingEnvironment,
             last_sale_price=11,
         )
 
-        short_future_pos = perf.Position(
-            self.FUTURE3,
-            amount=-10,
-            last_sale_date=dt,
-            cost_basis=10,
-            last_sale_price=11,
-        )
+        self.assertEqual(10, equity_pos.cost_basis)
 
-        for equity_pos in [long_equity_pos, short_equity_pos]:
-            self.assertEqual(10, equity_pos.cost_basis)
+        # send a $5 commission to the equity position.  Spread out over 10
+        # shares, that bumps the cost basis by $0.50.
+        equity_pos.adjust_commission_cost_basis(self.EQUITY1, 5)
+        self.assertEqual(10.5, equity_pos.cost_basis)
 
-            # send a $5 commission to the equity position.  Spread out over 10
-            # shares, that bumps the cost basis by $0.50.
-            equity_pos.adjust_commission_cost_basis(self.EQUITY1, 5)
-            self.assertEqual(10.5, equity_pos.cost_basis)
+        self.assertEqual(10, future_pos.cost_basis)
 
-        for future_pos in [long_future_pos, short_future_pos]:
-            self.assertEqual(10, future_pos.cost_basis)
-
-            # send a $5k commission to the futures position.  since
-            # self.FUTURE3 has a contract size (multipler) of 1000, this should
-            # result in a $10.5 updated cost basis. (5000 / 1000 = $5, spread
-            # out over 10 contracts, is $0.50 extra per contract).
-            future_pos.adjust_commission_cost_basis(self.FUTURE3, 5000)
-            self.assertEqual(10.5, future_pos.cost_basis)
+        # send a $5k commission to the futures position.  since self.FUTURE3
+        # has a contract size (multipler) of 1000, this should result in a
+        # $10.5 updated cost basis. (5000 / 1000 = $5, spread out over 10
+        # contracts, is $0.50 extra per contract).
+        future_pos.adjust_commission_cost_basis(self.FUTURE3, 5000)
+        self.assertEqual(10.5, future_pos.cost_basis)
 
     def test_update_positions(self):
         pt = perf.PositionTracker(None)
