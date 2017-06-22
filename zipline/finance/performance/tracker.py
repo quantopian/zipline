@@ -449,14 +449,12 @@ class PerformanceTracker(object):
         When the simulation is complete, run the full period risk report
         and send it out on the results socket.
         """
-
         log_msg = "Simulated {n} trading days out of {m}."
-        log.info(log_msg.format(n=int(self.session_count),
-                                m=self.total_session_count))
-        log.info("first open: {d}".format(
-            d=self.sim_params.first_open))
-        log.info("last close: {d}".format(
-            d=self.sim_params.last_close))
+        log.info(
+            log_msg, n=int(self.session_count), m=self.total_session_count,
+        )
+        log.info("first open: {d}", d=self.sim_params.first_open)
+        log.info("last close: {d}", d=self.sim_params.last_close)
 
         bms = pd.Series(
             index=self.cumulative_risk_metrics.cont_index,
