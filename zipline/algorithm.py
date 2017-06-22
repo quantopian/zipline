@@ -891,16 +891,15 @@ class TradingAlgorithm(object):
         weights.drop(futures_held, axis=1, inplace=True)
         assets = weights.columns.tolist()
 
-        benchmark = self._create_benchmark_source().benchmark_asset
-        if benchmark is not None:
+        if self.benchmark_sid is not None:
+            benchmark = asset_finder.retrieve_asset(self.benchmark_sid)
             assets.append(benchmark)
 
         # If we are near the start date of our data, just use the data
         # available. Otherwise, use the full default number of lookback days.
         days_before_start = min(
             self.trading_calendar.session_distance(
-                data_portal._first_available_session,
-                sim_params.start_session,
+                data_portal.first_day_of_data, sim_params.start_session,
             ),
             lookback_days,
         )
@@ -919,7 +918,7 @@ class TradingAlgorithm(object):
         # Any assets that came into existence after the start date of the
         # simulation have their missing returns values proxied with the
         # benchmark's returns values.
-        if benchmark is not None:
+        if self.benchmark_sid is not None:
             for column in asset_returns:
                 asset_returns[column].fillna(
                     asset_returns[benchmark], inplace=True,

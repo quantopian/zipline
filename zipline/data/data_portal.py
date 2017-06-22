@@ -420,6 +420,10 @@ class DataPortal(object):
         return self._get_pricing_reader(data_frequency).get_last_traded_dt(
             asset, dt)
 
+    @property
+    def first_day_of_data(self):
+        return self._first_available_session
+
     @staticmethod
     def _is_extra_source(asset, field, map):
         """
