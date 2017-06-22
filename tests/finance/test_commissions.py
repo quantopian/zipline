@@ -154,8 +154,11 @@ class CommissionUnitTests(WithAssetFinder, ZiplineTestCase):
         expected_commissions = [1.725, 1.275, 0.75]
 
         # make sure each commission is pro-rated
-        for fill_amount, expected_commission, txn in \
-                zip(fill_amounts, expected_commissions, txns):
+        for fill_amount, expected_commission, txn in zip(
+            fill_amounts,
+            expected_commissions,
+            txns,
+        ):
 
             commission = model.calculate(order, txn)
             self.assertAlmostEqual(expected_commission, commission)
