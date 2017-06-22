@@ -17,6 +17,7 @@ from warnings import warn
 from empyrical import conditional_value_at_risk
 import pandas as pd
 
+from zipline._protocol import BarData  # noqa
 from zipline.assets import (
     Asset,
     AssetConvertible,
@@ -24,9 +25,9 @@ from zipline.assets import (
     PricingDataAssociable,
 )
 from zipline.errors import InsufficientHistoricalData
+from zipline.utils.cache import ExpiringCache
+from zipline.utils.enum import enum
 from zipline.utils.input_validation import expect_types
-from .utils.enum import enum
-from zipline._protocol import BarData  # noqa
 
 
 # Datasource type should completely determine the other fields of a
