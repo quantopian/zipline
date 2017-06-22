@@ -112,7 +112,7 @@ def calculate_per_unit_commission(order,
         # we've already paid some commission, so figure out how much we
         # would be paying if we only counted per unit.
         per_unit_total = \
-            (order.filled * cost_per_unit) + \
+            abs(order.filled * cost_per_unit) + \
             additional_commission + \
             initial_commission
 

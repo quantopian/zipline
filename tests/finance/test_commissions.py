@@ -147,14 +147,41 @@ class CommissionUnitTests(WithAssetFinder, ZiplineTestCase):
     def test_per_share_no_minimum(self):
         model = PerShare(cost=0.0075, min_trade_cost=None)
 
+        fill_amounts = [230, 170, 100]
         order, txns = self.generate_order_and_txns(
-            sid=1, order_amount=500, fill_amounts=[230, 170, 100],
+            sid=1, order_amount=500, fill_amounts=fill_amounts
         )
+        expected_commissions = [1.725, 1.275, 0.75]
 
         # make sure each commission is pro-rated
-        self.assertAlmostEqual(1.725, model.calculate(order, txns[0]))
-        self.assertAlmostEqual(1.275, model.calculate(order, txns[1]))
-        self.assertAlmostEqual(0.75, model.calculate(order, txns[2]))
+        for fill_amount, expected_commission, txn in zip(
+            fill_amounts,
+            expected_commissions,
+            txns,
+        ):
+
+            commission = model.calculate(order, txn)
+            self.assertAlmostEqual(expected_commission, commission)
+            order.filled += fill_amount
+            order.commission += commission
+
+    def test_per_share_shrinking_position(self):
+        model = PerShare(cost=0.0075, min_trade_cost=None)
+
+        fill_amounts = [-230, -170, -100]
+        order, txns = self.generate_order_and_txns(
+            sid=1, order_amount=-500, fill_amounts=fill_amounts
+        )
+        expected_commissions = [1.725, 1.275, 0.75]
+
+        # make sure each commission is positive and pro-rated
+        for fill_amount, expected_commission, txn in \
+                zip(fill_amounts, expected_commissions, txns):
+
+            commission = model.calculate(order, txn)
+            self.assertAlmostEqual(expected_commission, commission)
+            order.filled += fill_amount
+            order.commission += commission
 
     def verify_per_unit_commissions(self,
                                     model,
