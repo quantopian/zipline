@@ -363,7 +363,7 @@ class HistoryLoader(with_metaclass(ABCMeta)):
         return DEFAULT_ASSET_PRICE_DECIMALS
 
     def _ensure_sliding_windows(self, assets, dts, field,
-                                is_perspective_after):
+                                is_perspective_after, use_adjustments):
         """
         Ensure that there is a Float64Multiply window for each asset that can
         provide data for the given parameters.
@@ -386,6 +386,10 @@ class HistoryLoader(with_metaclass(ABCMeta)):
         is_perspective_after : bool
             see: `PricingHistoryLoader.history`
 
+        use_adjustments : bool
+            Whether the corresponding adjustments should be applied to the
+            history window being returned.
+
         Returns
         -------
         out : list of Float64Window with sufficient data so that each asset's
@@ -404,7 +408,9 @@ class HistoryLoader(with_metaclass(ABCMeta)):
         for asset in assets:
             try:
                 window = self._window_blocks[field].get(
-                    (asset, size, is_perspective_after), end)
+                    (asset, size, is_perspective_after, use_adjustments),
+                    end
+                )
             except KeyError:
                 needed_assets.append(asset)
             else:
@@ -463,13 +469,14 @@ class HistoryLoader(with_metaclass(ABCMeta)):
                 sliding_window = SlidingWindow(window, size, start_ix, offset)
                 asset_windows[asset] = sliding_window
                 self._window_blocks[field].set(
-                    (asset, size, is_perspective_after),
+                    (asset, size, is_perspective_after, use_adjustments),
                     sliding_window,
                     prefetch_end)
 
         return [asset_windows[asset] for asset in assets]
 
-    def history(self, assets, dts, field, is_perspective_after):
+    def history(self, assets, dts, field, is_perspective_after,
+                use_adjustments):
         """
         A window of pricing data with adjustments applied assuming that the
         end of the window is the day before the current simulation time.
@@ -540,6 +547,12 @@ class HistoryLoader(with_metaclass(ABCMeta)):
             Adjustments are applied 05-23 through 05-26 but not to the last dt,
             05-27
 
+        use_adjustments : bool
+            Whether the corresponding adjustments should be applied to the
+            history window being returned. This allows window data to be
+            returned unadjusted, even if there is an adjustments loader
+            provided.
+
         Returns
         -------
         out : np.ndarray with shape(len(days between start, end), len(assets))
@@ -547,7 +560,8 @@ class HistoryLoader(with_metaclass(ABCMeta)):
         block = self._ensure_sliding_windows(assets,
                                              dts,
                                              field,
-                                             is_perspective_after)
+                                             is_perspective_after,
+                                             use_adjustments)
         end_ix = self._calendar.searchsorted(dts[-1])
 
         return concatenate(

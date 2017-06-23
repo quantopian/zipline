@@ -740,7 +740,8 @@ class DataPortal(object):
                                   end_dt,
                                   bar_count,
                                   field_to_use,
-                                  data_frequency):
+                                  data_frequency,
+                                  use_adjustments):
         """
         Internal method that returns a dataframe containing history bars
         of daily frequency for the given sids.
@@ -754,7 +755,12 @@ class DataPortal(object):
                                 columns=None)
 
         data = self._get_history_daily_window_data(
-            assets, days_for_window, end_dt, field_to_use, data_frequency
+            assets,
+            days_for_window,
+            end_dt,
+            field_to_use,
+            data_frequency,
+            use_adjustments
         )
         return pd.DataFrame(
             data,
@@ -767,7 +773,8 @@ class DataPortal(object):
                                        days_for_window,
                                        end_dt,
                                        field_to_use,
-                                       data_frequency):
+                                       data_frequency,
+                                       use_adjustments):
         if data_frequency == 'daily':
             # two cases where we use daily data for the whole range:
             # 1) the history window ends at midnight utc.
@@ -777,6 +784,7 @@ class DataPortal(object):
                 assets,
                 field_to_use,
                 days_for_window,
+                use_adjustments,
                 extra_slot=False
             )
         else:
@@ -835,7 +843,7 @@ class DataPortal(object):
         )
 
     def _get_history_minute_window(self, assets, end_dt, bar_count,
-                                   field_to_use):
+                                   field_to_use, use_adjustments):
         """
         Internal method that returns a dataframe containing history bars
         of minute frequency for the given sids.
@@ -855,6 +863,7 @@ class DataPortal(object):
             assets,
             field_to_use,
             minutes_for_window,
+            use_adjustments
         )
 
         return pd.DataFrame(
@@ -870,7 +879,8 @@ class DataPortal(object):
                            frequency,
                            field,
                            data_frequency,
-                           ffill=True):
+                           ffill=True,
+                           use_adjustments=True):
         """
         Public API method that returns a dataframe containing the requested
         history window.  Data is fully adjusted.
@@ -897,6 +907,9 @@ class DataPortal(object):
             Forward-fill missing values. Only has effect if field
             is 'price'.
 
+        use_adjustments : boolean
+            Whether known adjustments data should be used in the window return.
+
         Returns
         -------
         A dataframe containing the requested data.
@@ -906,18 +919,40 @@ class DataPortal(object):
 
         if frequency == "1d":
             if field == "price":
-                df = self._get_history_daily_window(assets, end_dt, bar_count,
-                                                    "close", data_frequency)
+                df = self._get_history_daily_window(
+                    assets,
+                    end_dt,
+                    bar_count,
+                    "close",
+                    data_frequency,
+                    use_adjustments
+                )
             else:
-                df = self._get_history_daily_window(assets, end_dt, bar_count,
-                                                    field, data_frequency)
+                df = self._get_history_daily_window(
+                    assets,
+                    end_dt,
+                    bar_count,
+                    field,
+                    data_frequency,
+                    use_adjustments
+                )
         elif frequency == "1m":
             if field == "price":
-                df = self._get_history_minute_window(assets, end_dt, bar_count,
-                                                     "close")
+                df = self._get_history_minute_window(
+                    assets,
+                    end_dt,
+                    bar_count,
+                    "close",
+                    use_adjustments
+                )
             else:
-                df = self._get_history_minute_window(assets, end_dt, bar_count,
-                                                     field)
+                df = self._get_history_minute_window(
+                    assets,
+                    end_dt,
+                    bar_count,
+                    field,
+                    use_adjustments
+                )
         else:
             raise ValueError("Invalid frequency: {0}".format(frequency))
 
@@ -972,7 +1007,8 @@ class DataPortal(object):
                     df.loc[normed_index > asset.end_date, asset] = nan
         return df
 
-    def _get_minute_window_data(self, assets, field, minutes_for_window):
+    def _get_minute_window_data(self, assets, field, minutes_for_window,
+                                use_adjustments):
         """
         Internal method that gets a window of adjusted minute data for an asset
         and specified date range.  Used to support the history API method for
@@ -992,6 +1028,11 @@ class DataPortal(object):
             The list of minutes representing the desired window.  Each minute
             is a pd.Timestamp.
 
+        use_adjustments : bool
+            Whether the corresponding adjustments should be applied to the
+            history window being returned.
+
+
         Returns
         -------
         A numpy array with requested values.
@@ -999,12 +1040,14 @@ class DataPortal(object):
         return self._minute_history_loader.history(assets,
                                                    minutes_for_window,
                                                    field,
-                                                   False)
+                                                   False,
+                                                   use_adjustments)
 
     def _get_daily_window_data(self,
                                assets,
                                field,
                                days_in_window,
+                               use_adjustments,
                                extra_slot=True):
         """
         Internal method that gets a window of adjusted daily data for a sid
@@ -1013,17 +1056,22 @@ class DataPortal(object):
 
         Parameters
         ----------
-        asset : Asset
+        assets : Asset
             The asset whose data is desired.
-
-        start_dt: pandas.Timestamp
-            The start of the desired window of data.
-
-        bar_count: int
-            The number of days of data to return.
 
         field: string
             The specific field to return.  "open", "high", "close_price", etc.
+
+        days_in_window : iterable of datetime64-like
+            The datetimes for which to fetch data.
+            Makes an assumption that all dts are present and contiguous,
+            in the calendar.
+
+        use_adjustments : bool
+            Whether the corresponding adjustments should be applied to the
+            history window being returned. This allows window data to be
+            returned unadjusted, even if there is an adjustments loader
+            provided.
 
         extra_slot: boolean
             Whether to allocate an extra slot in the returned numpy array.
@@ -1053,7 +1101,8 @@ class DataPortal(object):
             data = self._history_loader.history(assets,
                                                 days_in_window,
                                                 field,
-                                                extra_slot)
+                                                extra_slot,
+                                                use_adjustments)
             if extra_slot:
                 return_array[:len(return_array) - 1, :] = data
             else:
