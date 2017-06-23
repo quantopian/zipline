@@ -1504,47 +1504,58 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         # because we only compute it if we have at least a year's worth of data
         # to look back on. After 248 days, we expect the values to alternate
         # according to our alternating portfolio weights.
-        session_ends = self.trading_calendar.session_closes_in_range(
-            self.SIM_PARAMS_START, self.SIM_PARAMS_END,
+        expected = pd.Series(
+            index=self.sim_params.sessions, name='expected_shortfall',
         )
-        session_ends.name = None
-        expected = pd.Series(index=session_ends, name='expected_shortfall')
         expected[248::2] = second_expected_shortfall_value
         expected[249::2] = first_expected_shortfall_value
 
-        assert_equal(daily_stats['expected_shortfall'], expected)
+        actual = pd.DataFrame(
+            algo.risk_report['daily'], index=self.sim_params.sessions,
+        )['expected_shortfall']
+
+        assert_equal(actual, expected)
 
     def test_expected_shortfall_method(self):
         sids = (1, 1004)
         order_amounts = (1, 1)
         equity_1, future_1000 = self.asset_finder.retrieve_all(sids)
 
+        env = self.env
+        data_portal = self.data_portal
+        calendar = self.trading_calendar
+        end_date = self.sim_params.end_session
+
         algo = TestPositionWeightsAlgorithm(
             sids_and_amounts=zip(sids, order_amounts),
             record_expected_shortfall=True,
             start=self.START_DATE,
-            end=self.sim_params.end_session,
-            env=self.env,
+            end=end_date,
+            env=env,
             benchmark_sid=8554,
         )
         with self.assertRaises(InsufficientHistoricalData):
-            algo.run(self.data_portal)
+            algo.run(data_portal)
 
+        start_date = pd.Timestamp('2016-01-06', tz='UTC')
         algo = TestPositionWeightsAlgorithm(
             sids_and_amounts=zip(sids, [1, 1]),
             record_expected_shortfall=True,
-            start=pd.Timestamp('2016-01-06', tz='UTC'),
-            end=self.sim_params.end_session,
-            env=self.env,
+            start=start_date,
+            end=end_date,
+            env=env,
             benchmark_sid=8554,
         )
-        daily_stats = algo.run(self.data_portal)
-
+        daily_stats = algo.run(data_portal)
+        daily_stats.index = daily_stats.index.normalize()
         daily_stats.recorded_expected_shortfall.name = 'expected_shortfall'
-        assert_equal(
-            daily_stats.recorded_expected_shortfall,
-            daily_stats.expected_shortfall,
-        )
+
+        expected = pd.DataFrame(
+            algo.risk_report['daily'],
+            index=calendar.sessions_in_range(start_date, end_date),
+        )['expected_shortfall']
+
+        assert_equal(daily_stats.recorded_expected_shortfall, expected)
 
     def test_expected_shortfall_fill_with_benchmark(self):
         # Equity 2 starts a year late, so verify that its expected shortfall
@@ -1559,7 +1570,8 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
             env=self.env,
             benchmark_sid=8554,
         )
-        daily_stats = algo.run(self.data_portal)
+        algo.run(self.data_portal)
+        daily_stats = pd.DataFrame(algo.risk_report['daily'])
 
         # Equity 2 has prices that are always increasing, so on its own its
         # expected shortfall should always be greater than zero. However, since
@@ -2719,6 +2731,13 @@ class TestCapitalChanges(WithLogger,
             {
                 0: factory.create_trade_history(
                     0,
+                    np.arange(10.0, 10.0 + len(days), 1.0),
+                    [10000] * len(days),
+                    timedelta(days=1),
+                    cls.sim_params,
+                    cls.trading_calendar),
+                1: factory.create_trade_history(
+                    1,
                     np.arange(10.0, 10.0 + len(days), 1.0),
                     [10000] * len(days),
                     timedelta(days=1),
@@ -4530,11 +4549,15 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
                 volume_step_by_date=10,
                 frequency=frequency
             )
-            reader = BcolzMinuteBarReader(self.tmpdir.path)
+            daily_reader = BcolzDailyBarReader(
+                self.tmpdir.getpath('testdaily.bcolz'),
+            )
+            minute_reader = BcolzMinuteBarReader(self.tmpdir.path)
             data_portal = DataPortal(
                 env.asset_finder, self.trading_calendar,
-                first_trading_day=reader.first_trading_day,
-                equity_minute_reader=reader,
+                first_trading_day=minute_reader.first_trading_day,
+                equity_daily_reader=daily_reader,
+                equity_minute_reader=minute_reader,
             )
         else:
             self.fail("Unknown frequency in make_data: %r" % frequency)

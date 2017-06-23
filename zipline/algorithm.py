@@ -35,8 +35,6 @@ from six import (
     viewkeys,
 )
 
-from empyrical import conditional_value_at_risk
-
 from zipline._protocol import handle_non_market_minutes
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.data.data_portal import DataPortal
@@ -128,10 +126,7 @@ from zipline.utils.math_utils import (
     tolerant_equals,
     round_if_near_integer,
 )
-from zipline.utils.pandas_utils import (
-    clear_dataframe_indexer_caches,
-    sliding_apply,
-)
+from zipline.utils.pandas_utils import clear_dataframe_indexer_caches
 from zipline.utils.preprocess import preprocess
 from zipline.utils.security_list import SecurityList
 
@@ -857,108 +852,6 @@ class TradingAlgorithm(object):
             [p['period_close'] for p in daily_perfs], tz='UTC'
         )
         daily_stats = pd.DataFrame(daily_perfs, index=daily_dts)
-
-        sim_params = self.sim_params
-        data_portal = self.data_portal
-        perf_tracker = self.perf_tracker
-        asset_finder = data_portal.asset_finder
-        lookback_days = zp.DEFAULT_CVAR_LOOKBACK_DAYS
-
-        # Create a data frame of asset weights on each day of the simulation.
-        # If an asset was not held on a given date, it is assigned a weight of
-        # zero.
-        weights = pd.DataFrame(
-            perf_tracker.cumulative_risk_metrics.position_weights.tolist(),
-            index=daily_dts.normalize(),
-        ).fillna(0)
-
-        # For each day of the simulation, check to see if any futures were
-        # held. If so, convert it to a continuous future and assign its weight
-        # on that day to the continuous future. Once that is done, drop the
-        # futures contracts from the weights dataframe as we only want to look
-        # at the continuous futures when doing a history call later on.
-        futures_held = filter(
-            lambda asset: isinstance(asset, Future),
-            weights.columns,
-        )
-        for day in weights.index:
-            for asset in futures_held:
-                if weights.loc[day, asset] != 0:
-                    cf = zp.assets_for_history_call(asset, asset_finder, day)
-                    if cf not in weights:
-                        weights[cf] = 0
-                    weights.loc[day, cf] = weights.loc[day, asset]
-        weights.drop(futures_held, axis=1, inplace=True)
-        assets = weights.columns.tolist()
-
-        if self.benchmark_sid is not None:
-            benchmark = asset_finder.retrieve_asset(self.benchmark_sid)
-            assets.append(benchmark)
-
-        # If we are near the start date of our data, just use the data
-        # available. Otherwise, use the full default number of lookback days.
-        days_before_start = min(
-            self.trading_calendar.session_distance(
-                data_portal.first_day_of_data, sim_params.start_session,
-            ),
-            lookback_days,
-        )
-
-        # Get returns values for all assets for the entirety of the simulation.
-        prices = data_portal.get_history_window(
-           assets=assets,
-           end_dt=sim_params.end_session,
-           bar_count=len(sim_params.sessions) + days_before_start,
-           frequency='1d',
-           field='price',
-           data_frequency='daily',
-        )
-        asset_returns = prices.pct_change().iloc[1:]
-
-        # Any assets that came into existence after the start date of the
-        # simulation have their missing returns values proxied with the
-        # benchmark's returns values.
-        if self.benchmark_sid is not None:
-            for column in asset_returns:
-                asset_returns[column].fillna(
-                    asset_returns[benchmark], inplace=True,
-                )
-            asset_returns.drop(benchmark, axis=1, inplace=True)
-
-        def cvar_of_df(df):
-            """
-            Given a data frame indexed by date, compute its CVaR according to
-            the asset weights on the last date of the index.
-            """
-            if len(df) < lookback_days / 2:
-                return np.NaN
-
-            date_to_use = df.index[-1]
-            try:
-                weights_to_use = weights.loc[date_to_use]
-            except KeyError:
-                return np.NaN
-
-            return conditional_value_at_risk(
-                returns=df.dot(weights_to_use.values),
-                cutoff=zp.DEFAULT_CVAR_CUTOFF,
-            )
-
-        # Compute rolling CVaR over the returns data frame.
-        rolling_cvars = pd.Series(
-            sliding_apply(
-                df=asset_returns.fillna(0),
-                window_length=lookback_days,
-                f=cvar_of_df,
-                min_periods=1,
-            ),
-        )
-        if days_before_start == 0:
-            rolling_cvars = pd.Series([np.NaN]).append(rolling_cvars)
-        else:
-            rolling_cvars = rolling_cvars[days_before_start - 1:]
-        rolling_cvars.index = daily_dts
-        daily_stats['expected_shortfall'] = rolling_cvars
 
         return daily_stats
 

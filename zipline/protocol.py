@@ -199,7 +199,7 @@ class Portfolio(object):
         self.positions_value = 0.0
 
         self.data_portal = data_portal
-        self.benchmark = benchmark_asset
+        self.benchmark_asset = benchmark_asset
         self._current_dt_callback = current_dt_callback
 
         self._minute_cache = ExpiringCache()
@@ -287,7 +287,7 @@ class Portfolio(object):
             asset_finder=data_portal.asset_finder,
             date=current_date,
         )
-        benchmark = self.benchmark
+        benchmark = self.benchmark_asset
         if benchmark is not None:
             assets.append(benchmark)
 

@@ -61,12 +61,18 @@ from __future__ import division
 
 import logbook
 
+import numpy as np
 import pandas as pd
 from pandas.tseries.tools import normalize_date
 
+from empyrical import conditional_value_at_risk
+
+from zipline.assets import Future
 from zipline.errors import NoFurtherDataError
 from zipline.finance.performance.period import PerformancePeriod
 import zipline.finance.risk as risk
+import zipline.protocol as zp
+from zipline.utils.pandas_utils import sliding_apply
 
 from . position_tracker import PositionTracker
 
@@ -81,6 +87,7 @@ class PerformanceTracker(object):
         self.sim_params = sim_params
         self.trading_calendar = trading_calendar
         self.asset_finder = env.asset_finder
+        self.benchmark_asset = portfolio.benchmark_asset
         self.treasury_curves = env.treasury_curves
 
         self.period_start = self.sim_params.start_session
@@ -168,6 +175,11 @@ class PerformanceTracker(object):
 
         self.account_needs_update = True
         self._account = None
+
+        self.position_weights = pd.Series(
+            np.full(len(self.sim_params.sessions), {}, dtype=object),
+            index=self.sim_params.sessions,
+        )
 
     def __repr__(self):
         return "%s(%r)" % (
@@ -352,13 +364,10 @@ class PerformanceTracker(object):
         # cumulative returns
         bench_since_open = (1. + bench_returns).prod() - 1
 
-        # Pass 'portfolio' as 'None' so that we do not calculate the portfolio
-        # weights every minute.
         self.cumulative_risk_metrics.update(todays_date,
                                             self.todays_performance.returns,
                                             bench_since_open,
-                                            account.leverage,
-                                            portfolio=None)
+                                            account.leverage)
 
         minute_packet = self.to_dict(emission_type='minute')
         return minute_packet
@@ -394,8 +403,11 @@ class PerformanceTracker(object):
                 completed_session,
                 self.todays_performance.returns,
                 benchmark_value,
-                account.leverage,
-                self.get_portfolio(performance_needs_update=False))
+                account.leverage)
+
+        portfolio = self.get_portfolio(performance_needs_update=False)
+        position_weights = portfolio.current_portfolio_weights()
+        self.position_weights[normalize_date(dt)] = dict(position_weights)
 
         # increment the day counter before we move markers forward.
         self.session_count += 1.0
@@ -444,7 +456,7 @@ class PerformanceTracker(object):
 
         return daily_update
 
-    def handle_simulation_end(self):
+    def handle_simulation_end(self, data_portal):
         """
         When the simulation is complete, run the full period risk report
         and send it out on the results socket.
@@ -463,10 +475,12 @@ class PerformanceTracker(object):
             index=self.cumulative_risk_metrics.cont_index,
             data=self.cumulative_risk_metrics.algorithm_returns_cont)
         acl = self.cumulative_risk_metrics.algorithm_cumulative_leverages
+        cvar = self._calculate_rolling_expected_shortfall(data_portal)
 
         risk_report = risk.RiskReport(
-            ars,
-            self.sim_params,
+            algorithm_returns=ars,
+            expected_shortfalls=cvar,
+            sim_params=self.sim_params,
             benchmark_returns=bms,
             algorithm_leverages=acl,
             trading_calendar=self.trading_calendar,
@@ -474,3 +488,105 @@ class PerformanceTracker(object):
         )
 
         return risk_report.to_dict()
+
+    def _calculate_rolling_expected_shortfall(self, data_portal):
+        sim_params = self.sim_params
+        asset_finder = data_portal.asset_finder
+        lookback_days = zp.DEFAULT_CVAR_LOOKBACK_DAYS
+
+        # Create a data frame of asset weights on each day of the simulation.
+        # If an asset was not held on a given date, it is assigned a weight of
+        # zero.
+        weights = pd.DataFrame(
+            self.position_weights.tolist(),
+            index=sim_params.sessions.normalize(),
+        ).fillna(0)
+
+        # For each day of the simulation, check to see if any futures were
+        # held. If so, convert it to a continuous future and assign its weight
+        # on that day to the continuous future. Once that is done, drop the
+        # futures contracts from the weights dataframe as we only want to look
+        # at the continuous futures when doing a history call later on.
+        futures_held = filter(
+            lambda asset: isinstance(asset, Future),
+            weights.columns,
+        )
+        for day in weights.index:
+            for asset in futures_held:
+                if weights.loc[day, asset] != 0:
+                    cf = zp.assets_for_history_call(asset, asset_finder, day)
+                    if cf not in weights:
+                        weights[cf] = 0
+                    weights.loc[day, cf] = weights.loc[day, asset]
+        weights.drop(futures_held, axis=1, inplace=True)
+        assets = weights.columns.tolist()
+
+        benchmark = self.benchmark_asset
+        if benchmark is not None:
+            assets.append(benchmark)
+
+        # If we are near the start date of our data, just use the data
+        # available. Otherwise, use the full default number of lookback days.
+        days_before_start = min(
+            self.trading_calendar.session_distance(
+                data_portal.first_day_of_data, sim_params.start_session,
+            ),
+            lookback_days,
+        )
+
+        # Get returns values for all assets for the entirety of the simulation.
+        prices = data_portal.get_history_window(
+           assets=assets,
+           end_dt=sim_params.end_session,
+           bar_count=len(sim_params.sessions) + days_before_start,
+           frequency='1d',
+           field='price',
+           data_frequency='daily',
+        )
+        asset_returns = prices.pct_change().iloc[1:]
+
+        # Any assets that came into existence after the start date of the
+        # simulation have their missing returns values proxied with the
+        # benchmark's returns values.
+        if benchmark is not None:
+            for column in asset_returns:
+                asset_returns[column].fillna(
+                    asset_returns[benchmark], inplace=True,
+                )
+            asset_returns.drop(benchmark, axis=1, inplace=True)
+
+        def cvar_of_df(df):
+            """
+            Given a data frame indexed by date, compute its CVaR according to
+            the asset weights on the last date of the index.
+            """
+            if len(df) < lookback_days / 2:
+                return np.NaN
+
+            date_to_use = df.index[-1]
+            try:
+                weights_to_use = weights.loc[date_to_use]
+            except KeyError:
+                return np.NaN
+
+            return conditional_value_at_risk(
+                returns=df.dot(weights_to_use.values),
+                cutoff=zp.DEFAULT_CVAR_CUTOFF,
+            )
+
+        # Compute rolling CVaR over the returns data frame.
+        rolling_cvars = pd.Series(
+            sliding_apply(
+                df=asset_returns.fillna(0),
+                window_length=lookback_days,
+                f=cvar_of_df,
+                min_periods=1,
+            ),
+        )
+        if days_before_start == 0:
+            rolling_cvars = pd.Series([np.NaN]).append(rolling_cvars)
+        else:
+            rolling_cvars = rolling_cvars[days_before_start - 1:]
+        rolling_cvars.index = sim_params.sessions
+
+        return rolling_cvars

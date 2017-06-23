@@ -130,8 +130,10 @@ def _run(handle_data,
                 str(bundle_data.asset_finder.engine.url),
             )
         env = TradingEnvironment(asset_db_path=connstr, environ=environ)
-        first_trading_day =\
-            bundle_data.equity_minute_bar_reader.first_trading_day
+        first_trading_day = max(
+            bundle_data.equity_daily_bar_reader.first_trading_day,
+            bundle_data.equity_minute_bar_reader.first_trading_day,
+        )
         data = DataPortal(
             env.asset_finder, get_calendar("NYSE"),
             first_trading_day=first_trading_day,
