@@ -79,7 +79,8 @@ class TWSConnection(EClientSocket, EWrapper):
         self.last_tick = defaultdict(dict)
         self.bars = {}
         # accounts structure: accounts[account_id][currency][value]
-        self.accounts = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: np.NaN)))
+        self.accounts = defaultdict(
+            lambda: defaultdict(lambda: defaultdict(lambda: np.NaN)))
         self.accounts_download_complete = False
         self.positions = {}
         self.portfolio = {}
