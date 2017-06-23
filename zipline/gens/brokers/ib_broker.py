@@ -78,7 +78,9 @@ class TWSConnection(EClientSocket, EWrapper):
         self.ticker_id_to_symbol = {}
         self.last_tick = defaultdict(dict)
         self.bars = {}
-        self.accounts = {}
+        # accounts structure: accounts[account_id][currency][value]
+        self.accounts = defaultdict(
+            lambda: defaultdict(lambda: defaultdict(lambda: np.NaN)))
         self.accounts_download_complete = False
         self.positions = {}
         self.portfolio = {}
@@ -225,10 +227,6 @@ class TWSConnection(EClientSocket, EWrapper):
         log_message('openOrderEnd', vars())
 
     def updateAccountValue(self, key, value, currency, account_name):
-        self.accounts.setdefault(account_name, {})
-        self.accounts[account_name].setdefault(currency, {})
-        self.accounts[account_name][currency].setdefault(key, {})
-
         self.accounts[account_name][currency][key] = value
 
     def updatePortfolio(self,
