@@ -36,17 +36,11 @@ from zipline.data.us_equity_pricing import (
     SQLiteAdjustmentWriter,
     SQLiteAdjustmentReader,
 )
-import zipline.utils.factory as factory
-import zipline.finance.performance as perf
-from zipline.finance.transaction import create_transaction
-import zipline.utils.math_utils as zp_math
-
 from zipline.finance.blotter import Order
+import zipline.finance.performance as perf
 from zipline.finance.performance.position import Position
-from zipline.utils.factory import create_simulation_parameters
-from zipline.utils.serialization_utils import (
-    loads_with_persistent_ids, dumps_with_persistent_ids
-)
+from zipline.finance.transaction import create_transaction
+from zipline.protocol import Portfolio
 from zipline.testing import (
     MockDailyBarReader,
     create_data_portal_from_trade_history,
@@ -55,12 +49,19 @@ from zipline.testing import (
 )
 from zipline.testing.fixtures import (
     WithInstanceTmpDir,
+    WithPortfolio,
     WithSimParams,
-    WithTmpDir,
     WithTradingEnvironment,
     ZiplineTestCase,
 )
 from zipline.utils.calendars import get_calendar
+import zipline.utils.factory as factory
+from zipline.utils.factory import create_simulation_parameters
+import zipline.utils.math_utils as zp_math
+from zipline.utils.serialization_utils import (
+    dumps_with_persistent_ids,
+    loads_with_persistent_ids,
+)
 
 logger = logging.getLogger('Test Perf Tracking')
 
@@ -177,8 +178,9 @@ def calculate_results(sim_params,
     splits = splits or {}
     commissions = commissions or {}
 
+    portfolio = Portfolio(data_portal, lambda: pd.Timestamp('now'))
     perf_tracker = perf.PerformanceTracker(
-        sim_params, get_calendar("NYSE"), env
+        sim_params, get_calendar("NYSE"), env, portfolio,
     )
 
     results = []
@@ -265,7 +267,7 @@ def setup_env_data(env, sim_params, sids, futures_sids=[]):
     env.write_data(futures_data=futures_data)
 
 
-class TestSplitPerformance(WithSimParams, WithTmpDir, ZiplineTestCase):
+class TestSplitPerformance(WithSimParams, WithPortfolio, ZiplineTestCase):
     START_DATE = pd.Timestamp('2006-01-03', tz='utc')
     END_DATE = pd.Timestamp('2006-01-04', tz='utc')
     SIM_PARAMS_CAPITAL_BASE = 10e3
@@ -283,7 +285,8 @@ class TestSplitPerformance(WithSimParams, WithTmpDir, ZiplineTestCase):
         # the total leftover cash is correct
         perf_tracker = perf.PerformanceTracker(self.sim_params,
                                                self.trading_calendar,
-                                               self.env)
+                                               self.env,
+                                               self.portfolio)
 
         perf_tracker.position_tracker.positions[1] = \
             Position(self.asset1, amount=10, cost_basis=10, last_sale_price=11)
@@ -1030,7 +1033,7 @@ class TestDividendPerformanceHolidayStyle(TestDividendPerformance):
 
 
 class TestPositionPerformance(WithInstanceTmpDir,
-                              WithTradingEnvironment,
+                              WithPortfolio,
                               ZiplineTestCase):
 
     def create_environment_stuff(self,
@@ -1107,7 +1110,9 @@ class TestPositionPerformance(WithInstanceTmpDir,
         txn2 = create_txn(self.asset2, trades_1[0].dt, 10.0, -100)
 
         pt = perf.PositionTracker(self.sim_params.data_frequency)
-        pp = perf.PerformancePeriod(1000.0, self.sim_params.data_frequency)
+        pp = perf.PerformancePeriod(
+            1000.0, self.sim_params.data_frequency, self.portfolio,
+        )
         pp.position_tracker = pt
         pt.execute_transaction(txn1)
         pp.handle_execution(txn1)
@@ -1198,7 +1203,9 @@ class TestPositionPerformance(WithInstanceTmpDir,
             {1: trades})
         txn = create_txn(self.asset1, trades[1].dt, 10.0, 1000)
         pt = perf.PositionTracker(self.sim_params.data_frequency)
-        pp = perf.PerformancePeriod(1000.0, self.sim_params.data_frequency)
+        pp = perf.PerformancePeriod(
+            1000.0, self.sim_params.data_frequency, self.portfolio,
+        )
         pp.position_tracker = pt
 
         pt.execute_transaction(txn)
@@ -1290,6 +1297,7 @@ class TestPositionPerformance(WithInstanceTmpDir,
         pt = perf.PositionTracker(self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0,
                                     self.sim_params.data_frequency,
+                                    self.portfolio,
                                     period_open=self.sim_params.start_session,
                                     period_close=self.sim_params.end_session)
         pp.position_tracker = pt
@@ -1406,7 +1414,9 @@ single short-sale transaction"""
 
         txn = create_txn(self.asset1, trades[1].dt, 10.0, -100)
         pt = perf.PositionTracker(self.sim_params.data_frequency)
-        pp = perf.PerformancePeriod(1000.0, self.sim_params.data_frequency)
+        pp = perf.PerformancePeriod(
+            1000.0, self.sim_params.data_frequency, self.portfolio,
+        )
         pp.position_tracker = pt
 
         pt.execute_transaction(txn)
@@ -1524,7 +1534,7 @@ single short-sale transaction"""
         # now run a performance period encompassing the entire trade sample.
         ptTotal = perf.PositionTracker(self.sim_params.data_frequency)
         ppTotal = perf.PerformancePeriod(
-            1000.0, self.sim_params.data_frequency
+            1000.0, self.sim_params.data_frequency, self.portfolio,
         )
         ppTotal.position_tracker = pt
 
@@ -1631,7 +1641,9 @@ trade after cover"""
         short_txn = create_txn(self.asset1, trades[1].dt, 10.0, -100)
         cover_txn = create_txn(self.asset1, trades[6].dt, 7.0, 100)
         pt = perf.PositionTracker(self.sim_params.data_frequency)
-        pp = perf.PerformancePeriod(1000.0, self.sim_params.data_frequency)
+        pp = perf.PerformancePeriod(
+            1000.0, self.sim_params.data_frequency, self.portfolio,
+        )
         pp.position_tracker = pt
 
         pt.execute_transaction(short_txn)
@@ -1719,6 +1731,7 @@ shares in position"
         pp = perf.PerformancePeriod(
             1000.0,
             self.sim_params.data_frequency,
+            self.portfolio,
             period_open=self.sim_params.start_session,
             period_close=self.sim_params.sessions[-1]
         )
@@ -1781,7 +1794,9 @@ shares in position"
         self.assertEqual(pp.pnl, -800, "this period goes from +400 to -400")
 
         pt3 = perf.PositionTracker(self.sim_params.data_frequency)
-        pp3 = perf.PerformancePeriod(1000.0, self.sim_params.data_frequency)
+        pp3 = perf.PerformancePeriod(
+            1000.0, self.sim_params.data_frequency, self.portfolio,
+        )
         pp3.position_tracker = pt3
 
         average_cost = 0
@@ -1832,7 +1847,9 @@ shares in position"
         transactions = factory.create_txn_history(*history_args)
 
         pt = perf.PositionTracker(self.sim_params.data_frequency)
-        pp = perf.PerformancePeriod(1000.0, self.sim_params.data_frequency)
+        pp = perf.PerformancePeriod(
+            1000.0, self.sim_params.data_frequency, self.portfolio,
+        )
         pp.position_tracker = pt
 
         for idx, (txn, cb) in enumerate(zip(transactions, cost_bases)):
@@ -1872,6 +1889,7 @@ shares in position"
         pt = perf.PositionTracker(self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0,
                                     self.sim_params.data_frequency,
+                                    self.portfolio,
                                     period_open=self.sim_params.start_session,
                                     period_close=self.sim_params.end_session)
         pp.position_tracker = pt
@@ -1915,6 +1933,7 @@ shares in position"
         pt = perf.PositionTracker(self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0,
                                     self.sim_params.data_frequency,
+                                    self.portfolio,
                                     period_open=self.sim_params.start_session,
                                     period_close=self.sim_params.end_session)
         pp.position_tracker = pt

@@ -45,6 +45,7 @@ from zipline.testing import (
 )
 from zipline.testing.fixtures import (
     WithLogger,
+    WithPortfolio,
     WithTradingEnvironment,
     ZiplineTestCase,
 )
@@ -58,7 +59,7 @@ _multiprocess_can_split_ = False
 
 
 class FinanceTestCase(WithLogger,
-                      WithTradingEnvironment,
+                      WithPortfolio,
                       ZiplineTestCase):
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 133
     start = START_DATE = pd.Timestamp('2006-01-01', tz='utc')
@@ -286,7 +287,7 @@ class FinanceTestCase(WithLogger,
                 alternator = 1
 
             tracker = PerformanceTracker(sim_params, self.trading_calendar,
-                                         self.env)
+                                         self.env, self.portfolio)
 
             # replicate what tradesim does by going through every minute or day
             # of the simulation and processing open orders each time

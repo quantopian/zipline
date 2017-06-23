@@ -133,21 +133,13 @@ class RiskMetricsCumulative(object):
         self.max_drawdown = 0
         self.max_leverages = empty_cont.copy()
         self.max_leverage = 0
-        self.position_weights = np.full(
-            len(sim_params.sessions), np.nan, dtype=object,
-        )
         self.current_max = -np.inf
         self.daily_treasury = pd.Series(index=self.sessions)
         self.treasury_period_return = np.nan
 
         self.num_trading_days = 0
 
-    def update(self,
-               dt,
-               algorithm_returns,
-               benchmark_returns,
-               leverage,
-               portfolio):
+    def update(self, dt, algorithm_returns, benchmark_returns, leverage):
         # Keep track of latest dt for use in to_dict and other methods
         # that report current state.
         self.latest_dt = dt
@@ -281,12 +273,6 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         self.max_drawdowns[dt_loc] = self.max_drawdown
         self.max_leverage = self.calculate_max_leverage()
         self.max_leverages[dt_loc] = self.max_leverage
-
-        if portfolio is not None:
-            position_weights = portfolio.current_portfolio_weights()
-            self.position_weights[dt_loc] = dict(position_weights)
-        else:
-            self.position_weights[dt_loc] = {}
 
     def to_dict(self):
         """

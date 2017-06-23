@@ -53,7 +53,7 @@ from zipline.pipeline import SimplePipelineEngine
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
-from zipline.protocol import BarData
+from zipline.protocol import BarData, Portfolio
 from zipline.utils.calendars import (
     get_calendar,
     register_calendar)
@@ -1757,3 +1757,25 @@ class WithCreateBarData(WithDataPortal):
             self.trading_calendar,
             restrictions or NoRestrictions()
         )
+
+
+class WithPortfolio(WithDataPortal):
+    """
+    ZiplineTestCase mixin that provides self.portfolio as an instance fixture.
+    """
+    BENCHMARK_SID = None
+
+    def init_instance_fixtures(self):
+        super(WithPortfolio, self).init_instance_fixtures()
+        if self.BENCHMARK_SID is not None:
+            benchmark_asset = self.asset_finder.retrieve_asset(
+                self.BENCHMARK_SID,
+            )
+        else:
+            benchmark_asset = None
+        self.portfolio = Portfolio(
+            self.data_portal, self.current_dt_callback, benchmark_asset,
+        )
+
+    def current_dt_callback(self):
+        return pd.Timestamp('now')
