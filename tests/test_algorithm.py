@@ -1280,7 +1280,7 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
             },
             index=sessions,
         )
-        yield 2, frame.loc[cls.equity_2_start_date:].copy()
+        yield 2, frame.loc[cls.equity_2_start_date:]
 
         frame = pd.DataFrame(
             {
@@ -1293,14 +1293,6 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
             index=sessions,
         )
         yield 8554, frame
-
-    @classmethod
-    def make_root_symbols_info(self):
-        return pd.DataFrame({
-            'root_symbol': ['CL'],
-            'root_symbol_id': [1],
-            'exchange': ['CME'],
-        })
 
     @classmethod
     def make_futures_info(cls):
@@ -1383,7 +1375,7 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
                     'root_symbol': 'CL',
                     'start_date': cls.START_DATE,
                     'end_date': cls.END_DATE,
-                    'auto_close_date': cls.END_DATE + cls.trading_calendar.day,
+                    'auto_close_date': cls.END_DATE,
                     'exchange': 'CME',
                     'multiplier': 10,
                 },
@@ -1423,19 +1415,22 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         prices = np.empty(len(session_starts))
         prices[::2] = 87
         prices[1::2] = 100
-        frame.iloc[start_indexes] = prices[:, np.newaxis] + np.zeros(5)
+        frame.iloc[start_indexes] = np.tile(prices[:, np.newaxis], (1, 5))
         frame['volume'] = 100
         frame.fillna(method='ffill', inplace=True)
 
         return ((sid, frame) for sid in cls.asset_finder.futures_sids)
 
     def test_expected_shortfall(self):
+        """
+        Test the expected shortfall calculation performed at the end of
+        backtests.
+        """
         sids = (1, 1004)
-        order_amounts = (1, 1)
         equity_1, future_1000 = self.asset_finder.retrieve_all(sids)
 
         algo = TestPositionWeightsAlgorithm(
-            sids_and_amounts=zip(sids, order_amounts),
+            sids=sids,
             sim_params=self.sim_params,
             env=self.env,
             benchmark_sid=8554,
@@ -1517,8 +1512,10 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         assert_equal(actual, expected)
 
     def test_expected_shortfall_method(self):
+        """
+        Test the expected shortfall method on the Portfolio object.
+        """
         sids = (1, 1004)
-        order_amounts = (1, 1)
         equity_1, future_1000 = self.asset_finder.retrieve_all(sids)
 
         env = self.env
@@ -1526,9 +1523,11 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         calendar = self.trading_calendar
         end_date = self.sim_params.end_session
 
+        # We do not allow users to call the expected shortfall method within a
+        # year of the beginning of data, so this algorithm should fail.
         algo = TestPositionWeightsAlgorithm(
-            sids_and_amounts=zip(sids, order_amounts),
-            record_expected_shortfall=True,
+            sids=sids,
+            record_cvar=True,
             start=self.START_DATE,
             end=end_date,
             env=env,
@@ -1537,10 +1536,13 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         with self.assertRaises(InsufficientHistoricalData):
             algo.run(data_portal)
 
+        # Record expected shortfall every day within the algorithm itself using
+        # the Portfolio method, then assert that it is consistent with the
+        # expected shortfall values calculated at the end of the backtest.
         start_date = pd.Timestamp('2016-01-06', tz='UTC')
         algo = TestPositionWeightsAlgorithm(
-            sids_and_amounts=zip(sids, [1, 1]),
-            record_expected_shortfall=True,
+            sids=sids,
+            record_cvar=True,
             start=start_date,
             end=end_date,
             env=env,
@@ -1558,13 +1560,12 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         assert_equal(daily_stats.recorded_expected_shortfall, expected)
 
     def test_expected_shortfall_fill_with_benchmark(self):
-        # Equity 2 starts a year late, so verify that its expected shortfall
-        # calculations use the benchmark pricing data during that period.
-        sid = 2
-        order_amount = 1
-
+        """
+        Equity 2 starts a year late, so verify that its expected shortfall
+        calculations use the benchmark pricing data during that period.
+        """
         algo = TestPositionWeightsAlgorithm(
-            sids_and_amounts=[(sid, order_amount)],
+            sids=[2],
             start=self.equity_2_start_date,
             end=self.sim_params.end_session,
             env=self.env,

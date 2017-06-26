@@ -162,8 +162,8 @@ class Portfolio(object):
 
         self.data_portal = data_portal
         self.benchmark_asset = benchmark_asset
-        self._current_dt_callback = current_dt_callback
 
+        self._current_dt_callback = current_dt_callback
         self._expiring_cache = ExpiringCache()
         self._cf_cache = {}
 
@@ -249,13 +249,10 @@ class Portfolio(object):
         # shortfall calculation will not be reliable, so instead of returning
         # NaN, raise an exception alerting the user that this method cannot be
         # called over the given simulation dates.
-        data_start_date = data_portal._first_available_session
-        num_days_of_data = calendar.session_distance(
-            data_start_date, current_date,
-        )
+        data_start = data_portal.first_day_of_data
+        num_days_of_data = calendar.session_distance(data_start, current_date)
         if num_days_of_data < lookback_days:
-            suggested_start_date = \
-                data_start_date + (calendar.day * lookback_days)
+            suggested_start_date = data_start + (calendar.day * lookback_days)
             raise InsufficientHistoricalData(
                 method_name='expected_shortfall',
                 lookback_days=lookback_days,
