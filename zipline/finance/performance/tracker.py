@@ -59,6 +59,7 @@ Performance Tracking
 
 from __future__ import division
 
+from functools import partial
 import logbook
 
 import numpy as np
@@ -67,7 +68,6 @@ from pandas.tseries.tools import normalize_date
 
 from empyrical import conditional_value_at_risk
 
-from zipline.assets import Future
 from zipline.errors import NoFurtherDataError
 from zipline.finance.performance.period import PerformancePeriod
 import zipline.finance.risk as risk
@@ -409,6 +409,15 @@ class PerformanceTracker(object):
 
         portfolio = self.get_portfolio(performance_needs_update=False)
         position_weights = portfolio.current_portfolio_weights()
+
+        # For each day of the simulation, check to see if any futures were
+        # held. If so, convert them to continuous futures.
+        convert_futures = partial(
+            portfolio.asset_for_history_call, date=portfolio.current_date,
+        )
+        position_weights.index = list(
+            map(convert_futures, position_weights.index),
+        )
         self.position_weights[normalize_date(dt)] = dict(position_weights)
 
         # increment the day counter before we move markers forward.
@@ -493,7 +502,6 @@ class PerformanceTracker(object):
 
     def _calculate_rolling_expected_shortfall(self, data_portal):
         sim_params = self.sim_params
-        asset_finder = data_portal.asset_finder
         lookback_days = zp.DEFAULT_CVAR_LOOKBACK_DAYS
 
         # Create a data frame of asset weights on each day of the simulation.
@@ -503,28 +511,11 @@ class PerformanceTracker(object):
             self.position_weights.tolist(),
             index=sim_params.sessions.normalize(),
         ).fillna(0)
-
-        # For each day of the simulation, check to see if any futures were
-        # held. If so, convert it to a continuous future and assign its weight
-        # on that day to the continuous future. Once that is done, drop the
-        # futures contracts from the weights dataframe as we only want to look
-        # at the continuous futures when doing a history call later on.
-        futures_held = filter(
-            lambda asset: isinstance(asset, Future), weights.columns,
-        )
-        for day in weights.index:
-            for asset in futures_held:
-                if weights.loc[day, asset] != 0:
-                    cf = zp.assets_for_history_call(asset, asset_finder, day)
-                    if cf not in weights:
-                        weights[cf] = 0
-                    weights.loc[day, cf] = weights.loc[day, asset]
-        weights.drop(futures_held, axis=1, inplace=True)
-        assets = weights.columns.tolist()
+        assets = weights.columns
 
         benchmark = self.benchmark_asset
         if benchmark is not None:
-            assets.append(benchmark)
+            assets = assets.insert(0, benchmark)
 
         # If we are near the start date of our data, just use the data
         # available. Otherwise, use the full default number of lookback days.
