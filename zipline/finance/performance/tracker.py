@@ -515,7 +515,14 @@ class PerformanceTracker(object):
 
         benchmark = self.benchmark_asset
         if benchmark is not None:
-            assets = assets.insert(0, benchmark)
+            # If the algorithm held a position in the benchmark asset, include
+            # it in the expected shortfall calculation. Otherwise, just use it
+            # as a filler for missing values.
+            if benchmark in assets:
+                include_benchmark = True
+            else:
+                assets = assets.insert(0, benchmark)
+                include_benchmark = False
 
         # If we are near the start date of our data, just use the data
         # available. Otherwise, use the full default number of lookback days.
@@ -541,10 +548,18 @@ class PerformanceTracker(object):
         # simulation have their missing returns values proxied with the
         # benchmark's returns values.
         if benchmark is not None:
-            benchmark_returns = asset_returns[benchmark]
-            for column in asset_returns:
-                asset_returns[column].fillna(benchmark_returns, inplace=True)
-            asset_returns.drop(benchmark, axis=1, inplace=True)
+            benchmark_returns = asset_returns[benchmark].values
+            filler_df = pd.DataFrame(
+                np.tile(
+                    benchmark_returns[:, np.newaxis],
+                    (1, len(asset_returns.columns)),
+                ),
+                index=asset_returns.index,
+                columns=asset_returns.columns,
+            )
+            asset_returns.fillna(filler_df)
+            if not include_benchmark:
+                asset_returns.drop(benchmark, axis=1, inplace=True)
 
         def cvar_of_df(df):
             """
