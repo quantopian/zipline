@@ -19,8 +19,9 @@ from zipline.pipeline.factors import (
     TrueRange,
     MovingAverageConvergenceDivergenceSignal,
     AnnualizedVolatility,
+    RSI,
 )
-from zipline.testing import parameter_space
+from zipline.testing import check_allclose, parameter_space
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import assert_equal
 from .base import BasePipelineTestCase
@@ -529,6 +530,65 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
             out,
             expected_signal,
             decimal=8
+        )
+
+
+class RSITestCase(ZiplineTestCase):
+    @parameterized.expand([
+        # Test cases computed by doing:
+        # from numpy.random import seed, randn
+        # from talib import RSI
+        # seed(seed_value)
+        # data = abs(randn(15, 3))
+        # expected = [RSI(data[:, i])[-1] for i in range(3)]
+        (100, np.array([41.032913785966, 51.553585468393, 51.022005016446])),
+        (101, np.array([43.506969935466, 46.145367530182, 50.57407044197])),
+        (102, np.array([46.610102205934, 47.646892444315, 52.13182788538])),
+    ])
+    def test_rsi(self, seed_value, expected):
+
+        rsi = RSI()
+
+        today = np.datetime64(1, 'ns')
+        assets = np.arange(3)
+        out = np.empty((3,), dtype=float)
+
+        np.random.seed(seed_value)  # Seed so we get deterministic results.
+        test_data = np.abs(np.random.randn(15, 3))
+
+        out = np.empty((3,), dtype=float)
+        rsi.compute(today, assets, out, test_data)
+
+        check_allclose(expected, out)
+
+    def test_rsi_edge_cases(self):
+        """
+        Test against example RSI calculation found online. Test cases where
+        close prices are always increasing and where close prices are always
+        decreasing. Scaling price series by a factor should not affect
+        the result.
+        """
+
+        rsi = RSI()
+
+        today = np.datetime64(1, 'ns')
+        assets = np.arange(4)
+        out = np.empty((4,), dtype=float)
+
+        example_case = np.array([46.125, 47.125, 46.4375, 46.9375, 44.9375,
+                                 44.25, 44.625, 45.75, 47.8125, 47.5625, 47.,
+                                 44.5625, 46.3125, 47.6875, 46.6875])
+        starting_val = 46.0
+        increasing = np.linspace(starting_val, starting_val + 1.4, num=15)
+        decreasing = np.linspace(starting_val, starting_val - 1.4, num=15)
+        double = example_case * 2
+
+        closes = np.vstack((increasing, decreasing, example_case, double)).T
+        rsi.compute(today, assets, out, closes)
+        np.testing.assert_almost_equal(
+            out,
+            np.array([100, 0, 51.779, 51.779], dtype=float),
+            decimal=3
         )
 
 
