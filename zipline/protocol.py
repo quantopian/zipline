@@ -12,18 +12,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
 from warnings import warn
 
 from empyrical import conditional_value_at_risk
 import pandas as pd
 
 from zipline._protocol import BarData  # noqa
-from zipline.assets import (
-    Asset,
-    AssetConvertible,
-    Future,
-    PricingDataAssociable,
-)
+from zipline.assets import Asset, Future
 from zipline.errors import InsufficientHistoricalData
 from zipline.utils.cache import ExpiringCache
 from zipline.utils.enum import enum
@@ -151,40 +147,6 @@ def asset_multiplier(asset):
     return asset.multiplier if isinstance(asset, Future) else 1
 
 
-def assets_for_history_call(assets, asset_finder, date):
-    assets_is_scalar = False
-    if isinstance(assets, (AssetConvertible, PricingDataAssociable)):
-        assets_is_scalar = True
-    else:
-        # If 'assets' was not one of the expected types then it should be an
-        # iterable.
-        try:
-            iter(assets)
-        except TypeError:
-            raise TypeError(
-                "Unexpected 'assets' value of type {}.".format(type(assets))
-            )
-
-    def _asset_for_history_call(asset):
-        if isinstance(asset, Future):
-            # Infer the offset of the given future by comparing it to the
-            # upcoming closing contract according to the given date.
-            oc = asset_finder.get_ordered_contracts(asset.root_symbol)
-            offset = oc.offset_of_contract(asset.sid, date.value)
-            return asset_finder.create_continuous_future(
-                root_symbol=asset.root_symbol,
-                offset=offset,
-                roll_style='volume',
-                adjustment='mul',
-            )
-        return asset
-
-    if assets_is_scalar:
-        return _asset_for_history_call(assets)
-    else:
-        return list(map(_asset_for_history_call, assets))
-
-
 class Portfolio(object):
 
     def __init__(self, data_portal, current_dt_callback, benchmark_asset=None):
@@ -202,7 +164,8 @@ class Portfolio(object):
         self.benchmark_asset = benchmark_asset
         self._current_dt_callback = current_dt_callback
 
-        self._minute_cache = ExpiringCache()
+        self._expiring_cache = ExpiringCache()
+        self._cf_cache = {}
 
     def __repr__(self):
         return "Portfolio({0})".format(self.__dict__)
@@ -247,6 +210,26 @@ class Portfolio(object):
         })
         return position_values / self.portfolio_value
 
+    def asset_for_history_call(self, asset, date):
+        if isinstance(asset, Future):
+            # Infer the offset of the given future by comparing it to the
+            # upcoming closing contract according to the given date.
+            asset_finder = self.data_portal.asset_finder
+            oc = asset_finder.get_ordered_contracts(asset.root_symbol)
+            offset = oc.offset_of_contract(asset.sid, date.value)
+            try:
+                return self._cf_cache[(asset.root_symbol, offset)]
+            except:
+                cf = asset_finder.create_continuous_future(
+                    root_symbol=asset.root_symbol,
+                    offset=offset,
+                    roll_style='volume',
+                    adjustment='mul',
+                )
+                self._cf_cache[(asset.root_symbol, offset)] = cf
+                return cf
+        return asset
+
     def expected_shortfall(self, lookback_days=DEFAULT_CVAR_LOOKBACK_DAYS):
         """
         Function for computing expected shortfall (also known as CVaR, or
@@ -258,7 +241,7 @@ class Portfolio(object):
         calendar = data_portal.trading_calendar
 
         try:
-            return self._minute_cache.get('expected_shortfall', current_date)
+            return self._expiring_cache.get('expected_shortfall', current_date)
         except KeyError:
             pass
 
@@ -282,11 +265,11 @@ class Portfolio(object):
         # Series mapping each asset to its portfolio weight.
         weights = self.current_portfolio_weights()
 
-        assets = assets_for_history_call(
-            assets=weights.index,
-            asset_finder=data_portal.asset_finder,
-            date=current_date,
+        convert_futures = partial(
+            self.asset_for_history_call, date=current_date,
         )
+        assets = list(map(convert_futures, weights.index))
+
         benchmark = self.benchmark_asset
         if benchmark is not None:
             assets.append(benchmark)
@@ -319,7 +302,7 @@ class Portfolio(object):
             returns=asset_returns.fillna(0).dot(weights.values),
             cutoff=DEFAULT_CVAR_CUTOFF,
         )
-        self._minute_cache.set('expected_shortfall', cvar, current_date)
+        self._expiring_cache.set('expected_shortfall', cvar, current_date)
         return cvar
 
 
