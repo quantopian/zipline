@@ -130,11 +130,11 @@ class RiskReport(object):
         }
 
     def daily_metrics(self):
+        values = []
         num_days = len(self.sim_params.sessions)
         if num_days == 0:
-            return []
+            return values
 
-        values = []
         algorithm_returns = self.algorithm_returns
         expected_shortfalls = self.expected_shortfalls
         for i in range(num_days):
