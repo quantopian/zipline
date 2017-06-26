@@ -557,7 +557,7 @@ class PerformanceTracker(object):
                 index=asset_returns.index,
                 columns=asset_returns.columns,
             )
-            asset_returns.fillna(filler_df)
+            asset_returns.fillna(filler_df, inplace=True)
             if not include_benchmark:
                 asset_returns.drop(benchmark, axis=1, inplace=True)
 
