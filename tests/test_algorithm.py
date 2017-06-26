@@ -4553,9 +4553,13 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
                 self.tmpdir.getpath('testdaily.bcolz'),
             )
             minute_reader = BcolzMinuteBarReader(self.tmpdir.path)
+            first_trading_day = max(
+                daily_reader.first_trading_day,
+                minute_reader.first_trading_day,
+            )
             data_portal = DataPortal(
                 env.asset_finder, self.trading_calendar,
-                first_trading_day=minute_reader.first_trading_day,
+                first_trading_day=first_trading_day,
                 equity_daily_reader=daily_reader,
                 equity_minute_reader=minute_reader,
             )

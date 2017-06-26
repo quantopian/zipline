@@ -176,6 +176,8 @@ class PerformanceTracker(object):
         self.account_needs_update = True
         self._account = None
 
+        # The weights for each day should be a dictionary mapping assets to
+        # their respective position weights in the current portfolio.
         self.position_weights = pd.Series(
             np.full(len(self.sim_params.sessions), {}, dtype=object),
             index=self.sim_params.sessions,
@@ -508,8 +510,7 @@ class PerformanceTracker(object):
         # futures contracts from the weights dataframe as we only want to look
         # at the continuous futures when doing a history call later on.
         futures_held = filter(
-            lambda asset: isinstance(asset, Future),
-            weights.columns,
+            lambda asset: isinstance(asset, Future), weights.columns,
         )
         for day in weights.index:
             for asset in futures_held:
@@ -549,10 +550,9 @@ class PerformanceTracker(object):
         # simulation have their missing returns values proxied with the
         # benchmark's returns values.
         if benchmark is not None:
+            benchmark_returns = asset_returns[benchmark]
             for column in asset_returns:
-                asset_returns[column].fillna(
-                    asset_returns[benchmark], inplace=True,
-                )
+                asset_returns[column].fillna(benchmark_returns, inplace=True)
             asset_returns.drop(benchmark, axis=1, inplace=True)
 
         def cvar_of_df(df):
