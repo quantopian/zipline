@@ -289,11 +289,9 @@ class DataPortal(object):
         self._first_trading_day = first_trading_day
 
         # Get the first trading minute
-        self._first_trading_minute, _ = (
-            self.trading_calendar.open_and_close_for_session(
-                self._first_trading_day
-            )
-            if self._first_trading_day is not None else (None, None)
+        self._first_trading_minute = (
+            self.trading_calendar.session_open(self._first_trading_day)
+            if self._first_trading_day is not None else None
         )
 
         # Store the locs of the first day and first minute
