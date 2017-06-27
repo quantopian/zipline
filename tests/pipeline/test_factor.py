@@ -32,7 +32,6 @@ from zipline.pipeline import Classifier, Factor, Filter
 from zipline.pipeline.factors import (
     CustomFactor,
     Returns,
-    RSI,
 )
 from zipline.testing import (
     check_allclose,
@@ -520,33 +519,6 @@ class FactorTestCase(BasePipelineTestCase):
         # Not passing a method should default to ordinal
         check({'ordinal': f.rank(groupby=c, ascending=False)})
         check({'ordinal': f.rank(groupby=str_c, ascending=False)})
-
-    @parameterized.expand([
-        # Test cases computed by doing:
-        # from numpy.random import seed, randn
-        # from talib import RSI
-        # seed(seed_value)
-        # data = abs(randn(15, 3))
-        # expected = [RSI(data[:, i])[-1] for i in range(3)]
-        (100, array([41.032913785966, 51.553585468393, 51.022005016446])),
-        (101, array([43.506969935466, 46.145367530182, 50.57407044197])),
-        (102, array([46.610102205934, 47.646892444315, 52.13182788538])),
-    ])
-    def test_rsi(self, seed_value, expected):
-
-        rsi = RSI()
-
-        today = datetime64(1, 'ns')
-        assets = arange(3)
-        out = empty((3,), dtype=float)
-
-        seed(seed_value)  # Seed so we get deterministic results.
-        test_data = abs(randn(15, 3))
-
-        out = empty((3,), dtype=float)
-        rsi.compute(today, assets, out, test_data)
-
-        check_allclose(expected, out)
 
     @parameterized.expand([
         (100, 15),
