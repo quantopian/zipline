@@ -35,7 +35,7 @@ from ._uint8window import AdjustedArrayWindow as UInt8Window
 
 NOMASK = None
 BOOL_DTYPES = frozenset(
-    map(dtype, [bool_]),
+    map(dtype, [bool_, uint8]),
 )
 FLOAT_DTYPES = frozenset(
     map(dtype, [float32, float64]),
@@ -103,7 +103,7 @@ def _normalize_array(data, missing_value):
         return data, {}
 
     data_dtype = data.dtype
-    if data_dtype == bool_:
+    if data_dtype in BOOL_DTYPES:
         return data.astype(uint8), {'dtype': dtype(bool_)}
     elif data_dtype in FLOAT_DTYPES:
         return data.astype(float64), {'dtype': dtype(float64)}
