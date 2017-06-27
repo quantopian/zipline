@@ -18,12 +18,12 @@ from zipline.utils.memoize import lazyval
 
 class ReportingSessionBarReader(BarReader):
     """
-    Stitches together a two session bar readers, where one is used to provide
+    Stitches together two session bar readers, where one is used to provide
     the standard fields (e.g. OHLCV, etc.), and the other is used to provide
     fields as used for reporting (e.g. reporting_close).
 
-    This is useful for cases like our standard pricing data for an asset type
-    runs on a different calendar than desired for price reporting.
+    This is useful for cases like when the standard pricing data for an asset
+    type runs on a different calendar than desired for price reporting.
     """
     def __init__(self, reader, reporting_reader):
         self._reader = reader
