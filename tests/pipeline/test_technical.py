@@ -561,35 +561,57 @@ class RSITestCase(ZiplineTestCase):
 
         check_allclose(expected, out)
 
-    def test_rsi_edge_cases(self):
+    def test_rsi_all_positive_returns(self):
         """
-        Test against example RSI calculation found online. Test cases where
-        close prices are always increasing and where close prices are always
-        decreasing. Scaling price series by a factor should not affect
-        the result.
+        RSI indicator should be 100 in the case of 14 days of positive returns.
         """
 
         rsi = RSI()
 
         today = np.datetime64(1, 'ns')
-        assets = np.arange(4)
-        out = np.empty((4,), dtype=float)
+        assets = np.arange(1)
+        out = np.empty((1,), dtype=float)
+
+        closes = np.linspace(46, 60, num=15)
+        closes.shape = (15, 1)
+        rsi.compute(today, assets, out, closes)
+        self.assertEqual(out[0], 100.0)
+
+    def test_rsi_all_negative_returns(self):
+        """
+        RSI indicator should be 0 in the case of 14 days of negative returns.
+        """
+        rsi = RSI()
+
+        today = np.datetime64(1, 'ns')
+        assets = np.arange(1)
+        out = np.empty((1,), dtype=float)
+
+        closes = np.linspace(46, 32, num=15)
+        closes.shape = (15, 1)
+
+        rsi.compute(today, assets, out, closes)
+        self.assertEqual(out[0], 0.0)
+
+    def test_rsi_same_returns(self):
+        """
+        RSI indicator should be the same for two price series with the same
+        returns, even if the prices are different.
+        """
+        rsi = RSI()
+
+        today = np.datetime64(1, 'ns')
+        assets = np.arange(2)
+        out = np.empty((2,), dtype=float)
 
         example_case = np.array([46.125, 47.125, 46.4375, 46.9375, 44.9375,
                                  44.25, 44.625, 45.75, 47.8125, 47.5625, 47.,
                                  44.5625, 46.3125, 47.6875, 46.6875])
-        starting_val = 46.0
-        increasing = np.linspace(starting_val, starting_val + 1.4, num=15)
-        decreasing = np.linspace(starting_val, starting_val - 1.4, num=15)
         double = example_case * 2
 
-        closes = np.vstack((increasing, decreasing, example_case, double)).T
+        closes = np.vstack((example_case, double)).T
         rsi.compute(today, assets, out, closes)
-        np.testing.assert_almost_equal(
-            out,
-            np.array([100, 0, 51.779, 51.779], dtype=float),
-            decimal=3
-        )
+        self.assertAlmostEqual(out[0], out[1])
 
 
 class AnnualizedVolatilityTestCase(ZiplineTestCase):
