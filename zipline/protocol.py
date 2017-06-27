@@ -147,6 +147,61 @@ def asset_multiplier(asset):
     return asset.multiplier if isinstance(asset, Future) else 1
 
 
+def asset_returns_for_cvar(assets,
+                           benchmark,
+                           data_portal,
+                           end_date,
+                           lookback_days):
+    import numpy as np
+    if benchmark is not None:
+        # If the algorithm held a position in the benchmark asset, include it
+        # in the expected shortfall calculation. Otherwise, just use it as a
+        # filler for missing values.
+        if benchmark in assets:
+            include_benchmark = True
+        else:
+            assets.append(benchmark)
+            include_benchmark = False
+
+    # NOTE: Using the simulation calendar here is based on the assumption that
+    # this calendar runs on the union of all trading days of all asset classes.
+    # For example, when doing history pricing calls for both equities and
+    # futures, we require equity holidays that are not future holidays to be
+    # forward filled. This keeps the dates aligned when computing returns. It
+    # just so happens that the us_futures calendar is a strict superset of the
+    # NYSE calendar, making this assumption true.
+    prices = data_portal.get_history_window(
+       assets=assets,
+       end_dt=end_date,
+       bar_count=lookback_days,
+       frequency='1d',
+       field='price',
+       data_frequency='daily',
+    )
+
+    # Get returns values for all assets for the entirety of the simulation.
+    asset_returns = prices.pct_change().iloc[1:]
+
+    # Any assets that came into existence after the start date of the
+    # simulation have their missing returns values proxied with the benchmark's
+    # returns values.
+    if benchmark is not None:
+        benchmark_returns = asset_returns[benchmark].values
+        filler_df = pd.DataFrame(
+            np.tile(
+                benchmark_returns[:, np.newaxis],
+                (1, len(asset_returns.columns)),
+            ),
+            index=asset_returns.index,
+            columns=asset_returns.columns,
+        )
+        asset_returns.fillna(filler_df, inplace=True)
+        if not include_benchmark:
+            asset_returns.drop(benchmark, axis=1, inplace=True)
+
+    return asset_returns.fillna(0)
+
+
 class Portfolio(object):
 
     def __init__(self, data_portal, current_dt_callback, benchmark_asset=None):
@@ -238,6 +293,7 @@ class Portfolio(object):
         """
         data_portal = self.data_portal
         current_date = self.current_date
+        benchmark = self.benchmark_asset
         calendar = data_portal.trading_calendar
 
         try:
@@ -266,37 +322,12 @@ class Portfolio(object):
             self.asset_for_history_call, date=current_date,
         )
         assets = list(map(convert_futures, weights.index))
-
-        benchmark = self.benchmark_asset
-        if benchmark is not None:
-            assets.append(benchmark)
-
-        # NOTE: Using the simulation calendar here is based on the assumption
-        # that this calendar runs on the union of all trading days of all asset
-        # classes. For example, when doing history pricing calls for both
-        # equities and futures, we require equity holidays that are not future
-        # holidays to be forward filled. This keeps the dates aligned when
-        # computing returns. It just so happens that the us_futures calendar is
-        # a strict superset of the NYSE calendar, making this assumption true.
-        prices = data_portal.get_history_window(
-           assets=assets,
-           end_dt=current_date,
-           bar_count=lookback_days,
-           frequency='1d',
-           field='price',
-           data_frequency='daily',
+        asset_returns = asset_returns_for_cvar(
+            assets, benchmark, data_portal, current_date, lookback_days,
         )
-        asset_returns = prices.pct_change().iloc[1:]
-
-        if benchmark is not None:
-            for column in asset_returns:
-                asset_returns[column].fillna(
-                    asset_returns[benchmark], inplace=True,
-                )
-            asset_returns.drop(benchmark, axis=1, inplace=True)
 
         cvar = conditional_value_at_risk(
-            returns=asset_returns.fillna(0).dot(weights.values),
+            returns=asset_returns.dot(weights.values),
             cutoff=DEFAULT_CVAR_CUTOFF,
         )
         self._expiring_cache.set('expected_shortfall', cvar, current_date)
