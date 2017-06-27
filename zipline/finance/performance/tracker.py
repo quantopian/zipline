@@ -511,18 +511,7 @@ class PerformanceTracker(object):
             self.position_weights.tolist(),
             index=sim_params.sessions.normalize(),
         ).fillna(0)
-        assets = weights.columns
-
-        benchmark = self.benchmark_asset
-        if benchmark is not None:
-            # If the algorithm held a position in the benchmark asset, include
-            # it in the expected shortfall calculation. Otherwise, just use it
-            # as a filler for missing values.
-            if benchmark in assets:
-                include_benchmark = True
-            else:
-                assets = assets.insert(0, benchmark)
-                include_benchmark = False
+        assets = weights.columns.tolist()
 
         # If we are near the start date of our data, just use the data
         # available. Otherwise, use the full default number of lookback days.
@@ -533,33 +522,13 @@ class PerformanceTracker(object):
             lookback_days,
         )
 
-        # Get returns values for all assets for the entirety of the simulation.
-        prices = data_portal.get_history_window(
-           assets=assets,
-           end_dt=sim_params.end_session,
-           bar_count=len(sim_params.sessions) + days_before_start,
-           frequency='1d',
-           field='price',
-           data_frequency='daily',
+        asset_returns = zp.asset_returns_for_cvar(
+            assets=assets,
+            benchmark=self.benchmark_asset,
+            data_portal=data_portal,
+            end_date=sim_params.end_session,
+            lookback_days=len(sim_params.sessions) + days_before_start,
         )
-        asset_returns = prices.pct_change().iloc[1:]
-
-        # Any assets that came into existence after the start date of the
-        # simulation have their missing returns values proxied with the
-        # benchmark's returns values.
-        if benchmark is not None:
-            benchmark_returns = asset_returns[benchmark].values
-            filler_df = pd.DataFrame(
-                np.tile(
-                    benchmark_returns[:, np.newaxis],
-                    (1, len(asset_returns.columns)),
-                ),
-                index=asset_returns.index,
-                columns=asset_returns.columns,
-            )
-            asset_returns.fillna(filler_df, inplace=True)
-            if not include_benchmark:
-                asset_returns.drop(benchmark, axis=1, inplace=True)
 
         def cvar_of_df(df):
             """

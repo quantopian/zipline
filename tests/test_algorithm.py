@@ -1280,7 +1280,7 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
             },
             index=sessions,
         )
-        yield 2, frame.loc[cls.equity_2_start_date:]
+        yield 2, frame.loc[cls.equity_2_start_date:].copy()
 
         frame = pd.DataFrame(
             {
