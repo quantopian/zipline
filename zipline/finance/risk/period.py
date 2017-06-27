@@ -30,7 +30,6 @@ from empyrical import (
     annual_volatility,
     cum_returns,
     downside_risk,
-    information_ratio,
     max_drawdown,
     sharpe_ratio,
     sortino_ratio
@@ -130,10 +129,6 @@ class RiskMetricsPeriod(object):
             self.algorithm_returns.values,
             _downside_risk=self.downside_risk,
         )
-        self.information = information_ratio(
-            self.algorithm_returns.values,
-            self.benchmark_returns.values,
-        )
         self.alpha, self.beta = alpha_beta_aligned(
             self.algorithm_returns.values,
             self.benchmark_returns.values,
@@ -158,7 +153,6 @@ class RiskMetricsPeriod(object):
             'benchmark_period_return': self.benchmark_period_returns,
             'sharpe': self.sharpe,
             'sortino': self.sortino,
-            'information': self.information,
             'beta': self.beta,
             'alpha': self.alpha,
             'excess_return': self.excess_return,
@@ -181,7 +175,6 @@ class RiskMetricsPeriod(object):
             "algorithm_volatility",
             "sharpe",
             "sortino",
-            "information",
             "beta",
             "alpha",
             "max_drawdown",

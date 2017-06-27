@@ -101,16 +101,6 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
                 for x in self.cumulative_metrics.sortino),
             True)
 
-    def test_information(self):
-        np.testing.assert_equal(
-            len(self.algo_returns),
-            len(self.cumulative_metrics.information)
-        )
-        np.testing.assert_equal(
-            all(isinstance(x, float)
-                for x in self.cumulative_metrics.information),
-            True)
-
     def test_alpha(self):
         np.testing.assert_equal(
             len(self.algo_returns),
@@ -142,5 +132,5 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             True)
 
     def test_representation(self):
-        assert all([metric in self.cumulative_metrics.__repr__() for metric in
-                   self.cumulative_metrics.METRIC_NAMES])
+        assert all(metric in repr(self.cumulative_metrics)
+                   for metric in self.cumulative_metrics.METRIC_NAMES)
