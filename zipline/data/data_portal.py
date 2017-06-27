@@ -44,8 +44,10 @@ from zipline.data.dispatch_bar_reader import (
     AssetDispatchMinuteBarReader,
     AssetDispatchSessionBarReader
 )
+from zipline.data.reporting_session_bar_reader import ReportingSessionBarReader
 from zipline.data.resample import (
     DailyHistoryAggregator,
+    MinuteResampleSessionBarReader,
     ReindexMinuteBarReader,
     ReindexSessionBarReader,
 )
@@ -110,10 +112,13 @@ class DataPortal(object):
     ----------
     asset_finder : zipline.assets.assets.AssetFinder
         The AssetFinder instance used to resolve assets.
-    trading_calendar: zipline.utils.calendar.exchange_calendar.TradingCalendar
+    trading_calendar : zipline.utils.calendars.TradingCalendar
         The calendar instance used to provide minute->session information.
     first_trading_day : pd.Timestamp
         The first trading day for the simulation.
+    reporting_calendar : zipline.utils.calendars.TradingCalendar
+        The calendar instance used to provide session information for
+        reporting fields.
     equity_daily_reader : BcolzDailyBarReader, optional
         The daily bar reader for equities. This will be used to service
         daily data backtests or daily history calls in a minute backetest.
@@ -144,6 +149,7 @@ class DataPortal(object):
                  asset_finder,
                  trading_calendar,
                  first_trading_day,
+                 reporting_calendar=None,
                  equity_daily_reader=None,
                  equity_minute_reader=None,
                  future_daily_reader=None,
@@ -201,6 +207,23 @@ class DataPortal(object):
                 self._last_available_minute = min(last_minutes)
             else:
                 self._last_available_minute = None
+
+        if reporting_calendar is not None:
+            equity_daily_reader = (
+                self._overlay_session_reader_with_reporting_fields(
+                    equity_daily_reader,
+                    equity_minute_reader,
+                    reporting_calendar,
+                )
+            )
+
+            future_daily_reader = (
+                self._overlay_session_reader_with_reporting_fields(
+                    future_daily_reader,
+                    future_minute_reader,
+                    reporting_calendar,
+                )
+            )
 
         aligned_equity_minute_reader = self._ensure_reader_aligned(
             equity_minute_reader)
@@ -320,6 +343,28 @@ class DataPortal(object):
                 self._first_available_session,
                 self._last_available_session
             )
+
+    def _overlay_session_reader_with_reporting_fields(
+        self,
+        session_bar_reader,
+        minute_bar_reader,
+        reporting_calendar,
+    ):
+        if session_bar_reader is None:
+            return
+
+        if session_bar_reader.trading_calendar.name == reporting_calendar.name:
+            reporting_cal_session_bar_reader = session_bar_reader
+        else:
+            reporting_cal_session_bar_reader = MinuteResampleSessionBarReader(
+                reporting_calendar,
+                minute_bar_reader,
+            )
+
+        return ReportingSessionBarReader(
+            session_bar_reader,
+            reporting_cal_session_bar_reader,
+        )
 
     def _reindex_extra_source(self, df, source_date_index):
         return df.reindex(index=source_date_index, method='ffill')
