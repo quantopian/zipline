@@ -142,7 +142,7 @@ class LabelArray(ndarray):
 
     @preprocess(
         values=coerce(list, partial(np.asarray, dtype=object)),
-        categories=coerce(np.ndarray, list),
+        categories=coerce((np.ndarray, set), list),
     )
     @expect_types(
         values=np.ndarray,

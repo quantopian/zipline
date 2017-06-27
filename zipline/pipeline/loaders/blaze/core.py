@@ -138,7 +138,7 @@ www.quantopian.com/help#pipeline-api
 from __future__ import division, absolute_import
 
 from abc import ABCMeta, abstractproperty
-from collections import namedtuple, defaultdict
+from collections import namedtuple
 from functools import partial
 from itertools import count
 import warnings
@@ -164,7 +164,6 @@ from toolz import (
     first,
     flip,
     groupby,
-    identity,
     memoize,
     merge,
 )
@@ -179,22 +178,22 @@ from zipline.pipeline.common import (
 from zipline.pipeline.data.dataset import DataSet, Column
 from zipline.pipeline.loaders.utils import (
     check_data_query_args,
-    last_in_date_group,
     normalize_data_query_bounds,
     normalize_timestamp_to_query_time,
-    ffill_across_cols
 )
 from zipline.pipeline.sentinels import NotSpecified
-from zipline.lib.adjusted_array import AdjustedArray, can_represent_dtype
-from zipline.lib.adjustment import make_adjustment_from_indices, OVERWRITE
+from zipline.lib.adjusted_array import can_represent_dtype
 from zipline.utils.input_validation import (
     expect_element,
     ensure_timezone,
     optionally,
 )
-from zipline.utils.numpy_utils import bool_dtype
 from zipline.utils.pool import SequentialPool
 from zipline.utils.preprocess import preprocess
+from ._core import (
+    adjusted_arrays_from_rows_with_assets,
+    adjusted_arrays_from_rows_without_assets,
+)
 
 
 valid_deltas_node_types = (
@@ -701,190 +700,6 @@ def from_blaze(expr,
 getdataset = op.attrgetter('dataset')
 getname = op.attrgetter('name')
 
-
-def overwrite_novel_deltas(baseline, deltas, dates):
-    """overwrite any deltas into the baseline set that would have changed our
-    most recently known value.
-
-    Parameters
-    ----------
-    baseline : pd.DataFrame
-        The first known values.
-    deltas : pd.DataFrame
-        Overwrites to the baseline data.
-    dates : pd.DatetimeIndex
-        The dates requested by the loader.
-
-    Returns
-    -------
-    non_novel_deltas : pd.DataFrame
-        The deltas that do not represent a baseline value.
-    """
-    get_indexes = dates.searchsorted
-    novel_idx = (
-        get_indexes(deltas[TS_FIELD_NAME].values, 'right') -
-        get_indexes(deltas[AD_FIELD_NAME].values, 'left')
-    ) <= 1
-    novel_deltas = deltas.loc[novel_idx]
-    non_novel_deltas = deltas.loc[~novel_idx]
-    cat = pd.concat(
-        (baseline, novel_deltas),
-        ignore_index=True,
-        copy=False,
-    )
-    cat.sort_values(TS_FIELD_NAME, inplace=True)
-    return cat, non_novel_deltas
-
-
-def overwrite_from_dates(asof, dense_dates, sparse_dates, asset_idx, value):
-    """Construct an Overwrite with the correct
-    start and end date based on the asof date of the delta,
-    the dense_dates, and the dense_dates.
-
-    Parameters
-    ----------
-    asof : datetime
-        The asof date of the delta.
-    dense_dates : pd.DatetimeIndex
-        The dates requested by the loader.
-    sparse_dates : pd.DatetimeIndex
-        The dates that appeared in the dataset.
-    asset_idx : tuple of int
-        The index of the asset in the block. If this is a tuple, then this
-        is treated as the first and last index to use.
-    value : any
-        The value to overwrite with.
-
-    Returns
-    -------
-    overwrite : Float64Overwrite
-        The overwrite that will apply the new value to the data.
-
-    Notes
-    -----
-    This is forward-filling all dense dates that are between the asof_date date
-    and the next sparse date after the asof_date.
-
-    For example:
-    let ``asof = pd.Timestamp('2014-01-02')``,
-        ``dense_dates = pd.date_range('2014-01-01', '2014-01-05')``
-        ``sparse_dates = pd.to_datetime(['2014-01', '2014-02', '2014-04'])``
-
-    Then the overwrite will apply to indexes: 1, 2, 3, 4
-    """
-    if asof is pd.NaT:
-        # Not an actual delta.
-        # This happens due to the groupby we do on the deltas.
-        return
-
-    first_row = dense_dates.searchsorted(asof)
-    next_idx = sparse_dates.searchsorted(asof.asm8, 'right')
-    if next_idx == len(sparse_dates):
-        # There is no next date in the sparse, this overwrite should apply
-        # through the end of the dense dates.
-        last_row = len(dense_dates) - 1
-    else:
-        # There is a next date in sparse dates. This means that the overwrite
-        # should only apply until the index of this date in the dense dates.
-        last_row = dense_dates.searchsorted(sparse_dates[next_idx]) - 1
-
-    if first_row > last_row:
-        return
-
-    first, last = asset_idx
-    yield make_adjustment_from_indices(
-        first_row, last_row, first, last, OVERWRITE, value
-    )
-
-
-def adjustments_from_deltas_no_sids(dense_dates,
-                                    sparse_dates,
-                                    column_idx,
-                                    column_name,
-                                    asset_idx,
-                                    deltas):
-    """Collect all the adjustments that occur in a dataset that does not
-    have a sid column.
-
-    Parameters
-    ----------
-    dense_dates : pd.DatetimeIndex
-        The dates requested by the loader.
-    sparse_dates : pd.DatetimeIndex
-        The dates that were in the raw data.
-    column_idx : int
-        The index of the column in the dataset.
-    column_name : str
-        The name of the column to compute deltas for.
-    asset_idx : pd.Series[int -> int]
-        The mapping of sids to their index in the output.
-    deltas : pd.DataFrame
-        The overwrites that should be applied to the dataset.
-
-    Returns
-    -------
-    adjustments : dict[idx -> Float64Overwrite]
-        The adjustments dictionary to feed to the adjusted array.
-    """
-    ad_series = deltas[AD_FIELD_NAME]
-    idx = 0, 0
-    return {
-        dense_dates.get_loc(kd): overwrite_from_dates(
-            ad_series.loc[kd],
-            dense_dates,
-            sparse_dates,
-            idx,
-            v,
-        ) for kd, v in deltas[column_name].iteritems()
-    }
-
-
-def adjustments_from_deltas_with_sids(dense_dates,
-                                      sparse_dates,
-                                      column_idx,
-                                      column_name,
-                                      asset_idx,
-                                      deltas):
-    """Collect all the adjustments that occur in a dataset that has a sid
-    column.
-
-    Parameters
-    ----------
-    dense_dates : pd.DatetimeIndex
-        The dates requested by the loader.
-    sparse_dates : pd.DatetimeIndex
-        The dates that were in the raw data.
-    column_idx : int
-        The index of the column in the dataset.
-    column_name : str
-        The name of the column to compute deltas for.
-    asset_idx : pd.Series[int -> int]
-        The mapping of sids to their index in the output.
-    deltas : pd.DataFrame
-        The overwrites that should be applied to the dataset.
-
-    Returns
-    -------
-    adjustments : dict[idx -> Float64Overwrite]
-        The adjustments dictionary to feed to the adjusted array.
-    """
-    ad_series = deltas[AD_FIELD_NAME]
-    adjustments = defaultdict(list)
-    for sid, per_sid in deltas[column_name].iteritems():
-        idx = asset_idx[sid]
-        for kd, v in per_sid.iteritems():
-            adjustments[dense_dates.searchsorted(kd)].extend(
-                overwrite_from_dates(
-                    ad_series.loc[kd, sid],
-                    dense_dates,
-                    sparse_dates,
-                    (idx, idx),
-                    v,
-                ),
-            )
-    return dict(adjustments)  # no subclasses of dict
-
-
 _expr_data_base = namedtuple(
     'ExprData', 'expr deltas checkpoints odo_kwargs apply_deltas_adjustments'
 )
@@ -1114,8 +929,6 @@ class BlazeLoader(object):
          apply_deltas_adjustments) = expr_data
 
         have_sids = (first(columns).dataset.ndim == 2)
-        asset_idx = pd.Series(index=assets, data=np.arange(len(assets)))
-        assets = list(map(int, assets))  # coerce from numpy.int64
         added_query_fields = {AD_FIELD_NAME, TS_FIELD_NAME} | (
             {SID_FIELD_NAME} if have_sids else set()
         )
@@ -1161,110 +974,61 @@ class BlazeLoader(object):
             checkpoints, colnames, lower_dt, odo_kwargs
         )
 
-        materialized_expr = self.pool.apply_async(collect_expr, (expr, lower))
+        materialized_expr_deferred = self.pool.apply_async(
+            collect_expr,
+            (expr, lower),
+        )
         materialized_deltas = (
             self.pool.apply(collect_expr, (deltas, lower))
-            if deltas is not None else
-            pd.DataFrame(columns=colnames)
+            if deltas is not None and apply_deltas_adjustments else
+            None
         )
 
-        if materialized_checkpoints is not None:
-            materialized_expr = pd.concat(
-                (
+        all_rows = pd.concat(
+            filter(
+                lambda df: df is not None, (
                     materialized_checkpoints,
-                    materialized_expr.get(),
+                    materialized_expr_deferred.get(),
+                    materialized_deltas,
                 ),
-                ignore_index=True,
-                copy=False,
-            )
-
-        # It's not guaranteed that assets returned by the engine will contain
-        # all sids from the deltas table; filter out such mismatches here.
-        if not materialized_deltas.empty and have_sids:
-            materialized_deltas = materialized_deltas[
-                materialized_deltas[SID_FIELD_NAME].isin(assets)
-            ]
+            ),
+            ignore_index=True,
+            copy=False,
+        )
 
         if data_query_time is not None:
-            for m in (materialized_expr, materialized_deltas):
-                m.loc[:, TS_FIELD_NAME] = m.loc[
-                    :, TS_FIELD_NAME
-                ].astype('datetime64[ns]')
-
-                normalize_timestamp_to_query_time(
-                    m,
+            ts_dates = pd.DatetimeIndex([
+                pd.Timestamp.combine(
+                    dt.date(),
                     data_query_time,
-                    data_query_tz,
-                    inplace=True,
-                    ts_field=TS_FIELD_NAME,
-                )
-
-        # Inline the deltas that changed our most recently known value.
-        # Also, we reindex by the dates to create a dense representation of
-        # the data.
-        sparse_output, non_novel_deltas = overwrite_novel_deltas(
-            materialized_expr,
-            materialized_deltas,
-            dates,
-        )
-        # If we ever have cases where we find out about multiple asof_dates'
-        # data on the same TS, we want to make sure that last_in_date_group
-        # selects the correct last asof_date's value.
-        sparse_output.sort_values(AD_FIELD_NAME, inplace=True)
-        non_novel_deltas.sort_values(AD_FIELD_NAME, inplace=True)
-        if AD_FIELD_NAME not in requested_columns:
-            sparse_output.drop(AD_FIELD_NAME, axis=1, inplace=True)
-
-        sparse_deltas = last_in_date_group(non_novel_deltas,
-                                           dates,
-                                           assets,
-                                           reindex=False,
-                                           have_sids=have_sids)
-        dense_output = last_in_date_group(sparse_output,
-                                          dates,
-                                          assets,
-                                          reindex=True,
-                                          have_sids=have_sids)
-        ffill_across_cols(dense_output, columns, {c.name: c.name
-                                                  for c in columns})
-
-        # By default, no non-novel deltas are applied.
-        def no_adjustments_from_deltas(*args):
-            return {}
-
-        adjustments_from_deltas = no_adjustments_from_deltas
-        if have_sids:
-            if apply_deltas_adjustments:
-                adjustments_from_deltas = adjustments_from_deltas_with_sids
-            column_view = identity
+                ).tz_localize(data_query_tz).tz_convert('utc')
+                for dt in dates
+            ])
         else:
-            # If we do not have sids, use the column view to make a single
-            # column vector which is unassociated with any assets.
-            column_view = op.itemgetter(np.s_[:, np.newaxis])
-            if apply_deltas_adjustments:
-                adjustments_from_deltas = adjustments_from_deltas_no_sids
-            mask = np.full(
-                shape=(len(mask), 1), fill_value=True, dtype=bool_dtype,
-            )
+            ts_dates = dates
 
-        return {
-            column: AdjustedArray(
-                column_view(
-                    dense_output[column.name].values.astype(column.dtype),
-                ),
+        all_rows[TS_FIELD_NAME] = all_rows[TS_FIELD_NAME].astype(
+            'datetime64[ns]',
+        )
+        all_rows.sort_values([TS_FIELD_NAME, AD_FIELD_NAME], inplace=True)
+        # from nose.tools import set_trace;set_trace()
+        if have_sids:
+            return adjusted_arrays_from_rows_with_assets(
+                dates,
+                ts_dates,
+                assets,
                 mask,
-                adjustments_from_deltas(
-                    dates,
-                    sparse_output[TS_FIELD_NAME].values,
-                    column_idx,
-                    column.name,
-                    asset_idx,
-                    sparse_deltas,
-                ),
-                column.missing_value,
+                columns,
+                all_rows,
             )
-            for column_idx, column in enumerate(columns)
-        }
+        else:
+            return adjusted_arrays_from_rows_without_assets(
+                dates,
+                ts_dates,
+                None,
+                columns,
+                all_rows,
+            )
 
 
 global_loader = BlazeLoader.global_instance()
