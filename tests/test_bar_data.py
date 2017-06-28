@@ -831,22 +831,22 @@ class TestMinuteBarDataFuturesCalendar(WithCreateBarData,
 
     def test_can_trade_delisted(self):
         """
-        Test that can_trade returns False for an asset on or after its auto
-        close date.
+        Test that can_trade returns False for an asset after its auto close
+        date.
         """
         auto_closing_asset = self.asset_finder.retrieve_asset(7)
 
         # Our asset's auto close date is 2016-01-20, which means that as of the
-        # market open for the 2016-01-20 session, `can_trade` should return
+        # market open for the 2016-01-21 session, `can_trade` should return
         # False.
         minutes_to_check = [
-            (pd.Timestamp('2016-01-19 00:00:00', tz='UTC'), True),
-            (pd.Timestamp('2016-01-19 23:00:00', tz='UTC'), True),
-            (pd.Timestamp('2016-01-19 23:01:00', tz='UTC'), False),
-            (pd.Timestamp('2016-01-19 23:59:00', tz='UTC'), False),
-            (pd.Timestamp('2016-01-20 00:00:00', tz='UTC'), False),
-            (pd.Timestamp('2016-01-20 00:01:00', tz='UTC'), False),
+            (pd.Timestamp('2016-01-20 00:00:00', tz='UTC'), True),
+            (pd.Timestamp('2016-01-20 23:00:00', tz='UTC'), True),
+            (pd.Timestamp('2016-01-20 23:01:00', tz='UTC'), False),
+            (pd.Timestamp('2016-01-20 23:59:00', tz='UTC'), False),
             (pd.Timestamp('2016-01-21 00:00:00', tz='UTC'), False),
+            (pd.Timestamp('2016-01-21 00:01:00', tz='UTC'), False),
+            (pd.Timestamp('2016-01-22 00:00:00', tz='UTC'), False),
         ]
 
         for info in minutes_to_check:
