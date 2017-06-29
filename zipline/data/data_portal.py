@@ -44,10 +44,8 @@ from zipline.data.dispatch_bar_reader import (
     AssetDispatchMinuteBarReader,
     AssetDispatchSessionBarReader
 )
-from zipline.data.reporting_session_bar_reader import ReportingSessionBarReader
 from zipline.data.resample import (
     DailyHistoryAggregator,
-    MinuteResampleSessionBarReader,
     ReindexMinuteBarReader,
     ReindexSessionBarReader,
 )
@@ -82,6 +80,7 @@ BASE_FIELDS = frozenset([
     "contract",
     "sid",
     "last_traded",
+    "reporting_close",
 ])
 
 OHLCV_FIELDS = frozenset([
@@ -89,7 +88,7 @@ OHLCV_FIELDS = frozenset([
 ])
 
 OHLCVP_FIELDS = frozenset([
-    "open", "high", "low", "close", "volume", "price"
+    "open", "high", "low", "close", "volume", "price", "reporting_close",
 ])
 
 HISTORY_FREQUENCIES = set(["1m", "1d"])
@@ -163,6 +162,8 @@ class DataPortal(object):
         self.trading_calendar = trading_calendar
         self.asset_finder = asset_finder
 
+        self.reporting_calendar = reporting_calendar
+
         self._adjustment_reader = adjustment_reader
 
         # caches of sid -> adjustment list
@@ -207,23 +208,6 @@ class DataPortal(object):
                 self._last_available_minute = min(last_minutes)
             else:
                 self._last_available_minute = None
-
-        if reporting_calendar is not None:
-            equity_daily_reader = (
-                self._overlay_session_reader_with_reporting_fields(
-                    equity_daily_reader,
-                    equity_minute_reader,
-                    reporting_calendar,
-                )
-            )
-
-            future_daily_reader = (
-                self._overlay_session_reader_with_reporting_fields(
-                    future_daily_reader,
-                    future_minute_reader,
-                    reporting_calendar,
-                )
-            )
 
         aligned_equity_minute_reader = self._ensure_reader_aligned(
             equity_minute_reader)
@@ -343,28 +327,6 @@ class DataPortal(object):
                 self._first_available_session,
                 self._last_available_session
             )
-
-    def _overlay_session_reader_with_reporting_fields(
-        self,
-        session_bar_reader,
-        minute_bar_reader,
-        reporting_calendar,
-    ):
-        if session_bar_reader is None:
-            return
-
-        if session_bar_reader.trading_calendar.name == reporting_calendar.name:
-            reporting_cal_session_bar_reader = session_bar_reader
-        else:
-            reporting_cal_session_bar_reader = MinuteResampleSessionBarReader(
-                reporting_calendar,
-                minute_bar_reader,
-            )
-
-        return ReportingSessionBarReader(
-            session_bar_reader,
-            reporting_cal_session_bar_reader,
-        )
 
     def _reindex_extra_source(self, df, source_date_index):
         return df.reindex(index=source_date_index, method='ffill')
@@ -551,6 +513,12 @@ class DataPortal(object):
             if data_frequency == "daily":
                 if field == "contract":
                     return self._get_current_contract(asset, session_label)
+                elif field == "reporting_close":
+                    return self._get_reporting_close(
+                        asset,
+                        session_label,
+                        data_frequency,
+                    )
                 else:
                     return self._get_daily_spot_value(
                         asset, field, session_label,
@@ -951,6 +919,9 @@ class DataPortal(object):
             if field == "price":
                 df = self._get_history_daily_window(assets, end_dt, bar_count,
                                                     "close", data_frequency)
+            elif field == 'reporting_close':
+                df = self._get_reporting_close_window(
+                    assets, end_dt, bar_count, data_frequency)
             else:
                 df = self._get_history_daily_window(assets, end_dt, bar_count,
                                                     field, data_frequency)
@@ -1443,3 +1414,25 @@ class DataPortal(object):
         if contract_sid is None:
             return None
         return self.asset_finder.retrieve_asset(contract_sid)
+
+    def _get_reporting_close(self, asset, session, data_frequency):
+        dt = self.reporting_calendar.session_close(session)
+        return self.get_spot_value(asset, 'price', dt, data_frequency)
+
+    def _get_reporting_close_window(self,
+                                    assets,
+                                    end_dt,
+                                    bar_count,
+                                    data_frequency):
+        session = self.trading_calendar.minute_to_session_label(end_dt)
+        days_for_window = self._get_days_for_window(session, bar_count)
+
+        data = dict.fromkeys(assets, [])
+
+        for asset in assets:
+            for session in days_for_window:
+                data[asset].append(
+                    self._get_reporting_close(asset, session, data_frequency)
+                )
+
+        return pd.DataFrame(data, index=days_for_window)
