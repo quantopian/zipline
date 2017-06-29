@@ -30,6 +30,13 @@ class NoDataAfterDate(NoDataOnDate):
     pass
 
 
+class NoDataForSid(Exception):
+    """
+    Raised when the requested sid is missing from the pricing data.
+    """
+    pass
+
+
 class BarReader(with_metaclass(ABCMeta, object)):
     @abstractproperty
     def data_frequency(self):

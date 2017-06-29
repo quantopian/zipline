@@ -35,7 +35,7 @@ from pandas import (
     date_range,
 )
 
-from zipline.data.bar_reader import NoDataOnDate
+from zipline.data.bar_reader import NoDataForSid, NoDataOnDate
 from zipline.data.minute_bars import (
     BcolzMinuteBarMetadata,
     BcolzMinuteBarWriter,
@@ -102,6 +102,11 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
             metadata.version,
             BcolzMinuteBarMetadata.FORMAT_VERSION,
         )
+
+    def test_no_minute_bars_for_sid(self):
+        minute = self.market_opens[self.test_calendar_start]
+        with self.assertRaises(NoDataForSid):
+            self.reader.get_value(1337, minute, 'close')
 
     def test_write_one_ohlcv(self):
         minute = self.market_opens[self.test_calendar_start]
