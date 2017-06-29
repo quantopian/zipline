@@ -16,6 +16,7 @@ from functools import partial
 from warnings import warn
 
 from empyrical import conditional_value_at_risk
+import numpy as np
 import pandas as pd
 
 from zipline._protocol import BarData  # noqa
@@ -152,7 +153,6 @@ def asset_returns_for_cvar(assets,
                            data_portal,
                            end_date,
                            lookback_days):
-    import numpy as np
     if benchmark is not None:
         # If the algorithm held a position in the benchmark asset, include it
         # in the expected shortfall calculation. Otherwise, just use it as a
