@@ -1181,11 +1181,12 @@ class TestPositions(WithLogger,
 
     def test_position_weights(self):
         sids = (1, 133, 1000)
+        amounts = (2, -1, 1)
         equity_1, equity_133, future_1000 = \
             self.asset_finder.retrieve_all(sids)
 
         algo = TestPositionWeightsAlgorithm(
-            sids_and_amounts=zip(sids, [2, -1, 1]),
+            sids_and_amounts=zip(sids, amounts),
             sim_params=self.sim_params,
             env=self.env,
         )
@@ -1280,6 +1281,7 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
             },
             index=sessions,
         )
+        # Yield a copy of the data frame because we are taking a slice of it.
         yield 2, frame.loc[cls.equity_2_start_date:].copy()
 
         frame = pd.DataFrame(
@@ -1296,6 +1298,9 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
 
     @classmethod
     def make_futures_info(cls):
+        # Create a chain of contracts expiring every six months, encompassing
+        # at least two years of contracts so that we have enough data to
+        # perform expected shortfall calculations.
         return pd.DataFrame.from_dict(
             {
                 1000: {
@@ -1427,10 +1432,11 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         backtests.
         """
         sids = (1, 1004)
+        amounts = (1, 1)
         equity_1, future_1000 = self.asset_finder.retrieve_all(sids)
 
         algo = TestPositionWeightsAlgorithm(
-            sids=sids,
+            sids_and_amounts=zip(sids, amounts),
             sim_params=self.sim_params,
             env=self.env,
             benchmark_sid=8554,
@@ -1516,6 +1522,7 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         Test the expected shortfall method on the Portfolio object.
         """
         sids = (1, 1004)
+        amounts = (1, 1)
         equity_1, future_1000 = self.asset_finder.retrieve_all(sids)
 
         env = self.env
@@ -1526,7 +1533,7 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         # We do not allow users to call the expected shortfall method within a
         # year of the beginning of data, so this algorithm should fail.
         algo = TestPositionWeightsAlgorithm(
-            sids=sids,
+            sids_and_amounts=zip(sids, amounts),
             record_cvar=True,
             start=self.START_DATE,
             end=end_date,
@@ -1541,7 +1548,7 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         # expected shortfall values calculated at the end of the backtest.
         start_date = pd.Timestamp('2016-01-06', tz='UTC')
         algo = TestPositionWeightsAlgorithm(
-            sids=sids,
+            sids_and_amounts=zip(sids, amounts),
             record_cvar=True,
             start=start_date,
             end=end_date,
@@ -1565,7 +1572,7 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         calculations use the benchmark pricing data during that period.
         """
         algo = TestPositionWeightsAlgorithm(
-            sids=[2],
+            sids_and_amounts=[(2, 1)],
             start=self.equity_2_start_date,
             end=self.sim_params.end_session,
             env=self.env,

@@ -695,9 +695,9 @@ class TestPositionWeightsAlgorithm(TradingAlgorithm):
     """
     An algorithm that records the weights of its portfolio holdings each day.
     """
-    def initialize(self, sids, record_cvar=False, *args, **kwargs):
+    def initialize(self, sids_and_amounts, record_cvar=False, *args, **kwargs):
         self.ordered = False
-        self.sids = sids
+        self.sids_and_amounts = sids_and_amounts
         self.record_expected_shortfall = record_cvar
         self.set_commission(us_equities=PerTrade(0), us_futures=PerTrade(0))
         self.set_slippage(
@@ -706,8 +706,8 @@ class TestPositionWeightsAlgorithm(TradingAlgorithm):
 
     def handle_data(self, data):
         if not self.ordered:
-            for s in self.sids:
-                self.order(self.sid(s), 1)
+            for s, amount in self.sids_and_amounts:
+                self.order(self.sid(s), amount)
             self.ordered = True
 
         self.record(
