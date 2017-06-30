@@ -1433,7 +1433,9 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         """
         sids = (1, 1004)
         amounts = (1, 1)
-        equity_1, future_1000 = self.asset_finder.retrieve_all(sids)
+        calendar = self.trading_calendar
+        af = self.asset_finder
+        equity_1, future_1004 = af.retrieve_all(sids)
 
         algo = TestPositionWeightsAlgorithm(
             sids_and_amounts=zip(sids, amounts),
@@ -1443,8 +1445,50 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         )
         daily_stats = algo.run(self.data_portal)
 
+        # Test that we correctly converted the future contract being held into
+        # the appropriate continuous futures.
+        pt_weights = algo.perf_tracker.position_weights
+        future_1000, future_1001, future_1002, future_1003 = af.retrieve_all(
+            [1000, 1001, 1002, 1003],
+        )
+        cf_offset_0 = af.create_continuous_future(
+            root_symbol='CL', offset=0, roll_style='volume', adjustment='mul',
+        )
+        cf_offset_1 = af.create_continuous_future(
+            root_symbol='CL', offset=1, roll_style='volume', adjustment='mul',
+        )
+        cf_offset_2 = af.create_continuous_future(
+            root_symbol='CL', offset=2, roll_style='volume', adjustment='mul',
+        )
+        cf_offset_3 = af.create_continuous_future(
+            root_symbol='CL', offset=3, roll_style='volume', adjustment='mul',
+        )
+        cf_offset_4 = af.create_continuous_future(
+            root_symbol='CL', offset=4, roll_style='volume', adjustment='mul',
+        )
+        day_before_auto_close = calendar.previous_session_label(
+            future_1000.auto_close_date,
+        )
+        self.assertIn(cf_offset_4, pt_weights[day_before_auto_close])
+        self.assertIn(cf_offset_3, pt_weights[future_1000.auto_close_date])
+        day_before_auto_close = calendar.previous_session_label(
+            future_1001.auto_close_date,
+        )
+        self.assertIn(cf_offset_3, pt_weights[day_before_auto_close])
+        self.assertIn(cf_offset_2, pt_weights[future_1001.auto_close_date])
+        day_before_auto_close = calendar.previous_session_label(
+            future_1002.auto_close_date,
+        )
+        self.assertIn(cf_offset_2, pt_weights[day_before_auto_close])
+        self.assertIn(cf_offset_1, pt_weights[future_1002.auto_close_date])
+        day_before_auto_close = calendar.previous_session_label(
+            future_1003.auto_close_date,
+        )
+        self.assertIn(cf_offset_1, pt_weights[day_before_auto_close])
+        self.assertIn(cf_offset_0, pt_weights[future_1003.auto_close_date])
+
         # On the first day of holding positions, we spent $1000.00 on 1 share
-        # of equity_1, and $0 to enter into a long position of future_1000. So
+        # of equity_1, and $0 to enter into a long position of future_1004. So
         # our ending cash is 2000 - 1000 - 0 = 1000. The value of our futures
         # position is 100 (unit price) * 10 (multiplier) * 1 (shares) = 1000.
         first_cash = 1000.0
@@ -1464,17 +1508,19 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
                 first_equity_value / (first_equity_value + first_cash),
                 first_future_value / (first_equity_value + first_cash),
             ],
-            index=[equity_1, future_1000],
+            index=[equity_1, future_1004],
         )
         second_weights = pd.Series(
             [
                 second_equity_value / (second_equity_value + second_cash),
                 second_future_value / (second_equity_value + second_cash),
             ],
-            index=[equity_1, future_1000],
+            index=[equity_1, future_1004],
         )
-        assert_equal(first_weights, daily_stats.position_weights[1])
-        assert_equal(second_weights, daily_stats.position_weights[2])
+
+        # Test the weights recorded in the algorithm itself.
+        assert_equal(daily_stats.position_weights[1], first_weights)
+        assert_equal(daily_stats.position_weights[2], second_weights)
 
         # $1000.00 --> $900.00 is a return of -10 percent.
         equity_low_returns = \
@@ -1486,7 +1532,7 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
 
         asset_returns = pd.Series(
             [equity_low_returns, future_low_returns],
-            index=[equity_1, future_1000],
+            index=[equity_1, future_1004],
         )
 
         # For the first set of weights, our holdings in the equity and future
@@ -1523,7 +1569,7 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         """
         sids = (1, 1004)
         amounts = (1, 1)
-        equity_1, future_1000 = self.asset_finder.retrieve_all(sids)
+        equity_1, future_1004 = self.asset_finder.retrieve_all(sids)
 
         env = self.env
         data_portal = self.data_portal
