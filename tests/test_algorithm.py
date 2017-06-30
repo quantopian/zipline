@@ -1433,7 +1433,6 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         """
         sids = (1, 1004)
         amounts = (1, 1)
-        calendar = self.trading_calendar
         af = self.asset_finder
         equity_1, future_1004 = af.retrieve_all(sids)
 
@@ -1451,41 +1450,40 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         future_1000, future_1001, future_1002, future_1003 = af.retrieve_all(
             [1000, 1001, 1002, 1003],
         )
-        cf_offset_0 = af.create_continuous_future(
-            root_symbol='CL', offset=0, roll_style='volume', adjustment='mul',
-        )
-        cf_offset_1 = af.create_continuous_future(
-            root_symbol='CL', offset=1, roll_style='volume', adjustment='mul',
-        )
-        cf_offset_2 = af.create_continuous_future(
-            root_symbol='CL', offset=2, roll_style='volume', adjustment='mul',
-        )
-        cf_offset_3 = af.create_continuous_future(
-            root_symbol='CL', offset=3, roll_style='volume', adjustment='mul',
-        )
-        cf_offset_4 = af.create_continuous_future(
-            root_symbol='CL', offset=4, roll_style='volume', adjustment='mul',
-        )
-        day_before_auto_close = calendar.previous_session_label(
-            future_1000.auto_close_date,
-        )
-        self.assertIn(cf_offset_4, pt_weights[day_before_auto_close])
-        self.assertIn(cf_offset_3, pt_weights[future_1000.auto_close_date])
-        day_before_auto_close = calendar.previous_session_label(
-            future_1001.auto_close_date,
-        )
-        self.assertIn(cf_offset_3, pt_weights[day_before_auto_close])
-        self.assertIn(cf_offset_2, pt_weights[future_1001.auto_close_date])
-        day_before_auto_close = calendar.previous_session_label(
-            future_1002.auto_close_date,
-        )
-        self.assertIn(cf_offset_2, pt_weights[day_before_auto_close])
-        self.assertIn(cf_offset_1, pt_weights[future_1002.auto_close_date])
-        day_before_auto_close = calendar.previous_session_label(
-            future_1003.auto_close_date,
-        )
-        self.assertIn(cf_offset_1, pt_weights[day_before_auto_close])
-        self.assertIn(cf_offset_0, pt_weights[future_1003.auto_close_date])
+        cf_at_offset = [
+            af.create_continuous_future(
+                root_symbol='CL',
+                offset=offset,
+                roll_style='volume',
+                adjustment='mul'
+            )
+            for offset in 0, 1, 2, 3, 4
+        ]
+
+        # When we record position weights, we convert the actual contract we
+        # held into a continuous future based on the contract's offset from the
+        # current center of the chain.
+        #
+        # Since we always hold exactly one contract in sid 1004, we should see
+        # our weight transition from being at offset 4 to offset 3, to offset
+        # 2, etc.
+        for day, positions in pt_weights[1:].iteritems():
+            if day < future_1000.auto_close_date:
+                expected_offset = 4
+            elif day < future_1001.auto_close_date:
+                expected_offset = 3
+            elif day < future_1002.auto_close_date:
+                expected_offset = 2
+            elif day < future_1003.auto_close_date:
+                expected_offset = 1
+            elif day < future_1004.auto_close_date:
+                expected_offset = 0
+            else:
+                self.fail("Didn't expect a future after offset 0.")
+            self.assertEqual(
+                [equity_1, cf_at_offset[expected_offset]],
+                sorted(positions),
+            )
 
         # On the first day of holding positions, we spent $1000.00 on 1 share
         # of equity_1, and $0 to enter into a long position of future_1004. So
