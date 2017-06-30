@@ -640,7 +640,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 ),
                 'bool_value': np.array(
                     [True, False, True, True, False, True, True, True, True],
-                    # [True, False, True, True, False, False, True, True, False],
+                    # [True, False, True, True, False, False, True, True, False],  # noqa
                     dtype='bool',
                 ),
                 'dt_value': [
@@ -1515,7 +1515,6 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                                     [10.0, 11.0, 12.0],
                                     [11.0, 12.0, 13.0]]),
         })
-
 
         if len(asset_info) == 4:
             def get_fourth_asset_view(expected_views, window_length):
