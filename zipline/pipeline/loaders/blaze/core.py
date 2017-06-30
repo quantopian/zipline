@@ -179,7 +179,6 @@ from zipline.pipeline.data.dataset import DataSet, Column
 from zipline.pipeline.loaders.utils import (
     check_data_query_args,
     normalize_data_query_bounds,
-    normalize_timestamp_to_query_time,
 )
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.lib.adjusted_array import can_represent_dtype
