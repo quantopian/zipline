@@ -189,9 +189,11 @@ from zipline.utils.input_validation import (
 )
 from zipline.utils.pool import SequentialPool
 from zipline.utils.preprocess import preprocess
-from ._core import (
+from ._core import (  # noqa
     adjusted_arrays_from_rows_with_assets,
     adjusted_arrays_from_rows_without_assets,
+    baseline_arrays_from_rows_with_assets,  # reexport
+    baseline_arrays_from_rows_without_assets,  # reexport
 )
 
 
@@ -995,26 +997,16 @@ class BlazeLoader(object):
             copy=False,
         )
 
-        if data_query_time is not None:
-            ts_dates = pd.DatetimeIndex([
-                pd.Timestamp.combine(
-                    dt.date(),
-                    data_query_time,
-                ).tz_localize(data_query_tz).tz_convert('utc')
-                for dt in dates
-            ])
-        else:
-            ts_dates = dates
-
         all_rows[TS_FIELD_NAME] = all_rows[TS_FIELD_NAME].astype(
             'datetime64[ns]',
         )
         all_rows.sort_values([TS_FIELD_NAME, AD_FIELD_NAME], inplace=True)
-        # from nose.tools import set_trace;set_trace()
+
         if have_sids:
             return adjusted_arrays_from_rows_with_assets(
                 dates,
-                ts_dates,
+                data_query_time,
+                data_query_tz,
                 assets,
                 mask,
                 columns,
@@ -1023,7 +1015,8 @@ class BlazeLoader(object):
         else:
             return adjusted_arrays_from_rows_without_assets(
                 dates,
-                ts_dates,
+                data_query_time,
+                data_query_tz,
                 None,
                 columns,
                 all_rows,

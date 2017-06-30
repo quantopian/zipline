@@ -1,10 +1,17 @@
 from libc.math cimport isnan
-from cpython cimport Py_INCREF, PyDict_GetItem, PyObject
+from cpython cimport (
+    Py_INCREF,
+    PyDict_GetItem,
+    PyObject,
+    PyList_New,
+    PyList_SET_ITEM,
+)
 from bisect import bisect_right, insort_left
 
 cimport cython
 cimport numpy as np
 import numpy as np
+import pandas as pd
 
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.adjustment cimport (
@@ -100,17 +107,38 @@ cpdef _ffill_missing_value_2d_inplace(np.ndarray array, missing_value):
         raise TypeError('unknown column dtype: %r' % array.dtype)
 
 
-cdef _adjusted_array_for_column_impl(object dtype,
-                                     np.ndarray[column_type, ndim=2] out_array,
-                                     Py_ssize_t size,
-                                     np.ndarray[np.int64_t] ts_ixs,
-                                     np.ndarray[np.int64_t] asof_ixs,
-                                     np.ndarray[np.int64_t] sids,
-                                     dict column_ixs,
-                                     object mask,
-                                     np.ndarray[column_type] input_array,
-                                     column_type missing_value,
-                                     bint is_missing(column_type, column_type)):
+
+@cython.final
+cdef class AsAdjustedArray:
+    """Marker type for array_for_column which enables the AdjustedArray
+    path.
+    """
+
+
+@cython.final
+cdef class AsBaselineArray:
+    """Marker type for array_for_column which enables the baseline array
+    path.
+    """
+
+
+ctypedef fused AsArrayKind:
+    AsAdjustedArray
+    AsBaselineArray
+
+
+cdef _array_for_column_impl(object dtype,
+                            np.ndarray[column_type, ndim=2] out_array,
+                            Py_ssize_t size,
+                            np.ndarray[np.int64_t] ts_ixs,
+                            np.ndarray[np.int64_t] asof_ixs,
+                            np.ndarray[np.int64_t] sids,
+                            dict column_ixs,
+                            object mask,
+                            np.ndarray[column_type] input_array,
+                            column_type missing_value,
+                            bint is_missing(column_type, column_type),
+                            AsArrayKind _):
     cdef column_type value
     cdef np.int64_t ts_ix
     cdef np.int64_t asof_ix
@@ -122,8 +150,10 @@ cdef _adjusted_array_for_column_impl(object dtype,
 
     cdef list non_null_ixs
     cdef dict non_null_ixs_by_sid = {sid: [] for sid in sids}
+    cdef dict adjustments
 
-    cdef dict adjustments = {}
+    if AsArrayKind is AsAdjustedArray:
+        adjustments = {}
 
     cdef set categories
     if column_type is object:
@@ -157,12 +187,13 @@ cdef _adjusted_array_for_column_impl(object dtype,
 
         column_ix = <object> column_ix_ob  # cast to np.int64_t
 
-        adjustment_list_ptr = PyDict_GetItem(adjustments, ts_ix)
-        if adjustment_list_ptr is NULL:
-            adjustment_list = adjustments[ts_ix] = []
-        else:
-            adjustment_list = <list> adjustment_list_ptr
-            Py_INCREF(adjustment_list)
+        if AsArrayKind is AsAdjustedArray:
+            adjustment_list_ptr = PyDict_GetItem(adjustments, ts_ix)
+            if adjustment_list_ptr is NULL:
+                adjustment_list = adjustments[ts_ix] = []
+            else:
+                adjustment_list = <list> adjustment_list_ptr
+                Py_INCREF(adjustment_list)
 
         non_null_ixs = non_null_ixs_by_sid[sid]
         ix = bisect_right(non_null_ixs, asof_ix)
@@ -172,18 +203,19 @@ cdef _adjusted_array_for_column_impl(object dtype,
             with cython.boundscheck(False), cython.wraparound(False):
                 out_array[ts_ix, column_ix] = value
 
-            # the value at ``ts_ix`` was set above
-            end = max(ts_ix - 1, 0)
-            if end >= asof_ix:
-                adjustment_list.append(make_adjustment[column_type](
-                    asof_ix,
-                    end,
-                    column_ix,
-                    column_ix,
-                    AdjustmentKind.OVERWRITE,
-                    value,
-                ))
-        else:
+            if AsArrayKind is AsAdjustedArray:
+                # the value at ``ts_ix`` was set above
+                end = max(ts_ix - 1, 0)
+                if end >= asof_ix:
+                    adjustment_list.append(make_adjustment[column_type](
+                        asof_ix,
+                        end,
+                        column_ix,
+                        column_ix,
+                        AdjustmentKind.OVERWRITE,
+                        value,
+                    ))
+        elif AsArrayKind is AsAdjustedArray:
             end = max(non_null_ixs[ix] - 1, 0)
             if end >= asof_ix:
                 adjustment_list.append(make_adjustment[column_type](
@@ -209,24 +241,28 @@ cdef _adjusted_array_for_column_impl(object dtype,
         # this cast prevents a compiler crash
         baseline_array = <object> out_array
 
-    return AdjustedArray(
-        baseline_array,
-        mask,
-        adjustments,
-        missing_value,
-    )
+    if AsArrayKind is AsAdjustedArray:
+        return AdjustedArray(
+            baseline_array,
+            mask,
+            adjustments,
+            missing_value,
+        )
+    else:
+        return baseline_array
 
 
-cdef adjusted_array_for_column(object dtype,
-                               tuple out_shape,
-                               Py_ssize_t size,
-                               np.ndarray[np.int64_t] ts_ixs,
-                               np.ndarray[np.int64_t] asof_ixs,
-                               np.ndarray[np.int64_t] sids,
-                               dict sid_column_ixs,
-                               object mask,
-                               np.ndarray input_array,
-                               object missing_value):
+cdef array_for_column(object dtype,
+                      tuple out_shape,
+                      Py_ssize_t size,
+                      np.ndarray[np.int64_t] ts_ixs,
+                      np.ndarray[np.int64_t] asof_ixs,
+                      np.ndarray[np.int64_t] sids,
+                      dict sid_column_ixs,
+                      object mask,
+                      np.ndarray input_array,
+                      object missing_value,
+                      AsArrayKind array_kind):
     cdef np.ndarray out_array = np.full(
         out_shape,
         missing_value,
@@ -235,7 +271,7 @@ cdef adjusted_array_for_column(object dtype,
     cdef str kind = input_array.dtype.kind
 
     if kind == 'i':
-        return _adjusted_array_for_column_impl[np.int64_t](
+        return _array_for_column_impl[np.int64_t, AsArrayKind](
             dtype,
             out_array,
             size,
@@ -247,9 +283,10 @@ cdef adjusted_array_for_column(object dtype,
             input_array,
             missing_value,
             is_missing_value[np.int64_t],
+            array_kind,
         )
     elif kind == 'M':
-        return _adjusted_array_for_column_impl[np.int64_t](
+        return _array_for_column_impl[np.int64_t, AsArrayKind](
             dtype,
             out_array.view('int64'),
             size,
@@ -261,10 +298,11 @@ cdef adjusted_array_for_column(object dtype,
             input_array.view('int64'),
             missing_value.view('int64'),
             is_missing_value[np.int64_t],
+            array_kind,
         )
     elif kind == 'f':
         if isnan(missing_value):
-            return _adjusted_array_for_column_impl[np.float64_t](
+            return _array_for_column_impl[np.float64_t, AsArrayKind](
                 dtype,
                 out_array,
                 size,
@@ -276,9 +314,10 @@ cdef adjusted_array_for_column(object dtype,
                 input_array,
                 missing_value,
                 is_missing_nan,
+                array_kind,
             )
         else:
-            return _adjusted_array_for_column_impl[np.float64_t](
+            return _array_for_column_impl[np.float64_t, AsArrayKind](
                 dtype,
                 out_array,
                 size,
@@ -290,9 +329,10 @@ cdef adjusted_array_for_column(object dtype,
                 input_array,
                 missing_value,
                 is_missing_value[np.float64_t],
+                array_kind,
             )
     elif kind == 'O':
-        return _adjusted_array_for_column_impl[object](
+        return _array_for_column_impl[object, AsArrayKind](
             dtype,
             out_array,
             size,
@@ -304,9 +344,10 @@ cdef adjusted_array_for_column(object dtype,
             input_array,
             missing_value,
             is_missing_value[object],
+            array_kind,
         )
     elif kind == 'b':
-        return _adjusted_array_for_column_impl[np.uint8_t](
+        return _array_for_column_impl[np.uint8_t, AsArrayKind](
             dtype,
             out_array.view('uint8'),
             size,
@@ -318,19 +359,38 @@ cdef adjusted_array_for_column(object dtype,
             input_array.view('uint8'),
             int(missing_value),
             is_missing_value[np.uint8_t],
+            array_kind,
         )
     else:
         raise TypeError('unknown column dtype: %r' % input_array.dtype)
 
 
-cdef adjusted_arrays_from_rows(DatetimeIndex_t dates,
-                               DatetimeIndex_t ts_dates,
-                               assets,
-                               np.ndarray[np.int64_t] sids,
-                               object mask,
-                               list columns,
-                               object all_rows):
+cdef arrays_from_rows(DatetimeIndex_t dates,
+                      object data_query_time,
+                      object data_query_tz,
+                      object assets,
+                      np.ndarray[np.int64_t] sids,
+                      object mask,
+                      list columns,
+                      object all_rows,
+                      AsArrayKind array_kind):
     cdef dict column_ixs = dict(zip(assets, range(len(assets))))
+
+    cdef Py_ssize_t n
+    cdef list ts_dates_list
+    if data_query_time is not None:
+        ts_dates_list = PyList_New(len(dates))
+        for n, dt in enumerate(dates):
+            combined = pd.Timestamp.combine(
+                dt.date(),
+                data_query_time,
+            ).tz_localize(data_query_tz).tz_convert('utc')
+            Py_INCREF(combined)
+            PyList_SET_ITEM(ts_dates_list, n, combined)
+
+        ts_dates = pd.DatetimeIndex(ts_dates_list)
+    else:
+        ts_dates = dates
 
     cdef np.ndarray[np.int64_t] ts_ixs = ts_dates.searchsorted(
         all_rows[TS_FIELD_NAME].values,
@@ -349,7 +409,7 @@ cdef adjusted_arrays_from_rows(DatetimeIndex_t dates,
     cdef Py_ssize_t size = len(ts_ixs)
 
     for column in columns:
-        out[column] = adjusted_array_for_column(
+        out[column] = array_for_column[AsArrayKind](
             column.dtype,
             out_shape,
             size,
@@ -360,14 +420,64 @@ cdef adjusted_arrays_from_rows(DatetimeIndex_t dates,
             mask,
             all_rows[column.name].values.astype(column.dtype),
             column.missing_value,
+            array_kind,
         )
 
     return out
 
 
+cdef arrays_from_rows_with_assets(DatetimeIndex_t dates,
+                                  object data_query_time,
+                                  object data_query_tz,
+                                  object assets,
+                                  object mask,
+                                  list columns,
+                                  object all_rows,
+                                  AsArrayKind array_kind):
+    return arrays_from_rows[AsArrayKind](
+        dates,
+        data_query_time,
+        data_query_tz,
+        assets,
+        all_rows[SID_FIELD_NAME].values.astype('int64'),
+        mask,
+        columns,
+        all_rows,
+        array_kind,
+    )
+
+
+cdef arrays_from_rows_without_assets(DatetimeIndex_t dates,
+                                     object data_query_time,
+                                     object data_query_tz,
+                                     object mask,
+                                     list columns,
+                                     object all_rows,
+                                     AsArrayKind array_kind):
+    return arrays_from_rows[AsArrayKind](
+        dates,
+        data_query_time,
+        data_query_tz,
+        [0],  # pass just sid 0
+        np.ndarray(
+            (len(all_rows),),
+            np.dtype('int64'),
+            b'\0' * 8,  # one int64
+            0,
+            (0,),
+            'C',
+        ),
+        mask,
+        columns,
+        all_rows,
+        array_kind,
+    )
+
+
 cpdef adjusted_arrays_from_rows_with_assets(DatetimeIndex_t dates,
-                                            DatetimeIndex_t ts_dates,
-                                            assets,
+                                            object data_query_time,
+                                            object data_query_tz,
+                                            object assets,
                                             object mask,
                                             list columns,
                                             object all_rows):
@@ -377,8 +487,11 @@ cpdef adjusted_arrays_from_rows_with_assets(DatetimeIndex_t dates,
     ----------
     dates : pd.DatetimeIndex
         The trading days requested by the pipeline engine.
-    ts_dates : pd.DatetimeIndex
-        The trading days aligned to the data query time.
+    data_query_time : datetime.time or None
+        The time of day when the data is being queried. If None,
+        midnight UTC will be used.
+    data_query_tz : pytz.Timezone or None
+        The timezone for the data_query_time.
     assets : iterable[int]
         The assets in the order requested.
     mask : np.ndarray[bool]
@@ -394,19 +507,21 @@ cpdef adjusted_arrays_from_rows_with_assets(DatetimeIndex_t dates,
     adjusted_arrays : dict[BoundColumn, AdjustedArray]
         One AdjustedArray per loaded column.
     """
-    return adjusted_arrays_from_rows(
+    return arrays_from_rows_with_assets[AsAdjustedArray](
         dates,
-        ts_dates,
+        data_query_time,
+        data_query_tz,
         assets,
-        all_rows[SID_FIELD_NAME].values.astype('int64'),
         mask,
         columns,
         all_rows,
+        AsAdjustedArray(),
     )
 
 
 cpdef adjusted_arrays_from_rows_without_assets(DatetimeIndex_t dates,
-                                               DatetimeIndex_t ts_dates,
+                                               object data_query_time,
+                                               object data_query_tz,
                                                object mask,
                                                list columns,
                                                object all_rows):
@@ -416,8 +531,11 @@ cpdef adjusted_arrays_from_rows_without_assets(DatetimeIndex_t dates,
     ----------
     dates : pd.DatetimeIndex
         The trading days requested by the pipeline engine.
-    ts_dates : pd.DatetimeIndex
-        The trading days aligned to the data query time.
+    data_query_time : datetime.time or None
+        The time of day when the data is being queried. If None,
+        midnight UTC will be used.
+    data_query_tz : pytz.Timezone or None
+        The timezone for the data_query_time.
     mask : np.ndarray[bool]
         The mask provided by the pipeline engine.
     columns : list[BoundColumn]
@@ -431,19 +549,92 @@ cpdef adjusted_arrays_from_rows_without_assets(DatetimeIndex_t dates,
     adjusted_arrays : dict[BoundColumn, AdjustedArray]
         One AdjustedArray per loaded column.
     """
-    return adjusted_arrays_from_rows(
+    return arrays_from_rows_without_assets[AsAdjustedArray](
         dates,
-        ts_dates,
-        [0],  # pass just sid 0
-        np.ndarray(
-            (len(all_rows),),
-            np.dtype('int64'),
-            b'\0' * 8,  # one int64
-            0,
-            (0,),
-            'C',
-        ),
+        data_query_time,
+        data_query_tz,
         mask,
         columns,
         all_rows,
+        AsAdjustedArray(),
+    )
+
+
+cpdef baseline_arrays_from_rows_with_assets(DatetimeIndex_t dates,
+                                            object data_query_time,
+                                            object data_query_tz,
+                                            object assets,
+                                            list columns,
+                                            object all_rows):
+    """Construct the baseline arrays from the input rows.
+
+    Parameters
+    ----------
+    dates : pd.DatetimeIndex
+        The trading days requested by the pipeline engine.
+    data_query_time : datetime.time or None
+        The time of day when the data is being queried. If None,
+        midnight UTC will be used.
+    data_query_tz : pytz.Timezone or None
+        The timezone for the data_query_time.
+    assets : iterable[int]
+        The assets in the order requested.
+    columns : list[BoundColumn]
+        The columns being loaded.
+    all_rows : pd.DataFrame
+        The single dataframe of input rows. This **must** be sorted by the
+        ``TS_FIELD_NAME`` column.
+
+    Returns
+    -------
+    arrays : dict[BoundColumn, np.ndarray]
+        One array per loaded column.
+    """
+    return arrays_from_rows_with_assets[AsBaselineArray](
+        dates,
+        data_query_time,
+        data_query_tz,
+        assets,
+        None,
+        columns,
+        all_rows,
+        AsBaselineArray(),
+    )
+
+
+cpdef baseline_arrays_from_rows_without_assets(DatetimeIndex_t dates,
+                                               object data_query_time,
+                                               object data_query_tz,
+                                               list columns,
+                                               object all_rows):
+    """Construct the baseline arrays from the input rows.
+
+    Parameters
+    ----------
+    dates : pd.DatetimeIndex
+        The trading days requested by the pipeline engine.
+    data_query_time : datetime.time or None
+        The time of day when the data is being queried. If None,
+        midnight UTC will be used.
+    data_query_tz : pytz.Timezone or None
+        The timezone for the data_query_time.
+    columns : list[BoundColumn]
+        The columns being loaded.
+    all_rows : pd.DataFrame
+        The single dataframe of input rows. This **must** be sorted by the
+        ``TS_FIELD_NAME`` column.
+
+    Returns
+    -------
+    arrays : dict[BoundColumn, np.ndarray]
+        One array per loaded column.
+    """
+    return arrays_from_rows_without_assets[AsBaselineArray](
+        dates,
+        data_query_time,
+        data_query_tz,
+        None,
+        columns,
+        all_rows,
+        AsBaselineArray(),
     )
