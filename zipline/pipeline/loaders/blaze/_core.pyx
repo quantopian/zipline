@@ -162,7 +162,7 @@ cdef _array_for_column_impl(object dtype,
         categories = set()
 
     cdef Py_ssize_t n
-    for n in range(size):
+    for n in range(size if len(out_array) else 0):
         with cython.boundscheck(False), cython.wraparound(False):
             value = input_array[n]
 
@@ -236,6 +236,7 @@ cdef _array_for_column_impl(object dtype,
             out_array,
             missing_value,
             categories,
+            sort=False,
         )
     else:
         # this cast prevents a compiler crash
