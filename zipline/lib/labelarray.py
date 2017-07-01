@@ -24,6 +24,7 @@ from zipline.utils.numpy_utils import (
     bool_dtype,
     unsigned_int_dtype_with_size_in_bytes,
     is_object,
+    object_dtype,
 )
 from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning
 
@@ -475,9 +476,41 @@ class LabelArray(ndarray):
             kwargs['type'] = type
         return super(LabelArray, self).view(**kwargs)
 
+    def astype(self,
+               dtype,
+               order='K',
+               casting='unsafe',
+               subok=True,
+               copy=True):
+        if dtype == self.dtype:
+            if copy:
+                return self.copy()
+            return self
+
+        if dtype == object_dtype:
+            return self.as_string_array()
+
+        if dtype.kind == 'S':
+            return self.as_string_array().astype(
+                dtype,
+                order=order,
+                casting=casting,
+                subok=subok,
+                copy=copy,
+            )
+
+        raise TypeError(
+            '%s can only be converted into object, string, or void,'
+            ' got: %r' % (
+                type(self).__name__,
+                dtype,
+            ),
+        )
+
     # In general, we support resizing, slicing, and reshaping methods, but not
     # numeric methods.
     SUPPORTED_NDARRAY_METHODS = frozenset([
+        'astype',
         'base',
         'compress',
         'copy',
