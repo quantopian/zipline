@@ -397,13 +397,15 @@ cdef arrays_from_rows(DatetimeIndex_t dates,
         all_rows[TS_FIELD_NAME].values,
         'right',
     )
-    ts_ixs[ts_ixs == len(ts_dates)] = len(ts_dates) - 1
+    if len(ts_dates) and (ts_ixs == len(ts_dates)).any():
+        raise ValueError('found timestamp more recent than expected')
 
     cdef np.ndarray[np.int64_t] asof_ixs = dates.searchsorted(
         all_rows[AD_FIELD_NAME].values,
         'right',
     )
-    asof_ixs[ts_ixs == len(dates)] = len(dates) - 1
+    if len(dates) and (asof_ixs == len(dates)).any():
+        raise ValueError('found asof_date more recent than expected')
 
     cdef tuple out_shape = (len(dates), len(assets))
     cdef dict out = {}
