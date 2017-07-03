@@ -19,7 +19,7 @@
 #
 # You can also run an algo using the docker exec command.  For example:
 #
-#    docker exec -it zipline zipline run -f /projects/my_algo.py --start 2015-1-1 --end 2016-1-1 /projects/result.pickle
+#    docker exec -it zipline zipline run -f /projects/my_algo.py --start 2015-1-1 --end 2016-1-1 -o /projects/result.pickle
 #
 FROM python:3.5
 
