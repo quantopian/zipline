@@ -1279,7 +1279,6 @@ class SQLiteAdjustmentReader(object):
     --------
     :class:`zipline.data.us_equity_pricing.SQLiteAdjustmentWriter`
     """
-
     @preprocess(conn=coerce_string_to_conn)
     def __init__(self, conn):
         self.conn = conn
@@ -1296,12 +1295,64 @@ class SQLiteAdjustmentReader(object):
                                        'record_date')
         }
 
-    def load_adjustments(self, columns, dates, assets):
-        return load_adjustments_from_sqlite(
+    @lazyval
+    def splits(self):
+        return read_sql(
+            'select * from splits',
             self.conn,
-            list(columns),
+            parse_dates={'effective_date': {'unit': 's', 'utc': True}},
+        ).set_index(['effective_date', 'sid'])
+
+    @lazyval
+    def mergers(self):
+        return read_sql(
+            'select * from mergers',
+            self.conn,
+            parse_dates={'effective_date': {'unit': 's', 'utc': True}},
+        ).set_index(['effective_date', 'sid'])
+
+    @lazyval
+    def dividends(self):
+        return read_sql(
+            'select * from dividends',
+            self.conn,
+            parse_dates={'effective_date': {'unit': 's', 'utc': True}},
+        ).set_index(['effective_date', 'sid'])
+
+    @lazyval
+    def dividend_payouts(self):
+        return read_sql(
+            'select * from dividend_payouts',
+            self.conn,
+            parse_dates={
+                'declared_date': {'unit': 's', 'utc': True},
+                'ex_date': {'unit': 's', 'utc': True},
+                'pay_date': {'unit': 's', 'utc': True},
+                'record_date': {'unit': 's', 'utc': True},
+            },
+        )
+
+    @lazyval
+    def stock_dividend_payouts(self):
+        return read_sql(
+            'select * from stock_dividend_payouts',
+            self.conn,
+            parse_dates={
+                'declared_date': {'unit': 's', 'utc': True},
+                'ex_date': {'unit': 's', 'utc': True},
+                'pay_date': {'unit': 's', 'utc': True},
+                'record_date': {'unit': 's', 'utc': True},
+            },
+        )
+
+    def load_adjustments(self, columns, dates, assets):
+        return load_adjustments_from_frames(
+            columns,
             dates,
             assets,
+            self.splits,
+            self.mergers,
+            self.dividends,
         )
 
     def get_adjustments_for_sid(self, table_name, sid):
@@ -1408,3 +1459,7 @@ class SQLiteAdjustmentReader(object):
             )
             for t_name, date_cols in self._datetime_int_cols.items()
         }
+
+
+def load_adjustments_from_frames(dates, assets, splits, mergers, dividends):
+    pass
