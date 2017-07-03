@@ -201,6 +201,11 @@ def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day,
     We attempt to download data unless we already have data stored at the data
     cache for `symbol` whose first entry is before or on `first_date` and whose
     last entry is on or after `last_date`.
+
+    If we perform a download and the cache criteria are not satisfied, we wait
+    at least one hour before attempting a redownload.  This is determined by
+    comparing the current time to the result of os.path.getmtime on the cache
+    path.
     """
     filename = get_benchmark_filename(symbol)
     data = _load_cached_data(filename, first_date, last_date, now, 'benchmark',

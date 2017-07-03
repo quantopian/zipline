@@ -78,6 +78,15 @@ def changed_results(new, old):
 def eof(*args, **kwargs):
     raise EOFError()
 
+
+@click.command()
+@click.option(
+    '--rebuild-input',
+    is_flag=True,
+    default=False,
+    help="Should we rebuild the input data from Yahoo?",
+)
+
 @click.pass_context
 def main(ctx, rebuild_input):
     """Rebuild the perf data for test_examples
@@ -91,6 +100,14 @@ def main(ctx, rebuild_input):
         # The environ here should be the same (modulo the tempdir location)
         # as we use in test_examples.py.
         environ = {'ZIPLINE_ROOT': d.getpath('example_data/root')}
+
+        if rebuild_input:
+            raise NotImplementedError(
+                ("We cannot rebuild input for Yahoo because of "
+                 "changes Yahoo made to their API, so we cannot "
+                 "use Yahoo data bundles anymore. This will be fixed in "
+                 "a future release")
+            )
 
         new_perf_path = d.getpath(
             'example_data/new_perf/%s' % pd.__version__.replace('.', '-'),
