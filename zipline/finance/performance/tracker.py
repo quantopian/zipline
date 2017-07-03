@@ -178,10 +178,7 @@ class PerformanceTracker(object):
 
         # The weights for each day should be a dictionary mapping assets to
         # their respective position weights in the current portfolio.
-        self.position_weights = pd.Series(
-            np.full(len(self.sim_params.sessions), {}, dtype=object),
-            index=self.sim_params.sessions,
-        )
+        self.position_weights = []
 
     def __repr__(self):
         return "%s(%r)" % (
@@ -418,7 +415,7 @@ class PerformanceTracker(object):
         position_weights.index = list(
             map(convert_futures, position_weights.index),
         )
-        self.position_weights[normalize_date(dt)] = dict(position_weights)
+        self.position_weights.append(dict(position_weights))
 
         # increment the day counter before we move markers forward.
         self.session_count += 1.0
@@ -507,11 +504,8 @@ class PerformanceTracker(object):
         # Create a data frame of asset weights on each day of the simulation.
         # If an asset was not held on a given date, it is assigned a weight of
         # zero.
-        weights = pd.DataFrame(
-            self.position_weights.tolist(),
-            index=sim_params.sessions.normalize(),
-        ).fillna(0)
-        assets = weights.columns.tolist()
+        weights = pd.DataFrame(self.position_weights, index=sim_params.sessions).fillna(0.0)
+        weights_values = weights.values
 
         # If we are near the start date of our data, just use the data
         # available. Otherwise, use the full default number of lookback days.
@@ -523,12 +517,31 @@ class PerformanceTracker(object):
         )
 
         asset_returns = zp.asset_returns_for_cvar(
-            assets=assets,
+            assets=list(weights.columns),
             benchmark=self.benchmark_asset,
             data_portal=data_portal,
             end_date=sim_params.end_session,
             lookback_days=len(sim_params.sessions) + days_before_start,
         )
+        asset_returns_values = asset_returns.values
+
+        def rolling_shortfall():
+            cvar_cutoff = zp.DEFAULT_CVAR_CUTOFF
+            out = np.full(len(weights), np.nan)
+
+            # Compute from back to front, since that simplifies the task of
+            # aligning the correct row of `weights with the correct slice of
+            # `asset_returns`.
+            last_end = -len(weights)
+            end = -1
+            while end >= last_end:
+                # TODO: Bail if we don't have enough input data.
+                start = end - lookback_days
+                rets = asset_returns_values[start:end].dot(weights_values[end])
+                out[end] = conditional_value_at_risk(rets, cvar_cutoff)
+                end -= 1
+
+            return pd.Series(out, index=sim_params.sessions)
 
         def cvar_of_df(df):
             """
@@ -563,5 +576,7 @@ class PerformanceTracker(object):
         else:
             rolling_cvars = rolling_cvars[days_before_start - 1:]
         rolling_cvars.index = sim_params.sessions
+
+        alt_rolling_cvars = rolling_shortfall()
 
         return rolling_cvars
