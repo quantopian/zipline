@@ -28,7 +28,6 @@ from ..utils.paths import (
     cache_root,
     data_root,
 )
-from ..utils.deprecate import deprecated
 from zipline.utils.calendars import get_calendar
 
 
@@ -424,59 +423,6 @@ def load_from_yahoo(indexes=None,
     df = pd.DataFrame({key: d[close_key] for key, d in iteritems(data)})
     df.index = df.index.tz_localize(pytz.utc)
     return df
-
-
-@deprecated(
-    'load_bars_from_yahoo is deprecated, please register a'
-    ' yahoo_equities data bundle instead',
-)
-def load_bars_from_yahoo(indexes=None,
-                         stocks=None,
-                         start=None,
-                         end=None,
-                         adjusted=True):
-    """
-    Loads data from Yahoo into a panel with the following
-    column names for each indicated security:
-
-        - open
-        - high
-        - low
-        - close
-        - volume
-        - price
-
-    Note that 'price' is Yahoo's 'Adjusted Close', which removes the
-    impact of splits and dividends. If the argument 'adjusted' is True, then
-    the open, high, low, and close values are adjusted as well.
-
-    :param indexes: Financial indexes to load.
-    :type indexes: dict
-    :param stocks: Stock closing prices to load.
-    :type stocks: list
-    :param start: Retrieve prices from start date on.
-    :type start: datetime
-    :param end: Retrieve prices until end date.
-    :type end: datetime
-    :param adjusted: Adjust open/high/low/close for splits and dividends.
-        The 'price' field is always adjusted.
-    :type adjusted: bool
-
-    """
-    data = _load_raw_yahoo_data(indexes, stocks, start, end)
-    panel = pd.Panel(data)
-    # Rename columns
-    panel.minor_axis = ['open', 'high', 'low', 'close', 'volume', 'price']
-    panel.major_axis = panel.major_axis.tz_localize(pytz.utc)
-    # Adjust data
-    if adjusted:
-        adj_cols = ['open', 'high', 'low', 'close']
-        for ticker in panel.items:
-            ratio = (panel[ticker]['price'] / panel[ticker]['close'])
-            ratio_filtered = ratio.fillna(0).values
-            for col in adj_cols:
-                panel[ticker][col] *= ratio_filtered
-    return panel
 
 
 def load_prices_from_csv(filepath, identifier_col, tz='UTC'):
