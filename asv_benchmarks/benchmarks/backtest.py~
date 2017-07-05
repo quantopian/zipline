@@ -1,0 +1,47 @@
+from textwrap import dedent
+
+from zipline import run_algorithm
+from zipline import TradingAlgorithm
+
+from zipline.testing.fixtures import WithSimParams, WithDataPortal
+
+class BacktestTiming(WithSimParams):
+    """
+    Tests timing of core functionality of a backtest
+    """
+
+    def setup(self):
+        pass
+    
+    def time_run_algo(self):
+        # time a full call to run_algo
+        code = dedent("""
+        from zipline.api import order_target, symbol, record
+        
+        def initialize(context):
+            context.asset = symbol('AAPL')
+
+        def handle_data(context, data):
+            context.i = 0
+            while context.i < 300:
+                context.i += 1
+
+            order(context.asset, 10)
+            record(AAPL=data.current(context.asset, 'price'))
+        """)
+
+        algo = TradingAlgorithm(
+            script=code,
+            sim_params=self.sim_params,
+            env=self.env
+        )
+
+        algo.run(self.data_portal)
+
+    #def time_initialize(self):
+        # call to initialize(context)
+    #    pass
+    
+    #def time_handle_data_history(self):
+        # call to handle_data(context, data) that uses data.history()
+    #    pass

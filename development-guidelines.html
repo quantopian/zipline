@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Features &mdash; Zipline 1.1.1 documentation</title>
+  <title>Development Guidelines &mdash; Zipline 1.1.1 documentation</title>
   
 
   
@@ -30,8 +30,9 @@
   
 
   
-    <link rel="top" title="Zipline 1.1.1 documentation" href="#"/>
-        <link rel="next" title="Install" href="install.html"/> 
+    <link rel="top" title="Zipline 1.1.1 documentation" href="index.html"/>
+        <link rel="next" title="API Reference" href="appendix.html"/>
+        <link rel="prev" title="Data Bundles" href="bundles.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -48,7 +49,7 @@
         
 
         
-          <a href="#" class="icon icon-home"> Zipline
+          <a href="index.html" class="icon icon-home"> Zipline
         
 
         
@@ -70,7 +71,7 @@
         
           
           
-              <ul>
+              <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="install.html">Install</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-pip">Installing with <code class="docutils literal"><span class="pre">pip</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="install.html#gnu-linux">GNU/Linux</a></li>
@@ -125,15 +126,15 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="development-guidelines.html">Development Guidelines</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#creating-a-development-environment">Creating a Development Environment</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#development-with-docker">Development with Docker</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#style-guide-running-tests">Style Guide &amp; Running Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#continuous-integration">Continuous Integration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#packaging">Packaging</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#contributing-to-the-docs">Contributing to the Docs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#commit-messages">Commit messages</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#formatting-docstrings">Formatting Docstrings</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Development Guidelines</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#creating-a-development-environment">Creating a Development Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#development-with-docker">Development with Docker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#style-guide-running-tests">Style Guide &amp; Running Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#continuous-integration">Continuous Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#packaging">Packaging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#contributing-to-the-docs">Contributing to the Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#commit-messages">Commit messages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#formatting-docstrings">Formatting Docstrings</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="appendix.html">API Reference</a><ul>
@@ -320,7 +321,7 @@
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
         <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="#">Zipline</a>
+        <a href="index.html">Zipline</a>
       </nav>
 
 
@@ -329,13 +330,13 @@
         <div class="rst-content">
           <div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href="#">Docs</a> &raquo;</li>
+    <li><a href="index.html">Docs</a> &raquo;</li>
       
-    <li>Features</li>
+    <li>Development Guidelines</li>
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="_sources/index.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/development-guidelines.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -344,147 +345,138 @@
 </div>
           <div role="main" class="document">
             
-  <a class="reference external image-reference" href="http://www.zipline.io"><img alt="Zipline" class="align-center" src="https://media.quantopian.com/logos/open_source/zipline-logo-03_.png" style="width: 212px;" /></a>
-<hr class="docutils" />
-<p><a class="reference external" href="https://gitter.im/quantopian/zipline?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img alt="Gitter" src="https://badges.gitter.im/Join%20Chat.svg" /></a>
-<a class="reference external" href="https://pypi.python.org/pypi/zipline"><img alt="version status" src="https://img.shields.io/pypi/pyversions/zipline.svg" /></a>
-<a class="reference external" href="https://travis-ci.org/quantopian/zipline"><img alt="travis status" src="https://travis-ci.org/quantopian/zipline.png?branch=master" /></a>
-<a class="reference external" href="https://ci.appveyor.com/project/quantopian/zipline/branch/master"><img alt="appveyor status" src="https://ci.appveyor.com/api/projects/status/3dg18e6227dvstw6/branch/master?svg=true" /></a>
-<a class="reference external" href="https://coveralls.io/r/quantopian/zipline"><img alt="Coverage Status" src="https://coveralls.io/repos/quantopian/zipline/badge.png" /></a></p>
-<p>Zipline is a Pythonic algorithmic trading library. It is an event-driven
-system that supports both backtesting and live-trading. Zipline is currently used in production as the backtesting and live-trading
-engine powering <a class="reference external" href="https://www.quantopian.com">Quantopian</a> &#8211; a free,
-community-centered, hosted platform for building and executing trading
-strategies.</p>
-<p><a class="reference external" href="https://groups.google.com/forum/#!forum/zipline">Join our
-community!</a></p>
-<p><a class="reference external" href="http://www.zipline.io">Documentation</a></p>
-<p>Want to contribute? See our <a class="reference external" href="http://zipline.io/development-guidelines.html">development guidelines</a></p>
-<div class="section" id="features">
-<h1>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h1>
-<ul class="simple">
-<li>Ease of use: Zipline tries to get out of your way so that you can
-focus on algorithm development. See below for a code example.</li>
-<li>Zipline comes &#8220;batteries included&#8221; as many common statistics like
-moving average and linear regression can be readily accessed from
-within a user-written algorithm.</li>
-<li>Input of historical data and output of performance statistics are
-based on Pandas DataFrames to integrate nicely into the existing
-PyData eco-system.</li>
-<li>Statistic and machine learning libraries like matplotlib, scipy,
-statsmodels, and sklearn support development, analysis, and
-visualization of state-of-the-art trading systems.</li>
-</ul>
-</div>
-<div class="section" id="installation">
-<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="installing-with-pip">
-<h2>Installing With <code class="docutils literal"><span class="pre">pip</span></code><a class="headerlink" href="#installing-with-pip" title="Permalink to this headline">¶</a></h2>
-<p>Assuming you have all required (see note below) non-Python dependencies, you
-can install Zipline with <code class="docutils literal"><span class="pre">pip</span></code> via:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>pip install zipline
+  <div class="section" id="development-guidelines">
+<h1>Development Guidelines<a class="headerlink" href="#development-guidelines" title="Permalink to this headline">¶</a></h1>
+<p>This page is intended for developers of Zipline, people who want to contribute to the Zipline codebase or documentation, or people who want to install from source and make local changes to their copy of Zipline.</p>
+<p>All contributions, bug reports, bug fixes, documentation improvements, enhancements and ideas are welcome. We <a class="reference external" href="https://github.com/quantopian/zipline/issues">track issues</a> on <a class="reference external" href="https://github.com/">GitHub</a> and also have a <a class="reference external" href="https://groups.google.com/forum/#!forum/zipline">mailing list</a> where you can ask questions.</p>
+<div class="section" id="creating-a-development-environment">
+<h2>Creating a Development Environment<a class="headerlink" href="#creating-a-development-environment" title="Permalink to this headline">¶</a></h2>
+<p>First, you&#8217;ll need to clone Zipline by running:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>git clone git@github.com:your-github-username/zipline.git
 </pre></div>
 </div>
-<p><strong>Note:</strong> Installing Zipline via <code class="docutils literal"><span class="pre">pip</span></code> is slightly more involved than the
-average Python package.  Simply running <code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">zipline</span></code> will likely
-fail if you&#8217;ve never installed any scientific Python packages before.</p>
-<p>There are two reasons for the additional complexity:</p>
-<ol class="arabic simple">
-<li>Zipline ships several C extensions that require access to the CPython C API.
-In order to build the C extensions, <code class="docutils literal"><span class="pre">pip</span></code> needs access to the CPython
-header files for your Python installation.</li>
-<li>Zipline depends on <a class="reference external" href="http://www.numpy.org/">numpy</a>, the core library for
-numerical array computing in Python.  Numpy depends on having the <a class="reference external" href="http://www.netlib.org/lapack">LAPACK</a> linear algebra routines available.</li>
-</ol>
-<p>Because LAPACK and the CPython headers are binary dependencies, the correct way
-to install them varies from platform to platform.  On Linux, users generally
-acquire these dependencies via a package manager like <code class="docutils literal"><span class="pre">apt</span></code>, <code class="docutils literal"><span class="pre">yum</span></code>, or
-<code class="docutils literal"><span class="pre">pacman</span></code>.  On OSX, <a class="reference external" href="http://www.brew.sh">Homebrew</a> is a popular choice
-providing similar functionality.</p>
-<p>See the full <a class="reference external" href="http://www.zipline.io/install.html">Zipline Install Documentation</a> for more information on acquiring
-binary dependencies for your specific platform.</p>
-</div>
-<div class="section" id="conda">
-<h2>conda<a class="headerlink" href="#conda" title="Permalink to this headline">¶</a></h2>
-<p>Another way to install Zipline is via the <code class="docutils literal"><span class="pre">conda</span></code> package manager, which
-comes as part of <a class="reference external" href="http://continuum.io/downloads">Anaconda</a> or can be
-installed via <code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">conda</span></code>.</p>
-<p>Once set up, you can install Zipline from our <code class="docutils literal"><span class="pre">Quantopian</span></code> channel:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>conda install -c Quantopian zipline
+<p>Then check out to a new branch where you can make your changes:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>git checkout -b some-short-descriptive-name
 </pre></div>
 </div>
-<p>Currently supported platforms include:</p>
-<ul class="simple">
-<li>GNU/Linux 64-bit</li>
-<li>OSX 64-bit</li>
-<li>Windows 64-bit</li>
-</ul>
+<p>If you don&#8217;t already have them, you&#8217;ll need some C library dependencies. You can follow the <a class="reference external" href="install.html">install guide</a> to get the appropriate dependencies.</p>
+<p>The following section assumes you already have virtualenvwrapper and pip installed on your system. Suggested installation of Python library dependencies used for development:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>mkvirtualenv zipline
+<span class="nv">$ </span>./etc/ordered_pip.sh ./etc/requirements.txt
+<span class="nv">$ </span>pip install -r ./etc/requirements_dev.txt
+<span class="nv">$ </span>pip install -r ./etc/requirements_blaze.txt
+</pre></div>
+</div>
+<p>Finally, you can build the C extensions by running:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>python setup.py build_ext --inplace
+</pre></div>
+</div>
+<p>To finish, make sure <a class="reference external" href="#style-guide-running-tests">tests</a> pass.</p>
+<p>If you get an error running nosetests after setting up a fresh virtualenv, please try running</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="c"># where zipline is the name of your virtualenv</span>
+<span class="nv">$ </span>deactivate zipline
+<span class="nv">$ </span>workon zipline
+</pre></div>
+</div>
+</div>
+<div class="section" id="development-with-docker">
+<h2>Development with Docker<a class="headerlink" href="#development-with-docker" title="Permalink to this headline">¶</a></h2>
+<p>If you want to work with zipline using a <a class="reference external" href="https://docs.docker.com/get-started/">Docker</a> container, you&#8217;ll need to build the <code class="docutils literal"><span class="pre">Dockerfile</span></code> in the Zipline root directory, and then build <code class="docutils literal"><span class="pre">Dockerfile-dev</span></code>. Instructions for building both containers can be found in <code class="docutils literal"><span class="pre">Dockerfile</span></code> and <code class="docutils literal"><span class="pre">Dockerfile-dev</span></code>, respectively.</p>
+</div>
+<div class="section" id="style-guide-running-tests">
+<h2>Style Guide &amp; Running Tests<a class="headerlink" href="#style-guide-running-tests" title="Permalink to this headline">¶</a></h2>
+<p>We use <a class="reference external" href="http://flake8.pycqa.org/en/latest/">flake8</a> for checking style requirements and <a class="reference external" href="http://nose.readthedocs.io/en/latest/">nosetests</a> to run Zipline tests. Our <a class="reference external" href="https://en.wikipedia.org/wiki/Continuous_integration">continuous integration</a> tools will run these commands.</p>
+<p>Before submitting patches or pull requests, please ensure that your changes pass when running:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>flake8 zipline tests
+</pre></div>
+</div>
+<p>In order to run tests locally, you&#8217;ll need <a class="reference external" href="https://mrjbq7.github.io/ta-lib/install.html">TA-lib</a>, which you can install on Linux by running:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
+<span class="nv">$ </span>tar -xvzf ta-lib-0.4.0-src.tar.gz
+<span class="nv">$ </span><span class="nb">cd </span>ta-lib/
+<span class="nv">$ </span>./configure --prefix<span class="o">=</span>/usr
+<span class="nv">$ </span>make
+<span class="nv">$ </span>sudo make install
+</pre></div>
+</div>
+<p>And for <code class="docutils literal"><span class="pre">TA-lib</span></code> on OS X you can just run:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>brew install ta-lib
+</pre></div>
+</div>
+<p>Then run <code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span></code> TA-lib:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>pip install -r ./etc/requirements_talib.txt
+</pre></div>
+</div>
+<p>You should now be free to run tests:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>nosetests
+</pre></div>
+</div>
+</div>
+<div class="section" id="continuous-integration">
+<h2>Continuous Integration<a class="headerlink" href="#continuous-integration" title="Permalink to this headline">¶</a></h2>
+<p>We use <a class="reference external" href="https://travis-ci.org/quantopian/zipline">Travis CI</a> for Linux-64 bit builds and <a class="reference external" href="https://ci.appveyor.com/project/quantopian/zipline">AppVeyor</a> for Windows-64 bit builds.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">Windows 32-bit may work; however, it is not currently included in
-continuous integration tests.</p>
+<p class="last">We do not currently have CI for OSX-64 bit builds. 32-bit builds may work but are not included in our integration tests.</p>
 </div>
 </div>
+<div class="section" id="packaging">
+<h2>Packaging<a class="headerlink" href="#packaging" title="Permalink to this headline">¶</a></h2>
+<p>To learn about how we build Zipline conda packages, you can read <a class="reference external" href="release-process.html#uploading-conda-packages">this</a> section in our release process notes.</p>
 </div>
-<div class="section" id="quickstart">
-<h1>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this headline">¶</a></h1>
-<p>See our <a class="reference external" href="http://www.zipline.io/#quickstart">getting started
-tutorial</a>.</p>
-<p>The following code implements a simple dual moving average algorithm.</p>
-<div class="code python highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">order_target</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">symbol</span>
-
-<span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
-    <span class="n">context</span><span class="o">.</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">context</span><span class="o">.</span><span class="n">asset</span> <span class="o">=</span> <span class="n">symbol</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">handle_data</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-    <span class="c"># Skip first 300 days to get full windows</span>
-    <span class="n">context</span><span class="o">.</span><span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
-    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">i</span> <span class="o">&lt;</span> <span class="mi">300</span><span class="p">:</span>
-        <span class="k">return</span>
-
-    <span class="c"># Compute averages</span>
-    <span class="c"># data.history() has to be called with the same params</span>
-    <span class="c"># from above and returns a pandas dataframe.</span>
-    <span class="n">short_mavg</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">history</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">,</span> <span class="n">bar_count</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s">&quot;1d&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-    <span class="n">long_mavg</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">history</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">,</span> <span class="n">bar_count</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s">&quot;1d&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-
-    <span class="c"># Trading logic</span>
-    <span class="k">if</span> <span class="n">short_mavg</span> <span class="o">&gt;</span> <span class="n">long_mavg</span><span class="p">:</span>
-        <span class="c"># order_target orders as many shares as needed to</span>
-        <span class="c"># achieve the desired number of shares.</span>
-        <span class="n">order_target</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">short_mavg</span> <span class="o">&lt;</span> <span class="n">long_mavg</span><span class="p">:</span>
-        <span class="n">order_target</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-
-    <span class="c"># Save values for later inspection</span>
-    <span class="n">record</span><span class="p">(</span><span class="n">AAPL</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">),</span>
-           <span class="n">short_mavg</span><span class="o">=</span><span class="n">short_mavg</span><span class="p">,</span>
-           <span class="n">long_mavg</span><span class="o">=</span><span class="n">long_mavg</span><span class="p">)</span>
+<div class="section" id="contributing-to-the-docs">
+<h2>Contributing to the Docs<a class="headerlink" href="#contributing-to-the-docs" title="Permalink to this headline">¶</a></h2>
+<p>If you&#8217;d like to contribute to the documentation on zipline.io, you can navigate to <code class="docutils literal"><span class="pre">docs/source/</span></code> where each <a class="reference external" href="https://en.wikipedia.org/wiki/ReStructuredText">reStructuredText</a> (<code class="docutils literal"><span class="pre">.rst</span></code>) file is a separate section there. To add a section, create a new file called <code class="docutils literal"><span class="pre">some-descriptive-name.rst</span></code> and add <code class="docutils literal"><span class="pre">some-descriptive-name</span></code> to <code class="docutils literal"><span class="pre">appendix.rst</span></code>. To edit a section, simply open up one of the existing files, make your changes, and save them.</p>
+<p>We use <a class="reference external" href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> to generate documentation for Zipline, which you will need to install by running:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>pip install -r ./etc/requirements_docs.txt
 </pre></div>
 </div>
-<p>You can then run this algorithm using the Zipline CLI. From the command
-line, run:</p>
-<div class="code bash highlight-python"><div class="highlight"><pre>$ zipline ingest
-$ zipline run -f dual_moving_average.py --start 2011-1-1 --end 2012-1-1 -o dma.pickle
+<p>To build and view the docs locally, run:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="c"># assuming you&#39;re in the Zipline root directory</span>
+<span class="nv">$ </span><span class="nb">cd </span>docs
+<span class="nv">$ </span>make html
+<span class="nv">$ </span><span class="o">{</span>BROWSER<span class="o">}</span> build/html/index.html
 </pre></div>
 </div>
-<p>This will download the AAPL price data from <cite>quantopian-quandl</cite> in the
-specified time range and stream it through the algorithm and save the
-resulting performance dataframe to dma.pickle which you can then load
-and analyze from within python.</p>
-<p>You can find other examples in the <code class="docutils literal"><span class="pre">zipline/examples</span></code> directory.</p>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="install.html">Install</a></li>
-<li class="toctree-l1"><a class="reference internal" href="beginner-tutorial.html">Zipline Beginner Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="bundles.html">Data Bundles</a></li>
-<li class="toctree-l1"><a class="reference internal" href="development-guidelines.html">Development Guidelines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="appendix.html">API Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="release-process.html">Release Process</a></li>
-<li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a></li>
-</ul>
+</div>
+<div class="section" id="commit-messages">
+<h2>Commit messages<a class="headerlink" href="#commit-messages" title="Permalink to this headline">¶</a></h2>
+<p>Standard prefixes to start a commit message:</p>
+<div class="highlight-text"><div class="highlight"><pre>BLD: change related to building Zipline
+BUG: bug fix
+DEP: deprecate something, or remove a deprecated object
+DEV: development tool or utility
+DOC: documentation
+ENH: enhancement
+MAINT: maintenance commit (refactoring, typos, etc)
+REV: revert an earlier commit
+STY: style fix (whitespace, PEP8, flake8, etc)
+TST: addition or modification of tests
+REL: related to releasing Zipline
+PERF: performance enhancements
+</pre></div>
+</div>
+<p>Some commit style guidelines:</p>
+<p>Commit lines should be no longer than <a class="reference external" href="https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project">72 characters</a>. The first line of the commit should include one of the above prefixes. There should be an empty line between the commit subject and the body of the commit. In general, the message should be in the imperative tense. Best practice is to include not only what the change is, but why the change was made.</p>
+<p><strong>Example:</strong></p>
+<div class="highlight-text"><div class="highlight"><pre>MAINT: Remove unused calculations of max_leverage, et al.
+
+In the performance period the max_leverage, max_capital_used,
+cumulative_capital_used were calculated but not used.
+
+At least one of those calculations, max_leverage, was causing a
+divide by zero error.
+
+Instead of papering over that error, the entire calculation was
+a bit suspect so removing, with possibility of adding it back in
+later with handling the case (or raising appropriate errors) when
+the algorithm has little cash on hand.
+</pre></div>
+</div>
+</div>
+<div class="section" id="formatting-docstrings">
+<h2>Formatting Docstrings<a class="headerlink" href="#formatting-docstrings" title="Permalink to this headline">¶</a></h2>
+<p>When adding or editing docstrings for classes, functions, etc, we use <a class="reference external" href="https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt">numpy</a> as the canonical reference.</p>
 </div>
 </div>
 
@@ -494,8 +486,10 @@ and analyze from within python.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="install.html" class="btn btn-neutral float-right" title="Install" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="appendix.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
+      
+        <a href="bundles.html" class="btn btn-neutral" title="Data Bundles" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

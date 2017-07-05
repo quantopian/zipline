@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.data.equity_pricing &mdash; Zipline 1.1.1 documentation</title>
+  <title>zipline.pipeline.loaders.equity_pricing_loader &mdash; Zipline 1.1.1 documentation</title>
   
 
   
@@ -333,7 +333,7 @@
       
           <li><a href="../../../index.html">Module code</a> &raquo;</li>
       
-    <li>zipline.pipeline.data.equity_pricing</li>
+    <li>zipline.pipeline.loaders.equity_pricing_loader</li>
       <li class="wy-breadcrumbs-aside">
         
           
@@ -344,24 +344,148 @@
 </div>
           <div role="main" class="document">
             
-  <h1>Source code for zipline.pipeline.data.equity_pricing</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Dataset representing OHLCV data.</span>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="n">float64_dtype</span>
+  <h1>Source code for zipline.pipeline.loaders.equity_pricing_loader</h1><div class="highlight"><pre>
+<span class="c"># Copyright 2015 Quantopian, Inc.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">iinfo</span><span class="p">,</span>
+    <span class="n">uint32</span><span class="p">,</span>
+<span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">.dataset</span> <span class="kn">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">DataSet</span>
+<span class="kn">from</span> <span class="nn">zipline.data.us_equity_pricing</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BcolzDailyBarReader</span><span class="p">,</span>
+    <span class="n">SQLiteAdjustmentReader</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.lib.adjusted_array</span> <span class="kn">import</span> <span class="n">AdjustedArray</span>
+<span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="n">NoFurtherDataError</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.calendars</span> <span class="kn">import</span> <span class="n">get_calendar</span>
+
+<span class="kn">from</span> <span class="nn">.base</span> <span class="kn">import</span> <span class="n">PipelineLoader</span>
+
+<span class="n">UINT32_MAX</span> <span class="o">=</span> <span class="n">iinfo</span><span class="p">(</span><span class="n">uint32</span><span class="p">)</span><span class="o">.</span><span class="n">max</span>
 
 
-<div class="viewcode-block" id="USEquityPricing"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.data.USEquityPricing">[docs]</a><span class="k">class</span> <span class="nc">USEquityPricing</span><span class="p">(</span><span class="n">DataSet</span><span class="p">):</span>
+<div class="viewcode-block" id="USEquityPricingLoader"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.loaders.equity_pricing_loader.USEquityPricingLoader">[docs]</a><span class="k">class</span> <span class="nc">USEquityPricingLoader</span><span class="p">(</span><span class="n">PipelineLoader</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Dataset representing daily trading prices and volumes.</span>
+<span class="sd">    PipelineLoader for US Equity Pricing data</span>
+
+<span class="sd">    Delegates loading of baselines and adjustments.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="nb">open</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
-    <span class="n">high</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
-    <span class="n">low</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
-    <span class="n">close</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
-    <span class="n">volume</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw_price_loader</span><span class="p">,</span> <span class="n">adjustments_loader</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">raw_price_loader</span> <span class="o">=</span> <span class="n">raw_price_loader</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adjustments_loader</span> <span class="o">=</span> <span class="n">adjustments_loader</span>
+
+        <span class="n">cal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_price_loader</span><span class="o">.</span><span class="n">trading_calendar</span> <span class="ow">or</span> \
+            <span class="n">get_calendar</span><span class="p">(</span><span class="s">&quot;NYSE&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_all_sessions</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">all_sessions</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="USEquityPricingLoader.from_files"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.loaders.equity_pricing_loader.USEquityPricingLoader.from_files">[docs]</a>    <span class="k">def</span> <span class="nf">from_files</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">pricing_path</span><span class="p">,</span> <span class="n">adjustments_path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a loader from a bcolz equity pricing dir and a SQLite</span>
+<span class="sd">        adjustments path.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pricing_path : str</span>
+<span class="sd">            Path to a bcolz directory written by a BcolzDailyBarWriter.</span>
+<span class="sd">        adjusments_path : str</span>
+<span class="sd">            Path to an adjusments db written by a SQLiteAdjustmentWriter.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">cls</span><span class="p">(</span>
+            <span class="n">BcolzDailyBarReader</span><span class="p">(</span><span class="n">pricing_path</span><span class="p">),</span>
+            <span class="n">SQLiteAdjustmentReader</span><span class="p">(</span><span class="n">adjustments_path</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">load_adjusted_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="c"># load_adjusted_array is called with dates on which the user&#39;s algo</span>
+        <span class="c"># will be shown data, which means we need to return the data that would</span>
+        <span class="c"># be known at the start of each date.  We assume that the latest data</span>
+        <span class="c"># known on day N is the data from day (N - 1), so we shift all query</span>
+        <span class="c"># dates back by a day.</span>
+        <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span> <span class="o">=</span> <span class="n">_shift_dates</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_all_sessions</span><span class="p">,</span> <span class="n">dates</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">shift</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">colnames</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">]</span>
+        <span class="n">raw_arrays</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_price_loader</span><span class="o">.</span><span class="n">load_raw_arrays</span><span class="p">(</span>
+            <span class="n">colnames</span><span class="p">,</span>
+            <span class="n">start_date</span><span class="p">,</span>
+            <span class="n">end_date</span><span class="p">,</span>
+            <span class="n">assets</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">adjustments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjustments_loader</span><span class="o">.</span><span class="n">load_adjustments</span><span class="p">(</span>
+            <span class="n">colnames</span><span class="p">,</span>
+            <span class="n">dates</span><span class="p">,</span>
+            <span class="n">assets</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">c_raw</span><span class="p">,</span> <span class="n">c_adjs</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">columns</span><span class="p">,</span> <span class="n">raw_arrays</span><span class="p">,</span> <span class="n">adjustments</span><span class="p">):</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">AdjustedArray</span><span class="p">(</span>
+                <span class="n">c_raw</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+                <span class="n">mask</span><span class="p">,</span>
+                <span class="n">c_adjs</span><span class="p">,</span>
+                <span class="n">c</span><span class="o">.</span><span class="n">missing_value</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+
+
+<span class="k">def</span> <span class="nf">_shift_dates</span><span class="p">(</span><span class="n">dates</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">,</span> <span class="n">shift</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">dates</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">start_date</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">start_date</span> <span class="o">&lt;</span> <span class="n">dates</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="n">NoFurtherDataError</span><span class="p">(</span>
+                <span class="n">msg</span><span class="o">=</span><span class="p">(</span>
+                    <span class="s">&quot;Pipeline Query requested data starting on {query_start}, &quot;</span>
+                    <span class="s">&quot;but first known date is {calendar_start}&quot;</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">query_start</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">start_date</span><span class="p">),</span>
+                    <span class="n">calendar_start</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">dates</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Query start </span><span class="si">%s</span><span class="s"> not in calendar&quot;</span> <span class="o">%</span> <span class="n">start_date</span><span class="p">)</span>
+
+    <span class="c"># Make sure that shifting doesn&#39;t push us out of the calendar.</span>
+    <span class="k">if</span> <span class="n">start</span> <span class="o">&lt;</span> <span class="n">shift</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">NoFurtherDataError</span><span class="p">(</span>
+            <span class="n">msg</span><span class="o">=</span><span class="p">(</span>
+                <span class="s">&quot;Pipeline Query requested data from {shift}&quot;</span>
+                <span class="s">&quot; days before {query_start}, but first known date is only &quot;</span>
+                <span class="s">&quot;{start} days earlier.&quot;</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">shift</span><span class="o">=</span><span class="n">shift</span><span class="p">,</span> <span class="n">query_start</span><span class="o">=</span><span class="n">start_date</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">dates</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">end_date</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">end_date</span> <span class="o">&gt;</span> <span class="n">dates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="n">NoFurtherDataError</span><span class="p">(</span>
+                <span class="n">msg</span><span class="o">=</span><span class="p">(</span>
+                    <span class="s">&quot;Pipeline Query requesting data up to {query_end}, &quot;</span>
+                    <span class="s">&quot;but last known date is {calendar_end}&quot;</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">query_end</span><span class="o">=</span><span class="n">end_date</span><span class="p">,</span>
+                    <span class="n">calendar_end</span><span class="o">=</span><span class="n">dates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Query end </span><span class="si">%s</span><span class="s"> not in calendar&quot;</span> <span class="o">%</span> <span class="n">end_date</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dates</span><span class="p">[</span><span class="n">start</span> <span class="o">-</span> <span class="n">shift</span><span class="p">],</span> <span class="n">dates</span><span class="p">[</span><span class="n">end</span> <span class="o">-</span> <span class="n">shift</span><span class="p">]</span>
 </pre></div>
 
           </div>
