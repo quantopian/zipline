@@ -2,7 +2,7 @@ Release 1.1.1
 -------------
 
 :Release: 1.1.1
-:Date: June 30, 2017
+:Date: July 5, 2017
 
 
 Highlights
