@@ -1,4 +1,3 @@
-from libc.math cimport isnan
 from cpython cimport (
     Py_INCREF,
     PyDict_GetItem,
@@ -26,6 +25,11 @@ from zipline.pipeline.common import (
     SID_FIELD_NAME,
     TS_FIELD_NAME
 )
+
+
+cdef bint isnan(floating value):
+    # this isn't defined in libc on windows...
+    return value != value
 
 
 ctypedef bint is_missing_function(column_type, column_type)
