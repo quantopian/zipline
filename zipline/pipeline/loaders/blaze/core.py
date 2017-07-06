@@ -965,7 +965,7 @@ class BlazeLoader(object):
             This can return more data than needed. The in memory reindex will
             handle this.
             """
-            predicate = e[TS_FIELD_NAME] <= upper_dt
+            predicate = e[TS_FIELD_NAME] < upper_dt
             if lower is not None:
                 predicate &= e[TS_FIELD_NAME] >= lower
 

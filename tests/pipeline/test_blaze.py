@@ -1650,11 +1650,16 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             The value to be read on the third, if not provided, it will be the
             value in the base data that will be naturally ffilled there.
         """
-        dates = pd.Timestamp('2014-01-01'), pd.Timestamp('2014-01-04')
+        dates = pd.Index([
+            pd.Timestamp('2014-01-01'),
+            pd.Timestamp('2014-01-04'),
+        ])
+        asof_dates = dates - pd.Timedelta(days=1)
+        timestamps = asof_dates + pd.Timedelta(hours=23)
         baseline = pd.DataFrame({
             'value': [-1.0, 1.0],
-            'asof_date': dates,
-            'timestamp': dates,
+            'asof_date': asof_dates,
+            'timestamp': timestamps,
         })
 
         nassets = len(simple_asset_info)
@@ -1715,11 +1720,11 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
     def test_checkpoints_out_of_bounds_macro(self):
         # provide two checkpoints, one before the data in the base table
         # and one after, these should not affect the value on the third
-        dates = pd.to_datetime(['2013-12-31', '2014-01-05'])
+        asof_dates = pd.to_datetime(['2013-12-30', '2014-01-04'])
         checkpoints = pd.DataFrame({
             'value': [-2, 2],
-            'asof_date': dates,
-            'timestamp': dates,
+            'asof_date': asof_dates,
+            'timestamp': asof_dates + pd.Timedelta(hours=23),
         })
 
         self._test_checkpoints_macro(checkpoints)
@@ -1740,15 +1745,20 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         """
         nassets = len(simple_asset_info)
 
-        dates = pd.to_datetime(['2014-01-01', '2014-01-04'])
-        dates_repeated = np.tile(dates, nassets)
+        dates = pd.to_datetime(['2013-12-31', '2014-01-04'])
+
+        asof_dates = dates - pd.Timedelta(days=1)
+        asof_dates_repeated = np.tile(asof_dates, nassets)
+        timestamps = asof_dates + pd.Timedelta(hours=23)
+        timestamps_repeated = np.tile(timestamps, nassets)
+
         values = np.arange(nassets) + 1
         values = np.hstack((values[::-1], values))
         baseline = pd.DataFrame({
             'sid': np.tile(simple_asset_info.index, 2),
             'value': values,
-            'asof_date': dates_repeated,
-            'timestamp': dates_repeated,
+            'asof_date': asof_dates_repeated,
+            'timestamp': timestamps_repeated,
         })
 
         if ffilled_values is None:
@@ -1792,12 +1802,12 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
     def test_checkpoints(self):
         nassets = len(simple_asset_info)
         ffilled_values = (np.arange(nassets, dtype=np.float64) + 1) * 10
-        dates = [pd.Timestamp('2014-01-02')] * nassets
+        dates = pd.Index([pd.Timestamp('2014-01-01')] * nassets)
         checkpoints = pd.DataFrame({
             'sid': simple_asset_info.index,
             'value': ffilled_values,
             'asof_date': dates,
-            'timestamp': dates,
+            'timestamp': dates + pd.Timedelta(days=1),
         })
 
         self._test_checkpoints(checkpoints, ffilled_values)
@@ -1816,15 +1826,15 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         nassets = len(simple_asset_info)
         # provide two sets of checkpoints, one before the data in the base
         # table and one after, these should not affect the value on the third
-        dates = pd.to_datetime(['2013-12-31', '2014-01-05'])
-        dates_repeated = np.tile(dates, nassets)
+        asof_dates = pd.to_datetime(['2013-12-30', '2014-01-04'])
+        asof_dates_repeated = np.tile(asof_dates, nassets)
         ffilled_values = (np.arange(nassets) + 2) * 10
         ffilled_values = np.hstack((ffilled_values[::-1], ffilled_values))
         checkpoints = pd.DataFrame({
             'sid': np.tile(simple_asset_info.index, 2),
             'value': ffilled_values,
-            'asof_date': dates_repeated,
-            'timestamp': dates_repeated,
+            'asof_date': asof_dates_repeated,
+            'timestamp': asof_dates_repeated + pd.Timedelta(hours=23),
         })
 
         self._test_checkpoints(checkpoints)
