@@ -27,7 +27,7 @@ from zipline.pipeline.common import (
 )
 
 
-cdef bint isnan(floating value):
+cdef bint isnan(np.float64_t value):
     # this isn't defined in libc on windows...
     return value != value
 
