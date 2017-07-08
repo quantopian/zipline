@@ -156,6 +156,8 @@ cdef _array_for_column_impl(object dtype,
     cdef dict non_null_ixs_by_sid = {sid: [] for sid in sids}
     cdef dict adjustments
 
+    cdef Py_ssize_t out_of_bounds_ix = len(out_array)
+
     if AsArrayKind is AsAdjustedArray:
         adjustments = {}
 
@@ -181,7 +183,14 @@ cdef _array_for_column_impl(object dtype,
 
         with cython.boundscheck(False), cython.wraparound(False):
             ts_ix = ts_ixs[n]
+            if ts_ix == out_of_bounds_ix:
+                # this timestamp falls after the last date requested
+                continue
+
             asof_ix = asof_ixs[n]
+            if asof_ix == out_of_bounds_ix:
+                raise ValueError('asof_date newer than timestamp')
+
             sid = sids[n]
 
         column_ix_ob = PyDict_GetItem(column_ixs, sid)
@@ -401,15 +410,10 @@ cdef arrays_from_rows(DatetimeIndex_t dates,
         all_rows[TS_FIELD_NAME].values,
         'right',
     )
-    if len(ts_dates) and (ts_ixs == len(ts_dates)).any():
-        raise ValueError('found timestamp more recent than expected')
-
     cdef np.ndarray[np.int64_t] asof_ixs = dates.searchsorted(
         all_rows[AD_FIELD_NAME].values,
         'right',
     )
-    if len(dates) and (asof_ixs == len(dates)).any():
-        raise ValueError('found asof_date more recent than expected')
 
     cdef tuple out_shape = (len(dates), len(assets))
     cdef dict out = {}
