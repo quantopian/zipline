@@ -131,6 +131,61 @@ ctypedef fused AsArrayKind:
     AsBaselineArray
 
 
+# This is the core algorithm for formatting raw blaze data into the baseline +
+# adjustments format required for consumption by the Pipeline API.
+#
+# Logically, we think of each row of the input data as representing a single
+# event. Each event carries four pieces of information:
+#
+#   asof_date - The date on which the event occurred.
+#   timestamp - The date on which we learned about the event.
+#   sid       - The sid to which the event pertains.
+#   value     - The value of the column being updated by the event.
+#
+# The essential idea of this algorithm is to process events in timestamp-sorted
+# order, updating our worldview as each new event arrives. This models how we
+# would actually process events in real time.
+#
+# When we process a new event, we first check if the event should be processed:
+#
+# - We skip events pertaining to sids that weren't requested.
+# - We skip events whose timestamp/as_of are after all the dates we're
+# - We skip events for whose `value` field is empty.
+#
+# Once we've decided an event is relevant, there are two possible cases:
+#
+# 1. The event is **novel**, meaning that its asof_date is greater than or
+#    equal to all the other events with the same sid that have been processed
+#    so far.
+#
+# 2. The event is **stale**, meaning that we've already processed an event with
+#    the same sid and a later asof_date.
+#
+# Novel events appear in the baseline starting at their timestamps and
+# continuing until the next baseline event. In practice, we build the baseline
+# by slotting novel events into the baseline as they're received and
+# forward-filling as a final step.
+#
+# Stale events never appear in the baseline, since there's always a better
+# event to show by the time we reach a stale event's timestamp.
+#
+# Every event has the possibility of generating an adjustment that updates
+# prior historical values:
+#
+# - If an event is novel, we emit an adjustment updating all days in the
+#   right-open interval: [event.asof_date, event.timestamp). This reflects the
+#   fact that the new event is now the best known value for all days on or
+#   after its event.asof_date. The upper bound of the adjustment is
+#   event.timestamp because we've already marked the event as best-known on or
+#   after its timestamp by writing the event into the baseline.
+#
+# - If the event is stale, we emit an adjustment updating all days in the
+#   right-open interval: [event.asof_date, next_event.asof_date), where
+#   "next_event" is the latest (by asof) already-processed event whose
+#   asof_date is after the new event. This reflects the fact that the new event
+#   is now the best-known value for the period ranging from its asof to the
+#   next-known asof. Note that, by the definition of staleness, next_event must
+#   exist.
 cdef _array_for_column_impl(object dtype,
                             np.ndarray[column_type, ndim=2] out_array,
                             Py_ssize_t size,
@@ -201,23 +256,29 @@ cdef _array_for_column_impl(object dtype,
         column_ix = <object> column_ix_ob  # cast to np.int64_t
 
         if AsArrayKind is AsAdjustedArray:
+            # Grab the list of adjustments for this timestamp. If this is the
+            # first time we've seen this timestamp, PyDict_GetItem will return
+            # NULL, in which case we need to insert a new empty list.
             adjustment_list_ptr = PyDict_GetItem(adjustments, ts_ix)
             if adjustment_list_ptr is NULL:
                 adjustment_list = adjustments[ts_ix] = []
             else:
                 adjustment_list = <list> adjustment_list_ptr
-                Py_INCREF(adjustment_list)
 
         non_null_ixs = non_null_ixs_by_sid[sid]
         ix = bisect_right(non_null_ixs, asof_ix)
         if ix == len(non_null_ixs):
-            # write the value into the baseline out array at ``ts_ix``
-            # in the given sid column
+            # The row we're currently processing has the latest as_of we've
+            # seen so far. It should become the new baseline value for its
+            # sid and timestamp.
             with cython.boundscheck(False), cython.wraparound(False):
                 out_array[ts_ix, column_ix] = value
 
             if AsArrayKind is AsAdjustedArray:
-                # the value at ``ts_ix`` was set above
+                # We need to emit an adjustment if there's at least one output
+                # day in the interval [event.asof_date, event.timestamp). The
+                # upper bound doesn't include the timestamp because we've
+                # already included the timestamp-date in the baseline.
                 end = max(ts_ix - 1, 0)
                 if end >= asof_ix:
                     adjustment_list.append(make_adjustment[column_type](
@@ -229,6 +290,24 @@ cdef _array_for_column_impl(object dtype,
                         value,
                     ))
         elif AsArrayKind is AsAdjustedArray:
+            # The row we're currently processing has an asof_date earlier than
+            # at least one row that we learned about before this row.
+            #
+            # This happens when the order that we received a sequence of events
+            # doesn't match the order in which the events actually
+            # occurred. For example:
+            #
+            # asof  sid timestamp  value
+            #   t2    1        t5     v1
+            #   t0    1        t6     v0
+            #
+            # On t5, we learn that value was v1 on t2.
+            # On t6, we learn that value was v0 on t0.
+            #
+            # v0 should never appear in the baseline, because by the time we
+            # learn about it, we'll have already learned about the newer value
+            # of v1. However, if we look back from t6, we should see v0 for the
+            # period from t0 to t1.
             end = max(non_null_ixs[ix] - 1, 0)
             if end >= asof_ix:
                 adjustment_list.append(make_adjustment[column_type](
@@ -240,6 +319,7 @@ cdef _array_for_column_impl(object dtype,
                     value,
                 ))
 
+        # Remember that we've seen a data point for this sid on asof.
         insort_left(non_null_ixs, asof_ix)
 
     _ffill_missing_value_2d_inplace(out_array, missing_value)
