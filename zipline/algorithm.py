@@ -307,9 +307,10 @@ class TradingAlgorithm(object):
         # Initialize Pipeline API data.
         self.init_engine(kwargs.pop('get_pipeline_loader', None))
         self._pipelines = {}
-        # Create an always-expired cache so that we compute the first time data
-        # is requested.
-        self._pipeline_cache = CachedObject(None, pd.Timestamp(0, tz='UTC'))
+
+        # Create an already-expired cache so that we compute the first time
+        # data is requested.
+        self._pipeline_cache = CachedObject.expired()
 
         self.blotter = kwargs.pop('blotter', None)
         self.cancel_policy = kwargs.pop('cancel_policy', NeverCancel())

@@ -20,6 +20,13 @@ class CachedObjectTestCase(TestCase):
             obj.unwrap(after)
         self.assertEqual(e.exception.args, (expiry,))
 
+    def test_expired(self):
+        always_expired = CachedObject.expired()
+
+        for dt in Timestamp.min, Timestamp.now(), Timestamp.max:
+            with self.assertRaises(Expired):
+                always_expired.unwrap(dt)
+
 
 class ExpiringCacheTestCase(TestCase):
 
