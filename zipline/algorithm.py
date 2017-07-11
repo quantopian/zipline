@@ -459,11 +459,6 @@ class TradingAlgorithm(object):
         if self._handle_data:
             self._handle_data(self, data)
 
-        # Unlike trading controls which remain constant unless placing an
-        # order, account controls can change each bar. Thus, must check
-        # every bar no matter if the algorithm places an order or not.
-        self.validate_account_controls()
-
     def analyze(self, perf):
         if self._analyze is None:
             return
