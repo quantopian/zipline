@@ -134,8 +134,9 @@ ctypedef fused AsArrayKind:
 # This is the core algorithm for formatting raw blaze data into the baseline +
 # adjustments format required for consumption by the Pipeline API.
 #
-# Logically, we think of each row of the input data as representing a single
-# event. Each event carries four pieces of information:
+# For performance reasons, we represent input data with parallel arrays.
+# Logically, however, we think of each row of the input data as representing a
+# single event. Each event carries four pieces of information:
 #
 #   asof_date - The date on which the event occurred.
 #   timestamp - The date on which we learned about the event.
@@ -149,27 +150,28 @@ ctypedef fused AsArrayKind:
 # When we process a new event, we first check if the event should be processed:
 #
 # - We skip events pertaining to sids that weren't requested.
-# - We skip events whose timestamp/as_of are after all the dates we're
-# - We skip events for whose `value` field is empty.
+# - We skip events for which timestamp is after all the dates we're interested
+#   in.
+# - We skip events whose `value` field is missing.
 #
 # Once we've decided an event is relevant, there are two possible cases:
 #
 # 1. The event is **novel**, meaning that its asof_date is greater than or
-#    equal to all the other events with the same sid that have been processed
-#    so far.
+#    equal to the asof_date of all events with the same sid that have been
+#    processed so far.
 #
 # 2. The event is **stale**, meaning that we've already processed an event with
 #    the same sid and a later asof_date.
 #
-# Novel events appear in the baseline starting at their timestamps and
-# continuing until the next baseline event. In practice, we build the baseline
+# Novel events appear in the baseline starting at their timestamp and
+# continuing until the timestamp of the next novel event. We build the baseline
 # by slotting novel events into the baseline as they're received and
 # forward-filling as a final step.
 #
-# Stale events never appear in the baseline, since there's always a better
-# event to show by the time we reach a stale event's timestamp.
+# Stale events never appear in the baseline. There's always a newer event to
+# show by the time we reach a stale event's timestamp.
 #
-# Every event has the possibility of generating an adjustment that updates
+# Every event also has the possibility of generating an adjustment that updates
 # prior historical values:
 #
 # - If an event is novel, we emit an adjustment updating all days in the
@@ -294,8 +296,8 @@ cdef _array_for_column_impl(object dtype,
             # at least one row that we learned about before this row.
             #
             # This happens when the order that we received a sequence of events
-            # doesn't match the order in which the events actually
-            # occurred. For example:
+            # doesn't match the order in which the events occurred.
+            # For example:
             #
             # asof  sid timestamp  value
             #   t2    1        t5     v1
