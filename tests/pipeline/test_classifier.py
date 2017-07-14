@@ -1,11 +1,12 @@
 from functools import reduce
-from operator import or_
+import operator as op
 
 import numpy as np
 import pandas as pd
 
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Classifier
+from zipline.pipeline.expression import methods_to_ops
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import assert_equal
@@ -404,7 +405,7 @@ class ClassifierTestCase(BasePipelineTestCase):
         for choices in [(0,), (0, 1), (0, 1, 2)]:
             terms[str(choices)] = c.element_of(choices)
             expected[str(choices)] = reduce(
-                or_,
+                op.or_,
                 (data == elem for elem in choices),
                 np.zeros_like(data, dtype=bool),
             )
@@ -583,6 +584,27 @@ class ClassifierTestCase(BasePipelineTestCase):
             "but it was called on a Classifier of dtype int64."
         )
         self.assertEqual(result, expected)
+
+    @parameter_space(
+        compare_op=[op.gt, op.ge, op.le, op.lt],
+        dtype_and_missing=[(int64_dtype, 0), (categorical_dtype, '')],
+    )
+    def test_bad_compare(self, compare_op, dtype_and_missing):
+        class C(Classifier):
+            inputs = ()
+            window_length = 0
+            dtype = dtype_and_missing[0]
+            missing_value = dtype_and_missing[1]
+
+        with self.assertRaises(TypeError) as e:
+            compare_op(C(), object())
+
+        self.assertEqual(
+            str(e.exception),
+            'cannot compare classifiers with %s' % (
+                methods_to_ops['__%s__' % compare_op.__name__],
+            ),
+        )
 
 
 class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
