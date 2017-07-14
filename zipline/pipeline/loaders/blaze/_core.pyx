@@ -1,5 +1,4 @@
 from cpython cimport (
-    Py_INCREF,
     PyDict_GetItem,
     PyObject,
     PyList_New,
@@ -11,13 +10,14 @@ cimport cython
 cimport numpy as np
 import numpy as np
 import pandas as pd
+from toolz import sliding_window
 
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.adjustment cimport (
     AdjustmentKind,
     DatetimeIndex_t,
-    make_adjustment,
-    column_type
+    make_adjustment_from_indices_fused,
+    column_type,
 )
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline.common import (
@@ -25,6 +25,7 @@ from zipline.pipeline.common import (
     SID_FIELD_NAME,
     TS_FIELD_NAME
 )
+from zipline.utils.pandas_utils import days_at_time
 
 
 cdef bint isnan(np.float64_t value):
@@ -36,80 +37,91 @@ ctypedef bint is_missing_function(column_type, column_type)
 
 
 cdef bint is_missing_value(column_type value, column_type missing_value):
-    return value == missing_value
-
-
-cdef bint is_missing_nan(np.float64_t value, np.float64_t missing_value):
-    return isnan(value)
-
-
-cdef _ffill_missing_value_2d_inplace_impl(np.ndarray[column_type, ndim=2] array,
-                                          column_type missing_value,
-                                          is_missing_function is_missing):
-    cdef np.ndarray[column_type] most_recent_row = np.full(
-        array.shape[1],
-        missing_value,
-        dtype=array.dtype,
-    )
-    cdef column_type most_recent
-    cdef column_type element
-    cdef Py_ssize_t r
-    cdef Py_ssize_t c
-    for r in range(array.shape[0]):
-        for c in range(array.shape[1]):
-            with cython.boundscheck(False), cython.wraparound(False):
-                element = array[r, c]
-
-            if is_missing(element, missing_value):
-                with cython.boundscheck(False), cython.wraparound(False):
-                    array[r, c] = most_recent_row[c]
-            else:
-                with cython.boundscheck(False), cython.wraparound(False):
-                    most_recent_row[c] = element
-
-
-cpdef _ffill_missing_value_2d_inplace(np.ndarray array, missing_value):
-    cdef str kind = array.dtype.kind
-    if kind == 'i':
-        _ffill_missing_value_2d_inplace_impl[np.int64_t](
-            array,
-            missing_value,
-            is_missing_value[np.int64_t],
-        )
-    elif kind == 'u':
-        _ffill_missing_value_2d_inplace_impl[np.uint8_t](
-            array,
-            missing_value,
-            is_missing_value[np.uint8_t],
-        )
-    elif kind == 'M':
-        _ffill_missing_value_2d_inplace_impl[np.int64_t](
-            array.view('int64'),
-            missing_value.astype('int64'),
-            is_missing_value[np.int64_t],
-        )
-    elif kind == 'f':
-        if isnan(missing_value):
-            _ffill_missing_value_2d_inplace_impl[np.float64_t](
-                array,
-                missing_value,
-                is_missing_nan,
-            )
-        else:
-            _ffill_missing_value_2d_inplace_impl[np.float64_t](
-                array,
-                missing_value,
-                is_missing_value[np.float64_t],
-            )
-    elif kind == 'O':
-        _ffill_missing_value_2d_inplace_impl[object](
-            array,
-            missing_value,
-            is_missing_value[object],
-        )
+    if column_type is np.uint8_t:
+        # we want is_missing_value(bool) to return false so that we ffill
+        # both True and False values
+        return False
+    elif column_type is np.float64_t and isnan(missing_value):
+        return isnan(value)
     else:
-        raise TypeError('unknown column dtype: %r' % array.dtype)
+        return value == missing_value
 
+
+cdef inline unsafe_setslice_column(np.ndarray[column_type, ndim=2] array,
+                                   Py_ssize_t start_row,
+                                   Py_ssize_t stop_row,
+                                   Py_ssize_t col_ix,
+                                   column_type value):
+    cdef Py_ssize_t row_ix
+    for row_ix in range(start_row, stop_row):
+        with cython.boundscheck(False), cython.wraparound(False):
+            array[row_ix, col_ix] = value
+
+cdef _ffill_missing_value_2d_inplace(np.ndarray[column_type, ndim=2] array,
+                                     column_type missing_value,
+                                     list non_null_ts_ixs_by_column_ix):
+    """Inplace forward fill in a missing value aware way.
+
+    Parameters
+    ----------
+    array : np.ndarray
+        The array to forward fill with shape (len(dates), len(assets)).
+    missing_value : any
+        The missing value for this array.
+    non_null_ts_ixs_by_column_ix : list[set[int]]
+        ``non_null_ts_ixs_by_column_ix[n]`` holds a list of the non null
+        timestamp indices for the asset at column ``n``.
+    """
+    cdef Py_ssize_t row_ix
+    cdef Py_ssize_t start_ix
+    cdef Py_ssize_t end_ix
+    cdef set non_null_ixs_set
+    cdef list non_null_ixs_list
+    cdef Py_ssize_t column_ix
+
+    for column_ix, non_null_ixs_set in enumerate(non_null_ts_ixs_by_column_ix):
+        if not non_null_ixs_set:
+            # no data was seen for this asset, all the rows are missing
+            unsafe_setslice_column[column_type](
+                array,
+                0,
+                len(array),
+                column_ix,
+                missing_value,
+            )
+            continue
+
+        non_null_ixs_list = sorted(non_null_ixs_set)
+
+        # fill the missing value up the the first non null index
+        unsafe_setslice_column[column_type](
+            array,
+            0,
+            non_null_ixs_list[0],
+            column_ix,
+            missing_value,
+        )
+
+        for start_ix, end_ix in sliding_window(2, non_null_ixs_list):
+            # for each non null index, fill the value forward up to the next
+            # non null index right exclusive
+            unsafe_setslice_column[column_type](
+                array,
+                start_ix + 1,
+                end_ix,
+                column_ix,
+                array[start_ix, column_ix],
+            )
+
+
+        # fill through to the end of the array
+        unsafe_setslice_column[column_type](
+            array,
+            non_null_ixs_list[-1] + 1,
+            len(array),
+            column_ix,
+            array[non_null_ixs_list[-1], column_ix],
+        )
 
 
 @cython.final
@@ -131,63 +143,32 @@ ctypedef fused AsArrayKind:
     AsBaselineArray
 
 
-# This is the core algorithm for formatting raw blaze data into the baseline +
-# adjustments format required for consumption by the Pipeline API.
-#
-# For performance reasons, we represent input data with parallel arrays.
-# Logically, however, we think of each row of the input data as representing a
-# single event. Each event carries four pieces of information:
-#
-#   asof_date - The date on which the event occurred.
-#   timestamp - The date on which we learned about the event.
-#   sid       - The sid to which the event pertains.
-#   value     - The value of the column being updated by the event.
-#
-# The essential idea of this algorithm is to process events in timestamp-sorted
-# order, updating our worldview as each new event arrives. This models how we
-# would actually process events in real time.
-#
-# When we process a new event, we first check if the event should be processed:
-#
-# - We skip events pertaining to sids that weren't requested.
-# - We skip events for which timestamp is after all the dates we're interested
-#   in.
-# - We skip events whose `value` field is missing.
-#
-# Once we've decided an event is relevant, there are two possible cases:
-#
-# 1. The event is **novel**, meaning that its asof_date is greater than or
-#    equal to the asof_date of all events with the same sid that have been
-#    processed so far.
-#
-# 2. The event is **stale**, meaning that we've already processed an event with
-#    the same sid and a later asof_date.
-#
-# Novel events appear in the baseline starting at their timestamp and
-# continuing until the timestamp of the next novel event. We build the baseline
-# by slotting novel events into the baseline as they're received and
-# forward-filling as a final step.
-#
-# Stale events never appear in the baseline. There's always a newer event to
-# show by the time we reach a stale event's timestamp.
-#
-# Every event also has the possibility of generating an adjustment that updates
-# prior historical values:
-#
-# - If an event is novel, we emit an adjustment updating all days in the
-#   right-open interval: [event.asof_date, event.timestamp). This reflects the
-#   fact that the new event is now the best known value for all days on or
-#   after its event.asof_date. The upper bound of the adjustment is
-#   event.timestamp because we've already marked the event as best-known on or
-#   after its timestamp by writing the event into the baseline.
-#
-# - If the event is stale, we emit an adjustment updating all days in the
-#   right-open interval: [event.asof_date, next_event.asof_date), where
-#   "next_event" is the latest (by asof) already-processed event whose
-#   asof_date is after the new event. This reflects the fact that the new event
-#   is now the best-known value for the period ranging from its asof to the
-#   next-known asof. Note that, by the definition of staleness, next_event must
-#   exist.
+cdef inline insert_non_null_ad_index(list non_null_ad_ixs,
+                                     Py_ssize_t ix,
+                                     object asof_ix):
+    """Insert an asof date index into the non_null_ad_ixs list after a
+    ``bisect_right``.
+
+    Parameters
+    ----------
+    non_null_ad_ixs : list[int]
+        The list of unique asof_date indices.
+    ix : Py_ssize_t
+        The result of ``bisect_right(non_null_ad_ixs, asof_ix)``.
+    asof_ix : int
+        The asof date index.
+
+    Notes
+    -----
+    This saves the work of searching the list a second time and ensures
+    that ``non_null_ad_ixs`` remains unique.
+    """
+    if ix == 0:
+        non_null_ad_ixs.insert(0, asof_ix)
+    elif non_null_ad_ixs[ix - 1] != asof_ix:
+        non_null_ad_ixs.insert(ix, asof_ix)
+
+
 cdef _array_for_column_impl(object dtype,
                             np.ndarray[column_type, ndim=2] out_array,
                             Py_ssize_t size,
@@ -199,7 +180,66 @@ cdef _array_for_column_impl(object dtype,
                             np.ndarray[column_type] input_array,
                             column_type missing_value,
                             bint is_missing(column_type, column_type),
-                            AsArrayKind _):
+                            AsArrayKind _array_kind):
+    """This is the core algorithm for formatting raw blaze data into the
+    baseline adjustments format required for consumption by the Pipeline API.
+
+    For performance reasons, we represent input data with parallel arrays.
+    Logically, however, we think of each row of the input data as representing
+    a single event. Each event carries four pieces of information:
+
+      asof_date - The date on which the event occurred.
+      timestamp - The date on which we learned about the event.
+      sid       - The sid to which the event pertains.
+      value     - The value of the column being updated by the event.
+
+    The essential idea of this algorithm is to process events in
+    timestamp-sorted order, updating our worldview as each new event
+    arrives. This models how we would actually process events in real time.
+
+    When we process a new event, we first check if the event should be
+    processed:
+
+    - We skip events pertaining to sids that weren't requested.
+    - We skip events for which timestamp is after all the dates we're
+      interested in.
+    - We skip events whose `value` field is missing.
+
+    Once we've decided an event is relevant, there are two possible cases:
+
+    1. The event is **novel**, meaning that its asof_date is greater than or
+       equal to the asof_date of all events with the same sid that have been
+       processed so far.
+
+    2. The event is **stale**, meaning that we've already processed an event
+       with the same sid and a later asof_date.
+
+    Novel events appear in the baseline starting at their timestamp and
+    continuing until the timestamp of the next novel event. We build the
+    baseline by slotting novel events into the baseline as they're received and
+    forward-filling as a final step.
+
+    Stale events never appear in the baseline. There's always a newer event to
+    show by the time we reach a stale event's timestamp.
+
+    Every event also has the possibility of generating an adjustment that
+    updates prior historical values:
+
+    - If an event is novel, we emit an adjustment updating all days in the
+      right-open interval: [event.asof_date, event.timestamp). This reflects
+      the fact that the new event is now the best known value for all days on
+      or after its event.asof_date. The upper bound of the adjustment is
+      event.timestamp because we've already marked the event as best-known on
+      or after its timestamp by writing the event into the baseline.
+
+    - If the event is stale, we emit an adjustment updating all days in the
+      right-open interval: [event.asof_date, next_event.asof_date), where
+      "next_event" is the latest (by asof) already-processed event whose
+      asof_date is after the new event. This reflects the fact that the new
+      event is now the best-known value for the period ranging from its asof to
+      the next-known asof. Note that, by the definition of staleness,
+      next_event must exist.
+    """
     cdef column_type value
     cdef np.int64_t ts_ix
     cdef np.int64_t asof_ix
@@ -209,8 +249,15 @@ cdef _array_for_column_impl(object dtype,
     cdef PyObject* adjustments_list_ptr
     cdef list adjustments_list
 
-    cdef list non_null_ixs
-    cdef dict non_null_ixs_by_sid = {sid: [] for sid in sids}
+    cdef list non_null_ad_ixs
+    cdef list non_null_ad_ixs_by_column_ix = [
+        [] for _ in range(out_array.shape[1])
+    ]
+
+    cdef set non_null_ts_ixs
+    cdef list non_null_ts_ixs_by_column_ix = [
+        set() for _ in range(out_array.shape[1])
+    ]
     cdef dict adjustments
 
     cdef Py_ssize_t out_of_bounds_ix = len(out_array)
@@ -267,9 +314,9 @@ cdef _array_for_column_impl(object dtype,
             else:
                 adjustment_list = <list> adjustment_list_ptr
 
-        non_null_ixs = non_null_ixs_by_sid[sid]
-        ix = bisect_right(non_null_ixs, asof_ix)
-        if ix == len(non_null_ixs):
+        non_null_ad_ixs = non_null_ad_ixs_by_column_ix[column_ix]
+        ix = bisect_right(non_null_ad_ixs, asof_ix)
+        if ix == len(non_null_ad_ixs):
             # The row we're currently processing has the latest as_of we've
             # seen so far. It should become the new baseline value for its
             # sid and timestamp.
@@ -283,14 +330,20 @@ cdef _array_for_column_impl(object dtype,
                 # already included the timestamp-date in the baseline.
                 end = max(ts_ix - 1, 0)
                 if end >= asof_ix:
-                    adjustment_list.append(make_adjustment[column_type](
-                        asof_ix,
-                        end,
-                        column_ix,
-                        column_ix,
-                        AdjustmentKind.OVERWRITE,
-                        value,
-                    ))
+                    adjustment_list.append(
+                        make_adjustment_from_indices_fused[column_type](
+                            asof_ix,
+                            end,
+                            column_ix,
+                            column_ix,
+                            AdjustmentKind.OVERWRITE,
+                            value,
+                        ),
+                    )
+
+            # collect this information for forward filling
+            non_null_ts_ixs = non_null_ts_ixs_by_column_ix[column_ix]
+            non_null_ts_ixs.add(ts_ix)
         elif AsArrayKind is AsAdjustedArray:
             # The row we're currently processing has an asof_date earlier than
             # at least one row that we learned about before this row.
@@ -310,21 +363,27 @@ cdef _array_for_column_impl(object dtype,
             # learn about it, we'll have already learned about the newer value
             # of v1. However, if we look back from t6, we should see v0 for the
             # period from t0 to t1.
-            end = max(non_null_ixs[ix] - 1, 0)
+            end = max(non_null_ad_ixs[ix] - 1, 0)
             if end >= asof_ix:
-                adjustment_list.append(make_adjustment[column_type](
-                    asof_ix,
-                    end,
-                    column_ix,
-                    column_ix,
-                    AdjustmentKind.OVERWRITE,
-                    value,
-                ))
+                adjustment_list.append(
+                    make_adjustment_from_indices_fused[column_type](
+                        asof_ix,
+                        end,
+                        column_ix,
+                        column_ix,
+                        AdjustmentKind.OVERWRITE,
+                        value,
+                    ),
+                )
 
         # Remember that we've seen a data point for this sid on asof.
-        insort_left(non_null_ixs, asof_ix)
+        insert_non_null_ad_index(non_null_ad_ixs, ix, asof_ix)
 
-    _ffill_missing_value_2d_inplace(out_array, missing_value)
+    _ffill_missing_value_2d_inplace(
+        out_array,
+        missing_value,
+        non_null_ts_ixs_by_column_ix,
+    )
 
     if column_type is object:
         baseline_array = LabelArray(
@@ -397,36 +456,21 @@ cdef array_for_column(object dtype,
             array_kind,
         )
     elif kind == 'f':
-        if isnan(missing_value):
-            return _array_for_column_impl[np.float64_t, AsArrayKind](
-                dtype,
-                out_array,
-                size,
-                ts_ixs,
-                asof_ixs,
-                sids,
-                sid_column_ixs,
-                mask,
-                input_array,
-                missing_value,
-                is_missing_nan,
-                array_kind,
-            )
-        else:
-            return _array_for_column_impl[np.float64_t, AsArrayKind](
-                dtype,
-                out_array,
-                size,
-                ts_ixs,
-                asof_ixs,
-                sids,
-                sid_column_ixs,
-                mask,
-                input_array,
-                missing_value,
-                is_missing_value[np.float64_t],
-                array_kind,
-            )
+        return _array_for_column_impl[np.float64_t, AsArrayKind](
+            dtype,
+            out_array,
+            size,
+            ts_ixs,
+            asof_ixs,
+            sids,
+            sid_column_ixs,
+            mask,
+            input_array,
+            missing_value,
+            is_missing_value[np.float64_t],
+            array_kind,
+        )
+
     elif kind == 'O':
         return _array_for_column_impl[object, AsArrayKind](
             dtype,
@@ -473,25 +517,22 @@ cdef arrays_from_rows(DatetimeIndex_t dates,
     cdef dict column_ixs = dict(zip(assets, range(len(assets))))
 
     cdef Py_ssize_t n
-    cdef list ts_dates_list
     if data_query_time is not None:
-        ts_dates_list = PyList_New(len(dates))
-        for n, dt in enumerate(dates):
-            combined = pd.Timestamp.combine(
-                dt.date(),
-                data_query_time,
-            ).tz_localize(data_query_tz).tz_convert('utc')
-            Py_INCREF(combined)
-            PyList_SET_ITEM(ts_dates_list, n, combined)
-
-        ts_dates = pd.DatetimeIndex(ts_dates_list)
+        ts_dates = days_at_time(dates, data_query_time, data_query_tz)
     else:
         ts_dates = dates
 
+    # We use searchsorted right here to be exclusive on the data query time.
+    # This means that if a data_query_time = 8:45, and a timestamp is exactly
+    # 8:45, we would mark that the data point became available the next day.
     cdef np.ndarray[np.int64_t] ts_ixs = ts_dates.searchsorted(
         all_rows[TS_FIELD_NAME].values,
         'right',
     )
+
+    # We use searchsorted right here to align the asof_dates with what pipeline
+    # expects. In a CustomFactor, when today = t_1, the last row of the input
+    # array should be data whose asof_date is t_0.
     cdef np.ndarray[np.int64_t] asof_ixs = dates.searchsorted(
         all_rows[AD_FIELD_NAME].values,
         'right',
@@ -547,6 +588,9 @@ cdef arrays_from_rows_without_assets(DatetimeIndex_t dates,
                                      list columns,
                                      object all_rows,
                                      AsArrayKind array_kind):
+    # The no assets case is implemented as a special case of the with assets
+    # code where every row is tagged with a dummy sid of 0. This gives us the
+    # desired shape of (len(dates), 1) without much cost.
     return arrays_from_rows[AsArrayKind](
         dates,
         data_query_time,
@@ -593,7 +637,7 @@ cpdef adjusted_arrays_from_rows_with_assets(DatetimeIndex_t dates,
         The columns being loaded.
     all_rows : pd.DataFrame
         The single dataframe of input rows. This **must** be sorted by the
-        ``TS_FIELD_NAME`` column.
+        ``[TS_FIELD_NAME, AD_FIELD_NAME]`` columns.
 
     Returns
     -------
@@ -635,7 +679,7 @@ cpdef adjusted_arrays_from_rows_without_assets(DatetimeIndex_t dates,
         The columns being loaded.
     all_rows : pd.DataFrame
         The single dataframe of input rows. This **must** be sorted by the
-        ``TS_FIELD_NAME`` column.
+        ``[TS_FIELD_NAME, AD_FIELD_NAME]`` columns.
 
     Returns
     -------
@@ -676,7 +720,7 @@ cpdef baseline_arrays_from_rows_with_assets(DatetimeIndex_t dates,
         The columns being loaded.
     all_rows : pd.DataFrame
         The single dataframe of input rows. This **must** be sorted by the
-        ``TS_FIELD_NAME`` column.
+        ``[TS_FIELD_NAME, AD_FIELD_NAME]`` columns.
 
     Returns
     -------
@@ -715,7 +759,7 @@ cpdef baseline_arrays_from_rows_without_assets(DatetimeIndex_t dates,
         The columns being loaded.
     all_rows : pd.DataFrame
         The single dataframe of input rows. This **must** be sorted by the
-        ``TS_FIELD_NAME`` column.
+        ``[TS_FIELD_NAME, AD_FIELD_NAME]`` columns.
 
     Returns
     -------

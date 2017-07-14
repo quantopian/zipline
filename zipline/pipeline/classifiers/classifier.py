@@ -1,6 +1,7 @@
 """
 classifier.py
 """
+from functools import partial
 from numbers import Number
 import operator
 import re
@@ -128,13 +129,13 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             # Numexpr doesn't know how to use LabelArrays.
             return ArrayPredicate(term=self, op=operator.ne, opargs=(other,))
 
-    def bad_compare(self, other):
-        raise TypeError('cannot compare values of type' % type(self).__name__)
+    def bad_compare(opname, other):
+        raise TypeError('cannot compare classifiers with %s' % opname)
 
-    __gt__ = bad_compare
-    __ge__ = bad_compare
-    __le__ = bad_compare
-    __lt__ = bad_compare
+    __gt__ = partial(bad_compare, '>')
+    __ge__ = partial(bad_compare, '>=')
+    __le__ = partial(bad_compare, '<=')
+    __lt__ = partial(bad_compare, '<')
 
     del bad_compare
 

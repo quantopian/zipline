@@ -19,12 +19,12 @@ cpdef enum AdjustmentKind:
     OVERWRITE = 2
 
 
-cdef Adjustment make_adjustment(Py_ssize_t first_row,
-                                Py_ssize_t last_row,
-                                Py_ssize_t first_column,
-                                Py_ssize_t last_column,
-                                AdjustmentKind adjustment_kind,
-                                column_type value)
+cdef Adjustment make_adjustment_from_indices_fused(Py_ssize_t first_row,
+                                                   Py_ssize_t last_row,
+                                                   Py_ssize_t first_column,
+                                                   Py_ssize_t last_column,
+                                                   AdjustmentKind adjustment_kind,
+                                                   column_type value)
 
 
 cdef class Adjustment:
