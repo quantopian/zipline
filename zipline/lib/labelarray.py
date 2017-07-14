@@ -483,9 +483,14 @@ class LabelArray(ndarray):
                subok=True,
                copy=True):
         if dtype == self.dtype:
+            if not subok:
+                array = self.view(type=np.ndarray)
+            else:
+                array = self
+
             if copy:
-                return self.copy()
-            return self
+                return array.copy()
+            return array
 
         if dtype == object_dtype:
             return self.as_string_array()

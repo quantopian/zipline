@@ -282,12 +282,12 @@ def datashape_type_to_numpy(type_):
 @memoize
 def new_dataset(expr, missing_values):
     """
-    Creates or returns a dataset from a pair of blaze expressions.
+    Creates or returns a dataset from a blaze expression.
 
     Parameters
     ----------
     expr : Expr
-        The blaze expression representing the first known values.
+        The blaze expression representing the values.
     missing_values : frozenset((name, value) pairs
         Association pairs column name and missing_value for that column.
 
@@ -517,8 +517,7 @@ def from_blaze(expr,
                odo_kwargs=None,
                missing_values=None,
                no_deltas_rule='warn',
-               no_checkpoints_rule='warn',
-               apply_deltas_adjustments=True,):
+               no_checkpoints_rule='warn'):
     """Create a Pipeline API object from a blaze expression.
 
     Parameters
@@ -558,10 +557,6 @@ def from_blaze(expr,
         found. 'warn' says to raise a warning but continue.
         'raise' says to raise an exception if no deltas can be found.
         'ignore' says take no action and proceed with no deltas.
-    apply_deltas_adjustments : bool, optional
-        Whether or not deltas adjustments should be applied for this dataset.
-        True by default because not applying deltas adjustments is an exception
-        rather than the rule.
 
     Returns
     -------
@@ -690,7 +685,6 @@ def from_blaze(expr,
         if checkpoints is not None else
         None,
         odo_kwargs=odo_kwargs,
-        apply_deltas_adjustments=apply_deltas_adjustments
     )
     if single_column is not None:
         # We were passed a single column, extract and return it.
@@ -702,7 +696,7 @@ getdataset = op.attrgetter('dataset')
 getname = op.attrgetter('name')
 
 _expr_data_base = namedtuple(
-    'ExprData', 'expr deltas checkpoints odo_kwargs apply_deltas_adjustments'
+    'ExprData', 'expr deltas checkpoints odo_kwargs'
 )
 
 
@@ -720,23 +714,18 @@ class ExprData(_expr_data_base):
         The forward fill checkpoints for the data.
     odo_kwargs : dict, optional
         The keyword arguments to forward to the odo calls internally.
-    apply_deltas_adjustments : bool, optional
-        Whether or not deltas adjustments should be applied to the baseline
-        values. If False, only novel deltas will be applied.
     """
     def __new__(cls,
                 expr,
                 deltas=None,
                 checkpoints=None,
-                odo_kwargs=None,
-                apply_deltas_adjustments=True):
+                odo_kwargs=None):
         return super(ExprData, cls).__new__(
             cls,
             expr,
             deltas,
             checkpoints,
             odo_kwargs or {},
-            apply_deltas_adjustments,
         )
 
     def __repr__(self):
@@ -748,7 +737,6 @@ class ExprData(_expr_data_base):
             str(self.deltas),
             str(self.checkpoints),
             self.odo_kwargs,
-            self.apply_deltas_adjustments,
         ))
 
     def __hash__(self):
@@ -834,8 +822,7 @@ class BlazeLoader(object):
                          expr,
                          deltas=None,
                          checkpoints=None,
-                         odo_kwargs=None,
-                         apply_deltas_adjustments=True):
+                         odo_kwargs=None):
         """Explicitly map a datset to a collection of blaze expressions.
 
         Parameters
@@ -850,9 +837,6 @@ class BlazeLoader(object):
             The forward fill checkpoints for the data.
         odo_kwargs : dict, optional
             The keyword arguments to forward to the odo calls internally.
-        apply_deltas_adjustments : bool, optional
-            Whether or not deltas adjustments should be applied to the baseline
-            values. If False, only novel deltas will be applied.
 
         See Also
         --------
@@ -863,7 +847,6 @@ class BlazeLoader(object):
             deltas,
             checkpoints,
             odo_kwargs,
-            apply_deltas_adjustments,
         )
         for column in dataset.columns:
             self._table_expressions[column] = expr_data
@@ -873,8 +856,7 @@ class BlazeLoader(object):
                         expr,
                         deltas=None,
                         checkpoints=None,
-                        odo_kwargs=None,
-                        apply_deltas_adjustments=True):
+                        odo_kwargs=None):
         """Explicitly map a single bound column to a collection of blaze
         expressions. The expressions need to have ``timestamp`` and ``as_of``
         columns.
@@ -891,9 +873,6 @@ class BlazeLoader(object):
             The forward fill checkpoints for the data.
         odo_kwargs : dict, optional
             The keyword arguments to forward to the odo calls internally.
-        apply_deltas_adjustments : bool, optional
-            Whether or not deltas adjustments should be applied to the baseline
-            values. If False, only novel deltas will be applied.
 
         See Also
         --------
@@ -904,7 +883,6 @@ class BlazeLoader(object):
             deltas,
             checkpoints,
             odo_kwargs,
-            apply_deltas_adjustments,
         )
 
     def load_adjusted_array(self, columns, dates, assets, mask):
@@ -923,11 +901,7 @@ class BlazeLoader(object):
                 'all columns must share the same expression data',
             )
 
-        (expr,
-         deltas,
-         checkpoints,
-         odo_kwargs,
-         apply_deltas_adjustments) = expr_data
+        expr, deltas, checkpoints, odo_kwargs = expr_data
 
         have_sids = (first(columns).dataset.ndim == 2)
         added_query_fields = {AD_FIELD_NAME, TS_FIELD_NAME} | (
@@ -981,7 +955,7 @@ class BlazeLoader(object):
         )
         materialized_deltas = (
             self.pool.apply(collect_expr, (deltas, lower))
-            if deltas is not None and apply_deltas_adjustments else
+            if deltas is not None else
             None
         )
 

@@ -151,12 +151,12 @@ cdef type _choose_adjustment_type(AdjustmentKind adjustment_kind,
         raise ValueError("Unknown adjustment type %d." % adjustment_kind)
 
 
-cdef Adjustment make_adjustment(Py_ssize_t first_row,
-                                Py_ssize_t last_row,
-                                Py_ssize_t first_column,
-                                Py_ssize_t last_column,
-                                AdjustmentKind adjustment_kind,
-                                column_type value):
+cdef Adjustment make_adjustment_from_indices_fused(Py_ssize_t first_row,
+                                                   Py_ssize_t last_row,
+                                                   Py_ssize_t first_column,
+                                                   Py_ssize_t last_column,
+                                                   AdjustmentKind adjustment_kind,
+                                                   column_type value):
     """
     Make an Adjustment object from row/column indices into a baseline array.
     """

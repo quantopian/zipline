@@ -635,12 +635,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 ),
                 'int_value': np.array(
                     [1, 0, 3, 1, 0, 3, 1, 2, 3],
-                    # [1, 0, 3, 1, 0, 0, 1, 2, 0],
                     dtype='int64',
                 ),
                 'bool_value': np.array(
-                    [True, False, True, True, False, True, True, True, True],
-                    # [True, False, True, True, False, False, True, True, False],  # noqa
+                    [True, False, True, True, False, False, True, True, False],
                     dtype='bool',
                 ),
                 'dt_value': [
@@ -1270,14 +1268,12 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                       start,
                       end,
                       window_length,
-                      compute_fn,
-                      apply_deltas_adjustments=True):
+                      compute_fn):
         loader = BlazeLoader()
         ds = from_blaze(
             expr,
             deltas,
             checkpoints,
-            apply_deltas_adjustments=apply_deltas_adjustments,
             loader=loader,
             no_deltas_rule='raise',
             no_checkpoints_rule='ignore',
@@ -1915,8 +1911,7 @@ class MiscTestCase(ZiplineTestCase):
                 odo_kwargs={'a': 'b'},
             )),
             "ExprData(expr='expr', deltas='deltas',"
-            " checkpoints='checkpoints', odo_kwargs={'a': 'b'}, "
-            "apply_deltas_adjustments=True)",
+            " checkpoints='checkpoints', odo_kwargs={'a': 'b'})",
         )
 
     def test_blaze_loader_lookup_failure(self):
