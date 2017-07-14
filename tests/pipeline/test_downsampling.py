@@ -691,40 +691,23 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
         self.assertEqual(str(e.exception), expected)
 
 
-class TestDownsampledRowwiseOperation(WithAssetFinder, ZiplineTestCase):
+class TestDownsampledRowwiseOperation(WithSeededRandomPipelineEngine,
+                                      ZiplineTestCase):
     T = partial(pd.Timestamp, tz='utc')
-    START_DATE = T('2014-01-01')
-    END_DATE = T('2014-02-01')
+    START_DATE = T('2014-01-02')
+    END_DATE = T('2014-02-03')
     HALF_WAY_POINT = T('2014-01-15')
 
     dates = pd.date_range(START_DATE, END_DATE)
-    factor = TestingDataSet.float_col.latest
 
-    @classmethod
-    def init_class_fixtures(cls):
-        super(TestDownsampledRowwiseOperation, cls).init_class_fixtures()
+    class SidFactor(CustomFactor):
+        inputs = ()
+        window_length = 1
 
-        def populate_initial_workspace(workspace,
-                                       root_mask_term,
-                                       execution_plan,
-                                       dates,
-                                       assets):
-            """Fill the workspace value for ``cls.factor``.
-            """
-            # each value is just the sid
-            base_row = np.array(sorted(cls.asset_finder.sids), dtype='float64')
+        def compute(self, today, assets, out):
+            out[:] = assets
 
-            # broadcast the row for each date
-            workspace[cls.factor] = repeat_first_axis(base_row, len(dates))
-
-            return workspace
-
-        cls.pipeline_engine = SimplePipelineEngine(
-            get_loader=lambda column: ExplodingObject(),
-            calendar=cls.dates,
-            asset_finder=cls.asset_finder,
-            populate_initial_workspace=populate_initial_workspace,
-        )
+    factor = SidFactor()
 
     @classmethod
     def make_equity_info(cls):
@@ -750,14 +733,14 @@ class TestDownsampledRowwiseOperation(WithAssetFinder, ZiplineTestCase):
         downsampled_rank = self.factor.rank().downsample('month_start')
         pipeline = Pipeline({'rank': downsampled_rank})
 
-        results_month_start = self.pipeline_engine.run_pipeline(
+        results_month_start = self.seeded_random_engine.run_pipeline(
             pipeline,
             self.START_DATE,
             self.END_DATE,
         )
 
         half_way_start = self.HALF_WAY_POINT + pd.Timedelta(days=1)
-        results_halfway_start = self.pipeline_engine.run_pipeline(
+        results_halfway_start = self.seeded_random_engine.run_pipeline(
             pipeline,
             half_way_start,
             self.END_DATE,
