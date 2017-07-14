@@ -386,9 +386,9 @@ class SimplePipelineEngine(PipelineEngine):
             duplicated = columns[columns.duplicated()].unique()
             raise AssertionError("Duplicated sids: %d" % duplicated)
 
-        # Filter out columns that didn't exist between the requested start and
-        # end dates.
-        existed = lifetimes.iloc[extra_rows:].any()
+        # Filter out columns that didn't exist from the farthest look back
+        # window through the end of the requested dates.
+        existed = lifetimes.any()
         ret = lifetimes.loc[:, existed]
         shape = ret.shape
         assert shape[0] * shape[1] != 0, 'root mask cannot be empty'

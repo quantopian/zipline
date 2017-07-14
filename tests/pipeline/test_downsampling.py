@@ -1,6 +1,9 @@
 """
 Tests for Downsampled Filters/Factors/Classifiers
 """
+from functools import partial
+
+import numpy as np
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
 
@@ -9,17 +12,19 @@ from zipline.pipeline import (
     CustomFactor,
     CustomFilter,
     CustomClassifier,
+    SimplePipelineEngine,
 )
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.factors import SimpleMovingAverage
 from zipline.pipeline.filters.smoothing import All
-from zipline.testing import ZiplineTestCase, parameter_space
+from zipline.testing import ZiplineTestCase, parameter_space, ExplodingObject
 from zipline.testing.fixtures import (
     WithTradingSessions,
     WithSeededRandomPipelineEngine,
+    WithAssetFinder,
 )
 from zipline.utils.input_validation import _qualified_name
-from zipline.utils.numpy_utils import int64_dtype
+from zipline.utils.numpy_utils import int64_dtype, repeat_first_axis
 
 
 class NDaysAgoFactor(CustomFactor):
@@ -684,3 +689,80 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
             "for argument 'frequency', but got 'bad' instead."
         ).format(_qualified_name(f.downsample))
         self.assertEqual(str(e.exception), expected)
+
+
+class TestDownsampledRowwiseOperation(WithAssetFinder, ZiplineTestCase):
+    T = partial(pd.Timestamp, tz='utc')
+    START_DATE = T('2014-01-01')
+    END_DATE = T('2014-02-01')
+    HALF_WAY_POINT = T('2014-01-15')
+
+    dates = pd.date_range(START_DATE, END_DATE)
+    factor = TestingDataSet.float_col.latest
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(TestDownsampledRowwiseOperation, cls).init_class_fixtures()
+
+        def populate_initial_workspace(workspace,
+                                       root_mask_term,
+                                       execution_plan,
+                                       dates,
+                                       assets):
+            """Fill the workspace value for ``cls.factor``.
+            """
+            # each value is just the sid
+            base_row = np.array(sorted(cls.asset_finder.sids), dtype='float64')
+
+            # broadcast the row for each date
+            workspace[cls.factor] = repeat_first_axis(base_row, len(dates))
+
+            return workspace
+
+        cls.pipeline_engine = SimplePipelineEngine(
+            get_loader=lambda column: ExplodingObject(),
+            calendar=cls.dates,
+            asset_finder=cls.asset_finder,
+            populate_initial_workspace=populate_initial_workspace,
+        )
+
+    @classmethod
+    def make_equity_info(cls):
+        start = cls.START_DATE - pd.Timedelta(days=1)
+        end = cls.END_DATE
+        early_end = cls.HALF_WAY_POINT
+        return pd.DataFrame(
+            [['A',    'Ayy Inc.', start,       end, 'E', 'E'],
+             ['B', 'early end',   start, early_end, 'E', 'E'],
+             ['C',      'C Inc.', start,       end, 'E', 'E']],
+            index=[ord('A'), ord('B'), ord('C')],
+            columns=(
+                'symbol',
+                'asset_name',
+                'start_date',
+                'end_date',
+                'exchange',
+                'exchange_full',
+            ),
+        )
+
+    def test_downsampled_rank(self):
+        downsampled_rank = self.factor.rank().downsample('month_start')
+        pipeline = Pipeline({'rank': downsampled_rank})
+
+        results_month_start = self.pipeline_engine.run_pipeline(
+            pipeline,
+            self.START_DATE,
+            self.END_DATE,
+        )
+
+        half_way_start = self.HALF_WAY_POINT + pd.Timedelta(days=1)
+        results_halfway_start = self.pipeline_engine.run_pipeline(
+            pipeline,
+            half_way_start,
+            self.END_DATE,
+        )
+
+        results_month_start_aligned = results_month_start.loc[half_way_start:]
+
+        assert_frame_equal(results_month_start_aligned, results_halfway_start)
