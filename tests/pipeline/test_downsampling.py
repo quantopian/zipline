@@ -3,7 +3,6 @@ Tests for Downsampled Filters/Factors/Classifiers
 """
 from functools import partial
 
-import numpy as np
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
 
@@ -24,7 +23,7 @@ from zipline.testing.fixtures import (
     WithAssetFinder,
 )
 from zipline.utils.input_validation import _qualified_name
-from zipline.utils.numpy_utils import int64_dtype, repeat_first_axis
+from zipline.utils.numpy_utils import int64_dtype
 
 
 class NDaysAgoFactor(CustomFactor):
@@ -691,11 +690,11 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
         self.assertEqual(str(e.exception), expected)
 
 
-class TestDownsampledRowwiseOperation(WithSeededRandomPipelineEngine,
-                                      ZiplineTestCase):
+class TestDownsampledRowwiseOperation(WithAssetFinder, ZiplineTestCase):
+
     T = partial(pd.Timestamp, tz='utc')
-    START_DATE = T('2014-01-02')
-    END_DATE = T('2014-02-03')
+    START_DATE = T('2014-01-01')
+    END_DATE = T('2014-02-01')
     HALF_WAY_POINT = T('2014-01-15')
 
     dates = pd.date_range(START_DATE, END_DATE)
@@ -708,6 +707,15 @@ class TestDownsampledRowwiseOperation(WithSeededRandomPipelineEngine,
             out[:] = assets
 
     factor = SidFactor()
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(TestDownsampledRowwiseOperation, cls).init_class_fixtures()
+        cls.pipeline_engine = SimplePipelineEngine(
+            get_loader=lambda c: ExplodingObject(),
+            calendar=cls.dates,
+            asset_finder=cls.asset_finder,
+        )
 
     @classmethod
     def make_equity_info(cls):
@@ -733,14 +741,14 @@ class TestDownsampledRowwiseOperation(WithSeededRandomPipelineEngine,
         downsampled_rank = self.factor.rank().downsample('month_start')
         pipeline = Pipeline({'rank': downsampled_rank})
 
-        results_month_start = self.seeded_random_engine.run_pipeline(
+        results_month_start = self.pipeline_engine.run_pipeline(
             pipeline,
             self.START_DATE,
             self.END_DATE,
         )
 
         half_way_start = self.HALF_WAY_POINT + pd.Timedelta(days=1)
-        results_halfway_start = self.seeded_random_engine.run_pipeline(
+        results_halfway_start = self.pipeline_engine.run_pipeline(
             pipeline,
             half_way_start,
             self.END_DATE,
