@@ -7,6 +7,12 @@ import sys
 from textwrap import dedent
 
 
+class _Sentinel(object):
+    """Base class for Sentinel objects.
+    """
+    __slots__ = ('__weakref__',)
+
+
 def sentinel(name, doc=None):
     try:
         value = sentinel._cache[name]  # memoized
@@ -27,9 +33,8 @@ def sentinel(name, doc=None):
         ) % (name, value.__doc__, doc))
 
     @object.__new__   # bind a single instance to the name 'Sentinel'
-    class Sentinel(object):
+    class Sentinel(_Sentinel):
         __doc__ = doc
-        __slots__ = ('__weakref__',)
         __name__ = name
 
         def __new__(cls):
@@ -57,6 +62,10 @@ def sentinel(name, doc=None):
 
     sentinel._cache[name] = Sentinel  # cache result
     return Sentinel
+
+
+def is_sentinel(obj):
+    return isinstance(obj, _Sentinel)
 
 
 sentinel._cache = {}

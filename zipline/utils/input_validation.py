@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from datetime import tzinfo
-from functools import partial, wraps
+from functools import partial
 from operator import attrgetter
 
 from numpy import dtype
@@ -22,6 +22,7 @@ from six import iteritems, string_types, PY3
 from toolz import valmap, complement, compose
 import toolz.curried.operator as op
 
+from zipline.utils.compat import wraps
 from zipline.utils.functional import getattrs
 from zipline.utils.preprocess import call, preprocess
 
@@ -824,6 +825,7 @@ class error_keywords(object):
         self.messages = kwargs
 
     def __call__(self, func):
+        @wraps(func)
         def assert_keywords_and_call(*args, **kwargs):
             for field, message in iteritems(self.messages):
                 if field in kwargs:

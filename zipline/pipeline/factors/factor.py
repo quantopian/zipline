@@ -1,7 +1,6 @@
 """
 factor.py
 """
-from functools import wraps
 from operator import attrgetter
 from numbers import Number
 from math import ceil
@@ -9,6 +8,7 @@ from math import ceil
 from numpy import empty_like, inf, nan, where
 from scipy.stats import rankdata
 
+from zipline.utils.compat import wraps
 from zipline.errors import BadPercentileBounds, UnknownRankMethod
 from zipline.lib.normalize import naive_grouped_rowwise_apply
 from zipline.lib.rank import masked_rankdata_2d, rankdata_1d_descending
@@ -283,6 +283,7 @@ def function_application(func):
     if func not in NUMEXPR_MATH_FUNCS:
         raise ValueError("Unsupported mathematical function '%s'" % func)
 
+    @with_doc(func)
     @with_name(func)
     def mathfunc(self):
         if isinstance(self, NumericalExpression):
@@ -383,6 +384,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
     __truediv__ = clsdict['__div__']
     __rtruediv__ = clsdict['__rdiv__']
+
+    del clsdict  # don't pollute the class namespace with this.
 
     eq = binary_operator('==')
 
@@ -1322,6 +1325,7 @@ class GroupedRowTransform(Factor):
         return self._transform.__name__
 
     def short_repr(self):
+        """Short repr to use when rendering Pipeline graphs."""
         return type(self).__name__ + '(%r)' % self.transform_name
 
 

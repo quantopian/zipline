@@ -215,6 +215,7 @@ class BoundColumn(LoadableTerm):
         )
 
     def short_repr(self):
+        """Short repr to use when rendering Pipeline graphs."""
         return self.qualname
 
 
