@@ -221,6 +221,9 @@ Built-in Factors
 .. autoclass:: zipline.pipeline.factors.Latest
    :members:
 
+.. autoclass:: zipline.pipeline.factors.MACDSignal
+   :members:
+
 .. autoclass:: zipline.pipeline.factors.MaxDrawdown
    :members:
 
