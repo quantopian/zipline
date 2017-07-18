@@ -90,6 +90,13 @@ class RollFinder(with_metaclass(ABCMeta, object)):
                                         tc.minute_to_session_label(end))
         freq = sessions.freq
         if first == front:
+            # This is a bit tricky to grasp. Once we have the active contract
+            # on the given end date, we want to start walking backwards towards
+            # the start date and checking for rolls. For this, we treat the
+            # previous month's contract as the 'first' contract, and the
+            # contract we just found to be active as the 'back'. As we walk
+            # towards the start date, if the 'back' is no longer active, we add
+            # that date as a roll.
             curr = first_contract << 1
         else:
             curr = first_contract << 2
@@ -169,15 +176,26 @@ class VolumeRollFinder(RollFinder):
         means that for every date after 'a', `data.current(cf, 'contract')`
         should return the 'G' contract.
         """
+        front_contract = oc.sid_to_contract[front].contract
+        back_contract = oc.sid_to_contract[back].contract
+
+        # If the front contract has reached its auto close date, the back
+        # contract must be the active one, so return it immediately. Similarly,
+        # in the rare case that the back contract has not even started yet,
+        # short circuit here and return the front contract.
+        if dt >= front_contract.auto_close_date:
+            return back
+        elif dt < back_contract.start_date:
+            return front
+
         tc = self.trading_calendar
         trading_day = tc.day
         prev = dt - trading_day
         get_value = self.session_reader.get_value
+
         front_vol = get_value(front, prev, 'volume')
         back_vol = get_value(back, prev, 'volume')
-        front_contract = oc.sid_to_contract[front].contract
-
-        if dt >= front_contract.auto_close_date or back_vol > front_vol:
+        if back_vol > front_vol:
             return back
 
         gap_start = \
