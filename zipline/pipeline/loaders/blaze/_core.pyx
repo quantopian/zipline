@@ -47,7 +47,7 @@ cdef bint is_missing_value(column_type value, column_type missing_value):
         return value == missing_value
 
 
-cdef inline unsafe_setslice_column(np.ndarray[column_type, ndim=2] array,
+cdef inline unsafe_setslice_column(column_type[:, ::1] array,
                                    Py_ssize_t start_row,
                                    Py_ssize_t stop_row,
                                    Py_ssize_t col_ix,
@@ -56,6 +56,7 @@ cdef inline unsafe_setslice_column(np.ndarray[column_type, ndim=2] array,
     for row_ix in range(start_row, stop_row):
         with cython.boundscheck(False), cython.wraparound(False):
             array[row_ix, col_ix] = value
+
 
 cdef _ffill_missing_value_2d_inplace(np.ndarray[column_type, ndim=2] array,
                                      column_type missing_value,
@@ -72,7 +73,6 @@ cdef _ffill_missing_value_2d_inplace(np.ndarray[column_type, ndim=2] array,
         ``non_null_ts_ixs_by_column_ix[n]`` holds a list of the non null
         timestamp indices for the asset at column ``n``.
     """
-    cdef Py_ssize_t row_ix
     cdef Py_ssize_t start_ix
     cdef Py_ssize_t end_ix
     cdef set non_null_ixs_set
@@ -516,7 +516,6 @@ cdef arrays_from_rows(DatetimeIndex_t dates,
                       AsArrayKind array_kind):
     cdef dict column_ixs = dict(zip(assets, range(len(assets))))
 
-    cdef Py_ssize_t n
     if data_query_time is not None:
         ts_dates = days_at_time(dates, data_query_time, data_query_tz)
     else:
