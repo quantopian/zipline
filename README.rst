@@ -18,14 +18,9 @@ engine powering `Quantopian <https://www.quantopian.com>`_ -- a free,
 community-centered, hosted platform for building and executing trading
 strategies.
 
-`Join our
-community! <https://groups.google.com/forum/#!forum/zipline>`_
-
-`Documentation <http://www.zipline.io>`_
-
-Want to contribute? See our `development guidelines`__
-
-__ http://zipline.io/development-guidelines.html
+- `Join our community! <https://groups.google.com/forum/#!forum/zipline>`_
+- `Documentation <http://www.zipline.io>`_
+- Want to contribute? See our `development guidelines <http://zipline.io/development-guidelines.html>`_
 
 Features
 ========
@@ -105,8 +100,7 @@ Currently supported platforms include:
 Quickstart
 ==========
 
-See our `getting started
-tutorial <http://www.zipline.io/#quickstart>`_.
+See our `getting started tutorial <http://www.zipline.io/#quickstart>`_.
 
 The following code implements a simple dual moving average algorithm.
 
@@ -156,9 +150,25 @@ line, run:
 This will download the AAPL price data from `quantopian-quandl` in the
 specified time range and stream it through the algorithm and save the
 resulting performance dataframe to dma.pickle which you can then load
-and analyze from within python.
+and analyze from within Python.
 
 You can find other examples in the ``zipline/examples`` directory.
+
+Questions?
+==========
+
+If you find a bug, feel free to `open an issue <https://github.com/quantopian/zipline/issues/new>`_ and fill out the issue template.
+
+Contributing
+============
+
+All contributions, bug reports, bug fixes, documentation improvements, enhancements, and ideas are welcome. Details on how to set up a development environment can be found in our `development guidelines <http://zipline.io/development-guidelines.html>`_.
+
+If you are looking to start working with the Zipline codebase, navigate to the GitHub `issues` tab and start looking through interesting issues. Sometimes there are issues labeled as `Beginner Friendly <https://github.com/quantopian/zipline/issues?q=is%3Aissue+is%3Aopen+label%3A%22Beginner+Friendly%22>`_ or `Help Wanted <https://github.com/quantopian/zipline/issues?q=is%3Aissue+is%3Aopen+label%3A%22Help+Wanted%22>`_.
+
+Feel free to ask questions on the `mailing list <https://groups.google.com/forum/#!forum/zipline>`_ or on `Gitter <gitter.im/quantopian/zipline>`_.
+
+
 
 .. |Gitter| image:: https://badges.gitter.im/Join%20Chat.svg
    :target: https://gitter.im/quantopian/zipline?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
