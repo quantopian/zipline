@@ -501,7 +501,7 @@ cdef class BarData:
             # asset isn't alive
             return False
 
-        if asset.auto_close_date and session_label >= asset.auto_close_date:
+        if asset.auto_close_date and session_label > asset.auto_close_date:
             return False
 
         if not self._daily_mode:
