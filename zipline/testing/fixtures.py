@@ -1058,6 +1058,8 @@ class WithBcolzFutureDailyBarReader(WithFutureDailyBarData, WithTmpDir):
     # options are: 'warn', 'raise', 'ignore'
     BCOLZ_FUTURE_DAILY_BAR_INVALID_DATA_BEHAVIOR = 'warn'
 
+    BCOLZ_FUTURE_DAILY_BAR_WRITE_METHOD_NAME = 'write'
+
     @classmethod
     def make_bcolz_future_daily_bar_rootdir_path(cls):
         return cls.tmpdir.makedir(cls.BCOLZ_FUTURE_DAILY_BAR_PATH)
@@ -1073,7 +1075,7 @@ class WithBcolzFutureDailyBarReader(WithFutureDailyBarData, WithTmpDir):
         trading_calendar = cls.trading_calendars[Future]
         cls.future_bcolz_daily_bar_ctable = t = getattr(
             BcolzDailyBarWriter(p, trading_calendar, days[0], days[-1]),
-            cls._write_method_name,
+            cls.BCOLZ_FUTURE_DAILY_BAR_WRITE_METHOD_NAME,
         )(
             cls.make_future_daily_bar_data(),
             invalid_data_behavior=(
