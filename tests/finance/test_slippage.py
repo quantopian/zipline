@@ -228,7 +228,7 @@ class SlippageTestCase(WithCreateBarData,
         txn = orders_txns[0][1]
 
         expected_txn = {
-            'price': float(3.50021875),
+            'price': float(3.6),
             'dt': datetime.datetime(
                 2006, 1, 5, 14, 34, tzinfo=pytz.utc),
             # we ordered 100 shares, but default volume slippage only allows
@@ -311,7 +311,7 @@ class SlippageTestCase(WithCreateBarData,
         _, txn = orders_txns[0]
 
         expected_txn = {
-            'price': float(3.49978125),
+            'price': float(3.4),
             'dt': datetime.datetime(
                 2006, 1, 5, 14, 32, tzinfo=pytz.utc),
             'amount': int(-50),
@@ -434,7 +434,7 @@ class SlippageTestCase(WithCreateBarData,
         _, txn = orders_txns[0]
 
         expected_txn = {
-            'price': float(3.50021875),
+            'price': float(3.6),
             'dt': datetime.datetime(
                 2006, 1, 5, 14, 34, tzinfo=pytz.utc),
             'amount': int(50),
@@ -552,7 +552,7 @@ class SlippageTestCase(WithCreateBarData,
         _, txn = orders_txns[0]
 
         expected_txn = {
-            'price': float(3.49978125),
+            'price': float(3.4),
             'dt': datetime.datetime(
                 2006, 1, 5, 14, 32, tzinfo=pytz.utc),
             'amount': int(-50),
