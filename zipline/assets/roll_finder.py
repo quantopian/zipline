@@ -198,8 +198,10 @@ class VolumeRollFinder(RollFinder):
         if back_vol > front_vol:
             return back
 
-        gap_start = \
-            front_contract.auto_close_date - (trading_day * self.GRACE_DAYS)
+        gap_start = max(
+            back_contract.start_date,
+            front_contract.auto_close_date - (trading_day * self.GRACE_DAYS),
+        )
         gap_end = prev - trading_day
         if dt < gap_start:
             return front
