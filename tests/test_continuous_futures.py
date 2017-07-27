@@ -1289,7 +1289,7 @@ def record_current_contract(algo, data):
 class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
 
     START_DATE = pd.Timestamp('2017-01-03', tz='UTC')
-    END_DATE = pd.Timestamp('2017-03-17', tz='UTC')
+    END_DATE = pd.Timestamp('2017-04-19', tz='UTC')
 
     TRADING_CALENDAR_STRS = ('us_futures',)
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
@@ -1310,7 +1310,10 @@ class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
 
         cls.first_end_date = pd.Timestamp('2017-01-20', tz='UTC')
         cls.second_end_date = pd.Timestamp('2017-02-17', tz='UTC')
-        cls.third_end_date = cls.END_DATE
+        cls.third_end_date = pd.Timestamp('2017-03-17', tz='UTC')
+        cls.third_auto_close_date = cls.third_end_date - two_days
+        cls.fourth_start_date = cls.third_auto_close_date - two_days
+        cls.fourth_end_date = cls.END_DATE
 
         return pd.DataFrame.from_dict(
             {
@@ -1335,7 +1338,15 @@ class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
                     'root_symbol': 'CL',
                     'start_date': cls.START_DATE,
                     'end_date': cls.third_end_date,
-                    'auto_close_date': cls.third_end_date - two_days,
+                    'auto_close_date': cls.third_auto_close_date,
+                    'exchange': 'CME',
+                },
+                1003: {
+                    'symbol': 'CLJ17',
+                    'root_symbol': 'CL',
+                    'start_date': cls.fourth_start_date,
+                    'end_date': cls.fourth_end_date,
+                    'auto_close_date': cls.fourth_end_date - two_days,
                     'exchange': 'CME',
                 },
             },
@@ -1347,28 +1358,33 @@ class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
         """
         Volume data should look like this:
 
-                              CLF17      CLG17      CLH17
-                2017-01-03     2000       1000          5
-                2017-01-04     2000       1000          5
+                              CLF17      CLG17      CLH17      CLJ17
+                2017-01-03     2000       1000          5          0
+                2017-01-04     2000       1000          5          0
                     ...
-                2017-01-16     2000       1000          5
-                2017-01-17     2000__     1000          5
-        ACD --> 2017-01-18     2000  `--> 1000          5
-                2017-01-19     2000       1000          5
-                2017-01-20     2000       1000          5
-                2017-01-23        0       1000          5
+                2017-01-16     2000       1000          5          0
+                2017-01-17     2000__     1000          5          0
+        ACD --> 2017-01-18     2000  `--> 1000          5          0
+                2017-01-19     2000       1000          5          0
+                2017-01-20     2000       1000          5          0
+                2017-01-23        0       1000          5          0
                     ...
-                2017-02-09        0       1000          5
-                2017-02-10        0       1000__     5000
-                2017-02-13        0       1000  `--> 5000
-                2017-02-14        0       1000       5000
-        ACD --> 2017-02-15        0       1000       5000
-                2017-02-16        0       1000       5000
-                2017-02-17        0       1000       5000
-                2017-02-20        0          0       5000
+                2017-02-09        0       1000          5          0
+                2017-02-10        0       1000__     5000          0
+                2017-02-13        0       1000  `--> 5000          0
+                2017-02-14        0       1000       5000          0
+        ACD --> 2017-02-15        0       1000       5000          0
+                2017-02-16        0       1000       5000          0
+                2017-02-17        0       1000       5000          0
+                2017-02-20        0          0       5000          0
                     ...
-                2017-03-16        0          0       5000
-                2017-03-17        0          0       5000
+                2017-03-10        0          0       5000          0
+                2017-03-13        0          0       5000       3000
+                2017-03-14        0          0       5000__     3000
+        ACD --> 2017-03-15        0          0       5000  `--> 3000
+                2017-03-16        0          0       5000       3000
+                2017-03-17        0          0       5000       3000
+                2017-03-20        0          0          0       3000
 
         The first roll occurs because we reach the auto close date of CLF17.
         The second roll occurs because the volume of CLH17 overtakes CLG17.
@@ -1401,11 +1417,18 @@ class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
         third_contract_data.loc[volume_flip_date:, 'volume'] = 5000
         yield 1002, third_contract_data
 
+        # Make a copy because we are taking a slice of a data frame.
+        fourth_contract_data = create_contract_data(3000)
+        yield 1003, fourth_contract_data.copy().loc[cls.fourth_start_date:]
+
     def test_volume_roll(self):
+        """
+        Test normally behaving rolls.
+        """
         rolls = self.volume_roll_finder.get_rolls(
             root_symbol='CL',
             start=self.START_DATE + self.trading_calendar.day,
-            end=self.END_DATE,
+            end=self.second_end_date,
             offset=0,
         )
         self.assertEqual(
@@ -1429,6 +1452,27 @@ class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
             offset=0,
         )
         self.assertEqual(rolls, [(1001, None)])
+
+    def test_roll_in_grace_period(self):
+        """
+        The volume roll finder can look for data up to a week before the given
+        date. This test asserts that we not only return the correct active
+        contract during that previous week (grace period), but also that we do
+        not go into exception if one of the contracts does not exist.
+        """
+        rolls = self.volume_roll_finder.get_rolls(
+            root_symbol='CL',
+            start=self.second_end_date,
+            end=self.END_DATE,
+            offset=0,
+        )
+        self.assertEqual(
+            rolls,
+            [
+                (1002, pd.Timestamp('2017-03-15', tz='UTC')),
+                (1003, None),
+            ],
+        )
 
 
 class OrderedContractsTestCase(WithAssetFinder,
