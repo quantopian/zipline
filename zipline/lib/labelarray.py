@@ -363,18 +363,17 @@ class LabelArray(ndarray):
     def __setitem__(self, indexer, value):
         self_categories = self.categories
 
-        if isinstance(value, LabelArray):
+        if isinstance(value, self.SUPPORTED_SCALAR_TYPES):
+            value_code = self.reverse_categories.get(value, None)
+            if value_code is None:
+                raise ValueError("%r is not in LabelArray categories." % value)
+            self.as_int_array()[indexer] = value_code
+        elif isinstance(value, LabelArray):
             value_categories = value.categories
             if compare_arrays(self_categories, value_categories):
                 return super(LabelArray, self).__setitem__(indexer, value)
             else:
                 raise CategoryMismatch(self_categories, value_categories)
-
-        elif isinstance(value, self.SUPPORTED_SCALAR_TYPES):
-            value_code = self.reverse_categories.get(value, -1)
-            if value_code < 0:
-                raise ValueError("%r is not in LabelArray categories." % value)
-            self.as_int_array()[indexer] = value_code
         else:
             raise NotImplementedError(
                 "Setting into a LabelArray with a value of "
@@ -382,6 +381,30 @@ class LabelArray(ndarray):
                     type=type(value).__name__,
                 ),
             )
+
+    def set_scalar(self, indexer, value):
+        """
+        Set scalar value into the array.
+
+        Parameters
+        ----------
+        indexer : any
+            The indexer to set the value at.
+        value : str
+            The value to assign at the given locations.
+
+        Raises
+        ------
+        ValueError
+            Raised when ``value`` is not a value element of this this label
+            array.
+        """
+        try:
+            value_code = self.reverse_categories[value]
+        except KeyError:
+            raise ValueError("%r is not in LabelArray categories." % value)
+
+        self.as_int_array()[indexer] = value_code
 
     def __setslice__(self, i, j, sequence):
         """
