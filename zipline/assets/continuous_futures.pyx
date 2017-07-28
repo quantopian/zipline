@@ -51,6 +51,7 @@ march_cycle_delivery_predicate = partial(delivery_predicate,
                                          set(['H', 'M', 'U', 'Z']))
 
 CHAIN_PREDICATES = {
+    'EL': march_cycle_delivery_predicate,
     'ME': march_cycle_delivery_predicate,
     'PL': partial(delivery_predicate, set(['F', 'J', 'N', 'V'])),
     'PA': march_cycle_delivery_predicate,
