@@ -120,7 +120,7 @@ class RollFinder(with_metaclass(ABCMeta, object)):
                 session = prev
             curr = curr.prev
             if curr is not None:
-                session = curr.contract.auto_close_date
+                session = curr.contract.auto_close_date + freq
         return rolls
 
 
@@ -184,11 +184,14 @@ class VolumeRollFinder(RollFinder):
         prev = dt - trading_day
         get_value = self.session_reader.get_value
 
-        # If the front contract has reached its auto close date, the back
-        # contract must be the active one, so return it immediately. Similarly,
-        # in the rare case that the back contract has not even started yet,
-        # short circuit here and return the front contract.
-        if dt >= front_contract.auto_close_date:
+        # If the front contract is past its auto close date it cannot be the
+        # active contract, so return the back contract. Similarly, if the back
+        # contract has not even started yet, just return the front contract.
+        # The reason for comparing the back contract's start date to 'prev'
+        # instead of to 'dt' is because we need to get each contract's volume
+        # on the previous day, so we need to make sure the back contract exists
+        # on 'prev' in order to call 'get_value' below.
+        if dt > front_contract.auto_close_date:
             return back
         elif prev < back_contract.start_date:
             return front
