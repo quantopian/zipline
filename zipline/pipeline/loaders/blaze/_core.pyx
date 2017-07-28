@@ -329,7 +329,24 @@ cdef _array_for_column_impl(object dtype,
                 # upper bound doesn't include the timestamp because we've
                 # already included the timestamp-date in the baseline.
                 end = max(ts_ix - 1, 0)
-                if end >= asof_ix:
+                if end >= asof_ix and out_array[asof_ix, column_ix] != value:
+                    # The first condition ensures that the adjustment spans at
+                    # least one trading day, meaning it has an effect on the
+                    # displayed data. We cannot construct adjustments where end
+                    # < start so we can just skip these rows.
+                    #
+                    # The second condition checks that the overwrite will
+                    # actually write a new value. We often have rows in our raw
+                    # data which create adjustments where the value does not
+                    # change. It is much faster to avoid creating and applying
+                    # the adjustment than to emit a nop adjustment. This
+                    # optimization is unsafe. If we get two adjustments for the
+                    # given index where the first adjustment changes the value
+                    # and the second adjustment resets the value to the
+                    # original baseline value, we will not emit the second
+                    # adjustment. This case is sufficiently rare that we have
+                    # chosen to ignore it in favor of the performance
+                    # improvement.
                     adjustment_list.append(
                         make_adjustment_from_indices_fused[column_type](
                             asof_ix,
@@ -364,7 +381,9 @@ cdef _array_for_column_impl(object dtype,
             # of v1. However, if we look back from t6, we should see v0 for the
             # period from t0 to t1.
             end = max(non_null_ad_ixs[ix] - 1, 0)
-            if end >= asof_ix:
+            if end >= asof_ix and out_array[asof_ix, column_ix] != value:
+                # see comment above about why we are not emitting some of
+                # these adjustments
                 adjustment_list.append(
                     make_adjustment_from_indices_fused[column_type](
                         asof_ix,

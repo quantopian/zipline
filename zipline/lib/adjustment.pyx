@@ -864,8 +864,13 @@ cdef class ObjectOverwrite(_ObjectAdjustment):
 
         # We don't do this in a loop because we only want to look up the label
         # code in the array's categories once.
-        data[self.first_row:self.last_row + 1,
-             self.first_col:self.last_col + 1] = self.value
+        data.set_scalar(
+            (
+                slice(self.first_row, self.last_row + 1),
+                slice(self.first_col, self.last_col + 1),
+            ),
+            self.value,
+        )
 
 
 cdef class BooleanAdjustment(Adjustment):
