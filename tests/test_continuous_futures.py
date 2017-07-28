@@ -812,15 +812,15 @@ def record_current_contract(algo, data):
                          1,
                          "Should have rolled to FOG16.")
 
-        self.assertEqual(window.loc['2016-02-25', cf],
+        self.assertEqual(window.loc['2016-02-26', cf],
                          1,
                          "Should be FOG16 on session before roll.")
 
-        self.assertEqual(window.loc['2016-02-26', cf],
+        self.assertEqual(window.loc['2016-02-29', cf],
                          2,
                          "Should be FOH16 on session with roll.")
 
-        self.assertEqual(window.loc['2016-02-29', cf],
+        self.assertEqual(window.loc['2016-03-01', cf],
                          2,
                          "Should be FOH16 on session after roll.")
 
@@ -830,15 +830,15 @@ def record_current_contract(algo, data):
             Timestamp('2016-04-06 18:01', tz='US/Eastern').tz_convert('UTC'),
             30, '1d', 'sid', 'minute')
 
-        self.assertEqual(window.loc['2016-02-25', cf],
+        self.assertEqual(window.loc['2016-02-26', cf],
                          1,
                          "Should be FOG16 at beginning of window.")
 
-        self.assertEqual(window.loc['2016-02-26', cf],
+        self.assertEqual(window.loc['2016-02-29', cf],
                          2,
                          "Should be FOH16 on roll session.")
 
-        self.assertEqual(window.loc['2016-02-29', cf],
+        self.assertEqual(window.loc['2016-03-01', cf],
                          2,
                          "Should remain FOH16.")
 
@@ -1230,59 +1230,59 @@ def record_current_contract(algo, data):
             'FO', 0, 'volume', 'add')
         window = self.data_portal.get_history_window(
             [cf, cf_mul, cf_add],
-            Timestamp('2016-02-25 18:01', tz='US/Eastern').tz_convert('UTC'),
+            Timestamp('2016-02-28 18:01', tz='US/Eastern').tz_convert('UTC'),
             30, '1m', 'close', 'minute')
 
-        # Unadjusted: 115231.412
+        # Unadjusted: 115241.412
         # Adjustment based on roll:
         # 2016-02-25 23:00:00+00:00
-        # front: 115231.440
-        # back:  125231.440
+        # front: 115241.440 (FOG16)
+        # back:  125241.440 (FOH16)
         # Ratio: ~0.920
         # Difference: 10000.00
-        self.assertEqual(window.loc['2016-02-25 22:32', cf_mul],
-                         125231.41,
+        self.assertEqual(window.loc['2016-02-26 22:32', cf_mul],
+                         125242.973,
                          "Should be FOG16 at beginning of window. A minute "
                          "which is in the 02-25 session, before the roll.")
 
-        self.assertEqual(window.loc['2016-02-25 22:32', cf_add],
-                         125231.412,
+        self.assertEqual(window.loc['2016-02-26 22:32', cf_add],
+                         125242.851,
                          "Should be FOG16 at beginning of window. A minute "
                          "which is in the 02-25 session, before the roll.")
 
         # Unadjusted: 115231.44
         # Should use same ratios as above.
-        self.assertEqual(window.loc['2016-02-25 23:00', cf_mul],
-                         125231.44,
-                         "Should be FOG16 on on minute before roll minute, "
+        self.assertEqual(window.loc['2016-02-26 23:00', cf_mul],
+                         125243.004,
+                         "Should be FOG16 on minute before roll minute, "
                          "adjusted.")
 
-        self.assertEqual(window.loc['2016-02-25 23:00', cf_add],
-                         125231.44,
-                         "Should be FOG16 on on minute before roll minute, "
+        self.assertEqual(window.loc['2016-02-26 23:00', cf_add],
+                         125242.879,
+                         "Should be FOG16 on minute before roll minute, "
                          "adjusted.")
 
-        self.assertEqual(window.loc['2016-02-25 23:01', cf_mul],
-                         125240.001,
+        self.assertEqual(window.loc['2016-02-28 23:01', cf_mul],
+                         125250.001,
                          "Should be FOH16 on minute after roll, unadjusted.")
 
-        self.assertEqual(window.loc['2016-02-25 23:01', cf_add],
-                         125240.001,
+        self.assertEqual(window.loc['2016-02-28 23:01', cf_add],
+                         125250.001,
                          "Should be FOH16 on minute after roll, unadjusted.")
 
         # Advance the window a session.
         window = self.data_portal.get_history_window(
             [cf, cf_mul, cf_add],
-            Timestamp('2016-02-28 18:01', tz='US/Eastern').tz_convert('UTC'),
+            Timestamp('2016-02-29 18:01', tz='US/Eastern').tz_convert('UTC'),
             30, '1m', 'close', 'minute')
 
         # No adjustments in this window.
-        self.assertEqual(window.loc['2016-02-26 22:32', cf_mul],
-                         125241.412,
+        self.assertEqual(window.loc['2016-02-29 22:32', cf_mul],
+                         125251.412,
                          "Should be FOH16 at beginning of window.")
 
-        self.assertEqual(window.loc['2016-02-28 23:01', cf_mul],
-                         125250.001,
+        self.assertEqual(window.loc['2016-02-29 23:01', cf_mul],
+                         125260.001,
                          "Should remain FOH16 on next session.")
 
 
@@ -1363,9 +1363,9 @@ class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
                 2017-01-04     2000       1000          5          0
                     ...
                 2017-01-16     2000       1000          5          0
-                2017-01-17     2000__     1000          5          0
-        ACD --> 2017-01-18     2000  `--> 1000          5          0
-                2017-01-19     2000       1000          5          0
+                2017-01-17     2000       1000          5          0
+        ACD --> 2017-01-18     2000__     1000          5          0
+                2017-01-19     2000  `--> 1000          5          0
                 2017-01-20     2000       1000          5          0
                 2017-01-23        0       1000          5          0
                     ...
@@ -1380,9 +1380,9 @@ class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
                     ...
                 2017-03-10        0          0       5000          0
                 2017-03-13        0          0       5000       3000
-                2017-03-14        0          0       5000__     3000
-        ACD --> 2017-03-15        0          0       5000  `--> 3000
-                2017-03-16        0          0       5000       3000
+                2017-03-14        0          0       5000       3000
+        ACD --> 2017-03-15        0          0       5000__     3000
+                2017-03-16        0          0       5000  `--> 3000
                 2017-03-17        0          0       5000       3000
                 2017-03-20        0          0          0       3000
 
@@ -1434,7 +1434,7 @@ class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
         self.assertEqual(
             rolls,
             [
-                (1000, pd.Timestamp('2017-01-18', tz='UTC')),
+                (1000, pd.Timestamp('2017-01-19', tz='UTC')),
                 (1001, pd.Timestamp('2017-02-13', tz='UTC')),
                 (1002, None),
             ],
@@ -1469,7 +1469,7 @@ class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
         self.assertEqual(
             rolls,
             [
-                (1002, pd.Timestamp('2017-03-15', tz='UTC')),
+                (1002, pd.Timestamp('2017-03-16', tz='UTC')),
                 (1003, None),
             ],
         )
