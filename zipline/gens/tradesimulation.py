@@ -229,6 +229,7 @@ class AlgorithmSimulator(object):
                         # equities were just auto closed do another update.
                         perf_tracker.update_performance()
                     execute_order_cancellation_policy()
+                    algo.validate_account_controls()
 
                     yield self._get_daily_message(dt, algo, perf_tracker)
                 elif action == BEFORE_TRADING_START_BAR:

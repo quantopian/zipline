@@ -3513,10 +3513,15 @@ class TestAccountControls(WithDataPortal, WithSimParams, ZiplineTestCase):
         # Set max leverage to 0 so buying one share fails.
         def handle_data(algo, data):
             algo.order(algo.sid(self.sidint), 1)
+            algo.record(latest_time=algo.get_datetime())
 
         algo = SetMaxLeverageAlgorithm(0, sim_params=self.sim_params,
                                        env=self.env)
         self.check_algo_fails(algo, handle_data)
+        self.assertEqual(
+            algo.recorded_vars['latest_time'],
+            pd.Timestamp('2006-01-04 21:00:00', tz='UTC'),
+        )
 
         # Set max leverage to 1 so buying one share passes
         def handle_data(algo, data):
