@@ -550,7 +550,7 @@ def assert_timestamp_and_datetime_equal(result,
     )
 
     result = pd.Timestamp(result)
-    expected = pd.Timestamp(result)
+    expected = pd.Timestamp(expected)
     if compare_nat_equal and pd.isnull(result) and pd.isnull(expected):
         return
 
