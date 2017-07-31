@@ -36,7 +36,7 @@ None
 Performance
 ~~~~~~~~~~~
 
-None
+- Change algorithm account validation from happening every minute in ``handle_data`` to only occurring once at the end of each day (:issue:`1884`)
 
 Maintenance and Refactorings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
