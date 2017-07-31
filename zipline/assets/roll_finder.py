@@ -187,13 +187,17 @@ class VolumeRollFinder(RollFinder):
         # If the front contract is past its auto close date it cannot be the
         # active contract, so return the back contract. Similarly, if the back
         # contract has not even started yet, just return the front contract.
-        # The reason for comparing the back contract's start date to 'prev'
-        # instead of to 'dt' is because we need to get each contract's volume
-        # on the previous day, so we need to make sure the back contract exists
-        # on 'prev' in order to call 'get_value' below.
-        if dt > front_contract.auto_close_date:
+        # The reason for using 'prev' to see if the contracts are alive instead
+        # of using 'dt' is because we need to get each contract's volume on the
+        # previous day, so we need to make sure that each contract exists on
+        # 'prev' in order to call 'get_value' below.
+        if dt > min(front_contract.auto_close_date, front_contract.end_date):
             return back
-        elif prev < back_contract.start_date:
+        elif front_contract.start_date > prev:
+            return back
+        elif dt > min(back_contract.auto_close_date, back_contract.end_date):
+            return front
+        elif back_contract.start_date > prev:
             return front
 
         front_vol = get_value(front, prev, 'volume')
