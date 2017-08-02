@@ -455,6 +455,8 @@ class RollingLinearRegressionOfReturns(RollingLinearRegression):
     :class:`zipline.pipeline.factors.RollingPearsonOfReturns`
     :class:`zipline.pipeline.factors.RollingSpearmanOfReturns`
     """
+    window_safe = True
+
     def __new__(cls,
                 target,
                 returns_length,
