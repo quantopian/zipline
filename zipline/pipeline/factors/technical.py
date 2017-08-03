@@ -76,6 +76,7 @@ class RSI(CustomFactor, SingleInputMixin):
     """
     window_length = 15
     inputs = (USEquityPricing.close,)
+    window_safe = True
 
     def compute(self, today, assets, out, closes):
         diffs = diff(closes, axis=0)
