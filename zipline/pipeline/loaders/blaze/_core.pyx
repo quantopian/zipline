@@ -524,6 +524,13 @@ cdef array_for_column(object dtype,
         raise TypeError('unknown column dtype: %r' % input_array.dtype)
 
 
+cpdef str getname(object column):
+    try:
+        return column.metadata['blaze_column_name']
+    except KeyError:
+        return column.name
+
+
 cdef arrays_from_rows(DatetimeIndex_t dates,
                       object data_query_time,
                       object data_query_tz,
@@ -570,7 +577,7 @@ cdef arrays_from_rows(DatetimeIndex_t dates,
             sids,
             column_ixs,
             mask,
-            all_rows[column.name].values.astype(column.dtype),
+            all_rows[getname(column)].values.astype(column.dtype),
             column.missing_value,
             array_kind,
         )
