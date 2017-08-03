@@ -194,6 +194,7 @@ from ._core import (  # noqa
     adjusted_arrays_from_rows_without_assets,
     baseline_arrays_from_rows_with_assets,  # reexport
     baseline_arrays_from_rows_without_assets,  # reexport
+    getname,
 )
 
 
@@ -693,7 +694,7 @@ def from_blaze(expr,
 
 
 getdataset = op.attrgetter('dataset')
-getname = op.attrgetter('name')
+
 
 _expr_data_base = namedtuple(
     'ExprData', 'expr deltas checkpoints odo_kwargs'
