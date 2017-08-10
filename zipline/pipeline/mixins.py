@@ -216,6 +216,7 @@ class CustomTermMixin(object):
         return out
 
     def short_repr(self):
+        """Short repr to use when rendering Pipeline graphs."""
         return type(self).__name__ + '(%d)' % self.window_length
 
 
@@ -280,6 +281,7 @@ class AliasedMixin(SingleInputMixin):
         )
 
     def short_repr(self):
+        """Short repr to use when rendering Pipeline graphs."""
         return self.name
 
     @classmethod

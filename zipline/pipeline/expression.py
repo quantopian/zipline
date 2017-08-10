@@ -319,6 +319,7 @@ class NumericalExpression(ComputableTerm):
         )
 
     def short_repr(self):
+        """Short repr to use when rendering Pipeline graphs."""
         return "Expression: {expr}".format(
             typename=type(self).__name__,
             expr=self._expr,
