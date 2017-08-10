@@ -626,9 +626,9 @@ we need a new concept: History
 
 ``data.history()`` is a convenience function that keeps a rolling window of
 data for you. The first argument is the number of bars you want to
-collect, the second argument is the unit (either ``'1d'`` for ``'1m'``
+collect, the second argument is the unit (either ``'1d'`` or ``'1m'``,
 but note that you need to have minute-level data for using ``1m``). For
-a more detailed description ``history()``'s features, see the
+a more detailed description of ``history()``'s features, see the
 `Quantopian docs <https://www.quantopian.com/help#ide-history>`__.
 Let's look at the strategy which should make this clear:
 
@@ -711,7 +711,7 @@ the ``scikit-learn`` functions require ``numpy.ndarray``\ s rather than
 We also used the ``order_target()`` function above. This and other
 functions like it can make order management and portfolio rebalancing
 much easier. See the `Quantopian documentation on order
-functions <https://www.quantopian.com/help#api-order-methods>`__ fore
+functions <https://www.quantopian.com/help#api-order-methods>`__ for
 more details.
 
 Conclusions
