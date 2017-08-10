@@ -13,7 +13,7 @@ Discovering Available Bundles
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Zipline comes with a few bundles by default as well as the ability to register
-new bundles. To see which bundles we have have available, we may run the
+new bundles. To see which bundles we have available, we may run the
 ``bundles`` command, for example:
 
 .. code-block:: bash
