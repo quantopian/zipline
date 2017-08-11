@@ -565,7 +565,7 @@ class TradingAlgorithm(object):
             self.perf_tracker = PerformanceTracker(
                 sim_params=self.sim_params,
                 trading_calendar=self.trading_calendar,
-                env=self.trading_environment,
+                asset_finder=self.asset_finder,
             )
 
             # Set the dt initially to the period start by forcing it to change.

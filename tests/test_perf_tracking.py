@@ -146,7 +146,7 @@ def create_txn(asset, dt, price, amount):
 
 
 def calculate_results(sim_params,
-                      env,
+                      asset_finder,
                       data_portal,
                       splits=None,
                       txns=None,
@@ -178,7 +178,7 @@ def calculate_results(sim_params,
     commissions = commissions or {}
 
     perf_tracker = perf.PerformanceTracker(
-        sim_params, get_calendar("NYSE"), env
+        sim_params, get_calendar("NYSE"), asset_finder,
     )
 
     results = []
@@ -283,7 +283,7 @@ class TestSplitPerformance(WithSimParams, WithTmpDir, ZiplineTestCase):
         # the total leftover cash is correct
         perf_tracker = perf.PerformanceTracker(self.sim_params,
                                                self.trading_calendar,
-                                               self.env)
+                                               self.asset_finder)
 
         perf_tracker.position_tracker.positions[1] = \
             Position(self.asset1, amount=10, cost_basis=10, last_sale_price=11)
@@ -331,7 +331,7 @@ class TestSplitPerformance(WithSimParams, WithTmpDir, ZiplineTestCase):
         }
 
         results = calculate_results(self.sim_params,
-                                    self.env,
+                                    self.asset_finder,
                                     data_portal,
                                     txns=txns,
                                     splits=splits)
@@ -467,7 +467,7 @@ class TestDividendPerformance(WithSimParams,
         txns = [create_txn(self.asset1, events[0].dt, 10.0, 100)]
         results = calculate_results(
             self.sim_params,
-            self.env,
+            self.asset_finder,
             data_portal,
             txns=txns,
         )
@@ -544,7 +544,7 @@ class TestDividendPerformance(WithSimParams,
 
         results = calculate_results(
             self.sim_params,
-            self.env,
+            self.asset_finder,
             data_portal,
             txns=txns,
         )
@@ -610,7 +610,7 @@ class TestDividendPerformance(WithSimParams,
 
         results = calculate_results(
             self.sim_params,
-            self.env,
+            self.asset_finder,
             data_portal,
             txns=txns,
         )
@@ -673,7 +673,7 @@ class TestDividendPerformance(WithSimParams,
 
         results = calculate_results(
             self.sim_params,
-            self.env,
+            self.asset_finder,
             data_portal,
             txns=txns,
         )
@@ -737,7 +737,7 @@ class TestDividendPerformance(WithSimParams,
 
         results = calculate_results(
             self.sim_params,
-            self.env,
+            self.asset_finder,
             data_portal,
             txns=txns,
         )
@@ -802,7 +802,7 @@ class TestDividendPerformance(WithSimParams,
 
         results = calculate_results(
             self.sim_params,
-            self.env,
+            self.asset_finder,
             data_portal,
             txns=txns,
         )
@@ -864,7 +864,7 @@ class TestDividendPerformance(WithSimParams,
 
         results = calculate_results(
             self.sim_params,
-            self.env,
+            self.asset_finder,
             data_portal,
             txns=txns,
         )
@@ -922,7 +922,7 @@ class TestDividendPerformance(WithSimParams,
 
         results = calculate_results(
             self.sim_params,
-            self.env,
+            self.asset_finder,
             data_portal,
         )
 
@@ -999,7 +999,7 @@ class TestDividendPerformance(WithSimParams,
         txns = [create_txn(self.asset1, events[0].dt, 10.0, 100)]
         results = calculate_results(
             sim_params,
-            self.env,
+            self.asset_finder,
             data_portal,
             txns=txns,
         )

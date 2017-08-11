@@ -18,7 +18,7 @@ import pandas as pd
 import zipline.finance.risk as risk
 from zipline.utils import factory
 
-from zipline.testing.fixtures import WithTradingEnvironment, ZiplineTestCase
+from zipline.testing.fixtures import WithTradingCalendars, ZiplineTestCase
 
 from zipline.finance.trading import SimulationParameters
 
@@ -30,7 +30,7 @@ BENCHMARK = [BENCHMARK_BASE] * 251
 DECIMAL_PLACES = 8
 
 
-class TestRisk(WithTradingEnvironment, ZiplineTestCase):
+class TestRisk(WithTradingCalendars, ZiplineTestCase):
 
     def init_instance_fixtures(self):
         super(TestRisk, self).init_instance_fixtures()
@@ -49,7 +49,6 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
         )
         self.cumulative_metrics = risk.RiskMetricsCumulative(
             self.sim_params,
-            treasury_curves=self.env.treasury_curves,
             trading_calendar=self.trading_calendar,
         )
         for dt, returns in self.algo_returns.iteritems():

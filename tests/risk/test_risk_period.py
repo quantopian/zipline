@@ -61,7 +61,6 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             self.sim_params,
             benchmark_returns=self.benchmark_returns,
             trading_calendar=self.trading_calendar,
-            treasury_curves=self.env.treasury_curves,
         )
 
     def test_factory(self):
@@ -293,50 +292,29 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
 
     def test_treasury_returns(self):
         returns = factory.create_returns_from_range(self.sim_params)
-        metrics = risk.RiskReport(returns, self.sim_params,
+        metrics = risk.RiskReport(returns,
+                                  self.sim_params,
                                   trading_calendar=self.trading_calendar,
-                                  treasury_curves=self.env.treasury_curves,
                                   benchmark_returns=self.env.benchmark_returns)
-        self.assertEqual([round(x.treasury_period_return, 4)
-                          for x in metrics.month_periods],
-                         [0.0037,
-                          0.0034,
-                          0.0039,
-                          0.0038,
-                          0.0040,
-                          0.0037,
-                          0.0043,
-                          0.0043,
-                          0.0038,
-                          0.0044,
-                          0.0043,
-                          0.004])
 
-        self.assertEqual([round(x.treasury_period_return, 4)
-                          for x in metrics.three_month_periods],
-                         [0.0114,
-                          0.0116,
-                          0.0122,
-                          0.0125,
-                          0.0129,
-                          0.0127,
-                          0.0123,
-                          0.0128,
-                          0.0125,
-                          0.0127])
-        self.assertEqual([round(x.treasury_period_return, 4)
-                          for x in metrics.six_month_periods],
-                         [0.0260,
-                          0.0257,
-                          0.0258,
-                          0.0252,
-                          0.0259,
-                          0.0256,
-                          0.0257])
-
-        self.assertEqual([round(x.treasury_period_return, 4)
-                          for x in metrics.year_periods],
-                         [0.0500])
+        # These values are all expected to be zero because we explicity zero
+        # out the treasury period returns as they are no longer actually used.
+        self.assertEqual(
+          [x.treasury_period_return for x in metrics.month_periods],
+          [0.0] * len(metrics.month_periods),
+        )
+        self.assertEqual(
+          [x.treasury_period_return for x in metrics.three_month_periods],
+          [0.0] * len(metrics.three_month_periods),
+        )
+        self.assertEqual(
+          [x.treasury_period_return for x in metrics.six_month_periods],
+          [0.0] * len(metrics.six_month_periods),
+        )
+        self.assertEqual(
+          [x.treasury_period_return for x in metrics.year_periods],
+          [0.0] * len(metrics.year_periods),
+        )
 
     def test_benchmarkrange(self):
         start_session = self.trading_calendar.minute_to_session_label(
@@ -354,9 +332,9 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
         )
 
         returns = factory.create_returns_from_range(sim_params)
-        metrics = risk.RiskReport(returns, self.sim_params,
+        metrics = risk.RiskReport(returns,
+                                  self.sim_params,
                                   trading_calendar=self.trading_calendar,
-                                  treasury_curves=self.env.treasury_curves,
                                   benchmark_returns=self.env.benchmark_returns)
 
         self.check_metrics(metrics, 24, start_session)
@@ -378,9 +356,9 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
 
         returns = factory.create_returns_from_range(sim_params90s)
         returns = returns[:-10]  # truncate the returns series to end mid-month
-        metrics = risk.RiskReport(returns, sim_params90s,
+        metrics = risk.RiskReport(returns,
+                                  sim_params90s,
                                   trading_calendar=self.trading_calendar,
-                                  treasury_curves=self.env.treasury_curves,
                                   benchmark_returns=self.env.benchmark_returns)
         total_months = 60
         self.check_metrics(metrics, total_months, start_session)
@@ -474,22 +452,15 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             [x.max_leverage for x in self.metrics.year_periods],
             [0.0])
 
-    def test_returns_beyond_treasury(self):
-        # The last treasury value is used when return dates go beyond
-        # treasury curve data
-        treasury_curves = self.env.treasury_curves
-        treasury = treasury_curves[treasury_curves.index < self.start_session]
-
         test_period = RiskMetricsPeriod(
             start_session=self.start_session,
             end_session=self.end_session,
             returns=self.algo_returns,
             benchmark_returns=self.benchmark_returns,
             trading_calendar=self.trading_calendar,
-            treasury_curves=treasury,
-            algorithm_leverages=[.01, .02, .03]
+            algorithm_leverages=[.01, .02, .03],
         )
-        assert test_period.treasury_curves.equals(treasury[-1:])
+
         # This return period has a list instead of None for algorithm_leverages
         # Confirm that max_leverage is set to the max of those values
         assert test_period.max_leverage == .03
@@ -513,7 +484,6 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
                 returns=self.algo_returns,
                 benchmark_returns=benchmark,
                 trading_calendar=self.trading_calendar,
-                treasury_curves=self.env.treasury_curves,
             )
 
     def test_sharpe_value_when_null(self):
@@ -528,7 +498,6 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             returns=null_returns,
             benchmark_returns=self.benchmark_returns,
             trading_calendar=self.trading_calendar,
-            treasury_curves=self.env.treasury_curves,
         )
         assert test_period.sharpe == 0.0
 
@@ -539,7 +508,6 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             returns=self.algo_returns,
             benchmark_returns=self.benchmark_returns,
             trading_calendar=self.trading_calendar,
-            treasury_curves=self.env.treasury_curves,
         )
         metrics = [
             "algorithm_period_returns",
