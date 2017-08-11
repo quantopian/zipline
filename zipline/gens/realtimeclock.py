@@ -69,7 +69,7 @@ class RealtimeClock(object):
             current_time = pd.to_datetime('now', utc=True)
             server_time = (current_time + self.time_skew).floor('1 min')
 
-            if (server_time == self.before_trading_start_minutes and
+            if (server_time == self.before_trading_start_minutes[0] and
                     not self._before_trading_start_bar_yielded):
                 self._last_emit = server_time
                 self._before_trading_start_bar_yielded = True
