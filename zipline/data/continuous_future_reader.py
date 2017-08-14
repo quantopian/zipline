@@ -33,9 +33,15 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
         for asset in assets:
             rf = self._roll_finders[asset.roll_style]
             rolls_by_asset[asset] = rf.get_rolls(
-                asset.root_symbol, start_date, end_date, asset.offset)
+                asset.root_symbol,
+                start_date,
+                end_date,
+                asset.offset
+            )
+
         num_sessions = len(
-            self.trading_calendar.sessions_in_range(start_date, end_date))
+            self.trading_calendar.sessions_in_range(start_date, end_date)
+        )
         shape = num_sessions, len(assets)
 
         results = []
@@ -48,19 +54,24 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
         for asset in assets:
             partitions = []
             partitions_by_asset[asset] = partitions
+
             rolls = rolls_by_asset[asset]
             start = start_date
+
             for roll in rolls:
                 sid, roll_date = roll
                 start_loc = sessions.get_loc(start)
+
                 if roll_date is not None:
                     end = roll_date - sessions.freq
                     end_loc = sessions.get_loc(end)
                 else:
                     end = end_date
                     end_loc = len(sessions) - 1
+
                 partitions.append((sid, start, end, start_loc, end_loc))
-                if roll[-1] is not None:
+
+                if roll_date is not None:
                     start = sessions[end_loc + 1]
 
         for column in columns:
@@ -68,8 +79,10 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
                 out = np.full(shape, np.nan)
             else:
                 out = np.zeros(shape, dtype=np.int64)
+
             for i, asset in enumerate(assets):
                 partitions = partitions_by_asset[asset]
+
                 for sid, start, end, start_loc, end_loc in partitions:
                     if column != 'sid':
                         result = self._bar_reader.load_raw_arrays(
@@ -77,7 +90,9 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
                     else:
                         result = int(sid)
                     out[start_loc:end_loc + 1, i] = result
+
             results.append(out)
+
         return results
 
     @property
