@@ -77,11 +77,10 @@ class PerformanceTracker(object):
     """
     Tracks the performance of the algorithm.
     """
-    def __init__(self, sim_params, trading_calendar, env):
+    def __init__(self, sim_params, trading_calendar, asset_finder):
         self.sim_params = sim_params
         self.trading_calendar = trading_calendar
-        self.asset_finder = env.asset_finder
-        self.treasury_curves = env.treasury_curves
+        self.asset_finder = asset_finder
 
         self.period_start = self.sim_params.start_session
         self.period_end = self.sim_params.end_session
@@ -108,8 +107,7 @@ class PerformanceTracker(object):
             self.cumulative_risk_metrics = \
                 risk.RiskMetricsCumulative(
                     self.sim_params,
-                    self.treasury_curves,
-                    self.trading_calendar
+                    self.trading_calendar,
                 )
         elif self.emission_rate == 'minute':
             self.all_benchmark_returns = pd.Series(index=pd.date_range(
@@ -120,9 +118,8 @@ class PerformanceTracker(object):
             self.cumulative_risk_metrics = \
                 risk.RiskMetricsCumulative(
                     self.sim_params,
-                    self.treasury_curves,
                     self.trading_calendar,
-                    create_first_day_stats=True
+                    create_first_day_stats=True,
                 )
 
         # this performance period will span the entire simulation from
@@ -466,7 +463,6 @@ class PerformanceTracker(object):
             benchmark_returns=bms,
             algorithm_leverages=acl,
             trading_calendar=self.trading_calendar,
-            treasury_curves=self.treasury_curves,
         )
 
         return risk_report.to_dict()

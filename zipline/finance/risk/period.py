@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import functools
-
 import logbook
 
 from six import iteritems
@@ -22,7 +20,6 @@ from six import iteritems
 import numpy as np
 import pandas as pd
 
-from . import risk
 from . risk import check_entry
 
 from empyrical import (
@@ -37,23 +34,10 @@ from empyrical import (
 
 log = logbook.Logger('Risk Period')
 
-choose_treasury = functools.partial(risk.choose_treasury,
-                                    risk.select_treasury_duration)
-
 
 class RiskMetricsPeriod(object):
     def __init__(self, start_session, end_session, returns, trading_calendar,
-                 treasury_curves, benchmark_returns, algorithm_leverages=None):
-        if treasury_curves.index[-1] >= start_session:
-            mask = ((treasury_curves.index >= start_session) &
-                    (treasury_curves.index <= end_session))
-
-            self.treasury_curves = treasury_curves[mask]
-        else:
-            # our test is beyond the treasury curve history
-            # so we'll use the last available treasury curve
-            self.treasury_curves = treasury_curves[-1:]
-
+                 benchmark_returns, algorithm_leverages=None):
         self._start_session = start_session
         self._end_session = end_session
         self.trading_calendar = trading_calendar
@@ -104,12 +88,10 @@ class RiskMetricsPeriod(object):
         self.benchmark_volatility = annual_volatility(self.benchmark_returns)
         self.algorithm_volatility = annual_volatility(self.algorithm_returns)
 
-        self.treasury_period_return = choose_treasury(
-            self.treasury_curves,
-            self._start_session,
-            self._end_session,
-            self.trading_calendar,
-        )
+        # Zero out treasury period return as it is no longer actually used.
+        # However we do not remove this completely in order to retain
+        # API/protocol compatibility.
+        self.treasury_period_return = 0
         self.sharpe = sharpe_ratio(
             self.algorithm_returns,
         )
