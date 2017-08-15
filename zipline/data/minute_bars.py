@@ -899,7 +899,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
     """
     FIELDS = ('open', 'high', 'low', 'close', 'volume')
 
-    def __init__(self, rootdir, sid_cache_size=1000):
+    def __init__(self, rootdir, sid_cache_size=1550):
         self._rootdir = rootdir
 
         metadata = self._get_metadata()
