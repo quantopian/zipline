@@ -126,7 +126,8 @@ def fetch_symbol_metadata_frame(api_key,
     # we need to escape the paren because it is actually splitting on a regex
     data.asset_name = data.asset_name.str.split(r' \(', 1).str.get(0)
     data['exchange'] = 'QUANDL'
-    data['auto_close_date'] = data['end_date'] + pd.Timedelta(days=1)
+    index = pd.DatetimeIndex(data['end_date'])
+    data['auto_close_date'] = index + pd.tslib.Timedelta(days=2)
     return data
 
 
