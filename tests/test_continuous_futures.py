@@ -299,7 +299,7 @@ class ContinuousFuturesTestCase(WithCreateBarData,
                 cross_loc_1 = dts.searchsorted('2016-02-09 23:01:00+00:00')
                 cross_loc_2 = dts.searchsorted('2016-02-11 23:01:00+00:00')
                 cross_loc_3 = dts.searchsorted('2016-02-15 23:01:00+00:00')
-                end_loc = dts.searchsorted('2016-03-15 23:01:00+00:00')
+                end_loc = dts.searchsorted('2016-03-16 23:01:00+00:00')
                 df.volume.values[:cross_loc_1] = 5
                 df.volume.values[cross_loc_1:cross_loc_2] = 15
                 df.volume.values[cross_loc_2:cross_loc_3] = 5
@@ -341,23 +341,23 @@ class ContinuousFuturesTestCase(WithCreateBarData,
             else:
                 self.assertEqual(contract.symbol, 'DFG16')
 
-        # TODO: This test asserts behavior about a back contract briefly
-        # spiking in volume, but more than a week before the front contract's
-        # auto close date, meaning it does not fall in the 'grace' period used
-        # by `VolumeRollFinder._active_contract`. The current behavior is that
-        # during the spike, the back contract is considered current, but it may
-        # be worth changing that behavior in the future.
-        # sessions = self.trading_calendar.sessions_in_range(
-        #     '2016-03-01', '2016-03-21',
-        # )
-        # for session in sessions:
-        #     bar_data = self.create_bardata(lambda: session)
-        #     contract = bar_data.current(cf, 'contract')
+        # This test asserts behavior about a back contract briefly spiking in
+        # volume, but more than a week before the front contract's auto close
+        # date, meaning it does not fall in the 'grace' period used by
+        # `VolumeRollFinder._active_contract`. Therefore we should not roll to
+        # the back contract and the front contract should remain current until
+        # its auto close date.
+        sessions = self.trading_calendar.sessions_in_range(
+            '2016-03-01', '2016-03-21',
+        )
+        for session in sessions:
+            bar_data = self.create_bardata(lambda: session)
+            contract = bar_data.current(cf, 'contract')
 
-        #     if session < pd.Timestamp('2016-03-16', tz='UTC'):
-        #         self.assertEqual(contract.symbol, 'DFG16')
-        #     else:
-        #         self.assertEqual(contract.symbol, 'DFH16')
+            if session < pd.Timestamp('2016-03-17', tz='UTC'):
+                self.assertEqual(contract.symbol, 'DFG16')
+            else:
+                self.assertEqual(contract.symbol, 'DFH16')
 
     def test_create_continuous_future(self):
         cf_primary = self.asset_finder.create_continuous_future(
@@ -507,7 +507,7 @@ class ContinuousFuturesTestCase(WithCreateBarData,
                          'the current contract.')
 
         bar_data = self.create_bardata(
-            lambda: pd.Timestamp('2016-02-26', tz='UTC'))
+            lambda: pd.Timestamp('2016-02-29', tz='UTC'))
         contract = bar_data.current(cf_primary, 'contract')
         self.assertEqual(contract.symbol, 'FOH16',
                          'Volume switch to FOH16, should have triggered roll.')

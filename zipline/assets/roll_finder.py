@@ -15,6 +15,11 @@
 from abc import ABCMeta, abstractmethod
 from six import with_metaclass
 
+# Number of days over which to compute rolls when finding the current contract
+# for a volume-rolling contract chain. For more details on why this is needed,
+# see `VolumeRollFinder.get_contract_center`.
+ROLL_DAYS_FOR_CURRENT_CONTRACT = 90
+
 
 class RollFinder(with_metaclass(ABCMeta, object)):
     """
@@ -24,6 +29,20 @@ class RollFinder(with_metaclass(ABCMeta, object)):
     @abstractmethod
     def _active_contract(self, oc, front, back, dt):
         raise NotImplementedError
+
+    def _get_active_contract_at_offset(self, root_symbol, dt, offset):
+        """
+        For the given root symbol, find the contract that is considered active
+        on a specific date at a specific offset.
+        """
+        oc = self.asset_finder.get_ordered_contracts(root_symbol)
+        session = self.trading_calendar.minute_to_session_label(dt)
+        front = oc.contract_before_auto_close(session.value)
+        back = oc.contract_at_offset(front, 1, dt.value)
+        if back is None:
+            return front
+        primary = self._active_contract(oc, front, back, session)
+        return oc.contract_at_offset(primary, offset, session.value)
 
     def get_contract_center(self, root_symbol, dt, offset):
         """
@@ -42,14 +61,7 @@ class RollFinder(with_metaclass(ABCMeta, object)):
         Future
             The active future contract at the given dt.
         """
-        oc = self.asset_finder.get_ordered_contracts(root_symbol)
-        session = self.trading_calendar.minute_to_session_label(dt)
-        front = oc.contract_before_auto_close(session.value)
-        back = oc.contract_at_offset(front, 1, dt.value)
-        if back is None:
-            return front
-        primary = self._active_contract(oc, front, back, session)
-        return oc.contract_at_offset(primary, offset, session.value)
+        return self._get_active_contract_at_offset(root_symbol, dt, offset)
 
     def get_rolls(self, root_symbol, start, end, offset):
         """
@@ -76,7 +88,7 @@ class RollFinder(with_metaclass(ABCMeta, object)):
             is after the range.
         """
         oc = self.asset_finder.get_ordered_contracts(root_symbol)
-        front = self.get_contract_center(root_symbol, end, 0)
+        front = self._get_active_contract_at_offset(root_symbol, end, 0)
         back = oc.contract_at_offset(front, 1, end.value)
         if back is not None:
             end_session = self.trading_calendar.minute_to_session_label(end)
@@ -226,3 +238,37 @@ class VolumeRollFinder(RollFinder):
             if back_vol > front_vol:
                 return back
         return front
+
+    def get_contract_center(self, root_symbol, dt, offset):
+        """
+        Parameters
+        ----------
+        root_symbol : str
+            The root symbol for the contract chain.
+        dt : Timestamp
+            The datetime for which to retrieve the current contract.
+        offset : int
+            The offset from the primary contract.
+            0 is the primary, 1 is the secondary, etc.
+
+        Returns
+        -------
+        Future
+            The active future contract at the given dt.
+        """
+        # When determining the center contract on a specific day using volume
+        # rolls, simply picking the contract with the highest volume could
+        # cause flip-flopping between active contracts each day if the front
+        # and back contracts are close in volume. Therefore, information about
+        # the surrounding rolls is required. The `get_rolls` logic prevents
+        # contracts from being considered active once they have rolled, so
+        # incorporating that logic here prevents flip-flopping.
+        day = self.trading_calendar.day
+        rolls = self.get_rolls(
+            root_symbol=root_symbol,
+            start=dt,
+            end=dt + (ROLL_DAYS_FOR_CURRENT_CONTRACT * day),
+            offset=offset,
+        )
+        sid, acd = rolls[0]
+        return self.asset_finder.retrieve_asset(sid)
