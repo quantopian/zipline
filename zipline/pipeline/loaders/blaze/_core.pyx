@@ -524,7 +524,7 @@ cdef array_for_column(object dtype,
         raise TypeError('unknown column dtype: %r' % input_array.dtype)
 
 
-cpdef str getname(object column):
+cpdef getname(object column):
     try:
         return column.metadata['blaze_column_name']
     except KeyError:
