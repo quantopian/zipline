@@ -577,10 +577,6 @@ class TestMinuteToSession(WithEquityMinuteBarData,
             minute_panel,
             self.nyse_calendar
         )
-        for label in expected.minor_axis:
-            print label
-            print expected.loc[:, :, label]
-            print result.loc[:, :, label]
         assert_almost_equal(expected.values, result.values)
 
 
