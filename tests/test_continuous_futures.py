@@ -33,7 +33,10 @@ from zipline.assets.continuous_futures import (
     OrderedContracts,
     delivery_predicate
 )
-from zipline.assets.roll_finder import VolumeRollFinder
+from zipline.assets.roll_finder import (
+    ROLL_DAYS_FOR_CURRENT_CONTRACT,
+    VolumeRollFinder,
+)
 from zipline.data.minute_bars import FUTURES_MINUTES_PER_DAY
 from zipline.errors import SymbolNotFound
 from zipline.testing.fixtures import (
@@ -299,7 +302,7 @@ class ContinuousFuturesTestCase(WithCreateBarData,
                 cross_loc_1 = dts.searchsorted('2016-02-09 23:01:00+00:00')
                 cross_loc_2 = dts.searchsorted('2016-02-11 23:01:00+00:00')
                 cross_loc_3 = dts.searchsorted('2016-02-15 23:01:00+00:00')
-                end_loc = dts.searchsorted('2016-03-15 23:01:00+00:00')
+                end_loc = dts.searchsorted('2016-03-16 23:01:00+00:00')
                 df.volume.values[:cross_loc_1] = 5
                 df.volume.values[cross_loc_1:cross_loc_2] = 15
                 df.volume.values[cross_loc_2:cross_loc_3] = 5
@@ -341,23 +344,23 @@ class ContinuousFuturesTestCase(WithCreateBarData,
             else:
                 self.assertEqual(contract.symbol, 'DFG16')
 
-        # TODO: This test asserts behavior about a back contract briefly
-        # spiking in volume, but more than a week before the front contract's
-        # auto close date, meaning it does not fall in the 'grace' period used
-        # by `VolumeRollFinder._active_contract`. The current behavior is that
-        # during the spike, the back contract is considered current, but it may
-        # be worth changing that behavior in the future.
-        # sessions = self.trading_calendar.sessions_in_range(
-        #     '2016-03-01', '2016-03-21',
-        # )
-        # for session in sessions:
-        #     bar_data = self.create_bardata(lambda: session)
-        #     contract = bar_data.current(cf, 'contract')
+        # This test asserts behavior about a back contract briefly spiking in
+        # volume, but more than a week before the front contract's auto close
+        # date, meaning it does not fall in the 'grace' period used by
+        # `VolumeRollFinder._active_contract`. Therefore we should not roll to
+        # the back contract and the front contract should remain current until
+        # its auto close date.
+        sessions = self.trading_calendar.sessions_in_range(
+            '2016-03-01', '2016-03-21',
+        )
+        for session in sessions:
+            bar_data = self.create_bardata(lambda: session)
+            contract = bar_data.current(cf, 'contract')
 
-        #     if session < pd.Timestamp('2016-03-16', tz='UTC'):
-        #         self.assertEqual(contract.symbol, 'DFG16')
-        #     else:
-        #         self.assertEqual(contract.symbol, 'DFH16')
+            if session < pd.Timestamp('2016-03-17', tz='UTC'):
+                self.assertEqual(contract.symbol, 'DFG16')
+            else:
+                self.assertEqual(contract.symbol, 'DFH16')
 
     def test_create_continuous_future(self):
         cf_primary = self.asset_finder.create_continuous_future(
@@ -507,7 +510,7 @@ class ContinuousFuturesTestCase(WithCreateBarData,
                          'the current contract.')
 
         bar_data = self.create_bardata(
-            lambda: pd.Timestamp('2016-02-26', tz='UTC'))
+            lambda: pd.Timestamp('2016-02-29', tz='UTC'))
         contract = bar_data.current(cf_primary, 'contract')
         self.assertEqual(contract.symbol, 'FOH16',
                          'Volume switch to FOH16, should have triggered roll.')
@@ -1306,7 +1309,9 @@ class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
 
     @classmethod
     def make_futures_info(cls):
-        two_days = 2 * cls.trading_calendar.day
+        day = cls.trading_calendar.day
+        two_days = 2 * day
+        end_buffer_days = ROLL_DAYS_FOR_CURRENT_CONTRACT * day
 
         cls.first_end_date = pd.Timestamp('2017-01-20', tz='UTC')
         cls.second_end_date = pd.Timestamp('2017-02-17', tz='UTC')
@@ -1376,6 +1381,26 @@ class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
                     'start_date': cls.last_start_date,
                     'end_date': cls.END_DATE,
                     'auto_close_date': cls.END_DATE + two_days,
+                    'exchange': 'CME',
+                },
+                2000: {
+                    # Using a placeholder month of 'A' to mean this is the
+                    # first contract in the chain.
+                    'symbol': 'FVA17',
+                    'root_symbol': 'FV',
+                    'start_date': cls.START_DATE,
+                    'end_date': cls.END_DATE + end_buffer_days,
+                    'auto_close_date': cls.END_DATE + two_days,
+                    'exchange': 'CME',
+                },
+                2001: {
+                    # Using a placeholder month of 'B' to mean this is the
+                    # second contract in the chain.
+                    'symbol': 'FVB17',
+                    'root_symbol': 'FV',
+                    'start_date': cls.START_DATE,
+                    'end_date': cls.END_DATE + end_buffer_days,
+                    'auto_close_date': cls.END_DATE + end_buffer_days,
                     'exchange': 'CME',
                 },
             },
@@ -1487,6 +1512,11 @@ ACD -> 2017-05-19        0        0        0        0     3000 `---1000--> 2000
         seventh_contract_data = create_contract_data(2000)
         yield 1006, seventh_contract_data.copy().loc[cls.last_start_date:]
 
+        # The data for FV does not really matter except that contract 2000 has
+        # higher volume than contract 2001.
+        yield 2000, create_contract_data(200)
+        yield 2001, create_contract_data(100)
+
     def test_volume_roll(self):
         """
         Test normally behaving rolls.
@@ -1577,6 +1607,38 @@ ACD -> 2017-05-19        0        0        0        0     3000 `---1000--> 2000
                 (1004, pd.Timestamp('2017-05-19', tz='UTC')),
                 (1006, None),
             ],
+        )
+
+    def test_get_contract_center(self):
+        asset_finder = self.asset_finder
+        get_contract_center = partial(
+            self.volume_roll_finder.get_contract_center, offset=0,
+        )
+
+        # Test that the current contract adheres to the rolls.
+        self.assertEqual(
+            get_contract_center('CL', dt=pd.Timestamp('2017-01-18', tz='UTC')),
+            asset_finder.retrieve_asset(1000),
+        )
+        self.assertEqual(
+            get_contract_center('CL', dt=pd.Timestamp('2017-01-19', tz='UTC')),
+            asset_finder.retrieve_asset(1001),
+        )
+
+        # Test that we still get the correct current contract close to or at
+        # the max day boundary. Contracts 2000 and 2001 both have auto close
+        # dates after `self.END_DATE` so 2000 should always be the current
+        # contract. However, they do not have any volume data after this point
+        # so this test ensures that we do not fail to calculate the forward
+        # looking rolls required for `VolumeRollFinder.get_contract_center`.
+        near_end = self.END_DATE - self.trading_calendar.day
+        self.assertEqual(
+            get_contract_center('FV', dt=near_end),
+            asset_finder.retrieve_asset(2000),
+        )
+        self.assertEqual(
+            get_contract_center('FV', dt=self.END_DATE),
+            asset_finder.retrieve_asset(2000),
         )
 
 
