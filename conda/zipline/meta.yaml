@@ -1,7 +1,7 @@
 {% set data = load_setup_py_data() %}
 
 package:
-  name: zipline
+  name: zipline-live
   version: {{ GIT_DESCRIBE_TAG|replace('v', '') }}
 
 build:
