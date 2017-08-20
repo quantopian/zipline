@@ -57,11 +57,6 @@ class RealtimeClock(object):
         self._last_emit = None
         self._before_trading_start_bar_yielded = False
 
-        # It is expected to have this clock created once a day (ideally prior
-        # to BEFORE_TRADING_START_BAR event). Multiple days (sessions) are
-        # not supported.
-        assert len(self.sessions) == 1
-
     def __iter__(self):
         yield self.sessions[0], SESSION_START
 

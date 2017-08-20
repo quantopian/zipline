@@ -167,7 +167,10 @@ def _run(handle_data,
         env = TradingEnvironment(environ=environ)
         choose_loader = None
 
+    emission_rate = 'daily'
     if broker:
+        emission_rate = 'minute'
+        data_frequency = 'minute'
         start = pd.Timestamp.utcnow()
         end = start + pd.Timedelta('2 day')
 
@@ -182,6 +185,7 @@ def _run(handle_data,
             start=start,
             end=end,
             capital_base=capital_base,
+            emission_rate=emission_rate,
             data_frequency=data_frequency,
         ),
         **{
