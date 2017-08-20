@@ -241,7 +241,7 @@ def extras_requires(conda_format=False):
         extra: read_requirements('etc/requirements_{0}.txt'.format(extra),
                                  strict_bounds=True,
                                  conda_format=conda_format)
-        for extra in ('dev', 'talib')
+        for extra in ('dev', 'talib', 'ib')
     }
     extras['all'] = [req for reqs in extras.values() for req in reqs]
 
@@ -278,18 +278,18 @@ conditional_arguments = {
 }
 
 setup(
-    name='zipline',
-    url="http://zipline.io",
+    name='zipline-live',
+    url="http://zipline-live.io",
     version=versioneer.get_version(),
     cmdclass=LazyBuildExtCommandClass(versioneer.get_cmdclass()),
-    description='A backtester for financial algorithms.',
+    description='A backtester and live trader for financial algorithms.',
     entry_points={
         'console_scripts': [
             'zipline = zipline.__main__:main',
         ],
     },
-    author='Quantopian Inc.',
-    author_email='opensource@quantopian.com',
+    author='zipline-live community',
+    author_email='community@zipline-live.io',
     packages=find_packages(include=['zipline', 'zipline.*']),
     ext_modules=ext_modules,
     include_package_data=True,
@@ -299,7 +299,7 @@ setup(
                   if '__pycache__' not in root},
     license='Apache 2.0',
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 3 - Alpha',
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
         'Programming Language :: Python',
