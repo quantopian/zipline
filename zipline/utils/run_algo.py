@@ -169,7 +169,7 @@ def _run(handle_data,
 
     if broker:
         start = pd.Timestamp.utcnow()
-        end = start + pd.Timedelta('1', 'D')
+        end = start + pd.Timedelta('2 day')
 
     TradingAlgorithmClass = (partial(LiveTradingAlgorithm, broker=broker)
                              if broker else TradingAlgorithm)
