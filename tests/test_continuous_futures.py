@@ -1289,7 +1289,7 @@ def record_current_contract(algo, data):
 class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
 
     START_DATE = pd.Timestamp('2017-01-03', tz='UTC')
-    END_DATE = pd.Timestamp('2017-04-21', tz='UTC')
+    END_DATE = pd.Timestamp('2017-05-23', tz='UTC')
 
     TRADING_CALENDAR_STRS = ('us_futures',)
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
@@ -1317,6 +1317,8 @@ class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
         cls.fourth_auto_close_date = cls.fourth_end_date + two_days
         cls.fifth_start_date = pd.Timestamp('2017-03-15', tz='UTC')
         cls.fifth_end_date = cls.END_DATE
+        cls.fifth_auto_close_date = cls.fifth_end_date - two_days
+        cls.last_start_date = cls.fourth_end_date
 
         return pd.DataFrame.from_dict(
             {
@@ -1357,7 +1359,23 @@ class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
                     'root_symbol': 'CL',
                     'start_date': cls.fifth_start_date,
                     'end_date': cls.fifth_end_date,
-                    'auto_close_date': cls.fifth_end_date - two_days,
+                    'auto_close_date': cls.fifth_auto_close_date,
+                    'exchange': 'CME',
+                },
+                1005: {
+                    'symbol': 'CLM17',
+                    'root_symbol': 'CL',
+                    'start_date': cls.last_start_date,
+                    'end_date': cls.END_DATE,
+                    'auto_close_date': cls.END_DATE + two_days,
+                    'exchange': 'CME',
+                },
+                1006: {
+                    'symbol': 'CLN17',
+                    'root_symbol': 'CL',
+                    'start_date': cls.last_start_date,
+                    'end_date': cls.END_DATE,
+                    'auto_close_date': cls.END_DATE + two_days,
                     'exchange': 'CME',
                 },
             },
@@ -1369,40 +1387,47 @@ class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
         """
         Volume data should look like this:
 
-                              CLF17    CLG17    CLH17    CLJ17    CLK17
-                2017-01-03     2000     1000        5        0        0
-                2017-01-04     2000     1000        5        0        0
-                    ...
-                2017-01-16     2000     1000        5        0        0
-                2017-01-17     2000     1000        5        0        0
-        ACD --> 2017-01-18     2000_    1000        5        0        0
-                2017-01-19     2000 `-> 1000        5        0        0
-                2017-01-20     2000     1000        5        0        0
-                2017-01-23        0     1000        5        0        0
-                    ...
-                2017-02-09        0     1000        5        0        0
-                2017-02-10        0     1000_    5000        0        0
-                2017-02-13        0     1000 `-> 5000        0        0
-                2017-02-14        0     1000     5000        0        0
-        ACD --> 2017-02-15        0     1000     5000        0        0
-                2017-02-16        0     1000     5000        0        0
-                2017-02-17        0     1000     5000        0        0
-                2017-02-20        0        0     5000        0        0
-                    ...
-                2017-03-10        0        0     5000        0        0
-                2017-03-13        0        0     5000     4000        0
-                2017-03-14        0        0     5000     4000        0
-        ACD --> 2017-03-15        0        0     5000_    4000     3000
-                2017-03-16        0        0     5000 `-> 4000     3000
-                2017-03-17        0        0     5000     4000     3000
-                2017-03-20        0        0        0     4000     3000
-                    ...
-                2017-04-14        0        0        0     4000     3000
-                2017-04-17        0        0        0     4000_    3000
-                2017-04-18        0        0        0        0 `-> 3000
-        ACD --> 2017-04-19        0        0        0        0     3000
-                2017-04-20        0        0        0        0     3000
-                2017-04-21        0        0        0        0     3000
+                     CLF17    CLG17    CLH17    CLJ17    CLK17    CLM17   CLN17
+       2017-01-03     2000     1000        5        0        0        0       0
+       2017-01-04     2000     1000        5        0        0        0       0
+           ...
+       2017-01-16     2000     1000        5        0        0        0       0
+       2017-01-17     2000     1000        5        0        0        0       0
+ACD -> 2017-01-18     2000_    1000        5        0        0        0       0
+       2017-01-19     2000 `-> 1000        5        0        0        0       0
+       2017-01-20     2000     1000        5        0        0        0       0
+       2017-01-23        0     1000        5        0        0        0       0
+           ...
+       2017-02-09        0     1000        5        0        0        0       0
+       2017-02-10        0     1000_    5000        0        0        0       0
+       2017-02-13        0     1000 `-> 5000        0        0        0       0
+       2017-02-14        0     1000     5000        0        0        0       0
+ACD -> 2017-02-15        0     1000     5000        0        0        0       0
+       2017-02-16        0     1000     5000        0        0        0       0
+       2017-02-17        0     1000     5000        0        0        0       0
+       2017-02-20        0        0     5000        0        0        0       0
+           ...
+       2017-03-10        0        0     5000        0        0        0       0
+       2017-03-13        0        0     5000     4000        0        0       0
+       2017-03-14        0        0     5000     4000        0        0       0
+ACD -> 2017-03-15        0        0     5000_    4000     3000        0       0
+       2017-03-16        0        0     5000 `-> 4000     3000        0       0
+       2017-03-17        0        0     5000     4000     3000        0       0
+       2017-03-20        0        0        0     4000     3000        0       0
+           ...
+       2017-04-14        0        0        0     4000     3000        0       0
+       2017-04-17        0        0        0     4000_    3000        0       0
+       2017-04-18        0        0        0        0 `-> 3000        0       0
+ACD -> 2017-04-19        0        0        0        0     3000     1000    2000
+       2017-04-20        0        0        0        0     3000     1000    2000
+       2017-04-21        0        0        0        0     3000     1000    2000
+           ...
+       2017-05-16        0        0        0        0     3000     1000    2000
+       2017-05-17        0        0        0        0     3000     1000    2000
+       2017-05-18        0        0        0        0     3000_    1000    2000
+ACD -> 2017-05-19        0        0        0        0     3000 `---1000--> 2000
+       2017-05-22        0        0        0        0     3000     1000    2000
+       2017-05-23        0        0        0        0     3000     1000    2000
 
         The first roll occurs because we reach the auto close date of CLF17.
         The second roll occurs because the volume of CLH17 overtakes CLG17.
@@ -1410,6 +1435,10 @@ class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
         period before CLH17's auto close date.
         The fourth roll is testing that we properly handle the case where a
         contract's auto close date is *after* its end date.
+        The fifth roll occurs on the auto close date of CLK17, but we skip over
+        CLM17 because of it's low volume, and roll directly to CLN17. This is
+        used to cover an edge case where the window passed to get_rolls end on
+        the auto close date of CLK17.
 
         A volume of zero here is used to represent the fact that a contract no
         longer exists.
@@ -1451,6 +1480,12 @@ class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
         # Make a copy because we are taking a slice of a data frame.
         fifth_contract_data = create_contract_data(3000)
         yield 1004, fifth_contract_data.copy().loc[cls.fifth_start_date:]
+
+        sixth_contract_data = create_contract_data(1000)
+        yield 1005, sixth_contract_data.copy().loc[cls.last_start_date:]
+
+        seventh_contract_data = create_contract_data(2000)
+        yield 1006, seventh_contract_data.copy().loc[cls.last_start_date:]
 
     def test_volume_roll(self):
         """
@@ -1511,7 +1546,7 @@ class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
         rolls = self.volume_roll_finder.get_rolls(
             root_symbol='CL',
             start=self.fourth_start_date,
-            end=self.END_DATE,
+            end=self.fourth_auto_close_date,
             offset=0,
         )
         self.assertEqual(
@@ -1520,6 +1555,27 @@ class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
                 (1002, pd.Timestamp('2017-03-16', tz='UTC')),
                 (1003, pd.Timestamp('2017-04-18', tz='UTC')),
                 (1004, None),
+            ],
+        )
+
+    def test_roll_window_ends_on_auto_close(self):
+        """
+        Test that when skipping over a low volume contract (CLM17), we use the
+        correct roll date for the previous contract (CLK17) when that
+        contract's auto close date falls on the end date of the roll window.
+        """
+        rolls = self.volume_roll_finder.get_rolls(
+            root_symbol='CL',
+            start=self.last_start_date,
+            end=self.fifth_auto_close_date,
+            offset=0,
+        )
+        self.assertEqual(
+            rolls,
+            [
+                (1003, pd.Timestamp('2017-04-18', tz='UTC')),
+                (1004, pd.Timestamp('2017-05-19', tz='UTC')),
+                (1006, None),
             ],
         )
 
