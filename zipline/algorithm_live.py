@@ -47,17 +47,12 @@ class LiveTradingAlgorithm(TradingAlgorithm):
         # The clock has been replaced to use RealtimeClock
         trading_o_and_c = self.trading_calendar.schedule.ix[
             self.sim_params.sessions]
+        assert self.sim_params.data_frequency == 'minute'
+        assert self.sim_params.emission_rate == 'minute'
+
+        minutely_emission = True
+        market_opens = trading_o_and_c['market_open']
         market_closes = trading_o_and_c['market_close']
-        minutely_emission = False
-
-        if self.sim_params.data_frequency == 'minute':
-            market_opens = trading_o_and_c['market_open']
-
-            minutely_emission = self.sim_params.emission_rate == "minute"
-        else:
-            # in daily mode, we want to have one bar per session, timestamped
-            # as the last minute of the session.
-            market_opens = market_closes
 
         # The calendar's execution times are the minutes over which we actually
         # want to run the clock. Typically the execution times simply adhere to
