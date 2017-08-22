@@ -124,34 +124,46 @@ channel:
 .. _`Hitchhiker's Guide to Python` : http://docs.python-guide.org/en/latest/
 .. _`Homebrew` : http://brew.sh
 
-Installing in ``conda`` environments
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Managing ``conda`` environments
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 It is recommended to install Zipline in an isolated ``conda`` environment. 
-Installing Zipline in ``conda`` environment will not interfere your default 
+Installing Zipline in ``conda`` environments will not interfere your default 
 Python deployment or site-packages, which will prevent any possible conflict 
-with your global libraries. For more information on ``conda environment``, see 
+with your global libraries. For more information on ``conda`` environment, see 
 the `Conda User Guide <https://conda.io/docs/user-guide/tasks/manage-environments.html>`_
 
-Assuming ``conda`` has been set up, you can create a virtual environment:
+Assuming ``conda`` has been set up, you can create a ``conda`` environment:
+
+- Python 2.7:
 
 .. code-block:: bash
 
-    $ conda create -n zipline
+    $ conda create -n env_zipline python=2.7
 
-Then you should activate the conda environment by using the command
-
-.. code-block:: bash
-
-    (zipline) $ source activate zipline
-
-You can install Zipline by simply run
+- Python 3.5:
 
 .. code-block:: bash
 
-    (zipline) $ conda install -c Quantopian zipline
+    $ conda create -n env_zipline python=3.5
+
+
+Now you have set up an isolated environment called ``env_zipline``, a sandbox-like
+structre to install Zipline. Then you should activate the conda environment 
+by using the command
+
+.. code-block:: bash
+
+    $ source activate env_zipline
+
+You can install Zipline by running
+
+.. code-block:: bash
+
+    (env_zipline) $ conda install -c Quantopian zipline
 
 To deactivate the ``conda`` environment:
 
 .. code-block:: bash
 
-    (zipline) $ source deactivate
+    (env_zipline) $ source deactivate
+
