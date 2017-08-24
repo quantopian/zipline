@@ -148,7 +148,7 @@ Assuming ``conda`` has been set up, you can create a ``conda`` environment:
 
 
 Now you have set up an isolated environment called ``env_zipline``, a sandbox-like
-structre to install Zipline. Then you should activate the conda environment 
+structure to install Zipline. Then you should activate the conda environment 
 by using the command
 
 .. code-block:: bash
