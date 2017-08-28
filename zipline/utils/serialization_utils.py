@@ -83,7 +83,7 @@ def load_context(state_file_path, context, checksum):
     with open(state_file_path, 'rb') as f:
         try:
             loaded_state = pickle.load(f)
-        except pickle.UnpicklingError:
+        except (pickle.UnpicklingError, IndexError):
             raise ValueError("Corrupt state file: {}".format(state_file_path))
         else:
             if CHECKSUM_KEY not in loaded_state or \
