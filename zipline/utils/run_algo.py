@@ -71,7 +71,8 @@ def _run(handle_data,
          print_algo,
          local_namespace,
          environ,
-         broker):
+         broker,
+         state_filename):
     """Run a backtest for the given algorithm.
 
     This is shared between the cli and :func:`zipline.run_algo`.
@@ -174,7 +175,9 @@ def _run(handle_data,
         start = pd.Timestamp.utcnow()
         end = start + pd.Timedelta('2 day')
 
-    TradingAlgorithmClass = (partial(LiveTradingAlgorithm, broker=broker)
+    TradingAlgorithmClass = (partial(LiveTradingAlgorithm,
+                                     broker=broker,
+                                     state_filename=state_filename)
                              if broker else TradingAlgorithm)
 
     perf = TradingAlgorithmClass(
@@ -384,4 +387,5 @@ def run_algorithm(start,
         local_namespace=False,
         environ=environ,
         broker=None,
+        state_filename=None
     )

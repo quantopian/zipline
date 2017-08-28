@@ -23,6 +23,7 @@ from zipline.finance.trading import TradingEnvironment
 # Label for the serialization version field in the state returned by
 # __getstate__.
 VERSION_LABEL = '_stateversion_'
+CHECKSUM_KEY = '__state_checksum'
 
 
 def _persistent_id(obj):
@@ -76,3 +77,37 @@ def loads_with_persistent_ids(str, env):
     unpickler = pickle.Unpickler(file)
     unpickler.persistent_load = partial(_persistent_load, env=env)
     return unpickler.load()
+
+
+def load_context(state_file_path, context, checksum):
+    with open(state_file_path, 'rb') as f:
+        try:
+            loaded_state = pickle.load(f)
+        except (pickle.UnpicklingError, IndexError):
+            raise ValueError("Corrupt state file: {}".format(state_file_path))
+        else:
+            if CHECKSUM_KEY not in loaded_state or \
+               loaded_state[CHECKSUM_KEY] != checksum:
+                raise TypeError("Checksum mismatch during state load. "
+                                "The given state file was not created "
+                                "for the algorithm in use")
+            else:
+                del loaded_state[CHECKSUM_KEY]
+
+            for k, v in loaded_state.items():
+                setattr(context, k, v)
+
+
+def store_context(state_file_path, context, checksum, exclude_list):
+    state = {}
+    fields_to_store = list(set(context.__dict__.keys()) -
+                           set(exclude_list))
+
+    for field in fields_to_store:
+        state[field] = getattr(context, field)
+
+    state[CHECKSUM_KEY] = checksum
+
+    with open(state_file_path, 'wb') as f:
+        # Forcing v2 protocol for compatibility between py2 and py3
+        pickle.dump(state, f, protocol=2)
