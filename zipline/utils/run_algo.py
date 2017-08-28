@@ -175,7 +175,9 @@ def _run(handle_data,
         start = pd.Timestamp.utcnow()
         end = start + pd.Timedelta('2 day')
 
-    TradingAlgorithmClass = (partial(LiveTradingAlgorithm, broker=broker)
+    TradingAlgorithmClass = (partial(LiveTradingAlgorithm,
+                                     broker=broker,
+                                     state_filename=state_filename)
                              if broker else TradingAlgorithm)
 
     perf = TradingAlgorithmClass(
@@ -189,7 +191,6 @@ def _run(handle_data,
             emission_rate=emission_rate,
             data_frequency=data_frequency,
         ),
-        state_filename=state_filename,
         **{
             'initialize': initialize,
             'handle_data': handle_data,
@@ -386,4 +387,5 @@ def run_algorithm(start,
         local_namespace=False,
         environ=environ,
         broker=None,
+        state_filename=None
     )
