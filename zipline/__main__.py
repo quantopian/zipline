@@ -198,6 +198,12 @@ def ipython_only(option):
     show_default=True,
     help='Connection to broker',
 )
+@click.option(
+    '--state-file',
+    default=None,
+    metavar='FILENAME',
+    help='Filename where the state will be stored'
+)
 @click.pass_context
 def run(ctx,
         algofile,
@@ -213,7 +219,8 @@ def run(ctx,
         print_algo,
         local_namespace,
         broker,
-        broker_uri):
+        broker_uri,
+        state_file):
     """Run a backtest for the given algorithm.
     """
     # check that the start and end dates are passed correctly
@@ -235,6 +242,9 @@ def run(ctx,
 
     if broker and data_frequency != 'minute':
         ctx.fail("must use '--data-frequency minute' with live trading")
+
+    if broker and state_file is None:
+        ctx.fail("must specify state-file with live trading")
 
     brokerobj = None
     if broker:
@@ -278,6 +288,7 @@ def run(ctx,
         local_namespace=local_namespace,
         environ=os.environ,
         broker=brokerobj,
+        state_filename=state_file,
     )
 
     if output == '-':

@@ -11,19 +11,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from datetime import time
+import os.path
 import logbook
 
 import zipline.protocol as zp
 from zipline.algorithm import TradingAlgorithm
 from zipline.gens.realtimeclock import RealtimeClock
 from zipline.gens.tradesimulation import AlgorithmSimulator
-from zipline.errors import OrderInBeforeTradingStart
+from zipline.errors import (OrderInBeforeTradingStart,
+                            ScheduleFunctionOutsideTradingStart)
 from zipline.utils.input_validation import error_keywords
 from zipline.utils.api_support import (
+    ZiplineAPI,
     api_method,
-    disallowed_in_before_trading_start)
+    disallowed_in_before_trading_start,
+    allowed_only_in_before_trading_start)
 
 from zipline.utils.calendars.trading_calendar import days_at_time
+from zipline.utils.serialization_utils import load_context, store_context
 
 log = logbook.Logger("Live Trading")
 
@@ -38,9 +43,38 @@ class LiveTradingAlgorithm(TradingAlgorithm):
         self.broker = kwargs.pop('broker', None)
         self.orders = {}
 
+        self.algo_filename = kwargs.get('algo_filename', "<algorithm>")
+        self.state_filename = kwargs.pop('state_filename', None)
+        self._context_persistence_excludes = []
+
         super(self.__class__, self).__init__(*args, **kwargs)
 
         log.info("initialization done")
+
+    def initialize(self, *args, **kwargs):
+        self._context_persistence_excludes = (list(self.__dict__.keys()) +
+                                              ['trading_client'])
+
+        if os.path.isfile(self.state_filename):
+            log.info("Loading state from {}".format(self.state_filename))
+            load_context(self.state_filename,
+                         context=self,
+                         checksum=self.algo_filename)
+            return
+
+        with ZiplineAPI(self):
+            super(self.__class__, self).initialize(*args, **kwargs)
+            store_context(self.state_filename,
+                          context=self,
+                          checksum=self.algo_filename,
+                          exclude_list=self._context_persistence_excludes)
+
+    def handle_data(self, data):
+        super(self.__class__, self).handle_data(data)
+        store_context(self.state_filename,
+                      context=self,
+                      checksum=self.algo_filename,
+                      exclude_list=self._context_persistence_excludes)
 
     def _create_clock(self):
         # This method is taken from TradingAlgorithm.
@@ -102,6 +136,28 @@ class LiveTradingAlgorithm(TradingAlgorithm):
 
     def updated_account(self):
         return self.broker.account
+
+    @api_method
+    @allowed_only_in_before_trading_start(
+        ScheduleFunctionOutsideTradingStart())
+    def schedule_function(self,
+                          func,
+                          date_rule=None,
+                          time_rule=None,
+                          half_days=True,
+                          calendar=None):
+        # If the scheduled_function() is called from initalize()
+        # then the state persistence would need to take care of storing and
+        # restoring the scheduled functions too (as initialize() only called
+        # once in the algorithm's life). Persisting scheduled functions are
+        # difficult as they are not serializable by default.
+        # We enforce scheduled functions to be called only from
+        # before_trading_start() in live trading with a decorator.
+        super(self.__class__, self).schedule_function(func,
+                                                      date_rule,
+                                                      time_rule,
+                                                      half_days,
+                                                      calendar)
 
     @api_method
     @disallowed_in_before_trading_start(OrderInBeforeTradingStart())

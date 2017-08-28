@@ -71,7 +71,8 @@ def _run(handle_data,
          print_algo,
          local_namespace,
          environ,
-         broker):
+         broker,
+         state_filename):
     """Run a backtest for the given algorithm.
 
     This is shared between the cli and :func:`zipline.run_algo`.
@@ -188,6 +189,7 @@ def _run(handle_data,
             emission_rate=emission_rate,
             data_frequency=data_frequency,
         ),
+        state_filename=state_filename,
         **{
             'initialize': initialize,
             'handle_data': handle_data,
