@@ -18,7 +18,9 @@ from mock import patch, sentinel
 from testfixtures import tempdir
 
 from zipline.algorithm_live import LiveTradingAlgorithm
-from zipline.gens.realtimeclock import RealtimeClock, SESSION_START
+from zipline.gens.realtimeclock import (RealtimeClock,
+                                        SESSION_START,
+                                        BEFORE_TRADING_START_BAR)
 from zipline.gens.sim_engine import MinuteSimulationClock
 from zipline.gens.brokers.ib_broker import IBBroker
 from zipline.testing.fixtures import WithSimParams
@@ -149,10 +151,16 @@ class TestRealtimeClock(TestCase):
         # Simulation Tick: 2017-04-20 00:00:00+00:00 - 1 (SESSION_START)
         # Simulation Tick: 2017-04-20 12:45:00+00:00 - 4 (BEFORE_TRADING_START)
         # Simulation Tick: 2017-04-20 13:31:00+00:00 - 0 (BAR)
-        msc_midday_position = 2 + 90 - 1
+        msc_midday_position = 2 + 90
         self.assertEquals(rtc_events[0], msc_events[0])  # Session start bar
-        # BEFORE_TRADING_START is not fired as we're in mid-day
-        self.assertEquals(rtc_events[1:], msc_events[msc_midday_position:])
+
+        # before_trading_start is fired immediately if we're after 8:45 EDT
+        event_time, event_type = rtc_events[1]
+        self.assertEquals(event_time,
+                          pd.Timestamp("2017-04-20 15:00", tz='UTC'))
+        self.assertEquals(event_type, BEFORE_TRADING_START_BAR)
+
+        self.assertEquals(rtc_events[2:], msc_events[msc_midday_position:])
 
     def test_afterhours_start(self):
         """Tests that RealtimeClock returns immediately if started after RTH"""
@@ -171,11 +179,16 @@ class TestRealtimeClock(TestCase):
             self.internal_clock = pd.Timestamp("2017-04-20 20:05", tz='UTC')
 
             events = list(rtc)
-            self.assertEquals(len(events), 1)
+            self.assertEquals(len(events), 2)
 
-            # Event 0 is SESSION_START which always triggered.
+            # SESSION_START & which always triggered.
             _, event_type = events[0]
             self.assertEquals(event_type, SESSION_START)
+
+            event_time, event_type = events[1]
+            self.assertEquals(event_time,
+                              pd.Timestamp("2017-04-20 20:05", tz='UTC'))
+            self.assertEquals(event_type, BEFORE_TRADING_START_BAR)
 
 
 class TestPersistence(WithSimParams, WithTradingEnvironment, ZiplineTestCase):
