@@ -577,3 +577,18 @@ class LabelArrayTestCase(ZiplineTestCase):
         arr = LabelArray(categories, missing_value=categories[0])
         assert_equal(arr.itemsize, 4)
         self.check_roundtrip(arr)
+
+    def test_copy_categories_list(self):
+        """regression test for #1927
+        """
+        categories = ['a', 'b', 'c']
+
+        LabelArray(
+            [None, 'a', 'b', 'c'],
+            missing_value=None,
+            categories=categories,
+        )
+
+        # before #1927 we didn't take a copy and would insert the missing value
+        # (None) into the list
+        assert_equal(categories, ['a', 'b', 'c'])
