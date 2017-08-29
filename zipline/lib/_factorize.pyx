@@ -1,6 +1,7 @@
 """
 Factorization algorithms.
 """
+from cpython cimport Py_LT
 from libc.math cimport log
 cimport numpy as np
 import numpy as np
@@ -38,6 +39,24 @@ ctypedef fused unsigned_integral:
     np.uint64_t
 
 
+cdef class _NoneFirstSortKey:
+    """Box to sort ``None`` to the front of the categories list.
+    """
+    cdef object value
+
+    def __cinit__(self, value):
+        self.value = value
+
+    def __richcmp__(_NoneFirstSortKey self, _NoneFirstSortKey other, int op):
+        if op == Py_LT:
+            return (
+                self.value is None or
+                (other.value is not None and self.value < other.value)
+            )
+
+        return NotImplemented
+
+
 cdef factorize_strings_known_impl(np.ndarray[object] values,
                                   Py_ssize_t nvalues,
                                   list categories,
@@ -48,7 +67,7 @@ cdef factorize_strings_known_impl(np.ndarray[object] values,
         categories.insert(0, missing_value)
 
     if sort:
-        categories = sorted(categories)
+        categories = sorted(categories, key=_NoneFirstSortKey)
 
     cdef dict reverse_categories = dict(
         zip(categories, range(len(categories)))
