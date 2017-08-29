@@ -171,7 +171,6 @@ def _run(handle_data,
     emission_rate = 'daily'
     if broker:
         emission_rate = 'minute'
-        data_frequency = 'minute'
         start = pd.Timestamp.utcnow()
         end = start + pd.Timedelta('2 day')
 
