@@ -14,20 +14,23 @@ except ImportError:                     # Python 2
 
 import os
 
-from mock import patch, sentinel
+from mock import patch, sentinel, Mock, MagicMock
 from testfixtures import tempdir
 
-from zipline.algorithm_live import LiveTradingAlgorithm
+from zipline.algorithm import TradingAlgorithm
+from zipline.algorithm_live import LiveTradingAlgorithm, LiveAlgorithmExecutor
 from zipline.gens.realtimeclock import (RealtimeClock,
                                         SESSION_START,
                                         BEFORE_TRADING_START_BAR)
 from zipline.gens.sim_engine import MinuteSimulationClock
+from zipline.gens.brokers.broker import Broker
 from zipline.gens.brokers.ib_broker import IBBroker
 from zipline.testing.fixtures import WithSimParams
 from zipline.utils.calendars import get_calendar
 from zipline.utils.calendars.trading_calendar import days_at_time
 from zipline.utils.serialization_utils import load_context, store_context
 from zipline.testing.fixtures import ZiplineTestCase, WithTradingEnvironment
+from zipline.errors import CannotOrderDelistedAsset
 
 
 class TestRealtimeClock(TestCase):
@@ -352,6 +355,52 @@ class TestPersistence(WithSimParams, WithTradingEnvironment, ZiplineTestCase):
         assert restored_context.sma == context.sma
         assert restored_context.trading_client is None
         assert restored_context.event_manager is None
+
+
+class TestLiveTradingAlgorithm(WithSimParams, WithTradingEnvironment,
+                               ZiplineTestCase):
+
+    def test_live_trading_supports_orders_outside_ingested_period(self):
+        def create_initialized_algo(trading_algorithm_class, current_dt):
+            def initialize(context):
+                pass
+
+            def handle_data(context, data):
+                context.order_value(context.symbol("A"), 100)
+
+            algo = trading_algorithm_class(
+                namespace={},
+                env=self.make_trading_environment(),
+                get_pipeline_loader=self.make_load_function(),
+                sim_params=self.make_simparams(),
+                state_filename='blah',
+                algo_filename='foo',
+                initialize=initialize,
+                handle_data=handle_data,
+                script=None)
+
+            algo.initialize()
+            algo.initialized = True  # Normally this is set through algo.run()
+            algo.datetime = current_dt
+
+            return algo
+
+        current_dt = self.END_DATE + pd.Timedelta("1 day")
+
+        backtest_algo = create_initialized_algo(TradingAlgorithm, current_dt)
+
+        with self.assertRaises(CannotOrderDelistedAsset):
+            backtest_algo.handle_data(data=sentinel.data)
+
+        live_algo = create_initialized_algo(LiveTradingAlgorithm, current_dt)
+        live_algo.trading_client = MagicMock(spec=LiveAlgorithmExecutor)
+        live_algo.trading_client.current_data = Mock()
+        live_algo.trading_client.current_data.current.return_value = 12
+        live_algo.broker = MagicMock(spec=Broker)
+
+        live_algo.handle_data(data=sentinel.data)
+        assert live_algo.broker.order.called
+        assert live_algo.trading_client.current_data.current.called
 
 
 class TestIBBroker(WithSimParams, ZiplineTestCase):

@@ -13,9 +13,11 @@
 from datetime import time
 import os.path
 import logbook
+import pandas as pd
 
 import zipline.protocol as zp
 from zipline.algorithm import TradingAlgorithm
+from zipline.assets._assets import Asset
 from zipline.gens.realtimeclock import RealtimeClock
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.errors import (OrderInBeforeTradingStart,
@@ -158,6 +160,33 @@ class LiveTradingAlgorithm(TradingAlgorithm):
                                                       time_rule,
                                                       half_days,
                                                       calendar)
+
+    @api_method
+    def symbol(self, symbol_str):
+        # This method works around the problem of not being able to trade
+        # assets which does not have ingested data for the day of trade.
+        # Normally historical data is loaded to bundle and the asset's
+        # end_date and auto_close_date is set based on the last entry from
+        # the bundle db. LiveTradingAlgorithm does not override order_value(),
+        # order_percent() & order_target(). Those higher level ordering
+        # functions provide a safety net to not to trade de-listed assets.
+        # If the asset is returned as it was ingested (end_date=yesterday)
+        # then CannotOrderDelistedAsset exception will be raised from the
+        # higher level order functions.
+        #
+        # Hence, we are increasing the asset's end_date by 10,000 days.
+        # The ample buffer is provided for two reasons:
+        # 1) assets are often stored in algo's context through initialize(),
+        #    which is called once and persisted at live trading. 10,000 days
+        #    enables 27+ years of trading, which is more than enough.
+        # 2) Tool - 10,000 Days is brilliant!
+
+        asset = super(self.__class__, self).symbol(symbol_str)
+        tradeable_asset = asset.to_dict()
+        tradeable_asset['end_date'] = (pd.Timestamp('now', tz='UTC') +
+                                       pd.Timedelta('10000 days'))
+        tradeable_asset['auto_close_date'] = tradeable_asset['end_date']
+        return Asset.from_dict(tradeable_asset)
 
     @api_method
     @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
