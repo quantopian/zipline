@@ -143,7 +143,10 @@ class LabelArray(ndarray):
 
     @preprocess(
         values=coerce(list, partial(np.asarray, dtype=object)),
-        categories=coerce((np.ndarray, set), list),
+        # Coerce ``list`` to ``list`` to make a copy. Code internally may call
+        # ``categories.insert(0, missing_value)`` which will mutate this list
+        # in place.
+        categories=coerce((list, np.ndarray, set), list),
     )
     @expect_types(
         values=np.ndarray,
