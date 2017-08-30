@@ -16,7 +16,7 @@ from numpy.testing.utils import assert_array_almost_equal
 from odo import odo
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
-from toolz import keymap, valmap, concatv
+from toolz import keymap, valmap, concatv, concat
 from toolz.curried import operator as op
 
 from zipline.assets.synthetic import make_simple_equity_info
@@ -58,10 +58,16 @@ asset_infos = (
     ),),
 )
 simple_asset_info = asset_infos[0][0]
-with_extra_sid = parameterized.expand(asset_infos)
-with_ignore_sid = parameterized.expand(
-    product(chain.from_iterable(asset_infos), [True, False])
-)
+
+
+def with_extra_sid():
+    return parameterized.expand(asset_infos)
+
+
+def with_ignore_sid():
+    return parameterized.expand(
+        product(chain.from_iterable(asset_infos), [True, False])
+    )
 
 
 def _utc_localize_index_level_0(df):
@@ -452,9 +458,19 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                    Equity(66 [B])      NaT  False
                    Equity(67 [C])      NaT  False
         """
-        df = pd.DataFrame(columns=['sid', 'float_value', 'str_value',
-                                   'int_value', 'bool_value', 'dt_value',
-                                   'asof_date', 'timestamp'])
+        df = pd.DataFrame(np.array(
+            [],
+            dtype=[
+                ('sid', 'int64'),
+                ('float_value', 'float64'),
+                ('str_value', 'object'),
+                ('int_value', 'int64'),
+                ('bool_value', 'bool'),
+                ('dt_value', 'datetime64[ns]'),
+                ('asof_date', 'datetime64[ns]'),
+                ('timestamp', 'datetime64[ns]'),
+            ],
+        ))
 
         expr = bz.data(
             df,
@@ -1310,7 +1326,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             check_dtype=False,
         )
 
-    @with_ignore_sid
+    @with_ignore_sid()
     def test_deltas(self, asset_info, add_extra_sid):
         df = self.df.copy()
         if add_extra_sid:
@@ -1377,7 +1393,87 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 compute_fn=np.nanmax,
             )
 
-    @with_extra_sid
+    @with_ignore_sid()
+    def test_deltas_before_index_0(self, asset_info, add_extra_sid):
+        df = pd.DataFrame(np.array(
+            [],
+            dtype=[
+                ('sid', 'int64'),
+                ('value', 'float64'),
+                ('asof_date', 'datetime64[ns]'),
+                ('timestamp', 'datetime64[ns]'),
+            ],
+        ))
+        expr = bz.data(df, name='expr', dshape=self.dshape)
+
+        T = pd.Timestamp
+        deltas_df_single_sid = pd.DataFrame({
+            'value': [0.0, 1.0, 2.0, 3.0],
+            'asof_date': [
+                T('2013-12-01'),
+                T('2013-12-15'),
+                T('2013-12-02'),  # not more recent than the previous day
+                T('2013-12-16'),
+            ],
+            'timestamp': [
+                T('2014-01-01 23:00'),
+                T('2014-01-02 23:00'),
+                T('2014-01-03 23:00'),
+                T('2014-01-04 23:00'),
+            ],
+        })
+        deltas_df = pd.concat([
+            deltas_df_single_sid.assign(
+                sid=sid,
+                value=deltas_df_single_sid.value + (100 * n),
+            )
+            for n, sid in enumerate(asset_info.index)
+        ])
+        deltas = bz.data(deltas_df, name='deltas', dshape=self.dshape)
+
+        expected_views_single_sid = keymap(pd.Timestamp, {
+            '2014-01-02': np.array([[0.0],
+                                    [0.0]]),
+            '2014-01-03': np.array([[1.0],
+                                    [1.0]]),
+            '2014-01-04': np.array([[1.0],
+                                    [1.0]]),
+            '2014-01-05': np.array([[3.0],
+                                    [3.0]]),
+        })
+
+        column_constant = np.arange(len(asset_info)) * 100
+        expected_views = {
+            k: v + column_constant
+            for k, v in expected_views_single_sid.items()
+        }
+        with tmp_asset_finder(equities=asset_info) as finder:
+            nassets = len(asset_info)
+            expected_max = np.array([0, 1, 1, 3]) + (nassets - 1) * 100
+            expected_output = pd.DataFrame(
+                list(concat([n] * nassets for n in expected_max)),
+                index=pd.MultiIndex.from_product((
+                    sorted(expected_views.keys()),
+                    finder.retrieve_all(asset_info.index),
+                )),
+                columns=('value',),
+            )
+            dates = pd.date_range('2014-01-01', '2014-01-05')
+            self._run_pipeline(
+                expr,
+                deltas,
+                None,
+                expected_views,
+                expected_output,
+                finder,
+                calendar=dates,
+                start=dates[1],
+                end=dates[-1],
+                window_length=2,
+                compute_fn=np.nanmax,
+            )
+
+    @with_extra_sid()
     def test_deltas_only_one_delta_in_universe(self, asset_info):
         expr = bz.data(self.df, name='expr', dshape=self.dshape)
         deltas = pd.DataFrame({
@@ -1476,7 +1572,72 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 compute_fn=np.nanmax,
             )
 
-    @with_extra_sid
+    def test_deltas_before_index_0_macro(self):
+        df = pd.DataFrame(np.array(
+            [],
+            dtype=[
+                ('value', 'float64'),
+                ('asof_date', 'datetime64[ns]'),
+                ('timestamp', 'datetime64[ns]'),
+            ],
+        ))
+        expr = bz.data(df, name='expr', dshape=self.macro_dshape)
+
+        T = pd.Timestamp
+        deltas_df = pd.DataFrame({
+            'value': [0.0, 1.0, 2.0, 3.0],
+            'asof_date': [
+                T('2013-12-01'),
+                T('2013-12-15'),
+                T('2013-12-02'),  # not more recent than the previous day
+                T('2013-12-16'),
+            ],
+            'timestamp': [
+                T('2014-01-01 23:00'),
+                T('2014-01-02 23:00'),
+                T('2014-01-03 23:00'),
+                T('2014-01-04 23:00'),
+            ],
+        })
+        deltas = bz.data(deltas_df, name='deltas', dshape=self.macro_dshape)
+
+        nassets = len(simple_asset_info)
+        expected_views = keymap(pd.Timestamp, {
+            '2014-01-02': np.array([[0.0],
+                                    [0.0]]),
+            '2014-01-03': np.array([[1.0],
+                                    [1.0]]),
+            '2014-01-04': np.array([[1.0],
+                                    [1.0]]),
+            '2014-01-05': np.array([[3.0],
+                                    [3.0]]),
+        })
+
+        with tmp_asset_finder(equities=simple_asset_info) as finder:
+            expected_output = pd.DataFrame(
+                list(concat([n] * nassets for n in [0, 1, 1, 3])),
+                index=pd.MultiIndex.from_product((
+                    sorted(expected_views.keys()),
+                    finder.retrieve_all(simple_asset_info.index),
+                )),
+                columns=('value',),
+            )
+            dates = pd.date_range('2014-01-01', '2014-01-05')
+            self._run_pipeline(
+                expr,
+                deltas,
+                None,
+                expected_views,
+                expected_output,
+                finder,
+                calendar=dates,
+                start=dates[1],
+                end=dates[-1],
+                window_length=2,
+                compute_fn=np.nanmax,
+            )
+
+    @with_extra_sid()
     def test_novel_deltas(self, asset_info):
         base_dates = pd.DatetimeIndex([
             pd.Timestamp('2013-12-31'),
