@@ -240,9 +240,6 @@ def run(ctx,
     if broker and broker_uri is None:
         ctx.fail("must specify broker-uri if broker is specified")
 
-    if broker and data_frequency != 'minute':
-        ctx.fail("must use '--data-frequency minute' with live trading")
-
     if broker and state_file is None:
         ctx.fail("must specify state-file with live trading")
 

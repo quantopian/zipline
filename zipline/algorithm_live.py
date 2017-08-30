@@ -83,7 +83,6 @@ class LiveTradingAlgorithm(TradingAlgorithm):
         # The clock has been replaced to use RealtimeClock
         trading_o_and_c = self.trading_calendar.schedule.ix[
             self.sim_params.sessions]
-        assert self.sim_params.data_frequency == 'minute'
         assert self.sim_params.emission_rate == 'minute'
 
         minutely_emission = True
