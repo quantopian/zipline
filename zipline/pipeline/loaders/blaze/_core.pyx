@@ -173,6 +173,7 @@ cdef _array_for_column_impl(object dtype,
                             np.ndarray[column_type, ndim=2] out_array,
                             Py_ssize_t size,
                             np.ndarray[np.int64_t] ts_ixs,
+                            np.ndarray[np.int64_t] asof_dates,
                             np.ndarray[np.int64_t] asof_ixs,
                             np.ndarray[np.int64_t] sids,
                             dict column_ixs,
@@ -258,6 +259,15 @@ cdef _array_for_column_impl(object dtype,
     cdef list non_null_ts_ixs_by_column_ix = [
         set() for _ in range(out_array.shape[1])
     ]
+
+    cdef np.ndarray[np.int64_t] index_0_asof_date_by_column_ix
+    if AsArrayKind is AsAdjustedArray:
+        index_0_asof_date_by_column_ix = np.full(
+            out_array.shape[1],
+            pd.Timestamp.min.asm8.view('int64'),
+            dtype='int64',
+        )
+
     cdef dict adjustments
 
     cdef Py_ssize_t out_of_bounds_ix = len(out_array)
@@ -313,6 +323,17 @@ cdef _array_for_column_impl(object dtype,
                 adjustment_list = adjustments[ts_ix] = []
             else:
                 adjustment_list = <list> adjustment_list_ptr
+
+            if asof_ix == 0:
+                # If the asof_ix == 0, this value may fall before the start of
+                # our window. In this case, we only want to apply data that is
+                # more recent than the current asof date stored at index 0.
+                with cython.boundscheck(False), cython.wraparound(False):
+                    asof_date = asof_dates[n]
+                    if asof_date >= index_0_asof_date_by_column_ix[column_ix]:
+                        index_0_asof_date_by_column_ix[column_ix] = asof_date
+                    else:
+                        continue
 
         non_null_ad_ixs = non_null_ad_ixs_by_column_ix[column_ix]
         ix = bisect_right(non_null_ad_ixs, asof_ix)
@@ -430,6 +451,7 @@ cdef array_for_column(object dtype,
                       tuple out_shape,
                       Py_ssize_t size,
                       np.ndarray[np.int64_t] ts_ixs,
+                      np.ndarray[np.int64_t] asof_dates,
                       np.ndarray[np.int64_t] asof_ixs,
                       np.ndarray[np.int64_t] sids,
                       dict sid_column_ixs,
@@ -450,6 +472,7 @@ cdef array_for_column(object dtype,
             out_array,
             size,
             ts_ixs,
+            asof_dates,
             asof_ixs,
             sids,
             sid_column_ixs,
@@ -465,6 +488,7 @@ cdef array_for_column(object dtype,
             out_array.view('int64'),
             size,
             ts_ixs,
+            asof_dates,
             asof_ixs,
             sids,
             sid_column_ixs,
@@ -480,6 +504,7 @@ cdef array_for_column(object dtype,
             out_array,
             size,
             ts_ixs,
+            asof_dates,
             asof_ixs,
             sids,
             sid_column_ixs,
@@ -496,6 +521,7 @@ cdef array_for_column(object dtype,
             out_array,
             size,
             ts_ixs,
+            asof_dates,
             asof_ixs,
             sids,
             sid_column_ixs,
@@ -511,6 +537,7 @@ cdef array_for_column(object dtype,
             out_array.view('uint8'),
             size,
             ts_ixs,
+            asof_dates,
             asof_ixs,
             sids,
             sid_column_ixs,
@@ -573,6 +600,11 @@ cdef arrays_from_rows(DatetimeIndex_t dates,
             out_shape,
             size,
             ts_ixs,
+            (
+                all_rows[AD_FIELD_NAME].values.view('int64')
+                if len(all_rows) else
+                np.array([], dtype='int64')
+            ),
             asof_ixs,
             sids,
             column_ixs,
