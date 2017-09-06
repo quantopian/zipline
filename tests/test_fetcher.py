@@ -195,8 +195,8 @@ def handle_data(context, data):
     record(dell_signal=data.current(sid(25317), "signal"))
     """)
 
-        self.assertEqual(5, results["ibm_signal"].iloc[-1])
-        self.assertEqual(5, results["dell_signal"].iloc[-1])
+        self.assertEqual(5, results.recorded_vars["ibm_signal"].iloc[-1])
+        self.assertEqual(5, results.recorded_vars["dell_signal"].iloc[-1])
 
     def test_fetch_csv_with_pure_signal_file(self):
         self.responses.add(
@@ -228,7 +228,7 @@ def handle_data(context, data):
     record(cpi=cur_cpi)
             """)
 
-        self.assertEqual(results["cpi"][-1], 203.1)
+        self.assertEqual(results.recorded_vars["cpi"][-1], 203.1)
 
     def test_algo_fetch_csv(self):
         self.responses.add(
@@ -258,9 +258,9 @@ def handle_data(context, data):
         price=data.current(sid(24), "price"))
         """)
 
-        self.assertEqual(5, results["signal"][-1])
-        self.assertEqual(50, results["scaled"][-1])
-        self.assertEqual(24, results["price"][-1])  # fake value
+        self.assertEqual(5, results.recorded_vars["signal"][-1])
+        self.assertEqual(50, results.recorded_vars["scaled"][-1])
+        self.assertEqual(24, results.recorded_vars["price"][-1])  # fake value
 
     def test_algo_fetch_csv_with_extra_symbols(self):
         self.responses.add(
@@ -291,9 +291,9 @@ def handle_data(context, data):
             """
         )
 
-        self.assertEqual(5, results["signal"][-1])
-        self.assertEqual(50, results["scaled"][-1])
-        self.assertEqual(24, results["price"][-1])  # fake value
+        self.assertEqual(5, results.recorded_vars["signal"][-1])
+        self.assertEqual(50, results.recorded_vars["scaled"][-1])
+        self.assertEqual(24, results.recorded_vars["price"][-1])  # fake value
 
     @parameterized.expand([("unspecified", ""),
                            ("none", "usecols=None"),
@@ -328,7 +328,7 @@ def handle_data(context, data):
         """
         results = self.run_algo(code.format(usecols=usecols))
         # 251 trading days in 2006
-        self.assertEqual(len(results), 251)
+        self.assertEqual(len(results.daily_performance), 251)
 
     def test_sources_merge_custom_ticker(self):
         requests_kwargs = {}
@@ -367,8 +367,11 @@ def handle_data(context, data):
     record(aapl=data.current(context.stock, "price"))
         """)
 
-            np.testing.assert_array_equal([24] * 251, results["aapl"])
-            self.assertEqual(337, results["palladium"].iloc[-1])
+            np.testing.assert_array_equal(
+                [24] * 251,
+                results.recorded_vars["aapl"]
+            )
+            self.assertEqual(337, results.recorded_vars["palladium"].iloc[-1])
 
             expected = {
                 'allow_redirects': False,
@@ -430,10 +433,10 @@ def handle_data(context, data):
 
             results = self.run_algo(real_algocode, sim_params=sim_params)
 
-            self.assertEqual(len(results), 3)
-            self.assertEqual(3, results["sid_count"].iloc[0])
-            self.assertEqual(3, results["sid_count"].iloc[1])
-            self.assertEqual(4, results["sid_count"].iloc[2])
+            self.assertEqual(len(results.daily_performance), 3)
+            self.assertEqual(3, results.recorded_vars["sid_count"].iloc[0])
+            self.assertEqual(3, results.recorded_vars["sid_count"].iloc[1])
+            self.assertEqual(4, results.recorded_vars["sid_count"].iloc[2])
 
     def test_fetcher_universe_non_security_return(self):
         self.responses.add(
@@ -537,10 +540,10 @@ def handle_data(context, data):
         """, sim_params=sim_params, data_frequency="minute"
         )
 
-        self.assertEqual(3, len(results))
-        self.assertEqual(3, results["sid_count"].iloc[0])
-        self.assertEqual(3, results["sid_count"].iloc[1])
-        self.assertEqual(4, results["sid_count"].iloc[2])
+        self.assertEqual(3, len(results.daily_performance))
+        self.assertEqual(3, results.recorded_vars["sid_count"].iloc[0])
+        self.assertEqual(3, results.recorded_vars["sid_count"].iloc[1])
+        self.assertEqual(4, results.recorded_vars["sid_count"].iloc[2])
 
     def test_fetcher_in_before_trading_start(self):
         self.responses.add(
@@ -569,7 +572,7 @@ def before_trading_start(context, data):
     record(Short_Interest = data.current(context.stock, 'dtc'))
 """, sim_params=sim_params, data_frequency="minute")
 
-        values = results["Short_Interest"]
+        values = results.recorded_vars["Short_Interest"]
         np.testing.assert_array_equal(values[0:33], np.full(33, np.nan))
         np.testing.assert_array_almost_equal(values[33:44], [1.690317] * 11)
         np.testing.assert_array_almost_equal(values[44:55], [2.811858] * 11)
@@ -608,4 +611,4 @@ def handle_data(context, data):
     assert np.isnan(data.current(context.aapl, 'dtc'))
 """, sim_params=sim_params, data_frequency="minute")
 
-        self.assertEqual(3, len(results))
+        self.assertEqual(3, len(results.daily_performance))

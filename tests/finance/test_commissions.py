@@ -1,3 +1,5 @@
+import numpy as np
+
 from datetime import timedelta
 from textwrap import dedent
 
@@ -20,6 +22,7 @@ from zipline.finance.commission import (
 from zipline.finance.order import Order
 from zipline.finance.transaction import Transaction
 from zipline.testing import ZiplineTestCase, trades_by_sid_to_dfs
+from zipline.testing.predicates import assert_equal
 from zipline.testing.fixtures import (
     WithAssetFinder,
     WithSimParams,
@@ -383,10 +386,11 @@ class CommissionAlgorithmTests(WithDataPortal, WithSimParams, ZiplineTestCase):
         # should be 3 fills at 100 shares apiece
         # one order split among 3 days, each copy of the order should have a
         # commission of one dollar
-        for orders in results.orders[1:4]:
-            self.assertEqual(1, orders[0]["commission"])
-
-        self.verify_capital_used(results, [-1001, -1000, -1000])
+        assert_equal(
+            results.orders.commission.iloc[:4].values,
+            np.array([0.0, 1.0, 1.0, 1.0]),
+        )
+        self.verify_cash_flow(results, [-1001, -1000, -1000])
 
     def test_futures_per_trade(self):
         results = self.get_results(
@@ -399,11 +403,11 @@ class CommissionAlgorithmTests(WithDataPortal, WithSimParams, ZiplineTestCase):
             )
         )
 
-        # The capital used is only -1.0 (the commission cost) because no
-        # capital is actually spent to enter into a long position on a futures
-        # contract.
-        self.assertEqual(results.orders[1][0]['commission'], 1.0)
-        self.assertEqual(results.capital_used[1], -1.0)
+        # Order fills on the second day. Since this is a futures algo, we only
+        # see a cash flow change for the commission.
+        assert_equal(results.orders.commission.values, np.array([0.0, 1.0]))
+        assert_equal(results.orders.filled.values, np.array([0.0, 10.0]))
+        self.assertEqual(results.daily_performance.cash_flow.iloc[1], -1.0)
 
     def test_per_share_no_minimum(self):
         results = self.get_results(
@@ -417,12 +421,18 @@ class CommissionAlgorithmTests(WithDataPortal, WithSimParams, ZiplineTestCase):
         # should be 3 fills at 100 shares apiece
         # one order split among 3 days, each fill generates an additional
         # 100 * 0.05 = $5 in commission
-        for i, orders in enumerate(results.orders[1:4]):
-            self.assertEqual((i + 1) * 5, orders[0]["commission"])
-
-        self.verify_capital_used(results, [-1005, -1005, -1005])
+        assert_equal(
+            results.orders.commission.values,
+            np.array([0.0, 5.0, 10.0, 15.0]),
+        )
+        # -1000 for the cost of each fill, plus $5 in commissions.
+        self.verify_cash_flow(results, [-1005, -1005, -1005])
 
     def test_per_share_with_minimum(self):
+        # Algo should should get 3 fills at 100 shares apiece Each fill
+        # generates an additional 100 * 0.05 = $5 in commission by before
+        # accounting for min trade cost.
+
         # minimum hit by first trade
         results = self.get_results(
             self.code.format(
@@ -431,12 +441,12 @@ class CommissionAlgorithmTests(WithDataPortal, WithSimParams, ZiplineTestCase):
                 amount=300,
             )
         )
-
-        # commissions should be 5, 10, 15
-        for i, orders in enumerate(results.orders[1:4]):
-            self.assertEqual((i + 1) * 5, orders[0]["commission"])
-
-        self.verify_capital_used(results, [-1005, -1005, -1005])
+        assert_equal(
+            results.orders.commission.values,
+            np.array([0.0, 5.0, 10.0, 15.0]),
+        )
+        # -1000 for the cost of each fill, minus $5 in commissions.
+        self.verify_cash_flow(results, [-1005, -1005, -1005])
 
         # minimum hit by second trade
         results = self.get_results(
@@ -446,13 +456,12 @@ class CommissionAlgorithmTests(WithDataPortal, WithSimParams, ZiplineTestCase):
                 amount=300,
             )
         )
-
         # commissions should be 8, 10, 15
-        self.assertEqual(8, results.orders[1][0]["commission"])
-        self.assertEqual(10, results.orders[2][0]["commission"])
-        self.assertEqual(15, results.orders[3][0]["commission"])
-
-        self.verify_capital_used(results, [-1008, -1002, -1005])
+        assert_equal(
+            results.orders.commission.values,
+            np.array([0.0, 8.0, 10.0, 15.0]),
+        )
+        self.verify_cash_flow(results, [-1008, -1002, -1005])
 
         # minimum hit by third trade
         results = self.get_results(
@@ -462,13 +471,12 @@ class CommissionAlgorithmTests(WithDataPortal, WithSimParams, ZiplineTestCase):
                 amount=300,
             )
         )
-
         # commissions should be 12, 12, 15
-        self.assertEqual(12, results.orders[1][0]["commission"])
-        self.assertEqual(12, results.orders[2][0]["commission"])
-        self.assertEqual(15, results.orders[3][0]["commission"])
-
-        self.verify_capital_used(results, [-1012, -1000, -1003])
+        assert_equal(
+            results.orders.commission.values,
+            np.array([0.0, 12.0, 12.0, 15.0]),
+        )
+        self.verify_cash_flow(results, [-1012, -1000, -1003])
 
         # minimum never hit
         results = self.get_results(
@@ -478,13 +486,12 @@ class CommissionAlgorithmTests(WithDataPortal, WithSimParams, ZiplineTestCase):
                 amount=300,
             )
         )
-
         # commissions should be 18, 18, 18
-        self.assertEqual(18, results.orders[1][0]["commission"])
-        self.assertEqual(18, results.orders[2][0]["commission"])
-        self.assertEqual(18, results.orders[3][0]["commission"])
-
-        self.verify_capital_used(results, [-1018, -1000, -1000])
+        assert_equal(
+            results.orders.commission.values,
+            np.array([0.0, 18.0, 18.0, 18.0]),
+        )
+        self.verify_cash_flow(results, [-1018, -1000, -1000])
 
     @parameterized.expand([
         # The commission is (10 * 0.05) + 1.3 = 1.8, and the capital used is
@@ -509,9 +516,12 @@ class CommissionAlgorithmTests(WithDataPortal, WithSimParams, ZiplineTestCase):
         )
 
         self.assertEqual(
-            results.orders[1][0]['commission'], expected_commission,
+            results.orders.commission.iloc[1], expected_commission
         )
-        self.assertEqual(results.capital_used[1], -expected_commission)
+        self.assertEqual(
+            results.daily_performance.cash_flow.iloc[1],
+            -expected_commission,
+        )
 
     def test_per_dollar(self):
         results = self.get_results(
@@ -524,12 +534,11 @@ class CommissionAlgorithmTests(WithDataPortal, WithSimParams, ZiplineTestCase):
 
         # should be 3 fills at 100 shares apiece, each fill is worth $1k, so
         # incremental commission of $1000 * 0.01 = $10
-
-        # commissions should be $10, $20, $30
-        for i, orders in enumerate(results.orders[1:4]):
-            self.assertEqual((i + 1) * 10, orders[0]["commission"])
-
-        self.verify_capital_used(results, [-1010, -1010, -1010])
+        assert_equal(
+            results.orders.commission.iloc[:4].values,
+            np.array([0.0, 10.0, 20.0, 30.0]),
+        )
+        self.verify_cash_flow(results, [-1010, -1010, -1010])
 
     def test_incorrectly_set_futures_model(self):
         with self.assertRaises(IncompatibleCommissionModel):
@@ -543,7 +552,9 @@ class CommissionAlgorithmTests(WithDataPortal, WithSimParams, ZiplineTestCase):
                 )
             )
 
-    def verify_capital_used(self, results, values):
-        self.assertEqual(values[0], results.capital_used[1])
-        self.assertEqual(values[1], results.capital_used[2])
-        self.assertEqual(values[2], results.capital_used[3])
+    def verify_cash_flow(self, results, values):
+        assert_equal(
+            # Order placed on the first day. Fills on days 1, 2, and 3.
+            results.daily_performance.cash_flow.values[1:4],
+            np.array(values),
+        )

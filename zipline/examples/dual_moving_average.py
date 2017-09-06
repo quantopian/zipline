@@ -73,7 +73,7 @@ def analyze(context=None, results=None):
 
     fig = plt.figure()
     ax1 = fig.add_subplot(211)
-    results.portfolio_value.plot(ax=ax1)
+    results.daily_performance.ending_portfolio_value.plot(ax=ax1)
     ax1.set_ylabel('Portfolio value (USD)')
 
     ax2 = fig.add_subplot(212)

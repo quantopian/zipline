@@ -93,6 +93,7 @@ from zipline.pipeline.engine import (
     ExplodingPipelineEngine,
     SimplePipelineEngine,
 )
+from zipline.result import AlgorithmResult
 from zipline.utils.api_support import (
     api_method,
     require_initialized,
@@ -716,18 +717,13 @@ class TradingAlgorithm(object):
         # Create zipline and loop through simulated_trading.
         # Each iteration returns a perf dictionary
         try:
-            perfs = []
-            for perf in self.get_generator():
-                perfs.append(perf)
-
-            # convert perf dict to pandas dataframe
-            daily_stats = self._create_daily_stats(perfs)
-
-            self.analyze(daily_stats)
+            result = AlgorithmResult.from_stream(self.get_generator(),
+                                                 progress_bar=None,
+                                                 algo_id=None)
+            self.analyze(result)
+            return result
         finally:
             self.data_portal = None
-
-        return daily_stats
 
     def _write_and_map_id_index_to_sids(self, identifiers, as_of_date):
         # Build new Assets for identifiers that can't be resolved as
@@ -833,30 +829,6 @@ class TradingAlgorithm(object):
         return self.asset_finder.map_identifier_index_to_sids(
             identifiers, as_of_date,
         )
-
-    def _create_daily_stats(self, perfs):
-        # create daily and cumulative stats dataframe
-        daily_perfs = []
-        # TODO: the loop here could overwrite expected properties
-        # of daily_perf. Could potentially raise or log a
-        # warning.
-        for perf in perfs:
-            if 'daily_perf' in perf:
-
-                perf['daily_perf'].update(
-                    perf['daily_perf'].pop('recorded_vars')
-                )
-                perf['daily_perf'].update(perf['cumulative_risk_metrics'])
-                daily_perfs.append(perf['daily_perf'])
-            else:
-                self.risk_report = perf
-
-        daily_dts = pd.DatetimeIndex(
-            [p['period_close'] for p in daily_perfs], tz='UTC'
-        )
-        daily_stats = pd.DataFrame(daily_perfs, index=daily_dts)
-
-        return daily_stats
 
     def calculate_capital_changes(self, dt, emission_rate, is_interday,
                                   portfolio_value_adjustment=0.0):

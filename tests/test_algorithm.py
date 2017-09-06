@@ -21,7 +21,6 @@ from unittest import skip
 from copy import deepcopy
 
 import logbook
-import toolz
 from logbook import TestHandler, WARNING
 from mock import MagicMock
 from nose_parameterized import parameterized
@@ -117,7 +116,6 @@ from zipline.test_algorithms import (
     AmbitiousStopLimitAlgorithm,
     EmptyPositionsAlgorithm,
     InvalidOrderAlgorithm,
-    RecordAlgorithm,
     FutureFlipAlgo,
     TestOrderAlgorithm,
     TestOrderPercentAlgorithm,
@@ -187,23 +185,6 @@ import zipline.utils.factory as factory
 
 
 _multiprocess_can_split_ = False
-
-
-class TestRecordAlgorithm(WithSimParams, WithDataPortal, ZiplineTestCase):
-    ASSET_FINDER_EQUITY_SIDS = 133,
-
-    def test_record_incr(self):
-        algo = RecordAlgorithm(sim_params=self.sim_params, env=self.env)
-        output = algo.run(self.data_portal)
-
-        np.testing.assert_array_equal(output['incr'].values,
-                                      range(1, len(output) + 1))
-        np.testing.assert_array_equal(output['name'].values,
-                                      range(1, len(output) + 1))
-        np.testing.assert_array_equal(output['name2'].values,
-                                      [2] * len(output))
-        np.testing.assert_array_equal(output['name3'].values,
-                                      range(1, len(output) + 1))
 
 
 class TestMiscellaneousAPI(WithLogger,
@@ -911,12 +892,11 @@ def before_trading_start(context, data):
 
         res2 = algo2.run(self.data_portal)
 
-        # There are some np.NaN values in the first row because there is not
-        # enough data to calculate the metric, e.g. beta.
-        res1 = res1.fillna(value=0)
-        res2 = res2.fillna(value=0)
-
-        np.testing.assert_array_equal(res1, res2)
+        assert_equal(res1.orders.drop('id', axis=1),
+                     res2.orders.drop('id', axis=1))
+        assert_equal(res1.transactions.drop('order_id', axis=1),
+                     res2.transactions.drop('order_id', axis=1))
+        assert_equal(res1.positions, res2.positions)
 
     def test_data_frequency_setting(self):
         self.sim_params.data_frequency = 'daily'
@@ -1042,14 +1022,36 @@ def before_trading_start(context, data):
         )
 
         results = algo.run(FakeDataPortal(self.env))
+        dates = self.trading_calendar.sessions_in_range(
+            asset133.start_date,
+            asset133.end_date,
+        )
 
-        for orders_for_day in results.orders:
-            self.assertEqual(1, len(orders_for_day))
-            self.assertEqual(orders_for_day[0]["status"], ORDER_STATUS.FILLED)
+        # We should have one order per day for one share each.
+        self.assertEqual(len(dates), len(results.orders))
+        assert_equal(
+            pd.Series(index=dates, data=1),
+            results.orders.amount,
+            check_names=False,
+        )
+        assert_equal(
+            pd.Series(index=dates, data=1),
+            results.orders.filled,
+            check_names=False,
+        )
+        assert_equal(
+            pd.Series(index=dates, data=ORDER_STATUS.FILLED),
+            results.orders.status,
+            check_names=False
+        )
 
-        for txns_for_day in results.transactions:
-            self.assertEqual(1, len(txns_for_day))
-            self.assertEqual(1, txns_for_day[0]["amount"])
+        # We should have the same transactions.
+        self.assertEqual(len(dates), len(results.transactions))
+        assert_equal(
+            pd.Series(index=dates, data=1),
+            results.transactions.amount,
+            check_names=False,
+        )
 
     @parameterized.expand([
         (TestOrderAlgorithm,),
@@ -1154,28 +1156,32 @@ class TestPositions(WithLogger,
         algo = EmptyPositionsAlgorithm(self.asset_finder.equities_sids,
                                        sim_params=self.sim_params,
                                        env=self.env)
-        daily_stats = algo.run(self.data_portal)
+        positions = algo.run(self.data_portal).positions
 
-        expected_position_count = [
-            0,  # Before entering the first position
-            2,  # After entering, exiting on this date
-            0,  # After exiting
-            0,
-        ]
-
-        for i, expected in enumerate(expected_position_count):
-            self.assertEqual(daily_stats.ix[i]['num_positions'],
-                             expected)
+        # The algorithm orders one share of each asset on the first day, then
+        # sells them on the next day. We should see positions on the second day
+        # only.
+        day_with_positions = self.START_DATE + self.trading_calendar.day
+        assert_equal(
+            positions[['amount', 'sid']],
+            pd.DataFrame(
+                data={'amount': [1, 1], 'sid': [1, 133]},
+                index=[day_with_positions] * 2,
+            ),
+        )
 
     def test_noop_orders(self):
         algo = AmbitiousStopLimitAlgorithm(sid=1,
                                            sim_params=self.sim_params,
                                            env=self.env)
-        daily_stats = algo.run(self.data_portal)
+        results = algo.run(self.data_portal)
+
+        # 10 orders a day for four days.
+        self.assertEqual(len(results.orders), 40)
+        self.assertTrue((results.orders.filled == 0).all())
 
         # Verify that positions are empty for all dates.
-        empty_positions = daily_stats.positions.map(lambda x: len(x) == 0)
-        self.assertTrue(empty_positions.all())
+        self.assertEqual(len(results.positions), 0)
 
     def test_position_weights(self):
         sids = (1, 133, 1000)
@@ -1187,7 +1193,7 @@ class TestPositions(WithLogger,
             sim_params=self.sim_params,
             env=self.env,
         )
-        daily_stats = algo.run(self.data_portal)
+        algo.run(self.data_portal)
 
         expected_position_weights = [
             # No positions held on the first day.
@@ -1218,8 +1224,8 @@ class TestPositions(WithLogger,
             }),
         ]
 
-        for i, expected in enumerate(expected_position_weights):
-            assert_equal(daily_stats.iloc[i]['position_weights'], expected)
+        for i, saved_position_weights in enumerate(algo.weights_log):
+            assert_equal(expected_position_weights[i], saved_position_weights)
 
 
 class TestBeforeTradingStart(WithDataPortal,
@@ -1327,14 +1333,15 @@ class TestBeforeTradingStart(WithDataPortal,
         )
 
         results = algo.run(self.data_portal)
+        recorded_vars = results.recorded_vars
 
         # fetching data at midnight gets us the previous market minute's data
-        self.assertEqual(390, results.iloc[0].the_price1)
-        self.assertEqual(392, results.iloc[0].the_high1)
+        self.assertEqual(390, recorded_vars.iloc[0].the_price1)
+        self.assertEqual(392, recorded_vars.iloc[0].the_high1)
 
         # make sure that price is ffilled, but not other fields
-        self.assertEqual(350, results.iloc[0].the_price2)
-        self.assertTrue(np.isnan(results.iloc[0].the_high2))
+        self.assertEqual(350, recorded_vars.iloc[0].the_price2)
+        self.assertTrue(np.isnan(recorded_vars.iloc[0].the_high2))
 
         # 10-minute history
 
@@ -1399,14 +1406,15 @@ class TestBeforeTradingStart(WithDataPortal,
         )
 
         results = algo.run(self.data_portal)
+        recorded_vars = results.recorded_vars
 
-        self.assertEqual(392, results.the_high1[0])
-        self.assertEqual(390, results.the_price1[0])
+        self.assertEqual(392, recorded_vars.the_high1[0])
+        self.assertEqual(390, recorded_vars.the_price1[0])
 
         # nan because asset2 only trades every 50 minutes
-        self.assertTrue(np.isnan(results.the_high2[0]))
+        self.assertTrue(np.isnan(recorded_vars.the_high2[0]))
 
-        self.assertTrue(350, results.the_price2[0])
+        self.assertTrue(350, recorded_vars.the_price2[0])
 
         self.assertEqual(392, algo.history_values[0]["high"][1][0])
         self.assertEqual(390, algo.history_values[0]["price"][1][0])
@@ -1445,13 +1453,15 @@ class TestBeforeTradingStart(WithDataPortal,
         )
 
         results = algo.run(self.data_portal)
+        recorded_vars = results.recorded_vars
+        self.assertEqual(len(recorded_vars), 2)
 
         # Asset starts with price 1 on 1/05 and increases by 1 every minute.
         # Simulation starts on 1/06, where the price in bts is 390, and
         # positions_value is 0. On 1/07, price is 780, and after buying one
         # share on the first bar of 1/06, positions_value is 780
-        self.assertEqual(results.pos_value.iloc[0], 0)
-        self.assertEqual(results.pos_value.iloc[1], 780)
+        self.assertEqual(recorded_vars.pos_value.iloc[0], 0)
+        self.assertEqual(recorded_vars.pos_value.iloc[1], 780)
 
     def test_account_bts(self):
         algo_code = dedent("""
@@ -1484,14 +1494,16 @@ class TestBeforeTradingStart(WithDataPortal,
         )
 
         results = algo.run(self.data_portal)
+        recorded_vars = results.recorded_vars
+        self.assertEqual(len(recorded_vars), 2)
 
         # Starting portfolio value is 10000. Order for the asset fills on the
         # second bar of 1/06, where the price is 391, and costs the default
         # commission of 0. On 1/07, the price is 780, and the increase in
         # portfolio value is 780-392-0
-        self.assertEqual(results.port_value.iloc[0], 10000)
-        self.assertAlmostEqual(results.port_value.iloc[1],
-                               10000 + 780 - 392 - 0,
+        self.assertEqual(recorded_vars.port_value.iloc[0], 10000)
+        self.assertAlmostEqual(recorded_vars.port_value.iloc[1],
+                               10000 + 780 - 392,
                                places=2)
 
     def test_portfolio_bts_with_overnight_split(self):
@@ -1528,18 +1540,19 @@ class TestBeforeTradingStart(WithDataPortal,
         )
 
         results = algo.run(self.data_portal)
+        recorded_vars = results.recorded_vars
 
         # On 1/07, positions value should by 780, same as without split
-        self.assertEqual(results.pos_value.iloc[0], 0)
-        self.assertEqual(results.pos_value.iloc[1], 780)
+        self.assertEqual(recorded_vars.pos_value.iloc[0], 0)
+        self.assertEqual(recorded_vars.pos_value.iloc[1], 780)
 
         # On 1/07, after applying the split, 1 share becomes 2
-        self.assertEqual(results.pos_amount.iloc[0], 0)
-        self.assertEqual(results.pos_amount.iloc[1], 2)
+        self.assertEqual(recorded_vars.pos_amount.iloc[0], 0)
+        self.assertEqual(recorded_vars.pos_amount.iloc[1], 2)
 
         # On 1/07, after applying the split, last sale price is halved
-        self.assertEqual(results.last_sale_price.iloc[0], 0)
-        self.assertEqual(results.last_sale_price.iloc[1], 390)
+        self.assertEqual(recorded_vars.last_sale_price.iloc[0], 0)
+        self.assertEqual(recorded_vars.last_sale_price.iloc[1], 390)
 
     def test_account_bts_with_overnight_split(self):
         algo_code = dedent("""
@@ -1568,10 +1581,11 @@ class TestBeforeTradingStart(WithDataPortal,
         )
 
         results = algo.run(self.data_portal)
+        recorded_vars = results.recorded_vars
 
         # On 1/07, portfolio value is the same as without split
-        self.assertEqual(results.port_value.iloc[0], 10000)
-        self.assertAlmostEqual(results.port_value.iloc[1],
+        self.assertEqual(recorded_vars.port_value.iloc[0], 10000)
+        self.assertAlmostEqual(recorded_vars.port_value.iloc[1],
                                10000 + 780 - 392 - 0, places=2)
 
 
@@ -1740,12 +1754,8 @@ def handle_data(context, data):
         )
         results = test_algo.run(self.data_portal)
 
-        # flatten the list of txns
-        all_txns = [val for sublist in results["transactions"].tolist()
-                    for val in sublist]
-
-        self.assertEqual(len(all_txns), 1)
-        txn = all_txns[0]
+        self.assertEqual(len(results.transactions), 1)
+        txn = results.transactions.iloc[0]
 
         expected_spread = 0.05
         expected_price = test_algo.recorded_vars["price"] - expected_spread
@@ -1756,8 +1766,8 @@ def handle_data(context, data):
         # the txn was for -1000 shares at 9.95, means -9.95k.  our capital_used
         # for that day was therefore 9.95k, but after the $100 commission,
         # it should be 9.85k.
-        self.assertEqual(9850, results.capital_used[1])
-        self.assertEqual(100, results["orders"][1][0]["commission"])
+        self.assertEqual(9850, results.daily_performance.iloc[1].cash_flow)
+        self.assertEqual(100, results.orders.iloc[1].commission)
 
     @parameterized.expand(
         [
@@ -1811,28 +1821,26 @@ def handle_data(context, data):
             data_portal = create_data_portal_from_trade_history(
                 self.env.asset_finder, self.trading_calendar, tempdir,
                 self.sim_params, {0: trades})
+
             results = test_algo.run(data_portal)
 
-            all_txns = [
-                val for sublist in results["transactions"].tolist()
-                for val in sublist]
+            txns = results.transactions
+            self.assertEqual(len(txns), 67)
 
-            self.assertEqual(len(all_txns), 67)
-            # all_orders are all the incremental versions of the
-            # orders as each new fill comes in.
-            all_orders = list(toolz.concat(results['orders']))
+            # orders are all the incremental versions of the orders as each new
+            # fill comes in.
+            orders = results.orders
 
             if minimum_commission == 0:
                 # for each incremental version of each order, the commission
                 # should be its filled amount * 0.02
-                for order_ in all_orders:
-                    self.assertAlmostEqual(
-                        order_["filled"] * 0.02,
-                        order_["commission"]
-                    )
+                assert_equal(
+                    orders.filled * 0.02,
+                    orders.commission,
+                    check_names=False,
+                )
             else:
-                # the commission should be at least the min_trade_cost
-                for order_ in all_orders:
+                for _, order_ in orders.iterrows():
                     if order_["filled"] > 0:
                         self.assertAlmostEqual(
                             max(order_["filled"] * 0.02, minimum_commission),
@@ -1870,10 +1878,8 @@ def handle_data(context, data):
             sim_params=self.sim_params,
             env=self.env,
         )
-        results = test_algo.run(self.data_portal)
-
-        for i in range(1, 252):
-            self.assertEqual(results.iloc[i-1]["incr"], i)
+        incr = test_algo.run(self.data_portal).recorded_vars.incr
+        assert_equal(np.arange(1, 252, dtype=np.float64), incr.values)
 
     def test_algo_record_allow_mock(self):
         """
@@ -1897,10 +1903,8 @@ def handle_data(context, data):
             sim_params=self.sim_params,
             env=self.env,
         )
-        results = test_algo.run(self.data_portal)
-
-        for i in range(1, 252):
-            self.assertTrue(np.isnan(results.iloc[i-1]["data"]))
+        recorded = test_algo.run(self.data_portal).recorded_vars
+        self.assertTrue(np.isnan(recorded.data).all())
 
     def test_order_methods(self):
         """
@@ -1977,14 +1981,11 @@ def handle_data(context, data):
         batch_stats = batch_test_algo.run(self.data_portal)
         self.assertTrue(batch_blotter.order_batch_called)
 
-        for stats in (multi_stats, batch_stats):
-            stats.orders = stats.orders.apply(
-                lambda orders: [toolz.dissoc(o, 'id') for o in orders]
-            )
-            stats.transactions = stats.transactions.apply(
-                lambda txns: [toolz.dissoc(txn, 'order_id') for txn in txns]
-            )
-        assert_equal(multi_stats, batch_stats)
+        # Drop id columns because they're UUIDs.
+        assert_equal(multi_stats.orders.drop('id', axis=1),
+                     batch_stats.orders.drop('id', axis=1))
+        assert_equal(multi_stats.transactions.drop('order_id', axis=1),
+                     batch_stats.transactions.drop('order_id', axis=1))
 
     def test_batch_market_order_filters_null_orders(self):
         share_counts = [50, 0]
@@ -2231,8 +2232,10 @@ def handle_data(context, data):
         )
 
         results = algo.run(self.data_portal)
-        num_positions = results.num_positions
-        amounts = results.amounts
+        recorded_vars = results.recorded_vars
+
+        num_positions = recorded_vars.num_positions
+        amounts = recorded_vars.amounts
         self.assertTrue(all(num_positions == 0))
         self.assertTrue(all(amounts == 0))
 
@@ -3829,25 +3832,25 @@ class TestFuturesAlgo(WithDataPortal, WithSimParams, ZiplineTestCase):
         )
         results = algo.run(self.data_portal)
 
-        # Flatten the list of transactions.
-        all_txns = [
-            val for sublist in results['transactions'].tolist()
-            for val in sublist
-        ]
-
-        self.assertEqual(len(all_txns), 1)
-        txn = all_txns[0]
-
+        transactions = results.transactions
+        self.assertEqual(len(transactions), 1)
+        txn = transactions.iloc[0]
+        expected_spread = 0.05
         # Add 1 to the expected price because the order does not fill until the
         # bar after the price is recorded.
-        expected_spread = 0.05
         expected_price = (algo.order_price + 1) + expected_spread
-
-        # Capital used should be 0 because there is no commission, and the cost
-        # to enter into a long position on a futures contract is 0.
         self.assertEqual(txn['price'], expected_price)
-        self.assertEqual(results['orders'][0][0]['commission'], 0.0)
-        self.assertEqual(results.capital_used[0], 0.0)
+
+        orders = results.orders
+        self.assertEqual(len(orders), 1)
+        order = orders.iloc[0]
+        self.assertEqual(order['amount'], 10)
+        self.assertEqual(order['commission'], 0)
+
+        # Cash flow should always be 0 because there is no commission, and the
+        # cost to enter into a long position on a futures contract is 0.
+        # (Note: this field is called 'capital_used' in the perf tracker code).
+        self.assertTrue((results.daily_performance.cash_flow == 0).all())
 
     def test_volume_contract_slippage(self):
         algo_code = self.algo_with_slippage(
@@ -3862,20 +3865,16 @@ class TestFuturesAlgo(WithDataPortal, WithSimParams, ZiplineTestCase):
         results = algo.run(self.data_portal)
 
         # There should be no commissions.
-        self.assertEqual(results['orders'][0][0]['commission'], 0.0)
-
-        # Flatten the list of transactions.
-        all_txns = [
-            val for sublist in results['transactions'].tolist()
-            for val in sublist
-        ]
+        orders = results.orders
+        self.assertEqual(len(orders), 1)
+        self.assertEqual(orders.commission.iloc[0], 0.0)
 
         # With a volume limit of 0.05, and a total volume of 100 contracts
         # traded per minute, we should require 2 transactions to order 10
         # contracts.
-        self.assertEqual(len(all_txns), 2)
-
-        for i, txn in enumerate(all_txns):
+        transactions = results.transactions
+        self.assertEqual(len(transactions), 2)
+        for i, (dt, txn) in enumerate(transactions.iterrows()):
             # Add 1 to the order price because the order does not fill until
             # the bar after the price is recorded.
             order_price = algo.order_price + i + 1
@@ -3924,7 +3923,8 @@ class TestOrderCancelation(WithDataPortal,
         """
         from zipline.api import (
             sid, order, set_slippage, slippage, VolumeShareSlippage,
-            set_cancel_policy, cancel_policy, EODCancel
+            set_cancel_policy, cancel_policy, EODCancel,
+            commission, set_commission,
         )
 
 
@@ -3935,6 +3935,8 @@ class TestOrderCancelation(WithDataPortal,
                     price_impact=0
                 )
             )
+            # Use zero commissions to simplify cost_basis calc.
+            set_commission(commission.PerTrade(0.0))
 
             {0}
             context.ordered = False
@@ -4002,15 +4004,16 @@ class TestOrderCancelation(WithDataPortal,
 
     @parameter_space(
         direction=[1, -1],
-        minute_emission=[True, False]
+        minute_emission=[True, False],
+        __fail_fast=True,
     )
     def test_eod_order_cancel_minute(self, direction, minute_emission):
         """
         Test that EOD order cancel works in minute mode for both shorts and
         longs, and both daily emission and minute emission
         """
-        # order 1000 shares of asset1.  the volume is only 1 share per bar,
-        # so the order should be cancelled at the end of the day.
+        # order 1000 shares of asset1. The slippage model only fills 1 share
+        # per bar, so the order should be cancelled at the end of the day.
         algo = self.prep_algo(
             "set_cancel_policy(cancel_policy.EODCancel())",
             amount=np.copysign(1000, direction),
@@ -4021,26 +4024,34 @@ class TestOrderCancelation(WithDataPortal,
         with log_catcher:
             results = algo.run(self.data_portal)
 
-            for daily_positions in results.positions:
-                self.assertEqual(1, len(daily_positions))
-                self.assertEqual(
-                    np.copysign(389, direction),
-                    daily_positions[0]["amount"],
+            # The price ticks up from 1 -> 390.
+            # We get fills at prices from 2 to 390.
+            expected_cost_basis = np.arange(2, 391).mean()
+            expected_positions = pd.DataFrame(
+                {
+                    # These fields don't change after the first day because
+                    # the order is cancelled at the end of the first day.
+                    'amount': 389 * direction,
+                    'cost_basis': expected_cost_basis,
+                    'sid': 1,
+                    # Last sale price continues to increase though.
+                    'last_sale_price': [390.0, 780.0, 1170],
+                },
+                index=self.trading_calendar.sessions_in_range(
+                    self.START_DATE, self.END_DATE
                 )
-                self.assertEqual(1, results.positions[0][0]["sid"])
+            )
+            assert_equal(results.positions, expected_positions)
 
             # should be an order on day1, but no more orders afterwards
-            np.testing.assert_array_equal([1, 0, 0],
-                                          list(map(len, results.orders)))
+            self.assertEqual(len(results.orders), 1)
 
             # should be 389 txns on day 1, but no more afterwards
-            np.testing.assert_array_equal([389, 0, 0],
-                                          list(map(len, results.transactions)))
+            self.assertEqual(len(results.transactions), 389)
 
-            the_order = results.orders[0][0]
-
+            the_order = results.orders.iloc[0]
             self.assertEqual(ORDER_STATUS.CANCELLED, the_order["status"])
-            self.assertEqual(np.copysign(389, direction), the_order["filled"])
+            self.assertEqual(389 * direction, the_order["filled"])
 
             warnings = [record for record in log_catcher.records if
                         record.level == WARNING]
@@ -4071,16 +4082,25 @@ class TestOrderCancelation(WithDataPortal,
         with log_catcher:
             results = algo.run(self.data_portal)
 
-            # order stays open throughout simulation
-            np.testing.assert_array_equal([1, 1, 1],
-                                          list(map(len, results.orders)))
+            # Algo places a single order for 1000 assets.
+            # It fills over the course of three days at a rate of one share per
+            # minute.
+            self.assertEqual(len(results.orders), 3)
+            self.assertEqual(len(set(results.orders.id)), 1)
+            order_id = results.orders.iloc[0].id
+
+            transactions = results.transactions
+            self.assertEqual(len(transactions), 1000)
+            self.assertEqual(set(transactions.order_id), {order_id})
 
             # one txn per minute.  389 the first day (since no order until the
             # end of the first minute).  390 on the second day.  221 on the
             # the last day, sum = 1000.
-            np.testing.assert_array_equal([389, 390, 221],
-                                          list(map(len, results.transactions)))
+            expected_txns_per_day = np.array([389, 390, 221])
+            actual_txns_per_day = transactions.groupby(level=0).size().values
+            assert_equal(actual_txns_per_day, expected_txns_per_day)
 
+            # We shouldn't get any warnings about EOD cancellations.
             self.assertFalse(log_catcher.has_warnings)
 
     def test_eod_order_cancel_daily(self):
@@ -4094,13 +4114,17 @@ class TestOrderCancelation(WithDataPortal,
         with log_catcher:
             results = algo.run(self.data_portal)
 
-            # order stays open throughout simulation
-            np.testing.assert_array_equal([1, 1, 1],
-                                          list(map(len, results.orders)))
+            # Single order fills at a rate of one share per day.
+            orders = results.orders
+            self.assertEqual(len(orders), 3)
+            self.assertEqual(len(set(orders.id)), 1)
+            assert_equal(orders.filled.values, np.array([0, 1, 2]))
+            order_id = orders.iloc[0].id
 
-            # one txn per day
-            np.testing.assert_array_equal([0, 1, 1],
-                                          list(map(len, results.transactions)))
+            transactions = results.transactions
+            self.assertEqual(len(transactions), 2)
+            self.assertEqual(set(transactions.order_id), {order_id})
+            assert_equal(transactions.amount.values, np.array([1, 1]))
 
             self.assertFalse(log_catcher.has_warnings)
 
@@ -4276,10 +4300,27 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
 
         return handle_data
 
+    def extract_longs_count(self, backtest_result):
+        positions = backtest_result.positions
+        return ((positions.amount > 0)
+                .groupby(positions.index)
+                .sum()
+                .astype(int)
+                .reindex(self.test_days, fill_value=0))
+
+    def extract_shorts_count(self, backtest_result):
+        positions = backtest_result.positions
+        return ((positions.amount < 0)
+                .groupby(positions.index)
+                .sum()
+                .astype(int)
+                .reindex(self.test_days, fill_value=0))
+
     @parameter_space(
         order_size=[10, -10],
         capital_base=[0, 100000],
         auto_close_lag=[1, 2],
+        __fail_fast=True,
     )
     def test_daily_delisted_equities(self,
                                      order_size,
@@ -4311,6 +4352,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
             sim_params=resources.sim_params
         )
         output = algo.run(resources.data_portal)
+        daily_perf = output.daily_performance
 
         initial_cash = capital_base
         after_fills = initial_cash - cost_basis
@@ -4362,7 +4404,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
             )
 
         # Check expected cash.
-        self.assertEqual(expected_cash, list(output['ending_cash']))
+        assert_equal(expected_cash, daily_perf.ending_cash.tolist())
 
         # The cash recorded by the algo should be behind by a day from the
         # computed ending cash.
@@ -4372,24 +4414,14 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
         # Check expected long/short counts.
         # We have longs if order_size > 0.
         # We have shorts if order_size < 0.
+        longs_per_day = self.extract_longs_count(output).tolist()
+        shorts_per_day = self.extract_shorts_count(output).tolist()
         if order_size > 0:
-            self.assertEqual(
-                expected_num_positions,
-                list(output['longs_count']),
-            )
-            self.assertEqual(
-                [0] * len(self.test_days),
-                list(output['shorts_count']),
-            )
+            self.assertEqual(expected_num_positions, longs_per_day)
+            self.assertEqual([0] * len(self.test_days), shorts_per_day)
         else:
-            self.assertEqual(
-                expected_num_positions,
-                list(output['shorts_count']),
-            )
-            self.assertEqual(
-                [0] * len(self.test_days),
-                list(output['longs_count']),
-            )
+            self.assertEqual(expected_num_positions, shorts_per_day)
+            self.assertEqual([0] * len(self.test_days), longs_per_day)
 
         # The number of positions recorded by the algo should be behind by a
         # day from the computed long/short counts.
@@ -4397,42 +4429,46 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
         self.assertEqual(algo.num_positions, expected_num_positions[:-1])
 
         # Check expected transactions.
-        # We should have a transaction of order_size shares per sid.
-        transactions = output['transactions']
-        initial_fills = transactions.iloc[1]
-        self.assertEqual(len(initial_fills), len(assets))
-
-        last_minute_of_session = \
-            self.trading_calendar.session_close(self.test_days[1])
-
-        for asset, txn in zip(assets, initial_fills):
-            self.assertDictContainsSubset(
-                {
-                    'amount': order_size,
-                    'commission': None,
-                    'dt': last_minute_of_session,
-                    'price': initial_fill_prices[asset],
-                    'sid': asset,
-                },
-                txn,
-            )
-            # This will be a UUID.
-            self.assertIsInstance(txn['order_id'], str)
+        # We should have a transaction of order_size shares per sid
+        # at the end of the second session.
+        transactions = output.transactions
 
         def transactions_for_date(date):
-            return transactions.iloc[self.test_days.get_loc(date)]
+            return transactions.loc[[date]]
+
+        second_session = self.test_days[1]
+        initial_fills = transactions_for_date(second_session)
+        last_minute_of_second_session = \
+            self.trading_calendar.session_close(second_session)
+
+        self.assertEqual(len(initial_fills), len(assets))
+        assert_equal(
+            # order_id is a UUID.
+            initial_fills.drop('order_id', axis=1),
+            pd.DataFrame(
+                index=[second_session] * 3,
+                data={
+                    'amount': order_size,
+                    'commission': np.nan,
+                    'date': last_minute_of_second_session,
+                    'sid': [a.sid for a in assets],
+                    'price': [initial_fill_prices[asset] for asset in assets]
+                }
+            )
+        )
 
         # We should have exactly one auto-close transaction on the close date
         # of asset 0.
-        (first_auto_close_transaction,) = transactions_for_date(
+        first_auto_close_transactions = transactions_for_date(
             assets[0].auto_close_date
         )
+        assert_equal(len(first_auto_close_transactions), 1)
         self.assertEqual(
-            first_auto_close_transaction,
+            first_auto_close_transactions.iloc[0].to_dict(),
             {
                 'amount': -order_size,
                 'commission': 0.0,
-                'dt': self.trading_calendar.session_close(
+                'date': self.trading_calendar.session_close(
                     assets[0].auto_close_date,
                 ),
                 'price': fp0,
@@ -4441,15 +4477,17 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
             },
         )
 
-        (second_auto_close_transaction,) = transactions_for_date(
+        # Same for asset 1.
+        second_auto_close_transactions = transactions_for_date(
             assets[1].auto_close_date
         )
+        assert_equal(len(second_auto_close_transactions), 1)
         self.assertEqual(
-            second_auto_close_transaction,
+            second_auto_close_transactions.iloc[0].to_dict(),
             {
                 'amount': -order_size,
                 'commission': 0.0,
-                'dt': self.trading_calendar.session_close(
+                'date': self.trading_calendar.session_close(
                     assets[1].auto_close_date,
                 ),
                 'price': fp1,
@@ -4508,13 +4546,10 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
             sim_params=resources.sim_params
         )
         results = algo.run(resources.data_portal)
+        orders = results.orders
 
-        orders = results['orders']
-
-        def orders_for_date(date):
-            return orders.iloc[self.test_days.get_loc(date)]
-
-        original_open_orders = orders_for_date(first_asset_end_date)
+        # Index with a list here to ensure we get a DataFrame back.
+        original_open_orders = orders.loc[[first_asset_end_date]]
         assert len(original_open_orders) == 1
 
         last_close_for_asset = \
@@ -4525,29 +4560,30 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
                 'amount': 10,
                 'commission': 0,
                 'created': last_close_for_asset,
-                'dt': last_close_for_asset,
+                'last_modified': last_close_for_asset,
                 'sid': assets[0],
                 'status': ORDER_STATUS.OPEN,
                 'filled': 0,
             },
-            original_open_orders[0],
+            original_open_orders.iloc[0].to_dict(),
         )
 
-        orders_after_auto_close = orders_for_date(first_asset_auto_close_date)
+        # Index with a list here to ensure we get a DataFrame back.
+        orders_after_auto_close = orders.loc[[first_asset_auto_close_date]]
         assert len(orders_after_auto_close) == 1
         self.assertDictContainsSubset(
             {
                 'amount': 10,
                 'commission': 0,
                 'created': last_close_for_asset,
-                'dt': algo.trading_calendar.session_close(
+                'last_modified': algo.trading_calendar.session_close(
                     first_asset_auto_close_date,
                 ),
                 'sid': assets[0],
                 'status': ORDER_STATUS.CANCELLED,
                 'filled': 0,
             },
-            orders_after_auto_close[0],
+            orders_after_auto_close.iloc[0].to_dict(),
         )
 
     def test_minutely_delisted_equities(self):
@@ -4557,6 +4593,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
         assets = resources.assets
         final_prices = resources.final_prices
         backtest_minutes = resources.trade_data_by_sid[0].index.tolist()
+        start_session = resources.sim_params.start_session
 
         order_size = 10
 
@@ -4570,6 +4607,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
         )
 
         output = algo.run(resources.data_portal)
+
         initial_fill_prices = \
             self.prices_on_tick(resources.trade_data_by_sid, 1)
         cost_basis = sum(initial_fill_prices) * order_size
@@ -4601,10 +4639,10 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
 
         # Check list lengths first to avoid expensive comparison
         self.assertEqual(len(algo.cash), len(expected_cash))
-        # TODO find more efficient way to compare these lists
+
         self.assertEqual(algo.cash, expected_cash)
         self.assertEqual(
-            list(output['ending_cash']),
+            output.daily_performance.ending_cash.tolist(),
             [
                 after_fills,
                 after_fills,
@@ -4617,48 +4655,48 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
         )
 
         self.assertEqual(algo.num_positions, expected_position_counts)
-        self.assertEqual(
-            list(output['longs_count']),
-            [3, 3, 3, 2, 2, 1, 1],
-        )
+
+        longs_per_day = self.extract_longs_count(output).tolist()
+        self.assertEqual(longs_per_day, [3, 3, 3, 2, 2, 1, 1])
 
         # Check expected transactions.
         # We should have a transaction of order_size shares per sid.
-        transactions = output['transactions']
+        transactions = output.transactions
 
         # Note that the transactions appear on the first day rather than the
         # second in minute mode, because the fills happen on the second tick of
         # the backtest, which is still on the first day in minute mode.
-        initial_fills = transactions.iloc[0]
+        initial_fills = transactions.loc[resources.sim_params.start_session]
         self.assertEqual(len(initial_fills), len(assets))
-        for asset, txn in zip(assets, initial_fills):
-            self.assertDictContainsSubset(
-                {
+        assert_equal(
+            initial_fills.drop('order_id', axis=1),
+            pd.DataFrame(
+                index=[start_session] * 3,
+                data={
                     'amount': order_size,
-                    'commission': None,
-                    'dt': backtest_minutes[1],
-                    'price': initial_fill_prices[asset],
-                    'sid': asset,
-                },
-                txn,
+                    'commission': np.nan,
+                    'date': backtest_minutes[1],
+                    'sid': [a.sid for a in assets],
+                    'price': [initial_fill_prices[asset] for asset in assets]
+                }
             )
-            # This will be a UUID.
-            self.assertIsInstance(txn['order_id'], str)
+        )
 
         def transactions_for_date(date):
-            return transactions.iloc[self.test_days.get_loc(date)]
+            return transactions.loc[[date]]
 
         # We should have exactly one auto-close transaction on the close date
         # of asset 0.
-        (first_auto_close_transaction,) = transactions_for_date(
+        first_auto_close_transactions = transactions_for_date(
             assets[0].auto_close_date
         )
+        assert_equal(len(first_auto_close_transactions), 1)
         self.assertEqual(
-            first_auto_close_transaction,
+            first_auto_close_transactions.iloc[0].to_dict(),
             {
                 'amount': -order_size,
                 'commission': 0.0,
-                'dt': algo.trading_calendar.session_close(
+                'date': algo.trading_calendar.session_close(
                     assets[0].auto_close_date,
                 ),
                 'price': fp0,
@@ -4667,15 +4705,17 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
             },
         )
 
-        (second_auto_close_transaction,) = transactions_for_date(
+        # Same for asset 1.
+        second_auto_close_transactions = transactions_for_date(
             assets[1].auto_close_date
         )
+        assert_equal(len(second_auto_close_transactions), 1)
         self.assertEqual(
-            second_auto_close_transaction,
+            second_auto_close_transactions.iloc[0].to_dict(),
             {
                 'amount': -order_size,
                 'commission': 0.0,
-                'dt': algo.trading_calendar.session_close(
+                'date': algo.trading_calendar.session_close(
                     assets[1].auto_close_date,
                 ),
                 'price': fp1,

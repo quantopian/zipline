@@ -486,7 +486,7 @@ class PerformancePeriod(object):
         # as_portfolio is called in an inner loop,
         # so repeated object creation becomes too expensive
         portfolio = self._portfolio_store
-        # maintaining the old name for the portfolio field for
+        # maintaining the old name for the portofolio field for
         # backward compatibility
         portfolio.capital_used = self.cash_flow
         portfolio.starting_cash = self.starting_cash

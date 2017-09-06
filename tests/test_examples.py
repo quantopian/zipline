@@ -65,7 +65,7 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
 
     @parameterized.expand(sorted(examples.EXAMPLE_MODULES))
     def test_example(self, example_name):
-        actual_perf = examples.run_example(
+        result = examples.run_example(
             example_name,
             # This should match the invocation in
             # zipline/tests/resources/rebuild_example_data
@@ -74,7 +74,7 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             },
         )
         assert_equal(
-            actual_perf[examples._cols_to_check],
+            result.daily_performance[examples._cols_to_check],
             self.expected_perf[example_name][examples._cols_to_check],
             # There is a difference in the datetime columns in pandas
             # 0.16 and 0.17 because in 16 they are object and in 17 they are

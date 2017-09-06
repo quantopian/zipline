@@ -241,18 +241,6 @@ class TimeoutAlgorithm(TradingAlgorithm):
         pass
 
 
-class RecordAlgorithm(TradingAlgorithm):
-    def initialize(self):
-        self.incr = 0
-
-    def handle_data(self, data):
-        self.incr += 1
-        self.record(incr=self.incr)
-        name = 'name'
-        self.record(name, self.incr)
-        record(name, self.incr, 'name2', 2, name3=self.incr)
-
-
 class TestOrderAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.incr = 0
@@ -702,6 +690,7 @@ class TestPositionWeightsAlgorithm(TradingAlgorithm):
         self.set_slippage(
             us_equities=FixedSlippage(0), us_futures=FixedSlippage(0),
         )
+        self.weights_log = []
 
     def handle_data(self, data):
         if not self.ordered:
@@ -709,7 +698,7 @@ class TestPositionWeightsAlgorithm(TradingAlgorithm):
                 self.order(self.sid(s), amount)
             self.ordered = True
 
-        self.record(position_weights=self.portfolio.current_portfolio_weights)
+        self.weights_log.append(self.portfolio.current_portfolio_weights)
 
 
 class InvalidOrderAlgorithm(TradingAlgorithm):

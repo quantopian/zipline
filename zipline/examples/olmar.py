@@ -151,7 +151,7 @@ def analyze(context=None, results=None):
     import matplotlib.pyplot as plt
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    results.portfolio_value.plot(ax=ax)
+    results.daily_performance.ending_portfolio_value.plot(ax=ax)
     ax.set_ylabel('Portfolio value (USD)')
     plt.show()
 

@@ -539,7 +539,7 @@ def record_current_contract(algo, data):
                                 trading_calendar=self.trading_calendar,
                                 env=self.env)
         results = algo.run(self.data_portal)
-        result = results.iloc[0]
+        result = results.recorded_vars.iloc[0]
 
         self.assertEqual(result.primary.symbol,
                          'FOF16',
@@ -548,7 +548,7 @@ def record_current_contract(algo, data):
                          'FOG16',
                          'Secondary should be FOG16 on first session.')
 
-        result = results.iloc[1]
+        result = results.recorded_vars.iloc[1]
         # Second day, primary should switch to FOG
         self.assertEqual(result.primary.symbol,
                          'FOG16',
@@ -559,7 +559,7 @@ def record_current_contract(algo, data):
                          'Secondary should be FOH16 on second session, auto '
                          'close is at beginning of the session.')
 
-        result = results.iloc[2]
+        result = results.recorded_vars.iloc[2]
         # Second day, primary should switch to FOG
         self.assertEqual(result.primary.symbol,
                          'FOG16',
@@ -598,7 +598,7 @@ def record_current_contract(algo, data):
                                 trading_calendar=self.trading_calendar,
                                 env=self.env)
         results = algo.run(self.data_portal)
-        result = results.iloc[0]
+        result = results.recorded_vars.iloc[0]
 
         self.assertEqual(result.primary_len,
                          6,
@@ -633,7 +633,7 @@ def record_current_contract(algo, data):
                          'session.')
 
         # Second day, primary should switch to FOG
-        result = results.iloc[1]
+        result = results.recorded_vars.iloc[1]
 
         self.assertEqual(result.primary_len,
                          5,
