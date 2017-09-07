@@ -100,7 +100,7 @@ Currently supported platforms include:
 Quickstart
 ==========
 
-See our `getting started tutorial <http://www.zipline.io/#quickstart>`_.
+See our `getting started tutorial <http://www.zipline.io/beginner-tutorial.html>`_.
 
 The following code implements a simple dual moving average algorithm.
 

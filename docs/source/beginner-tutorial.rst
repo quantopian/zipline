@@ -90,7 +90,7 @@ finished running you will have access to each variable value you tracked
 with :func:`~zipline.api.record` under the name you provided (we will see this
 further below). You also see how we can access the current price data of the
 AAPL stock in the ``data`` event frame (for more information see
-`here <https://www.quantopian.com/help#api-event-properties>`__.
+`here <https://www.quantopian.com/help#api-event-properties>`__).
 
 Running the algorithm
 ~~~~~~~~~~~~~~~~~~~~~
