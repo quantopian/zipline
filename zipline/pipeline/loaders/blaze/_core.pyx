@@ -264,7 +264,7 @@ cdef _array_for_column_impl(object dtype,
     if AsArrayKind is AsAdjustedArray:
         index_0_asof_date_by_column_ix = np.full(
             out_array.shape[1],
-            pd.Timestamp.min.asm8.view('int64'),
+            pd.Timestamp.min.value,
             dtype='int64',
         )
 
@@ -331,8 +331,16 @@ cdef _array_for_column_impl(object dtype,
                 with cython.boundscheck(False), cython.wraparound(False):
                     asof_date = asof_dates[n]
                     if asof_date >= index_0_asof_date_by_column_ix[column_ix]:
+                        # The asof_date is the same or more recent than the
+                        # last recorded asof_date at index 0 and we should
+                        # treat this value as the best known row. We use >=
+                        # because a more recent row with the same asof_date
+                        # should be treated as an adjustment and the new value
+                        # becomes the best-known.
                         index_0_asof_date_by_column_ix[column_ix] = asof_date
                     else:
+                        # The asof_date is earlier than the asof_date written
+                        # at index 0. Ignore this row.
                         continue
 
         non_null_ad_ixs = non_null_ad_ixs_by_column_ix[column_ix]
@@ -603,6 +611,9 @@ cdef arrays_from_rows(DatetimeIndex_t dates,
             (
                 all_rows[AD_FIELD_NAME].values.view('int64')
                 if len(all_rows) else
+                # workaround for empty data frames which often lost type
+                # information; enforce than an empty column as an int64 type
+                # instead of object type
                 np.array([], dtype='int64')
             ),
             asof_ixs,

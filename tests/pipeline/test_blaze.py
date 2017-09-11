@@ -41,6 +41,7 @@ from zipline.testing import (
 from zipline.testing.fixtures import WithAssetFinder
 from zipline.testing.predicates import assert_equal, assert_isidentical
 from zipline.utils.numpy_utils import float64_dtype, int64_dtype
+from zipline.utils.pandas_utils import empty_dataframe
 
 
 nameof = op.attrgetter('name')
@@ -458,19 +459,16 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                    Equity(66 [B])      NaT  False
                    Equity(67 [C])      NaT  False
         """
-        df = pd.DataFrame(np.array(
-            [],
-            dtype=[
-                ('sid', 'int64'),
-                ('float_value', 'float64'),
-                ('str_value', 'object'),
-                ('int_value', 'int64'),
-                ('bool_value', 'bool'),
-                ('dt_value', 'datetime64[ns]'),
-                ('asof_date', 'datetime64[ns]'),
-                ('timestamp', 'datetime64[ns]'),
-            ],
-        ))
+        df = empty_dataframe(
+            ('sid', 'int64'),
+            ('float_value', 'float64'),
+            ('str_value', 'object'),
+            ('int_value', 'int64'),
+            ('bool_value', 'bool'),
+            ('dt_value', 'datetime64[ns]'),
+            ('asof_date', 'datetime64[ns]'),
+            ('timestamp', 'datetime64[ns]'),
+        )
 
         expr = bz.data(
             df,
@@ -1284,7 +1282,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                       start,
                       end,
                       window_length,
-                      compute_fn):
+                      compute_fn=None):
         loader = BlazeLoader()
         ds = from_blaze(
             expr,
@@ -1299,6 +1297,15 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
 
         # prevent unbound locals issue in the inner class
         window_length_ = window_length
+
+        if compute_fn is None:
+            self.assertIsNone(
+                expected_output,
+                'expected_output must be None if compute_fn is None',
+            )
+
+            def compute_fn(data):
+                return data[0]
 
         class TestFactor(CustomFactor):
             inputs = ds.value,
@@ -1320,11 +1327,12 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             finder,
         ).run_pipeline(p, start, end)
 
-        assert_frame_equal(
-            result,
-            _utc_localize_index_level_0(expected_output),
-            check_dtype=False,
-        )
+        if expected_output is not None:
+            assert_frame_equal(
+                result,
+                _utc_localize_index_level_0(expected_output),
+                check_dtype=False,
+            )
 
     @with_ignore_sid()
     def test_deltas(self, asset_info, add_extra_sid):
@@ -1395,18 +1403,22 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
 
     @with_ignore_sid()
     def test_deltas_before_index_0(self, asset_info, add_extra_sid):
-        df = pd.DataFrame(np.array(
-            [],
-            dtype=[
-                ('sid', 'int64'),
-                ('value', 'float64'),
-                ('asof_date', 'datetime64[ns]'),
-                ('timestamp', 'datetime64[ns]'),
-            ],
-        ))
+        df = empty_dataframe(
+            ('sid', 'int64'),
+            ('value', 'float64'),
+            ('asof_date', 'datetime64[ns]'),
+            ('timestamp', 'datetime64[ns]'),
+        )
         expr = bz.data(df, name='expr', dshape=self.dshape)
 
         T = pd.Timestamp
+        # These data are interesting because we have four rows with an asof
+        # date prior to the start of the query window. The first, second, and
+        # fourth rows should become the best-known value on their timestamp.
+        # The third row's asof date is less than the second row's asof date so,
+        # due to forward filling rules, it is *not* the most recent value on
+        # its timestamp. The value for row three should never be shown to the
+        # user.
         deltas_df_single_sid = pd.DataFrame({
             'value': [0.0, 1.0, 2.0, 3.0],
             'asof_date': [
@@ -1422,6 +1434,11 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 T('2014-01-04 23:00'),
             ],
         })
+        sids = asset_info.index
+        if add_extra_sid:
+            # add a sid to the dataset that the asset finder doesn't know about
+            sids = sids.insert(0, ord('Z'))
+
         deltas_df = pd.concat([
             deltas_df_single_sid.assign(
                 sid=sid,
@@ -1436,6 +1453,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                                     [0.0]]),
             '2014-01-03': np.array([[1.0],
                                     [1.0]]),
+            # The third row's value of 2.0 is *not* the best known value
+            # because its asof date of 2013-12-02 is earlier than the previous
+            # row's asof date of 2013-12-15. We continue to surface the second
+            # row's value on this day.
             '2014-01-04': np.array([[1.0],
                                     [1.0]]),
             '2014-01-05': np.array([[3.0],
@@ -1448,29 +1469,18 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             for k, v in expected_views_single_sid.items()
         }
         with tmp_asset_finder(equities=asset_info) as finder:
-            nassets = len(asset_info)
-            expected_max = np.array([0, 1, 1, 3]) + (nassets - 1) * 100
-            expected_output = pd.DataFrame(
-                list(concat([n] * nassets for n in expected_max)),
-                index=pd.MultiIndex.from_product((
-                    sorted(expected_views.keys()),
-                    finder.retrieve_all(asset_info.index),
-                )),
-                columns=('value',),
-            )
             dates = pd.date_range('2014-01-01', '2014-01-05')
             self._run_pipeline(
                 expr,
                 deltas,
                 None,
                 expected_views,
-                expected_output,
+                None,
                 finder,
                 calendar=dates,
                 start=dates[1],
                 end=dates[-1],
                 window_length=2,
-                compute_fn=np.nanmax,
             )
 
     @with_extra_sid()
@@ -1573,17 +1583,21 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             )
 
     def test_deltas_before_index_0_macro(self):
-        df = pd.DataFrame(np.array(
-            [],
-            dtype=[
-                ('value', 'float64'),
-                ('asof_date', 'datetime64[ns]'),
-                ('timestamp', 'datetime64[ns]'),
-            ],
-        ))
+        df = empty_dataframe(
+            ('value', 'float64'),
+            ('asof_date', 'datetime64[ns]'),
+            ('timestamp', 'datetime64[ns]'),
+        )
         expr = bz.data(df, name='expr', dshape=self.macro_dshape)
 
         T = pd.Timestamp
+        # These data are interesting because we have four rows with an asof
+        # date prior to the start of the query window. The first, second, and
+        # fourth rows should become the best-known value on their timestamp.
+        # The third row's asof date is less than the second row's asof date so,
+        # due to forward filling rules, it is *not* the most recent value on
+        # its timestamp. The value for row three should never be shown to the
+        # user.
         deltas_df = pd.DataFrame({
             'value': [0.0, 1.0, 2.0, 3.0],
             'asof_date': [
@@ -1601,12 +1615,15 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         })
         deltas = bz.data(deltas_df, name='deltas', dshape=self.macro_dshape)
 
-        nassets = len(simple_asset_info)
         expected_views = keymap(pd.Timestamp, {
             '2014-01-02': np.array([[0.0],
                                     [0.0]]),
             '2014-01-03': np.array([[1.0],
                                     [1.0]]),
+            # The third row's value of 2.0 is *not* the best known value
+            # because its asof date of 2013-12-02 is earlier than the previous
+            # row's asof date of 2013-12-15. We continue to surface the second
+            # row's value on this day.
             '2014-01-04': np.array([[1.0],
                                     [1.0]]),
             '2014-01-05': np.array([[3.0],
@@ -1614,27 +1631,18 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         })
 
         with tmp_asset_finder(equities=simple_asset_info) as finder:
-            expected_output = pd.DataFrame(
-                list(concat([n] * nassets for n in [0, 1, 1, 3])),
-                index=pd.MultiIndex.from_product((
-                    sorted(expected_views.keys()),
-                    finder.retrieve_all(simple_asset_info.index),
-                )),
-                columns=('value',),
-            )
             dates = pd.date_range('2014-01-01', '2014-01-05')
             self._run_pipeline(
                 expr,
                 deltas,
                 None,
                 expected_views,
-                expected_output,
+                None,
                 finder,
                 calendar=dates,
                 start=dates[1],
                 end=dates[-1],
                 window_length=2,
-                compute_fn=np.nanmax,
             )
 
     @with_extra_sid()
