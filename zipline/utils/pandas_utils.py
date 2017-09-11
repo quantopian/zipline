@@ -7,6 +7,7 @@ from itertools import product
 import operator as op
 import warnings
 
+import numpy as np
 import pandas as pd
 from distutils.version import StrictVersion
 
@@ -311,3 +312,38 @@ def days_at_time(days, t, tz, day_offset=0):
         seconds=t.second,
     )
     return (days + delta).tz_localize(tz).tz_convert('UTC')
+
+
+def empty_dataframe(*columns):
+    """Create an empty dataframe with columns of particular types.
+
+    Parameters
+    ----------
+    *columns
+        The (column_name, column_dtype) pairs.
+
+    Returns
+    -------
+    typed_dataframe : pd.DataFrame
+        The empty typed dataframe.
+
+    Examples
+    --------
+    >>> df = empty_dataframe(
+    ...     ('a', 'int64'),
+    ...     ('b', 'float64'),
+    ...     ('c', 'datetime64[ns]'),
+    ... )
+
+    >>> df
+    Empty DataFrame
+    Columns: [a, b, c]
+    Index: []
+
+    df.dtypes
+    a             int64
+    b           float64
+    c    datetime64[ns]
+    dtype: object
+    """
+    return pd.DataFrame(np.array([], dtype=list(columns)))
