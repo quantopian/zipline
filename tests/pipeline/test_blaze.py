@@ -16,7 +16,7 @@ from numpy.testing.utils import assert_array_almost_equal
 from odo import odo
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
-from toolz import keymap, valmap, concatv, concat
+from toolz import keymap, valmap, concatv
 from toolz.curried import operator as op
 
 from zipline.assets.synthetic import make_simple_equity_info
