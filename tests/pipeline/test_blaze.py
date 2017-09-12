@@ -1483,6 +1483,112 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 window_length=2,
             )
 
+    @with_ignore_sid()
+    def test_deltas_on_same_ix_out_of_order(self, asset_info, add_extra_sid):
+        df = empty_dataframe(
+            ('sid', 'int64'),
+            ('value', 'float64'),
+            ('asof_date', 'datetime64[ns]'),
+            ('timestamp', 'datetime64[ns]'),
+        )
+        expr = bz.data(df, name='expr', dshape=self.dshape)
+
+        T = pd.Timestamp
+
+        # These data are interesting because we have pairs of rows that come on
+        # the same asof_date in index space. The catch is that the asof dates
+        # are sometimes out of order relative to their timestamps. This is used
+        # to test cases where we get novel rows for dates between trading days
+        # (weekends and holidays) although we learn about them out of order.
+        #
+        # The first two rows both map to index 0 in the output. The first row
+        # has an earlier timestamp but later asof date so it should be
+        # selected.
+        #
+        # The third and fourth rows both map to index 1 in the output. The
+        # fourth row (second in the group) has both a later timestamp and asof
+        # date so it should be selected.
+        #
+        # The fifth and sixth rows both map to index 2 in the output. The fifth
+        # row (first in the group) has an earlier timestamp but later asof date
+        # so it should be selected.
+        deltas_df_single_sid = pd.DataFrame({
+            'value': [
+                0.0,  # selected
+                1.0,  # ignored
+
+                2.0,  # ignored
+                3.0,  # selected
+
+                4.0,  # selected
+                5.0,  # ignored
+            ],
+            'asof_date': [
+                # swapped order: second row is before the first
+                T('2014-01-02'),
+                T('2014-01-01'),
+
+                # chronological order: second row is after the first
+                T('2014-01-03'),
+                T('2014-01-04'),
+
+                # swapped order: second row is before the first
+                T('2014-01-06'),
+                T('2014-01-05'),
+            ],
+            'timestamp': [
+                # we learn about all rows in monotonically increasing order
+                T('2013-01-02 22:00'),
+                T('2014-01-02 23:00'),
+                T('2014-01-04 22:00'),
+                T('2014-01-04 23:00'),
+                T('2014-01-06 22:00'),
+                T('2014-01-06 23:00'),
+            ],
+        })
+        sids = asset_info.index
+        if add_extra_sid:
+            # add a sid to the dataset that the asset finder doesn't know about
+            sids = sids.insert(0, ord('Z'))
+
+        deltas_df = pd.concat([
+            deltas_df_single_sid.assign(
+                sid=sid,
+                value=deltas_df_single_sid.value + (100 * n),
+            )
+            for n, sid in enumerate(asset_info.index)
+        ])
+        deltas = bz.data(deltas_df, name='deltas', dshape=self.dshape)
+
+        expected_views_single_sid = keymap(pd.Timestamp, {
+            '2014-01-05': np.array([[0.0],
+                                    [3.0]]),
+            '2014-01-07': np.array([[3.0],
+                                    [4.0]]),
+        })
+
+        column_constant = np.arange(len(asset_info)) * 100
+        expected_views = {
+            k: v + column_constant
+            for k, v in expected_views_single_sid.items()
+        }
+        with tmp_asset_finder(equities=asset_info) as finder:
+            # The dates queried are non-contiguous. We have two day groups to
+            # capture the two day pairs in the input data.
+            dates = pd.to_datetime(['2014-01-03', '2014-01-05', '2014-01-07'])
+            self._run_pipeline(
+                expr=expr,
+                deltas=deltas,
+                checkpoints=None,
+                expected_views=expected_views,
+                expected_output=None,
+                finder=finder,
+                calendar=dates,
+                start=dates[1],
+                end=dates[-1],
+                window_length=2,
+            )
+
     @with_extra_sid()
     def test_deltas_only_one_delta_in_universe(self, asset_info):
         expr = bz.data(self.df, name='expr', dshape=self.dshape)
@@ -1639,6 +1745,93 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 expected_views,
                 None,
                 finder,
+                calendar=dates,
+                start=dates[1],
+                end=dates[-1],
+                window_length=2,
+            )
+
+    def test_deltas_on_same_ix_out_of_order_macro(self):
+        df = empty_dataframe(
+            ('value', 'float64'),
+            ('asof_date', 'datetime64[ns]'),
+            ('timestamp', 'datetime64[ns]'),
+        )
+        expr = bz.data(df, name='expr', dshape=self.macro_dshape)
+
+        T = pd.Timestamp
+
+        # These data are interesting because we have pairs of rows that come on
+        # the same asof_date in index space. The catch is that the asof dates
+        # are sometimes out of order relative to their timestamps. This is used
+        # to test cases where we get novel rows for dates between trading days
+        # (weekends and holidays) although we learn about them out of order.
+        #
+        # The first two rows both map to index 0 in the output. The first row
+        # has an earlier timestamp but later asof date so it should be
+        # selected.
+        #
+        # The third and fourth rows both map to index 1 in the output. The
+        # fourth row (second in the group) has both a later timestamp and asof
+        # date so it should be selected.
+        #
+        # The fifth and sixth rows both map to index 2 in the output. The fifth
+        # row (first in the group) has an earlier timestamp but later asof date
+        # so it should be selected.
+        deltas_df = pd.DataFrame({
+            'value': [
+                0.0,  # selected
+                1.0,  # ignored
+
+                2.0,  # ignored
+                3.0,  # selected
+
+                4.0,  # selected
+                5.0,  # ignored
+            ],
+            'asof_date': [
+                # swapped order: second row is before the first
+                T('2014-01-02'),
+                T('2014-01-01'),
+
+                # chronological order: second row is after the first
+                T('2014-01-03'),
+                T('2014-01-04'),
+
+                # swapped order: second row is before the first
+                T('2014-01-06'),
+                T('2014-01-05'),
+            ],
+            'timestamp': [
+                # we learn about all rows in monotonically increasing order
+                T('2013-01-02 22:00'),
+                T('2014-01-02 23:00'),
+                T('2014-01-04 22:00'),
+                T('2014-01-04 23:00'),
+                T('2014-01-06 22:00'),
+                T('2014-01-06 23:00'),
+            ],
+        })
+        deltas = bz.data(deltas_df, name='deltas', dshape=self.macro_dshape)
+
+        expected_views = keymap(pd.Timestamp, {
+            '2014-01-05': np.array([[0.0],
+                                    [3.0]]),
+            '2014-01-07': np.array([[3.0],
+                                    [4.0]]),
+        })
+
+        with tmp_asset_finder(equities=simple_asset_info) as finder:
+            # The dates queried are non-contiguous. We have two day groups to
+            # capture the two day pairs in the input data.
+            dates = pd.to_datetime(['2014-01-03', '2014-01-05', '2014-01-07'])
+            self._run_pipeline(
+                expr=expr,
+                deltas=deltas,
+                checkpoints=None,
+                expected_views=expected_views,
+                expected_output=None,
+                finder=finder,
                 calendar=dates,
                 start=dates[1],
                 end=dates[-1],
