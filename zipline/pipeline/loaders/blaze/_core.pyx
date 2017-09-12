@@ -260,13 +260,11 @@ cdef _array_for_column_impl(object dtype,
         set() for _ in range(out_array.shape[1])
     ]
 
-    cdef np.ndarray[np.int64_t] index_0_asof_date_by_column_ix
-    if AsArrayKind is AsAdjustedArray:
-        index_0_asof_date_by_column_ix = np.full(
-            out_array.shape[1],
-            pd.Timestamp.min.value,
-            dtype='int64',
-        )
+    cdef np.ndarray[np.int64_t, ndim=2] most_recent_asof_date_for_ix = np.full(
+        (<object> out_array).shape,
+        pd.Timestamp.min.value,
+        dtype='int64',
+    )
 
     cdef dict adjustments
 
@@ -314,6 +312,21 @@ cdef _array_for_column_impl(object dtype,
 
         column_ix = <object> column_ix_ob  # cast to np.int64_t
 
+        with cython.boundscheck(False), cython.wraparound(False):
+            asof_date = asof_dates[n]
+            if asof_date >= most_recent_asof_date_for_ix[asof_ix, column_ix]:
+                # The asof_date is the same or more recent than the
+                # last recorded asof_date at the given index and we should
+                # treat this value as the best known row. We use >=
+                # because a more recent row with the same asof_date
+                # should be treated as an adjustment and the new value
+                # becomes the best-known.
+                most_recent_asof_date_for_ix[asof_ix, column_ix] = asof_date
+            else:
+                # The asof_date is earlier than the asof_date written
+                # at the given index. Ignore this row.
+                continue
+
         if AsArrayKind is AsAdjustedArray:
             # Grab the list of adjustments for this timestamp. If this is the
             # first time we've seen this timestamp, PyDict_GetItem will return
@@ -323,25 +336,6 @@ cdef _array_for_column_impl(object dtype,
                 adjustment_list = adjustments[ts_ix] = []
             else:
                 adjustment_list = <list> adjustment_list_ptr
-
-            if asof_ix == 0:
-                # If the asof_ix == 0, this value may fall before the start of
-                # our window. In this case, we only want to apply data that is
-                # more recent than the current asof date stored at index 0.
-                with cython.boundscheck(False), cython.wraparound(False):
-                    asof_date = asof_dates[n]
-                    if asof_date >= index_0_asof_date_by_column_ix[column_ix]:
-                        # The asof_date is the same or more recent than the
-                        # last recorded asof_date at index 0 and we should
-                        # treat this value as the best known row. We use >=
-                        # because a more recent row with the same asof_date
-                        # should be treated as an adjustment and the new value
-                        # becomes the best-known.
-                        index_0_asof_date_by_column_ix[column_ix] = asof_date
-                    else:
-                        # The asof_date is earlier than the asof_date written
-                        # at index 0. Ignore this row.
-                        continue
 
         non_null_ad_ixs = non_null_ad_ixs_by_column_ix[column_ix]
         ix = bisect_right(non_null_ad_ixs, asof_ix)
