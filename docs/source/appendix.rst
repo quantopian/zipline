@@ -355,9 +355,6 @@ Bundles
    :func:`~zipline.data.bundles.register` or
    :func:`~zipline.data.bundles.unregister`.
 
-.. autofunction:: zipline.data.bundles.yahoo_equities
-
-
 
 Utilities
 ~~~~~~~~~

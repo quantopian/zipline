@@ -36,6 +36,8 @@ def main():
     os.chdir(HERE)
 
     try:
+        print("Cleaning docs with 'make clean'")
+        check_call(['make', 'clean'])
         print("Building docs with 'make html'")
         check_call(['make', 'html'])
 
