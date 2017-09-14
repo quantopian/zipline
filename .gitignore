@@ -14,3 +14,9 @@ docs
 .idea
 dist/
 TAGS
+
+# OSX
+.DS_Store
+
+# nosetests
+.noseids
