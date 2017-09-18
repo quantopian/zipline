@@ -542,12 +542,16 @@ class IBBroker(Broker):
 
         # TODO: Add commission if the order is executed
 
+    def _ensure_subscribed(self, symbol):
+        if symbol not in self._tws.bars:
+            self._tws.subscribe_to_market_data(symbol)
+            while symbol not in self._tws.bars:
+                sleep(0.1)
+
     def get_spot_value(self, assets, field, dt, data_frequency):
         symbol = str(assets.symbol)
 
-        if symbol not in self._tws.bars:
-            self._tws.subscribe_to_market_data(symbol)
-            return pd.NaT if field == 'last_traded' else np.NaN
+        self._ensure_subscribed(symbol)
 
         bars = self._tws.bars[symbol]
 
@@ -580,3 +584,8 @@ class IBBroker(Broker):
                     return minute_df.last_trade_price.min()
                 elif field == 'volume':
                     return minute_df.last_trade_size.sum()
+
+    def get_last_traded_dt(self, asset):
+        symbol = str(asset.symbol)
+        self._ensure_subscribed(symbol)
+        return self._tws.bars[symbol].index[-1]
