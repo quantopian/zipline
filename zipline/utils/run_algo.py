@@ -156,6 +156,9 @@ def _run(handle_data,
         env = TradingEnvironment(environ=environ)
         choose_loader = None
 
+    if not trading_calendar:
+        trading_calendar = get_calendar('NYSE')
+
     perf = TradingAlgorithm(
         namespace=namespace,
         env=env,

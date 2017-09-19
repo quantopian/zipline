@@ -27,7 +27,6 @@ from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.sources import SpecificEquityTrades
 from zipline.finance.trading import SimulationParameters
 from zipline.sources.test_source import create_trade
-from zipline.utils.calendars import get_calendar
 from zipline.utils.input_validation import expect_types
 
 
@@ -39,10 +38,7 @@ def create_simulation_parameters(year=2006,
                                  data_frequency='daily',
                                  emission_rate='daily',
                                  trading_calendar=None):
-
     if not trading_calendar:
-        trading_calendar = get_calendar("NYSE")
-    else:
         trading_calendar = get_calendar(trading_calendar)
 
     if start is None:

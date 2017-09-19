@@ -6,8 +6,12 @@ import logbook
 import pandas as pd
 from six import text_type
 
-from zipline.utils.compat import wraps
 from zipline.data import bundles as bundles_module
+from zipline.utils.calendars.calendar_utils import (
+    get_calendar,
+    _default_calendar_factories
+)
+from zipline.utils.compat import wraps
 from zipline.utils.cli import Date, Timestamp
 from zipline.utils.run_algo import _run, load_extensions
 
@@ -175,6 +179,7 @@ def ipython_only(option):
 @click.option(
     '--trading-calendar',
     metavar='TRADING-CALENDAR',
+    type=click.Choice(_default_calendar_factories.keys()),
     default='NYSE',
     help="The calendar you want to use e.g. LSE. NYSE is the default."
 )
@@ -225,6 +230,8 @@ def run(ctx,
             "must specify exactly one of '-f' / '--algofile' or"
             " '-t' / '--algotext'",
         )
+
+    trading_calendar = get_calendar(trading_calendar)
 
     perf = _run(
         initialize=None,
