@@ -441,8 +441,9 @@ cdef _array_for_column_impl(object dtype,
             sort=False,
         )
     else:
-        # this cast prevents a compiler crash
-        baseline_array = <object> out_array
+        # view the array as the input dtype to turn bools and datetimes back
+        # into the proper numpy dtype
+        baseline_array = out_array.view(dtype)
 
     if AsArrayKind is AsAdjustedArray:
         return AdjustedArray(

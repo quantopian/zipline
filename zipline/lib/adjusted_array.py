@@ -97,7 +97,8 @@ def _normalize_array(data, missing_value):
 
     Returns
     -------
-    coerced, view_kwargs : (np.ndarray, np.dtype)
+    coerced : np.ndarray
+    view_kwargs : dict
     """
     if isinstance(data, LabelArray):
         return data, {}
@@ -189,6 +190,9 @@ class AdjustedArray(object):
         """
         The dtype of the data stored in this array.
         """
+        if isinstance(self._data, LabelArray):
+            return dtype(object)
+
         return self._view_kwargs.get('dtype') or self._data.dtype
 
     @lazyval

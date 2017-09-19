@@ -5,6 +5,7 @@ from abc import (
     ABCMeta,
     abstractmethod,
 )
+from textwrap import dedent
 from uuid import uuid4
 
 from six import (
@@ -434,6 +435,44 @@ class SimplePipelineEngine(PipelineEngine):
     def get_loader(self, term):
         return self._get_loader(term)
 
+    def _validate_loader_result(self, to_load, loaded):
+        # take a copy because we want to pop from this in the loop below
+        loaded = loaded.copy()
+        missing = []
+        incorrect_dtype = {}
+        for term in to_load:
+            try:
+                value = loaded.pop(term)
+            except KeyError:
+                missing.append(term)
+            else:
+                if value.dtype != term.dtype:
+                    incorrect_dtype[term] = value.dtype
+
+        error_message = ''
+        if loaded:
+            error_message += 'loader returned extra terms: %r' % sorted(loaded)
+        if missing:
+            error_message += dedent(
+                """\
+                loader did not return an AdjustedArray for each column
+                missing: %r
+                """,
+            ) % missing
+        if incorrect_dtype:
+            error_message += dedent(
+                """\
+                loader returned AdjustedArray of incorrect dtype for:
+                  %s
+                """,
+            ) % '\n  '.join(
+                '%s: %s' % item for item in incorrect_dtype.items()
+            )
+
+        if error_message:
+            from nose.tools import set_trace;set_trace()
+            raise AssertionError(error_message)
+
     def compute_chunk(self, graph, dates, assets, initial_workspace):
         """
         Compute the Pipeline terms in the graph for the requested start and end
@@ -496,11 +535,7 @@ class SimplePipelineEngine(PipelineEngine):
                 loaded = loader.load_adjusted_array(
                     to_load, mask_dates, assets, mask,
                 )
-                assert set(loaded) == set(to_load), (
-                    'loader did not return an AdjustedArray for each column\n'
-                    'expected: %r\n'
-                    'got:      %r' % (sorted(to_load), sorted(loaded))
-                )
+                self._validate_loader_result(to_load, loaded)
                 workspace.update(loaded)
             else:
                 workspace[term] = term._compute(

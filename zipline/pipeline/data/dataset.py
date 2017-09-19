@@ -101,6 +101,7 @@ class _BoundColumnDescr(object):
         )
 
 
+@total_ordering
 class BoundColumn(LoadableTerm):
     """
     A column of data that's been concretely bound to a particular dataset.
@@ -217,6 +218,13 @@ class BoundColumn(LoadableTerm):
     def short_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
         return self.qualname
+
+    def __lt__(self, other):
+        # Allow sorting of columns based on name.
+        if not isinstance(other, type(self)):
+            return NotImplemented
+
+        return self.qualname < other.qualname
 
 
 @total_ordering
