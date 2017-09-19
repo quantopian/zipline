@@ -17,7 +17,6 @@ import pandas as pd
 
 import zipline.protocol as zp
 from zipline.algorithm import TradingAlgorithm
-from zipline.assets._assets import Asset
 from zipline.gens.realtimeclock import RealtimeClock
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.errors import (OrderInBeforeTradingStart,
@@ -185,7 +184,7 @@ class LiveTradingAlgorithm(TradingAlgorithm):
         tradeable_asset['end_date'] = (pd.Timestamp('now', tz='UTC') +
                                        pd.Timedelta('10000 days'))
         tradeable_asset['auto_close_date'] = tradeable_asset['end_date']
-        return Asset.from_dict(tradeable_asset)
+        return asset.from_dict(tradeable_asset)
 
     @api_method
     @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
