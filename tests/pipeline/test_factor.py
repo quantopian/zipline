@@ -28,7 +28,8 @@ from zipline.errors import BadPercentileBounds, UnknownRankMethod
 from zipline.lib.labelarray import LabelArray
 from zipline.lib.rank import masked_rankdata_2d
 from zipline.lib.normalize import naive_grouped_rowwise_apply as grouped_apply
-from zipline.pipeline import Classifier, Factor, Filter
+from zipline.pipeline import Classifier, Factor, Filter, Pipeline
+from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.factors import (
     CustomFactor,
     Returns,
@@ -39,7 +40,10 @@ from zipline.testing import (
     parameter_space,
     permute_rows,
 )
-from zipline.testing.fixtures import ZiplineTestCase
+from zipline.testing.fixtures import (
+    WithSeededRandomPipelineEngine,
+    ZiplineTestCase,
+)
 from zipline.testing.predicates import assert_equal
 from zipline.utils.numpy_utils import (
     categorical_dtype,
@@ -1252,3 +1256,32 @@ class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
             f.to_workspace_value(pipeline_output, pd.Index([0, 1])),
             column_data,
         )
+
+
+class TestDatetimeDtypes(WithSeededRandomPipelineEngine,
+                         ZiplineTestCase):
+
+    START_DATE = pd.Timestamp('2014-01-02')
+    END_DATE = pd.Timestamp('2014-02-03')
+
+    def test_datetime_dtype_factor(self):
+        # This is just a smoketest to make sure we have coverage of a factor
+        # taking datetime inputs from a real loader.
+
+        testcase = self
+
+        class SomeFactor(CustomFactor):
+            inputs = (TestingDataSet.datetime_col,)
+            window_length = 2
+
+            def compute(self, today, assets, out, data):
+                testcase.assertEqual(data.dtype, datetime64ns_dtype)
+                out[:] = 0
+
+        result = self.run_pipeline(
+            Pipeline({'test': SomeFactor()}),
+            start_date=pd.Timestamp('2014-01-06', tz='UTC'),
+            end_date=pd.Timestamp('2014-01-10', tz='UTC'),
+        )
+
+        self.assertTrue((result.values == 0.0).all())
