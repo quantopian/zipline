@@ -915,7 +915,7 @@ class SQLiteAdjustmentWriter(object):
                 np.array([], dtype=list(expected_dtypes.items())),
             )
         else:
-            if frozenset(frame.columns) != viewkeys(expected_dtypes):
+            if frozenset(frame.columns) != frozenset(expected_dtypes):
                 raise ValueError(
                     "Unexpected frame columns:\n"
                     "Expected Columns: %s\n"
