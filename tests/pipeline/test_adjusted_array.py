@@ -13,7 +13,6 @@ from numpy import (
     asarray,
     dtype,
     full,
-    where,
 )
 from six.moves import zip_longest
 from toolz import curry
@@ -30,7 +29,7 @@ from zipline.lib.adjustment import (
 )
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.labelarray import LabelArray
-from zipline.testing import check_arrays, parameter_space
+from zipline.testing import check_arrays
 from zipline.utils.compat import unicode
 from zipline.utils.numpy_utils import (
     coerce_to_dtype,
