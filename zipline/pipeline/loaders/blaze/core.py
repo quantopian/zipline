@@ -983,7 +983,6 @@ class BlazeLoader(object):
                 data_query_time,
                 data_query_tz,
                 assets,
-                mask,
                 columns,
                 all_rows,
             )
@@ -992,7 +991,6 @@ class BlazeLoader(object):
                 dates,
                 data_query_time,
                 data_query_tz,
-                None,
                 columns,
                 all_rows,
             )

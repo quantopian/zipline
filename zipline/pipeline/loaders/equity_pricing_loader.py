@@ -89,7 +89,6 @@ class USEquityPricingLoader(PipelineLoader):
         for c, c_raw, c_adjs in zip(columns, raw_arrays, adjustments):
             out[c] = AdjustedArray(
                 c_raw.astype(c.dtype),
-                mask,
                 c_adjs,
                 c.missing_value,
             )

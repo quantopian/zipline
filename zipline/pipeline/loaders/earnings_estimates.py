@@ -656,7 +656,6 @@ class EarningsEstimatesLoader(PipelineLoader):
                 ] = requested_qtr_data[column_name].values
                 out[col] = AdjustedArray(
                     output_array,
-                    mask,
                     # There may not be any adjustments at all (e.g. if
                     # len(date) == 1), so provide a default.
                     dict(col_to_adjustments.get(column_name, {})),
