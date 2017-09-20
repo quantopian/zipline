@@ -100,7 +100,6 @@ class BollingerBandsTestCase(BasePipelineTestCase):
             initial_workspace={
                 USEquityPricing.close: AdjustedArray(
                     data=closes,
-                    mask=mask,
                     adjustments={},
                     missing_value=np.nan,
                 ),
