@@ -922,7 +922,7 @@ class DataPortal(object):
             raise ValueError("Invalid frequency: {0}".format(frequency))
 
         # forward-fill price
-        if field == "price":
+        if ffill and field == "price":
             if frequency == "1m":
                 data_frequency = 'minute'
             elif frequency == "1d":

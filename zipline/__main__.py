@@ -204,6 +204,12 @@ def ipython_only(option):
     metavar='FILENAME',
     help='Filename where the state will be stored'
 )
+@click.option(
+    '--realtime-bar-target',
+    default=None,
+    metavar='DIRNAME',
+    help='Directory where the realtime collected minutely bars are saved'
+)
 @click.pass_context
 def run(ctx,
         algofile,
@@ -220,7 +226,8 @@ def run(ctx,
         local_namespace,
         broker,
         broker_uri,
-        state_file):
+        state_file,
+        realtime_bar_target):
     """Run a backtest for the given algorithm.
     """
     # check that the start and end dates are passed correctly
@@ -242,6 +249,9 @@ def run(ctx,
 
     if broker and state_file is None:
         ctx.fail("must specify state-file with live trading")
+
+    if broker and realtime_bar_target is None:
+        ctx.fail("must specify realtime-bar-target with live trading")
 
     brokerobj = None
     if broker:
@@ -286,6 +296,7 @@ def run(ctx,
         environ=os.environ,
         broker=brokerobj,
         state_filename=state_file,
+        realtime_bar_target=realtime_bar_target
     )
 
     if output == '-':

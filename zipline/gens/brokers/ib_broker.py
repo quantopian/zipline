@@ -69,6 +69,9 @@ class TWSConnection(EClientSocket, EWrapper):
 
         self.tws_uri = tws_uri
         host, port, client_id = self.tws_uri.split(':')
+        self._host = host
+        self._port = int(port)
+        self._client_id = int(client_id)
         self._order_update_callback = order_update_callback
 
         self._next_ticker_id = 0
@@ -87,9 +90,12 @@ class TWSConnection(EClientSocket, EWrapper):
         self.orders = {}
         self.time_skew = None
 
-        log.info("Connecting: {}:{}:{}".format(host, int(port),
-                                               int(client_id)))
-        self.eConnect(host, int(port), int(client_id))
+        self.connect()
+
+    def connect(self):
+        log.info("Connecting: {}:{}:{}".format(self._host, self._port,
+                                               self._client_id))
+        self.eConnect(self._host, self._port, self._client_id)
         while self.notConnected():
             sleep(0.1)
 
@@ -368,10 +374,22 @@ class IBBroker(Broker):
                            else self._tws.managed_accounts[0])
         self.currency = 'USD'
 
+        self._subscribed_assets = []
+
         super(self.__class__, self).__init__()
 
-    def subscribe_to_market_data(self, symbol):
-        self._tws.subscribe_to_market_data(symbol)
+    @property
+    def subscribed_assets(self):
+        return self._subscribed_assets
+
+    def subscribe_to_market_data(self, asset):
+        if asset not in self.subscribed_assets:
+            # remove str() cast to have a fun debugging journey
+            self._tws.subscribe_to_market_data(str(asset.symbol))
+            self._subscribed_assets.append(asset)
+
+            while asset.symbol not in self._tws.bars:
+                sleep(0.1)
 
     @property
     def positions(self):
@@ -542,16 +560,10 @@ class IBBroker(Broker):
 
         # TODO: Add commission if the order is executed
 
-    def _ensure_subscribed(self, symbol):
-        if symbol not in self._tws.bars:
-            self._tws.subscribe_to_market_data(symbol)
-            while symbol not in self._tws.bars:
-                sleep(0.1)
-
     def get_spot_value(self, assets, field, dt, data_frequency):
         symbol = str(assets.symbol)
 
-        self._ensure_subscribed(symbol)
+        self.subscribe_to_market_data(assets)
 
         bars = self._tws.bars[symbol]
 
@@ -586,6 +598,32 @@ class IBBroker(Broker):
                     return minute_df.last_trade_size.sum()
 
     def get_last_traded_dt(self, asset):
-        symbol = str(asset.symbol)
-        self._ensure_subscribed(symbol)
-        return self._tws.bars[symbol].index[-1]
+        self.subscribe_to_market_data(asset)
+
+        return self._tws.bars[asset.symbol].index[-1]
+
+    def get_realtime_bars(self, assets, frequency):
+        if frequency == '1m':
+            resample_freq = '1 Min'
+        elif frequency == '1d':
+            resample_freq = '24 H'
+        else:
+            raise ValueError("Invalid frequency specified: %s" % frequency)
+
+        df = pd.DataFrame()
+        for asset in assets:
+            symbol = str(asset.symbol)
+            self.subscribe_to_market_data(asset)
+
+            trade_prices = self._tws.bars[symbol]['last_trade_price']
+            trade_sizes = self._tws.bars[symbol]['last_trade_size']
+            ohlcv = trade_prices.resample(resample_freq).ohlc()
+            ohlcv['volume'] = trade_sizes.resample(resample_freq).sum()
+
+            # Add asset as level 0 column; ohlcv will be used as level 1 cols
+            ohlcv.columns = pd.MultiIndex.from_product([[asset, ],
+                                                        ohlcv.columns])
+
+            df = pd.concat([df, ohlcv], axis=1)
+
+        return df

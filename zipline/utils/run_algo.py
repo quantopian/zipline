@@ -72,7 +72,8 @@ def _run(handle_data,
          local_namespace,
          environ,
          broker,
-         state_filename):
+         state_filename,
+         realtime_bar_target):
     """Run a backtest for the given algorithm.
 
     This is shared between the cli and :func:`zipline.run_algo`.
@@ -176,7 +177,8 @@ def _run(handle_data,
 
     TradingAlgorithmClass = (partial(LiveTradingAlgorithm,
                                      broker=broker,
-                                     state_filename=state_filename)
+                                     state_filename=state_filename,
+                                     realtime_bar_target=realtime_bar_target)
                              if broker else TradingAlgorithm)
 
     perf = TradingAlgorithmClass(
@@ -386,5 +388,6 @@ def run_algorithm(start,
         local_namespace=False,
         environ=environ,
         broker=None,
-        state_filename=None
+        state_filename=None,
+        realtime_bar_target=None
     )

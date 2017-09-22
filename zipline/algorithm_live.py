@@ -46,6 +46,7 @@ class LiveTradingAlgorithm(TradingAlgorithm):
 
         self.algo_filename = kwargs.get('algo_filename', "<algorithm>")
         self.state_filename = kwargs.pop('state_filename', None)
+        self.realtime_bar_target = kwargs.pop('realtime_bar_target', None)
         self._context_persistence_excludes = []
 
         super(self.__class__, self).__init__(*args, **kwargs)
@@ -219,3 +220,30 @@ class LiveTradingAlgorithm(TradingAlgorithm):
         if isinstance(order_param, zp.Order):
             order_id = order_param.id
         self.broker.cancel_order(order_id)
+
+    def run(self, *args, **kwargs):
+        daily_stats = super(self.__class__, self).run(*args, **kwargs)
+        self.on_exit()
+        return daily_stats
+
+    def on_exit(self):
+        if not self.realtime_bar_target:
+            return
+
+        log.info("Storing realtime bars to: {}".format(
+            self.realtime_bar_target))
+
+        today = str(pd.to_datetime('today').date())
+        subscribed_assets = self.broker.subscribed_assets
+        realtime_history = self.broker.get_realtime_bars(subscribed_assets,
+                                                         '1m')
+
+        if not os.path.exists(self.realtime_bar_target):
+            os.mkdir(self.realtime_bar_target)
+
+        for asset in subscribed_assets:
+            filename = "zipline-live-%s-%s.csv" % (asset.symbol, today)
+            path = os.path.join(self.realtime_bar_target, filename)
+            realtime_history[asset].to_csv(path, mode='a',
+                                           index_label='datetime',
+                                           header=not os.path.exists(path))

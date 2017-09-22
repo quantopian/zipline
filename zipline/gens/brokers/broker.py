@@ -18,7 +18,11 @@ class Broker(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def subscribe_to_market_data(self, symbol):
+    def subscribe_to_market_data(self, asset):
+        pass
+
+    @abstractproperty
+    def subscribed_assets(self):
         pass
 
     @abstractproperty
@@ -54,5 +58,13 @@ class Broker(object):
         pass
 
     @abstractmethod
+    def get_last_traded_dt(self, asset):
+        pass
+
+    @abstractmethod
     def get_spot_value(self, assets, field, dt, data_frequency):
+        pass
+
+    @abstractmethod
+    def get_realtime_bars(self, assets, frequency):
         pass
