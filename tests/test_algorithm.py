@@ -4813,6 +4813,16 @@ class AlgoInputValidationTestCase(WithTradingEnvironment, ZiplineTestCase):
 
 class TestPanelData(WithTradingEnvironment, ZiplineTestCase):
 
+    def create_panel(self, sids, trading_calendar, start_dt, end_dt,
+                     create_df_for_asset, prev_close_column=False):
+        dfs = {}
+        for sid in sids:
+            dfs[sid] = create_df_for_asset(trading_calendar,
+                                           start_dt, end_dt, interval=sid)
+            if prev_close_column:
+                dfs[sid]['prev_close'] = dfs[sid]['close'].shift(1)
+        return pd.Panel(dfs)
+
     @parameterized.expand([
         ('daily',
          pd.Timestamp('2015-12-23', tz='UTC'),
@@ -4838,12 +4848,8 @@ class TestPanelData(WithTradingEnvironment, ZiplineTestCase):
                                  data_frequency)
 
         sids = range(1, 3)
-        dfs = {}
-        for sid in sids:
-            dfs[sid] = create_df_for_asset(trading_calendar,
-                                           start_dt, end_dt, interval=sid)
-            dfs[sid]['prev_close'] = dfs[sid]['close'].shift(1)
-        panel = pd.Panel(dfs)
+        panel = self.create_panel(sids, trading_calendar, start_dt, end_dt,
+                                  create_df_for_asset, prev_close_column=True)
 
         price_record = pd.Panel(items=sids,
                                 major_axis=panel.major_axis,
@@ -4851,9 +4857,7 @@ class TestPanelData(WithTradingEnvironment, ZiplineTestCase):
 
         def initialize(algo):
             algo.first_bar = True
-            algo.equities = []
-            for sid in sids:
-                algo.equities.append(algo.sid(sid))
+            algo.equities = [algo.sid(sid) for sid in sids]
 
         def handle_data(algo, data):
             price_record.loc[:, dt_transform(algo.get_datetime()),
@@ -4899,3 +4903,47 @@ class TestPanelData(WithTradingEnvironment, ZiplineTestCase):
                 environ={'ZIPLINE_ROOT': root},
             )
             check_panels()
+
+    def test_minute_panel_daily_history(self):
+        sids = range(1, 3)
+        trading_calendar = get_calendar('NYSE')
+        start_dt = pd.Timestamp('2015-12-23', tz='UTC')
+        end_dt = pd.Timestamp('2015-12-30', tz='UTC')
+
+        panel = self.create_panel(
+            sids,
+            trading_calendar,
+            start_dt,
+            end_dt,
+            create_minute_df_for_asset,
+        )
+
+        def check_open_price(algo, data):
+            if algo.first_day:
+                algo.first_day = False
+            else:
+                np.testing.assert_array_equal(
+                    algo.last_open,
+                    data.history(
+                        algo.equities,
+                        'open',
+                        2,
+                        '1d',
+                    ).iloc[0]
+                )
+            algo.last_open = data.current(algo.equities, 'open')
+
+        def initialize(algo):
+            algo.first_day = True
+            algo.equities = [algo.sid(sid) for sid in sids]
+
+            algo.schedule_function(
+                check_open_price,
+                date_rules.every_day(),
+                time_rules.market_open(),
+            )
+
+        with tmp_trading_env(load=self.make_load_function()) as env:
+            trading_algo = TradingAlgorithm(initialize=initialize,
+                                            env=env)
+            trading_algo.run(data=panel)
