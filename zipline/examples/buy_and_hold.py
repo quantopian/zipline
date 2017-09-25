@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from zipline.api import order, symbol
+from zipline.finance import commission
 
 stocks = ['AAPL', 'MSFT']
 
@@ -21,6 +22,12 @@ stocks = ['AAPL', 'MSFT']
 def initialize(context):
     context.has_ordered = False
     context.stocks = stocks
+
+    # Explicitly set the commission to the "old" value until we can
+    # rebuild example data.
+    # github.com/quantopian/zipline/blob/master/tests/resources/
+    # rebuild_example_data#L105
+    context.set_commission(commission.PerShare(cost=.0075, min_trade_cost=1.0))
 
 
 def handle_data(context, data):
