@@ -31,7 +31,7 @@ None
 Bug Fixes
 ~~~~~~~~~
 
-None
+- ``history`` calls with a frequency of ``1d`` now work when using a Panel as the minute data source. (:issue:`1920`)
 
 Performance
 ~~~~~~~~~~~
