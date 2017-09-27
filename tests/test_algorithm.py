@@ -1524,14 +1524,20 @@ class TestPortfolio(WithDataPortal, WithSimParams, ZiplineTestCase):
         af = self.asset_finder
         equity_1, future_1004 = af.retrieve_all(sids)
 
+        pt_weights = []
+        # perf tracker is cleared when `run` completes
+
+        def capture_position_weights(algo, stats):
+            pt_weights.extend(algo.perf_tracker.position_weights)
+
         algo = self.algorithm(
             sids_and_amounts=zip(sids, amounts), sim_params=sim_params,
+            analyze=capture_position_weights,
         )
         daily_stats = algo.run(self.data_portal)
 
         # Test that we correctly converted the future contract being held into
         # the appropriate continuous futures.
-        pt_weights = algo.perf_tracker.position_weights
         future_1000, future_1001, future_1002, future_1003 = af.retrieve_all(
             [1000, 1001, 1002, 1003],
         )

@@ -66,7 +66,7 @@ class TestTradeSimulation(WithTradingEnvironment, ZiplineTestCase):
                           self.fake_minutely_benchmark):
             algo = NoopAlgorithm(sim_params=params, env=self.env)
             algo.run(FakeDataPortal(self.env))
-            self.assertEqual(len(algo.perf_tracker.sim_params.sessions), 1)
+            self.assertEqual(len(algo.sim_params.sessions), 1)
 
     @parameterized.expand([('%s_%s_%s' % (num_sessions, freq, emission_rate),
                             num_sessions, freq, emission_rate)
@@ -89,7 +89,7 @@ class TestTradeSimulation(WithTradingEnvironment, ZiplineTestCase):
             algo.run(FakeDataPortal(self.env))
 
             self.assertEqual(
-                len(algo.perf_tracker.sim_params.sessions),
+                len(algo.sim_params.sessions),
                 num_days
             )
 
