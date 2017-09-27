@@ -22,7 +22,7 @@ from copy import deepcopy
 
 import logbook
 import toolz
-from logbook import TestHandler, WARNING
+from logbook import WARNING
 from mock import MagicMock
 from nose_parameterized import parameterized
 from six import iteritems, itervalues, string_types
@@ -4587,7 +4587,7 @@ class TestOrderCancelation(WithDataPortal,
             minute_emission=minute_emission
         )
 
-        log_catcher = TestHandler()
+        log_catcher = make_test_handler(self)
         with log_catcher:
             results = algo.run(self.data_portal)
 
@@ -4637,7 +4637,7 @@ class TestOrderCancelation(WithDataPortal,
     def test_default_cancelation_policy(self):
         algo = self.prep_algo("")
 
-        log_catcher = TestHandler()
+        log_catcher = make_test_handler(self)
         with log_catcher:
             results = algo.run(self.data_portal)
 
@@ -4660,7 +4660,7 @@ class TestOrderCancelation(WithDataPortal,
             "daily"
         )
 
-        log_catcher = TestHandler()
+        log_catcher = make_test_handler(self)
         with log_catcher:
             results = algo.run(self.data_portal)
 
