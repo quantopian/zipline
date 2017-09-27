@@ -80,9 +80,6 @@ class TestTradeSimulation(WithTradingEnvironment, ZiplineTestCase):
             num_days=num_days, data_frequency=freq,
             emission_rate=emission_rate)
 
-        def fake_benchmark(self, dt):
-            return 0.01
-
         with patch.object(BenchmarkSource, "get_value",
                           self.fake_minutely_benchmark):
             algo = BeforeTradingAlgorithm(sim_params=params, env=self.env)
