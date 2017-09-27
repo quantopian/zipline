@@ -738,6 +738,8 @@ class TradingAlgorithm(object):
 
             self.analyze(daily_stats)
         finally:
+            self._account = self._portfolio = None
+            self.perf_tracker = None
             self.data_portal = None
 
         return daily_stats
