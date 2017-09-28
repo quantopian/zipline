@@ -177,8 +177,13 @@ class AlgorithmSimulator(object):
                     perf_tracker.position_tracker.handle_splits(splits)
 
         def handle_benchmark(date, benchmark_source=self.benchmark_source):
-            perf_tracker.all_benchmark_returns[date] = \
-                benchmark_source.get_value(date)
+            try:
+                perf_tracker.all_benchmark_returns[date] = \
+                    benchmark_source.get_value(date)
+            except ValueError:
+                # XXX: Strange error here where 2016-09-28 returns two values
+                # NaN and inf, when calling get_value
+                pass
 
         def on_exit():
             # Remove references to algo, data portal, et al to break cycles
