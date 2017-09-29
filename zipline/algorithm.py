@@ -43,6 +43,7 @@ from zipline.data.us_equity_pricing import PanelBarReader
 from zipline.errors import (
     AttachPipelineAfterInitialize,
     CannotOrderDelistedAsset,
+    DuplicatePipelineName,
     HistoryInInitialize,
     IncompatibleCommissionModel,
     IncompatibleSlippageModel,
@@ -2413,14 +2414,16 @@ class TradingAlgorithm(object):
         --------
         :func:`zipline.api.pipeline_output`
         """
-        if self._pipelines:
-            raise NotImplementedError("Multiple pipelines are not supported.")
         if chunks is None:
             # Make the first chunk smaller to get more immediate results:
             # (one week, then every half year)
             chunks = chain([5], repeat(126))
         elif isinstance(chunks, int):
             chunks = repeat(chunks)
+
+        if name in self._pipelines:
+            raise DuplicatePipelineName(name=name)
+
         self._pipelines[name] = pipeline, iter(chunks)
 
         # Return the pipeline to allow expressions like
@@ -2454,8 +2457,6 @@ class TradingAlgorithm(object):
         :func:`zipline.api.attach_pipeline`
         :meth:`zipline.pipeline.engine.PipelineEngine.run_pipeline`
         """
-        # NOTE: We don't currently support multiple pipelines, but we plan to
-        # in the future.
         try:
             p, chunks = self._pipelines[name]
         except KeyError:
