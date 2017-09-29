@@ -29,6 +29,7 @@ from zipline.lib.labelarray import LabelArray
 from zipline.lib.rank import masked_rankdata_2d
 from zipline.lib.normalize import naive_grouped_rowwise_apply as grouped_apply
 from zipline.pipeline import Classifier, Factor, Filter
+from zipline.pipeline.data import DataSet, Column
 from zipline.pipeline.factors import (
     CustomFactor,
     Returns,
@@ -1174,6 +1175,36 @@ class ShortReprTestCase(TestCase):
     def test_winsorize(self):
         r = F().winsorize(min_percentile=.05, max_percentile=.95).short_repr()
         self.assertEqual(r, "GroupedRowTransform('winsorize')")
+
+    def test_recarray_field_repr(self):
+        class MultipleOutputs(CustomFactor):
+            outputs = ['a', 'b']
+            inputs = ()
+            window_length = 5
+
+            def short_repr(self):
+                return "CustomRepr()"
+
+        a = MultipleOutputs().a
+        b = MultipleOutputs().b
+
+        self.assertEqual(a.short_repr(), "CustomRepr().a")
+        self.assertEqual(b.short_repr(), "CustomRepr().b")
+
+    def test_latest_repr(self):
+
+        class SomeDataSet(DataSet):
+            a = Column(dtype=float64_dtype)
+            b = Column(dtype=float64_dtype)
+
+        self.assertEqual(
+            SomeDataSet.a.latest.short_repr(),
+            "SomeDataSet.a.latest"
+        )
+        self.assertEqual(
+            SomeDataSet.b.latest.short_repr(),
+            "SomeDataSet.b.latest"
+        )
 
 
 class TestWindowSafety(TestCase):

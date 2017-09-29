@@ -1615,6 +1615,9 @@ class RecarrayField(SingleInputMixin, Factor):
     def _compute(self, windows, dates, assets, mask):
         return windows[0][self._attribute]
 
+    def short_repr(self):
+        return "{}.{}".format(self.inputs[0].short_repr(), self._attribute)
+
 
 class Latest(LatestMixin, CustomFactor):
     """
