@@ -1,4 +1,5 @@
 from .filter import (
+    AllPresent,
     ArrayPredicate,
     CustomFilter,
     Filter,
@@ -15,6 +16,7 @@ from .smoothing import All, Any, AtLeastN
 
 __all__ = [
     'All',
+    'AllPresent',
     'Any',
     'ArrayPredicate',
     'AtLeastN',
