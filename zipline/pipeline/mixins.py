@@ -241,6 +241,9 @@ class LatestMixin(SingleInputMixin):
                 )
             )
 
+    def short_repr(self):
+        return "{}.latest".format(self.inputs[0].short_repr())
+
 
 class AliasedMixin(SingleInputMixin):
     """
