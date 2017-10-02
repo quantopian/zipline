@@ -234,7 +234,7 @@ def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day,
         logger.exception('Failed to cache the new benchmark returns')
         raise
     if not has_data_for_dates(data, first_date, last_date):
-        logger.warn("Still don't have expected data after redownload!")
+        logger.warn("Still don't have expected benchmark data after redownload!")
     return data
 
 
@@ -285,7 +285,7 @@ def ensure_treasury_data(symbol, first_date, last_date, now, environ=None):
     except (OSError, IOError, HTTPError):
         logger.exception('failed to cache treasury data')
     if not has_data_for_dates(data, first_date, last_date):
-        logger.warn("Still don't have expected data after redownload!")
+        logger.warn("Still don't have expected treasury data after redownload!")
     return data
 
 
