@@ -234,7 +234,13 @@ def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day,
         logger.exception('Failed to cache the new benchmark returns')
         raise
     if not has_data_for_dates(data, first_date, last_date):
-        logger.warn("Still don't have expected data after redownload!")
+        logger.warn(
+            ("Still don't have expected benchmark data for {symbol!r} "
+                "from {first_date} to {last_date} after redownload!"),
+            symbol=symbol,
+            first_date=first_date - trading_day,
+            last_date=last_date
+        )
     return data
 
 
@@ -277,7 +283,13 @@ def ensure_treasury_data(symbol, first_date, last_date, now, environ=None):
 
     # If no cached data was found or it was missing any dates then download the
     # necessary data.
-    logger.info('Downloading treasury data for {symbol!r}.', symbol=symbol)
+    logger.info(
+        ('Downloading treasury data for {symbol!r} '
+            'from {first_date} to {last_date}'),
+        symbol=symbol,
+        first_date=first_date,
+        last_date=last_date
+    )
 
     try:
         data = loader_module.get_treasury_data(first_date, last_date)
@@ -285,7 +297,13 @@ def ensure_treasury_data(symbol, first_date, last_date, now, environ=None):
     except (OSError, IOError, HTTPError):
         logger.exception('failed to cache treasury data')
     if not has_data_for_dates(data, first_date, last_date):
-        logger.warn("Still don't have expected data after redownload!")
+        logger.warn(
+            ("Still don't have expected treasury data for {symbol!r} "
+                "from {first_date} to {last_date} after redownload!"),
+            symbol=symbol,
+            first_date=first_date,
+            last_date=last_date
+        )
     return data
 
 
