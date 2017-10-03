@@ -30,6 +30,7 @@ from zipline.sources.test_source import create_trade
 from zipline.utils.input_validation import expect_types
 from zipline.utils.calendars import get_calendar
 
+
 def create_simulation_parameters(year=2006,
                                  start=None,
                                  end=None,
@@ -38,8 +39,9 @@ def create_simulation_parameters(year=2006,
                                  data_frequency='daily',
                                  emission_rate='daily',
                                  trading_calendar=None):
+
     if not trading_calendar:
-        trading_calendar = get_calendar(trading_calendar)
+        trading_calendar = get_calendar("NYSE")
 
     if start is None:
         start = pd.Timestamp("{0}-01-01".format(year), tz='UTC')
