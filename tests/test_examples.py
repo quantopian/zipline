@@ -55,7 +55,7 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             serialization='pickle',
         )
 
-        market_data = ('SPY_benchmark.csv', 'treasury_curves.csv')
+        market_data = ('^GSPC_benchmark.csv', 'treasury_curves.csv')
         for data in market_data:
             update_modified_time(
                 cls.tmpdir.getpath(

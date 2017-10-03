@@ -45,17 +45,11 @@ def get_benchmark_returns(symbol, first_date, last_date):
     """
     data = pd_reader.DataReader(
         symbol,
-        'google',
+        'yahoo',
         first_date,
         last_date
     )
 
-    data = data['Close']
-
-    data[pd.Timestamp('2008-12-15')] = np.nan
-    data[pd.Timestamp('2009-08-11')] = np.nan
-    data[pd.Timestamp('2012-02-02')] = np.nan
-
-    data = data.fillna(method='ffill')
+    data = data['Adj Close']
 
     return data.sort_index().tz_localize('UTC').pct_change(1).iloc[1:]
