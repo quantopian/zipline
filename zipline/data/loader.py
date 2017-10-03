@@ -283,7 +283,13 @@ def ensure_treasury_data(symbol, first_date, last_date, now, environ=None):
 
     # If no cached data was found or it was missing any dates then download the
     # necessary data.
-    logger.info('Downloading treasury data for {symbol!r}.', symbol=symbol)
+    logger.info(
+        ('Downloading treasury data for {symbol!r} '
+            'from {first_date} to {last_date}'),
+        symbol=symbol,
+        first_date=first_date,
+        last_date=last_date
+    )
 
     try:
         data = loader_module.get_treasury_data(first_date, last_date)
