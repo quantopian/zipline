@@ -13,13 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from collections import OrderedDict
 
 import logbook
 import pandas as pd
-from pandas_datareader.data import DataReader
-import pytz
-from six import iteritems
 from six.moves.urllib_error import HTTPError
 
 from .benchmarks import get_benchmark_returns
