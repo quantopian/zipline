@@ -25,6 +25,7 @@ momentum).
 """
 
 from zipline.api import order, record, symbol
+from zipline.finance import commission
 # Import exponential moving average from talib wrapper
 from talib import EMA
 
@@ -34,6 +35,12 @@ def initialize(context):
 
     # To keep track of whether we invested in the stock or not
     context.invested = False
+
+    # Explicitly set the commission to the "old" value until we can
+    # rebuild example data.
+    # github.com/quantopian/zipline/blob/master/tests/resources/
+    # rebuild_example_data#L105
+    context.set_commission(commission.PerShare(cost=.0075, min_trade_cost=1.0))
 
 
 def handle_data(context, data):

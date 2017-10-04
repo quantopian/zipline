@@ -11,6 +11,7 @@ from zipline.api import (
     record,
     schedule_function,
 )
+from zipline.finance import commission
 from zipline.pipeline import Pipeline
 from zipline.pipeline.factors import RSI
 
@@ -62,6 +63,12 @@ def initialize(context):
     # `rebalance` in our handle_data, but in minute mode, it's equivalent to
     # running at the start of the day each day.
     schedule_function(rebalance, date_rules.every_day())
+
+    # Explicitly set the commission to the "old" value until we can
+    # rebuild example data.
+    # github.com/quantopian/zipline/blob/master/tests/resources/
+    # rebuild_example_data#L105
+    context.set_commission(commission.PerShare(cost=.0075, min_trade_cost=1.0))
 
 
 def before_trading_start(context, data):

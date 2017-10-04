@@ -23,11 +23,11 @@ from zipline.finance.constants import FUTURE_EXCHANGE_FEES_BY_SYMBOL
 from zipline.finance.shared import AllowedAssetMarker, FinancialModelMeta
 from zipline.utils.dummy import DummyMapping
 
-DEFAULT_PER_SHARE_COST = 0.0075              # 0.75 cents per share
+DEFAULT_PER_SHARE_COST = 0.001               # 0.1 cents per share
 DEFAULT_PER_CONTRACT_COST = 0.85             # $0.85 per future contract
 DEFAULT_PER_DOLLAR_COST = 0.0015             # 0.15 cents per dollar
-DEFAULT_MINIMUM_COST_PER_EQUITY_TRADE = 1.0  # $1 per trade
-DEFAULT_MINIMUM_COST_PER_FUTURE_TRADE = 1.0  # $1 per trade
+DEFAULT_MINIMUM_COST_PER_EQUITY_TRADE = 0.0  # $0 per trade
+DEFAULT_MINIMUM_COST_PER_FUTURE_TRADE = 0.0  # $0 per trade
 
 
 class CommissionModel(with_metaclass(FinancialModelMeta)):

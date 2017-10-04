@@ -1488,11 +1488,12 @@ class TestBeforeTradingStart(WithDataPortal,
 
         # Starting portfolio value is 10000. Order for the asset fills on the
         # second bar of 1/06, where the price is 391, and costs the default
-        # commission of 1. On 1/07, the price is 780, and the increase in
-        # portfolio value is 780-392-1
+        # commission of 0. On 1/07, the price is 780, and the increase in
+        # portfolio value is 780-392-0
         self.assertEqual(results.port_value.iloc[0], 10000)
         self.assertAlmostEqual(results.port_value.iloc[1],
-                               10000 + 780 - 392 - 1)
+                               10000 + 780 - 392 - 0,
+                               places=2)
 
     def test_portfolio_bts_with_overnight_split(self):
         algo_code = dedent("""
@@ -1572,7 +1573,7 @@ class TestBeforeTradingStart(WithDataPortal,
         # On 1/07, portfolio value is the same as without split
         self.assertEqual(results.port_value.iloc[0], 10000)
         self.assertAlmostEqual(results.port_value.iloc[1],
-                               10000 + 780 - 392 - 1)
+                               10000 + 780 - 392 - 0, places=2)
 
 
 class TestAlgoScript(WithLogger,
@@ -1762,7 +1763,7 @@ def handle_data(context, data):
     @parameterized.expand(
         [
             ('no_minimum_commission', 0,),
-            ('default_minimum_commission', 1,),
+            ('default_minimum_commission', 0,),
             ('alternate_minimum_commission', 2,),
         ]
     )
