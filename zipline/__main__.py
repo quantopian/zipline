@@ -178,6 +178,13 @@ def ipython_only(option):
     default=False,
     help='Print the algorithm to stdout.',
 )
+@click.option(
+    '--force-redownload',
+    is_flag=True,
+    default=False,
+    help='Loading market data has a cooldown of 1 hour. If '
+    '--force-redownload is set to True, redownloading will be forced',
+)
 @ipython_only(click.option(
     '--local-namespace/--no-local-namespace',
     is_flag=True,
@@ -197,7 +204,8 @@ def run(ctx,
         end,
         output,
         print_algo,
-        local_namespace):
+        local_namespace,
+        force_redownload=False):
     """Run a backtest for the given algorithm.
     """
     # check that the start and end dates are passed correctly
@@ -238,6 +246,7 @@ def run(ctx,
         print_algo=print_algo,
         local_namespace=local_namespace,
         environ=os.environ,
+        force_redownload=force_redownload,
     )
 
     if output == '-':
