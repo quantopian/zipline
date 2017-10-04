@@ -42,7 +42,7 @@ from zipline.errors import (
     NoSuchPipeline,
 )
 from zipline.lib.adjustment import MULTIPLY
-from zipline.pipeline import Pipeline
+from zipline.pipeline import Pipeline, SimplePipelineEngine
 from zipline.pipeline.factors import VWAP
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders.frame import DataFrameLoader
@@ -168,10 +168,15 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
         self.adj_closes = adj_closes = self.closes.copy()
         adj_closes.ix[:self.split_date, self.split_asset] *= self.split_ratio
 
-        self.pipeline_loader = DataFrameLoader(
+        pipeline_loader = DataFrameLoader(
             column=USEquityPricing.close,
             baseline=self.closes,
             adjustments=self.adjustments,
+        )
+        self.pipeline_engine = SimplePipelineEngine(
+            get_loader=lambda c: pipeline_loader,
+            asset_finder=self.asset_finder,
+            calendar=self.trading_calendar.all_sessions,
         )
 
     def expected_close(self, date, asset):
@@ -199,7 +204,7 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
             initialize=initialize,
             handle_data=late_attach,
             data_frequency='daily',
-            get_pipeline_loader=lambda column: self.pipeline_loader,
+            pipeline_engine=self.pipeline_engine,
             start=self.first_asset_start - self.trading_day,
             end=self.last_asset_end + self.trading_day,
             env=self.env,
@@ -216,7 +221,7 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
             before_trading_start=late_attach,
             handle_data=barf,
             data_frequency='daily',
-            get_pipeline_loader=lambda column: self.pipeline_loader,
+            pipeline_engine=self.pipeline_engine,
             start=self.first_asset_start - self.trading_day,
             end=self.last_asset_end + self.trading_day,
             env=self.env,
@@ -245,7 +250,7 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
             handle_data=handle_data,
             before_trading_start=before_trading_start,
             data_frequency='daily',
-            get_pipeline_loader=lambda column: self.pipeline_loader,
+            pipeline_engine=self.pipeline_engine,
             start=self.first_asset_start - self.trading_day,
             end=self.last_asset_end + self.trading_day,
             env=self.env,
@@ -273,7 +278,7 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
             handle_data=handle_data,
             before_trading_start=before_trading_start,
             data_frequency='daily',
-            get_pipeline_loader=lambda column: self.pipeline_loader,
+            pipeline_engine=self.pipeline_engine,
             start=self.first_asset_start - self.trading_day,
             end=self.last_asset_end + self.trading_day,
             env=self.env,
@@ -335,7 +340,7 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
             handle_data=handle_data,
             before_trading_start=before_trading_start,
             data_frequency='daily',
-            get_pipeline_loader=lambda column: self.pipeline_loader,
+            pipeline_engine=self.pipeline_engine,
             start=self.first_asset_start,
             end=self.last_asset_end,
             env=self.env,
@@ -414,6 +419,12 @@ class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
             cls.bcolz_equity_daily_bar_reader,
             cls.adjustment_reader,
         )
+        cls.pipeline_engine = SimplePipelineEngine(
+            get_loader=lambda c: cls.pipeline_loader,
+            calendar=cls.trading_calendar.all_sessions,
+            asset_finder=cls.asset_finder,
+        )
+
         cls.dates = cls.raw_data[cls.AAPL].index.tz_localize('UTC')
         cls.AAPL_split_date = Timestamp("2014-06-09", tz='UTC')
         cls.assets = cls.asset_finder.retrieve_all(
@@ -559,7 +570,7 @@ class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
             handle_data=handle_data,
             before_trading_start=before_trading_start,
             data_frequency='daily',
-            get_pipeline_loader=lambda column: self.pipeline_loader,
+            pipeline_engine=self.pipeline_engine,
             start=self.dates[max(window_lengths)],
             end=self.dates[-1],
             env=self.env,
@@ -599,7 +610,7 @@ class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
             handle_data=handle_data,
             before_trading_start=before_trading_start,
             data_frequency='daily',
-            get_pipeline_loader=lambda column: self.pipeline_loader,
+            pipeline_engine=self.pipeline_engine,
             start=self.dates[0],
             end=self.dates[-1],
             env=self.env,
@@ -647,7 +658,7 @@ class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
             handle_data=handle_data,
             before_trading_start=before_trading_start,
             data_frequency='daily',
-            get_pipeline_loader=lambda column: self.pipeline_loader,
+            pipeline_engine=self.pipeline_engine,
             start=self.dates[0],
             end=current_day,
             env=self.env,

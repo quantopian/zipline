@@ -18,6 +18,7 @@ from zipline.algorithm import TradingAlgorithm
 from zipline.data.bundles.core import load
 from zipline.data.data_portal import DataPortal
 from zipline.finance.trading import TradingEnvironment
+from zipline.pipeline import SimplePipelineEngine
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.utils.calendars import get_calendar
@@ -158,7 +159,11 @@ def _run(handle_data,
     perf = TradingAlgorithm(
         namespace=namespace,
         env=env,
-        get_pipeline_loader=choose_loader,
+        pipeline_engine=SimplePipelineEngine(
+            choose_loader,
+            get_calendar('NYSE').all_sessions,
+            bundle_data.asset_finder,
+        ),
         sim_params=create_simulation_parameters(
             start=start,
             end=end,

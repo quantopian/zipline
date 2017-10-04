@@ -88,10 +88,7 @@ from zipline.finance.asset_restrictions import (
 from zipline.assets import Asset, Equity, Future
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.pipeline import Pipeline
-from zipline.pipeline.engine import (
-    ExplodingPipelineEngine,
-    SimplePipelineEngine,
-)
+from zipline.pipeline.engine import ExplodingPipelineEngine
 from zipline.utils.api_support import (
     api_method,
     require_initialized,
@@ -194,8 +191,8 @@ class TradingAlgorithm(object):
     identifiers : list, optional
         Any asset identifiers that are not provided in the
         equities_metadata, but will be traded by this TradingAlgorithm.
-    get_pipeline_loader : callable[BoundColumn -> PipelineLoader], optional
-        The function that maps pipeline columns to their loaders.
+    pipeline_engine : zipline.pipeline.PipelineEngine, optional
+        An engine used for Pipeline computations.
     create_event_context : callable[BarData -> context manager], optional
         A function used to create a context mananger that wraps the
         execution of all events that are scheduled for a bar.
@@ -211,45 +208,6 @@ class TradingAlgorithm(object):
     """
 
     def __init__(self, *args, **kwargs):
-        """Initialize sids and other state variables.
-
-        :Arguments:
-        :Optional:
-            initialize : function
-                Function that is called with a single
-                argument at the begninning of the simulation.
-            handle_data : function
-                Function that is called with 2 arguments
-                (context and data) on every bar.
-            script : str
-                Algoscript that contains initialize and
-                handle_data function definition.
-            data_frequency : {'daily', 'minute'}
-               The duration of the bars.
-            capital_base : float <default: 1.0e5>
-               How much capital to start with.
-            asset_finder : An AssetFinder object
-                A new AssetFinder object to be used in this TradingEnvironment
-            equities_metadata : can be either:
-                            - dict
-                            - pandas.DataFrame
-                            - object with 'read' property
-                If dict is provided, it must have the following structure:
-                * keys are the identifiers
-                * values are dicts containing the metadata, with the metadata
-                  field name as the key
-                If pandas.DataFrame is provided, it must have the
-                following structure:
-                * column names must be the metadata fields
-                * index must be the different asset identifiers
-                * array contents should be the metadata value
-                If an object with a 'read' property is provided, 'read' must
-                return rows containing at least one of 'sid' or 'symbol' along
-                with the other metadata fields.
-            identifiers : List
-                Any asset identifiers that are not provided in the
-                equities_metadata, but will be traded by this TradingAlgorithm
-        """
         self.sources = []
 
         # List of trading controls to be used to validate orders.
@@ -305,8 +263,11 @@ class TradingAlgorithm(object):
         # Pull in the environment's new AssetFinder for quick reference
         self.asset_finder = self.trading_environment.asset_finder
 
-        # Initialize Pipeline API data.
-        self.init_engine(kwargs.pop('get_pipeline_loader', None))
+        # Initialize Pipeline API.
+        self._pipeline_engine = kwargs.pop(
+            'pipeline_engine',
+            ExplodingPipelineEngine(),
+        )
         self._pipelines = {}
 
         # Create an already-expired cache so that we compute the first time
@@ -420,21 +381,6 @@ class TradingAlgorithm(object):
         self.capital_change_deltas = {}
 
         self.restrictions = NoRestrictions()
-
-    def init_engine(self, get_loader):
-        """
-        Construct and store a PipelineEngine from loader.
-
-        If get_loader is None, constructs an ExplodingPipelineEngine
-        """
-        if get_loader is not None:
-            self.engine = SimplePipelineEngine(
-                get_loader,
-                self.trading_calendar.all_sessions,
-                self.asset_finder,
-            )
-        else:
-            self.engine = ExplodingPipelineEngine()
 
     def initialize(self, *args, **kwargs):
         """
@@ -2519,13 +2465,13 @@ class TradingAlgorithm(object):
 
     def _run_pipeline(self, pipeline, start_session, chunksize):
         """
-        Compute `pipeline`, providing values for at least `start_date`.
+        Compute `pipeline`, providing values for at least `start_session`.
 
-        Produces a DataFrame containing data for days between `start_date` and
-        `end_date`, where `end_date` is defined by:
+        Produces a DataFrame containing data for days between `start_session`
+        and `end_session`, where `end_session` is defined by::
 
-            `end_date = min(start_date + chunksize trading days,
-                            simulation_end)`
+            end_session = min(start_session + (trading_day * chunksize),
+                              simulation_end)
 
         Returns
         -------
@@ -2537,23 +2483,20 @@ class TradingAlgorithm(object):
         """
         sessions = self.trading_calendar.all_sessions
 
-        # Load data starting from the previous trading day...
-        start_date_loc = sessions.get_loc(start_session)
-
-        # ...continuing until either the day before the simulation end, or
-        # until chunksize days of data have been loaded.
-        sim_end_session = self.sim_params.end_session
-
-        end_loc = min(
-            start_date_loc + chunksize,
-            sessions.get_loc(sim_end_session)
-        )
-
-        end_session = sessions[end_loc]
-
-        return \
-            self.engine.run_pipeline(pipeline, start_session, end_session), \
+        # The end session for the pipeline run is either ``chunksize`` days
+        # after the start_session, or the end_session.  Whichever is earlier.
+        end_session = sessions[
+            min(
+                sessions.get_loc(start_session) + chunksize,
+                sessions.get_loc(self.sim_params.end_session)
+            )
+        ]
+        engine_result = self._pipeline_engine.run_pipeline(
+            pipeline,
+            start_session,
             end_session
+        )
+        return engine_result, end_session
 
     ##################
     # End Pipeline API
