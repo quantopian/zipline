@@ -9,7 +9,7 @@ from six import text_type
 from zipline.data import bundles as bundles_module
 from zipline.utils.calendars.calendar_utils import (
     get_calendar,
-    _default_calendar_factories
+    default_calendar_names
 )
 from zipline.utils.compat import wraps
 from zipline.utils.cli import Date, Timestamp
@@ -179,7 +179,7 @@ def ipython_only(option):
 @click.option(
     '--trading-calendar',
     metavar='TRADING-CALENDAR',
-    type=click.Choice(_default_calendar_factories.keys()),
+    type=click.Choice(default_calendar_names),
     default='NYSE',
     help="The calendar you want to use e.g. LSE. NYSE is the default."
 )
