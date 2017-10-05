@@ -2294,6 +2294,7 @@ def handle_data(context, data):
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("ignore", PerformanceWarning)
+            warnings.simplefilter("ignore", RuntimeWarning)
 
             algo = TradingAlgorithm(
                 script=algocode,
