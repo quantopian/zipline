@@ -251,7 +251,9 @@ class SimulationParameters(object):
     data_frequency={data_frequency},
     emission_rate={emission_rate},
     first_open={first_open},
-    last_close={last_close})\
+    last_close={last_close},
+    trading_calendar={trading_calendar}
+)\
 """.format(class_name=self.__class__.__name__,
            start_session=self.start_session,
            end_session=self.end_session,
@@ -259,7 +261,8 @@ class SimulationParameters(object):
            data_frequency=self.data_frequency,
            emission_rate=self.emission_rate,
            first_open=self.first_open,
-           last_close=self.last_close)
+           last_close=self.last_close,
+           trading_calendar=self._trading_calendar)
 
 
 def noop_load(*args, **kwargs):
