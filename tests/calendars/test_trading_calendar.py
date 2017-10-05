@@ -536,7 +536,7 @@ class ExchangeCalendarTestBase(object):
         # pick two sessions
         session_count = len(self.calendar.schedule.index)
 
-        first_idx = session_count / 3
+        first_idx = session_count // 3
         second_idx = 2 * first_idx
 
         first_session_label = self.calendar.schedule.index[first_idx]

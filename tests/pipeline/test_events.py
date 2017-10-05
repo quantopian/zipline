@@ -437,7 +437,7 @@ class EventsLoaderTestCase(WithAssetFinder,
         # is not in our window. The results should be computed the same as if
         # we had computed across the entire window and then sliced after the
         # computation.
-        dates = self.trading_days[len(self.trading_days) / 2:]
+        dates = self.trading_days[len(self.trading_days) // 2:]
         results = engine.run_pipeline(
             Pipeline({c.name: c.latest for c in EventDataSet.columns}),
             start_date=dates[0],
