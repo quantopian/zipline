@@ -645,7 +645,9 @@ class DuplicatePipelineName(ZiplineError):
     exists for another attached pipeline.
     """
     msg = (
-        "Pipeline name '{name}' already exists for another pipeline."
+        "Attempted to attach pipeline named {name!r}, but the name already "
+        "exists for another pipeline. Please use a different name for this "
+        "pipeline."
     )
 
 
