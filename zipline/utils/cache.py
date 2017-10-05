@@ -11,6 +11,8 @@ from tempfile import mkdtemp, NamedTemporaryFile
 
 import pandas as pd
 
+from zipline.utils.compat import exc_clear
+from zipline.utils.pandas_utils import clear_dataframe_indexer_caches
 from .context_tricks import nop_context
 from .paths import ensure_directory
 from .sentinel import sentinel
@@ -86,6 +88,33 @@ class CachedObject(object):
         return self._value
 
 
+def basic_cleanup(cache, key):
+    del cache[key]
+
+
+def dataframe_gc_cleanup(cache, key):
+    # Try to deterministically garbage collect the previous result by
+    # removing any references to it. There are at least three sources
+    # of references:
+
+    # 1. self._pipeline_cache holds a reference.
+    # 2. The dataframe itself holds a reference via cached .iloc/.loc
+    #    accessors.
+    # 3. The traceback held in sys.exc_info includes stack frames in
+    #    which self._pipeline_cache is a local variable.
+
+    # We remove the above sources of references in reverse order:
+
+    # 3. Clear the traceback.  This is no-op in Python 3.
+    exc_clear()
+
+    # 2. Clear the .loc/.iloc caches.
+    clear_dataframe_indexer_caches(cache[key]._unsafe_get_value())
+
+    # 1. Clear the reference to the `CachedObject`
+    del cache[key]
+
+
 class ExpiringCache(object):
     """
     A cache of multiple CachedObjects, which returns the wrapped the value
@@ -119,7 +148,7 @@ class ExpiringCache(object):
         else:
             self._cache = {}
 
-    def get(self, key, dt):
+    def get(self, key, dt, cleanup=basic_cleanup):
         """Get the value of a cached object.
 
         Parameters
@@ -128,6 +157,8 @@ class ExpiringCache(object):
             The key to lookup.
         dt : datetime
             The time of the lookup.
+        cleanup : callable
+            Cleanup action if the cached value has expired.
 
         Returns
         -------
@@ -143,8 +174,14 @@ class ExpiringCache(object):
         try:
             return self._cache[key].unwrap(dt)
         except Expired:
-            del self._cache[key]
-            raise KeyError(key)
+            # We can't handle safely handle the exception in this block
+            # because in Python 3 sys.exc_info, which may be called in
+            # `cleanup`, isn't cleared until we leave the block. See note in
+            # the `dataframe_gc_cleanup` method.
+            pass
+
+        cleanup(self._cache, key)
+        raise KeyError(key)
 
     def set(self, key, value, expiration_dt):
         """Adds a new key value pair to the cache.
