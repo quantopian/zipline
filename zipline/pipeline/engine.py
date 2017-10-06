@@ -391,7 +391,15 @@ class SimplePipelineEngine(PipelineEngine):
         existed = lifetimes.any()
         ret = lifetimes.loc[:, existed]
         shape = ret.shape
-        assert shape[0] * shape[1] != 0, 'root mask cannot be empty'
+
+        if shape[0] * shape[1] == 0:
+            raise ValueError(
+                "Found only empty asset-days between {} and {}.\n"
+                "This probably means that either your asset db is out of date"
+                " or that you're trying to run a Pipeline during a period with"
+                " no market days.".format(start_date, end_date),
+            )
+
         return ret
 
     @staticmethod
