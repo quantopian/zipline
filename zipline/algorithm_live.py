@@ -14,6 +14,7 @@ from datetime import time
 import os.path
 import logbook
 import pandas as pd
+import numpy as np
 
 import zipline.protocol as zp
 from zipline.algorithm import TradingAlgorithm
@@ -28,8 +29,16 @@ from zipline.utils.api_support import (
     disallowed_in_before_trading_start,
     allowed_only_in_before_trading_start)
 
+from zipline.utils.math_utils import (
+    tolerant_equals,
+    round_if_near_integer,
+)
+
 from zipline.utils.calendars.trading_calendar import days_at_time
 from zipline.utils.serialization_utils import load_context, store_context
+
+from zipline.assets import Asset, Future
+from pandas.tseries.tools import normalize_date
 
 log = logbook.Logger("Live Trading")
 
@@ -219,3 +228,74 @@ class LiveTradingAlgorithm(TradingAlgorithm):
         if isinstance(order_param, zp.Order):
             order_id = order_param.id
         self.broker.cancel_order(order_id)
+
+
+    def _can_order_asset(self, asset):
+        if not isinstance(asset, Asset):
+            raise UnsupportedOrderParameters(
+                msg="Passing non-Asset argument to 'order()' is not supported."
+                    " Use 'sid()' or 'symbol()' methods to look up an Asset."
+            )
+
+        if asset.auto_close_date:
+            day = normalize_date(self.get_datetime())
+
+            if day > asset.auto_close_date:
+                # If we are after the asset's end date or auto close date, warn
+                # the user that they can't place an order for this asset, and
+                # return None.
+                log.warn("Cannot place order for {0}, as it has de-listed. "
+                         "Any existing positions for this asset will be "
+                         "liquidated on "
+                         "{1}.".format(asset.symbol, asset.auto_close_date))
+
+                return False
+
+        return True
+
+    def _calculate_order_value_amount(self, asset, value):
+        """
+        Calculates how many shares/contracts to order based on the type of
+        asset being ordered.
+        """
+        # Make sure the asset exists, and that there is a last price for it.
+        # FIXME: we should use BarData's can_trade logic here, but I haven't
+        # yet found a good way to do that.
+        normalized_date = normalize_date(self.datetime)
+
+        if normalized_date < asset.start_date:
+            raise CannotOrderDelistedAsset(
+                msg="Cannot order {0}, as it started trading on"
+                    " {1}.".format(asset.symbol, asset.start_date)
+            )
+        elif normalized_date > asset.auto_close_date:
+            raise CannotOrderDelistedAsset(
+                msg="Cannot order {0}, as it stopped trading on"
+                    " {1}.".format(asset.symbol, asset.end_date)
+            )
+        else:
+            last_price = \
+                self.trading_client.current_data.current(asset, "price")
+
+            if np.isnan(last_price):
+                raise CannotOrderDelistedAsset(
+                    msg="Cannot order {0} on {1} as there is no last "
+                        "price for the security.".format(asset.symbol,
+                                                         self.datetime)
+                )
+
+        if tolerant_equals(last_price, 0):
+            zero_message = "Price of 0 for {psid}; can't infer value".format(
+                psid=asset
+            )
+            if self.logger:
+                self.logger.debug(zero_message)
+            # Don't place any order
+            return 0
+
+        if isinstance(asset, Future):
+            value_multiplier = asset.multiplier
+        else:
+            value_multiplier = 1
+
+        return value / (last_price * value_multiplier)

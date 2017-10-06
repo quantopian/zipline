@@ -20,6 +20,8 @@ from functools import partial
 from numbers import Integral
 from operator import itemgetter, attrgetter
 import struct
+import time
+import datetime
 
 from logbook import Logger
 import numpy as np
@@ -75,6 +77,8 @@ from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import as_column
 from zipline.utils.preprocess import preprocess
 from zipline.utils.sqlite_utils import group_into_chunks, coerce_string_to_eng
+
+from zipline.utils.calendars import get_calendar
 
 log = Logger('assets.py')
 
@@ -1262,7 +1266,7 @@ class AssetFinder(object):
                 sa.select((
                     equities_cols.sid,
                     equities_cols.start_date,
-                    equities_cols.end_date,
+                    equities_cols.end_date
                 )).execute(),
             ), dtype='<f8',  # use doubles so we get NaNs
         )
@@ -1279,11 +1283,26 @@ class AssetFinder(object):
         end = lifetimes.end
         start[np.isnan(start)] = 0  # convert missing starts to 0
         end[np.isnan(end)] = np.iinfo(int).max  # convert missing end to INTMAX
+
+        # shifting end_date  code from Peyman and Behnood
+        # I think it could be done with matrix math, and I think this stretches 
+        # every date ahead, while I think only the non-delisted should be stretched.
+        cal = get_calendar("NYSE")
+        for l in range (len(lifetimes.end)):
+            d_l = lifetimes.end[l]
+            d_l_converted = pd.to_datetime(str(d_l/(10**9)), unit='s')
+            dl_shifted = cal.next_open(cal.next_open(d_l_converted))
+            #print dl_shifted
+            temp = datetime.datetime.strptime(str(dl_shifted)[:-6],"%Y-%m-%d %H:%M:%S")
+            last_date = time.mktime(temp.timetuple())*(10**9)
+            lifetimes.end[l] = last_date
+
+
         # Cast the results back down to int.
         return lifetimes.astype([
             ('sid', '<i8'),
             ('start', '<i8'),
-            ('end', '<i8'),
+            ('end', '<i8')
         ])
 
     def lifetimes(self, dates, include_start_date):
