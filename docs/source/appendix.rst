@@ -251,6 +251,30 @@ Built-in Factors
 .. autoclass:: zipline.pipeline.factors.WeightedAverageValue
    :members:
 
+Built-in Filters
+````````````````
+
+.. autoclass:: zipline.pipeline.filters.All
+   :members:
+
+.. autoclass:: zipline.pipeline.filters.AllPresent
+   :members:
+
+.. autoclass:: zipline.pipeline.filters.Any
+   :members:
+
+.. autoclass:: zipline.pipeline.filters.AtLeastN
+   :members:
+
+.. autoclass:: zipline.pipeline.filters.SingleAsset
+   :members:
+
+.. autoclass:: zipline.pipeline.filters.StaticAssets
+   :members:
+
+.. autoclass:: zipline.pipeline.filters.StaticSids
+   :members:
+
 Pipeline Engine
 ```````````````
 
