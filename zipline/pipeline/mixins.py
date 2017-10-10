@@ -391,7 +391,7 @@ class DownsampledMixin(StandardOutputs):
         try:
             current_start_pos = all_dates.get_loc(start_date) - min_extra_rows
             if current_start_pos < 0:
-                raise NoFurtherDataError(
+                raise NoFurtherDataError.from_lookback_window(
                     initial_message="Insufficient data to compute Pipeline:",
                     first_date=all_dates[0],
                     lookback_start=start_date,
