@@ -9,9 +9,12 @@ import logbook
 import pandas as pd
 from six import text_type
 
+import pkgutil
+
 from zipline.data import bundles as bundles_module
 from zipline.utils.cli import Date, Timestamp
 from zipline.utils.run_algo import _run, load_extensions
+from zipline.gens import brokers
 
 try:
     __IPYTHON__
@@ -210,6 +213,11 @@ def ipython_only(option):
     metavar='DIRNAME',
     help='Directory where the realtime collected minutely bars are saved'
 )
+@click.option(
+    '--list-brokers',
+    is_flag=True,
+    help='Get list of available brokers'
+)
 @click.pass_context
 def run(ctx,
         algofile,
@@ -227,9 +235,18 @@ def run(ctx,
         broker,
         broker_uri,
         state_file,
-        realtime_bar_target):
+        realtime_bar_target,
+        list_brokers):
     """Run a backtest for the given algorithm.
     """
+
+    if list_brokers:
+        click.echo("Supported brokers:")
+        for _, name, _ in pkgutil.iter_modules(brokers.__path__):
+            if name != 'broker':
+                click.echo(name)
+        return
+
     # check that the start and end dates are passed correctly
     if not broker and start is None and end is None:
         # check both at the same time to avoid the case where a user
