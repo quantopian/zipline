@@ -333,7 +333,7 @@ class TradingCalendar(with_metaclass(ABCMeta)):
         Returns
         -------
         pd.Timestamp
-            The UTC imestamp of the previous open.
+            The UTC timestamp of the previous open.
         """
         idx = previous_divider_idx(self.market_opens_nanos, dt.value)
         return pd.Timestamp(self.market_opens_nanos[idx], tz='UTC')
@@ -512,6 +512,34 @@ class TradingCalendar(with_metaclass(ABCMeta)):
             )
         ]
 
+    def get_session_indices(self, session_label, offset):
+        """
+        Given a start session_label, and the offset for a second session,
+        return both the start index, as well as the end_index.
+
+        Parameters
+        ----------
+        session_label: pd.Timestamp
+            The label of the initial session.
+
+        offset: int
+            Defines the number and the direction for the second index.
+
+        Returns
+        -------
+        start_idx : int
+            The index for the initial ``session_label``.
+
+        end_idx : int
+            The second index, moved by ``offset`` from the index of the initial
+            ``session_label``.
+        """
+
+        start_idx = self.schedule.index.get_loc(session_label)
+        end_idx = start_idx + offset
+
+        return start_idx, end_idx
+
     def sessions_window(self, session_label, count):
         """
         Given a session label and a window size, returns a list of sessions
@@ -532,12 +560,34 @@ class TradingCalendar(with_metaclass(ABCMeta)):
         pd.DatetimeIndex
             The desired sessions.
         """
-        start_idx = self.schedule.index.get_loc(session_label)
-        end_idx = start_idx + count
+        start_idx, end_idx = self.get_session_indices(session_label, count)
 
         return self.all_sessions[
             min(start_idx, end_idx):max(start_idx, end_idx) + 1
         ]
+
+    def session_at_offset(self, session_label, offset):
+        """
+        Given an initial session and an offset, return the session found at
+        the given offset from ``session_label``.
+
+        Parameters
+        ----------
+        session_label: pd.Timestamp
+            The label of the initial session.
+
+        offset: int
+            Defines the number and the direction for the second index.
+
+        Returns
+        -------
+        pd.Timestamp
+            The session label for ``offset`` distance from the initial
+            ``session_label``.
+        """
+
+        _, end_idx = self.get_session_indices(session_label, offset)
+        return self.all_sessions[end_idx]
 
     def session_distance(self, start_session_label, end_session_label):
         """
