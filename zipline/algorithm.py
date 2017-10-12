@@ -109,8 +109,9 @@ from zipline.utils.input_validation import (
 )
 from zipline.utils.numpy_utils import int64_dtype
 from zipline.utils.calendars.trading_calendar import days_at_time
-from zipline.utils.cache import ExpiringCache, dataframe_gc_cleanup
+from zipline.utils.cache import ExpiringCache
 from zipline.utils.calendars import get_calendar
+from zipline.utils.pandas_utils import clear_dataframe_indexer_caches
 
 import zipline.utils.events
 from zipline.utils.events import (
@@ -310,7 +311,9 @@ class TradingAlgorithm(object):
 
         # Create an already-expired cache so that we compute the first time
         # data is requested.
-        self._pipeline_cache = ExpiringCache()
+        self._pipeline_cache = ExpiringCache(
+            cleanup=clear_dataframe_indexer_caches
+        )
 
         self.blotter = kwargs.pop('blotter', None)
         self.cancel_policy = kwargs.pop('cancel_policy', NeverCancel())
@@ -2470,9 +2473,7 @@ class TradingAlgorithm(object):
         """
         today = normalize_date(self.get_datetime())
         try:
-            data = self._pipeline_cache.get(
-                name, today, cleanup=dataframe_gc_cleanup
-            )
+            data = self._pipeline_cache.get(name, today)
         except KeyError:
             # Calculate the next block.
             data, valid_until = self._run_pipeline(
