@@ -1,11 +1,11 @@
 package:
   name: empyrical
-  version: "0.2.2"
+  version: "0.3.2"
 
 source:
-  fn: empyrical-0.2.2.tar.gz
-  url: https://pypi.python.org/packages/61/0a/959a48f176da49ddd939d49ad53bc6e5e4c82c022f1f724517cb7a82770c/empyrical-0.2.2.tar.gz
-  md5: d614402c585ccad847b35e6c73f85a67
+  fn: empyrical-0.3.2.tar.gz
+  url: https://pypi.python.org/packages/d2/5a/849510445f718cd345c8dad3253cedbef319cd7709b80be9e6c01e4ea40b/empyrical-0.3.2.tar.gz
+  md5: b4c706c7b536aeaa1e92ac78bc83df2f
 #  patches:
    # List any patch files here
    # - fix.patch
@@ -33,6 +33,7 @@ requirements:
     - numpy >=1.9.2
     - pandas >=0.16.1
     - scipy >=0.15.1
+    - pandas-datareader >=0.2
     - bottleneck >=1.0.0
 
   run:
@@ -40,6 +41,7 @@ requirements:
     - numpy >=1.9.2
     - pandas >=0.16.1
     - scipy >=0.15.1
+    - pandas-datareader >=0.2
     - bottleneck >=1.0.0
 
 test:
