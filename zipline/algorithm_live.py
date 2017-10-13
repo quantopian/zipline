@@ -58,6 +58,7 @@ class LiveTradingAlgorithm(TradingAlgorithm):
         self._context_persistence_excludes = []
 
         super(self.__class__, self).__init__(*args, **kwargs)
+        self.asset_finder.is_live = True  # tells the AssetFinder we are live trading
 
         log.info("initialization done")
 

@@ -297,6 +297,7 @@ class AssetFinder(object):
 
         # Populated on first call to `lifetimes`.
         self._asset_lifetimes = None
+        self.is_live = False
 
     def _reset_caches(self):
         """
@@ -1287,15 +1288,17 @@ class AssetFinder(object):
         # shifting end_date  code from Peyman and Behnood
         # I think it could be done with matrix math, and I think this stretches 
         # every date ahead, while I think only the non-delisted should be stretched.
-        cal = get_calendar("NYSE")
-        for l in range (len(lifetimes.end)):
-            d_l = lifetimes.end[l]
-            d_l_converted = pd.to_datetime(str(d_l/(10**9)), unit='s')
-            dl_shifted = cal.next_open(cal.next_open(d_l_converted))
-            #print dl_shifted
-            temp = datetime.datetime.strptime(str(dl_shifted)[:-6],"%Y-%m-%d %H:%M:%S")
-            last_date = time.mktime(temp.timetuple())*(10**9)
-            lifetimes.end[l] = last_date
+        if self.is_live:
+            print("               extanding lifetime masks          ")
+            cal = get_calendar("NYSE")
+            for l in range (len(lifetimes.end)):
+                d_l = lifetimes.end[l]
+                d_l_converted = pd.to_datetime(str(d_l/(10**9)), unit='s')
+                dl_shifted = cal.next_open(cal.next_open(d_l_converted))
+                #print dl_shifted
+                temp = datetime.datetime.strptime(str(dl_shifted)[:-6],"%Y-%m-%d %H:%M:%S")
+                last_date = time.mktime(temp.timetuple())*(10**9)
+                lifetimes.end[l] = last_date
 
 
         # Cast the results back down to int.
