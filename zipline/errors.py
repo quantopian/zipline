@@ -639,6 +639,18 @@ class NoSuchPipeline(ZiplineError, KeyError):
     )
 
 
+class DuplicatePipelineName(ZiplineError):
+    """
+    Raised when a user tries to attach a pipeline with a name that already
+    exists for another attached pipeline.
+    """
+    msg = (
+        "Attempted to attach pipeline named {name!r}, but the name already "
+        "exists for another pipeline. Please use a different name for this "
+        "pipeline."
+    )
+
+
 class UnsupportedDataType(ZiplineError):
     """
     Raised by CustomFactors with unsupported dtypes.

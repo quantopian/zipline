@@ -43,6 +43,7 @@ from zipline.data.us_equity_pricing import PanelBarReader
 from zipline.errors import (
     AttachPipelineAfterInitialize,
     CannotOrderDelistedAsset,
+    DuplicatePipelineName,
     HistoryInInitialize,
     IncompatibleCommissionModel,
     IncompatibleSlippageModel,
@@ -108,9 +109,9 @@ from zipline.utils.input_validation import (
 )
 from zipline.utils.numpy_utils import int64_dtype
 from zipline.utils.calendars.trading_calendar import days_at_time
-from zipline.utils.cache import CachedObject, Expired
+from zipline.utils.cache import ExpiringCache
 from zipline.utils.calendars import get_calendar
-from zipline.utils.compat import exc_clear
+from zipline.utils.pandas_utils import clear_dataframe_indexer_caches
 
 import zipline.utils.events
 from zipline.utils.events import (
@@ -127,7 +128,6 @@ from zipline.utils.math_utils import (
     tolerant_equals,
     round_if_near_integer,
 )
-from zipline.utils.pandas_utils import clear_dataframe_indexer_caches
 from zipline.utils.preprocess import preprocess
 from zipline.utils.security_list import SecurityList
 
@@ -311,7 +311,9 @@ class TradingAlgorithm(object):
 
         # Create an already-expired cache so that we compute the first time
         # data is requested.
-        self._pipeline_cache = CachedObject.expired()
+        self._pipeline_cache = ExpiringCache(
+            cleanup=clear_dataframe_indexer_caches
+        )
 
         self.blotter = kwargs.pop('blotter', None)
         self.cancel_policy = kwargs.pop('cancel_policy', NeverCancel())
@@ -2413,14 +2415,16 @@ class TradingAlgorithm(object):
         --------
         :func:`zipline.api.pipeline_output`
         """
-        if self._pipelines:
-            raise NotImplementedError("Multiple pipelines are not supported.")
         if chunks is None:
             # Make the first chunk smaller to get more immediate results:
             # (one week, then every half year)
             chunks = chain([5], repeat(126))
         elif isinstance(chunks, int):
             chunks = repeat(chunks)
+
+        if name in self._pipelines:
+            raise DuplicatePipelineName(name=name)
+
         self._pipelines[name] = pipeline, iter(chunks)
 
         # Return the pipeline to allow expressions like
@@ -2454,8 +2458,6 @@ class TradingAlgorithm(object):
         :func:`zipline.api.attach_pipeline`
         :meth:`zipline.pipeline.engine.PipelineEngine.run_pipeline`
         """
-        # NOTE: We don't currently support multiple pipelines, but we plan to
-        # in the future.
         try:
             p, chunks = self._pipelines[name]
         except KeyError:
@@ -2463,51 +2465,21 @@ class TradingAlgorithm(object):
                 name=name,
                 valid=list(self._pipelines.keys()),
             )
-        return self._pipeline_output(p, chunks)
+        return self._pipeline_output(p, chunks, name)
 
-    def _pipeline_output(self, pipeline, chunks):
+    def _pipeline_output(self, pipeline, chunks, name):
         """
         Internal implementation of `pipeline_output`.
         """
         today = normalize_date(self.get_datetime())
-        data = NO_DATA = object()
         try:
-            data = self._pipeline_cache.unwrap(today)
-        except Expired:
-            # We can't handle the exception in this block because in Python 3
-            # sys.exc_info isn't cleared until we leave the block.  See note
-            # below for why we need to clear exc_info.
-            pass
-
-        if data is NO_DATA:
-            # Try to deterministically garbage collect the previous result by
-            # removing any references to it. There are at least three sources
-            # of references:
-
-            # 1. self._pipeline_cache holds a reference.
-            # 2. The dataframe itself holds a reference via cached .iloc/.loc
-            #    accessors.
-            # 3. The traceback held in sys.exc_info includes stack frames in
-            #    which self._pipeline_cache is a local variable.
-
-            # We remove the above sources of references in reverse order:
-
-            # 3. Clear the traceback.  This is no-op in Python 3.
-            exc_clear()
-
-            # 2. Clear the .loc/.iloc caches.
-            clear_dataframe_indexer_caches(
-                self._pipeline_cache._unsafe_get_value()
-            )
-
-            # 1. Clear the reference to self._pipeline_cache.
-            self._pipeline_cache = None
-
+            data = self._pipeline_cache.get(name, today)
+        except KeyError:
             # Calculate the next block.
             data, valid_until = self._run_pipeline(
                 pipeline, today, next(chunks),
             )
-            self._pipeline_cache = CachedObject(data, valid_until)
+            self._pipeline_cache.set(name, data, valid_until)
 
         # Now that we have a cached result, try to return the data for today.
         try:

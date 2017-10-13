@@ -98,6 +98,11 @@ class ExpiringCache(object):
         `__del__`, `__getitem__`, `__setitem__`
         If `None`, than a dict is used as a default.
 
+    cleanup : callable, optional
+        A method that takes a single argument, a cached object, and is called
+        upon expiry of the cached object, prior to deleting the object. If not
+        provided, defaults to a no-op.
+
     Examples
     --------
     >>> from pandas import Timestamp, Timedelta
@@ -113,11 +118,13 @@ class ExpiringCache(object):
     KeyError: 'foo'
     """
 
-    def __init__(self, cache=None):
+    def __init__(self, cache=None, cleanup=lambda value_to_clean: None):
         if cache is not None:
             self._cache = cache
         else:
             self._cache = {}
+
+        self.cleanup = cleanup
 
     def get(self, key, dt):
         """Get the value of a cached object.
@@ -143,6 +150,7 @@ class ExpiringCache(object):
         try:
             return self._cache[key].unwrap(dt)
         except Expired:
+            self.cleanup(self._cache[key]._unsafe_get_value())
             del self._cache[key]
             raise KeyError(key)
 
