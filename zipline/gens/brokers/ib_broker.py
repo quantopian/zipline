@@ -403,7 +403,7 @@ class IBBroker(Broker):
                 # it needs to be skipped.
                 continue
             z_position.amount = int(ib_position.position)
-            z_position.cost_basis = float(ib_position.market_price)
+            z_position.cost_basis = float(ib_position.average_cost)
             z_position.last_sale_price = None  # TODO(tibor): Fill from state
             z_position.last_sale_date = None  # TODO(tibor): Fill from state
             z_positions[symbol_lookup(symbol)] = z_position
