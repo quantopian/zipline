@@ -25,12 +25,6 @@ environment:
       NUMPY_VERSION: "1.11.1"
       SCIPY_VERSION: "0.17.1"
 
-    - PYTHON_VERSION: "3.4"
-      PYTHON_ARCH: "64"
-      PANDAS_VERSION: "0.18.1"
-      NUMPY_VERSION: "1.11.1"
-      SCIPY_VERSION: "0.17.1"
-
     - PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "64"
       PANDAS_VERSION: "0.18.1"
