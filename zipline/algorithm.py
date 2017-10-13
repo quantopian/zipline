@@ -1376,9 +1376,6 @@ class TradingAlgorithm(object):
             day = normalize_date(self.get_datetime())
 
             if day > min(asset.end_date, asset.auto_close_date):
-                print "day ",day
-                print "asset.end_date: ",asset.end_date
-                print "asset.auto_close_date: ",asset.auto_close_date
                 # If we are after the asset's end date or auto close date, warn
                 # the user that they can't place an order for this asset, and
                 # return None.
@@ -2543,10 +2540,9 @@ class TradingAlgorithm(object):
             sessions.get_loc(sim_end_session)
         )
 
-        #end_session = sessions[end_loc] # original 
-        end_session = sessions[start_date_loc]  # added for live trading
-
-        print "running pipeline for: ",start_session,end_session
+        print "in _run_pipeline"
+        end_session = sessions[end_loc] # original 
+        #end_session = sessions[start_date_loc]  # added for live trading
 
         return \
             self.engine.run_pipeline(pipeline, start_session, end_session), \
