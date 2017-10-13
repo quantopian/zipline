@@ -2540,9 +2540,8 @@ class TradingAlgorithm(object):
             sessions.get_loc(sim_end_session)
         )
 
-        print "in _run_pipeline"
         end_session = sessions[end_loc] # original 
-        #end_session = sessions[start_date_loc]  # added for live trading
+
 
         return \
             self.engine.run_pipeline(pipeline, start_session, end_session), \
