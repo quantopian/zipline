@@ -34,6 +34,7 @@ from zipline.errors import (
     InvalidCalendarName,
 )
 
+from zipline.testing import slow
 from zipline.testing.predicates import assert_equal
 from zipline.utils.calendars import (
     deregister_calendar,
@@ -264,6 +265,7 @@ class ExchangeCalendarTestBase(object):
             prev_close_answer
         )
 
+    @slow
     def test_next_prev_open_close(self):
         # for each session, check:
         # - the minute before the open (if gaps exist between sessions)
@@ -358,6 +360,7 @@ class ExchangeCalendarTestBase(object):
                     self.calendar.previous_minute(hour_after_close)
                 )
 
+    @slow
     def test_minute_to_session_label(self):
         for idx, info in enumerate(self.answers[1:-2].iterrows()):
             session_label = info[1].name
@@ -452,6 +455,7 @@ class ExchangeCalendarTestBase(object):
         (2, 0),
         (2, 1),
     ])
+    @slow
     def test_minute_index_to_session_labels(self, interval, offset):
         minutes = self.calendar.minutes_for_sessions_in_range(
             pd.Timestamp('2011-01-04', tz='UTC'),
@@ -664,6 +668,7 @@ class ExchangeCalendarTestBase(object):
         self.assertEqual(2, self.calendar.session_distance(sessions[0],
                                                            sessions[-1]))
 
+    @slow
     def test_open_and_close_for_session(self):
         for index, row in self.answers.iterrows():
             session_label = row.name

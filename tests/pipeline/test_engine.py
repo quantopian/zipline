@@ -75,6 +75,7 @@ from zipline.testing import (
     OpenPrice,
     parameter_space,
     product_upper_triangle,
+    slow,
 )
 from zipline.testing.fixtures import (
     WithAdjustmentReader,
@@ -839,6 +840,7 @@ class FrameInputTestCase(WithTradingEnvironment, ZiplineTestCase):
     def make_frame(self, data):
         return DataFrame(data, columns=self.assets, index=self.dates)
 
+    @slow
     def test_compute_with_adjustments(self):
         dates, asset_ids = self.dates, self.asset_ids
         low, high = USEquityPricing.low, USEquityPricing.high

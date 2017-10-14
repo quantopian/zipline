@@ -24,7 +24,7 @@ from zipline.pipeline.loaders.utils import (
     normalize_timestamp_to_query_time,
     previous_event_indexer,
 )
-from zipline.testing import check_arrays, ZiplineTestCase
+from zipline.testing import check_arrays, slow, ZiplineTestCase
 from zipline.testing.fixtures import (
     WithAssetFinder,
     WithTradingSessions,
@@ -645,6 +645,7 @@ class EventLoaderUtilsTestCase(ZiplineTestCase):
     # Test with timezones on either side of the meridian
     @parameterized.expand([(expected_us, 'US/Eastern', us_dates),
                            (expected_russia, 'Europe/Moscow', moscow_dates)])
+    @slow
     def test_normalize_to_query_time(self, expected, tz, dates):
         # Order matters in pandas 0.18.2. Prior to that, using tz_convert on
         # a DatetimeIndex with DST/EST timestamps mixed resulted in some of

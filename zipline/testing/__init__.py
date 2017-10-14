@@ -40,6 +40,7 @@ from .core import (  # noqa
     read_compressed,
     seconds_to_timestamp,
     security_list_copy,
+    slow,
     str_to_seconds,
     subtest,
     temp_pipeline_engine,

@@ -17,6 +17,7 @@ import tempfile
 from logbook import TestHandler
 from mock import patch
 from nose.tools import nottest
+from nose.plugins.attrib import attr
 from numpy.testing import assert_allclose, assert_array_equal
 import pandas as pd
 from six import itervalues, iteritems, with_metaclass
@@ -1573,3 +1574,7 @@ class OpenPrice(CustomFactor):
 
     def compute(self, today, assets, out, open):
         out[:] = open
+
+
+# Marker for skipping slow tests.
+slow = attr('slow')
