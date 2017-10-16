@@ -45,9 +45,11 @@ from toolz import dissoc, keyfilter
 import toolz.curried.operator as op
 
 from zipline.testing.core import ensure_doctest
+
 from zipline.dispatch import dispatch
 from zipline.lib.adjustment import Adjustment
 from zipline.lib.labelarray import LabelArray
+from zipline.result import AlgorithmResult
 from zipline.utils.functional import dzip_exact, instance
 from zipline.utils.math_utils import tolerant_equals
 
@@ -276,6 +278,18 @@ def assert_equal(result, expected, path=(), msg='', **kwargs):
         expected,
         _fmt_path(path),
     )
+
+
+@dispatch(AlgorithmResult, AlgorithmResult)
+def assert_algo_result_equal(result, expected, path=(), msg='', **kwargs):
+    for attr in result.scalars + result.frames:
+        assert_equal(
+            getattr(result, attr),
+            getattr(expected, attr),
+            path=path + (attr,),
+            msg=msg,
+            **kwargs
+        )
 
 
 @assert_equal.register(float, float)

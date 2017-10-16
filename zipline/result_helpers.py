@@ -1,3 +1,7 @@
+from contextlib import contextmanager
+import re
+import json
+
 from six import iteritems, viewkeys
 import toolz as tz
 
@@ -293,3 +297,65 @@ class NoProgressBar(object):
 
     def finish(self):
         pass
+
+
+ROUNDTRIP_HEADER_TEMPLATE = "# Roundtrip DType: {}"
+ROUNDTRIP_HEADER_REGEX = re.compile(r"(# Roundtrip DType: )(\{.*\})")
+
+
+def frame_dtypes_to_json(dtypes):
+    strcols = dtypes.index.map(lambda x: isinstance(x, str))
+    if not strcols.all():
+        raise TypeError(
+            "Can't serialize frame dtypes for non-string columns.\n"
+            "Non strings: {}".format(dtypes.index[~strcols]),
+        )
+
+    return json.dumps({
+        str(col): dtype.descr[0][1]
+        for col, dtype in dtypes.iteritems()
+    })
+
+
+def format_roundtrip_dtype(dtypes):
+    dtype_json = frame_dtypes_to_json(dtypes)
+    return ROUNDTRIP_HEADER_TEMPLATE.format(dtype_json)
+
+
+def parse_roundtrip_dtype(header_line):
+    match = ROUNDTRIP_HEADER_REGEX.match(header_line)
+    if match is None:
+        raise ValueError(
+            "Failed to parse dtype from header line: {!r}".format(header_line)
+        )
+    json_str = match.group(2)
+    return recarray_dtype_from_json(json_str)
+
+
+def recarray_dtype_from_json(json_str):
+    d = json.loads(json_str)
+    return np.dtype(list(d.items()))
+
+
+@contextmanager
+def maybe_open_file(path_or_file, mode):
+    if hasattr(path_or_file, 'readline'):
+        # Already a file-like object.
+        yield path_or_file
+    else:
+        with open(path_or_file, mode) as f:
+            yield f
+
+
+def write_roundtrippable_csv(path_or_file, frame):
+    header = format_roundtrip_dtype(frame.dtypes)
+    with maybe_open_file(path_or_file, 'w') as definitely_a_file:
+        definitely_a_file.write(header + '\n')
+        frame.to_csv(definitely_a_file)
+
+
+def read_roundtrippable_csv(path_or_file):
+    with maybe_open_file(path_or_file, 'r') as definitely_a_file:
+        first_line = definitely_a_file.readline().strip()
+        dtype = parse_roundtrip_dtype(first_line)
+        return pd.DataFrame.from_csv(definitely_a_file, dtype=dtype)

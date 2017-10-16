@@ -1,6 +1,10 @@
 from functools import partial
+import json
+from os.path import join as pjoin
 
 import pandas as pd
+
+from zipline.utils.paths import ensure_directory
 
 from . import result_helpers
 
@@ -12,10 +16,8 @@ class AlgorithmResult(object):
     """
     # Top-level metadata.
     _algo_id = None
-    _benchmark_security = None
     _capital_base = None
     _end_date = None
-    _launch_date = None
     _start_date = None
 
     # Daily time series.
@@ -23,7 +25,6 @@ class AlgorithmResult(object):
     _daily_performance = None
     _cumulative_performance = None
     _recorded_vars = None
-    _stoppages = None
 
     # Hierarchical frames.
     _transactions = None
@@ -35,19 +36,14 @@ class AlgorithmResult(object):
         'daily_performance',
         'orders',
         'positions',
-        'pyfolio_positions',
-        'pyfolio_transactions',
         'recorded_vars',
         'risk',
-        'stoppages',
         'transactions',
     ]
     _scalars = [
         'algo_id',
-        'benchmark_security',
         'capital_base',
         'end_date',
-        'launch_date',
         'start_date',
     ]
 
@@ -145,14 +141,6 @@ class AlgorithmResult(object):
         Return the end date for this algorithm.
         """
         return self._end_date
-
-    @property
-    def stoppages(self):
-        """
-        Return a DataFrame with a daily DatetimeIndex containing
-        the dates where an algo went into exception or cancel
-        """
-        return self._stoppages
 
     @property
     def daily_performance(self):
@@ -299,3 +287,36 @@ class AlgorithmResult(object):
         Return a list of DataFrame attributes of on this object.
         """
         return self._frames
+
+    def save(self, directory):
+        """Save an AlgorithmResult to a directory.
+        """
+        ensure_directory(directory)
+        with open(pjoin(directory, 'metadata.json'), 'w') as f:
+            metadata = {
+                'algo_id': self.algo_id,
+                'capital_base': self.capital_base,
+                'start_date': str(self.start_date),
+                'end_date': str(self.end_date),
+            }
+            json.dump(metadata, f)
+
+        write_frame = result_helpers.write_roundtrippable_csv
+        for name in self._frames:
+            path = pjoin(directory, name + '.csv')
+            frame = getattr(self, name)
+            write_frame(path, frame)
+
+    @classmethod
+    def load(cls, directory):
+        """Load an AlgorithmResult from a directory.
+        """
+        with open(pjoin(directory, 'metadata.json'), 'r') as f:
+            kwargs = json.load(f)
+
+        for name in cls._frames:
+            path = pjoin(directory, name + '.csv')
+            read_frame = result_helpers.read_roundtrippable_csv
+            kwargs[name] = read_frame(path)
+
+        return cls(**kwargs)

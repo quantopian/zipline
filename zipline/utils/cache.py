@@ -2,13 +2,18 @@
 Caching utilities for zipline
 """
 from collections import MutableMapping
+from contextlib import contextmanager
 import errno
+import json
 import os
 import pickle
+import re
 from distutils import dir_util
 from shutil import rmtree, move
 from tempfile import mkdtemp, NamedTemporaryFile
+import toolz
 
+import numpy as np
 import pandas as pd
 
 from .context_tricks import nop_context
@@ -214,6 +219,10 @@ class dataframe_cache(MutableMapping):
             self.serialize = pd.DataFrame.to_msgpack
             self.deserialize = pd.read_msgpack
             self._protocol = None
+        elif serialization == 'csv':
+            self.serialize = flip(write_roundtrippable_csv)
+            self.deserialize = flip(read_roundtrippable_csv)
+            self._protocol = None
         else:
             s = serialization.split(':', 1)
             if s[0] != 'pickle':
@@ -384,3 +393,13 @@ class working_dir(object):
         if exc_info[0] is None:
             self._commit()
         rmtree(self.path)
+
+
+@contextmanager
+def maybe_open_file(file_or_path, mode):
+    if isinstance(file_or_path, str):
+        with open(file_or_path, mode) as file_:
+            yield file_
+    else:
+        # Assume already an open file.
+        yield file_or_path

@@ -86,7 +86,6 @@ def eof(*args, **kwargs):
     default=False,
     help="Should we rebuild the input data from Yahoo?",
 )
-
 @click.pass_context
 def main(ctx, rebuild_input):
     """Rebuild the perf data for test_examples
@@ -109,60 +108,53 @@ def main(ctx, rebuild_input):
                  "a future release")
             )
 
-        new_perf_path = d.getpath(
-            'example_data/new_perf/%s' % pd.__version__.replace('.', '-'),
+        new_perf_path = d.getpath('example_data/new_perf/')
+        for name in examples.EXAMPLE_MODULES:
+            c[name] = examples.run_example(name, environ=environ)
+
+        correct_called = [False]
+
+        console = None
+
+        def _exit(*args, **kwargs):
+            console.raw_input = eof
+
+        def correct():
+            correct_called[0] = True
+            _exit()
+
+        expected_perf_path = d.getpath(
+            'example_data/expected_perf/%s' %
+            pd.__version__.replace('.', '-'),
         )
-        c = dataframe_cache(
-            new_perf_path,
-            serialization='pickle:2',
-        )
-        with c:
-            for name in examples.EXAMPLE_MODULES:
-                c[name] = examples.run_example(name, environ=environ)
 
-            correct_called = [False]
+        # allow users to run some analysis to make sure that the new
+        # results check out
+        console = InteractiveConsole({
+            'correct': correct,
+            'exit': _exit,
+            'incorrect': _exit,
+            'new': c,
+            'np': np,
+            'old': dataframe_cache(
+                expected_perf_path,
+                serialization='csv',
+            ),
+            'pd': pd,
+            'cols_to_check': examples._cols_to_check,
+            'changed_results': changed_results,
+        })
+        console.interact(banner)
 
-            console = None
-
-            def _exit(*args, **kwargs):
-                console.raw_input = eof
-
-            def correct():
-                correct_called[0] = True
-                _exit()
-
-            expected_perf_path = d.getpath(
-                'example_data/expected_perf/%s' %
-                pd.__version__.replace('.', '-'),
+        if not correct_called[0]:
+            ctx.fail(
+                '`correct()` was not called! This means that the new'
+                ' results will not be written',
             )
 
-            # allow users to run some analysis to make sure that the new
-            # results check out
-            console = InteractiveConsole({
-                'correct': correct,
-                'exit': _exit,
-                'incorrect': _exit,
-                'new': c,
-                'np': np,
-                'old': dataframe_cache(
-                    expected_perf_path,
-                    serialization='pickle',
-                ),
-                'pd': pd,
-                'cols_to_check': examples._cols_to_check,
-                'changed_results': changed_results,
-            })
-            console.interact(banner)
-
-            if not correct_called[0]:
-                ctx.fail(
-                    '`correct()` was not called! This means that the new'
-                    ' results will not be written',
-                )
-
-            # move the new results to the expected path
-            shutil.rmtree(expected_perf_path)
-            shutil.copytree(new_perf_path, expected_perf_path)
+        # move the new results to the expected path
+        shutil.rmtree(expected_perf_path)
+        shutil.copytree(new_perf_path, expected_perf_path)
 
         # Clear out all the temporary new perf so it doesn't get added to the
         # tarball.
