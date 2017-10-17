@@ -277,8 +277,10 @@ def gen_symbol_data(api_key,
 @bundles.register('quandl')
 def quandl_bundle(environ,
                   asset_db_writer,
-                  minute_bar_writer,
-                  daily_bar_writer,
+                  equities_minute_bar_writer,
+                  equities_daily_bar_writer,
+                  futures_minute_bar_writer,
+                  futures_daily_bar_writer,
                   adjustment_writer,
                   calendar,
                   start_session,
@@ -301,7 +303,7 @@ def quandl_bundle(environ,
     dividends = []
 
     asset_db_writer.write(metadata)
-    daily_bar_writer.write(
+    equities_daily_bar_writer.write(
         gen_symbol_data(
             api_key,
             cache,
@@ -382,8 +384,10 @@ ONE_MEGABYTE = 1024 * 1024
 @bundles.register('quantopian-quandl', create_writers=False)
 def quantopian_quandl_bundle(environ,
                              asset_db_writer,
-                             minute_bar_writer,
-                             daily_bar_writer,
+                             equities_minute_bar_writer,
+                             equities_daily_bar_writer,
+                             futures_minute_bar_writer,
+                             futures_daily_bar_writer,
                              adjustment_writer,
                              calendar,
                              start_session,

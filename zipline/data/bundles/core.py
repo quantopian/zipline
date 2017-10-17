@@ -54,6 +54,20 @@ def daily_equity_path(bundle_name, timestr, environ=None):
     )
 
 
+def minute_future_path(bundle_name, timestr, environ=None):
+    return pth.data_path(
+        minute_equity_relative(bundle_name, timestr, environ),
+        environ=environ,
+    )
+
+
+def daily_future_path(bundle_name, timestr, environ=None):
+    return pth.data_path(
+        daily_equity_relative(bundle_name, timestr, environ),
+        environ=environ,
+    )
+
+
 def adjustment_db_path(bundle_name, timestr, environ=None):
     return pth.data_path(
         adjustment_db_relative(bundle_name, timestr, environ),
@@ -82,6 +96,14 @@ def daily_equity_relative(bundle_name, timestr, environ=None):
 
 def minute_equity_relative(bundle_name, timestr, environ=None):
     return bundle_name, timestr, 'minute_equities.bcolz'
+
+
+def daily_future_relative(bundle_name, timestr, environ=None):
+    return bundle_name, timestr, 'daily_futures.bcolz'
+
+
+def minute_future_relative(bundle_name, timestr, environ=None):
+    return bundle_name, timestr, 'minute_futures.bcolz'
 
 
 def asset_db_relative(bundle_name, timestr, environ=None, db_version=None):
@@ -389,13 +411,13 @@ def _make_bundle_core():
                 wd = stack.enter_context(working_dir(
                     pth.data_path([], environ=environ))
                 )
-                daily_bars_path = wd.ensure_dir(
+                equities_daily_bars_path = wd.ensure_dir(
                     *daily_equity_relative(
                         name, timestr, environ=environ,
                     )
                 )
-                daily_bar_writer = BcolzDailyBarWriter(
-                    daily_bars_path,
+                equities_daily_bar_writer = BcolzDailyBarWriter(
+                    equities_daily_bars_path,
                     calendar,
                     start_session,
                     end_session,
@@ -405,9 +427,27 @@ def _make_bundle_core():
                 # SQLiteAdjustmentWriter needs to open the daily ctables so
                 # that it can compute the adjustment ratios for the dividends.
 
-                daily_bar_writer.write(())
-                minute_bar_writer = BcolzMinuteBarWriter(
+                equities_daily_bar_writer.write(())
+                equities_minute_bar_writer = BcolzMinuteBarWriter(
                     wd.ensure_dir(*minute_equity_relative(
+                        name, timestr, environ=environ)
+                    ),
+                    calendar,
+                    start_session,
+                    end_session,
+                    minutes_per_day=bundle.minutes_per_day,
+                )
+                futures_minute_bar_writer = BcolzMinuteBarWriter(
+                    wd.ensure_dir(*daily_future_relative(
+                        name, timestr, environ=environ)
+                    ),
+                    calendar,
+                    start_session,
+                    end_session,
+                    minutes_per_day=bundle.minutes_per_day,
+                )
+                futures_minute_bar_writer = BcolzMinuteBarWriter(
+                    wd.ensure_dir(*minute_future_relative(
                         name, timestr, environ=environ)
                     ),
                     calendar,
@@ -424,14 +464,16 @@ def _make_bundle_core():
                     SQLiteAdjustmentWriter(
                         wd.getpath(*adjustment_db_relative(
                             name, timestr, environ=environ)),
-                        BcolzDailyBarReader(daily_bars_path),
+                        BcolzDailyBarReader(equities_daily_bars_path),
                         calendar.all_sessions,
                         overwrite=True,
                     )
                 )
             else:
-                daily_bar_writer = None
-                minute_bar_writer = None
+                equities_daily_bar_writer = None
+                equities_minute_bar_writer = None
+                futures_daily_bar_writer = None
+                futures_minute_bar_writer = None
                 asset_db_writer = None
                 adjustment_db_writer = None
                 if assets_versions:
@@ -441,8 +483,10 @@ def _make_bundle_core():
             bundle.ingest(
                 environ,
                 asset_db_writer,
-                minute_bar_writer,
-                daily_bar_writer,
+                equities_minute_bar_writer,
+                equities_daily_bar_writer,
+                futures_minute_bar_writer,
+                futures_daily_bar_writer,
                 adjustment_db_writer,
                 calendar,
                 start_session,
