@@ -18,6 +18,11 @@ from zipline.errors import (
 )
 from zipline.lib.labelarray import LabelArray
 from zipline.lib.rank import is_missing
+from zipline.pipeline.dtypes import (
+    CLASSIFIER_DTYPES,
+    FACTOR_DTYPES,
+    FILTER_DTYPES,
+)
 from zipline.pipeline.expression import (
     BadBinaryOperator,
     FILTER_BINOPS,
@@ -176,7 +181,8 @@ class Filter(RestrictedDTypeMixin, ComputableTerm):
     # same thing from all temporal perspectives.
     window_safe = True
 
-    ALLOWED_DTYPES = (bool_dtype,)  # Used by RestrictedDTypeMixin
+    # Used by RestrictedDTypeMixin
+    ALLOWED_DTYPES = FILTER_DTYPES
     dtype = bool_dtype
 
     clsdict = locals()
@@ -419,6 +425,23 @@ class CustomFilter(PositiveWindowLengthMixin, CustomTermMixin, Filter):
     --------
     zipline.pipeline.factors.factor.CustomFactor
     """
+    def _validate(self):
+        try:
+            super(CustomFilter, self)._validate()
+        except UnsupportedDataType:
+            if self.dtype in CLASSIFIER_DTYPES:
+                raise UnsupportedDataType(
+                    typename=type(self).__name__,
+                    dtype=self.dtype,
+                    hint='Did you mean to create a CustomClassifier?',
+                )
+            elif self.dtype in FACTOR_DTYPES:
+                raise UnsupportedDataType(
+                    typename=type(self).__name__,
+                    dtype=self.dtype,
+                    hint='Did you mean to create a CustomFactor?',
+                )
+            raise
 
 
 class ArrayPredicate(SingleInputMixin, Filter):
