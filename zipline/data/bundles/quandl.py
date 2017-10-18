@@ -55,6 +55,7 @@ def fetch_data_table(api_key, show_progress):
 
     with ZipFile(raw_file) as zip_file:
         file_names = zip_file.namelist()
+        assert len(file_names) == 1, "Expected a single file."
         wiki_prices = file_names.pop()
         table_file = zip_file.open(wiki_prices)
         if show_progress:
@@ -115,7 +116,7 @@ def parse_asset_splits(data, show_progress):
         'ratio': 1.0 / split_ratios[split_ratios != 1],
         'effective_date': data.date,
         'sid': pd.factorize(data.symbol)[0]
-    })
+    }).dropna()
 
 
 def parse_asset_dividends(data, show_progress):
@@ -123,25 +124,22 @@ def parse_asset_dividends(data, show_progress):
         print('Parsing dividend data.')
 
     divs = data.ex_dividend
-    return pd.DataFrame({
+    df = pd.DataFrame({
         'amount': divs[divs != 0],
         'ex_date': data.date,
-        'sid': pd.factorize(data.symbol)[0],
-        'record_date': pd.NaT,
-        'declared_date': pd.NaT,
-        'pay_date': pd.NaT
-    })
+        'sid': pd.factorize(data.symbol)[0]
+    }).dropna()
+    df['record_date'] = df['declared_date'] = df['pay_date'] = pd.NaT
+    return df
 
 
 def parse_asset_data(data,
-                     calendar,
-                     start_session,
-                     end_session,
+                     sessions,
                      symbol_map):
-    sessions = calendar.sessions_in_range(start_session, end_session)
     for asset_id, symbol in symbol_map.iteritems():
-        asset_data = data[data['symbol'] == symbol].drop(
-            'symbol', axis=1
+        asset_data = data.xs(
+            symbol,
+            level=1
         ).reindex(
             sessions.tz_localize(None)
         ).fillna(0.0)
@@ -174,13 +172,13 @@ def quandl_bundle(environ,
     asset_db_writer.write(asset_metadata)
 
     symbol_map = asset_metadata.symbol
-    raw_data.set_index('date', inplace=True)
+    sessions = calendar.sessions_in_range(start_session, end_session)
+
+    raw_data.set_index(['date', 'symbol'], inplace=True)
     daily_bar_writer.write(
         parse_asset_data(
             raw_data,
-            calendar,
-            start_session,
-            end_session,
+            sessions,
             symbol_map
         ),
         show_progress=show_progress
