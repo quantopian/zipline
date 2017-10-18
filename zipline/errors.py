@@ -655,7 +655,13 @@ class UnsupportedDataType(ZiplineError):
     """
     Raised by CustomFactors with unsupported dtypes.
     """
-    msg = "{typename} instances with dtype {dtype} are not supported."
+    def __init__(self, hint='', **kwargs):
+        if hint:
+            hint = ' ' + hint
+        kwargs['hint'] = hint
+        super(UnsupportedDataType, self).__init__(**kwargs)
+
+    msg = "{typename} instances with dtype {dtype} are not supported.{hint}"
 
 
 class NoFurtherDataError(ZiplineError):

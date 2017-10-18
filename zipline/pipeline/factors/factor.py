@@ -9,11 +9,20 @@ from numpy import empty_like, inf, nan, where
 from scipy.stats import rankdata
 
 from zipline.utils.compat import wraps
-from zipline.errors import BadPercentileBounds, UnknownRankMethod
+from zipline.errors import (
+    BadPercentileBounds,
+    UnknownRankMethod,
+    UnsupportedDataType,
+)
 from zipline.lib.normalize import naive_grouped_rowwise_apply
 from zipline.lib.rank import masked_rankdata_2d, rankdata_1d_descending
 from zipline.pipeline.api_utils import restrict_to_dtype
 from zipline.pipeline.classifiers import Classifier, Everything, Quantiles
+from zipline.pipeline.dtypes import (
+    CLASSIFIER_DTYPES,
+    FACTOR_DTYPES,
+    FILTER_DTYPES,
+)
 from zipline.pipeline.expression import (
     BadBinaryOperator,
     COMPARISONS,
@@ -51,7 +60,6 @@ from zipline.utils.numpy_utils import (
     bool_dtype,
     categorical_dtype,
     coerce_to_dtype,
-    datetime64ns_dtype,
     float64_dtype,
     int64_dtype,
 )
@@ -318,8 +326,6 @@ float64_only = restrict_to_dtype(
         " but it was called on a Factor of dtype {received_dtype}."
     )
 )
-
-FACTOR_DTYPES = frozenset([datetime64ns_dtype, float64_dtype, int64_dtype])
 
 
 class Factor(RestrictedDTypeMixin, ComputableTerm):
@@ -1555,6 +1561,24 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
     beta must also be a float.
     '''
     dtype = float64_dtype
+
+    def _validate(self):
+        try:
+            super(CustomFactor, self)._validate()
+        except UnsupportedDataType:
+            if self.dtype in CLASSIFIER_DTYPES:
+                raise UnsupportedDataType(
+                    typename=type(self).__name__,
+                    dtype=self.dtype,
+                    hint='Did you mean to create a CustomClassifier?',
+                )
+            elif self.dtype in FILTER_DTYPES:
+                raise UnsupportedDataType(
+                    typename=type(self).__name__,
+                    dtype=self.dtype,
+                    hint='Did you mean to create a CustomFilter?',
+                )
+            raise
 
     def __getattribute__(self, name):
         outputs = object.__getattribute__(self, 'outputs')
