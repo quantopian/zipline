@@ -15,7 +15,6 @@ import numpy as np
 from numpy.testing.utils import assert_array_almost_equal
 from odo import odo
 import pandas as pd
-from pandas.util.testing import assert_frame_equal
 from toolz import keymap, valmap, concatv
 from toolz.curried import operator as op
 
@@ -39,7 +38,11 @@ from zipline.testing import (
     tmp_asset_finder,
 )
 from zipline.testing.fixtures import WithAssetFinder
-from zipline.testing.predicates import assert_equal, assert_isidentical
+from zipline.testing.predicates import (
+    assert_equal,
+    assert_frame_equal,
+    assert_isidentical,
+)
 from zipline.utils.numpy_utils import float64_dtype, int64_dtype
 from zipline.utils.pandas_utils import empty_dataframe
 
@@ -779,6 +782,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             result.sort_index(axis=1),
             _utc_localize_index_level_0(expected.sort_index(axis=1)),
             check_dtype=False,
+            check_categorical=False,
         )
 
     def _test_id_macro(self, df, dshape, expected, finder, add, dates=None):

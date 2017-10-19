@@ -17,7 +17,6 @@ import tarfile
 
 import matplotlib
 from nose_parameterized import parameterized
-import pandas as pd
 
 from zipline import examples
 from zipline.data.bundles import register, unregister
@@ -48,10 +47,7 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             tar.extractall(cls.tmpdir.path)
 
         cls.expected_perf = dataframe_cache(
-            cls.tmpdir.getpath(
-                'example_data/expected_perf/%s' %
-                pd.__version__.replace('.', '-'),
-            ),
+            cls.tmpdir.getpath('example_data/expected_perf/0-18-1'),
             serialization='pickle',
         )
 

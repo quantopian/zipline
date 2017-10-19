@@ -346,7 +346,7 @@ class EventsLoaderEmptyTestCase(WithAssetFinder,
             columns=EventDataSet.columns,
         )
 
-        assert_equal(results, expected)
+        assert_equal(results, expected, check_categorical=False)
 
 
 class EventsLoaderTestCase(WithAssetFinder,

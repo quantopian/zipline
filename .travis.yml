@@ -18,8 +18,13 @@ env:
     #   See https://docs.travis-ci.com/api#external-apis.
     - secure: "W2tTHoZYLuEjoIMI/K3adv7QW7yx4iVOIkVOn73jUkv3IlyZZ+BraL0hBw5Dh/iBA9PnO1qOKeRFLDDfDza/1S+2QxZMBmJ8HAkcZehbtTPdCgn/+CYSlauUlJ2izxgnXFw49qJDllQWtwsK2PEuvHrir6wbdElkXKvIJoD7jQ4="
     - CONDA_ROOT_PYTHON_VERSION: "2.7"
-  matrix:
-    - NUMPY_VERSION=1.11.1 SCIPY_VERSION=0.17.1
+    - NUMPY_VERSION=1.11.1
+    - PANDAS_VERSION=0.18.1
+    - SCIPY_VERSION=0.17.1
+matrix:
+  include:
+    - python: 3.5
+      env: PANDAS_VERSION=0.19.2
 cache:
   directories:
     - $HOME/.cache/.pip/
@@ -29,6 +34,10 @@ before_install:
   - chmod +x miniconda.sh
   - ./miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
+  - sed -i "s/numpy==.*/numpy==$NUMPY_VERSION/" etc/requirements.txt
+  - sed -i "s/pandas==.*/pandas==$PANDAS_VERSION/" etc/requirements.txt
+  - sed -i "s/scipy==.*/scipy==$SCIPY_VERSION/" etc/requirements.txt
+  - cat etc/requirements.txt
 install:
   - conda info -a
   - conda install conda=4.3.25 conda-build=3.0.15 anaconda-client=1.6.3 --yes
