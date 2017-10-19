@@ -104,8 +104,10 @@ class BundleCoreTestCase(WithInstanceTmpDir,
         @self.register('bundle', create_writers=False)
         def bundle_ingest(environ,
                           asset_db_writer,
-                          minute_bar_writer,
-                          daily_bar_writer,
+                          equities_minute_bar_writer,
+                          equities_daily_bar_writer,
+                          futures_minute_bar_writer,
+                          futures_daily_bar_writer,
                           adjustment_writer,
                           calendar,
                           start_session,
@@ -114,8 +116,10 @@ class BundleCoreTestCase(WithInstanceTmpDir,
                           show_progress,
                           output_dir):
             assert_is_none(asset_db_writer)
-            assert_is_none(minute_bar_writer)
-            assert_is_none(daily_bar_writer)
+            assert_is_none(equities_minute_bar_writer)
+            assert_is_none(equities_daily_bar_writer)
+            assert_is_none(futures_minute_bar_writer)
+            assert_is_none(futures_daily_bar_writer)
             assert_is_none(adjustment_writer)
             called[0] = True
 
@@ -161,8 +165,10 @@ class BundleCoreTestCase(WithInstanceTmpDir,
         )
         def bundle_ingest(environ,
                           asset_db_writer,
-                          minute_bar_writer,
-                          daily_bar_writer,
+                          equities_minute_bar_writer,
+                          equities_daily_bar_writer,
+                          futures_minute_bar_writer,
+                          futures_daily_bar_writer,
                           adjustment_writer,
                           calendar,
                           start_session,
@@ -173,8 +179,8 @@ class BundleCoreTestCase(WithInstanceTmpDir,
             assert_is(environ, self.environ)
 
             asset_db_writer.write(equities=equities)
-            minute_bar_writer.write(minute_bar_data)
-            daily_bar_writer.write(daily_bar_data)
+            equities_minute_bar_writer.write(minute_bar_data)
+            equities_daily_bar_writer.write(daily_bar_data)
             adjustment_writer.write(splits=splits)
 
             assert_is_instance(calendar, TradingCalendar)
@@ -285,8 +291,10 @@ class BundleCoreTestCase(WithInstanceTmpDir,
         def bundle_ingest_create_writers(
                 environ,
                 asset_db_writer,
-                minute_bar_writer,
-                daily_bar_writer,
+                equities_minute_bar_writer,
+                equities_daily_bar_writer,
+                futures_minute_bar_writer,
+                futures_daily_bar_writer,
                 adjustment_writer,
                 calendar,
                 start_session,
@@ -295,8 +303,10 @@ class BundleCoreTestCase(WithInstanceTmpDir,
                 show_progress,
                 output_dir):
             self.assertIsNotNone(asset_db_writer)
-            self.assertIsNotNone(minute_bar_writer)
-            self.assertIsNotNone(daily_bar_writer)
+            self.assertIsNotNone(equities_minute_bar_writer)
+            self.assertIsNotNone(equities_daily_bar_writer)
+            self.assertIsNotNone(futures_minute_bar_writer)
+            self.assertIsNotNone(futures_daily_bar_writer)
             self.assertIsNotNone(adjustment_writer)
 
             equities = make_simple_equity_info(
@@ -374,8 +384,10 @@ class BundleCoreTestCase(WithInstanceTmpDir,
                            end_session=pd.Timestamp('2014', tz='UTC'))
             def _(environ,
                   asset_db_writer,
-                  minute_bar_writer,
-                  daily_bar_writer,
+                  equities_minute_bar_writer,
+                  equities_daily_bar_writer,
+                  futures_minute_bar_writer,
+                  futures_daily_bar_writer,
                   adjustment_writer,
                   calendar,
                   start_session,
