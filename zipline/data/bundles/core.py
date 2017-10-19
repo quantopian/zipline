@@ -56,14 +56,14 @@ def daily_equity_path(bundle_name, timestr, environ=None):
 
 def minute_future_path(bundle_name, timestr, environ=None):
     return pth.data_path(
-        minute_equity_relative(bundle_name, timestr, environ),
+        minute_future_relative(bundle_name, timestr, environ),
         environ=environ,
     )
 
 
 def daily_future_path(bundle_name, timestr, environ=None):
     return pth.data_path(
-        daily_equity_relative(bundle_name, timestr, environ),
+        daily_future_relative(bundle_name, timestr, environ),
         environ=environ,
     )
 
@@ -575,10 +575,10 @@ def _make_bundle_core():
                 daily_equity_path(name, timestr, environ=environ),
             ),
             future_minute_bar_reader=BcolzMinuteBarReader(
-                minute_equity_path(name, timestr, environ=environ),
+                minute_future_path(name, timestr, environ=environ),
             ),
             future_daily_bar_reader=BcolzDailyBarReader(
-                daily_equity_path(name, timestr, environ=environ),
+                daily_future_path(name, timestr, environ=environ),
             ),
             adjustment_reader=SQLiteAdjustmentReader(
                 adjustment_db_path(name, timestr, environ=environ),
