@@ -437,14 +437,13 @@ def _make_bundle_core():
                     end_session,
                     minutes_per_day=bundle.minutes_per_day,
                 )
-                futures_minute_bar_writer = BcolzMinuteBarWriter(
+                futures_daily_bar_writer = BcolzDailyBarWriter(
                     wd.ensure_dir(*daily_future_relative(
                         name, timestr, environ=environ)
                     ),
                     calendar,
                     start_session,
                     end_session,
-                    minutes_per_day=bundle.minutes_per_day,
                 )
                 futures_minute_bar_writer = BcolzMinuteBarWriter(
                     wd.ensure_dir(*minute_future_relative(
