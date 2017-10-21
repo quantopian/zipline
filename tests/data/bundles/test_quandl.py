@@ -7,10 +7,7 @@ import toolz.curried.operator as op
 
 from zipline import get_calendar
 from zipline.data.bundles import ingest, load, bundles
-from zipline.data.bundles.quandl import (
-    format_wiki_url,
-    format_metadata_url,
-)
+from zipline.data.bundles.quandl import format_metadata_url
 from zipline.lib.adjustment import Float64Multiply
 from zipline.testing import (
     test_resource_path,
@@ -44,36 +41,33 @@ class QuandlBundleTestCase(ZiplineTestCase):
             for symbol in self.symbols
         }
 
-        def per_symbol(symbol):
+        def load_data_table():
             df = pd.read_csv(
-                test_resource_path('quandl_samples', symbol + '.csv.gz'),
-                parse_dates=['Date'],
-                index_col='Date',
+                test_resource_path(
+                    'quandl_samples',
+                    'QUANDL_SAMPLE_TABLE.csv.gz'),
+                parse_dates=['date'],
+                index_col='date',
                 usecols=[
-                    'Open',
-                    'High',
-                    'Low',
-                    'Close',
-                    'Volume',
-                    'Date',
-                    'Ex-Dividend',
-                    'Split Ratio',
+                    'ticker',
+                    'open',
+                    'high',
+                    'low',
+                    'close',
+                    'volume',
+                    'date',
+                    'ex-dividend',
+                    'split_ratio',
                 ],
                 na_values=['NA'],
             ).rename(columns={
-                'Open': 'open',
-                'High': 'high',
-                'Low': 'low',
-                'Close': 'close',
-                'Volume': 'volume',
-                'Date': 'date',
-                'Ex-Dividend': 'ex_dividend',
-                'Split Ratio': 'split_ratio',
+                'ticker': 'symbol',
+                'ex-dividend': 'ex_dividend'
             })
-            df['sid'] = sids[symbol]
+            df['sid'] = pd.factorize(df.symbol)[0]
             return df
 
-        all_ = pd.concat(map(per_symbol, self.symbols)).set_index(
+        all_ = load_data_table().set_index(
             'sid',
             append=True,
         ).unstack()
@@ -186,21 +180,17 @@ class QuandlBundleTestCase(ZiplineTestCase):
     def test_bundle(self):
         url_map = merge(
             {
-                format_wiki_url(
-                    self.api_key,
-                    symbol,
-                    self.start_date,
-                    self.end_date,
-                ): test_resource_path('quandl_samples', symbol + '.csv.gz')
-                for symbol in self.symbols
+                'file_url': test_resource_path(
+                    'quandl_samples',
+                    'QUANDL_SAMPLE_TABLE.csv.gz'
+                )
             },
             {
-                format_metadata_url(self.api_key, n): test_resource_path(
+                format_metadata_url(self.api_key): test_resource_path(
                     'quandl_samples',
-                    'metadata-%d.csv.gz' % n,
+                    'metadata.csv.gz',
                 )
-                for n in (1, 2)
-            },
+            }
         )
         zipline_root = self.enter_instance_context(tmp_dir()).path
         environ = {

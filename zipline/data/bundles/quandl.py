@@ -14,9 +14,10 @@ from six.moves.urllib.parse import urlencode
 from zipline.utils.calendars import register_calendar_alias
 
 from . import core as bundles
+import numpy as np
 
 log = Logger(__name__)
-seconds_per_call = (pd.Timedelta('10 minutes') / 2000).total_seconds()
+
 ONE_MEGABYTE = 1024 * 1024
 QUANDL_METADATA_URL = (
     'https://www.quandl.com/api/v3/datatables/WIKI/PRICES.csv?'
@@ -37,7 +38,7 @@ def fetch_data_table(api_key, show_progress):
     ''' Import WIKI Prices data table from Quandl
     '''
     if show_progress:
-        print('Downloading WIKI metadata.')
+        log.info('Downloading WIKI metadata.')
 
     metadata = pd.read_csv(
         format_metadata_url(api_key)
@@ -59,7 +60,7 @@ def fetch_data_table(api_key, show_progress):
         wiki_prices = file_names.pop()
         table_file = zip_file.open(wiki_prices)
         if show_progress:
-            print('Parsing raw data.')
+            log.info('Parsing raw data.')
         data_table = pd.read_csv(
             table_file,
             parse_dates=['date'],
@@ -82,25 +83,24 @@ def fetch_data_table(api_key, show_progress):
             }
         )
         table_file.close()
-
+        data_table['symbol'] = data_table['symbol'].astype('category')
     return data_table
 
 
 def gen_asset_metadata(data, show_progress):
     if show_progress:
-        print('Generating asset metadata.')
+        log.info('Generating asset metadata.')
 
-    symbols = data['symbol'].unique()
-    asset_metadata = {}
+    asset_metadata = data.groupby(
+        by='symbol'
+    ).agg(
+        {'date': [np.min, np.max]}
+    ).reset_index()
+    asset_metadata['start_date'] = asset_metadata.date.amin
+    asset_metadata['end_date'] = asset_metadata.date.amax
+    del asset_metadata['date']
+    asset_metadata.columns = asset_metadata.columns.get_level_values(0)
 
-    asset_metadata['symbol'] = symbols
-    data.set_index('symbol', inplace=True)
-    asset_metadata['start_date'] = \
-        [data.loc[asset, 'date'].min() for asset in symbols]
-    asset_metadata['end_date'] = \
-        [data.loc[asset, 'date'].max() for asset in symbols]
-
-    asset_metadata = pd.DataFrame.from_dict(asset_metadata)
     asset_metadata['exchange'] = 'QUANDL'
     asset_metadata['auto_close_date'] = \
         asset_metadata['end_date'].values + pd.Timedelta(days=1)
@@ -109,7 +109,7 @@ def gen_asset_metadata(data, show_progress):
 
 def parse_asset_splits(data, show_progress):
     if show_progress:
-        print('Parsing split data.')
+        log.info('Parsing split data.')
 
     split_ratios = data.split_ratio
     return pd.DataFrame({
@@ -121,7 +121,7 @@ def parse_asset_splits(data, show_progress):
 
 def parse_asset_dividends(data, show_progress):
     if show_progress:
-        print('Parsing dividend data.')
+        log.info('Parsing dividend data.')
 
     divs = data.ex_dividend
     df = pd.DataFrame({
@@ -160,6 +160,10 @@ def quandl_bundle(environ,
                   output_dir):
     """Build a zipline data bundle from the Quandl WIKI dataset.
     """
+    import cProfile
+    p = cProfile.Profile()
+    p.enable()
+
     api_key = environ.get('QUANDL_API_KEY')
     raw_data = fetch_data_table(
         api_key,
@@ -196,6 +200,8 @@ def quandl_bundle(environ,
             show_progress=show_progress
         )
     )
+    p.disable()
+    p.dump_stats('perf_stats')
 
 
 def download_with_progress(url, chunk_size, **progress_kwargs):
@@ -278,7 +284,7 @@ def quantopian_quandl_bundle(environ,
 
     with tarfile.open('r', fileobj=data) as tar:
         if show_progress:
-            print("Writing data to %s." % output_dir)
+            log.info("Writing data to %s." % output_dir)
         tar.extractall(output_dir)
 
 
