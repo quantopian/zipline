@@ -39,7 +39,7 @@ class QuandlBundleTestCase(WithResponses,
         sids = {
             symbol: asset_finder.lookup_symbol(
                 symbol,
-                self.asset_start,
+                None,
             ).sid
             for symbol in self.symbols
         }
@@ -149,6 +149,13 @@ class QuandlBundleTestCase(WithResponses,
                     last_col=sids['MSFT'],
                     value=expected_dividend_adjustment(90, 'MSFT'),
                 )],
+                i(158): [Float64Multiply(
+                    first_row=0,
+                    last_row=i(158),
+                    first_col=sids['MSFT'],
+                    last_col=sids['MSFT'],
+                    value=expected_dividend_adjustment(158, 'MSFT'),
+                )],
                 i(222): [Float64Multiply(
                     first_row=0,
                     last_row=i(222),
@@ -211,10 +218,6 @@ class QuandlBundleTestCase(WithResponses,
         bundle = load('quandl', environ=environ)
         sids = 0, 1, 2, 3
         assert_equal(set(bundle.asset_finder.sids), set(sids))
-
-        for equity in bundle.asset_finder.retrieve_all(sids):
-            assert_equal(equity.start_date, self.asset_start, msg=equity)
-            assert_equal(equity.end_date, self.asset_end, msg=equity)
 
         sessions = self.calendar.all_sessions
         actual = bundle.equity_daily_bar_reader.load_raw_arrays(

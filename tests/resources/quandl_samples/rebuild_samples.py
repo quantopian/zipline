@@ -33,7 +33,7 @@ def zipfile_path(file_name, file_ext):
 
 
 def main():
-    api_key = 'TJ8g_Jpo_NUjRMMnqfkW'
+    api_key = 'Replace with your Quandl API key.'
     start_date = '2014-1-1'
     end_date = '2015-1-1'
     symbols = 'AAPL', 'BRK_A', 'MSFT', 'ZEN'
