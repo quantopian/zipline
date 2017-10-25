@@ -34,9 +34,12 @@ def format_metadata_url(api_key):
     )
 
 
-def fetch_data_table(api_key, show_progress):
+def fetch_data_table(api_key,
+                     show_progress,
+                     retries):
     ''' Import WIKI Prices data table from Quandl
     '''
+
     if show_progress:
         log.info('Downloading WIKI metadata.')
 
@@ -160,14 +163,10 @@ def quandl_bundle(environ,
                   output_dir):
     """Build a zipline data bundle from the Quandl WIKI dataset.
     """
-    import cProfile
-    p = cProfile.Profile()
-    p.enable()
-
-    api_key = environ.get('QUANDL_API_KEY')
     raw_data = fetch_data_table(
-        api_key,
-        show_progress
+        environ.get('QUANDL_API_KEY'),
+        show_progress,
+        environ.get('QUANDL_DOWNLOAD_ATTEMPTS', 5)
     )
     asset_metadata = gen_asset_metadata(
         raw_data[['symbol', 'date']],
@@ -200,8 +199,6 @@ def quandl_bundle(environ,
             show_progress=show_progress
         )
     )
-    p.disable()
-    p.dump_stats('perf_stats')
 
 
 def download_with_progress(url, chunk_size, **progress_kwargs):

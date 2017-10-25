@@ -2,7 +2,6 @@ from __future__ import division
 
 import numpy as np
 import pandas as pd
-from toolz import merge
 import toolz.curried.operator as op
 
 from zipline import get_calendar
@@ -14,14 +13,18 @@ from zipline.testing import (
     tmp_dir,
     patch_read_csv,
 )
-from zipline.testing.fixtures import ZiplineTestCase
+from zipline.testing.fixtures import (
+    ZiplineTestCase,
+    WithResponses
+)
 from zipline.testing.predicates import (
     assert_equal,
 )
 from zipline.utils.functional import apply
 
 
-class QuandlBundleTestCase(ZiplineTestCase):
+class QuandlBundleTestCase(WithResponses,
+                           ZiplineTestCase):
     symbols = 'AAPL', 'BRK_A', 'MSFT', 'ZEN'
     asset_start = pd.Timestamp('2014-01', tz='utc')
     asset_end = pd.Timestamp('2015-01', tz='utc')
@@ -45,7 +48,7 @@ class QuandlBundleTestCase(ZiplineTestCase):
             df = pd.read_csv(
                 test_resource_path(
                     'quandl_samples',
-                    'QUANDL_SAMPLE_TABLE.csv.gz'),
+                    'QUANDL_SAMPLE_TABLE.csv'),
                 parse_dates=['date'],
                 index_col='date',
                 usecols=[
@@ -178,28 +181,32 @@ class QuandlBundleTestCase(ZiplineTestCase):
         return pricing, adjustments
 
     def test_bundle(self):
-        url_map = merge(
-            {
-                'file_url': test_resource_path(
+        with open(test_resource_path(
                     'quandl_samples',
-                    'QUANDL_SAMPLE_TABLE.csv.gz'
-                )
-            },
-            {
+                    'QUANDL_ARCHIVE.zip'), 'rb') as quandl_response:
+
+            self.responses.add(
+                self.responses.GET,
+                'https://file_url.mock.quandl',
+                body=quandl_response.read(),
+                content_type='application/zip',
+                status=200
+            )
+            url_map = {
                 format_metadata_url(self.api_key): test_resource_path(
                     'quandl_samples',
                     'metadata.csv.gz',
                 )
             }
-        )
-        zipline_root = self.enter_instance_context(tmp_dir()).path
-        environ = {
-            'ZIPLINE_ROOT': zipline_root,
-            'QUANDL_API_KEY': self.api_key,
-        }
 
-        with patch_read_csv(url_map, strict=True):
-            ingest('quandl', environ=environ)
+            zipline_root = self.enter_instance_context(tmp_dir()).path
+            environ = {
+                'ZIPLINE_ROOT': zipline_root,
+                'QUANDL_API_KEY': self.api_key,
+            }
+
+            with patch_read_csv(url_map):
+                ingest('quandl', environ=environ)
 
         bundle = load('quandl', environ=environ)
         sids = 0, 1, 2, 3
