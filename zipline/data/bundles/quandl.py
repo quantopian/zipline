@@ -39,55 +39,64 @@ def fetch_data_table(api_key,
                      retries):
     ''' Import WIKI Prices data table from Quandl
     '''
+    for _ in range(retries):
+        try:
+            if show_progress:
+                log.info('Downloading WIKI metadata.')
 
-    if show_progress:
-        log.info('Downloading WIKI metadata.')
+            metadata = pd.read_csv(
+                format_metadata_url(api_key)
+            )
+            # Extract link from metadata and download zip file.
+            table_url = metadata.loc[0, 'file.link']
+            if show_progress:
+                raw_file = download_with_progress(
+                    table_url,
+                    chunk_size=ONE_MEGABYTE,
+                    label="Downloading WIKI Prices table from Quandl"
+                )
+            else:
+                raw_file = download_without_progress(table_url)
 
-    metadata = pd.read_csv(
-        format_metadata_url(api_key)
-    )
-    # Extract link from metadata and download zip file.
-    table_url = metadata.loc[0, 'file.link']
-    if show_progress:
-        raw_file = download_with_progress(
-            table_url,
-            chunk_size=ONE_MEGABYTE,
-            label="Downloading WIKI Prices table from Quandl"
-        )
+            with ZipFile(raw_file) as zip_file:
+                file_names = zip_file.namelist()
+                assert len(file_names) == 1, "Expected a single file."
+                wiki_prices = file_names.pop()
+                table_file = zip_file.open(wiki_prices)
+                if show_progress:
+                    log.info('Parsing raw data.')
+                data_table = pd.read_csv(
+                    table_file,
+                    parse_dates=['date'],
+                    usecols=[
+                        'ticker',
+                        'date',
+                        'open',
+                        'high',
+                        'low',
+                        'close',
+                        'volume',
+                        'ex-dividend',
+                        'split_ratio'
+                    ],
+                    na_values=['NA']
+                ).rename(
+                    columns={
+                        'ticker': 'symbol',
+                        'ex-dividend': 'ex_dividend'
+                    }
+                )
+                table_file.close()
+                data_table['symbol'] = data_table['symbol'].astype('category')
+            return data_table
+
+        except Exception:
+            log.exception("Exception raised reading Quandl data. Retrying.")
+
     else:
-        raw_file = download_without_progress(table_url)
-
-    with ZipFile(raw_file) as zip_file:
-        file_names = zip_file.namelist()
-        assert len(file_names) == 1, "Expected a single file."
-        wiki_prices = file_names.pop()
-        table_file = zip_file.open(wiki_prices)
-        if show_progress:
-            log.info('Parsing raw data.')
-        data_table = pd.read_csv(
-            table_file,
-            parse_dates=['date'],
-            usecols=[
-                'ticker',
-                'date',
-                'open',
-                'high',
-                'low',
-                'close',
-                'volume',
-                'ex-dividend',
-                'split_ratio'
-            ],
-            na_values=['NA']
-        ).rename(
-            columns={
-                'ticker': 'symbol',
-                'ex-dividend': 'ex_dividend'
-            }
+        raise ValueError(
+            "Failed to download Quandl data after %d attempts." % (retries)
         )
-        table_file.close()
-        data_table['symbol'] = data_table['symbol'].astype('category')
-    return data_table
 
 
 def gen_asset_metadata(data, show_progress):
@@ -270,6 +279,10 @@ def quantopian_quandl_bundle(environ,
                              cache,
                              show_progress,
                              output_dir):
+    log.warn(
+        'quantopian-quandl is deprecated and '
+        'will be removed in a future release.'
+    )
     if show_progress:
         data = download_with_progress(
             QUANTOPIAN_QUANDL_URL,
