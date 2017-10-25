@@ -15,6 +15,7 @@ from zipline.pipeline import (
     SimplePipelineEngine,
 )
 from zipline.pipeline.data.testing import TestingDataSet
+from zipline.pipeline.engine import PIPELINE_INDEX_NAMES
 from zipline.pipeline.factors import SimpleMovingAverage
 from zipline.pipeline.filters.smoothing import All
 from zipline.testing import ZiplineTestCase, parameter_space, ExplodingObject
@@ -609,7 +610,7 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
         all_sessions = self.nyse_sessions
         compute_dates = all_sessions[
             all_sessions.slice_indexer('2014-06-05', '2015-01-06')
-        ]
+        ].set_names([PIPELINE_INDEX_NAMES[0]])
         start_date, end_date = compute_dates[[0, -1]]
 
         pipe = Pipeline({

@@ -359,7 +359,13 @@ class LabelArray(ndarray):
             )
 
         return pd.Series(
-            index=pd.MultiIndex.from_product([index, columns]),
+            index=pd.MultiIndex.from_product(
+                [index, columns],
+                names=[
+                    getattr(index, 'name', None),
+                    getattr(columns, 'name', None)
+                ],
+            ),
             data=self.ravel().as_categorical(name=name),
         ).unstack()
 

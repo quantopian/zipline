@@ -32,6 +32,11 @@ from zipline.utils.pandas_utils import categorical_df_concat
 from zipline.utils.sharedoc import copydoc
 
 
+DATE_INDEX_NAME = 'dates'
+SID_INDEX_NAME = 'sid'
+PIPELINE_INDEX_NAMES = (DATE_INDEX_NAME, SID_INDEX_NAME)
+
+
 class PipelineEngine(with_metaclass(ABCMeta)):
 
     @abstractmethod
@@ -579,7 +584,10 @@ class SimplePipelineEngine(PipelineEngine):
                     name: array([], dtype=arr.dtype)
                     for name, arr in iteritems(data)
                 },
-                index=MultiIndex.from_arrays([empty_dates, empty_assets]),
+                index=MultiIndex.from_arrays(
+                    [empty_dates, empty_assets],
+                    names=PIPELINE_INDEX_NAMES,
+                ),
             )
 
         resolved_assets = array(self._finder.retrieve_all(assets))
@@ -597,7 +605,10 @@ class SimplePipelineEngine(PipelineEngine):
 
         return DataFrame(
             data=final_columns,
-            index=MultiIndex.from_arrays([dates_kept, assets_kept]),
+            index=MultiIndex.from_arrays(
+                [dates_kept, assets_kept],
+                names=PIPELINE_INDEX_NAMES,
+            ),
         ).tz_localize('UTC', level=0)
 
     def _validate_compute_chunk_params(self, dates, assets, initial_workspace):
