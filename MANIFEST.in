@@ -5,5 +5,6 @@ recursive-include zipline *.pyi
 recursive-include zipline *.pxi
 
 recursive-include zipline/resources *.*
+recursive-include vendored_numpy_headers *.*
 include versioneer.py
 include zipline/_version.py
