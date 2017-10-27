@@ -29,8 +29,8 @@ def get_benchmark_returns(symbol, first_date, last_date):
     last_date : pd.Timestamp
         Last date for which we want to get data.
 
-    `first_date` is **not** included because we need the close from day N - 1 to
-    compute the returns for day N.
+    `first_date` is **not** included because we need the close from
+    day N - 1 to compute the returns for day N.
     """
     data = pd_reader.DataReader(
         symbol,
