@@ -41,7 +41,7 @@ install:
   - if [[ "$TRAVIS_SECURE_ENV_VARS" = "true" && "$TRAVIS_BRANCH" = "master" && "$TRAVIS_PULL_REQUEST" = "false" ]]; then DO_UPLOAD="true"; else DO_UPLOAD="false"; fi
   - |
     for recipe in $(ls -d conda/*/ | xargs -I {} basename {}); do
-      if [[ "$recipe" = "zipline" ]] && [[ "$TRAVIS_PYTHON_VERSION" != 3.4]]; then continue; fi
+      if [[ "$recipe" = "zipline" ]] && [[ $TRAVIS_PYTHON_VERSION != 3.4]]; then continue; fi
 
       conda build conda/$recipe --python=$CONDA_PY --numpy=$CONDA_NPY --skip-existing --old-build-string -c quantopian -c quantopian/label/ci
       RECIPE_OUTPUT=$(conda build conda/$recipe --python=$CONDA_PY --numpy=$CONDA_NPY --output)

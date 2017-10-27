@@ -177,3 +177,5 @@ ROOT_SYMBOL_TO_ETA = {
     'YM': DEFAULT_ETA,           # Dow Jones e-mini
     'YS': DEFAULT_ETA,           # Silver e-mini
 }
+
+BENCHMARK_SYMBOL = 'GSPC'

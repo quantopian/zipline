@@ -23,6 +23,7 @@ from sqlalchemy import create_engine
 from zipline.assets import AssetDBWriter, AssetFinder
 from zipline.assets.continuous_futures import CHAIN_PREDICATES
 from zipline.data.loader import load_market_data
+from zipline.finance.constants import BENCHMARK_SYMBOL
 from zipline.utils.calendars import get_calendar
 from zipline.utils.memoize import remember_last
 
@@ -78,7 +79,7 @@ class TradingEnvironment(object):
     def __init__(
         self,
         load=None,
-        bm_symbol='^GSPC',
+        bm_symbol=BENCHMARK_SYMBOL,
         exchange_tz="US/Eastern",
         trading_calendar=None,
         asset_db_path=':memory:',

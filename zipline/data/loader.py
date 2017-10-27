@@ -24,6 +24,7 @@ from ..utils.paths import (
     cache_root,
     data_root,
 )
+from zipline.finance.constants import BENCHMARK_SYMBOL
 from zipline.utils.calendars import get_calendar
 
 
@@ -31,7 +32,7 @@ logger = logbook.Logger('Loader')
 
 # Mapping from index symbol to appropriate bond data
 INDEX_MAPPING = {
-    '^GSPC':
+    BENCHMARK_SYMBOL:
     (treasuries, 'treasury_curves.csv', 'www.federalreserve.gov'),
     '^GSPTSE':
     (treasuries_can, 'treasury_curves_can.csv', 'bankofcanada.ca'),
@@ -87,7 +88,9 @@ def has_data_for_dates(series_or_df, first_date, last_date):
     return (first <= first_date) and (last >= last_date)
 
 
-def load_market_data(trading_day=None, trading_days=None, bm_symbol='^GSPC',
+def load_market_data(trading_day=None,
+                     trading_days=None,
+                     bm_symbol=BENCHMARK_SYMBOL,
                      environ=None):
     """
     Load benchmark returns and treasury yield curves for the given calendar and
@@ -268,7 +271,7 @@ def ensure_treasury_data(symbol, first_date, last_date, now, environ=None):
     path.
     """
     loader_module, filename, source = INDEX_MAPPING.get(
-        symbol, INDEX_MAPPING['^GSPC'],
+        symbol, INDEX_MAPPING[BENCHMARK_SYMBOL],
     )
     first_date = max(first_date, loader_module.earliest_possible_date())
 
