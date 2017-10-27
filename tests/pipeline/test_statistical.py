@@ -206,8 +206,9 @@ class StatisticalBuiltInsTestCase(WithTradingEnvironment, ZiplineTestCase):
                         my_asset_returns, other_asset_returns,
                     )[0]
 
-            expected_index = dates[start_date_index:
-                end_date_index + 1].set_names([self.index_names[0]])
+            expected_index = dates[
+                start_date_index:end_date_index + 1
+            ].set_names([self.index_names[0]])
             expected_columns = Index(assets, name=self.index_names[1])
             expected_pearson_results = DataFrame(
                 data=where(expected_mask, expected_pearson_results, nan),
@@ -310,8 +311,9 @@ class StatisticalBuiltInsTestCase(WithTradingEnvironment, ZiplineTestCase):
                         expected_output_results[output][day, asset_column] = \
                             expected_regression_results[i]
 
-            expected_index = dates[start_date_index:
-                end_date_index + 1].set_names(self.index_names[0])
+            expected_index = dates[
+                start_date_index:end_date_index + 1
+            ].set_names(self.index_names[0])
             expected_columns = Index(assets, name=self.index_names[1])
             for output in outputs:
                 output_result = output_results[output]
