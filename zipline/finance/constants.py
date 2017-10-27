@@ -178,4 +178,4 @@ ROOT_SYMBOL_TO_ETA = {
     'YS': DEFAULT_ETA,           # Silver e-mini
 }
 
-BENCHMARK_SYMBOL = 'GSPC'
+BENCHMARK_SYMBOL = '^GSPC'

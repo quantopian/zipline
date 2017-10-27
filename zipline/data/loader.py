@@ -114,7 +114,7 @@ def load_market_data(trading_day=None,
         A calendar of trading days.  Also used for determining what cached
         dates we should expect to have cached. Defaults to the NYSE calendar.
     bm_symbol : str, optional
-        Symbol for the benchmark index to load.  Defaults to 'SPY', the Google
+        Symbol for the benchmark index to load.  Defaults to 'GSPC', the Yahoo
         ticker for the S&P 500.
 
     Returns
