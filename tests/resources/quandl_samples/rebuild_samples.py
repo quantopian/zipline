@@ -4,6 +4,7 @@ Script for rebuilding the samples for the Quandl tests.
 from __future__ import print_function
 
 import requests
+from io import BytesIO
 from zipfile import ZipFile
 from six.moves.urllib.parse import urlencode
 from zipline.testing import test_resource_path, write_compressed
@@ -28,36 +29,33 @@ def format_table_query(api_key,
     )
 
 
-def zipfile_path(file_name, file_ext):
-    return test_resource_path('quandl_samples', file_name + file_ext)
+def zipfile_path(file_name):
+    return test_resource_path('quandl_samples', file_name)
 
 
 def main():
-    api_key = 'Replace with your Quandl API key.'
+    api_key = 'Replace with Quandl API key.'
     start_date = '2014-1-1'
     end_date = '2015-1-1'
     symbols = 'AAPL', 'BRK_A', 'MSFT', 'ZEN'
 
-    print('Downloading equity data')
     url = format_table_query(
         api_key=api_key,
         start_date=start_date,
         end_date=end_date,
         symbols=symbols
     )
-    print('Fetching from %s' % url)
+    print('Fetching equity data from %s' % url)
     response = requests.get(url)
     response.raise_for_status()
 
-    path = zipfile_path('QUANDL_SAMPLE_TABLE', '.csv')
-    print('Writing compressed data to %s' % path)
-    with open(path, 'w+') as data_table:
-        data_table.write(response.content)
-
-    archive_path = zipfile_path('QUANDL_ARCHIVE', '.zip')
-
+    archive_path = zipfile_path('QUANDL_ARCHIVE.zip')
+    print('Writing compressed table to %s' % archive_path)
     with ZipFile(archive_path, 'w') as zip_file:
-        zip_file.write('QUANDL_SAMPLE_TABLE.csv')
+        zip_file.writestr(
+            'QUANDL_SAMPLE_TABLE.csv',
+            BytesIO(response.content).getvalue()
+        )
     print('Writing mock metadata')
     cols = (
         'file.link',
@@ -72,8 +70,8 @@ def main():
         '2017-10-17 23:48:15 UTC\n'
     )
     metadata = ','.join(cols) + ','.join(row)
-    path = zipfile_path('metadata', '.csv.gz')
-    print('Writing compressed data to %s' % path)
+    path = zipfile_path('metadata.csv.gz')
+    print('Writing compressed metadata to %s' % path)
     write_compressed(path, metadata)
 
 

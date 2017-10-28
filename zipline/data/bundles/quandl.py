@@ -25,7 +25,7 @@ QUANDL_METADATA_URL = (
 
 
 def format_metadata_url(api_key):
-    """Build the query URL for the Quandl WIKI metadata.
+    """ Build the query URL for the Quandl WIKI metadata.
     """
     query_params = [('api_key', api_key), ('qopts.export', 'true')]
 
@@ -34,10 +34,50 @@ def format_metadata_url(api_key):
     )
 
 
+def load_data_table(file,
+                    index_col,
+                    show_progress=False):
+    """ Load data file from zipfile provided by Quandl.
+    """
+    with ZipFile(file) as zip_file:
+        file_names = zip_file.namelist()
+        assert len(file_names) == 1, "Expected a single file from Quandl."
+        wiki_prices = file_names.pop()
+        table_file = zip_file.open(wiki_prices)
+        if show_progress:
+            log.info('Parsing raw data.')
+        data_table = pd.read_csv(
+            table_file,
+            parse_dates=['date'],
+            index_col=index_col,
+            usecols=[
+                'ticker',
+                'date',
+                'open',
+                'high',
+                'low',
+                'close',
+                'volume',
+                'ex-dividend',
+                'split_ratio'
+            ],
+            na_values=['NA']
+        ).rename(
+            columns={
+                'ticker': 'symbol',
+                'ex-dividend': 'ex_dividend'
+            }
+        )
+        table_file.close()
+
+    data_table['symbol'] = data_table['symbol'].astype('category')
+    return data_table
+
+
 def fetch_data_table(api_key,
                      show_progress,
                      retries):
-    ''' Import WIKI Prices data table from Quandl
+    ''' Fetch WIKI Prices data table from Quandl
     '''
     for _ in range(retries):
         try:
@@ -58,37 +98,11 @@ def fetch_data_table(api_key,
             else:
                 raw_file = download_without_progress(table_url)
 
-            with ZipFile(raw_file) as zip_file:
-                file_names = zip_file.namelist()
-                assert len(file_names) == 1, "Expected a single file."
-                wiki_prices = file_names.pop()
-                table_file = zip_file.open(wiki_prices)
-                if show_progress:
-                    log.info('Parsing raw data.')
-                data_table = pd.read_csv(
-                    table_file,
-                    parse_dates=['date'],
-                    usecols=[
-                        'ticker',
-                        'date',
-                        'open',
-                        'high',
-                        'low',
-                        'close',
-                        'volume',
-                        'ex-dividend',
-                        'split_ratio'
-                    ],
-                    na_values=['NA']
-                ).rename(
-                    columns={
-                        'ticker': 'symbol',
-                        'ex-dividend': 'ex_dividend'
-                    }
-                )
-                table_file.close()
-                data_table['symbol'] = data_table['symbol'].astype('category')
-            return data_table
+            return load_data_table(
+                file=raw_file,
+                index_col=None,
+                show_progress=show_progress,
+            )
 
         except Exception:
             log.exception("Exception raised reading Quandl data. Retrying.")
@@ -119,7 +133,7 @@ def gen_asset_metadata(data, show_progress):
     return asset_metadata
 
 
-def parse_asset_splits(data, show_progress):
+def parse_splits(data, show_progress):
     if show_progress:
         log.info('Parsing split data.')
 
@@ -131,7 +145,7 @@ def parse_asset_splits(data, show_progress):
     }).dropna()
 
 
-def parse_asset_dividends(data, show_progress):
+def parse_dividends(data, show_progress):
     if show_progress:
         log.info('Parsing dividend data.')
 
@@ -145,9 +159,9 @@ def parse_asset_dividends(data, show_progress):
     return df
 
 
-def parse_asset_data(data,
-                     sessions,
-                     symbol_map):
+def parse_pricing_and_vol(data,
+                          sessions,
+                          symbol_map):
     for asset_id, symbol in symbol_map.iteritems():
         asset_data = data.xs(
             symbol,
@@ -170,7 +184,7 @@ def quandl_bundle(environ,
                   cache,
                   show_progress,
                   output_dir):
-    """Build a zipline data bundle from the Quandl WIKI dataset.
+    """ Build a zipline data bundle from the Quandl WIKI dataset.
     """
     raw_data = fetch_data_table(
         environ.get('QUANDL_API_KEY'),
@@ -188,7 +202,7 @@ def quandl_bundle(environ,
 
     raw_data.set_index(['date', 'symbol'], inplace=True)
     daily_bar_writer.write(
-        parse_asset_data(
+        parse_pricing_and_vol(
             raw_data,
             sessions,
             symbol_map
@@ -199,11 +213,11 @@ def quandl_bundle(environ,
     raw_data.reset_index(inplace=True)
 
     adjustment_writer.write(
-        splits=parse_asset_splits(
+        splits=parse_splits(
             raw_data[['symbol', 'date', 'split_ratio']],
             show_progress=show_progress
         ),
-        dividends=parse_asset_dividends(
+        dividends=parse_dividends(
             raw_data[['symbol', 'date', 'ex_dividend']],
             show_progress=show_progress
         )
@@ -280,7 +294,7 @@ def quantopian_quandl_bundle(environ,
                              show_progress,
                              output_dir):
     log.warn(
-        'quantopian-quandl is deprecated and '
+        'quantopian-quandl has been deprecated and '
         'will be removed in a future release.'
     )
     if show_progress:

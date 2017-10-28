@@ -6,7 +6,10 @@ import toolz.curried.operator as op
 
 from zipline import get_calendar
 from zipline.data.bundles import ingest, load, bundles
-from zipline.data.bundles.quandl import format_metadata_url
+from zipline.data.bundles.quandl import (
+    format_metadata_url,
+    load_data_table
+)
 from zipline.lib.adjustment import Float64Multiply
 from zipline.testing import (
     test_resource_path,
@@ -26,13 +29,11 @@ from zipline.utils.functional import apply
 class QuandlBundleTestCase(WithResponses,
                            ZiplineTestCase):
     symbols = 'AAPL', 'BRK_A', 'MSFT', 'ZEN'
-    asset_start = pd.Timestamp('2014-01', tz='utc')
-    asset_end = pd.Timestamp('2015-01', tz='utc')
+    start_date = pd.Timestamp('2014-01', tz='utc')
+    end_date = pd.Timestamp('2015-01', tz='utc')
     bundle = bundles['quandl']
     calendar = get_calendar(bundle.calendar_name)
-    start_date = calendar.first_session
-    end_date = calendar.last_session
-    api_key = 'ayylmao'
+    api_key = 'IamNotaQuandlAPIkey'
     columns = 'open', 'high', 'low', 'close', 'volume'
 
     def _expected_data(self, asset_finder):
@@ -44,33 +45,17 @@ class QuandlBundleTestCase(WithResponses,
             for symbol in self.symbols
         }
 
-        def load_data_table():
-            df = pd.read_csv(
-                test_resource_path(
-                    'quandl_samples',
-                    'QUANDL_SAMPLE_TABLE.csv'),
-                parse_dates=['date'],
-                index_col='date',
-                usecols=[
-                    'ticker',
-                    'open',
-                    'high',
-                    'low',
-                    'close',
-                    'volume',
-                    'date',
-                    'ex-dividend',
-                    'split_ratio',
-                ],
-                na_values=['NA'],
-            ).rename(columns={
-                'ticker': 'symbol',
-                'ex-dividend': 'ex_dividend'
-            })
-            df['sid'] = pd.factorize(df.symbol)[0]
-            return df
+        # Load raw data from quandl test resources.
+        data = load_data_table(
+            file=test_resource_path(
+                'quandl_samples',
+                'QUANDL_ARCHIVE.zip'
+            ),
+            index_col='date'
+        )
+        data['sid'] = pd.factorize(data.symbol)[0]
 
-        all_ = load_data_table().set_index(
+        all_ = data.set_index(
             'sid',
             append=True,
         ).unstack()
@@ -87,7 +72,7 @@ class QuandlBundleTestCase(WithResponses,
 
         # the first index our written data will appear in the files on disk
         start_idx = (
-            self.calendar.all_sessions.get_loc(self.asset_start, 'ffill') + 1
+            self.calendar.all_sessions.get_loc(self.start_date, 'ffill') + 1
         )
 
         # convert an index into the raw dataframe into an index into the
@@ -222,8 +207,8 @@ class QuandlBundleTestCase(WithResponses,
         sessions = self.calendar.all_sessions
         actual = bundle.equity_daily_bar_reader.load_raw_arrays(
             self.columns,
-            sessions[sessions.get_loc(self.asset_start, 'bfill')],
-            sessions[sessions.get_loc(self.asset_end, 'ffill')],
+            sessions[sessions.get_loc(self.start_date, 'bfill')],
+            sessions[sessions.get_loc(self.end_date, 'ffill')],
             sids,
         )
         expected_pricing, expected_adjustments = self._expected_data(
