@@ -38,6 +38,7 @@ from zipline.pipeline.filters import (
     Filter,
     NumExprFilter,
     PercentileFilter,
+    MaximumFilter,
     NotNullFilter,
     NullFilter,
 )
@@ -1065,6 +1066,10 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         -------
         filter : zipline.pipeline.filters.Filter
         """
+        if N == 1:
+            # Special case: if N == 1, we can avoid doing a full sort on every
+            # group, which is a big win.
+            return self._maximum(mask=mask, groupby=groupby)
         return self.rank(ascending=False, mask=mask, groupby=groupby) <= N
 
     def bottom(self, N, mask=NotSpecified, groupby=NotSpecified):
@@ -1090,6 +1095,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         filter : zipline.pipeline.Filter
         """
         return self.rank(ascending=True, mask=mask, groupby=groupby) <= N
+
+    def _maximum(self, mask=NotSpecified, groupby=NotSpecified):
+        return MaximumFilter(self, groupby=groupby, mask=mask)
 
     def percentile_between(self,
                            min_percentile,

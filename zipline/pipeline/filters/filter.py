@@ -9,6 +9,7 @@ from numpy import (
     float64,
     nan,
     nanpercentile,
+    uint8,
 )
 
 from zipline.errors import (
@@ -17,7 +18,7 @@ from zipline.errors import (
     UnsupportedDataType,
 )
 from zipline.lib.labelarray import LabelArray
-from zipline.lib.rank import is_missing
+from zipline.lib.rank import is_missing, grouped_masked_is_maximal
 from zipline.pipeline.dtypes import (
     CLASSIFIER_DTYPES,
     FACTOR_DTYPES,
@@ -42,7 +43,14 @@ from zipline.pipeline.mixins import (
 from zipline.pipeline.term import ComputableTerm, Term
 from zipline.utils.input_validation import expect_types
 from zipline.utils.memoize import classlazyval
-from zipline.utils.numpy_utils import bool_dtype, repeat_first_axis
+from zipline.utils.numpy_utils import (
+    bool_dtype,
+    categorical_dtype,
+    float64_dtype,
+    is_datetime,
+    int64_dtype,
+    repeat_first_axis,
+)
 
 
 def concat_tuples(*tuples):
@@ -580,3 +588,52 @@ class AllPresent(CustomFilter, SingleInputMixin, StandardOutputs):
                 is_missing(value, self.inputs[0].missing_value),
                 axis=0,
             )
+
+
+class MaximumFilter(Filter, StandardOutputs):
+    """Pipeline filter that selects the top asset, possibly grouped and masked.
+    """
+    window_length = 0
+
+    def __new__(cls, factor, groupby, mask):
+        return super(MaximumFilter, cls).__new__(
+            cls,
+            inputs=(factor, groupby),
+            mask=mask,
+        )
+
+    def _compute(self, arrays, dates, assets, mask):
+        data = arrays[0]
+        groupby_expr = self.inputs[1]
+        if groupby_expr.dtype == int64_dtype:
+            group_labels = arrays[1]
+            null_label = self.inputs[1].missing_value
+        elif groupby_expr.dtype == categorical_dtype:
+            # Coerce our LabelArray into an isomorphic array of ints.  This is
+            # necessary because np.where doesn't know about LabelArrays or the
+            # void dtype.
+            group_labels = arrays[1].as_int_array()
+            null_label = arrays[1].missing_value_code
+        else:
+            raise TypeError(
+                "Unexpected groupby dtype: %s." % groupby_expr.dtype
+            )
+
+        effective_mask = (
+            mask
+            & (group_labels != null_label)
+            & ~is_missing(data, self.inputs[0].missing_value)
+        ).view(uint8)
+
+        if is_datetime(data):
+            data = data.view(float64_dtype)
+
+        return grouped_masked_is_maximal(
+            data,
+            # TODO: Support different sizes of group labels.
+            group_labels.astype(int64_dtype),
+            effective_mask,
+        )
+
+    def __repr__(self):
+        return "Maximum({}, groupby={}, mask={})".format(*self.inputs)

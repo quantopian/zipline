@@ -7,14 +7,16 @@ from numpy cimport (
     float64_t,
     import_array,
     intp_t,
+    int64_t,
     ndarray,
     NPY_DOUBLE,
     NPY_MERGESORT,
     PyArray_ArgSort,
     PyArray_DIMS,
     PyArray_EMPTY,
+    uint8_t,
 )
-from numpy import apply_along_axis, float64, isnan, nan
+from numpy import apply_along_axis, float64, isnan, nan, zeros_like
 from scipy.stats import rankdata
 
 from zipline.utils.numpy_utils import (
@@ -108,3 +110,50 @@ cpdef rankdata_2d_ordinal(ndarray[float64_t, ndim=2] array):
             out[i, sort_idxs[i, j]] = j + 1.0
 
     return out
+
+
+@cython.embedsignature(True)
+cpdef grouped_masked_is_maximal(ndarray[float64_t, ndim=2] data,
+                                ndarray[int64_t, ndim=2] groupby,
+                                ndarray[uint8_t, ndim=2] mask):
+    if (<object> data).shape != (<object> groupby).shape or \
+       (<object> data).shape != (<object> mask).shape:
+        raise AssertionError(
+            "Misaligned shapes in grouped_masked_is_maximal:"
+            "data={}, groupby={}, mask={}".format(
+                (<object> data).shape, (<object> groupby).shape, (<object> mask).shape,
+            )
+        )
+
+    cdef:
+        intp_t i, j, nrows, ncols, group
+        float64_t value
+        ndarray[uint8_t, ndim=2] out = zeros_like(mask)
+        dict best_per_group = {}
+
+    nrows = data.shape[0]
+    ncols = data.shape[1]
+
+    for i in range(nrows):
+        best_per_group.clear()
+        for j in range(ncols):
+
+            if not mask[i, j]:
+                continue
+
+            value = data[i, j]
+            if isnan(value):
+                continue
+
+            group = groupby[i, j]
+            if group not in best_per_group:
+                best_per_group[group] = j
+                continue
+
+            if value > data[i, best_per_group[group]]:
+                best_per_group[group] = j
+
+        for j in best_per_group.values():
+            out[i, j] = 1
+
+    return out.view(bool)
