@@ -113,6 +113,7 @@ class TWSConnection(EClientSocket, EWrapper):
         self.commissions = defaultdict(OrderedDict)
         self._execution_to_order_id = {}
         self.time_skew = None
+        self.unrecoverable_error = False
 
         self.connect()
 
@@ -384,18 +385,35 @@ class TWSConnection(EClientSocket, EWrapper):
         )
 
     def connectionClosed(self):
-        log_message('connectionClosed', {})
+        self.unrecoverable_error = True
+        log.error("IB Connection closed")
 
     def error(self, id_=None, error_code=None, error_msg=None):
+        try:
+            log.info("id_: {} -> {} "
+                     "error_code: {} -> {}, error_msg: {} -> {}".format(
+                         id_, type(id_),
+                         error_code, type(error_code),
+                         error_msg, type(error_msg)))
+        except Exception:
+            log.info("Exception during debug printout")
+
+        if isinstance(error_code, EClientErrors.CodeMsgPair):
+            log.info("Got CodeMsgPair() at error!")
+            error_msg = error_code.msg()
+            error_code = error_code.code()
+
         if isinstance(error_code, int):
             if error_code < 1000:
                 log.error("[{}] {} ({})".format(error_code, error_msg, id_))
             else:
-                log.info("[{}] {}".format(error_code, error_msg, id_))
-        elif isinstance(error_code, EClientErrors.CodeMsgPair):
-            log.error("[{}] {}".format(error_code.code(),
-                                       error_code.msg(),
-                                       id_))
+                log.info("[{}] {} ({})".format(error_code, error_msg, id_))
+
+            if error_code in (502, 503, 326):
+                # 502: Couldn't connect to TWS.
+                # 503: The TWS is out of date and must be upgraded.
+                # 326: Unable connect as the client id is already in use.
+                self.unrecoverable_error = True
         else:
             log.error("[{}] {} ({})".format(error_code, error_msg, id_))
 
@@ -579,6 +597,9 @@ class IBBroker(Broker):
     @property
     def time_skew(self):
         return self._tws.time_skew
+
+    def is_alive(self):
+        return not self._tws.unrecoverable_error
 
     @staticmethod
     def _safe_symbol_lookup(symbol):
