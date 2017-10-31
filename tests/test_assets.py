@@ -1592,7 +1592,7 @@ class TestVectorizedSymbolLookup(WithAssetFinder, ZiplineTestCase):
 class TestAssetFinderPreprocessors(WithTmpDir, ZiplineTestCase):
 
     def test_asset_finder_doesnt_silently_create_useless_empty_files(self):
-        nonexistent_path = self.tmpdir.getpath('nothing_here')
+        nonexistent_path = self.tmpdir.getpath(self.id() + '__nothing_here')
 
         with self.assertRaises(ValueError) as e:
             AssetFinder(nonexistent_path)
