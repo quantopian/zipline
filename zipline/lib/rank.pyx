@@ -116,6 +116,27 @@ cpdef rankdata_2d_ordinal(ndarray[float64_t, ndim=2] array):
 cpdef grouped_masked_is_maximal(ndarray[float64_t, ndim=2] data,
                                 ndarray[int64_t, ndim=2] groupby,
                                 ndarray[uint8_t, ndim=2] mask):
+    """Build a mask of the top value for each row in ``data``, grouped by
+    ``groupby`` and masked by ``mask``.
+
+    Parameters
+    ----------
+    data : np.array[float64_t]
+        Data on which we should find maximal values for each row.
+    groupby : np.array[int64_t]
+        Grouping labels for rows of ``data``. We choose one entry in each
+        row for each unique grouping key in that row.
+    mask : np.array[uint8_t]
+        Boolean mask of locations to consider as possible maximal values.
+        Locations with a 0 in ``mask`` are ignored.
+
+    Returns
+    -------
+    maximal_locations : np.array[bool]
+        Mask containing True for the maximal non-masked value in each row/group.
+    """
+    # Cython things ``.shape`` is an intp_t pointer on ndarrays, so we need to
+    # cast to object to get the proper shape attribute.
     if (<object> data).shape != (<object> groupby).shape or \
        (<object> data).shape != (<object> mask).shape:
         raise AssertionError(
