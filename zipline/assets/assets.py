@@ -266,7 +266,7 @@ class AssetFinder(object):
     # reference to an AssetFinder.
     PERSISTENT_TOKEN = "<AssetFinder>"
 
-    @preprocess(engine=coerce_string_to_eng)
+    @preprocess(engine=coerce_string_to_eng(require_exists=True))
     def __init__(self, engine, future_chain_predicates=CHAIN_PREDICATES):
         self.engine = engine
         metadata = sa.MetaData(bind=engine)

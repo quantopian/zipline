@@ -19,6 +19,7 @@ Tests for the zipline.assets package
 from contextlib import contextmanager
 from datetime import timedelta
 from functools import partial
+import os
 import pickle
 import sys
 from types import GetSetDescriptorType
@@ -82,6 +83,7 @@ from zipline.testing.fixtures import (
     WithAssetFinder,
     ZiplineTestCase,
     WithTradingCalendars,
+    WithTmpDir,
 )
 from zipline.utils.range import range
 
@@ -1585,3 +1587,18 @@ class TestVectorizedSymbolLookup(WithAssetFinder, ZiplineTestCase):
             results,
             [af.lookup_symbol(sym, dt, fuzzy=True) for sym in syms],
         )
+
+
+class TestAssetFinderPreprocessors(WithTmpDir, ZiplineTestCase):
+
+    def test_asset_finder_doesnt_silently_create_useless_empty_files(self):
+        nonexistent_path = self.tmpdir.getpath(self.id() + '__nothing_here')
+
+        with self.assertRaises(ValueError) as e:
+            AssetFinder(nonexistent_path)
+        expected = "SQLite file {!r} doesn't exist.".format(nonexistent_path)
+        self.assertEqual(str(e.exception), expected)
+
+        # sqlite3.connect will create an empty file if you connect somewhere
+        # nonexistent. Test that we don't do that.
+        self.assertFalse(os.path.exists(nonexistent_path))
