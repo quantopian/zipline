@@ -19,7 +19,7 @@ import numpy as np
 log = Logger(__name__)
 
 ONE_MEGABYTE = 1024 * 1024
-QUANDL_METADATA_URL = (
+QUANDL_DATA_URL = (
     'https://www.quandl.com/api/v3/datatables/WIKI/PRICES.csv?'
 )
 
@@ -30,14 +30,14 @@ def format_metadata_url(api_key):
     query_params = [('api_key', api_key), ('qopts.export', 'true')]
 
     return (
-        QUANDL_METADATA_URL + urlencode(query_params)
+        QUANDL_DATA_URL + urlencode(query_params)
     )
 
 
 def load_data_table(file,
                     index_col,
                     show_progress=False):
-    """ Load data file from zipfile provided by Quandl.
+    """ Load data table from zip file provided by Quandl.
     """
     with ZipFile(file) as zip_file:
         file_names = zip_file.namelist()
@@ -77,8 +77,8 @@ def load_data_table(file,
 def fetch_data_table(api_key,
                      show_progress,
                      retries):
-    ''' Fetch WIKI Prices data table from Quandl
-    '''
+    """ Fetch WIKI Prices data table from Quandl
+    """
     for _ in range(retries):
         try:
             if show_progress:
@@ -184,7 +184,11 @@ def quandl_bundle(environ,
                   cache,
                   show_progress,
                   output_dir):
-    """ Build a zipline data bundle from the Quandl WIKI dataset.
+    """
+    quandl_bundl builds a data bundle using Quandl's WIKI Prices dataset.
+
+    For more information on Quandl's API and how to obtain an API key,
+    please visit https://docs.quandl.com/docs#section-authentication
     """
     raw_data = fetch_data_table(
         environ.get('QUANDL_API_KEY'),

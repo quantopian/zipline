@@ -3,15 +3,13 @@ Script for rebuilding the samples for the Quandl tests.
 """
 from __future__ import print_function
 
+import os
 import requests
 from io import BytesIO
 from zipfile import ZipFile
 from six.moves.urllib.parse import urlencode
 from zipline.testing import test_resource_path, write_compressed
-
-QUANDL_DATA_URL = (
-    'https://www.quandl.com/api/v3/datatables/WIKI/PRICES.csv?'
-)
+from zipline.data.bundles.quandl import QUANDL_DATA_URL
 
 
 def format_table_query(api_key,
@@ -34,7 +32,7 @@ def zipfile_path(file_name):
 
 
 def main():
-    api_key = 'Replace with Quandl API key.'
+    api_key = os.environ.get('QUANDL_API_KEY')
     start_date = '2014-1-1'
     end_date = '2015-1-1'
     symbols = 'AAPL', 'BRK_A', 'MSFT', 'ZEN'
