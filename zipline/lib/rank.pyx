@@ -27,9 +27,6 @@ from zipline.utils.numpy_utils import (
 )
 
 
-ctypedef Py_ssize_t index
-
-
 import_array()
 
 
@@ -94,7 +91,7 @@ cpdef rankdata_2d_ordinal(ndarray[float64_t, ndim=2] array):
     """
     cdef:
         int nrows, ncols
-        ndarray[index, ndim=2] sort_idxs
+        ndarray[Py_ssize_t, ndim=2] sort_idxs
         ndarray[float64_t, ndim=2] out
 
     nrows = array.shape[0]
@@ -107,8 +104,8 @@ cpdef rankdata_2d_ordinal(ndarray[float64_t, ndim=2] array):
     # Roughly, "out = np.empty_like(array)"
     out = PyArray_EMPTY(2, PyArray_DIMS(array), NPY_DOUBLE, False)
 
-    cdef index i
-    cdef index j
+    cdef Py_ssize_t i
+    cdef Py_ssize_t j
 
     for i in range(nrows):
         for j in range(ncols):
@@ -153,10 +150,10 @@ cpdef grouped_masked_is_maximal(ndarray[int64_t, ndim=2] data,
         )
 
     cdef:
-        index i
-        index j
-        index nrows
-        index ncols
+        Py_ssize_t i
+        Py_ssize_t j
+        Py_ssize_t nrows
+        Py_ssize_t ncols
         int64_t group
         int64_t value
         ndarray[uint8_t, ndim=2] out = zeros_like(mask)
