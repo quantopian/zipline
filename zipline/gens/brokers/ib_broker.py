@@ -389,31 +389,24 @@ class TWSConnection(EClientSocket, EWrapper):
         log.error("IB Connection closed")
 
     def error(self, id_=None, error_code=None, error_msg=None):
-        try:
-            log.info("id_: {} -> {} "
-                     "error_code: {} -> {}, error_msg: {} -> {}".format(
-                         id_, type(id_),
-                         error_code, type(error_code),
-                         error_msg, type(error_msg)))
-        except Exception:
-            log.info("Exception during debug printout")
+        if isinstance(id_, Exception):
+            log.exception(id_)
 
         if isinstance(error_code, EClientErrors.CodeMsgPair):
-            log.info("Got CodeMsgPair() at error!")
             error_msg = error_code.msg()
             error_code = error_code.code()
 
         if isinstance(error_code, int):
-            if error_code < 1000:
-                log.error("[{}] {} ({})".format(error_code, error_msg, id_))
-            else:
-                log.info("[{}] {} ({})".format(error_code, error_msg, id_))
-
             if error_code in (502, 503, 326):
                 # 502: Couldn't connect to TWS.
                 # 503: The TWS is out of date and must be upgraded.
                 # 326: Unable connect as the client id is already in use.
                 self.unrecoverable_error = True
+
+            if error_code < 1000:
+                log.error("[{}] {} ({})".format(error_code, error_msg, id_))
+            else:
+                log.info("[{}] {} ({})".format(error_code, error_msg, id_))
         else:
             log.error("[{}] {} ({})".format(error_code, error_msg, id_))
 
