@@ -27,6 +27,9 @@ from zipline.utils.numpy_utils import (
 )
 
 
+ctypedef Py_ssize_t index
+
+
 import_array()
 
 
@@ -91,7 +94,7 @@ cpdef rankdata_2d_ordinal(ndarray[float64_t, ndim=2] array):
     """
     cdef:
         int nrows, ncols
-        ndarray[intp_t, ndim=2] sort_idxs
+        ndarray[index, ndim=2] sort_idxs
         ndarray[float64_t, ndim=2] out
 
     nrows = array.shape[0]
@@ -104,7 +107,9 @@ cpdef rankdata_2d_ordinal(ndarray[float64_t, ndim=2] array):
     # Roughly, "out = np.empty_like(array)"
     out = PyArray_EMPTY(2, PyArray_DIMS(array), NPY_DOUBLE, False)
 
-    cdef intp_t i, j
+    cdef index i
+    cdef index j
+
     for i in range(nrows):
         for j in range(ncols):
             out[i, sort_idxs[i, j]] = j + 1.0
@@ -113,7 +118,7 @@ cpdef rankdata_2d_ordinal(ndarray[float64_t, ndim=2] array):
 
 
 @cython.embedsignature(True)
-cpdef grouped_masked_is_maximal(ndarray[float64_t, ndim=2] data,
+cpdef grouped_masked_is_maximal(ndarray[int64_t, ndim=2] data,
                                 ndarray[int64_t, ndim=2] groupby,
                                 ndarray[uint8_t, ndim=2] mask):
     """Build a mask of the top value for each row in ``data``, grouped by
@@ -121,7 +126,7 @@ cpdef grouped_masked_is_maximal(ndarray[float64_t, ndim=2] data,
 
     Parameters
     ----------
-    data : np.array[float64_t]
+    data : np.array[int64_t]
         Data on which we should find maximal values for each row.
     groupby : np.array[int64_t]
         Grouping labels for rows of ``data``. We choose one entry in each
@@ -135,10 +140,11 @@ cpdef grouped_masked_is_maximal(ndarray[float64_t, ndim=2] data,
     maximal_locations : np.array[bool]
         Mask containing True for the maximal non-masked value in each row/group.
     """
-    # Cython things ``.shape`` is an intp_t pointer on ndarrays, so we need to
+    # Cython thinks ``.shape`` is an intp_t pointer on ndarrays, so we need to
     # cast to object to get the proper shape attribute.
-    if (<object> data).shape != (<object> groupby).shape or \
-       (<object> data).shape != (<object> mask).shape:
+    if not ((<object> data).shape
+            == (<object> groupby).shape
+            == (<object> data).shape):
         raise AssertionError(
             "Misaligned shapes in grouped_masked_is_maximal:"
             "data={}, groupby={}, mask={}".format(
@@ -147,8 +153,12 @@ cpdef grouped_masked_is_maximal(ndarray[float64_t, ndim=2] data,
         )
 
     cdef:
-        intp_t i, j, nrows, ncols, group
-        float64_t value
+        index i
+        index j
+        index nrows
+        index ncols
+        int64_t group
+        int64_t value
         ndarray[uint8_t, ndim=2] out = zeros_like(mask)
         dict best_per_group = {}
 
@@ -159,14 +169,14 @@ cpdef grouped_masked_is_maximal(ndarray[float64_t, ndim=2] data,
         best_per_group.clear()
         for j in range(ncols):
 
+            # NOTE: Callers are responsible for masking out values that should
+            # be treated as null here.
             if not mask[i, j]:
                 continue
 
             value = data[i, j]
-            if isnan(value):
-                continue
-
             group = groupby[i, j]
+
             if group not in best_per_group:
                 best_per_group[group] = j
                 continue

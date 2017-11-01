@@ -378,6 +378,26 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
     def _aliased_type(self):
         return AliasedMixin.make_aliased_type(Classifier)
 
+    def _to_integral(self, output_array):
+        """
+        Convert an array produced by this classifier into an array of integer
+        labels and a missing value label.
+        """
+        if self.dtype == int64_dtype:
+            group_labels = output_array
+            null_label = self.missing_value
+        elif self.dtype == categorical_dtype:
+            # Coerce LabelArray into an isomorphic array of ints.  This is
+            # necessary because np.where doesn't know about LabelArrays or the
+            # void dtype.
+            group_labels = output_array.as_int_array()
+            null_label = output_array.missing_value_code
+        else:
+            raise AssertionError(
+                "Unexpected Classifier dtype: %s." % self.dtype
+            )
+        return group_labels, null_label
+
 
 class Everything(Classifier):
     """

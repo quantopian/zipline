@@ -604,33 +604,19 @@ class MaximumFilter(Filter, StandardOutputs):
 
     def _compute(self, arrays, dates, assets, mask):
         data = arrays[0]
-        groupby_expr = self.inputs[1]
-        if groupby_expr.dtype == int64_dtype:
-            group_labels = arrays[1]
-            null_label = self.inputs[1].missing_value
-        elif groupby_expr.dtype == categorical_dtype:
-            # Coerce our LabelArray into an isomorphic array of ints.  This is
-            # necessary because np.where doesn't know about LabelArrays or the
-            # void dtype.
-            group_labels = arrays[1].as_int_array()
-            null_label = arrays[1].missing_value_code
-        else:
-            raise TypeError(
-                "Unexpected groupby dtype: %s." % groupby_expr.dtype
-            )
-
+        group_labels, null_label = self.inputs[1]._to_integral(arrays[1])
         effective_mask = (
             mask
             & (group_labels != null_label)
             & ~is_missing(data, self.inputs[0].missing_value)
         ).view(uint8)
 
-        if is_datetime(data):
-            data = data.view(float64_dtype)
-
         return grouped_masked_is_maximal(
-            data,
-            # TODO: Support different sizes of group labels.
+            # Unconditionally view the data as int64.
+            # This is safe because casting from float64 to int64 is an
+            # order-preserving operation.
+            data.view(int64_dtype),
+            # PERF: Consider supporting different sizes of group labels.
             group_labels.astype(int64_dtype),
             effective_mask,
         )
