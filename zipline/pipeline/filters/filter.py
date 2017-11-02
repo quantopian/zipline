@@ -45,9 +45,6 @@ from zipline.utils.input_validation import expect_types
 from zipline.utils.memoize import classlazyval
 from zipline.utils.numpy_utils import (
     bool_dtype,
-    categorical_dtype,
-    float64_dtype,
-    is_datetime,
     int64_dtype,
     repeat_first_axis,
 )

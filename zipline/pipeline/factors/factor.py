@@ -59,10 +59,8 @@ from zipline.utils.math_utils import nanmean, nanstd
 from zipline.utils.memoize import classlazyval
 from zipline.utils.numpy_utils import (
     bool_dtype,
-    categorical_dtype,
     coerce_to_dtype,
     float64_dtype,
-    int64_dtype,
 )
 
 
