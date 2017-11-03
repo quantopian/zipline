@@ -88,11 +88,11 @@ from zipline.finance.asset_restrictions import (
 )
 from zipline.testing import (
     FakeDataPortal,
+    copy_market_data,
     create_daily_df_for_asset,
     create_data_portal,
     create_data_portal_from_trade_history,
     create_minute_df_for_asset,
-    empty_trading_env,
     make_test_handler,
     make_trade_data_for_asset_info,
     parameter_space,
@@ -100,6 +100,7 @@ from zipline.testing import (
     tmp_trading_env,
     to_utc,
     trades_by_sid_to_dfs,
+    tmp_dir,
 )
 from zipline.testing import RecordBatchBlotter
 from zipline.testing.fixtures import (
@@ -108,7 +109,6 @@ from zipline.testing.fixtures import (
     WithSimParams,
     WithTradingEnvironment,
     WithTmpDir,
-    WithTradingCalendars,
     ZiplineTestCase,
 )
 from zipline.test_algorithms import (
@@ -123,11 +123,11 @@ from zipline.test_algorithms import (
     TestOrderPercentAlgorithm,
     TestOrderStyleForwardingAlgorithm,
     TestOrderValueAlgorithm,
+    TestPositionWeightsAlgorithm,
     TestRegisterTransformAlgorithm,
     TestTargetAlgorithm,
     TestTargetPercentAlgorithm,
     TestTargetValueAlgorithm,
-    TestBatchTargetPercentAlgorithm,
     SetLongOnlyAlgorithm,
     SetAssetDateBoundsAlgorithm,
     SetMaxPositionSizeAlgorithm,
@@ -315,6 +315,7 @@ def handle_data(algo, data):
             initialize=lambda context: None,
             handle_data=lambda context, data: None,
             sim_params=self.sim_params,
+            env=self.env,
         )
 
         # Verify that api methods get resolved dynamically by patching them out
@@ -483,13 +484,13 @@ def log_nyse_close(context, data):
         for minute in algo.nyse_opens:
             # each minute should be a nyse session open
             session_label = nyse.minute_to_session_label(minute)
-            session_open = nyse.open_and_close_for_session(session_label)[0]
+            session_open = nyse.session_open(session_label)
             self.assertEqual(session_open, minute)
 
         for minute in algo.nyse_closes:
             # each minute should be a minute before a nyse session close
             session_label = nyse.minute_to_session_label(minute)
-            session_close = nyse.open_and_close_for_session(session_label)[1]
+            session_close = nyse.session_close(session_label)
             self.assertEqual(session_close - timedelta(minutes=1), minute)
 
         # Test that passing an invalid calendar parameter raises an error.
@@ -786,7 +787,8 @@ def log_nyse_close(context, data):
                 for i, date in enumerate(dates)
             ]
         )
-        with tmp_trading_env(equities=metadata) as env:
+        with tmp_trading_env(equities=metadata,
+                             load=self.make_load_function()) as env:
             algo = TradingAlgorithm(env=env)
 
             # Set the period end to a date after the period end
@@ -853,7 +855,8 @@ class TestTransformAlgorithm(WithLogger,
     def init_class_fixtures(cls):
         super(TestTransformAlgorithm, cls).init_class_fixtures()
         cls.futures_env = cls.enter_class_context(
-            tmp_trading_env(futures=cls.make_futures_info()),
+            tmp_trading_env(futures=cls.make_futures_info(),
+                            load=cls.make_load_function()),
         )
 
     def test_invalid_order_parameters(self):
@@ -893,7 +896,8 @@ def before_trading_start(context, data):
     def test_run_twice(self):
         algo1 = TestRegisterTransformAlgorithm(
             sim_params=self.sim_params,
-            sids=[0, 1]
+            sids=[0, 1],
+            env=self.env,
         )
 
         res1 = algo1.run(self.data_portal)
@@ -902,7 +906,8 @@ def before_trading_start(context, data):
         # use the newly instantiated environment.
         algo2 = TestRegisterTransformAlgorithm(
             sim_params=self.sim_params,
-            sids=[0, 1]
+            sids=[0, 1],
+            env=self.env,
         )
 
         res2 = algo2.run(self.data_portal)
@@ -963,7 +968,6 @@ def before_trading_start(context, data):
         ('order_percent', TestOrderPercentAlgorithm,),
         ('order_target_percent', TestTargetPercentAlgorithm,),
         ('order_target_value', TestTargetValueAlgorithm,),
-        ('batch_order_target_percent', TestBatchTargetPercentAlgorithm,),
     ])
     def test_order_methods(self, test_name, algo_class):
         algo = algo_class(
@@ -1064,7 +1068,8 @@ def before_trading_start(context, data):
         }] * 2)
         equities['symbol'] = ['A', 'B']
         with TempDirectory() as tempdir, \
-                tmp_trading_env(equities=equities) as env:
+                tmp_trading_env(equities=equities,
+                                load=self.make_load_function()) as env:
             sim_params = SimulationParameters(
                 start_session=start_session,
                 end_session=period_end,
@@ -1090,11 +1095,64 @@ class TestPositions(WithLogger,
                     ZiplineTestCase):
     START_DATE = pd.Timestamp('2006-01-03', tz='utc')
     END_DATE = pd.Timestamp('2006-01-06', tz='utc')
+    SIM_PARAMS_CAPITAL_BASE = 1000
 
-    sids = ASSET_FINDER_EQUITY_SIDS = [1, 133]
+    ASSET_FINDER_EQUITY_SIDS = (1, 133)
+
+    @classmethod
+    def make_equity_daily_bar_data(cls):
+        frame = pd.DataFrame(
+            {
+                'open': [90, 95, 100, 105],
+                'high': [90, 95, 100, 105],
+                'low': [90, 95, 100, 105],
+                'close': [90, 95, 100, 105],
+                'volume': 100,
+            },
+            index=cls.equity_daily_bar_days,
+        )
+        return ((sid, frame) for sid in cls.asset_finder.equities_sids)
+
+    @classmethod
+    def make_futures_info(cls):
+        return pd.DataFrame.from_dict(
+            {
+                1000: {
+                    'symbol': 'CLF06',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': cls.END_DATE,
+                    'auto_close_date': cls.END_DATE + cls.trading_calendar.day,
+                    'exchange': 'CME',
+                    'multiplier': 100,
+                },
+            },
+            orient='index',
+        )
+
+    @classmethod
+    def make_future_minute_bar_data(cls):
+        trading_calendar = cls.trading_calendars[Future]
+
+        sids = cls.asset_finder.futures_sids
+        minutes = trading_calendar.minutes_for_sessions_in_range(
+            cls.future_minute_bar_days[0],
+            cls.future_minute_bar_days[-1],
+        )
+        frame = pd.DataFrame(
+            {
+                'open': 2.0,
+                'high': 2.0,
+                'low': 2.0,
+                'close': 2.0,
+                'volume': 100,
+            },
+            index=minutes,
+        )
+        return ((sid, frame) for sid in sids)
 
     def test_empty_portfolio(self):
-        algo = EmptyPositionsAlgorithm(self.sids,
+        algo = EmptyPositionsAlgorithm(self.asset_finder.equities_sids,
                                        sim_params=self.sim_params,
                                        env=self.env)
         daily_stats = algo.run(self.data_portal)
@@ -1119,6 +1177,50 @@ class TestPositions(WithLogger,
         # Verify that positions are empty for all dates.
         empty_positions = daily_stats.positions.map(lambda x: len(x) == 0)
         self.assertTrue(empty_positions.all())
+
+    def test_position_weights(self):
+        sids = (1, 133, 1000)
+        equity_1, equity_133, future_1000 = \
+            self.asset_finder.retrieve_all(sids)
+
+        algo = TestPositionWeightsAlgorithm(
+            sids_and_amounts=zip(sids, [2, -1, 1]),
+            sim_params=self.sim_params,
+            env=self.env,
+        )
+        daily_stats = algo.run(self.data_portal)
+
+        expected_position_weights = [
+            # No positions held on the first day.
+            pd.Series({}),
+            # Each equity's position value is its price times the number of
+            # shares held. In this example, we hold a long position in 2 shares
+            # of equity_1 so its weight is (95.0 * 2) = 190.0 divided by the
+            # total portfolio value. The total portfolio value is the sum of
+            # cash ($905.00) plus the value of all equity positions.
+            #
+            # For a futures contract, its weight is the unit price times number
+            # of shares held times the multiplier. For future_1000, this is
+            # (2.0 * 1 * 100) = 200.0 divided by total portfolio value.
+            pd.Series({
+                equity_1: 190.0 / (190.0 - 95.0 + 905.0),
+                equity_133: -95.0 / (190.0 - 95.0 + 905.0),
+                future_1000: 200.0 / (190.0 - 95.0 + 905.0),
+            }),
+            pd.Series({
+                equity_1: 200.0 / (200.0 - 100.0 + 905.0),
+                equity_133: -100.0 / (200.0 - 100.0 + 905.0),
+                future_1000: 200.0 / (200.0 - 100.0 + 905.0),
+            }),
+            pd.Series({
+                equity_1: 210.0 / (210.0 - 105.0 + 905.0),
+                equity_133: -105.0 / (210.0 - 105.0 + 905.0),
+                future_1000: 200.0 / (210.0 - 105.0 + 905.0),
+            }),
+        ]
+
+        for i, expected in enumerate(expected_position_weights):
+            assert_equal(daily_stats.iloc[i]['position_weights'], expected)
 
 
 class TestBeforeTradingStart(WithDataPortal,
@@ -1386,11 +1488,12 @@ class TestBeforeTradingStart(WithDataPortal,
 
         # Starting portfolio value is 10000. Order for the asset fills on the
         # second bar of 1/06, where the price is 391, and costs the default
-        # commission of 1. On 1/07, the price is 780, and the increase in
-        # portfolio value is 780-392-1
+        # commission of 0. On 1/07, the price is 780, and the increase in
+        # portfolio value is 780-392-0
         self.assertEqual(results.port_value.iloc[0], 10000)
         self.assertAlmostEqual(results.port_value.iloc[1],
-                               10000 + 780 - 392 - 1)
+                               10000 + 780 - 392 - 0,
+                               places=2)
 
     def test_portfolio_bts_with_overnight_split(self):
         algo_code = dedent("""
@@ -1470,7 +1573,7 @@ class TestBeforeTradingStart(WithDataPortal,
         # On 1/07, portfolio value is the same as without split
         self.assertEqual(results.port_value.iloc[0], 10000)
         self.assertAlmostEqual(results.port_value.iloc[1],
-                               10000 + 780 - 392 - 1)
+                               10000 + 780 - 392 - 0, places=2)
 
 
 class TestAlgoScript(WithLogger,
@@ -1571,15 +1674,16 @@ class TestAlgoScript(WithLogger,
 
     def test_noop(self):
         algo = TradingAlgorithm(initialize=initialize_noop,
-                                handle_data=handle_data_noop)
+                                handle_data=handle_data_noop,
+                                env=self.env)
         algo.run(self.data_portal)
 
     def test_noop_string(self):
-        algo = TradingAlgorithm(script=noop_algo)
+        algo = TradingAlgorithm(script=noop_algo, env=self.env)
         algo.run(self.data_portal)
 
     def test_no_handle_data(self):
-        algo = TradingAlgorithm(script=no_handle_data)
+        algo = TradingAlgorithm(script=no_handle_data, env=self.env)
         algo.run(self.data_portal)
 
     def test_api_calls(self):
@@ -1595,7 +1699,8 @@ class TestAlgoScript(WithLogger,
     def test_api_get_environment(self):
         platform = 'zipline'
         algo = TradingAlgorithm(script=api_get_environment_algo,
-                                platform=platform)
+                                platform=platform,
+                                env=self.env)
         algo.run(self.data_portal)
         self.assertEqual(algo.environment, platform)
 
@@ -1658,7 +1763,7 @@ def handle_data(context, data):
     @parameterized.expand(
         [
             ('no_minimum_commission', 0,),
-            ('default_minimum_commission', 1,),
+            ('default_minimum_commission', 0,),
             ('alternate_minimum_commission', 2,),
         ]
     )
@@ -1781,6 +1886,7 @@ def handle_data(context, data):
         test_algo = TradingAlgorithm(
             script=record_variables,
             sim_params=self.sim_params,
+            env=self.env,
         )
         set_algo_instance(test_algo)
 
@@ -1809,8 +1915,8 @@ def handle_data(context, data):
         )
         test_algo.run(self.data_portal)
 
-    def test_batch_order_target_percent_matches_multi_order(self):
-        weights = pd.Series([.3, .7])
+    def test_batch_market_order_matches_multiple_manual_orders(self):
+        share_counts = pd.Series([50, 100])
 
         multi_blotter = RecordBatchBlotter(self.SIM_PARAMS_DATA_FREQUENCY)
         multi_test_algo = TradingAlgorithm(
@@ -1818,7 +1924,7 @@ def handle_data(context, data):
                 from collections import OrderedDict
                 from six import iteritems
 
-                from zipline.api import sid, order_target_percent
+                from zipline.api import sid, order
 
 
                 def initialize(context):
@@ -1827,14 +1933,14 @@ def handle_data(context, data):
 
                 def handle_data(context, data):
                     if not context.placed:
-                        for asset, weight in iteritems(OrderedDict(zip(
-                            context.assets, {weights}
+                        for asset, shares in iteritems(OrderedDict(zip(
+                            context.assets, {share_counts}
                         ))):
-                            order_target_percent(asset, weight)
+                            order(asset, shares)
 
                         context.placed = True
 
-            """).format(weights=list(weights)),
+            """).format(share_counts=list(share_counts)),
             blotter=multi_blotter,
             env=self.env,
         )
@@ -1844,9 +1950,9 @@ def handle_data(context, data):
         batch_blotter = RecordBatchBlotter(self.SIM_PARAMS_DATA_FREQUENCY)
         batch_test_algo = TradingAlgorithm(
             script=dedent("""\
-                from collections import OrderedDict
+                import pandas as pd
 
-                from zipline.api import sid, batch_order_target_percent
+                from zipline.api import sid, batch_market_order
 
 
                 def initialize(context):
@@ -1855,9 +1961,9 @@ def handle_data(context, data):
 
                 def handle_data(context, data):
                     if not context.placed:
-                        orders = batch_order_target_percent(OrderedDict(zip(
-                            context.assets, {weights}
-                        )))
+                        orders = batch_market_order(pd.Series(
+                            index=context.assets, data={share_counts}
+                        ))
                         assert len(orders) == 2, \
                             "len(orders) was %s but expected 2" % len(orders)
                         for o in orders:
@@ -1865,7 +1971,7 @@ def handle_data(context, data):
 
                         context.placed = True
 
-            """).format(weights=list(weights)),
+            """).format(share_counts=list(share_counts)),
             blotter=batch_blotter,
             env=self.env,
         )
@@ -1881,16 +1987,15 @@ def handle_data(context, data):
             )
         assert_equal(multi_stats, batch_stats)
 
-    def test_batch_order_target_percent_filters_null_orders(self):
-        weights = pd.Series([1, 0])
+    def test_batch_market_order_filters_null_orders(self):
+        share_counts = [50, 0]
 
         batch_blotter = RecordBatchBlotter(self.SIM_PARAMS_DATA_FREQUENCY)
         batch_test_algo = TradingAlgorithm(
             script=dedent("""\
-                from collections import OrderedDict
+                import pandas as pd
 
-                from zipline.api import sid, batch_order_target_percent
-
+                from zipline.api import sid, batch_market_order
 
                 def initialize(context):
                     context.assets = [sid(0), sid(3)]
@@ -1898,9 +2003,9 @@ def handle_data(context, data):
 
                 def handle_data(context, data):
                     if not context.placed:
-                        orders = batch_order_target_percent(OrderedDict(zip(
-                            context.assets, {weights}
-                        )))
+                        orders = batch_market_order(pd.Series(
+                            index=context.assets, data={share_counts}
+                        ))
                         assert len(orders) == 1, \
                             "len(orders) was %s but expected 1" % len(orders)
                         for o in orders:
@@ -1908,7 +2013,7 @@ def handle_data(context, data):
 
                         context.placed = True
 
-            """).format(weights=list(weights)),
+            """).format(share_counts=share_counts),
             blotter=batch_blotter,
             env=self.env,
         )
@@ -3172,7 +3277,8 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
             orient='index',
         )
         with TempDirectory() as tempdir, \
-                tmp_trading_env(equities=metadata) as env:
+                tmp_trading_env(equities=metadata,
+                                load=self.make_load_function()) as env:
             sim_params = factory.create_simulation_parameters(
                 start=start,
                 num_days=4,
@@ -3299,7 +3405,8 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
             'sid': 999,
         }])
         with TempDirectory() as tempdir, \
-                tmp_trading_env(equities=metadata) as env:
+                tmp_trading_env(equities=metadata,
+                                load=self.make_load_function()) as env:
             algo = SetAssetDateBoundsAlgorithm(
                 sim_params=self.sim_params,
                 env=env,
@@ -3321,7 +3428,8 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
             'sid': 999,
         }])
         with TempDirectory() as tempdir, \
-                tmp_trading_env(equities=metadata) as env:
+                tmp_trading_env(equities=metadata,
+                                load=self.make_load_function()) as env:
             data_portal = create_data_portal(
                 env.asset_finder,
                 tempdir,
@@ -3344,7 +3452,8 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
             'sid': 999,
         }])
         with TempDirectory() as tempdir, \
-                tmp_trading_env(equities=metadata) as env:
+                tmp_trading_env(equities=metadata,
+                                load=self.make_load_function()) as env:
             data_portal = create_data_portal(
                 env.asset_finder,
                 tempdir,
@@ -3405,10 +3514,15 @@ class TestAccountControls(WithDataPortal, WithSimParams, ZiplineTestCase):
         # Set max leverage to 0 so buying one share fails.
         def handle_data(algo, data):
             algo.order(algo.sid(self.sidint), 1)
+            algo.record(latest_time=algo.get_datetime())
 
         algo = SetMaxLeverageAlgorithm(0, sim_params=self.sim_params,
                                        env=self.env)
         self.check_algo_fails(algo, handle_data)
+        self.assertEqual(
+            algo.recorded_vars['latest_time'],
+            pd.Timestamp('2006-01-04 21:00:00', tz='UTC'),
+        )
 
         # Set max leverage to 1 so buying one share passes
         def handle_data(algo, data):
@@ -3771,7 +3885,7 @@ class TestFuturesAlgo(WithDataPortal, WithSimParams, ZiplineTestCase):
             self.assertEqual(txn['price'], expected_price)
 
 
-class TestTradingAlgorithm(ZiplineTestCase):
+class TestTradingAlgorithm(WithTradingEnvironment, ZiplineTestCase):
     def test_analyze_called(self):
         self.perf_ref = None
 
@@ -3788,11 +3902,11 @@ class TestTradingAlgorithm(ZiplineTestCase):
             initialize=initialize,
             handle_data=handle_data,
             analyze=analyze,
+            env=self.env,
         )
 
-        with empty_trading_env() as env:
-            data_portal = FakeDataPortal(env)
-            results = algo.run(data_portal)
+        data_portal = FakeDataPortal(self.env)
+        results = algo.run(data_portal)
 
         self.assertIs(results, self.perf_ref)
 
@@ -3992,7 +4106,7 @@ class TestOrderCancelation(WithDataPortal,
             self.assertFalse(log_catcher.has_warnings)
 
 
-class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
+class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
     """
     Tests if delisted equities are properly removed from a portfolio holding
     positions in said equities.
@@ -4023,7 +4137,10 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
 
         sids = asset_info.index
 
-        env = self.enter_instance_context(tmp_trading_env(equities=asset_info))
+        env = self.enter_instance_context(
+            tmp_trading_env(equities=asset_info,
+                            load=self.make_load_function())
+        )
 
         if frequency == 'daily':
             dates = self.test_days
@@ -4101,9 +4218,7 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
         else:
             final_prices = {
                 asset.sid: trade_data_by_sid[asset.sid].loc[
-                    self.trading_calendar.open_and_close_for_session(
-                        asset.end_date
-                    )[1]
+                    self.trading_calendar.session_close(asset.end_date)
                 ].close
                 for asset in assets
             }
@@ -4248,13 +4363,16 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
             )
 
         # Check expected cash.
-        self.assertEqual(algo.cash, expected_cash)
         self.assertEqual(expected_cash, list(output['ending_cash']))
+
+        # The cash recorded by the algo should be behind by a day from the
+        # computed ending cash.
+        expected_cash.insert(3, after_fills)
+        self.assertEqual(algo.cash, expected_cash[:-1])
 
         # Check expected long/short counts.
         # We have longs if order_size > 0.
-        # We have shrots if order_size > 0.
-        self.assertEqual(algo.num_positions, expected_num_positions)
+        # We have shorts if order_size < 0.
         if order_size > 0:
             self.assertEqual(
                 expected_num_positions,
@@ -4274,6 +4392,11 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
                 list(output['longs_count']),
             )
 
+        # The number of positions recorded by the algo should be behind by a
+        # day from the computed long/short counts.
+        expected_num_positions.insert(3, 3)
+        self.assertEqual(algo.num_positions, expected_num_positions[:-1])
+
         # Check expected transactions.
         # We should have a transaction of order_size shares per sid.
         transactions = output['transactions']
@@ -4281,9 +4404,7 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
         self.assertEqual(len(initial_fills), len(assets))
 
         last_minute_of_session = \
-            self.trading_calendar.open_and_close_for_session(
-                self.test_days[1]
-            )[1]
+            self.trading_calendar.session_close(self.test_days[1])
 
         for asset, txn in zip(assets, initial_fills):
             self.assertDictContainsSubset(
@@ -4312,7 +4433,9 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
             {
                 'amount': -order_size,
                 'commission': 0.0,
-                'dt': assets[0].auto_close_date,
+                'dt': self.trading_calendar.session_close(
+                    assets[0].auto_close_date,
+                ),
                 'price': fp0,
                 'sid': assets[0],
                 'order_id': None,  # Auto-close txns emit Nones for order_id.
@@ -4327,7 +4450,9 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
             {
                 'amount': -order_size,
                 'commission': 0.0,
-                'dt': assets[1].auto_close_date,
+                'dt': self.trading_calendar.session_close(
+                    assets[1].auto_close_date,
+                ),
                 'price': fp1,
                 'sid': assets[1],
                 'order_id': None,  # Auto-close txns emit Nones for order_id.
@@ -4360,6 +4485,9 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
             today_session = self.trading_calendar.minute_to_session_label(
                 context.get_datetime()
             )
+            day_after_auto_close = self.trading_calendar.next_session_label(
+                first_asset_auto_close_date,
+            )
 
             if today_session == first_asset_end_date:
                 # Equity 0 will no longer exist tomorrow, so this order will
@@ -4368,6 +4496,10 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
                 context.order(context.sid(0), 10)
                 assert len(context.get_open_orders()) == 1
             elif today_session == first_asset_auto_close_date:
+                # We do not cancel open orders until the end of the auto close
+                # date, so our open order should still exist at this point.
+                assert len(context.get_open_orders()) == 1
+            elif today_session == day_after_auto_close:
                 assert len(context.get_open_orders()) == 0
 
         algo = TradingAlgorithm(
@@ -4387,9 +4519,7 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
         assert len(original_open_orders) == 1
 
         last_close_for_asset = \
-            algo.trading_calendar.open_and_close_for_session(
-                first_asset_end_date
-            )[1]
+            algo.trading_calendar.session_close(first_asset_end_date)
 
         self.assertDictContainsSubset(
             {
@@ -4411,7 +4541,9 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
                 'amount': 10,
                 'commission': 0,
                 'created': last_close_for_asset,
-                'dt': first_asset_auto_close_date,
+                'dt': algo.trading_calendar.session_close(
+                    first_asset_auto_close_date,
+                ),
                 'sid': assets[0],
                 'status': ORDER_STATUS.CANCELLED,
                 'filled': 0,
@@ -4455,18 +4587,18 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
         expected_cash = [initial_cash]
         expected_position_counts = [0]
 
-        # We have the rest of the first sim day, plus the second and third
-        # days' worth of minutes with cash spent.
-        expected_cash.extend([after_fills] * (389 + 390 + 390))
-        expected_position_counts.extend([3] * (389 + 390 + 390))
+        # We have the rest of the first sim day, plus the second, third and
+        # fourth days' worth of minutes with cash spent.
+        expected_cash.extend([after_fills] * (389 + 390 + 390 + 390))
+        expected_position_counts.extend([3] * (389 + 390 + 390 + 390))
 
         # We then have two days with the cash refunded from asset 0.
         expected_cash.extend([after_first_auto_close] * (390 + 390))
         expected_position_counts.extend([2] * (390 + 390))
 
-        # We then have two days with cash refunded from asset 1
-        expected_cash.extend([after_second_auto_close] * (390 + 390))
-        expected_position_counts.extend([1] * (390 + 390))
+        # We then have one day with cash refunded from asset 1.
+        expected_cash.extend([after_second_auto_close] * 390)
+        expected_position_counts.extend([1] * 390)
 
         # Check list lengths first to avoid expensive comparison
         self.assertEqual(len(algo.cash), len(expected_cash))
@@ -4527,7 +4659,9 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
             {
                 'amount': -order_size,
                 'commission': 0.0,
-                'dt': assets[0].auto_close_date,
+                'dt': algo.trading_calendar.session_close(
+                    assets[0].auto_close_date,
+                ),
                 'price': fp0,
                 'sid': assets[0],
                 'order_id': None,  # Auto-close txns emit Nones for order_id.
@@ -4542,7 +4676,9 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
             {
                 'amount': -order_size,
                 'commission': 0.0,
-                'dt': assets[1].auto_close_date,
+                'dt': algo.trading_calendar.session_close(
+                    assets[1].auto_close_date,
+                ),
                 'price': fp1,
                 'sid': assets[1],
                 'order_id': None,  # Auto-close txns emit Nones for order_id.
@@ -4645,7 +4781,7 @@ class TestOrderAfterDelist(WithTradingEnvironment, ZiplineTestCase):
                 self.assertEqual(expected_message, w.message)
 
 
-class AlgoInputValidationTestCase(ZiplineTestCase):
+class AlgoInputValidationTestCase(WithTradingEnvironment, ZiplineTestCase):
 
     def test_reject_passing_both_api_methods_and_script(self):
         script = dedent(
@@ -4671,11 +4807,22 @@ class AlgoInputValidationTestCase(ZiplineTestCase):
             with self.assertRaises(ValueError):
                 TradingAlgorithm(
                     script=script,
+                    env=self.env,
                     **{method: lambda *args, **kwargs: None}
                 )
 
 
-class TestPanelData(ZiplineTestCase):
+class TestPanelData(WithTradingEnvironment, ZiplineTestCase):
+
+    def create_panel(self, sids, trading_calendar, start_dt, end_dt,
+                     create_df_for_asset, prev_close_column=False):
+        dfs = {}
+        for sid in sids:
+            dfs[sid] = create_df_for_asset(trading_calendar,
+                                           start_dt, end_dt, interval=sid)
+            if prev_close_column:
+                dfs[sid]['prev_close'] = dfs[sid]['close'].shift(1)
+        return pd.Panel(dfs)
 
     @parameterized.expand([
         ('daily',
@@ -4697,14 +4844,13 @@ class TestPanelData(ZiplineTestCase):
 
             def dt_transform(dt):
                 return dt
+        else:
+            raise AssertionError('Unexpected data_frequency: %s' %
+                                 data_frequency)
 
         sids = range(1, 3)
-        dfs = {}
-        for sid in sids:
-            dfs[sid] = create_df_for_asset(trading_calendar,
-                                           start_dt, end_dt, interval=sid)
-            dfs[sid]['prev_close'] = dfs[sid]['close'].shift(1)
-        panel = pd.Panel(dfs)
+        panel = self.create_panel(sids, trading_calendar, start_dt, end_dt,
+                                  create_df_for_asset, prev_close_column=True)
 
         price_record = pd.Panel(items=sids,
                                 major_axis=panel.major_axis,
@@ -4712,9 +4858,7 @@ class TestPanelData(ZiplineTestCase):
 
         def initialize(algo):
             algo.first_bar = True
-            algo.equities = []
-            for sid in sids:
-                algo.equities.append(algo.sid(sid))
+            algo.equities = [algo.sid(sid) for sid in sids]
 
         def handle_data(algo, data):
             price_record.loc[:, dt_transform(algo.get_datetime()),
@@ -4737,19 +4881,70 @@ class TestPanelData(ZiplineTestCase):
                                  'prev_close']].values.astype('float64')
             )
 
-        trading_algo = TradingAlgorithm(initialize=initialize,
-                                        handle_data=handle_data)
-        trading_algo.run(data=panel)
-        check_panels()
-        price_record.loc[:] = np.nan
+        with tmp_trading_env(load=self.make_load_function()) as env:
+            trading_algo = TradingAlgorithm(initialize=initialize,
+                                            handle_data=handle_data,
+                                            env=env)
+            trading_algo.run(data=panel)
+            check_panels()
+            price_record.loc[:] = np.nan
 
-        run_algorithm(
-            start=start_dt,
-            end=end_dt,
-            capital_base=1,
-            initialize=initialize,
-            handle_data=handle_data,
-            data_frequency=data_frequency,
-            data=panel
+        with tmp_dir() as tmpdir:
+            root = tmpdir.getpath('example_data/root')
+            copy_market_data(self.MARKET_DATA_DIR, root)
+
+            run_algorithm(
+                start=start_dt,
+                end=end_dt,
+                capital_base=1,
+                initialize=initialize,
+                handle_data=handle_data,
+                data_frequency=data_frequency,
+                data=panel,
+                environ={'ZIPLINE_ROOT': root},
+            )
+            check_panels()
+
+    def test_minute_panel_daily_history(self):
+        sids = range(1, 3)
+        trading_calendar = get_calendar('NYSE')
+        start_dt = pd.Timestamp('2015-12-23', tz='UTC')
+        end_dt = pd.Timestamp('2015-12-30', tz='UTC')
+
+        panel = self.create_panel(
+            sids,
+            trading_calendar,
+            start_dt,
+            end_dt,
+            create_minute_df_for_asset,
         )
-        check_panels()
+
+        def check_open_price(algo, data):
+            if algo.first_day:
+                algo.first_day = False
+            else:
+                np.testing.assert_array_equal(
+                    algo.last_open,
+                    data.history(
+                        algo.equities,
+                        'open',
+                        2,
+                        '1d',
+                    ).iloc[0]
+                )
+            algo.last_open = data.current(algo.equities, 'open')
+
+        def initialize(algo):
+            algo.first_day = True
+            algo.equities = [algo.sid(sid) for sid in sids]
+
+            algo.schedule_function(
+                check_open_price,
+                date_rules.every_day(),
+                time_rules.market_open(),
+            )
+
+        with tmp_trading_env(load=self.make_load_function()) as env:
+            trading_algo = TradingAlgorithm(initialize=initialize,
+                                            env=env)
+            trading_algo.run(data=panel)

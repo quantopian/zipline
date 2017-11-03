@@ -190,7 +190,8 @@ class FinanceTestCase(WithLogger,
         asset1 = self.asset_finder.retrieve_asset(1)
         metadata = make_simple_equity_info([asset1.sid], self.start, self.end)
         with TempDirectory() as tempdir, \
-                tmp_trading_env(equities=metadata) as env:
+                tmp_trading_env(equities=metadata,
+                                load=self.make_load_function()) as env:
 
             if trade_interval < timedelta(days=1):
                 sim_params = factory.create_simulation_parameters(

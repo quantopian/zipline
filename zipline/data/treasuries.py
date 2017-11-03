@@ -60,17 +60,17 @@ def earliest_possible_date():
 
 def get_treasury_data(start_date, end_date):
     return pd.read_csv(
-        "http://www.federalreserve.gov/datadownload/Output.aspx"
+        "https://www.federalreserve.gov/datadownload/Output.aspx"
         "?rel=H15"
         "&series=bf17364827e38702b42a58cf8eaa3f78"
         "&lastObs="
         "&from="  # An unbounded query is ~2x faster than specifying dates.
         "&to="
         "&filetype=csv"
-        "&label=omit"
+        "&label=include"
         "&layout=seriescolumn"
         "&type=package",
-        skiprows=1,  # First row is a useless header.
+        skiprows=5,  # First 5 rows are useless headers.
         parse_dates=['Time Period'],
         na_values=['ND'],  # Presumably this stands for "No Data".
         index_col=0,
@@ -93,7 +93,7 @@ def dataconverter(s):
 def get_daily_10yr_treasury_data():
     """Download daily 10 year treasury rates from the Federal Reserve and
     return a pandas.Series."""
-    url = "http://www.federalreserve.gov/datadownload/Output.aspx?rel=H15" \
+    url = "https://www.federalreserve.gov/datadownload/Output.aspx?rel=H15" \
           "&series=bcb44e57fb57efbe90002369321bfb3f&lastObs=&from=&to=" \
           "&filetype=csv&label=include&layout=seriescolumn"
     return pd.read_csv(url, header=5, index_col=0, names=['DATE', 'BC_10YEAR'],

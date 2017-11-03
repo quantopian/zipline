@@ -4,7 +4,7 @@
 # generate configuration, cert, and password if this is the first run
 #
 if [ ! -f /var/tmp/zipline_init ] ; then
-    jupyter notebook --generate-config
+    jupyter notebook --allow-root --generate-config
     if [ ! -f ${SSL_CERT_PEM} ] ; then
         openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
             -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=127.0.0.1" \
@@ -14,6 +14,6 @@ if [ ! -f /var/tmp/zipline_init ] ; then
     touch /var/tmp/zipline_init
 fi
 
-jupyter notebook -y --no-browser --notebook-dir=${PROJECT_DIR} \
+jupyter notebook --allow-root -y --no-browser --notebook-dir=${PROJECT_DIR} \
     --certfile=${SSL_CERT_PEM} --keyfile=${SSL_CERT_KEY} --ip='*' \
     --config=${CONFIG_PATH}

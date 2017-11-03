@@ -2,10 +2,12 @@
 Utilities for working with pandas objects.
 """
 from contextlib import contextmanager
+from copy import deepcopy
 from itertools import product
 import operator as op
 import warnings
 
+import numpy as np
 import pandas as pd
 from distutils.version import StrictVersion
 
@@ -222,3 +224,126 @@ def clear_dataframe_indexer_caches(df):
             delattr(df, attr)
         except AttributeError:
             pass
+
+
+def categorical_df_concat(df_list, inplace=False):
+    """
+    Prepare list of pandas DataFrames to be used as input to pd.concat.
+    Ensure any columns of type 'category' have the same categories across each
+    dataframe.
+
+    Parameters
+    ----------
+    df_list : list
+        List of dataframes with same columns.
+    inplace : bool
+        True if input list can be modified. Default is False.
+
+    Returns
+    -------
+    concatenated : df
+        Dataframe of concatenated list.
+    """
+
+    if not inplace:
+        df_list = deepcopy(df_list)
+
+    # Assert each dataframe has the same columns/dtypes
+    df = df_list[0]
+    if not all([(df.dtypes.equals(df_i.dtypes)) for df_i in df_list[1:]]):
+        raise ValueError("Input DataFrames must have the same columns/dtypes.")
+
+    categorical_columns = df.columns[df.dtypes == 'category']
+
+    for col in categorical_columns:
+        new_categories = sorted(
+            set().union(
+                *(frame[col].cat.categories for frame in df_list)
+            )
+        )
+
+        with ignore_pandas_nan_categorical_warning():
+            for df in df_list:
+                df[col].cat.set_categories(new_categories, inplace=True)
+
+    return pd.concat(df_list)
+
+
+def days_at_time(days, t, tz, day_offset=0):
+    """
+    Create an index of days at time ``t``, interpreted in timezone ``tz``.
+
+    The returned index is localized to UTC.
+
+    Parameters
+    ----------
+    days : DatetimeIndex
+        An index of dates (represented as midnight).
+    t : datetime.time
+        The time to apply as an offset to each day in ``days``.
+    tz : pytz.timezone
+        The timezone to use to interpret ``t``.
+    day_offset : int
+        The number of days we want to offset @days by
+
+    Examples
+    --------
+    In the example below, the times switch from 13:45 to 12:45 UTC because
+    March 13th is the daylight savings transition for US/Eastern.  All the
+    times are still 8:45 when interpreted in US/Eastern.
+
+    >>> import pandas as pd; import datetime; import pprint
+    >>> dts = pd.date_range('2016-03-12', '2016-03-14')
+    >>> dts_at_845 = days_at_time(dts, datetime.time(8, 45), 'US/Eastern')
+    >>> pprint.pprint([str(dt) for dt in dts_at_845])
+    ['2016-03-12 13:45:00+00:00',
+     '2016-03-13 12:45:00+00:00',
+     '2016-03-14 12:45:00+00:00']
+    """
+    if len(days) == 0:
+        return days
+
+    # Offset days without tz to avoid timezone issues.
+    days = pd.DatetimeIndex(days).tz_localize(None)
+    delta = pd.Timedelta(
+        days=day_offset,
+        hours=t.hour,
+        minutes=t.minute,
+        seconds=t.second,
+    )
+    return (days + delta).tz_localize(tz).tz_convert('UTC')
+
+
+def empty_dataframe(*columns):
+    """Create an empty dataframe with columns of particular types.
+
+    Parameters
+    ----------
+    *columns
+        The (column_name, column_dtype) pairs.
+
+    Returns
+    -------
+    typed_dataframe : pd.DataFrame
+        The empty typed dataframe.
+
+    Examples
+    --------
+    >>> df = empty_dataframe(
+    ...     ('a', 'int64'),
+    ...     ('b', 'float64'),
+    ...     ('c', 'datetime64[ns]'),
+    ... )
+
+    >>> df
+    Empty DataFrame
+    Columns: [a, b, c]
+    Index: []
+
+    df.dtypes
+    a             int64
+    b           float64
+    c    datetime64[ns]
+    dtype: object
+    """
+    return pd.DataFrame(np.array([], dtype=list(columns)))

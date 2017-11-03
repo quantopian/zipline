@@ -13,8 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib2 import ExitStack
+from copy import copy
 from logbook import Logger, Processor
 from pandas.tslib import normalize_date
+from zipline.finance.order import ORDER_STATUS
 from zipline.protocol import BarData
 from zipline.utils.api_support import ZiplineAPI
 from six import viewkeys
@@ -99,7 +101,8 @@ class AlgorithmSimulator(object):
         Main generator work loop.
         """
         algo = self.algo
-        emission_rate = algo.perf_tracker.emission_rate
+        perf_tracker = algo.perf_tracker
+        emission_rate = perf_tracker.emission_rate
 
         def every_bar(dt_to_use, current_data=self.current_data,
                       handle_data=algo.event_manager.handle_data):
@@ -112,7 +115,6 @@ class AlgorithmSimulator(object):
             self.simulation_dt = dt_to_use
 
             blotter = algo.blotter
-            perf_tracker = algo.perf_tracker
 
             # handle any transactions and commissions coming out new orders
             # placed in the last bar
@@ -152,13 +154,6 @@ class AlgorithmSimulator(object):
         def once_a_day(midnight_dt, current_data=self.current_data,
                        data_portal=self.data_portal):
 
-            perf_tracker = algo.perf_tracker
-
-            # Get the positions before updating the date so that prices are
-            # fetched for trading close instead of midnight
-            positions = algo.perf_tracker.position_tracker.positions
-            position_assets = algo.asset_finder.retrieve_all(positions)
-
             # set all the timestamps
             self.simulation_dt = midnight_dt
             algo.on_dt_changed(midnight_dt)
@@ -168,10 +163,6 @@ class AlgorithmSimulator(object):
                     midnight_dt, emission_rate=emission_rate,
                     is_interday=True):
                 yield capital_change
-
-            # we want to wait until the clock rolls over to the next day
-            # before cleaning up expired assets.
-            self._cleanup_expired_assets(midnight_dt, position_assets)
 
             # handle any splits that impact any positions or any open orders.
             assets_we_care_about = \
@@ -186,7 +177,7 @@ class AlgorithmSimulator(object):
                     perf_tracker.position_tracker.handle_splits(splits)
 
         def handle_benchmark(date, benchmark_source=self.benchmark_source):
-            algo.perf_tracker.all_benchmark_returns[date] = \
+            perf_tracker.all_benchmark_returns[date] = \
                 benchmark_source.get_value(date)
 
         def on_exit():
@@ -226,11 +217,21 @@ class AlgorithmSimulator(object):
                         yield capital_change_packet
                 elif action == SESSION_END:
                     # End of the session.
+                    positions = perf_tracker.position_tracker.positions
+                    position_assets = algo.asset_finder.retrieve_all(positions)
+                    self._cleanup_expired_assets(dt, position_assets)
+
                     if emission_rate == 'daily':
                         handle_benchmark(normalize_date(dt))
+                    else:
+                        # If the emission rate is minutely then the performance
+                        # update already happened by this point, so if any
+                        # equities were just auto closed do another update.
+                        perf_tracker.update_performance()
                     execute_order_cancellation_policy()
+                    algo.validate_account_controls()
 
-                    yield self._get_daily_message(dt, algo, algo.perf_tracker)
+                    yield self._get_daily_message(dt, algo, perf_tracker)
                 elif action == BEFORE_TRADING_START_BAR:
                     self.simulation_dt = dt
                     algo.on_dt_changed(dt)
@@ -238,11 +239,11 @@ class AlgorithmSimulator(object):
                 elif action == MINUTE_END:
                     handle_benchmark(dt)
                     minute_msg = \
-                        self._get_minute_message(dt, algo, algo.perf_tracker)
+                        self._get_minute_message(dt, algo, perf_tracker)
 
                     yield minute_msg
 
-        risk_message = algo.perf_tracker.handle_simulation_end()
+        risk_message = perf_tracker.handle_simulation_end()
         yield risk_message
 
     def _cleanup_expired_assets(self, dt, position_assets):
@@ -272,14 +273,23 @@ class AlgorithmSimulator(object):
         for asset in assets_to_clear:
             perf_tracker.process_close_position(asset, dt, data_portal)
 
-        # Remove open orders for any sids that have reached their
-        # auto_close_date.
+        # Remove open orders for any sids that have reached their auto close
+        # date. These orders get processed immediately because otherwise they
+        # would not be processed until the first bar of the next day.
         blotter = algo.blotter
-        assets_to_cancel = \
-            set([asset for asset in blotter.open_orders
-                 if past_auto_close_date(asset)])
+        assets_to_cancel = [
+            asset for asset in blotter.open_orders
+            if past_auto_close_date(asset)
+        ]
         for asset in assets_to_cancel:
             blotter.cancel_all_orders_for_asset(asset)
+
+        # Make a copy here so that we are not modifying the list that is being
+        # iterated over.
+        for order in copy(blotter.new_orders):
+            if order.status == ORDER_STATUS.CANCELLED:
+                perf_tracker.process_order(order)
+                blotter.new_orders.remove(order)
 
     def _get_daily_message(self, dt, algo, perf_tracker):
         """

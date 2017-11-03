@@ -16,14 +16,14 @@ from numbers import Real
 
 from nose_parameterized import parameterized
 from numpy.testing import assert_almost_equal
-from numpy import nan, array, full
+from numpy import nan, array, full, isnan
 import pandas as pd
 from pandas import DataFrame
 from six import iteritems
 
-from zipline.data.bar_reader import NoDataOnDate
 from zipline.data.resample import (
     minute_frame_to_session_frame,
+    minute_panel_to_session_panel,
     DailyHistoryAggregator,
     MinuteResampleSessionBarReader,
     ReindexMinuteBarReader,
@@ -564,6 +564,21 @@ class TestMinuteToSession(WithEquityMinuteBarData,
                                 result.values,
                                 err_msg='sid={0}'.format(sid))
 
+    def test_minute_panel_to_session_panel(self):
+        minute_panel = pd.Panel(
+            {sid: self.equity_frames[sid]
+             for sid in self.ASSET_FINDER_EQUITY_SIDS}
+        )
+        expected = pd.Panel(
+            {sid: EXPECTED_SESSIONS[sid]
+             for sid in self.ASSET_FINDER_EQUITY_SIDS}
+        )
+        result = minute_panel_to_session_panel(
+            minute_panel,
+            self.nyse_calendar
+        )
+        assert_almost_equal(expected.values, result.values)
+
 
 class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
                               ZiplineTestCase):
@@ -863,11 +878,9 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
                             "first session should be 10.")
         tday = pd.Timestamp('2015-11-26', tz='UTC')
 
-        with self.assertRaises(NoDataOnDate):
-            self.reader.get_value(1, tday, 'close')
+        self.assertTrue(isnan(self.reader.get_value(1, tday, 'close')))
 
-        with self.assertRaises(NoDataOnDate):
-            self.reader.get_value(1, tday, 'volume')
+        self.assertEqual(self.reader.get_value(1, tday, 'volume'), 0)
 
     def test_last_availabe_dt(self):
         self.assertEqual(self.reader.last_available_dt, self.END_DATE)

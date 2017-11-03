@@ -5,14 +5,17 @@ import shutil
 import tarfile
 
 import click
+import matplotlib
 import numpy as np
 import pandas as pd
 
 from zipline import examples
-from zipline.data.bundles import clean, ingest, register, yahoo_equities
+from zipline.data.bundles import clean, ingest
 from zipline.testing import test_resource_path, tmp_dir
 from zipline.utils.cache import dataframe_cache
 
+
+matplotlib.use('Agg')
 
 INPUT_DATA_START_DATE = pd.Timestamp('2004-01-02')
 INPUT_DATA_END_DATE = pd.Timestamp('2014-12-31')
@@ -27,14 +30,6 @@ INPUT_DATA_SYMBOLS = (
     'AAPL',
     'MSFT',
 )
-TEST_BUNDLE_NAME = 'test'
-input_bundle = yahoo_equities(
-    INPUT_DATA_SYMBOLS,
-    INPUT_DATA_START_DATE,
-    INPUT_DATA_END_DATE,
-)
-register(TEST_BUNDLE_NAME, input_bundle)
-
 
 banner = """
 Please verify that the new performance is more correct than the old
@@ -84,11 +79,6 @@ def eof(*args, **kwargs):
     raise EOFError()
 
 
-def rebuild_input_data(environ):
-    ingest(TEST_BUNDLE_NAME, environ=environ, show_progress=True)
-    clean(TEST_BUNDLE_NAME, keep_last=1, environ=environ)
-
-
 @click.command()
 @click.option(
     '--rebuild-input',
@@ -96,6 +86,7 @@ def rebuild_input_data(environ):
     default=False,
     help="Should we rebuild the input data from Yahoo?",
 )
+
 @click.pass_context
 def main(ctx, rebuild_input):
     """Rebuild the perf data for test_examples
@@ -109,8 +100,14 @@ def main(ctx, rebuild_input):
         # The environ here should be the same (modulo the tempdir location)
         # as we use in test_examples.py.
         environ = {'ZIPLINE_ROOT': d.getpath('example_data/root')}
+
         if rebuild_input:
-            rebuild_input_data(environ)
+            raise NotImplementedError(
+                ("We cannot rebuild input for Yahoo because of "
+                 "changes Yahoo made to their API, so we cannot "
+                 "use Yahoo data bundles anymore. This will be fixed in "
+                 "a future release")
+            )
 
         new_perf_path = d.getpath(
             'example_data/new_perf/%s' % pd.__version__.replace('.', '-'),

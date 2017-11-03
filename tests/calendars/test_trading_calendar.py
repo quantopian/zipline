@@ -35,10 +35,10 @@ from zipline.errors import (
 )
 
 from zipline.testing.predicates import assert_equal
-from zipline.utils.calendars import(
-    register_calendar,
+from zipline.utils.calendars import (
     deregister_calendar,
     get_calendar,
+    register_calendar,
 )
 from zipline.utils.calendars.calendar_utils import (
     _default_calendar_aliases,
@@ -536,7 +536,7 @@ class ExchangeCalendarTestBase(object):
         # pick two sessions
         session_count = len(self.calendar.schedule.index)
 
-        first_idx = session_count / 3
+        first_idx = session_count // 3
         second_idx = 2 * first_idx
 
         first_session_label = self.calendar.schedule.index[first_idx]

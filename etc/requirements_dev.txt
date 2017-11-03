@@ -8,7 +8,7 @@ nose-timer==0.5.0
 xlrd==0.9.4
 
 # These are required by mock or its dependencies
-Jinja2==2.7.3
+Jinja2==2.9.6
 funcsigs==1.0.2
 Pygments==2.0.2
 alabaster==0.7.6
@@ -26,12 +26,11 @@ testfixtures==4.1.2
 
 # Linting
 
-flake8==2.4.1
-mccabe==0.3.1
-# Note: Old version of pep8 required by flake8 2.4.1
-pep8==1.5.7
-# Note: Old version of pyflakes required by flake8 2.4.1
-pyflakes==0.8.1
+flake8==3.3.0
+mccabe==0.6.0
+pycodestyle==2.3.1
+pyflakes==1.5.0
+configparser==3.5.0;python_version<"3.2"
 
 # Documentation Conversion
 
@@ -46,11 +45,11 @@ mistune==0.7
 backports.ssl-match-hostname==3.4.0.2;python_version<'3.0'
 certifi==2015.4.28
 
-# tornado and pyparsing are required by matplotlib
+# matplotlib dependencies:
 tornado==4.2.1
 pyparsing==2.0.3
-
-matplotlib==1.4.3
+cycler==0.10.0
+matplotlib==1.5.3
 
 Markdown==2.6.2
 
@@ -61,3 +60,8 @@ piprot==0.9.6
 
 # For mocking out requests fetches
 responses==0.4.0
+
+# Debugging
+pdbpp==0.9.1
+fancycompleter==0.7
+wmctrl==0.3

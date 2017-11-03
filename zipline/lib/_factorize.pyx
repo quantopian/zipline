@@ -1,6 +1,7 @@
 """
 Factorization algorithms.
 """
+from cpython cimport Py_LT
 from libc.math cimport log
 cimport numpy as np
 import numpy as np
@@ -14,11 +15,46 @@ cdef inline double log2(double d):
     return log(d) / log(2);
 
 
+cpdef inline smallest_uint_that_can_hold(Py_ssize_t maxval):
+    """Choose the smallest numpy unsigned int dtype that can hold ``maxval``.
+    """
+    if maxval < 1:
+        # lim x -> 0 log2(x) == -infinity so we floor at uint8
+        return np.uint8
+    else:
+        # The number of bits required to hold the codes up to ``length`` is
+        # log2(length). The number of bits per bytes is 8. We cannot have
+        # fractional bytes so we need to round up. Finally, we can only have
+        # integers with widths 1, 2, 4, or 8 so so we need to round up to the
+        # next value by looking up the next largest size in ``_int_sizes``.
+        return unsigned_int_dtype_with_size_in_bytes(
+            _int_sizes[int(np.ceil(log2(maxval) / 8))]
+        )
+
+
 ctypedef fused unsigned_integral:
     np.uint8_t
     np.uint16_t
     np.uint32_t
     np.uint64_t
+
+
+cdef class _NoneFirstSortKey:
+    """Box to sort ``None`` to the front of the categories list.
+    """
+    cdef object value
+
+    def __cinit__(self, value):
+        self.value = value
+
+    def __richcmp__(_NoneFirstSortKey self, _NoneFirstSortKey other, int op):
+        if op == Py_LT:
+            return (
+                self.value is None or
+                (other.value is not None and self.value < other.value)
+            )
+
+        return NotImplemented
 
 
 cdef factorize_strings_known_impl(np.ndarray[object] values,
@@ -31,7 +67,7 @@ cdef factorize_strings_known_impl(np.ndarray[object] values,
         categories.insert(0, missing_value)
 
     if sort:
-        categories = sorted(categories)
+        categories = sorted(categories, key=_NoneFirstSortKey)
 
     cdef dict reverse_categories = dict(
         zip(categories, range(len(categories)))
@@ -213,19 +249,7 @@ cpdef factorize_strings(np.ndarray[object] values,
         raise ValueError('nvalues larger than uint64')
 
     length = len(categories_array)
-    if length < 1:
-        # lim x -> 0 log2(x) == -infinity so we floor at uint8
-        narrowest_dtype = np.uint8
-    else:
-        # The number of bits required to hold the codes up to ``length`` is
-        # log2(length). The number of bits per bytes is 8. We cannot have
-        # fractional bytes so we need to round up. Finally, we can only have
-        # integers with widths 1, 2, 4, or 8 so so we need to round up to the
-        # next value by looking up the next largest size in ``_int_sizes``.
-        narrowest_dtype = unsigned_int_dtype_with_size_in_bytes(
-            _int_sizes[int(np.ceil(log2(length) / 8))]
-        )
-
+    narrowest_dtype = smallest_uint_that_can_hold(length)
     if codes.dtype != narrowest_dtype:
         # condense the codes down to the narrowest dtype possible
         codes = codes.astype(narrowest_dtype)

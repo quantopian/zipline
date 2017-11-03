@@ -237,14 +237,14 @@ class RollingPearsonOfReturns(RollingPearson):
         A Filter describing which assets should have their correlation with the
         target asset computed each day.
 
-    Note
-    ----
+    Notes
+    -----
     Computing this factor over many assets can be time consuming. It is
     recommended that a mask be used in order to limit the number of assets over
     which correlations are computed.
 
-    Example
-    -------
+    Examples
+    --------
     Let the following be example 10-day returns for three different assets::
 
                        SPY    MSFT     FB
@@ -327,8 +327,8 @@ class RollingSpearmanOfReturns(RollingSpearman):
         A Filter describing which assets should have their correlation with the
         target asset computed each day.
 
-    Note
-    ----
+    Notes
+    -----
     Computing this factor over many assets can be time consuming. It is
     recommended that a mask be used in order to limit the number of assets over
     which correlations are computed.
@@ -397,8 +397,8 @@ class RollingLinearRegressionOfReturns(RollingLinearRegression):
     For more help on factors with multiple outputs, see
     :class:`zipline.pipeline.factors.CustomFactor`.
 
-    Example
-    -------
+    Examples
+    --------
     Let the following be example 10-day returns for three different assets::
 
                        SPY    MSFT     FB
@@ -455,6 +455,8 @@ class RollingLinearRegressionOfReturns(RollingLinearRegression):
     :class:`zipline.pipeline.factors.RollingPearsonOfReturns`
     :class:`zipline.pipeline.factors.RollingSpearmanOfReturns`
     """
+    window_safe = True
+
     def __new__(cls,
                 target,
                 returns_length,

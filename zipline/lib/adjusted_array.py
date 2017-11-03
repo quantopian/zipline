@@ -33,9 +33,8 @@ from ._labelwindow import AdjustedArrayWindow as LabelWindow
 from ._uint8window import AdjustedArrayWindow as UInt8Window
 
 
-NOMASK = None
 BOOL_DTYPES = frozenset(
-    map(dtype, [bool_]),
+    map(dtype, [bool_, uint8]),
 )
 FLOAT_DTYPES = frozenset(
     map(dtype, [float32, float64]),
@@ -103,7 +102,7 @@ def _normalize_array(data, missing_value):
         return data, {}
 
     data_dtype = data.dtype
-    if data_dtype == bool_:
+    if data_dtype in BOOL_DTYPES:
         return data.astype(uint8), {'dtype': dtype(bool_)}
     elif data_dtype in FLOAT_DTYPES:
         return data.astype(float64), {'dtype': dtype(float64)}
@@ -144,8 +143,6 @@ class AdjustedArray(object):
     ----------
     data : np.ndarray
         The baseline data values.
-    mask : np.ndarray[bool]
-        A mask indicating the locations of missing data.
     adjustments : dict[int -> list[Adjustment]]
         A dict mapping row indices to lists of adjustments to apply when we
         reach that row.
@@ -161,21 +158,11 @@ class AdjustedArray(object):
         '__weakref__',
     )
 
-    def __init__(self, data, mask, adjustments, missing_value):
+    def __init__(self, data, adjustments, missing_value):
         self._data, self._view_kwargs = _normalize_array(data, missing_value)
 
         self.adjustments = adjustments
         self.missing_value = missing_value
-
-        if mask is not NOMASK:
-            if mask.dtype != bool_:
-                raise ValueError("Mask must be a bool array.")
-            if data.shape != mask.shape:
-                raise ValueError(
-                    "Mask shape %s != data shape %s." %
-                    (mask.shape, data.shape),
-                )
-            self._data[~mask] = self.missing_value
 
     @lazyval
     def data(self):
@@ -227,6 +214,7 @@ class AdjustedArray(object):
             offset,
             window_length,
             perspective_offset,
+            rounding_places=None,
         )
 
     def inspect(self):
@@ -255,7 +243,7 @@ def ensure_adjusted_array(ndarray_or_adjusted_array, missing_value):
         return ndarray_or_adjusted_array
     elif isinstance(ndarray_or_adjusted_array, ndarray):
         return AdjustedArray(
-            ndarray_or_adjusted_array, NOMASK, {}, missing_value,
+            ndarray_or_adjusted_array, {}, missing_value,
         )
     else:
         raise TypeError(

@@ -1,4 +1,4 @@
-Zipline beginner tutorial
+Zipline Beginner Tutorial
 -------------------------
 
 Basics
@@ -90,7 +90,7 @@ finished running you will have access to each variable value you tracked
 with :func:`~zipline.api.record` under the name you provided (we will see this
 further below). You also see how we can access the current price data of the
 AAPL stock in the ``data`` event frame (for more information see
-`here <https://www.quantopian.com/help#api-event-properties>`__.
+`here <https://www.quantopian.com/help#api-event-properties>`__).
 
 Running the algorithm
 ~~~~~~~~~~~~~~~~~~~~~
@@ -624,24 +624,24 @@ the stock to go down further.
 As we need to have access to previous prices to implement this strategy
 we need a new concept: History
 
-``history()`` is a convenience function that keeps a rolling window of
+``data.history()`` is a convenience function that keeps a rolling window of
 data for you. The first argument is the number of bars you want to
-collect, the second argument is the unit (either ``'1d'`` for ``'1m'``
+collect, the second argument is the unit (either ``'1d'`` or ``'1m'``,
 but note that you need to have minute-level data for using ``1m``). For
-a more detailed description ``history()``'s features, see the
+a more detailed description of ``history()``'s features, see the
 `Quantopian docs <https://www.quantopian.com/help#ide-history>`__.
 Let's look at the strategy which should make this clear:
 
 .. code-block:: python
 
-   %%zipline --start 2000-1-1 --end 2014-1-1 -o perf_dma
+   %%zipline --start 2000-1-1 --end 2012-1-1 -o dma.pickle
 
 
-   from zipline.api import order_target, record, symbol, history
-   import numpy as np
+   from zipline.api import order_target, record, symbol
 
    def initialize(context):
        context.i = 0
+       context.asset = symbol('AAPL')
 
 
    def handle_data(context, data):
@@ -651,23 +651,23 @@ Let's look at the strategy which should make this clear:
            return
 
        # Compute averages
-       # history() has to be called with the same params
+       # data.history() has to be called with the same params
        # from above and returns a pandas dataframe.
-       short_mavg = history(100, '1d', 'price').mean()
-       long_mavg = history(300, '1d', 'price').mean()
+       short_mavg = data.history(context.asset, 'price', bar_count=100, frequency="1d").mean()
+       long_mavg = data.history(context.asset, 'price', bar_count=300, frequency="1d").mean()
 
        # Trading logic
-       if short_mavg[0] > long_mavg[0]:
+       if short_mavg > long_mavg:
            # order_target orders as many shares as needed to
            # achieve the desired number of shares.
-           order_target(symbol('AAPL'), 100)
-       elif short_mavg[0] < long_mavg[0]:
-           order_target(symbol('AAPL'), 0)
+           order_target(context.asset, 100)
+       elif short_mavg < long_mavg:
+           order_target(context.asset, 0)
 
        # Save values for later inspection
-       record(AAPL=data[symbol('AAPL')].price,
-              short_mavg=short_mavg[0],
-              long_mavg=long_mavg[0])
+       record(AAPL=data.current(context.asset, 'price'),
+              short_mavg=short_mavg,
+              long_mavg=long_mavg)
 
 
    def analyze(context, perf):
@@ -711,7 +711,7 @@ the ``scikit-learn`` functions require ``numpy.ndarray``\ s rather than
 We also used the ``order_target()`` function above. This and other
 functions like it can make order management and portfolio rebalancing
 much easier. See the `Quantopian documentation on order
-functions <https://www.quantopian.com/help#api-order-methods>`__ fore
+functions <https://www.quantopian.com/help#api-order-methods>`__ for
 more details.
 
 Conclusions

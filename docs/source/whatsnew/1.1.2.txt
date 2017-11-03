@@ -1,0 +1,59 @@
+Development
+-----------
+
+:Release: 1.1.2
+:Date: TBD
+
+.. warning::
+   This release is still under active development.  All changes listed are
+   subject to change at any time.
+
+
+Highlights
+~~~~~~~~~~
+
+None
+
+Enhancements
+~~~~~~~~~~~~
+
+None
+
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   Experimental features are subject to change.
+
+None
+
+Bug Fixes
+~~~~~~~~~
+
+- ``history`` calls with a frequency of ``1d`` now work when using a Panel as the minute data source. (:issue:`1920`)
+
+Performance
+~~~~~~~~~~~
+
+- Change algorithm account validation from happening every minute in ``handle_data`` to only occurring once at the end of each day (:issue:`1884`)
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+None
+
+Build
+~~~~~
+
+None
+
+Documentation
+~~~~~~~~~~~~~
+
+None
+
+Miscellaneous
+~~~~~~~~~~~~~
+
+None

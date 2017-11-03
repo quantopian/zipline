@@ -29,7 +29,7 @@ six==1.10.0
 # For fetching remote data
 requests==2.9.1
 
-Cython==0.22.1
+Cython==0.25.2
 
 # faster OrderedDict
 cyordereddict==0.2.2
@@ -74,6 +74,6 @@ intervaltree==2.1.0
 lru-dict==1.1.4
 
 # For financial risk calculations
-empyrical==0.2.2
+empyrical==0.3.2
 
 tables==3.3.0

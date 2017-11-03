@@ -40,6 +40,7 @@ from zipline.errors import (
     AttachPipelineAfterInitialize,
     PipelineOutputDuringInitialize,
     NoSuchPipeline,
+    DuplicatePipelineName,
 )
 from zipline.lib.adjustment import MULTIPLY
 from zipline.pipeline import Pipeline
@@ -84,7 +85,7 @@ def rolling_vwap(df, length):
     return Series(out, index=df.index)
 
 
-class ClosesOnly(WithDataPortal, ZiplineTestCase):
+class ClosesAndVolumes(WithDataPortal, ZiplineTestCase):
     sids = 1, 2, 3
     START_DATE = pd.Timestamp('2014-01-01', tz='utc')
     END_DATE = pd.Timestamp('2014-02-01', tz='utc')
@@ -125,6 +126,7 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
             index=cls.dates,
             dtype=float,
         )
+        cls.volumes = cls.closes * 1000
         for sid in cls.sids:
             yield sid, DataFrame(
                 {
@@ -132,14 +134,14 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
                     'high': cls.closes[sid].values,
                     'low': cls.closes[sid].values,
                     'close': cls.closes[sid].values,
-                    'volume': cls.closes[sid].values,
+                    'volume': cls.volumes[sid].values,
                 },
                 index=cls.dates,
             )
 
     @classmethod
     def init_class_fixtures(cls):
-        super(ClosesOnly, cls).init_class_fixtures()
+        super(ClosesAndVolumes, cls).init_class_fixtures()
         cls.first_asset_start = min(cls.equity_info.start_date)
         cls.last_asset_end = max(cls.equity_info.end_date)
         cls.assets = cls.asset_finder.retrieve_all(cls.sids)
@@ -162,15 +164,23 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
         ])
 
     def init_instance_fixtures(self):
-        super(ClosesOnly, self).init_instance_fixtures()
+        super(ClosesAndVolumes, self).init_instance_fixtures()
 
         # View of the data on/after the split.
         self.adj_closes = adj_closes = self.closes.copy()
         adj_closes.ix[:self.split_date, self.split_asset] *= self.split_ratio
+        self.adj_volumes = adj_volumes = self.volumes.copy()
+        adj_volumes.ix[:self.split_date, self.split_asset] *= self.split_ratio
 
-        self.pipeline_loader = DataFrameLoader(
+        self.pipeline_close_loader = DataFrameLoader(
             column=USEquityPricing.close,
             baseline=self.closes,
+            adjustments=self.adjustments,
+        )
+
+        self.pipeline_volume_loader = DataFrameLoader(
+            column=USEquityPricing.volume,
+            baseline=self.volumes,
             adjustments=self.adjustments,
         )
 
@@ -179,6 +189,13 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
             lookup = self.closes
         else:
             lookup = self.adj_closes
+        return lookup.loc[date, asset]
+
+    def expected_volume(self, date, asset):
+        if date < self.split_date:
+            lookup = self.volumes
+        else:
+            lookup = self.adj_volumes
         return lookup.loc[date, asset]
 
     def exists(self, date, asset):
@@ -199,7 +216,7 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
             initialize=initialize,
             handle_data=late_attach,
             data_frequency='daily',
-            get_pipeline_loader=lambda column: self.pipeline_loader,
+            get_pipeline_loader=lambda column: self.pipeline_close_loader,
             start=self.first_asset_start - self.trading_day,
             end=self.last_asset_end + self.trading_day,
             env=self.env,
@@ -216,7 +233,7 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
             before_trading_start=late_attach,
             handle_data=barf,
             data_frequency='daily',
-            get_pipeline_loader=lambda column: self.pipeline_loader,
+            get_pipeline_loader=lambda column: self.pipeline_close_loader,
             start=self.first_asset_start - self.trading_day,
             end=self.last_asset_end + self.trading_day,
             env=self.env,
@@ -245,7 +262,7 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
             handle_data=handle_data,
             before_trading_start=before_trading_start,
             data_frequency='daily',
-            get_pipeline_loader=lambda column: self.pipeline_loader,
+            get_pipeline_loader=lambda column: self.pipeline_close_loader,
             start=self.first_asset_start - self.trading_day,
             end=self.last_asset_end + self.trading_day,
             env=self.env,
@@ -273,7 +290,7 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
             handle_data=handle_data,
             before_trading_start=before_trading_start,
             data_frequency='daily',
-            get_pipeline_loader=lambda column: self.pipeline_loader,
+            get_pipeline_loader=lambda column: self.pipeline_close_loader,
             start=self.first_asset_start - self.trading_day,
             end=self.last_asset_end + self.trading_day,
             env=self.env,
@@ -335,7 +352,7 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
             handle_data=handle_data,
             before_trading_start=before_trading_start,
             data_frequency='daily',
-            get_pipeline_loader=lambda column: self.pipeline_loader,
+            get_pipeline_loader=lambda column: self.pipeline_close_loader,
             start=self.first_asset_start,
             end=self.last_asset_end,
             env=self.env,
@@ -343,6 +360,77 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
 
         # Run for a week in the middle of our data.
         algo.run(self.data_portal)
+
+    def test_multiple_pipelines(self):
+        """
+        Test that we can attach multiple pipelines and access the correct
+        output based on the pipeline name.
+        """
+        def initialize(context):
+            pipeline_close = attach_pipeline(Pipeline(), 'test_close')
+            pipeline_volume = attach_pipeline(Pipeline(), 'test_volume')
+
+            pipeline_close.add(USEquityPricing.close.latest, 'close')
+            pipeline_volume.add(USEquityPricing.volume.latest, 'volume')
+
+        def handle_data(context, data):
+            closes = pipeline_output('test_close')
+            volumes = pipeline_output('test_volume')
+            date = get_datetime().normalize()
+            for asset in self.assets:
+                # Assets should appear iff they exist today and yesterday.
+                exists_today = self.exists(date, asset)
+                existed_yesterday = self.exists(date - self.trading_day, asset)
+                if exists_today and existed_yesterday:
+                    self.assertEqual(
+                        closes.loc[asset, 'close'],
+                        self.expected_close(date, asset)
+                    )
+                    self.assertEqual(
+                        volumes.loc[asset, 'volume'],
+                        self.expected_volume(date, asset)
+                    )
+                else:
+                    self.assertNotIn(asset, closes.index)
+                    self.assertNotIn(asset, volumes.index)
+
+        column_to_loader = {
+            USEquityPricing.close: self.pipeline_close_loader,
+            USEquityPricing.volume: self.pipeline_volume_loader,
+        }
+
+        algo = TradingAlgorithm(
+            initialize=initialize,
+            handle_data=handle_data,
+            data_frequency='daily',
+            get_pipeline_loader=lambda column: column_to_loader[column],
+            start=self.first_asset_start,
+            end=self.last_asset_end,
+            env=self.env,
+        )
+
+        algo.run(self.data_portal)
+
+    def test_duplicate_pipeline_names(self):
+        """
+        Test that we raise an error when we try to attach a pipeline with a
+        name that already exists for another attached pipeline.
+        """
+        def initialize(context):
+            attach_pipeline(Pipeline(), 'test')
+            attach_pipeline(Pipeline(), 'test')
+
+        algo = TradingAlgorithm(
+            initialize=initialize,
+            data_frequency='daily',
+            get_pipeline_loader=lambda column: self.pipeline_close_loader,
+            start=self.first_asset_start,
+            end=self.last_asset_end,
+            env=self.env,
+        )
+
+        with self.assertRaises(DuplicatePipelineName):
+            algo.run(self.data_portal)
 
 
 class MockDailyBarSpotReader(object):
@@ -566,7 +654,7 @@ class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
         )
 
         algo.run(
-            FakeDataPortal(),
+            FakeDataPortal(self.env),
             # Yes, I really do want to use the start and end dates I passed to
             # TradingAlgorithm.
             overwrite_sim_params=False,
@@ -606,7 +694,7 @@ class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
         )
 
         algo.run(
-            FakeDataPortal(),
+            FakeDataPortal(self.env),
             overwrite_sim_params=False,
         )
 
@@ -654,7 +742,7 @@ class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
         )
 
         algo.run(
-            FakeDataPortal(),
+            FakeDataPortal(self.env),
             overwrite_sim_params=False,
         )
 

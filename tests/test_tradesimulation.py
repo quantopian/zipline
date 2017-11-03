@@ -19,7 +19,6 @@ from mock import patch
 
 from nose_parameterized import parameterized
 from six.moves import range
-from unittest import TestCase
 from zipline import TradingAlgorithm
 from zipline.gens.sim_engine import BEFORE_TRADING_START_BAR
 
@@ -28,8 +27,12 @@ from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.test_algorithms import NoopAlgorithm
-from zipline.testing.fixtures import WithSimParams, ZiplineTestCase, \
-    WithDataPortal
+from zipline.testing.fixtures import (
+    WithDataPortal,
+    WithSimParams,
+    WithTradingEnvironment,
+    ZiplineTestCase,
+)
 from zipline.utils import factory
 from zipline.testing.core import FakeDataPortal
 from zipline.utils.calendars.trading_calendar import days_at_time
@@ -50,7 +53,7 @@ class BeforeTradingAlgorithm(TradingAlgorithm):
 FREQUENCIES = {'daily': 0, 'minute': 1}  # daily is less frequent than minute
 
 
-class TestTradeSimulation(TestCase):
+class TestTradeSimulation(WithTradingEnvironment, ZiplineTestCase):
 
     def fake_minutely_benchmark(self, dt):
         return 0.01
@@ -61,8 +64,8 @@ class TestTradeSimulation(TestCase):
                                                       emission_rate='minute')
         with patch.object(BenchmarkSource, "get_value",
                           self.fake_minutely_benchmark):
-            algo = NoopAlgorithm(sim_params=params)
-            algo.run(FakeDataPortal())
+            algo = NoopAlgorithm(sim_params=params, env=self.env)
+            algo.run(FakeDataPortal(self.env))
             self.assertEqual(len(algo.perf_tracker.sim_params.sessions), 1)
 
     @parameterized.expand([('%s_%s_%s' % (num_sessions, freq, emission_rate),
@@ -82,8 +85,8 @@ class TestTradeSimulation(TestCase):
 
         with patch.object(BenchmarkSource, "get_value",
                           self.fake_minutely_benchmark):
-            algo = BeforeTradingAlgorithm(sim_params=params)
-            algo.run(FakeDataPortal())
+            algo = BeforeTradingAlgorithm(sim_params=params, env=self.env)
+            algo.run(FakeDataPortal(self.env))
 
             self.assertEqual(
                 len(algo.perf_tracker.sim_params.sessions),
@@ -126,7 +129,7 @@ def initialize(context):
         algo.perf_tracker = PerformanceTracker(
             sim_params=self.sim_params,
             trading_calendar=self.trading_calendar,
-            env=self.env,
+            asset_finder=self.asset_finder,
         )
 
         dt = pd.Timestamp("2016-08-04 9:13:14", tz='US/Eastern')

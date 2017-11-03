@@ -111,6 +111,71 @@ class LabelArrayTestCase(ZiplineTestCase):
 
     @parameter_space(
         __fail_fast=True,
+        f=[
+            lambda s: str(len(s)),
+            lambda s: s[0],
+            lambda s: ''.join(reversed(s)),
+            lambda s: '',
+        ]
+    )
+    def test_map(self, f):
+        data = np.array(
+            [['E', 'GHIJ', 'HIJKLMNOP', 'DEFGHIJ'],
+             ['CDE', 'ABCDEFGHIJKLMNOPQ', 'DEFGHIJKLMNOPQRS', 'ABCDEFGHIJK'],
+             ['DEFGHIJKLMNOPQR', 'DEFGHI', 'DEFGHIJ', 'FGHIJK'],
+             ['EFGHIJKLM', 'EFGHIJKLMNOPQRS', 'ABCDEFGHI', 'DEFGHIJ']],
+            dtype=object,
+        )
+        la = LabelArray(data, missing_value=None)
+
+        numpy_transformed = np.vectorize(f)(data)
+        la_transformed = la.map(f).as_string_array()
+
+        assert_equal(numpy_transformed, la_transformed)
+
+    @parameter_space(missing=['A', None])
+    def test_map_ignores_missing_value(self, missing):
+        data = np.array([missing, 'B', 'C'], dtype=object)
+        la = LabelArray(data, missing_value=missing)
+
+        def increment_char(c):
+            return chr(ord(c) + 1)
+
+        result = la.map(increment_char)
+        expected = LabelArray([missing, 'C', 'D'], missing_value=missing)
+        assert_equal(result.as_string_array(), expected.as_string_array())
+
+    @parameter_space(
+        __fail_fast=True,
+        f=[
+            lambda s: 0,
+            lambda s: 0.0,
+            lambda s: object(),
+        ]
+    )
+    def test_map_requires_f_to_return_a_string_or_none(self, f):
+        la = LabelArray(self.strs, missing_value=None)
+
+        with self.assertRaises(TypeError):
+            la.map(f)
+
+    def test_map_can_only_return_none_if_missing_value_is_none(self):
+
+        # Should work.
+        la = LabelArray(self.strs, missing_value=None)
+        result = la.map(lambda x: None)
+
+        check_arrays(
+            result,
+            LabelArray(np.full_like(self.strs, None), missing_value=None),
+        )
+
+        la = LabelArray(self.strs, missing_value="__MISSING__")
+        with self.assertRaises(TypeError):
+            la.map(lambda x: None)
+
+    @parameter_space(
+        __fail_fast=True,
         missing_value=('', 'a', 'not in the array', None),
     )
     def test_compare_to_str_array(self, missing_value):
@@ -436,6 +501,73 @@ class LabelArrayTestCase(ZiplineTestCase):
         assert_equal(arr.itemsize, 2)
         self.check_roundtrip(arr)
 
+    def test_map_shrinks_code_storage_if_possible(self):
+        arr = LabelArray(
+            # Drop the last value so we fit in a uint16 with None as a missing
+            # value.
+            self.create_categories(16, plus_one=False)[:-1],
+            missing_value=None,
+        )
+
+        self.assertEqual(arr.itemsize, 2)
+
+        def either_A_or_B(s):
+            return ('A', 'B')[sum(ord(c) for c in s) % 2]
+
+        result = arr.map(either_A_or_B)
+
+        self.assertEqual(set(result.categories), {'A', 'B', None})
+        self.assertEqual(result.itemsize, 1)
+
+        assert_equal(
+            np.vectorize(either_A_or_B)(arr.as_string_array()),
+            result.as_string_array(),
+        )
+
+    def test_map_never_increases_code_storage_size(self):
+        # This tests a pathological case where a user maps an impure function
+        # that returns a different label on every invocation, which in a naive
+        # implementation could cause us to need to **increase** the size of our
+        # codes after a map.
+        #
+        # This doesn't happen, however, because we guarantee that the user's
+        # mapping function will be called on each unique category exactly once,
+        # which means we can never increase the number of categories in the
+        # LabelArray after mapping.
+
+        # Using all but one of the categories so that we still fit in a uint8
+        # with an extra category for None as a missing value.
+        categories = self.create_categories(8, plus_one=False)[:-1]
+
+        larger_categories = self.create_categories(16, plus_one=False)
+
+        # Double the length of the categories so that we have to increase the
+        # required size after our map.
+        categories_twice = categories + categories
+
+        arr = LabelArray(categories_twice, missing_value=None)
+        assert_equal(arr.itemsize, 1)
+
+        gen_unique_categories = iter(larger_categories)
+
+        def new_string_every_time(c):
+            # Return a new unique category every time so that every result is
+            # different.
+            return next(gen_unique_categories)
+
+        result = arr.map(new_string_every_time)
+
+        # Result should still be of size 1.
+        assert_equal(result.itemsize, 1)
+
+        # Result should be the first `len(categories)` entries from the larger
+        # categories, repeated twice.
+        expected = LabelArray(
+            larger_categories[:len(categories)] * 2,
+            missing_value=None,
+        )
+        assert_equal(result.as_string_array(), expected.as_string_array())
+
     def manual_narrow_condense_back_to_valid_size_slow(self):
         """This test is really slow so we don't want it run by default.
         """
@@ -445,3 +577,18 @@ class LabelArrayTestCase(ZiplineTestCase):
         arr = LabelArray(categories, missing_value=categories[0])
         assert_equal(arr.itemsize, 4)
         self.check_roundtrip(arr)
+
+    def test_copy_categories_list(self):
+        """regression test for #1927
+        """
+        categories = ['a', 'b', 'c']
+
+        LabelArray(
+            [None, 'a', 'b', 'c'],
+            missing_value=None,
+            categories=categories,
+        )
+
+        # before #1927 we didn't take a copy and would insert the missing value
+        # (None) into the list
+        assert_equal(categories, ['a', 'b', 'c'])

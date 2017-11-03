@@ -5,6 +5,7 @@ from itertools import chain
 from operator import attrgetter
 
 from numpy import (
+    any as np_any,
     float64,
     nan,
     nanpercentile,
@@ -17,6 +18,11 @@ from zipline.errors import (
 )
 from zipline.lib.labelarray import LabelArray
 from zipline.lib.rank import is_missing
+from zipline.pipeline.dtypes import (
+    CLASSIFIER_DTYPES,
+    FACTOR_DTYPES,
+    FILTER_DTYPES,
+)
 from zipline.pipeline.expression import (
     BadBinaryOperator,
     FILTER_BINOPS,
@@ -31,6 +37,7 @@ from zipline.pipeline.mixins import (
     PositiveWindowLengthMixin,
     RestrictedDTypeMixin,
     SingleInputMixin,
+    StandardOutputs,
 )
 from zipline.pipeline.term import ComputableTerm, Term
 from zipline.utils.input_validation import expect_types
@@ -174,7 +181,8 @@ class Filter(RestrictedDTypeMixin, ComputableTerm):
     # same thing from all temporal perspectives.
     window_safe = True
 
-    ALLOWED_DTYPES = (bool_dtype,)  # Used by RestrictedDTypeMixin
+    # Used by RestrictedDTypeMixin
+    ALLOWED_DTYPES = FILTER_DTYPES
     dtype = bool_dtype
 
     clsdict = locals()
@@ -417,6 +425,23 @@ class CustomFilter(PositiveWindowLengthMixin, CustomTermMixin, Filter):
     --------
     zipline.pipeline.factors.factor.CustomFactor
     """
+    def _validate(self):
+        try:
+            super(CustomFilter, self)._validate()
+        except UnsupportedDataType:
+            if self.dtype in CLASSIFIER_DTYPES:
+                raise UnsupportedDataType(
+                    typename=type(self).__name__,
+                    dtype=self.dtype,
+                    hint='Did you mean to create a CustomClassifier?',
+                )
+            elif self.dtype in FACTOR_DTYPES:
+                raise UnsupportedDataType(
+                    typename=type(self).__name__,
+                    dtype=self.dtype,
+                    hint='Did you mean to create a CustomFactor?',
+                )
+            raise
 
 
 class ArrayPredicate(SingleInputMixin, Filter):
@@ -432,6 +457,7 @@ class ArrayPredicate(SingleInputMixin, Filter):
     opargs : tuple[hashable]
         Additional argument to apply to ``op``.
     """
+    params = ('op', 'opargs')
     window_length = 0
 
     @expect_types(term=Term, opargs=tuple)
@@ -445,22 +471,10 @@ class ArrayPredicate(SingleInputMixin, Filter):
             mask=term.mask,
         )
 
-    def _init(self, op, opargs, *args, **kwargs):
-        self._op = op
-        self._opargs = opargs
-        return super(ArrayPredicate, self)._init(*args, **kwargs)
-
-    @classmethod
-    def _static_identity(cls, op, opargs, *args, **kwargs):
-        return (
-            super(ArrayPredicate, cls)._static_identity(*args, **kwargs),
-            op,
-            opargs,
-        )
-
     def _compute(self, arrays, dates, assets, mask):
+        params = self.params
         data = arrays[0]
-        return self._op(data, *self._opargs) & mask
+        return params['op'](data, *params['opargs']) & mask
 
 
 class Latest(LatestMixin, CustomFilter):
@@ -544,3 +558,25 @@ class StaticAssets(StaticSids):
     def __new__(cls, assets):
         sids = frozenset(asset.sid for asset in assets)
         return super(StaticAssets, cls).__new__(cls, sids)
+
+
+class AllPresent(CustomFilter, SingleInputMixin, StandardOutputs):
+    """Pipeline filter indicating input term has data for a given window.
+    """
+    def _validate(self):
+
+        if isinstance(self.inputs[0], Filter):
+            raise TypeError(
+                "Input to filter `AllPresent` cannot be a Filter."
+            )
+
+        return super(AllPresent, self)._validate()
+
+    def compute(self, today, assets, out, value):
+        if isinstance(value, LabelArray):
+            out[:] = ~np_any(value.is_missing(), axis=0)
+        else:
+            out[:] = ~np_any(
+                is_missing(value, self.inputs[0].missing_value),
+                axis=0,
+            )

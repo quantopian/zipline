@@ -35,6 +35,20 @@ class Transaction(object):
     def __getitem__(self, name):
         return self.__dict__[name]
 
+    def __repr__(self):
+        template = (
+            "{cls}(asset={asset}, dt={dt},"
+            " amount={amount}, price={price})"
+        )
+
+        return template.format(
+            cls=type(self).__name__,
+            asset=self.asset,
+            dt=self.dt,
+            amount=self.amount,
+            price=self.price
+        )
+
     def to_dict(self):
         py = copy(self.__dict__)
         del py['type']

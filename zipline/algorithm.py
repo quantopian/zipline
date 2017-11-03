@@ -13,11 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import Iterable
-try:
-    # optional cython based OrderedDict
-    from cyordereddict import OrderedDict
-except ImportError:
-    from collections import OrderedDict
 from copy import copy
 import operator as op
 import warnings
@@ -38,16 +33,17 @@ from six import (
     itervalues,
     string_types,
     viewkeys,
-    viewvalues,
 )
 
 from zipline._protocol import handle_non_market_minutes
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.data.data_portal import DataPortal
+from zipline.data.resample import minute_panel_to_session_panel
 from zipline.data.us_equity_pricing import PanelBarReader
 from zipline.errors import (
     AttachPipelineAfterInitialize,
     CannotOrderDelistedAsset,
+    DuplicatePipelineName,
     HistoryInInitialize,
     IncompatibleCommissionModel,
     IncompatibleSlippageModel,
@@ -107,13 +103,15 @@ from zipline.utils.input_validation import (
     coerce_string,
     ensure_upper_case,
     error_keywords,
+    expect_dtypes,
     expect_types,
     optional,
 )
+from zipline.utils.numpy_utils import int64_dtype
 from zipline.utils.calendars.trading_calendar import days_at_time
-from zipline.utils.cache import CachedObject, Expired
+from zipline.utils.cache import ExpiringCache
 from zipline.utils.calendars import get_calendar
-from zipline.utils.compat import exc_clear
+from zipline.utils.pandas_utils import clear_dataframe_indexer_caches
 
 import zipline.utils.events
 from zipline.utils.events import (
@@ -130,7 +128,6 @@ from zipline.utils.math_utils import (
     tolerant_equals,
     round_if_near_integer,
 )
-from zipline.utils.pandas_utils import clear_dataframe_indexer_caches
 from zipline.utils.preprocess import preprocess
 from zipline.utils.security_list import SecurityList
 
@@ -293,7 +290,7 @@ class TradingAlgorithm(object):
         # If a schedule has been provided, pop it. Otherwise, use NYSE.
         self.trading_calendar = kwargs.pop(
             'trading_calendar',
-            get_calendar("NYSE")
+            get_calendar('NYSE')
         )
 
         self.sim_params = kwargs.pop('sim_params', None)
@@ -311,9 +308,12 @@ class TradingAlgorithm(object):
         # Initialize Pipeline API data.
         self.init_engine(kwargs.pop('get_pipeline_loader', None))
         self._pipelines = {}
-        # Create an always-expired cache so that we compute the first time data
-        # is requested.
-        self._pipeline_cache = CachedObject(None, pd.Timestamp(0, tz='UTC'))
+
+        # Create an already-expired cache so that we compute the first time
+        # data is requested.
+        self._pipeline_cache = ExpiringCache(
+            cleanup=clear_dataframe_indexer_caches
+        )
 
         self.blotter = kwargs.pop('blotter', None)
         self.cancel_policy = kwargs.pop('cancel_policy', NeverCancel())
@@ -462,11 +462,6 @@ class TradingAlgorithm(object):
         if self._handle_data:
             self._handle_data(self, data)
 
-        # Unlike trading controls which remain constant unless placing an
-        # order, account controls can change each bar. Thus, must check
-        # every bar no matter if the algorithm places an order or not.
-        self.validate_account_controls()
-
     def analyze(self, perf):
         if self._analyze is None:
             return
@@ -545,13 +540,22 @@ class TradingAlgorithm(object):
         )
 
     def _create_benchmark_source(self):
+        if self.benchmark_sid is not None:
+            benchmark_asset = self.asset_finder.retrieve_asset(
+                self.benchmark_sid)
+            benchmark_returns = None
+        else:
+            benchmark_asset = None
+            # get benchmark info from trading environment, which defaults to
+            # downloading data from Yahoo.
+            benchmark_returns = self.trading_environment.benchmark_returns
         return BenchmarkSource(
-            benchmark_sid=self.benchmark_sid,
-            env=self.trading_environment,
+            benchmark_asset=benchmark_asset,
             trading_calendar=self.trading_calendar,
             sessions=self.sim_params.sessions,
             data_portal=self.data_portal,
             emission_rate=self.sim_params.emission_rate,
+            benchmark_returns=benchmark_returns,
         )
 
     def _create_generator(self, sim_params):
@@ -564,7 +568,7 @@ class TradingAlgorithm(object):
             self.perf_tracker = PerformanceTracker(
                 sim_params=self.sim_params,
                 trading_calendar=self.trading_calendar,
-                env=self.trading_environment,
+                asset_finder=self.asset_finder,
             )
 
             # Set the dt initially to the period start by forcing it to change.
@@ -676,21 +680,33 @@ class TradingAlgorithm(object):
                     )
                 )
 
-                if self.sim_params.data_frequency == 'daily':
-                    equity_reader_arg = 'equity_daily_reader'
-                elif self.sim_params.data_frequency == 'minute':
-                    equity_reader_arg = 'equity_minute_reader'
                 equity_reader = PanelBarReader(
                     self.trading_calendar,
                     copy_panel,
                     self.sim_params.data_frequency,
                 )
+                if self.sim_params.data_frequency == 'daily':
+                    equity_readers = {
+                        'equity_daily_reader': equity_reader,
+                    }
+                elif self.sim_params.data_frequency == 'minute':
+                    equity_readers = {
+                        'equity_minute_reader': equity_reader,
+                        'equity_daily_reader': PanelBarReader(
+                            self.trading_calendar,
+                            minute_panel_to_session_panel(
+                                copy_panel,
+                                self.trading_calendar,
+                            ),
+                            'daily',
+                        ),
+                    }
 
                 self.data_portal = DataPortal(
                     self.asset_finder,
                     self.trading_calendar,
                     first_trading_day=equity_reader.first_trading_day,
-                    **{equity_reader_arg: equity_reader}
+                    **equity_readers
                 )
 
         # Force a reset of the performance tracker, in case
@@ -2039,35 +2055,28 @@ class TradingAlgorithm(object):
         return self._calculate_order_target_amount(asset, target_amount)
 
     @api_method
-    @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
-    def batch_order_target_percent(self, weights):
-        """Place orders towards a given portfolio of weights.
+    @expect_types(share_counts=pd.Series)
+    @expect_dtypes(share_counts=int64_dtype)
+    def batch_market_order(self, share_counts):
+        """Place a batch market order for multiple assets.
 
         Parameters
         ----------
-        weights : collections.Mapping[Asset -> float]
+        share_counts : pd.Series[Asset -> int]
+            Map from asset to number of shares to order for that asset.
 
         Returns
         -------
-        order_ids : pd.Series[Asset -> str]
-            The unique identifiers for the orders that were placed.
-
-        See Also
-        --------
-        :func:`zipline.api.order_target_percent`
+        order_ids : pd.Index[str]
+            Index of ids for newly-created orders.
         """
-        order_args = OrderedDict()
-        for asset, target in iteritems(weights):
-            if self._can_order_asset(asset):
-                amount = self._calculate_order_target_percent_amount(
-                    asset, target,
-                )
-                amount, style = self._calculate_order(asset, amount)
-                order_args[asset] = (asset, amount, style)
-
-        order_ids = self.blotter.batch_order(viewvalues(order_args))
-        order_ids = pd.Series(data=order_ids, index=order_args)
-        return order_ids[~order_ids.isnull()]
+        style = MarketOrder()
+        order_args = [
+            (asset, amount, style)
+            for (asset, amount) in iteritems(share_counts)
+            if amount
+        ]
+        return self.blotter.batch_order(order_args)
 
     @error_keywords(sid='Keyword argument `sid` is no longer supported for '
                         'get_open_orders. Use `asset` instead.')
@@ -2160,6 +2169,7 @@ class TradingAlgorithm(object):
                 bar_count,
                 frequency,
                 field,
+                self.data_frequency,
                 ffill,
             )
         else:
@@ -2176,6 +2186,7 @@ class TradingAlgorithm(object):
                 bar_count,
                 frequency,
                 field,
+                self.data_frequency,
                 ffill,
             )
 
@@ -2404,14 +2415,16 @@ class TradingAlgorithm(object):
         --------
         :func:`zipline.api.pipeline_output`
         """
-        if self._pipelines:
-            raise NotImplementedError("Multiple pipelines are not supported.")
         if chunks is None:
             # Make the first chunk smaller to get more immediate results:
             # (one week, then every half year)
             chunks = chain([5], repeat(126))
         elif isinstance(chunks, int):
             chunks = repeat(chunks)
+
+        if name in self._pipelines:
+            raise DuplicatePipelineName(name=name)
+
         self._pipelines[name] = pipeline, iter(chunks)
 
         # Return the pipeline to allow expressions like
@@ -2445,8 +2458,6 @@ class TradingAlgorithm(object):
         :func:`zipline.api.attach_pipeline`
         :meth:`zipline.pipeline.engine.PipelineEngine.run_pipeline`
         """
-        # NOTE: We don't currently support multiple pipelines, but we plan to
-        # in the future.
         try:
             p, chunks = self._pipelines[name]
         except KeyError:
@@ -2454,51 +2465,21 @@ class TradingAlgorithm(object):
                 name=name,
                 valid=list(self._pipelines.keys()),
             )
-        return self._pipeline_output(p, chunks)
+        return self._pipeline_output(p, chunks, name)
 
-    def _pipeline_output(self, pipeline, chunks):
+    def _pipeline_output(self, pipeline, chunks, name):
         """
         Internal implementation of `pipeline_output`.
         """
         today = normalize_date(self.get_datetime())
-        data = NO_DATA = object()
         try:
-            data = self._pipeline_cache.unwrap(today)
-        except Expired:
-            # We can't handle the exception in this block because in Python 3
-            # sys.exc_info isn't cleared until we leave the block.  See note
-            # below for why we need to clear exc_info.
-            pass
-
-        if data is NO_DATA:
-            # Try to deterministically garbage collect the previous result by
-            # removing any references to it. There are at least three sources
-            # of references:
-
-            # 1. self._pipeline_cache holds a reference.
-            # 2. The dataframe itself holds a reference via cached .iloc/.loc
-            #    accessors.
-            # 3. The traceback held in sys.exc_info includes stack frames in
-            #    which self._pipeline_cache is a local variable.
-
-            # We remove the above sources of references in reverse order:
-
-            # 3. Clear the traceback.  This is no-op in Python 3.
-            exc_clear()
-
-            # 2. Clear the .loc/.iloc caches.
-            clear_dataframe_indexer_caches(
-                self._pipeline_cache._unsafe_get_value()
-            )
-
-            # 1. Clear the reference to self._pipeline_cache.
-            self._pipeline_cache = None
-
+            data = self._pipeline_cache.get(name, today)
+        except KeyError:
             # Calculate the next block.
             data, valid_until = self._run_pipeline(
                 pipeline, today, next(chunks),
             )
-            self._pipeline_cache = CachedObject(data, valid_until)
+            self._pipeline_cache.set(name, data, valid_until)
 
         # Now that we have a cached result, try to return the data for today.
         try:

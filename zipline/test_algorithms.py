@@ -88,7 +88,7 @@ from zipline.api import (
 )
 from zipline.errors import UnsupportedOrderParameters
 from zipline.assets import Future, Equity
-from zipline.finance.commission import PerShare
+from zipline.finance.commission import PerShare, PerTrade
 from zipline.finance.execution import (
     LimitOrder,
     MarketOrder,
@@ -436,11 +436,6 @@ class TestTargetPercentAlgorithm(TradingAlgorithm):
         return self.order_target_percent(asset, target)
 
 
-class TestBatchTargetPercentAlgorithm(TestTargetPercentAlgorithm):
-    def _order(self, asset, target):
-        return self.batch_order_target_percent({asset: target})
-
-
 class TestTargetValueAlgorithm(TradingAlgorithm):
     def initialize(self):
         self.set_slippage(FixedSlippage())
@@ -696,6 +691,27 @@ class EmptyPositionsAlgorithm(TradingAlgorithm):
         self.record(num_positions=len(self.portfolio.positions))
 
 
+class TestPositionWeightsAlgorithm(TradingAlgorithm):
+    """
+    An algorithm that records the weights of its portfolio holdings each day.
+    """
+    def initialize(self, sids_and_amounts, *args, **kwargs):
+        self.ordered = False
+        self.sids_and_amounts = sids_and_amounts
+        self.set_commission(us_equities=PerTrade(0), us_futures=PerTrade(0))
+        self.set_slippage(
+            us_equities=FixedSlippage(0), us_futures=FixedSlippage(0),
+        )
+
+    def handle_data(self, data):
+        if not self.ordered:
+            for s, amount in self.sids_and_amounts:
+                self.order(self.sid(s), amount)
+            self.ordered = True
+
+        self.record(position_weights=self.portfolio.current_portfolio_weights)
+
+
 class InvalidOrderAlgorithm(TradingAlgorithm):
     """
     An algorithm that tries to make various invalid order calls, verifying that
@@ -793,6 +809,7 @@ def handle_data_api(context, data):
     order(sid(0), 1)
 
     record(incr=context.incr)
+
 
 ###########################
 # AlgoScripts as strings

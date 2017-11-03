@@ -115,6 +115,11 @@ ext_modules = [
         'zipline.data._resample',
         ['zipline/data/_resample.pyx']
     ),
+    Extension(
+        'zipline.pipeline.loaders.blaze._core',
+        ['zipline/pipeline/loaders/blaze/_core.pyx'],
+        depends=['zipline/lib/adjustment.pxd'],
+    ),
 ]
 
 
@@ -163,6 +168,7 @@ def _filter_requirements(lines_iter, filter_names=None,
 REQ_UPPER_BOUNDS = {
     'bcolz': '<1',
     'pandas': '<0.19',
+    'networkx': '<2.0',
 }
 
 
@@ -305,6 +311,7 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
         'Operating System :: OS Independent',
         'Intended Audience :: Science/Research',
         'Topic :: Office/Business :: Financial',

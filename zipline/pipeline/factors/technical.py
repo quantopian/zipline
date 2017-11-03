@@ -76,6 +76,7 @@ class RSI(CustomFactor, SingleInputMixin):
     """
     window_length = 15
     inputs = (USEquityPricing.close,)
+    window_safe = True
 
     def compute(self, today, assets, out, closes):
         diffs = diff(closes, axis=0)
@@ -226,8 +227,8 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
         Forwards `decay_rate` as `1 - (2.0 / (1 + span))`.  This provides the
         behavior equivalent to passing `span` to pandas.ewma.
 
-        Example
-        -------
+        Examples
+        --------
         .. code-block:: python
 
             # Equivalent to:
@@ -242,8 +243,8 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
                 span=15,
             )
 
-        Note
-        ----
+        Notes
+        -----
         This classmethod is provided by both
         :class:`ExponentialWeightedMovingAverage` and
         :class:`ExponentialWeightedMovingStdDev`.
@@ -273,8 +274,8 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
         Forwards ``decay_rate`` as ``exp(log(.5) / halflife)``.  This provides
         the behavior equivalent to passing `halflife` to pandas.ewma.
 
-        Example
-        -------
+        Examples
+        --------
         .. code-block:: python
 
             # Equivalent to:
@@ -289,8 +290,8 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
                 halflife=15,
             )
 
-        Note
-        ----
+        Notes
+        -----
         This classmethod is provided by both
         :class:`ExponentialWeightedMovingAverage` and
         :class:`ExponentialWeightedMovingStdDev`.
@@ -322,8 +323,8 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
         Forwards `decay_rate` as `1 - (1 / 1 + center_of_mass)`.  This provides
         behavior equivalent to passing `center_of_mass` to pandas.ewma.
 
-        Example
-        -------
+        Examples
+        --------
         .. code-block:: python
 
             # Equivalent to:
@@ -338,8 +339,8 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
                 center_of_mass=15,
             )
 
-        Note
-        ----
+        Notes
+        -----
         This classmethod is provided by both
         :class:`ExponentialWeightedMovingAverage` and
         :class:`ExponentialWeightedMovingStdDev`.
@@ -842,6 +843,7 @@ class AnnualizedVolatility(CustomFactor):
 
     def compute(self, today, assets, out, returns, annualization_factor):
         out[:] = nanstd(returns, axis=0) * (annualization_factor ** .5)
+
 
 # Convenience aliases.
 EWMA = ExponentialWeightedMovingAverage

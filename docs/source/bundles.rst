@@ -13,7 +13,7 @@ Discovering Available Bundles
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Zipline comes with a few bundles by default as well as the ability to register
-new bundles. To see which bundles we have have available, we may run the
+new bundles. To see which bundles we have available, we may run the
 ``bundles`` command, for example:
 
 .. code-block:: bash
@@ -153,44 +153,6 @@ Quantopian provides a mirror of the quandl WIKI dataset with the data in the
 formats that zipline expects. This is available under the name:
 ``quantopian-quandl`` and is the default bundle for zipline.
 
-Yahoo Bundle Factories
-``````````````````````
-
-Zipline also ships with a factory function for creating a data bundle out of a
-set of tickers from yahoo: :func:`~zipline.data.bundles.yahoo_equities`.
-:func:`~zipline.data.bundles.yahoo_equities` makes it easy to pre-download and
-cache the data for a set of equities from yahoo. The yahoo bundles include daily
-pricing data along with splits, cash dividends, and inferred asset metadata. To
-create a bundle from a set of equities, add the following to your
-``~/.zipline/extensions.py`` file:
-
-.. code-block:: python
-
-   from zipline.data.bundles import register, yahoo_equities
-
-   # these are the tickers you would like data for
-   equities = {
-       'AAPL',
-       'MSFT',
-       'GOOG',
-   }
-   register(
-       'my-yahoo-equities-bundle',  # name this whatever you like
-       yahoo_equities(equities),
-   )
-
-
-This may now be used like:
-
-.. code-block:: bash
-
-   $ zipline ingest -b my-yahoo-equities-bundle
-   $ zipline run -f algo.py --bundle my-yahoo-equities-bundle
-
-
-More than one yahoo equities bundle may be registered as long as they use
-different names.
-
 Writing a New Bundle
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -200,7 +162,7 @@ zipline. To add a new bundle, one must implement an ``ingest`` function.
 The ``ingest`` function is responsible for loading the data into memory and
 passing it to a set of writer objects provided by zipline to convert the data to
 zipline's internal format. The ingest function may work by downloading data from
-a remote location like the ``quandl`` bundle or yahoo bundles or it may just
+a remote location like the ``quandl`` bundle or it may just
 load files that are already on the machine. The function is provided with
 writers that will write the data to the correct location transactionally. If an
 ingestion fails part way through the bundle will not be written in an incomplete
@@ -307,13 +269,13 @@ have.
 help some bundles generate queries for the days needed.
 
 ``start_session``
-````````````
+`````````````````
 
 ``start_session`` is a :class:`pandas.Timestamp` object indicating the first
 day that the bundle should load data for.
 
 ``end_session``
-````````````
+```````````````
 
 ``end_session`` is a :class:`pandas.Timestamp` object indicating the last day
 that the bundle should load data for.

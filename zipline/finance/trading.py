@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
 
 import logbook
 import pandas as pd
@@ -63,12 +64,8 @@ class TradingEnvironment(object):
         The benchmark symbol
     exchange_tz : tz-coercable, optional
         The timezone of the exchange.
-    min_date : datetime, optional
-        The oldest date that we know about in this environment.
-    max_date : datetime, optional
-        The most recent date that we know about in this environment.
-    env_trading_calendar : pd.DatetimeIndex, optional
-        The calendar of datetimes that define our market hours.
+    trading_calendar : TradingCalendar, optional
+        The trading calendar to work with in this environment.
     asset_db_path : str or sa.engine.Engine, optional
         The path to the assets db or sqlalchemy Engine object to use to
         construct an AssetFinder.
@@ -81,16 +78,17 @@ class TradingEnvironment(object):
     def __init__(
         self,
         load=None,
-        bm_symbol='^GSPC',
+        bm_symbol='SPY',
         exchange_tz="US/Eastern",
         trading_calendar=None,
         asset_db_path=':memory:',
         future_chain_predicates=CHAIN_PREDICATES,
+        environ=None,
     ):
 
         self.bm_symbol = bm_symbol
         if not load:
-            load = load_market_data
+            load = partial(load_market_data, environ=environ)
 
         if not trading_calendar:
             trading_calendar = get_calendar("NYSE")
@@ -253,7 +251,9 @@ class SimulationParameters(object):
     data_frequency={data_frequency},
     emission_rate={emission_rate},
     first_open={first_open},
-    last_close={last_close})\
+    last_close={last_close},
+    trading_calendar={trading_calendar}
+)\
 """.format(class_name=self.__class__.__name__,
            start_session=self.start_session,
            end_session=self.end_session,
@@ -261,7 +261,8 @@ class SimulationParameters(object):
            data_frequency=self.data_frequency,
            emission_rate=self.emission_rate,
            first_open=self.first_open,
-           last_close=self.last_close)
+           last_close=self.last_close,
+           trading_calendar=self._trading_calendar)
 
 
 def noop_load(*args, **kwargs):

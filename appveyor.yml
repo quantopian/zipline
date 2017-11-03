@@ -14,7 +14,7 @@ environment:
     # 2. Generated secure env var below via appveyor's Encrypt data tool at https://ci.appveyor.com/tools/encrypt.
     #   See https://www.appveyor.com/docs/build-configuration/#secure-variables.
     ANACONDA_TOKEN:
-      secure: "u3oPlANiKY5g1yMtcK+2MQfb4ViKGEap3TcBtvS7Y1InyeWs80Ko3/PsP7Lp6qwq"
+      secure: "mfGCRgiY6D5BmJkH4HFPDJUH+6W9zH0cxKZ5o/cv9grfRkfu5YRG26No88H1q7Ua"
 
     CONDA_ROOT_PYTHON_VERSION: "2.7"
 
@@ -26,6 +26,12 @@ environment:
       SCIPY_VERSION: "0.17.1"
 
     - PYTHON_VERSION: "3.4"
+      PYTHON_ARCH: "64"
+      PANDAS_VERSION: "0.18.1"
+      NUMPY_VERSION: "1.11.1"
+      SCIPY_VERSION: "0.17.1"
+
+    - PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "64"
       PANDAS_VERSION: "0.18.1"
       NUMPY_VERSION: "1.11.1"

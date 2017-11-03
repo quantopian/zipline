@@ -348,6 +348,10 @@ class Term(with_metaclass(ABCMeta, object)):
         """
         raise NotImplementedError('dependencies')
 
+    def short_repr(self):
+        # Default short_repr is just the full repr.
+        return repr(self)
+
 
 class AssetExists(Term):
     """

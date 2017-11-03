@@ -1,7 +1,6 @@
 """
 factor.py
 """
-from functools import wraps
 from operator import attrgetter
 from numbers import Number
 from math import ceil
@@ -9,11 +8,21 @@ from math import ceil
 from numpy import empty_like, inf, nan, where
 from scipy.stats import rankdata
 
-from zipline.errors import BadPercentileBounds, UnknownRankMethod
+from zipline.utils.compat import wraps
+from zipline.errors import (
+    BadPercentileBounds,
+    UnknownRankMethod,
+    UnsupportedDataType,
+)
 from zipline.lib.normalize import naive_grouped_rowwise_apply
 from zipline.lib.rank import masked_rankdata_2d, rankdata_1d_descending
 from zipline.pipeline.api_utils import restrict_to_dtype
 from zipline.pipeline.classifiers import Classifier, Everything, Quantiles
+from zipline.pipeline.dtypes import (
+    CLASSIFIER_DTYPES,
+    FACTOR_DTYPES,
+    FILTER_DTYPES,
+)
 from zipline.pipeline.expression import (
     BadBinaryOperator,
     COMPARISONS,
@@ -51,7 +60,6 @@ from zipline.utils.numpy_utils import (
     bool_dtype,
     categorical_dtype,
     coerce_to_dtype,
-    datetime64ns_dtype,
     float64_dtype,
     int64_dtype,
 )
@@ -283,6 +291,7 @@ def function_application(func):
     if func not in NUMEXPR_MATH_FUNCS:
         raise ValueError("Unsupported mathematical function '%s'" % func)
 
+    @with_doc(func)
     @with_name(func)
     def mathfunc(self):
         if isinstance(self, NumericalExpression):
@@ -317,8 +326,6 @@ float64_only = restrict_to_dtype(
         " but it was called on a Factor of dtype {received_dtype}."
     )
 )
-
-FACTOR_DTYPES = frozenset([datetime64ns_dtype, float64_dtype, int64_dtype])
 
 
 class Factor(RestrictedDTypeMixin, ComputableTerm):
@@ -384,6 +391,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
     __truediv__ = clsdict['__div__']
     __rtruediv__ = clsdict['__rdiv__']
 
+    del clsdict  # don't pollute the class namespace with this.
+
     eq = binary_operator('==')
 
     @expect_types(
@@ -410,8 +419,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         groupby : zipline.pipeline.Classifier, optional
             A classifier defining partitions over which to compute means.
 
-        Example
-        -------
+        Examples
+        --------
         Let ``f`` be a Factor which would produce the following output::
 
                          AAPL   MSFT    MCD     BK
@@ -562,8 +571,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         ``zscore()`` is only supported on Factors of dtype float64.
 
-        Example
-        -------
+        Examples
+        --------
         See :meth:`~zipline.pipeline.factors.Factor.demean` for an in-depth
         example of the semantics for ``mask`` and ``groupby``.
 
@@ -674,8 +683,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             A new Factor that will compute correlations between `target` and
             the columns of `self`.
 
-        Example
-        -------
+        Examples
+        --------
         Suppose we want to create a factor that computes the correlation
         between AAPL's 10-day returns and the 10-day returns of all other
         assets, computing each correlation over 30 days. This can be achieved
@@ -739,8 +748,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             A new Factor that will compute correlations between `target` and
             the columns of `self`.
 
-        Example
-        -------
+        Examples
+        --------
         Suppose we want to create a factor that computes the correlation
         between AAPL's 10-day returns and the 10-day returns of all other
         assets, computing each correlation over 30 days. This can be achieved
@@ -803,8 +812,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             A new Factor that will compute linear regressions of `target`
             against the columns of `self`.
 
-        Example
-        -------
+        Examples
+        --------
         Suppose we want to create a factor that regresses AAPL's 10-day returns
         against the 10-day returns of all other assets, computing each
         regression over 30 days. This can be achieved by doing the following::
@@ -881,34 +890,37 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         winsorized : zipline.pipeline.Factor
             A Factor producing a winsorized version of self.
 
-        Example
-        -------
+        Examples
+        --------
+        .. code-block:: python
 
-        price = USEquityPricing.close.latest
-        columns={
-            'PRICE': price,
-            'WINSOR_1: price.winsorize(
-                min_percentile=0.25, max_percentile=0.75
-            ),
-            'WINSOR_2': price.winsorize(
-                min_percentile=0.50, max_percentile=1.0
-            ),
-            'WINSOR_3': price.winsorize(
-                min_percentile=0.0, max_percentile=0.5
-            ),
+            price = USEquityPricing.close.latest
+            columns={
+                'PRICE': price,
+                'WINSOR_1: price.winsorize(
+                    min_percentile=0.25, max_percentile=0.75
+                ),
+                'WINSOR_2': price.winsorize(
+                    min_percentile=0.50, max_percentile=1.0
+                ),
+                'WINSOR_3': price.winsorize(
+                    min_percentile=0.0, max_percentile=0.5
+                ),
 
-        }
+            }
 
         Given a pipeline with columns, defined above, the result for a
         given day could look like:
 
-                'PRICE' 'WINSOR_1' 'WINSOR_2' 'WINSOR_3'
-        Asset_1    1        2          4          3
-        Asset_2    2        2          4          3
-        Asset_3    3        3          4          3
-        Asset_4    4        4          4          4
-        Asset_5    5        5          5          4
-        Asset_6    6        5          5          4
+        ::
+
+                    'PRICE' 'WINSOR_1' 'WINSOR_2' 'WINSOR_3'
+            Asset_1    1        2          4          3
+            Asset_2    2        2          4          3
+            Asset_3    3        3          4          3
+            Asset_4    4        4          4          4
+            Asset_5    5        5          5          4
+            Asset_6    6        5          5          4
 
         See Also
         --------
@@ -1319,6 +1331,7 @@ class GroupedRowTransform(Factor):
         return self._transform.__name__
 
     def short_repr(self):
+        """Short repr to use when rendering Pipeline graphs."""
         return type(self).__name__ + '(%r)' % self.transform_name
 
 
@@ -1549,6 +1562,24 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
     '''
     dtype = float64_dtype
 
+    def _validate(self):
+        try:
+            super(CustomFactor, self)._validate()
+        except UnsupportedDataType:
+            if self.dtype in CLASSIFIER_DTYPES:
+                raise UnsupportedDataType(
+                    typename=type(self).__name__,
+                    dtype=self.dtype,
+                    hint='Did you mean to create a CustomClassifier?',
+                )
+            elif self.dtype in FILTER_DTYPES:
+                raise UnsupportedDataType(
+                    typename=type(self).__name__,
+                    dtype=self.dtype,
+                    hint='Did you mean to create a CustomFilter?',
+                )
+            raise
+
     def __getattribute__(self, name):
         outputs = object.__getattribute__(self, 'outputs')
         if outputs is NotSpecified:
@@ -1591,6 +1622,7 @@ class RecarrayField(SingleInputMixin, Factor):
             mask=factor.mask,
             dtype=factor.dtype,
             missing_value=factor.missing_value,
+            window_safe=factor.window_safe
         )
 
     def _init(self, attribute, *args, **kwargs):
@@ -1606,6 +1638,9 @@ class RecarrayField(SingleInputMixin, Factor):
 
     def _compute(self, windows, dates, assets, mask):
         return windows[0][self._attribute]
+
+    def short_repr(self):
+        return "{}.{}".format(self.inputs[0].short_repr(), self._attribute)
 
 
 class Latest(LatestMixin, CustomFactor):

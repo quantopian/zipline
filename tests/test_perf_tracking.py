@@ -22,6 +22,7 @@ from datetime import (
 )
 import logging
 
+from nose_parameterized import parameterized
 import nose.tools as nt
 import pytz
 
@@ -57,7 +58,6 @@ from zipline.testing.fixtures import (
     WithSimParams,
     WithTmpDir,
     WithTradingEnvironment,
-    WithTradingCalendars,
     ZiplineTestCase,
 )
 from zipline.utils.calendars import get_calendar
@@ -146,7 +146,7 @@ def create_txn(asset, dt, price, amount):
 
 
 def calculate_results(sim_params,
-                      env,
+                      asset_finder,
                       data_portal,
                       splits=None,
                       txns=None,
@@ -178,7 +178,7 @@ def calculate_results(sim_params,
     commissions = commissions or {}
 
     perf_tracker = perf.PerformanceTracker(
-        sim_params, get_calendar("NYSE"), env
+        sim_params, get_calendar("NYSE"), asset_finder,
     )
 
     results = []
@@ -283,7 +283,7 @@ class TestSplitPerformance(WithSimParams, WithTmpDir, ZiplineTestCase):
         # the total leftover cash is correct
         perf_tracker = perf.PerformanceTracker(self.sim_params,
                                                self.trading_calendar,
-                                               self.env)
+                                               self.asset_finder)
 
         perf_tracker.position_tracker.positions[1] = \
             Position(self.asset1, amount=10, cost_basis=10, last_sale_price=11)
@@ -331,7 +331,7 @@ class TestSplitPerformance(WithSimParams, WithTmpDir, ZiplineTestCase):
         }
 
         results = calculate_results(self.sim_params,
-                                    self.env,
+                                    self.asset_finder,
                                     data_portal,
                                     txns=txns,
                                     splits=splits)
@@ -467,7 +467,7 @@ class TestDividendPerformance(WithSimParams,
         txns = [create_txn(self.asset1, events[0].dt, 10.0, 100)]
         results = calculate_results(
             self.sim_params,
-            self.env,
+            self.asset_finder,
             data_portal,
             txns=txns,
         )
@@ -544,7 +544,7 @@ class TestDividendPerformance(WithSimParams,
 
         results = calculate_results(
             self.sim_params,
-            self.env,
+            self.asset_finder,
             data_portal,
             txns=txns,
         )
@@ -610,7 +610,7 @@ class TestDividendPerformance(WithSimParams,
 
         results = calculate_results(
             self.sim_params,
-            self.env,
+            self.asset_finder,
             data_portal,
             txns=txns,
         )
@@ -673,7 +673,7 @@ class TestDividendPerformance(WithSimParams,
 
         results = calculate_results(
             self.sim_params,
-            self.env,
+            self.asset_finder,
             data_portal,
             txns=txns,
         )
@@ -737,7 +737,7 @@ class TestDividendPerformance(WithSimParams,
 
         results = calculate_results(
             self.sim_params,
-            self.env,
+            self.asset_finder,
             data_portal,
             txns=txns,
         )
@@ -802,7 +802,7 @@ class TestDividendPerformance(WithSimParams,
 
         results = calculate_results(
             self.sim_params,
-            self.env,
+            self.asset_finder,
             data_portal,
             txns=txns,
         )
@@ -864,7 +864,7 @@ class TestDividendPerformance(WithSimParams,
 
         results = calculate_results(
             self.sim_params,
-            self.env,
+            self.asset_finder,
             data_portal,
             txns=txns,
         )
@@ -922,7 +922,7 @@ class TestDividendPerformance(WithSimParams,
 
         results = calculate_results(
             self.sim_params,
-            self.env,
+            self.asset_finder,
             data_portal,
         )
 
@@ -999,7 +999,7 @@ class TestDividendPerformance(WithSimParams,
         txns = [create_txn(self.asset1, events[0].dt, 10.0, 100)]
         results = calculate_results(
             sim_params,
-            self.env,
+            self.asset_finder,
             data_portal,
             txns=txns,
         )
@@ -1029,7 +1029,8 @@ class TestDividendPerformanceHolidayStyle(TestDividendPerformance):
     END_DATE = pd.Timestamp('2003-12-08', tz='utc')
 
 
-class TestPositionPerformance(WithInstanceTmpDir, WithTradingCalendars,
+class TestPositionPerformance(WithInstanceTmpDir,
+                              WithTradingEnvironment,
                               ZiplineTestCase):
 
     def create_environment_stuff(self,
@@ -1054,6 +1055,7 @@ class TestPositionPerformance(WithInstanceTmpDir, WithTradingCalendars,
         self.env = self.enter_instance_context(tmp_trading_env(
             equities=equities,
             futures=futures,
+            load=self.make_load_function(),
         ))
         self.sim_params = create_simulation_parameters(
             start=start,
@@ -2045,40 +2047,36 @@ class TestPositionTracker(WithTradingEnvironment,
         self.assertEqual(100 + 200 + 300000 + 400000, pos_stats.gross_exposure)
         self.assertEqual(100 - 200 + 300000 - 400000, pos_stats.net_exposure)
 
-    def test_cost_basis(self):
+    @parameterized.expand([('FutureLong', True, 1),
+                           ('FutureShort', True, -1),
+                           ('EquityLong', False, 1),
+                           ('EquityShort', False, -1)])
+    def test_cost_basis(self, _, is_future, sign):
+
+        asset = self.FUTURE3 if is_future else self.EQUITY1
         dt = pd.Timestamp("2015-12-10 15:00", tz='UTC')
 
-        equity_pos = perf.Position(
-            self.EQUITY1,
-            amount=10,
+        position = perf.Position(
+            asset,
+            amount=sign*10,
             last_sale_date=dt,
             cost_basis=10,
             last_sale_price=11,
         )
 
-        future_pos = perf.Position(
-            self.FUTURE3,
-            amount=10,
-            last_sale_date=dt,
-            cost_basis=10,
-            last_sale_price=11,
-        )
+        self.assertEqual(10, position.cost_basis)
 
-        self.assertEqual(10, equity_pos.cost_basis)
-
+        # If position is an equity position:
         # send a $5 commission to the equity position.  Spread out over 10
         # shares, that bumps the cost basis by $0.50.
-        equity_pos.adjust_commission_cost_basis(self.EQUITY1, 5)
-        self.assertEqual(10.5, equity_pos.cost_basis)
-
-        self.assertEqual(10, future_pos.cost_basis)
-
+        #
+        # If position is a futures position:
         # send a $5k commission to the futures position.  since self.FUTURE3
         # has a contract size (multipler) of 1000, this should result in a
         # $10.5 updated cost basis. (5000 / 1000 = $5, spread out over 10
         # contracts, is $0.50 extra per contract).
-        future_pos.adjust_commission_cost_basis(self.FUTURE3, 5000)
-        self.assertEqual(10.5, future_pos.cost_basis)
+        position.adjust_commission_cost_basis(asset, 5000 if is_future else 5)
+        self.assertEqual(10.0 + sign * 0.5, position.cost_basis)
 
     def test_update_positions(self):
         pt = perf.PositionTracker(None)

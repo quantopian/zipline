@@ -29,9 +29,10 @@ from zipline.lib.labelarray import LabelArray
 from zipline.lib.rank import masked_rankdata_2d
 from zipline.lib.normalize import naive_grouped_rowwise_apply as grouped_apply
 from zipline.pipeline import Classifier, Factor, Filter
+from zipline.pipeline.data import DataSet, Column
 from zipline.pipeline.factors import (
+    CustomFactor,
     Returns,
-    RSI,
 )
 from zipline.testing import (
     check_allclose,
@@ -519,33 +520,6 @@ class FactorTestCase(BasePipelineTestCase):
         # Not passing a method should default to ordinal
         check({'ordinal': f.rank(groupby=c, ascending=False)})
         check({'ordinal': f.rank(groupby=str_c, ascending=False)})
-
-    @parameterized.expand([
-        # Test cases computed by doing:
-        # from numpy.random import seed, randn
-        # from talib import RSI
-        # seed(seed_value)
-        # data = abs(randn(15, 3))
-        # expected = [RSI(data[:, i])[-1] for i in range(3)]
-        (100, array([41.032913785966, 51.553585468393, 51.022005016446])),
-        (101, array([43.506969935466, 46.145367530182, 50.57407044197])),
-        (102, array([46.610102205934, 47.646892444315, 52.13182788538])),
-    ])
-    def test_rsi(self, seed_value, expected):
-
-        rsi = RSI()
-
-        today = datetime64(1, 'ns')
-        assets = arange(3)
-        out = empty((3,), dtype=float)
-
-        seed(seed_value)  # Seed so we get deterministic results.
-        test_data = abs(randn(15, 3))
-
-        out = empty((3,), dtype=float)
-        rsi.compute(today, assets, out, test_data)
-
-        check_allclose(expected, out)
 
     @parameterized.expand([
         (100, 15),
@@ -1202,11 +1176,55 @@ class ShortReprTestCase(TestCase):
         r = F().winsorize(min_percentile=.05, max_percentile=.95).short_repr()
         self.assertEqual(r, "GroupedRowTransform('winsorize')")
 
+    def test_recarray_field_repr(self):
+        class MultipleOutputs(CustomFactor):
+            outputs = ['a', 'b']
+            inputs = ()
+            window_length = 5
+
+            def short_repr(self):
+                return "CustomRepr()"
+
+        a = MultipleOutputs().a
+        b = MultipleOutputs().b
+
+        self.assertEqual(a.short_repr(), "CustomRepr().a")
+        self.assertEqual(b.short_repr(), "CustomRepr().b")
+
+    def test_latest_repr(self):
+
+        class SomeDataSet(DataSet):
+            a = Column(dtype=float64_dtype)
+            b = Column(dtype=float64_dtype)
+
+        self.assertEqual(
+            SomeDataSet.a.latest.short_repr(),
+            "SomeDataSet.a.latest"
+        )
+        self.assertEqual(
+            SomeDataSet.b.latest.short_repr(),
+            "SomeDataSet.b.latest"
+        )
+
 
 class TestWindowSafety(TestCase):
 
     def test_zscore_is_window_safe(self):
         self.assertTrue(F().zscore().window_safe)
+
+    @parameter_space(__fail_fast=True, is_window_safe=[True, False])
+    def test_window_safety_propagates_to_recarray_fields(self, is_window_safe):
+
+        class MultipleOutputs(CustomFactor):
+            outputs = ['a', 'b']
+            inputs = ()
+            window_length = 5
+            window_safe = is_window_safe
+
+        mo = MultipleOutputs()
+
+        for attr in mo.a, mo.b:
+            self.assertEqual(attr.window_safe, mo.window_safe)
 
     def test_demean_is_window_safe_if_input_is_window_safe(self):
         self.assertFalse(F().demean().window_safe)

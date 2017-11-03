@@ -15,9 +15,7 @@
 from nose_parameterized import parameterized
 from six.moves import range
 
-from zipline.errors import(
-    BadOrderParameters
-)
+from zipline.errors import BadOrderParameters
 from zipline.finance.execution import (
     LimitOrder,
     MarketOrder,

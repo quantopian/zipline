@@ -18,7 +18,7 @@ import pandas as pd
 import zipline.finance.risk as risk
 from zipline.utils import factory
 
-from zipline.testing.fixtures import WithTradingEnvironment, ZiplineTestCase
+from zipline.testing.fixtures import WithTradingCalendars, ZiplineTestCase
 
 from zipline.finance.trading import SimulationParameters
 
@@ -30,7 +30,7 @@ BENCHMARK = [BENCHMARK_BASE] * 251
 DECIMAL_PLACES = 8
 
 
-class TestRisk(WithTradingEnvironment, ZiplineTestCase):
+class TestRisk(WithTradingCalendars, ZiplineTestCase):
 
     def init_instance_fixtures(self):
         super(TestRisk, self).init_instance_fixtures()
@@ -49,7 +49,6 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
         )
         self.cumulative_metrics = risk.RiskMetricsCumulative(
             self.sim_params,
-            treasury_curves=self.env.treasury_curves,
             trading_calendar=self.trading_calendar,
         )
         for dt, returns in self.algo_returns.iteritems():
@@ -101,16 +100,6 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
                 for x in self.cumulative_metrics.sortino),
             True)
 
-    def test_information(self):
-        np.testing.assert_equal(
-            len(self.algo_returns),
-            len(self.cumulative_metrics.information)
-        )
-        np.testing.assert_equal(
-            all(isinstance(x, float)
-                for x in self.cumulative_metrics.information),
-            True)
-
     def test_alpha(self):
         np.testing.assert_equal(
             len(self.algo_returns),
@@ -142,5 +131,5 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             True)
 
     def test_representation(self):
-        assert all([metric in self.cumulative_metrics.__repr__() for metric in
-                   self.cumulative_metrics.METRIC_NAMES])
+        assert all(metric in repr(self.cumulative_metrics)
+                   for metric in self.cumulative_metrics.METRIC_NAMES)

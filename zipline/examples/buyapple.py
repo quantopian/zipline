@@ -15,15 +15,22 @@
 # limitations under the License.
 
 from zipline.api import order, record, symbol
+from zipline.finance import commission
 
 
 def initialize(context):
-    pass
+    context.asset = symbol('AAPL')
+
+    # Explicitly set the commission to the "old" value until we can
+    # rebuild example data.
+    # github.com/quantopian/zipline/blob/master/tests/resources/
+    # rebuild_example_data#L105
+    context.set_commission(commission.PerShare(cost=.0075, min_trade_cost=1.0))
 
 
 def handle_data(context, data):
-    order(symbol('AAPL'), 10)
-    record(AAPL=data.current(symbol('AAPL'), 'price'))
+    order(context.asset, 10)
+    record(AAPL=data.current(context.asset, 'price'))
 
 
 # Note: this function can be removed if running

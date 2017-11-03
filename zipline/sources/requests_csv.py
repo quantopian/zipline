@@ -55,6 +55,7 @@ class FetcherCSVRedirectError(ZiplineError):
 
         super(FetcherCSVRedirectError, self).__init__(*args, **kwargs)
 
+
 # The following optional arguments are supported for
 # requests backed data sources.
 # see http://docs.python-requests.org/en/latest/api/#main-interface
@@ -63,7 +64,8 @@ ALLOWED_REQUESTS_KWARGS = {
     'params',
     'headers',
     'auth',
-    'cert'}
+    'cert'
+}
 
 
 # The following optional arguments are supported for pandas' read_csv

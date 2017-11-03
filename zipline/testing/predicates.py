@@ -358,7 +358,7 @@ def assert_dict_equal(result, expected, path=(), msg='', **kwargs):
             assert_equal(
                 resultv,
                 expectedv,
-                path=path + ('[%r]' % k,),
+                path=path + ('[%r]' % (k,),),
                 msg=msg,
                 **kwargs
             )
@@ -550,7 +550,7 @@ def assert_timestamp_and_datetime_equal(result,
     )
 
     result = pd.Timestamp(result)
-    expected = pd.Timestamp(result)
+    expected = pd.Timestamp(expected)
     if compare_nat_equal and pd.isnull(result) and pd.isnull(expected):
         return
 

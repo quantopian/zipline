@@ -51,6 +51,7 @@ from zipline.pipeline.factors import (
     ExponentialWeightedMovingAverage,
     ExponentialWeightedMovingStdDev,
     MaxDrawdown,
+    Returns,
     SimpleMovingAverage,
 )
 from zipline.pipeline.loaders.equity_pricing_loader import (
@@ -77,6 +78,7 @@ from zipline.testing import (
 )
 from zipline.testing.fixtures import (
     WithAdjustmentReader,
+    WithEquityPricingPipelineEngine,
     WithSeededRandomPipelineEngine,
     WithTradingEnvironment,
     ZiplineTestCase,
@@ -1497,3 +1499,35 @@ class PopulateInitialWorkspaceTestCase(WithConstantInputs, ZiplineTestCase):
                 precomputed_term_value,
             ),
         )
+
+
+class ChunkedPipelineTestCase(WithEquityPricingPipelineEngine,
+                              ZiplineTestCase):
+
+    PIPELINE_START_DATE = Timestamp('2006-01-05', tz='UTC')
+    END_DATE = Timestamp('2006-12-29', tz='UTC')
+
+    def test_run_chunked_pipeline(self):
+        """
+        Test that running a pipeline in chunks produces the same result as if
+        it were run all at once
+        """
+        pipe = Pipeline(
+            columns={
+                'close': USEquityPricing.close.latest,
+                'returns': Returns(window_length=2),
+                'categorical': USEquityPricing.close.latest.quantiles(5)
+            },
+        )
+        pipeline_result = self.pipeline_engine.run_pipeline(
+            pipe,
+            start_date=self.PIPELINE_START_DATE,
+            end_date=self.END_DATE,
+        )
+        chunked_result = self.pipeline_engine.run_chunked_pipeline(
+            pipeline=pipe,
+            start_date=self.PIPELINE_START_DATE,
+            end_date=self.END_DATE,
+            chunksize=22
+        )
+        self.assertTrue(chunked_result.equals(pipeline_result))

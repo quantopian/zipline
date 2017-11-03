@@ -3,12 +3,13 @@ Utilities for validating inputs to user-facing API functions.
 """
 from textwrap import dedent
 from types import CodeType
-from functools import wraps
 from inspect import getargspec
 from uuid import uuid4
 
 from toolz.curried.operator import getitem
 from six import viewkeys, exec_, PY3
+
+from zipline.utils.compat import wraps
 
 
 _code_argorder = (
@@ -48,8 +49,8 @@ def preprocess(*_unused, **processors):
         `argname` is the name of the argument we're processing.
         `argvalue` is the value of the argument we're processing.
 
-    Usage
-    -----
+    Examples
+    --------
     >>> def _ensure_tuple(func, argname, arg):
     ...     if isinstance(arg, tuple):
     ...         return argvalue
@@ -124,8 +125,8 @@ def call(f):
     f : function
         Function accepting a single argument and returning a replacement.
 
-    Usage
-    -----
+    Examples
+    --------
     >>> @preprocess(x=call(lambda x: x + 1))
     ... def foo(x):
     ...     return x

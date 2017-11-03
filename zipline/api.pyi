@@ -34,21 +34,18 @@ def attach_pipeline(pipeline, name, chunks=None):
     :func:`zipline.api.pipeline_output`
     """
 
-def batch_order_target_percent(weights):
-    """Place orders towards a given portfolio of weights.
+def batch_market_order(share_counts):
+    """Place a batch market order for multiple assets.
 
     Parameters
     ----------
-    weights : collections.Mapping[Asset -> float]
+    share_counts : pd.Series[Asset -> int]
+        Map from asset to number of shares to order for that asset.
 
     Returns
     -------
-    order_ids : pd.Series[Asset -> str]
-        The unique identifiers for the orders that were placed.
-
-    See Also
-    --------
-    :func:`zipline.api.order_target_percent`
+    order_ids : pd.Index[str]
+        Index of ids for newly-created orders.
     """
 
 def cancel_order(order_param):
@@ -545,6 +542,8 @@ def schedule_function(func, date_rule=None, time_rule=None, half_days=True, cale
         The rule for the times to execute this function.
     half_days : bool, optional
         Should this rule fire on half days?
+    calendar : Sentinel, optional
+        Calendar used to reconcile date and time rules.
 
     See Also
     --------
@@ -593,13 +592,15 @@ def set_cancel_policy(cancel_policy):
     :class:`zipline.api.NeverCancel`
     """
 
-def set_commission(commission):
-    """Sets the commission model for the simulation.
+def set_commission(us_equities=None, us_futures=None):
+    """Sets the commission models for the simulation.
 
     Parameters
     ----------
-    commission : CommissionModel
-        The commission model to use.
+    us_equities : EquityCommissionModel
+        The commission model to use for trading US equities.
+    us_futures : FutureCommissionModel
+        The commission model to use for trading US futures.
 
     See Also
     --------
@@ -684,13 +685,15 @@ def set_max_position_size(asset=None, max_shares=None, max_notional=None, on_err
         The maximum value to hold for an asset.
     """
 
-def set_slippage(slippage):
-    """Set the slippage model for the simulation.
+def set_slippage(us_equities=None, us_futures=None):
+    """Set the slippage models for the simulation.
 
     Parameters
     ----------
-    slippage : SlippageModel
-        The slippage model to use.
+    us_equities : EquitySlippageModel
+        The slippage model to use for trading US equities.
+    us_futures : FutureSlippageModel
+        The slippage model to use for trading US futures.
 
     See Also
     --------

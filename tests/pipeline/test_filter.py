@@ -23,7 +23,7 @@ from numpy import (
     rot90,
     sum as np_sum
 )
-from numpy.random import randn, seed as random_seed
+from numpy.random import choice, randn, seed as random_seed
 import pandas as pd
 
 from zipline.errors import BadPercentileBounds
@@ -32,6 +32,7 @@ from zipline.pipeline.classifiers import Classifier
 from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.filters import (
     All,
+    AllPresent,
     Any,
     AtLeastN,
     StaticAssets,
@@ -40,7 +41,7 @@ from zipline.pipeline.filters import (
 from zipline.testing import parameter_space, permute_rows, ZiplineTestCase
 from zipline.testing.fixtures import WithSeededRandomPipelineEngine
 from zipline.testing.predicates import assert_equal
-from zipline.utils.numpy_utils import float64_dtype, int64_dtype
+from zipline.utils.numpy_utils import float64_dtype, int64_dtype, object_dtype
 from .base import BasePipelineTestCase, with_default_shape
 
 
@@ -49,8 +50,8 @@ def rowwise_rank(array, mask=None):
     Take a 2D array and return the 0-indexed sorted position of each element in
     the array for each row.
 
-    Example
-    -------
+    Examples
+    --------
     In [5]: data
     Out[5]:
     array([[-0.141, -1.103, -1.0171,  0.7812,  0.07  ],
@@ -377,6 +378,153 @@ class FilterTestCase(BasePipelineTestCase):
             expected={'isfinite': isfinite(data)},
             initial_workspace={self.f: data},
             mask=self.build_mask(self.ones_mask()),
+        )
+
+    def test_all_present_float_factor_input(self):
+        """Test float factor input to `AllPresent`
+        """
+        class SomeWindowSafeFactor(Factor):
+            dtype = float64_dtype
+            inputs = ()
+            window_length = 0
+            window_safe = True
+
+        input_factor = SomeWindowSafeFactor()
+
+        shape = (10, 6)
+        data = self.randn_data(seed=10, shape=shape)
+        data[eye(*shape, dtype=bool)] = input_factor.missing_value
+
+        expected_3 = array([[1, 0, 0, 0, 1, 1],
+                            [1, 1, 0, 0, 0, 1],
+                            [1, 1, 1, 0, 0, 0],
+                            [1, 1, 1, 1, 0, 0],
+                            [1, 1, 1, 1, 1, 0],
+                            [1, 1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 1, 1]], dtype=bool)
+
+        expected_4 = array([[0, 0, 0, 0, 1, 1],
+                            [1, 0, 0, 0, 0, 1],
+                            [1, 1, 0, 0, 0, 0],
+                            [1, 1, 1, 0, 0, 0],
+                            [1, 1, 1, 1, 0, 0],
+                            [1, 1, 1, 1, 1, 0],
+                            [1, 1, 1, 1, 1, 1]], dtype=bool)
+        self.check_terms(
+            terms={
+                '3': AllPresent([input_factor], window_length=3),
+                '4': AllPresent([input_factor], window_length=4),
+            },
+            expected={
+                '3': expected_3,
+                '4': expected_4,
+            },
+            initial_workspace={input_factor: data},
+            mask=self.build_mask(ones(shape=shape))
+        )
+
+    def test_all_present_int_factor_input(self):
+        """Test int factor input to `AllPresent`
+        """
+        class SomeWindowSafeIntFactor(Factor):
+            dtype = int64_dtype
+            inputs = ()
+            window_length = 0
+            window_safe = True
+            missing_value = 0
+
+        input_factor = SomeWindowSafeIntFactor()
+
+        shape = (10, 6)
+        data = choice(range(1, 5), size=shape, replace=True)
+        data[eye(*shape, dtype=bool)] = input_factor.missing_value
+
+        expected_3 = array([[1, 0, 0, 0, 1, 1],
+                            [1, 1, 0, 0, 0, 1],
+                            [1, 1, 1, 0, 0, 0],
+                            [1, 1, 1, 1, 0, 0],
+                            [1, 1, 1, 1, 1, 0],
+                            [1, 1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 1, 1]], dtype=bool)
+
+        expected_4 = array([[0, 0, 0, 0, 1, 1],
+                            [1, 0, 0, 0, 0, 1],
+                            [1, 1, 0, 0, 0, 0],
+                            [1, 1, 1, 0, 0, 0],
+                            [1, 1, 1, 1, 0, 0],
+                            [1, 1, 1, 1, 1, 0],
+                            [1, 1, 1, 1, 1, 1]], dtype=bool)
+        self.check_terms(
+            terms={
+                '3': AllPresent([input_factor], window_length=3),
+                '4': AllPresent([input_factor], window_length=4),
+            },
+            expected={
+                '3': expected_3,
+                '4': expected_4,
+            },
+            initial_workspace={input_factor: data},
+            mask=self.build_mask(ones(shape=shape))
+        )
+
+    def test_all_present_classifier_input(self):
+        """Test classifier factor input to `AllPresent`
+        """
+        class SomeWindowSafeStringClassifier(Classifier):
+            dtype = object_dtype
+            inputs = ()
+            window_length = 0
+            missing_value = ''
+            window_safe = True
+
+        input_factor = SomeWindowSafeStringClassifier()
+
+        shape = (10, 6)
+        data = choice(
+            array(['a', 'e', 'i', 'o', 'u'], dtype=object_dtype),
+            size=shape,
+            replace=True
+        )
+        data[eye(*shape, dtype=bool)] = input_factor.missing_value
+
+        expected_3 = array([[1, 0, 0, 0, 1, 1],
+                            [1, 1, 0, 0, 0, 1],
+                            [1, 1, 1, 0, 0, 0],
+                            [1, 1, 1, 1, 0, 0],
+                            [1, 1, 1, 1, 1, 0],
+                            [1, 1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 1, 1]], dtype=bool)
+
+        expected_4 = array([[0, 0, 0, 0, 1, 1],
+                            [1, 0, 0, 0, 0, 1],
+                            [1, 1, 0, 0, 0, 0],
+                            [1, 1, 1, 0, 0, 0],
+                            [1, 1, 1, 1, 0, 0],
+                            [1, 1, 1, 1, 1, 0],
+                            [1, 1, 1, 1, 1, 1]], dtype=bool)
+
+        self.check_terms(
+            terms={
+                '3': AllPresent([input_factor], window_length=3),
+                '4': AllPresent([input_factor], window_length=4),
+            },
+            expected={
+                '3': expected_3,
+                '4': expected_4,
+            },
+            initial_workspace={input_factor: data},
+            mask=self.build_mask(ones(shape=shape))
+        )
+
+    def test_all_present_filter_input(self):
+        """Test error is raised when filter factor is input to `AllPresent`
+        """
+        with self.assertRaises(TypeError) as err:
+            AllPresent([Mask()], window_length=4)
+
+        self.assertEqual(
+            "Input to filter `AllPresent` cannot be a Filter.",
+            str(err.exception)
         )
 
     def test_all(self):

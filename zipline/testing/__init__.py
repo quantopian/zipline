@@ -16,6 +16,7 @@ from .core import (  # noqa
     check_allclose,
     check_arrays,
     chrange,
+    copy_market_data,
     create_daily_df_for_asset,
     create_data_portal,
     create_data_portal_from_trade_history,

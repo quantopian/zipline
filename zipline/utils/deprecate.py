@@ -14,7 +14,7 @@
 # limitations under the License.
 
 import warnings
-from functools import wraps
+from zipline.utils.compat import wraps
 
 
 def deprecated(msg=None, stacklevel=2):
@@ -28,8 +28,8 @@ def deprecated(msg=None, stacklevel=2):
     stacklevel : int
         How far up the stack the warning needs to go, before
         showing the relevant calling lines.
-    Usage
-    -----
+    Examples
+    --------
     @deprecated(msg='function_a is deprecated! Use function_b instead.')
     def function_a(*args, **kwargs):
     """

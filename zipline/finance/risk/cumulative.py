@@ -32,7 +32,6 @@ from empyrical import (
     annual_volatility,
     cum_returns,
     downside_risk,
-    information_ratio,
     max_drawdown,
     sharpe_ratio,
     sortino_ratio,
@@ -60,12 +59,12 @@ class RiskMetricsCumulative(object):
         'benchmark_volatility',
         'downside_risk',
         'sortino',
-        'information',
     )
 
-    def __init__(self, sim_params, treasury_curves, trading_calendar,
+    def __init__(self,
+                 sim_params,
+                 trading_calendar,
                  create_first_day_stats=False):
-        self.treasury_curves = treasury_curves
         self.trading_calendar = trading_calendar
         self.start_session = sim_params.start_session
         self.end_session = sim_params.end_session
@@ -129,7 +128,6 @@ class RiskMetricsCumulative(object):
         self.sharpe = empty_cont.copy()
         self.downside_risk = empty_cont.copy()
         self.sortino = empty_cont.copy()
-        self.information = empty_cont.copy()
 
         self.drawdowns = empty_cont.copy()
         self.max_drawdowns = empty_cont.copy()
@@ -242,19 +240,15 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         # big speedup, because it avoids searching the treasury
         # curves on every minute.
         # In both minutely and daily, the daily curve is always used.
+        #
+        # Zero out daily treasury and excess returns values as they are no
+        # longer actually used. However we do not remove them completely in
+        # order to retain API/protocol compatibility.
         treasury_end = dt.replace(hour=0, minute=0)
         if np.isnan(self.daily_treasury[treasury_end]):
-            treasury_period_return = choose_treasury(
-                self.treasury_curves,
-                self.start_session,
-                treasury_end,
-                self.trading_calendar,
-            )
-            self.daily_treasury[treasury_end] = treasury_period_return
+            self.daily_treasury[treasury_end] = 0
         self.treasury_period_return = self.daily_treasury[treasury_end]
-        self.excess_returns[dt_loc] = (
-            self.algorithm_cumulative_returns[dt_loc] -
-            self.treasury_period_return)
+        self.excess_returns[dt_loc] = 0
 
         self.alpha[dt_loc], self.beta[dt_loc] = alpha_beta_aligned(
             self.algorithm_returns,
@@ -269,10 +263,6 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         self.sortino[dt_loc] = sortino_ratio(
             self.algorithm_returns,
             _downside_risk=self.downside_risk[dt_loc]
-        )
-        self.information[dt_loc] = information_ratio(
-            self.algorithm_returns,
-            self.benchmark_returns,
         )
         self.max_drawdown = max_drawdown(
             self.algorithm_returns
@@ -308,7 +298,6 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             'alpha': self.alpha[dt_loc],
             'sharpe': self.sharpe[dt_loc],
             'sortino': self.sortino[dt_loc],
-            'information': self.information[dt_loc],
             'excess_return': self.excess_returns[dt_loc],
             'max_drawdown': self.max_drawdown,
             'max_leverage': self.max_leverage,

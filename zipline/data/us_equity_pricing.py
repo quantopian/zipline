@@ -915,7 +915,7 @@ class SQLiteAdjustmentWriter(object):
                 np.array([], dtype=list(expected_dtypes.items())),
             )
         else:
-            if frozenset(frame.columns) != viewkeys(expected_dtypes):
+            if frozenset(frame.columns) != frozenset(expected_dtypes):
                 raise ValueError(
                     "Unexpected frame columns:\n"
                     "Expected Columns: %s\n"
@@ -1280,7 +1280,7 @@ class SQLiteAdjustmentReader(object):
     :class:`zipline.data.us_equity_pricing.SQLiteAdjustmentWriter`
     """
 
-    @preprocess(conn=coerce_string_to_conn)
+    @preprocess(conn=coerce_string_to_conn(require_exists=True))
     def __init__(self, conn):
         self.conn = conn
 

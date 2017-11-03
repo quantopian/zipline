@@ -27,13 +27,18 @@ from zipline.utils.pandas_utils import explode
 
 from .term import AssetExists, InputDates, LoadableTerm
 
+from zipline.utils.date_utils import compute_date_range_chunks
+from zipline.utils.pandas_utils import categorical_df_concat
+from zipline.utils.sharedoc import copydoc
+
 
 class PipelineEngine(with_metaclass(ABCMeta)):
 
     @abstractmethod
     def run_pipeline(self, pipeline, start_date, end_date):
         """
-        Compute values for `pipeline` between `start_date` and `end_date`.
+        Compute values for ``pipeline`` between ``start_date`` and
+        ``end_date``.
 
         Returns a DataFrame with a MultiIndex of (date, asset) pairs.
 
@@ -51,16 +56,54 @@ class PipelineEngine(with_metaclass(ABCMeta)):
         result : pd.DataFrame
             A frame of computed results.
 
-            The columns `result` correspond to the entries of
+            The ``result`` columns correspond to the entries of
             `pipeline.columns`, which should be a dictionary mapping strings to
-            instances of `zipline.pipeline.term.Term`.
+            instances of :class:`zipline.pipeline.term.Term`.
 
-            For each date between `start_date` and `end_date`, `result` will
-            contain a row for each asset that passed `pipeline.screen`.  A
-            screen of None indicates that a row should be returned for each
-            asset that existed each day.
+            For each date between ``start_date`` and ``end_date``, ``result``
+            will contain a row for each asset that passed `pipeline.screen`.
+            A screen of ``None`` indicates that a row should be returned for
+            each asset that existed each day.
         """
         raise NotImplementedError("run_pipeline")
+
+    @abstractmethod
+    def run_chunked_pipeline(self, pipeline, start_date, end_date, chunksize):
+        """
+        Compute values for `pipeline` in number of days equal to `chunksize`
+        and return stitched up result. Computing in chunks is useful for
+        pipelines computed over a long period of time.
+
+        Parameters
+        ----------
+        pipeline : Pipeline
+            The pipeline to run.
+        start_date : pd.Timestamp
+            The start date to run the pipeline for.
+        end_date : pd.Timestamp
+            The end date to run the pipeline for.
+        chunksize : int
+            The number of days to execute at a time.
+
+        Returns
+        -------
+        result : pd.DataFrame
+            A frame of computed results.
+
+            The ``result`` columns correspond to the entries of
+            `pipeline.columns`, which should be a dictionary mapping strings to
+            instances of :class:`zipline.pipeline.term.Term`.
+
+            For each date between ``start_date`` and ``end_date``, ``result``
+            will contain a row for each asset that passed `pipeline.screen`.
+            A screen of ``None`` indicates that a row should be returned for
+            each asset that existed each day.
+
+        See Also
+        --------
+        :meth:`zipline.pipeline.engine.PipelineEngine.run_pipeline`
+        """
+        raise NotImplementedError("run_chunked_pipeline")
 
 
 class NoEngineRegistered(Exception):
@@ -77,6 +120,12 @@ class ExplodingPipelineEngine(PipelineEngine):
     def run_pipeline(self, pipeline, start_date, end_date):
         raise NoEngineRegistered(
             "Attempted to run a pipeline but no pipeline "
+            "resources were registered."
+        )
+
+    def run_chunked_pipeline(self, pipeline, start_date, end_date, chunksize):
+        raise NoEngineRegistered(
+            "Attempted to run a chunked pipeline but no pipeline "
             "resources were registered."
         )
 
@@ -114,7 +163,7 @@ def default_populate_initial_workspace(initial_workspace,
     return initial_workspace
 
 
-class SimplePipelineEngine(object):
+class SimplePipelineEngine(PipelineEngine):
     """
     PipelineEngine class that computes each term independently.
 
@@ -146,7 +195,6 @@ class SimplePipelineEngine(object):
         '_root_mask_term',
         '_root_mask_dates_term',
         '_populate_initial_workspace',
-        '__weakref__',
     )
 
     def __init__(self,
@@ -168,15 +216,6 @@ class SimplePipelineEngine(object):
     def run_pipeline(self, pipeline, start_date, end_date):
         """
         Compute a pipeline.
-
-        Parameters
-        ----------
-        pipeline : zipline.pipeline.Pipeline
-            The pipeline to run.
-        start_date : pd.Timestamp
-            Start date of the computed matrix.
-        end_date : pd.Timestamp
-            End date of the computed matrix.
 
         The algorithm implemented here can be broken down into the following
         stages:
@@ -208,9 +247,33 @@ class SimplePipelineEngine(object):
         Step 2 is performed in ``SimplePipelineEngine.compute_chunk``.
         Steps 3, 4, and 5 are performed in ``SimplePiplineEngine._to_narrow``.
 
+        Parameters
+        ----------
+        pipeline : zipline.pipeline.Pipeline
+            The pipeline to run.
+        start_date : pd.Timestamp
+            Start date of the computed matrix.
+        end_date : pd.Timestamp
+            End date of the computed matrix.
+
+        Returns
+        -------
+        result : pd.DataFrame
+            A frame of computed results.
+
+            The ``result`` columns correspond to the entries of
+            `pipeline.columns`, which should be a dictionary mapping strings to
+            instances of :class:`zipline.pipeline.term.Term`.
+
+            For each date between ``start_date`` and ``end_date``, ``result``
+            will contain a row for each asset that passed `pipeline.screen`.
+            A screen of ``None`` indicates that a row should be returned for
+            each asset that existed each day.
+
         See Also
         --------
-        PipelineEngine.run_pipeline
+        :meth:`zipline.pipeline.engine.PipelineEngine.run_pipeline`
+        :meth:`zipline.pipeline.engine.PipelineEngine.run_chunked_pipeline`
         """
         if end_date < start_date:
             raise ValueError(
@@ -255,6 +318,23 @@ class SimplePipelineEngine(object):
             dates[extra_rows:],
             assets,
         )
+
+    @copydoc(PipelineEngine.run_chunked_pipeline)
+    def run_chunked_pipeline(self, pipeline, start_date, end_date, chunksize):
+        ranges = compute_date_range_chunks(
+            self._calendar,
+            start_date,
+            end_date,
+            chunksize,
+        )
+        chunks = [self.run_pipeline(pipeline, s, e) for s, e in ranges]
+
+        if len(chunks) == 1:
+            # OPTIMIZATION: Don't make an extra copy in `categorical_df_concat`
+            # if we don't have to.
+            return chunks[0]
+
+        return categorical_df_concat(chunks, inplace=True)
 
     def _compute_root_mask(self, start_date, end_date, extra_rows):
         """
@@ -306,12 +386,20 @@ class SimplePipelineEngine(object):
             duplicated = columns[columns.duplicated()].unique()
             raise AssertionError("Duplicated sids: %d" % duplicated)
 
-        # Filter out columns that didn't exist between the requested start and
-        # end dates.
-        existed = lifetimes.iloc[extra_rows:].any()
+        # Filter out columns that didn't exist from the farthest look back
+        # window through the end of the requested dates.
+        existed = lifetimes.any()
         ret = lifetimes.loc[:, existed]
         shape = ret.shape
-        assert shape[0] * shape[1] != 0, 'root mask cannot be empty'
+
+        if shape[0] * shape[1] == 0:
+            raise ValueError(
+                "Found only empty asset-days between {} and {}.\n"
+                "This probably means that either your asset db is out of date"
+                " or that you're trying to run a Pipeline during a period with"
+                " no market days.".format(start_date, end_date),
+            )
+
         return ret
 
     @staticmethod
@@ -415,6 +503,11 @@ class SimplePipelineEngine(object):
                 loader = get_loader(term)
                 loaded = loader.load_adjusted_array(
                     to_load, mask_dates, assets, mask,
+                )
+                assert set(loaded) == set(to_load), (
+                    'loader did not return an AdjustedArray for each column\n'
+                    'expected: %r\n'
+                    'got:      %r' % (sorted(to_load), sorted(loaded))
                 )
                 workspace.update(loaded)
             else:

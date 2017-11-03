@@ -172,6 +172,18 @@ class Position(object):
         if self.amount == 0:
             return
 
+        # We treat cost basis as the share price where we have broken even.
+        # For longs, commissions cause a relatively straight forward increase
+        # in the cost basis.
+        #
+        # For shorts, you actually want to decrease the cost basis because you
+        # break even and earn a profit when the share price decreases.
+        #
+        # Shorts are represented as having a negative `amount`.
+        #
+        # The multiplication and division by `amount` cancel out leaving the
+        # cost_basis positive, while subtracting the commission.
+
         prev_cost = self.cost_basis * self.amount
         if isinstance(asset, Future):
             cost_to_use = cost / asset.multiplier

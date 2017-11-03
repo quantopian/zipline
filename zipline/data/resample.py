@@ -25,6 +25,7 @@ from zipline.data._resample import (
     _minute_to_session_close,
     _minute_to_session_volume,
 )
+from zipline.data.bar_reader import NoDataOnDate
 from zipline.data.minute_bars import MinuteBarReader
 from zipline.data.session_bars import SessionBarReader
 from zipline.utils.memoize import lazyval
@@ -62,6 +63,59 @@ def minute_frame_to_session_frame(minute_frame, calendar):
     how = OrderedDict((c, _MINUTE_TO_SESSION_OHCLV_HOW[c])
                       for c in minute_frame.columns)
     return minute_frame.groupby(calendar.minute_to_session_label).agg(how)
+
+
+def minute_panel_to_session_panel(minute_panel, calendar):
+    """
+    Resample a Panel with minute data into a daily data Panel accepted by
+    PanelBarReader.
+
+    Parameters
+    ----------
+    minute_panel : pd.Panel
+        A pricing data Panel with axes:
+          * items: assets
+          * major_axis: minute pd.DatetimeIndex
+          * minor_axis: labels ['open', 'high', 'low', 'close', 'volume']
+    calendar : zipline.utils.calendars.trading_calendar.TradingCalendar
+        A TradingCalendar on which session labels to resample from minute
+        to session.
+    """
+    def get_first_valid(df):
+        """
+        Return a Series with the first non-nan value in each column.
+
+        On an all-nan column, this function gives nan.
+        """
+        # Indices of first non-nan values
+        idxs = pd.notnull(df).idxmax()
+
+        # Expand indices to one-hot boolean columns
+        indexer = pd.get_dummies(idxs).T.astype(bool)
+
+        # Preserve all indices' values, while others are masked to nan.
+        # Then `.max()` selects the non-nan value in each column.
+        return df.loc[indexer.index][indexer].max()
+
+    def sum_or_nan(df):
+        """
+        Return `df.sum()`, but nan where the whole column is nan.
+        """
+        return df.sum().mask(pd.isnull(df).all(axis=0))
+
+    def aggregator(session_panel):
+        return pd.DataFrame({
+            'open': get_first_valid(session_panel.loc[:, :, 'open']),
+            'close': get_first_valid(session_panel.loc[:, ::-1, 'close']),
+            'high': session_panel.loc[:, :, 'high'].max(),
+            'low': session_panel.loc[:, :, 'low'].min(),
+            'volume': sum_or_nan(session_panel.loc[:, :, 'volume']),
+        }).T
+
+    session_index = calendar.minute_index_to_session_labels(
+        minute_panel.major_axis
+    )
+    return minute_panel.groupby(session_index).agg(aggregator)
 
 
 def minute_to_session(column, close_locs, data, out):
@@ -606,10 +660,6 @@ class ReindexBarReader(with_metaclass(ABCMeta)):
     Currently only supports a ``trading_calendar`` which is a superset of the
     ``reader``'s calendar.
 
-    Also, the currenty implementation only reindexes the results from
-    ``load_raw_arrays``, but in the future, `get_value` may also be made to
-    provide an empty result instead of raising on error.
-
     Parameters
     ----------
 
@@ -652,7 +702,14 @@ class ReindexBarReader(with_metaclass(ABCMeta)):
         return self._reader.first_trading_day
 
     def get_value(self, sid, dt, field):
-        return self._reader.get_value(sid, dt, field)
+        # Give an empty result if no data is present.
+        try:
+            return self._reader.get_value(sid, dt, field)
+        except NoDataOnDate:
+            if field == 'volume':
+                return 0
+            else:
+                return np.nan
 
     @abstractmethod
     def _outer_dts(self, start_dt, end_dt):

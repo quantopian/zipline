@@ -4,6 +4,7 @@ fast_finish: true
 python:
   - 2.7
   - 3.4
+  - 3.5
 env:
   global:
     # 1. Generated a token for travis at https://anaconda.org/quantopian/settings/access with scope api:write.
@@ -15,7 +16,7 @@ env:
     #   If authenticating travis gem with github, a github token with the following scopes
     #   is sufficient: ["read:org", "user:email", "repo_deployment", "repo:status", "write:repo_hook"]
     #   See https://docs.travis-ci.com/api#external-apis.
-    - secure: "iVr5iE75CPUZLX3ucgth0QA8y0JQJm+p3YrHwnCYZ5d+qTJA1eWGeA7k5+6Fhx1opCXkG+MkU8fNrSkqIA55mcAHoCINquQeQ4lfpDBgwjbjs+/2gB08Jm6ZQ78QG8cy6hEoSMDXAs27PMKyBuMkZKrIJWB8v5dWIDBz8cntBHs="
+    - secure: "W2tTHoZYLuEjoIMI/K3adv7QW7yx4iVOIkVOn73jUkv3IlyZZ+BraL0hBw5Dh/iBA9PnO1qOKeRFLDDfDza/1S+2QxZMBmJ8HAkcZehbtTPdCgn/+CYSlauUlJ2izxgnXFw49qJDllQWtwsK2PEuvHrir6wbdElkXKvIJoD7jQ4="
     - CONDA_ROOT_PYTHON_VERSION: "2.7"
   matrix:
     - NUMPY_VERSION=1.11.1 SCIPY_VERSION=0.17.1
@@ -30,16 +31,28 @@ before_install:
   - export PATH="$HOME/miniconda/bin:$PATH"
 install:
   - conda info -a
-  - conda install conda=4.1.11 conda-build=1.21.11 anaconda-client=1.5.1 --yes
+  - conda install conda=4.3.25 conda-build=3.0.15 anaconda-client=1.6.3 --yes
 
   - TALIB_VERSION=$(cat ./etc/requirements_talib.txt | sed "s/TA-Lib==\(.*\)/\1/")
-  - conda create -n testenv --yes -c quantopian pip python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION libgfortran=3.0 ta-lib=$TALIB_VERSION
-  - source activate testenv
   - IFS='.' read -r -a NPY_VERSION_ARR <<< "$NUMPY_VERSION"
   - CONDA_NPY=${NPY_VERSION_ARR[0]}${NPY_VERSION_ARR[1]}
   - CONDA_PY=$TRAVIS_PYTHON_VERSION
+
+  - if [[ "$TRAVIS_SECURE_ENV_VARS" = "true" && "$TRAVIS_BRANCH" = "master" && "$TRAVIS_PULL_REQUEST" = "false" ]]; then DO_UPLOAD="true"; else DO_UPLOAD="false"; fi
+  - |
+    for recipe in $(ls -d conda/*/ | xargs -I {} basename {}); do
+      if [[ "$recipe" = "zipline" ]]; then continue; fi
+
+      conda build conda/$recipe --python=$CONDA_PY --numpy=$CONDA_NPY --skip-existing --old-build-string -c quantopian -c quantopian/label/ci
+      RECIPE_OUTPUT=$(conda build conda/$recipe --python=$CONDA_PY --numpy=$CONDA_NPY --output)
+      if [[ -f "$RECIPE_OUTPUT" && "$DO_UPLOAD" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload "$RECIPE_OUTPUT" -u quantopian --label ci; fi
+    done
+
+  - conda create -n testenv --use-local --yes -c quantopian pip python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION libgfortran=3.0 ta-lib=$TALIB_VERSION
+  - source activate testenv
+
   - CACHE_DIR="$HOME/.cache/.pip/pip_np""$CONDA_NPY"
-  - pip install --upgrade pip coverage coveralls --cache-dir=$CACHE_DIR
+  - pip install --upgrade pip coveralls --cache-dir=$CACHE_DIR
   - pip install -r etc/requirements.txt --cache-dir=$CACHE_DIR
   - pip install -r etc/requirements_dev.txt --cache-dir=$CACHE_DIR
   - pip install -r etc/requirements_blaze.txt --cache-dir=$CACHE_DIR  # this uses git requirements right now
@@ -52,20 +65,12 @@ script:
   - nosetests --with-coverage
   # deactive env to get access to anaconda command
   - source deactivate
-  - if [[ "$TRAVIS_SECURE_ENV_VARS" = "true" && "$TRAVIS_BRANCH" = "master" && "$TRAVIS_PULL_REQUEST" = "false" ]]; then DO_UPLOAD="true"; else DO_UPLOAD="false"; fi
-  - |
-    for recipe in $(ls -d conda/*/ | xargs -I {} basename {}); do
-      if [[ "$recipe" = "zipline" ]]; then continue; fi
-
-      conda build conda/$recipe --python=$CONDA_PY --numpy=$CONDA_NPY --skip-existing -c quantopian -c https://conda.anaconda.org/quantopian/label/ci
-      RECIPE_OUTPUT=$(conda build conda/$recipe --python=$CONDA_PY --numpy=$CONDA_NPY --output)
-      if [[ -f "$RECIPE_OUTPUT" && "$DO_UPLOAD" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload "$RECIPE_OUTPUT" -u quantopian --label ci; fi
-    done
 
   # unshallow the clone so the conda build can clone it.
   - git fetch --unshallow
-  - exec 3>&1; ZP_OUT=$(conda build conda/zipline --python=$CONDA_PY --numpy=$CONDA_NPY -c quantopian -c https://conda.anaconda.org/quantopian/label/ci | tee >(cat - >&3))
+  - exec 3>&1; ZP_OUT=$(conda build conda/zipline --python=$CONDA_PY --numpy=$CONDA_NPY -c quantopian -c quantopian/label/ci | tee >(cat - >&3))
   - ZP_OUTPUT=$(echo "$ZP_OUT" | grep "anaconda upload" | awk '{print $NF}')
+  - if [ -z "$ZP_OUTPUT" ]; then exit 1; fi
   - if [[ "$DO_UPLOAD" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload $ZP_OUTPUT -u quantopian --label ci; fi
   # reactivate env (necessary for coveralls)
   - source activate testenv

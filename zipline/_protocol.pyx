@@ -501,7 +501,7 @@ cdef class BarData:
             # asset isn't alive
             return False
 
-        if asset.auto_close_date and session_label >= asset.auto_close_date:
+        if asset.auto_close_date and session_label > asset.auto_close_date:
             return False
 
         if not self._daily_mode:
@@ -648,7 +648,8 @@ cdef class BarData:
                 self._get_current_minute(),
                 bar_count,
                 frequency,
-                fields
+                fields,
+                self.data_frequency,
             )
 
             if self._adjust_minutes:
@@ -680,7 +681,8 @@ cdef class BarData:
                         self._get_current_minute(),
                         bar_count,
                         frequency,
-                        field
+                        field,
+                        self.data_frequency,
                     )[assets] for field in fields
                 }
 
@@ -708,7 +710,8 @@ cdef class BarData:
                         self._get_current_minute(),
                         bar_count,
                         frequency,
-                        field
+                        field,
+                        self.data_frequency,
                     ) for field in fields
                 }
 
