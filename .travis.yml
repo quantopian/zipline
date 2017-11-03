@@ -19,7 +19,7 @@ env:
     - secure: "W2tTHoZYLuEjoIMI/K3adv7QW7yx4iVOIkVOn73jUkv3IlyZZ+BraL0hBw5Dh/iBA9PnO1qOKeRFLDDfDza/1S+2QxZMBmJ8HAkcZehbtTPdCgn/+CYSlauUlJ2izxgnXFw49qJDllQWtwsK2PEuvHrir6wbdElkXKvIJoD7jQ4="
     - CONDA_ROOT_PYTHON_VERSION: "2.7"
   matrix:
-    - NUMPY_VERSION=1.11.1 SCIPY_VERSION=0.17.1
+    - NUMPY_VERSION=1.11.1 SCIPY_VERSION=0.18.1
 cache:
   directories:
     - $HOME/.cache/.pip/
