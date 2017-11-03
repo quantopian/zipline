@@ -9,6 +9,7 @@ from numpy import (
     float64,
     nan,
     nanpercentile,
+    uint8,
 )
 
 from zipline.errors import (
@@ -17,7 +18,7 @@ from zipline.errors import (
     UnsupportedDataType,
 )
 from zipline.lib.labelarray import LabelArray
-from zipline.lib.rank import is_missing
+from zipline.lib.rank import is_missing, grouped_masked_is_maximal
 from zipline.pipeline.dtypes import (
     CLASSIFIER_DTYPES,
     FACTOR_DTYPES,
@@ -42,7 +43,11 @@ from zipline.pipeline.mixins import (
 from zipline.pipeline.term import ComputableTerm, Term
 from zipline.utils.input_validation import expect_types
 from zipline.utils.memoize import classlazyval
-from zipline.utils.numpy_utils import bool_dtype, repeat_first_axis
+from zipline.utils.numpy_utils import (
+    bool_dtype,
+    int64_dtype,
+    repeat_first_axis,
+)
 
 
 def concat_tuples(*tuples):
@@ -580,3 +585,38 @@ class AllPresent(CustomFilter, SingleInputMixin, StandardOutputs):
                 is_missing(value, self.inputs[0].missing_value),
                 axis=0,
             )
+
+
+class MaximumFilter(Filter, StandardOutputs):
+    """Pipeline filter that selects the top asset, possibly grouped and masked.
+    """
+    window_length = 0
+
+    def __new__(cls, factor, groupby, mask):
+        return super(MaximumFilter, cls).__new__(
+            cls,
+            inputs=(factor, groupby),
+            mask=mask,
+        )
+
+    def _compute(self, arrays, dates, assets, mask):
+        data = arrays[0]
+        group_labels, null_label = self.inputs[1]._to_integral(arrays[1])
+        effective_mask = (
+            mask
+            & (group_labels != null_label)
+            & ~is_missing(data, self.inputs[0].missing_value)
+        ).view(uint8)
+
+        return grouped_masked_is_maximal(
+            # Unconditionally view the data as int64.
+            # This is safe because casting from float64 to int64 is an
+            # order-preserving operation.
+            data.view(int64_dtype),
+            # PERF: Consider supporting different sizes of group labels.
+            group_labels.astype(int64_dtype),
+            effective_mask,
+        )
+
+    def __repr__(self):
+        return "Maximum({}, groupby={}, mask={})".format(*self.inputs)

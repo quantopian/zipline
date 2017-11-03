@@ -38,6 +38,7 @@ from zipline.pipeline.filters import (
     Filter,
     NumExprFilter,
     PercentileFilter,
+    MaximumFilter,
     NotNullFilter,
     NullFilter,
 )
@@ -58,10 +59,8 @@ from zipline.utils.math_utils import nanmean, nanstd
 from zipline.utils.memoize import classlazyval
 from zipline.utils.numpy_utils import (
     bool_dtype,
-    categorical_dtype,
     coerce_to_dtype,
     float64_dtype,
-    int64_dtype,
 )
 
 
@@ -1065,6 +1064,10 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         -------
         filter : zipline.pipeline.filters.Filter
         """
+        if N == 1:
+            # Special case: if N == 1, we can avoid doing a full sort on every
+            # group, which is a big win.
+            return self._maximum(mask=mask, groupby=groupby)
         return self.rank(ascending=False, mask=mask, groupby=groupby) <= N
 
     def bottom(self, N, mask=NotSpecified, groupby=NotSpecified):
@@ -1090,6 +1093,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         filter : zipline.pipeline.Filter
         """
         return self.rank(ascending=True, mask=mask, groupby=groupby) <= N
+
+    def _maximum(self, mask=NotSpecified, groupby=NotSpecified):
+        return MaximumFilter(self, groupby=groupby, mask=mask)
 
     def percentile_between(self,
                            min_percentile,
@@ -1297,21 +1303,7 @@ class GroupedRowTransform(Factor):
 
     def _compute(self, arrays, dates, assets, mask):
         data = arrays[0]
-        groupby_expr = self.inputs[1]
-        if groupby_expr.dtype == int64_dtype:
-            group_labels = arrays[1]
-            null_label = self.inputs[1].missing_value
-        elif groupby_expr.dtype == categorical_dtype:
-            # Coerce our LabelArray into an isomorphic array of ints.  This is
-            # necessary because np.where doesn't know about LabelArrays or the
-            # void dtype.
-            group_labels = arrays[1].as_int_array()
-            null_label = arrays[1].missing_value_code
-        else:
-            raise TypeError(
-                "Unexpected groupby dtype: %s." % groupby_expr.dtype
-            )
-
+        group_labels, null_label = self.inputs[1]._to_integral(arrays[1])
         # Make a copy with the null code written to masked locations.
         group_labels = where(mask, group_labels, null_label)
         return where(
