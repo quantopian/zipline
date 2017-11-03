@@ -41,6 +41,7 @@ from zipline.data.us_equity_pricing import (
     SQLiteAdjustmentWriter,
 )
 from zipline.finance.blotter import Blotter
+from zipline.finance.constants import BENCHMARK_SYMBOL
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.order import ORDER_STATUS
 from zipline.lib.labelarray import LabelArray
@@ -1493,7 +1494,7 @@ def patch_read_csv(url_map, module=pd, strict=False):
 
 
 def copy_market_data(src_market_data_dir, dest_root_dir):
-    symbol = '^GSPC'
+    symbol = BENCHMARK_SYMBOL
     filenames = (get_benchmark_filename(symbol), INDEX_MAPPING[symbol][1])
 
     ensure_directory(os.path.join(dest_root_dir, 'data'))

@@ -49,6 +49,7 @@ from ..utils.final import FinalMeta, final
 import zipline
 from zipline.assets import Equity, Future
 from zipline.finance.asset_restrictions import NoRestrictions
+from zipline.finance.constants import BENCHMARK_SYMBOL
 from zipline.pipeline import SimplePipelineEngine
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders import USEquityPricingLoader
@@ -503,7 +504,7 @@ class WithTradingEnvironment(WithAssetFinder,
     @classmethod
     def make_load_function(cls):
         def load(*args, **kwargs):
-            symbol = '^GSPC'
+            symbol = BENCHMARK_SYMBOL
 
             filename = get_benchmark_filename(symbol)
             source_path = os.path.join(cls.MARKET_DATA_DIR, filename)
