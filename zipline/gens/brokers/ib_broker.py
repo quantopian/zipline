@@ -52,12 +52,12 @@ Position = namedtuple('Position', ['contract', 'position', 'market_price',
 
 def log_message(message, mapping):
     try:
-        del(mapping['self'])
-    except (KeyError, ):
+        del (mapping['self'])
+    except (KeyError,):
         pass
     items = list(mapping.items())
     items.sort()
-    log.debug(('### %s' % (message, )))
+    log.debug(('### %s' % (message,)))
     for k, v in items:
         log.debug(('    %s:%s' % (k, v)))
 
@@ -404,8 +404,15 @@ class IBBroker(Broker):
                 continue
             z_position.amount = int(ib_position.position)
             z_position.cost_basis = float(ib_position.average_cost)
-            z_position.last_sale_price = None  # TODO(tibor): Fill from state
-            z_position.last_sale_date = None  # TODO(tibor): Fill from state
+            # Check if symbol exists in bars df
+            if symbol in self._tws.bars:
+                z_position.last_sale_price = \
+                    float(self._tws.bars[symbol].last_trade_price.iloc[-1])
+                z_position.last_sale_date = \
+                    self._tws.bars[symbol].index.values[-1]
+            else:
+                z_position.last_sale_price = None
+                z_position.last_sale_date = None
             z_positions[symbol_lookup(symbol)] = z_position
 
         return z_positions
@@ -424,8 +431,11 @@ class IBBroker(Broker):
         z_portfolio.cash = float(ib_account['TotalCashValue'])
         z_portfolio.start_date = None  # TODO(tibor)
         z_portfolio.positions = self.positions
-        z_portfolio.positions_value = None  # TODO(tibor)
-        z_portfolio.positions_exposure = None  # TODO(tibor)
+        z_portfolio.positions_value = float(ib_account['StockMarketValue'])
+        z_portfolio.positions_exposure \
+            = (z_portfolio.positions_value /
+               (z_portfolio.positions_value +
+                float(ib_account['TotalCashValue'])))
 
         return z_portfolio
 
@@ -435,19 +445,22 @@ class IBBroker(Broker):
 
         z_account = zp.Account()
 
-        z_account.settled_cash = None  # TODO(tibor)
+        z_account.settled_cash = float(ib_account['TotalCashValue-S'])
         z_account.accrued_interest = None  # TODO(tibor)
         z_account.buying_power = float(ib_account['BuyingPower'])
         z_account.equity_with_loan = float(ib_account['EquityWithLoanValue'])
-        z_account.total_positions_value = None  # TODO(tibor)
-        z_account.total_positions_exposure = None  # TODO(tibor)
+        z_account.total_positions_value = float(ib_account['StockMarketValue'])
+        z_account.total_positions_exposure = float(
+            (z_account.total_positions_value /
+             (z_account.total_positions_value +
+              float(ib_account['TotalCashValue']))))
         z_account.regt_equity = float(ib_account['RegTEquity'])
         z_account.regt_margin = float(ib_account['RegTMargin'])
         z_account.initial_margin_requirement = float(
             ib_account['FullInitMarginReq'])
         z_account.maintenance_margin_requirement = float(
             ib_account['FullMaintMarginReq'])
-        z_account.available_funds = None  # TODO(tibor)
+        z_account.available_funds = float(ib_account['AvailableFunds'])
         z_account.excess_liquidity = float(ib_account['ExcessLiquidity'])
         z_account.cushion = float(
             self._tws.accounts[self.account_id]['']['Cushion'])
@@ -455,7 +468,9 @@ class IBBroker(Broker):
             self._tws.accounts[self.account_id]['']['DayTradesRemaining'])
         z_account.leverage = float(
             self._tws.accounts[self.account_id]['']['Leverage-S'])
-        z_account.net_leverage = None  # TODO(tibor)
+        z_account.net_leverage = float(
+            ib_account['StockMarketValue'] /
+            (ib_account['TotalCashValue'] + ib_account['StockMarketValue']))
         z_account.net_liquidation = float(ib_account['NetLiquidation'])
 
         return z_account
@@ -517,7 +532,7 @@ class IBBroker(Broker):
                 asset: [order.to_api_obj() for order in itervalues(self.orders)
                         if order.asset == asset]
                 for asset in assets
-            }
+                }
         return [order.to_api_obj() for order in itervalues(self.orders)
                 if order.asset == asset and order.open]
 
