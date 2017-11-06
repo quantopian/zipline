@@ -468,9 +468,10 @@ class IBBroker(Broker):
             self._tws.accounts[self.account_id]['']['DayTradesRemaining'])
         z_account.leverage = float(
             self._tws.accounts[self.account_id]['']['Leverage-S'])
-        z_account.net_leverage = float(
-            ib_account['StockMarketValue'] /
-            (ib_account['TotalCashValue'] + ib_account['StockMarketValue']))
+        z_account.net_leverage = (
+            float(ib_account['StockMarketValue']) /
+            (float(ib_account['TotalCashValue']) +
+             float(ib_account['StockMarketValue'])))
         z_account.net_liquidation = float(ib_account['NetLiquidation'])
 
         return z_account
