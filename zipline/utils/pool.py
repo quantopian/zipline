@@ -134,3 +134,11 @@ class SequentialPool(object):
             f(*args, **kwargs)
         """
         return f(*args, **kwargs or {})
+
+    @staticmethod
+    def close():
+        pass
+
+    @staticmethod
+    def join():
+        pass
