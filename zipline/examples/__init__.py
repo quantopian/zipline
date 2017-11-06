@@ -4,7 +4,7 @@ import os
 from toolz import merge
 
 from zipline import run_algorithm
-
+from zipline.data.bundles.core import register
 
 # These are used by test_examples.py to discover the examples to run.
 from zipline.utils.calendars import register_calendar, get_calendar
@@ -69,6 +69,8 @@ def run_example(example_name, environ):
     mod = EXAMPLE_MODULES[example_name]
 
     register_calendar("YAHOO", get_calendar("NYSE"), force=True)
+    # for when we don't actually have a 'test' bundle
+    register('test', lambda *args: None)
 
     return run_algorithm(
         initialize=getattr(mod, 'initialize', None),

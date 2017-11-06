@@ -21,6 +21,7 @@ import pandas as pd
 
 from zipline import examples
 from zipline.data.bundles import register, unregister
+from zipline.finance.constants import BENCHMARK_SYMBOL
 from zipline.testing import test_resource_path
 from zipline.testing.fixtures import WithTmpDir, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
@@ -55,7 +56,10 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             serialization='pickle',
         )
 
-        market_data = ('SPY_benchmark.csv', 'treasury_curves.csv')
+        market_data = (
+            '{}_benchmark.csv'.format(BENCHMARK_SYMBOL),
+            'treasury_curves.csv'
+        )
         for data in market_data:
             update_modified_time(
                 cls.tmpdir.getpath(

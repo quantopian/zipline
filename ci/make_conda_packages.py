@@ -27,29 +27,30 @@ PKG_PATH_PATTERN = re.compile(".* anaconda upload (?P<pkg_path>.+)$")
 
 def main(env, do_upload):
     for recipe in get_immediate_subdirectories('conda'):
-        cmd = ["conda", "build", os.path.join('conda', recipe),
-               "--python", env['CONDA_PY'],
-               "--numpy", env['CONDA_NPY'],
-               "--skip-existing",
-               "-c", "quantopian/label/ci",
-               "-c", "quantopian"]
+        if env['CONDA_PY'] != '3.4':
+            cmd = ["conda", "build", os.path.join('conda', recipe),
+                   "--python", env['CONDA_PY'],
+                   "--numpy", env['CONDA_NPY'],
+                   "--skip-existing",
+                   "-c", "quantopian/label/ci",
+                   "-c", "quantopian"]
 
-        output = None
-
-        for line in iter_stdout(cmd):
-            print(line)
-
-            if not output:
-                match = PKG_PATH_PATTERN.match(line)
-                if match:
-                    output = match.group('pkg_path')
-
-        if output and os.path.exists(output) and do_upload:
-            cmd = ["anaconda", "-t", env['ANACONDA_TOKEN'],
-                   "upload", output, "-u", "quantopian", "--label", "ci"]
+            output = None
 
             for line in iter_stdout(cmd):
                 print(line)
+
+                if not output:
+                    match = PKG_PATH_PATTERN.match(line)
+                    if match:
+                        output = match.group('pkg_path')
+
+            if output and os.path.exists(output) and do_upload:
+                cmd = ["anaconda", "-t", env['ANACONDA_TOKEN'],
+                   "upload", output, "-u", "quantopian", "--label", "ci"]
+
+                for line in iter_stdout(cmd):
+                    print(line)
 
 
 if __name__ == '__main__':
