@@ -90,8 +90,8 @@ function UpdateConda ($python_home) {
 
 function main () {
     InstallMiniconda $env:CONDA_ROOT_PYTHON_VERSION $env:PYTHON_ARCH $env:PYTHON
-    UpdateConda $env:PYTHON
-    InstallCondaPackages $env:PYTHON "conda-build jinja2 anaconda-client"
+    # UpdateConda $env:PYTHON
+    # InstallCondaPackages $env:PYTHON "conda-build jinja2 anaconda-client"
 }
 
 main
