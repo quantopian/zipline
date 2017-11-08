@@ -66,6 +66,17 @@ class Returns(CustomFactor):
         out[:] = (close[-1] - close[0]) / close[0]
 
 
+class DailyReturns(Returns):
+    """
+    Calculates daily percent change in close price.
+
+    **Default Inputs**: [USEquityPricing.close]
+    """
+    inputs = [USEquityPricing.close]
+    window_safe = True
+    window_length = 2
+
+
 class RSI(CustomFactor, SingleInputMixin):
     """
     Relative Strength Index
