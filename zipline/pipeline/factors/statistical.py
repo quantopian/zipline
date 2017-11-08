@@ -15,7 +15,7 @@ from zipline.pipeline.term import AssetExists
 from zipline.utils.input_validation import expect_bounded, expect_dtypes
 from zipline.utils.numpy_utils import float64_dtype, int64_dtype
 
-from .technical import Returns
+from .basic import Returns
 
 
 ALLOWED_DTYPES = (float64_dtype, int64_dtype)
