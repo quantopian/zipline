@@ -50,6 +50,15 @@ Position = namedtuple('Position', ['contract', 'position', 'market_price',
                                    'account_name'])
 
 
+symbol_to_exchange = defaultdict(lambda: 'SMART')
+symbol_to_exchange['VIX'] = 'CBOE'
+symbol_to_exchange['GLD'] = 'ARCA'
+symbol_to_exchange['GDX'] = 'ARCA'
+
+symbol_to_sec_type = defaultdict(lambda: 'STK')
+symbol_to_sec_type['VIX'] = 'IND'
+
+
 def log_message(message, mapping):
     try:
         del (mapping['self'])
@@ -143,10 +152,9 @@ class TWSConnection(EClientSocket, EWrapper):
 
         contract = Contract()
         contract.m_symbol = symbol
-        contract.m_secType = sec_type
-        contract.m_exchange = exchange
+        contract.m_secType = symbol_to_sec_type[symbol]
+        contract.m_exchange = symbol_to_exchange[symbol]
         contract.m_currency = currency
-
         ticker_id = self.next_ticker_id
 
         self.symbol_to_ticker_id[symbol] = ticker_id
@@ -492,8 +500,8 @@ class IBBroker(Broker):
         contract = Contract()
         contract.m_symbol = str(asset.symbol)
         contract.m_currency = self.currency
-        contract.m_exchange = 'SMART'
-        contract.m_secType = 'STK'
+        contract.m_exchange = symbol_to_exchange[str(asset.symbol)]
+        contract.m_secType = symbol_to_sec_type[str(asset.symbol)]
 
         order = Order()
         order.m_totalQuantity = int(fabs(amount))
