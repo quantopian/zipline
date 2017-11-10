@@ -29,6 +29,15 @@ from zipline.utils.math_utils import (
 from zipline.utils.numpy_utils import rolling_window
 
 from .basic import exponential_weights
+from .basic import (  # noqa reexport
+    # These are re-exported here for backwards compatibility with the old
+    # definition site.
+    LinearWeightedMovingAverage,
+    MaxDrawdown,
+    SimpleMovingAverage,
+    VWAP,
+    WeightedAverageValue
+)
 
 
 class RSI(CustomFactor, SingleInputMixin):
