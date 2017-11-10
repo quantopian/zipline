@@ -4,6 +4,7 @@ Module for building a complete daily dataset from Quandl's WIKI dataset.
 from io import BytesIO
 import tarfile
 from zipfile import ZipFile
+import warnings
 
 from click import progressbar
 from logbook import Logger
@@ -12,11 +13,12 @@ import requests
 from six.moves.urllib.parse import urlencode
 
 from zipline.utils.calendars import register_calendar_alias
-
+from zipline.utils.deprecate import deprecated
 from . import core as bundles
 import numpy as np
 
 log = Logger(__name__)
+warnings.simplefilter('once', DeprecationWarning)
 
 ONE_MEGABYTE = 1024 * 1024
 QUANDL_DATA_URL = (
@@ -286,6 +288,10 @@ QUANTOPIAN_QUANDL_URL = (
 
 
 @bundles.register('quantopian-quandl', create_writers=False)
+@deprecated(
+    'quantopian-quandl has been deprecated and '
+    'will be removed in a future release.'
+)
 def quantopian_quandl_bundle(environ,
                              asset_db_writer,
                              minute_bar_writer,
@@ -297,10 +303,7 @@ def quantopian_quandl_bundle(environ,
                              cache,
                              show_progress,
                              output_dir):
-    log.warn(
-        'quantopian-quandl has been deprecated and '
-        'will be removed in a future release.'
-    )
+
     if show_progress:
         data = download_with_progress(
             QUANTOPIAN_QUANDL_URL,

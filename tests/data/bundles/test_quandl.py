@@ -184,21 +184,22 @@ class QuandlBundleTestCase(WithResponses,
                 content_type='application/zip',
                 status=200
             )
-            url_map = {
-                format_metadata_url(self.api_key): test_resource_path(
-                    'quandl_samples',
-                    'metadata.csv.gz',
-                )
-            }
 
-            zipline_root = self.enter_instance_context(tmp_dir()).path
-            environ = {
-                'ZIPLINE_ROOT': zipline_root,
-                'QUANDL_API_KEY': self.api_key,
-            }
+        url_map = {
+            format_metadata_url(self.api_key): test_resource_path(
+                'quandl_samples',
+                'metadata.csv.gz',
+            )
+        }
 
-            with patch_read_csv(url_map):
-                ingest('quandl', environ=environ)
+        zipline_root = self.enter_instance_context(tmp_dir()).path
+        environ = {
+            'ZIPLINE_ROOT': zipline_root,
+            'QUANDL_API_KEY': self.api_key,
+        }
+
+        with patch_read_csv(url_map):
+            ingest('quandl', environ=environ)
 
         bundle = load('quandl', environ=environ)
         sids = 0, 1, 2, 3
