@@ -4,6 +4,21 @@ from .factor import (
     Latest,
     RecarrayField,
 )
+from .basic import (
+    AnnualizedVolatility,
+    AverageDollarVolume,
+    DailyReturns,
+    EWMA,
+    ExponentialWeightedMovingAverage,
+    ExponentialWeightedMovingStdDev,
+    EWMSTD,
+    LinearWeightedMovingAverage,
+    MaxDrawdown,
+    Returns,
+    SimpleMovingAverage,
+    VWAP,
+    WeightedAverageValue,
+)
 from .events import (
     BusinessDaysSincePreviousEvent,
     BusinessDaysUntilNextEvent,
@@ -14,27 +29,15 @@ from .statistical import (
     RollingSpearmanOfReturns,
 )
 from .technical import (
-    AnnualizedVolatility,
     Aroon,
-    AverageDollarVolume,
     BollingerBands,
-    EWMA,
-    EWMSTD,
-    ExponentialWeightedMovingAverage,
-    ExponentialWeightedMovingStdDev,
     FastStochasticOscillator,
     IchimokuKinkoHyo,
-    LinearWeightedMovingAverage,
     MACDSignal,
-    MaxDrawdown,
     MovingAverageConvergenceDivergenceSignal,
     RateOfChangePercentage,
-    Returns,
     RSI,
-    SimpleMovingAverage,
     TrueRange,
-    VWAP,
-    WeightedAverageValue,
 )
 
 __all__ = [
@@ -45,6 +48,7 @@ __all__ = [
     'BusinessDaysSincePreviousEvent',
     'BusinessDaysUntilNextEvent',
     'CustomFactor',
+    'DailyReturns',
     'EWMA',
     'EWMSTD',
     'ExponentialWeightedMovingAverage',
