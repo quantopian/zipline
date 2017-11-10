@@ -70,7 +70,7 @@ from .asset_writer import (
 from .asset_db_schema import (
     ASSET_DB_VERSION
 )
-from zipline.utils.control_flow import invert
+from zipline.utils.functional import invert
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import as_column
 from zipline.utils.preprocess import preprocess
