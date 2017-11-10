@@ -16,7 +16,7 @@ from zipline.errors import (
     UnsupportedDataType,
     NoFurtherDataError,
 )
-from zipline.utils.control_flow import nullctx
+from zipline.utils.context_tricks import nop_context
 from zipline.utils.input_validation import expect_types
 from zipline.utils.sharedoc import (
     format_docstring,
@@ -106,7 +106,7 @@ class CustomTermMixin(object):
 
     Used by CustomFactor, CustomFilter, CustomClassifier, etc.
     """
-    ctx = nullctx()
+    ctx = nop_context
 
     def __new__(cls,
                 inputs=NotSpecified,
