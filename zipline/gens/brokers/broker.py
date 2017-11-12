@@ -42,15 +42,15 @@ class Broker(object):
         pass
 
     @abstractmethod
-    def order(self, asset, amount, limit_price, stop_price, style):
+    def order(self, asset, amount, style):
         pass
 
-    @abstractmethod
-    def get_open_orders(self, asset):
+    @abstractproperty
+    def orders(self):
         pass
 
-    @abstractmethod
-    def get_order(self, order_id):
+    @abstractproperty
+    def transactions(self):
         pass
 
     @abstractmethod

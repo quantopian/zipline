@@ -14,10 +14,18 @@ try:                                    # Python 3
 except ImportError:                     # Python 2
     from itertools import izip_longest as zip_longest
 
+from functools import partial
+
 import os
+from math import fabs
 
 from mock import patch, sentinel, Mock, MagicMock
 from testfixtures import tempdir
+
+from ib.ext.Contract import Contract
+from ib.ext.Order import Order
+from ib.ext.Execution import Execution
+from ib.ext.OrderState import OrderState
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.algorithm_live import LiveTradingAlgorithm, LiveAlgorithmExecutor
@@ -25,10 +33,18 @@ from zipline.data.data_portal_live import DataPortalLive
 from zipline.gens.realtimeclock import (RealtimeClock,
                                         SESSION_START,
                                         BEFORE_TRADING_START_BAR)
+from zipline.finance.order import Order as ZPOrder
+from zipline.finance.blotter_live import BlotterLive
 from zipline.gens.sim_engine import MinuteSimulationClock
 from zipline.gens.brokers.broker import Broker
 from zipline.gens.brokers.ib_broker import IBBroker, TWSConnection
 from zipline.testing.fixtures import WithSimParams
+from zipline.finance.execution import (StopLimitOrder,
+                                       MarketOrder,
+                                       StopOrder,
+                                       LimitOrder)
+from zipline.finance.order import ORDER_STATUS
+from zipline.finance.transaction import Transaction
 from zipline.utils.calendars import get_calendar
 from zipline.utils.calendars.trading_calendar import days_at_time
 from zipline.utils.serialization_utils import load_context, store_context
@@ -405,11 +421,12 @@ class TestLiveTradingAlgorithm(WithSimParams,
         with self.assertRaises(CannotOrderDelistedAsset):
             backtest_algo.handle_data(data=sentinel.data)
 
-        live_algo = create_initialized_algo(LiveTradingAlgorithm, current_dt)
+        broker = MagicMock(spec=Broker)
+        live_algo = create_initialized_algo(
+            partial(LiveTradingAlgorithm, broker=broker), current_dt)
         live_algo.trading_client = MagicMock(spec=LiveAlgorithmExecutor)
         live_algo.trading_client.current_data = Mock()
         live_algo.trading_client.current_data.current.return_value = 12
-        live_algo.broker = MagicMock(spec=Broker)
 
         live_algo.handle_data(data=sentinel.data)
         assert live_algo.broker.order.called
@@ -477,10 +494,10 @@ class TestIBBroker(WithSimParams, ZiplineTestCase):
     ASSET_FINDER_EQUITY_SIDS = (1, 2)
     ASSET_FINDER_EQUITY_SYMBOLS = ("SPY", "XIV")
 
-    def tws_bars(self):
+    @staticmethod
+    def _tws_bars():
         with patch('zipline.gens.brokers.ib_broker.TWSConnection.connect'):
-            tws = TWSConnection("localhost:9999:1111",
-                                sentinel.order_update_callback)
+            tws = TWSConnection("localhost:9999:1111")
 
         tws._add_bar('SPY', 12.4, 10,
                      pd.to_datetime('2017-09-27 10:30:00', utc=True),
@@ -511,6 +528,42 @@ class TestIBBroker(WithSimParams, ZiplineTestCase):
                      450, 100.741, False)
 
         return tws.bars
+
+    @staticmethod
+    def _create_contract(symbol):
+        contract = Contract()
+        contract.m_symbol = symbol
+        contract.m_secType = 'STK'
+        return contract
+
+    @staticmethod
+    def _create_order(action, qty, order_type, limit_price, stop_price):
+        order = Order()
+        order.m_action = action
+        order.m_totalQuantity = qty
+        order.m_auxPrice = stop_price
+        order.m_lmtPrice = limit_price
+        order.m_orderType = order_type
+        return order
+
+    @staticmethod
+    def _create_order_state(status_):
+        status = OrderState()
+        status.m_status = status_
+        return status
+
+    @staticmethod
+    def _create_exec_detail(order_id, shares, cum_qty, price, avg_price,
+                            exec_time, exec_id):
+        exec_detail = Execution()
+        exec_detail.m_orderId = order_id
+        exec_detail.m_shares = shares
+        exec_detail.m_cumQty = cum_qty
+        exec_detail.m_price = price
+        exec_detail.m_avgPrice = avg_price
+        exec_detail.m_time = exec_time
+        exec_detail.m_execId = exec_id
+        return exec_detail
 
     @patch('zipline.gens.brokers.ib_broker.TWSConnection')
     def test_get_spot_value(self, tws):
@@ -550,7 +603,7 @@ class TestIBBroker(WithSimParams, ZiplineTestCase):
         assert volume == sum(bars['last_trade_size'][1:])
 
     def test_get_realtime_bars_produces_correct_df(self):
-        bars = self.tws_bars()
+        bars = self._tws_bars()
 
         with patch('zipline.gens.brokers.ib_broker.TWSConnection'):
             broker = IBBroker(sentinel.tws_uri)
@@ -613,3 +666,394 @@ class TestIBBroker(WithSimParams, ZiplineTestCase):
         assert xiv_non_na.iloc[0].low == 100.4
         assert xiv_non_na.iloc[0].close == 100.41
         assert xiv_non_na.iloc[0].volume == 200
+
+    @patch('zipline.gens.brokers.ib_broker.symbol_lookup')
+    def test_new_order_appears_in_orders(self, symbol_lookup):
+        with patch('zipline.gens.brokers.ib_broker.TWSConnection.connect'):
+            broker = IBBroker("localhost:9999:1111", account_id='TEST-123')
+            broker._tws.nextValidId(0)
+
+        asset = self.env.asset_finder.retrieve_asset(1)
+        symbol_lookup.return_value = asset
+        amount = -4
+        limit_price = 43.1
+        stop_price = 6
+        style = StopLimitOrder(limit_price=limit_price, stop_price=stop_price)
+        order = broker.order(asset, amount, style)
+
+        assert len(broker.orders) == 1
+        assert broker.orders[order.id] == order
+        assert order.open
+        assert order.asset == asset
+        assert order.amount == amount
+        assert order.limit == limit_price
+        assert order.stop == stop_price
+        assert (order.dt - pd.to_datetime('now', utc=True) <
+                pd.Timedelta('10s'))
+
+    @patch('zipline.gens.brokers.ib_broker.symbol_lookup')
+    def test_orders_loaded_from_open_orders(self, symbol_lookup):
+        with patch('zipline.gens.brokers.ib_broker.TWSConnection.connect'):
+            broker = IBBroker("localhost:9999:1111", account_id='TEST-123')
+
+        asset = self.env.asset_finder.retrieve_asset(1)
+        symbol_lookup.return_value = asset
+
+        ib_order_id = 3
+        ib_contract = self._create_contract(str(asset.symbol))
+        action, qty, order_type, limit_price, stop_price = \
+            'SELL', 40, 'STP LMT', 4.3, 2
+        ib_order = self._create_order(
+            action, qty, order_type, limit_price, stop_price)
+        ib_state = self._create_order_state('PreSubmitted')
+        broker._tws.openOrder(ib_order_id, ib_contract, ib_order, ib_state)
+
+        assert len(broker.orders) == 1
+        zp_order = list(broker.orders.values())[-1]
+        assert zp_order.broker_order_id == ib_order_id
+        assert zp_order.status == ORDER_STATUS.HELD
+        assert zp_order.open
+        assert zp_order.asset == asset
+        assert zp_order.amount == -40
+        assert zp_order.limit == limit_price
+        assert zp_order.stop == stop_price
+        assert (zp_order.dt - pd.to_datetime('now', utc=True) <
+                pd.Timedelta('10s'))
+
+        @patch('zipline.gens.brokers.ib_broker.symbol_lookup')
+        def test_orders_loaded_from_exec_details(self, symbol_lookup):
+            with patch('zipline.gens.brokers.ib_broker.TWSConnection.connect'):
+                broker = IBBroker("localhost:9999:1111", account_id='TEST-123')
+
+            asset = self.env.asset_finder.retrieve_asset(1)
+            symbol_lookup.return_value = asset
+
+            (req_id, ib_order_id, shares, cum_qty,
+             price, avg_price, exec_time, exec_id) = (7, 3, 12, 40,
+                                                      12.43, 12.50,
+                                                      '20160101 14:20', 4)
+            ib_contract = self._create_contract(str(asset.symbol))
+            exec_detail = self._create_exec_detail(
+                ib_order_id, shares, cum_qty, price, avg_price,
+                exec_time, exec_id)
+            broker._tws.execDetails(req_id, ib_contract, exec_detail)
+
+            assert len(broker.orders) == 1
+            zp_order = list(broker.orders.values())[-1]
+            assert zp_order.broker_order_id == ib_order_id
+            assert zp_order.open
+            assert zp_order.asset == asset
+            assert zp_order.amount == -40
+            assert zp_order.limit == limit_price
+            assert zp_order.stop == stop_price
+            assert (zp_order.dt - pd.to_datetime('now', utc=True) <
+                    pd.Timedelta('10s'))
+
+    @patch('zipline.gens.brokers.ib_broker.symbol_lookup')
+    def test_orders_updated_from_order_status(self, symbol_lookup):
+        with patch('zipline.gens.brokers.ib_broker.TWSConnection.connect'):
+            broker = IBBroker("localhost:9999:1111", account_id='TEST-123')
+            broker._tws.nextValidId(0)
+
+        # orderStatus calls only work if a respective order has been created
+        asset = self.env.asset_finder.retrieve_asset(1)
+        symbol_lookup.return_value = asset
+        amount = -4
+        limit_price = 43.1
+        stop_price = 6
+        style = StopLimitOrder(limit_price=limit_price, stop_price=stop_price)
+        order = broker.order(asset, amount, style)
+
+        ib_order_id = order.broker_order_id
+        status = 'Filled'
+        filled = 14
+        remaining = 9
+        avg_fill_price = 12.4
+        perm_id = 99
+        parent_id = 88
+        last_fill_price = 12.3
+        client_id = 1111
+        why_held = ''
+
+        broker._tws.orderStatus(ib_order_id,
+                                status, filled, remaining, avg_fill_price,
+                                perm_id, parent_id, last_fill_price, client_id,
+                                why_held)
+
+        assert len(broker.orders) == 1
+        zp_order = list(broker.orders.values())[-1]
+        assert zp_order.broker_order_id == ib_order_id
+        assert zp_order.status == ORDER_STATUS.FILLED
+        assert not zp_order.open
+        assert zp_order.asset == asset
+        assert zp_order.amount == amount
+        assert zp_order.limit == limit_price
+        assert zp_order.stop == stop_price
+        assert (zp_order.dt - pd.to_datetime('now', utc=True) <
+                pd.Timedelta('10s'))
+
+    @patch('zipline.gens.brokers.ib_broker.symbol_lookup')
+    def test_multiple_orders(self, symbol_lookup):
+        with patch('zipline.gens.brokers.ib_broker.TWSConnection.connect'):
+            broker = IBBroker("localhost:9999:1111", account_id='TEST-123')
+            broker._tws.nextValidId(0)
+
+        asset = self.env.asset_finder.retrieve_asset(1)
+        symbol_lookup.return_value = asset
+
+        order_count = 0
+        for amount, order_style in [
+                (-112, StopLimitOrder(limit_price=9, stop_price=1)),
+                (43, LimitOrder(limit_price=10)),
+                (-99, StopOrder(stop_price=8)),
+                (-32, MarketOrder())]:
+            order = broker.order(asset, amount, order_style)
+            order_count += 1
+
+            assert order_count == len(broker.orders)
+            assert broker.orders[order.id] == order
+            is_buy = amount > 0
+            assert order.stop == order_style.get_stop_price(is_buy)
+            assert order.limit == order_style.get_limit_price(is_buy)
+
+    def test_order_ref_serdes(self):
+        # Even though _creater_order_ref and _parse_order_ref is private
+        # it is helpful to test as it plays a key role to re-create orders
+        order = self._create_order("BUY", 66, "STP LMT", 13.4, 44.2)
+        serialized = IBBroker._create_order_ref(order)
+        deserialized = IBBroker._parse_order_ref(serialized)
+        assert deserialized['action'] == order.m_action
+        assert deserialized['qty'] == order.m_totalQuantity
+        assert deserialized['order_type'] == order.m_orderType
+        assert deserialized['limit_price'] == order.m_lmtPrice
+        assert deserialized['stop_price'] == order.m_auxPrice
+        assert (deserialized['dt'] - pd.to_datetime('now', utc=True) <
+                pd.Timedelta('10s'))
+
+    @patch('zipline.gens.brokers.ib_broker.symbol_lookup')
+    def test_transactions_not_created_for_incompl_orders(self, symbol_lookup):
+        with patch('zipline.gens.brokers.ib_broker.TWSConnection.connect'):
+            broker = IBBroker("localhost:9999:1111", account_id='TEST-123')
+            broker._tws.nextValidId(0)
+
+        asset = self.env.asset_finder.retrieve_asset(1)
+        symbol_lookup.return_value = asset
+        amount = -4
+        limit_price = 43.1
+        stop_price = 6
+        style = StopLimitOrder(limit_price=limit_price, stop_price=stop_price)
+        order = broker.order(asset, amount, style)
+        assert not broker.transactions
+        assert len(broker.orders) == 1
+        assert broker.orders[order.id].open
+
+        ib_order_id = order.broker_order_id
+        ib_contract = self._create_contract(str(asset.symbol))
+        action, qty, order_type, limit_price, stop_price = \
+            'SELL', 4, 'STP LMT', 4.3, 2
+        ib_order = self._create_order(
+            action, qty, order_type, limit_price, stop_price)
+        ib_state = self._create_order_state('PreSubmitted')
+        broker._tws.openOrder(ib_order_id, ib_contract, ib_order, ib_state)
+
+        broker._tws.orderStatus(ib_order_id, status='Cancelled', filled=0,
+                                remaining=4, avg_fill_price=0.0, perm_id=4,
+                                parent_id=4, last_fill_price=0.0, client_id=32,
+                                why_held='')
+        assert not broker.transactions
+        assert len(broker.orders) == 1
+        assert not broker.orders[order.id].open
+
+        broker._tws.orderStatus(ib_order_id, status='Inactive', filled=0,
+                                remaining=4, avg_fill_price=0.0, perm_id=4,
+                                parent_id=4, last_fill_price=0.0,
+                                client_id=1111, why_held='')
+        assert not broker.transactions
+        assert len(broker.orders) == 1
+        assert not broker.orders[order.id].open
+
+    @patch('zipline.gens.brokers.ib_broker.symbol_lookup')
+    def test_transactions_created_for_complete_orders(self, symbol_lookup):
+        with patch('zipline.gens.brokers.ib_broker.TWSConnection.connect'):
+            broker = IBBroker("localhost:9999:1111", account_id='TEST-123')
+            broker._tws.nextValidId(0)
+
+        asset = self.env.asset_finder.retrieve_asset(1)
+        symbol_lookup.return_value = asset
+
+        order_count = 0
+        for amount, order_style in [
+                (-112, StopLimitOrder(limit_price=9, stop_price=1)),
+                (43, LimitOrder(limit_price=10)),
+                (-99, StopOrder(stop_price=8)),
+                (-32, MarketOrder())]:
+            order = broker.order(asset, amount, order_style)
+            broker._tws.orderStatus(order.broker_order_id, 'Filled',
+                                    filled=int(fabs(amount)), remaining=0,
+                                    avg_fill_price=111, perm_id=0, parent_id=1,
+                                    last_fill_price=112, client_id=1111,
+                                    why_held='')
+            contract = self._create_contract(str(asset.symbol))
+            (shares, cum_qty, price, avg_price, exec_time, exec_id) = \
+                (int(fabs(amount)), int(fabs(amount)), 12.3, 12.31,
+                 pd.to_datetime('now', utc=True), order_count)
+            exec_detail = self._create_exec_detail(
+                order.broker_order_id, shares, cum_qty,
+                price, avg_price, exec_time, exec_id)
+            broker._tws.execDetails(0, contract, exec_detail)
+            order_count += 1
+
+            assert len(broker.transactions) == order_count
+            transactions = [tx
+                            for tx in broker.transactions.values()
+                            if tx.order_id == order.id]
+            assert len(transactions) == 1
+
+            assert broker.transactions[exec_id].asset == asset
+            assert broker.transactions[exec_id].amount == order.amount
+            assert (broker.transactions[exec_id].dt -
+                    pd.to_datetime('now', utc=True) < pd.Timedelta('10s'))
+            assert broker.transactions[exec_id].price == price
+            assert broker.transactions[exec_id].commission == 0
+
+
+class TestBlotterLive(WithTradingEnvironment, ZiplineTestCase):
+    ASSET_FINDER_EQUITY_SIDS = (1, 2)
+    ASSET_FINDER_EQUITY_SYMBOLS = ("SPY", "XIV")
+
+    @staticmethod
+    def _get_orders(asset1, asset2):
+        return {
+            sentinel.order_id1: ZPOrder(
+                dt=sentinel.dt, asset=asset1, amount=12,
+                stop=sentinel.stop1, limit=sentinel.limit1,
+                id=sentinel.order_id1),
+            sentinel.order_id2: ZPOrder(
+                dt=sentinel.dt, asset=asset1, amount=-12,
+                limit=sentinel.limit2, id=sentinel.order_id2),
+            sentinel.order_id3: ZPOrder(
+                dt=sentinel.dt, asset=asset2, amount=3,
+                stop=sentinel.stop2, limit=sentinel.limit2,
+                id=sentinel.order_id3),
+            sentinel.order_id4: ZPOrder(
+                dt=sentinel.dt, asset=asset2, amount=-122,
+                id=sentinel.order_id4),
+        }
+
+    @staticmethod
+    def _get_execution(price, qty, dt):
+        execution = Execution()
+        execution.m_price = price
+        execution.m_cumQty = qty
+        execution.m_time = dt
+        return execution
+
+    def test_open_orders(self):
+        broker = MagicMock(Broker)
+        blotter = BlotterLive(data_frequency='minute', broker=broker)
+        assert not blotter.open_orders
+
+        asset1 = self.env.asset_finder.retrieve_asset(1)
+        asset2 = self.env.asset_finder.retrieve_asset(2)
+
+        all_orders = self._get_orders(asset1, asset2)
+        all_orders[sentinel.order_id4].filled = -122
+        broker.orders = all_orders
+
+        assert len(blotter.open_orders) == 2
+
+        assert len(blotter.open_orders[asset1]) == 2
+        assert all_orders[sentinel.order_id1] in blotter.open_orders[asset1]
+        assert all_orders[sentinel.order_id2] in blotter.open_orders[asset1]
+
+        assert len(blotter.open_orders[asset2]) == 1
+        assert blotter.open_orders[asset2][0].id == sentinel.order_id3
+
+    def test_get_transactions(self):
+        broker = MagicMock(Broker)
+        blotter = BlotterLive(data_frequency='minute', broker=broker)
+
+        asset1 = self.env.asset_finder.retrieve_asset(1)
+        asset2 = self.env.asset_finder.retrieve_asset(2)
+
+        broker.orders = {}
+        broker.transactions = {}
+        new_transactions, new_commissions, new_closed_orders = \
+            blotter.get_transactions(None)
+        assert not new_transactions
+        assert not new_commissions
+        assert not new_closed_orders
+
+        broker.orders = self._get_orders(asset1, asset2)
+        new_transactions, new_commissions, new_closed_orders = \
+            blotter.get_transactions(None)
+        assert not new_transactions
+        assert not new_commissions
+        assert not new_closed_orders
+
+        broker.orders[sentinel.order_id4].filled = \
+            broker.orders[sentinel.order_id4].amount
+        broker.transactions['exec_4'] = \
+            Transaction(asset=asset2,
+                        amount=broker.orders[sentinel.order_id4].amount,
+                        dt=pd.to_datetime('now', utc=True),
+                        price=123, order_id=sentinel.order_id4,
+                        commission=12)
+        new_transactions, new_commissions, new_closed_orders = \
+            blotter.get_transactions(None)
+        assert new_closed_orders == [broker.orders[sentinel.order_id4], ]
+        assert new_commissions == [{
+            'asset': asset2,
+            'cost': 12,
+            'order': broker.orders[sentinel.order_id4]
+        }]
+        assert new_transactions == [list(broker.transactions.values())[0], ]
+
+        new_transactions, new_commissions, new_closed_orders = \
+            blotter.get_transactions(None)
+        assert not new_transactions
+        assert not new_commissions
+        assert not new_closed_orders
+
+        broker.orders[sentinel.order_id3].filled = \
+            broker.orders[sentinel.order_id3].amount
+        broker.transactions['exec_3'] = \
+            Transaction(asset=asset1,
+                        amount=broker.orders[sentinel.order_id3].amount,
+                        dt=pd.to_datetime('now', utc=True),
+                        price=1234, order_id=sentinel.order_id3,
+                        commission=1)
+
+        broker.orders[sentinel.order_id2].filled = \
+            broker.orders[sentinel.order_id2].amount
+        broker.transactions['exec_2'] = \
+            Transaction(asset=asset2,
+                        amount=broker.orders[sentinel.order_id2].amount,
+                        dt=pd.to_datetime('now', utc=True),
+                        price=12.34, order_id=sentinel.order_id2,
+                        commission=0)
+
+        new_transactions, new_commissions, new_closed_orders = \
+            blotter.get_transactions(None)
+        assert len(new_closed_orders) == 2
+        assert broker.orders[sentinel.order_id3] in new_closed_orders
+        assert broker.orders[sentinel.order_id2] in new_closed_orders
+
+        assert len(new_commissions) == 2
+        assert {'asset': asset2,
+                'cost': 0,
+                'order': broker.orders[sentinel.order_id2]}\
+            in new_commissions
+        assert {'asset': asset1,
+                'cost': 1,
+                'order': broker.orders[sentinel.order_id3]} \
+            in new_commissions
+        assert len(new_transactions) == 2
+        assert broker.transactions['exec_2'] in new_transactions
+        assert broker.transactions['exec_3'] in new_transactions
+
+        new_transactions, new_commissions, new_closed_orders = \
+            blotter.get_transactions(None)
+        assert not new_transactions
+        assert not new_commissions
+        assert not new_closed_orders

@@ -15,17 +15,14 @@ import os.path
 import logbook
 import pandas as pd
 
-import zipline.protocol as zp
+from zipline.finance.blotter_live import BlotterLive
 from zipline.algorithm import TradingAlgorithm
 from zipline.gens.realtimeclock import RealtimeClock
 from zipline.gens.tradesimulation import AlgorithmSimulator
-from zipline.errors import (OrderInBeforeTradingStart,
-                            ScheduleFunctionOutsideTradingStart)
-from zipline.utils.input_validation import error_keywords
+from zipline.errors import ScheduleFunctionOutsideTradingStart
 from zipline.utils.api_support import (
     ZiplineAPI,
     api_method,
-    disallowed_in_before_trading_start,
     allowed_only_in_before_trading_start)
 
 from zipline.utils.calendars.trading_calendar import days_at_time
@@ -48,6 +45,12 @@ class LiveTradingAlgorithm(TradingAlgorithm):
         self.state_filename = kwargs.pop('state_filename', None)
         self.realtime_bar_target = kwargs.pop('realtime_bar_target', None)
         self._context_persistence_excludes = []
+
+        if 'blotter' not in kwargs:
+            blotter_live = BlotterLive(
+                data_frequency=kwargs['sim_params'].data_frequency,
+                broker=self.broker)
+            kwargs['blotter'] = blotter_live
 
         super(self.__class__, self).__init__(*args, **kwargs)
 
@@ -187,40 +190,6 @@ class LiveTradingAlgorithm(TradingAlgorithm):
         tradeable_asset['auto_close_date'] = tradeable_asset['end_date']
         return asset.from_dict(tradeable_asset)
 
-    @api_method
-    @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
-    def order(self,
-              asset,
-              amount,
-              limit_price=None,
-              stop_price=None,
-              style=None):
-        amount, style = self._calculate_order(asset, amount,
-                                              limit_price, stop_price, style)
-
-        return self.broker.order(asset, amount, limit_price, stop_price, style)
-
-    @api_method
-    def batch_market_order(self, share_counts):
-        raise NotImplementedError()
-
-    @error_keywords(sid='Keyword argument `sid` is no longer supported for '
-                        'get_open_orders. Use `asset` instead.')
-    @api_method
-    def get_open_orders(self, asset=None):
-        return self.broker.get_open_orders(asset)
-
-    @api_method
-    def get_order(self, order_id):
-        return self.broker.get_order(order_id)
-
-    @api_method
-    def cancel_order(self, order_param):
-        order_id = order_param
-        if isinstance(order_param, zp.Order):
-            order_id = order_param.id
-        self.broker.cancel_order(order_id)
-
     def run(self, *args, **kwargs):
         daily_stats = super(self.__class__, self).run(*args, **kwargs)
         self.on_exit()
@@ -242,7 +211,7 @@ class LiveTradingAlgorithm(TradingAlgorithm):
             os.mkdir(self.realtime_bar_target)
 
         for asset in subscribed_assets:
-            filename = "zipline-live-%s-%s.csv" % (asset.symbol, today)
+            filename = "ZL-%s-%s.csv" % (asset.symbol, today)
             path = os.path.join(self.realtime_bar_target, filename)
             realtime_history[asset].to_csv(path, mode='a',
                                            index_label='datetime',
