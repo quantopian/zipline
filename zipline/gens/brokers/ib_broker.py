@@ -390,6 +390,11 @@ class TWSConnection(EClientSocket, EWrapper):
 
     def error(self, id_=None, error_code=None, error_msg=None):
         if isinstance(id_, Exception):
+            # XXX: for an unknown reason 'log' is None in this branch,
+            # therefore it needs to be instantiated before use
+            global log
+            if not log:
+                log = Logger('IB Broker')
             log.exception(id_)
 
         if isinstance(error_code, EClientErrors.CodeMsgPair):
