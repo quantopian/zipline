@@ -61,9 +61,9 @@ from zipline.pipeline.loaders.equity_pricing_loader import (
 )
 from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.pipeline.loaders.synthetic import (
-    PrecomputedLoader,
-    make_bar_data,
     expected_bar_values_2d,
+    make_bar_data,
+    PrecomputedLoader,
 )
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import InputDates

@@ -42,10 +42,12 @@ from zipline.testing.fixtures import (
     WithTradingSessions,
     ZiplineTestCase,
 )
-from zipline.testing.predicates import assert_equal, assert_raises_regex
-from zipline.testing.predicates import assert_frame_equal
-from zipline.utils.numpy_utils import datetime64ns_dtype
-from zipline.utils.numpy_utils import float64_dtype
+from zipline.testing.predicates import (
+    assert_equal,
+    assert_frame_equal,
+    assert_raises_regex,
+)
+from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
 
 
 class Estimates(DataSet):
