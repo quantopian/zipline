@@ -51,7 +51,7 @@ from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
 )
 from zipline.testing import (
-    str_to_seconds
+    slow, str_to_seconds,
 )
 from zipline.testing import (
     create_empty_splits_mergers_frame,
@@ -591,6 +591,7 @@ class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
         (True,),
         (False,),
     ])
+    @slow
     def test_handle_adjustment(self, set_screen):
         AAPL, MSFT, BRK_A = assets = self.assets
 

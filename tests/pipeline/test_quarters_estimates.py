@@ -1160,6 +1160,7 @@ class WithEstimateWindows(WithEstimates):
         cls.timelines = cls.make_expected_timelines()
 
     @parameterized.expand(window_test_cases)
+    @slow
     def test_estimate_windows_at_quarter_boundaries(self,
                                                     start_date,
                                                     num_announcements_out):
@@ -2452,6 +2453,7 @@ class WithAdjustmentBoundaries(WithEstimates):
                           sid_4_splits])
 
     @parameterized.expand(split_adjusted_asof_dates)
+    @slow
     def test_boundaries(self, split_date):
         dataset = QuartersEstimates(1)
         loader = self.loader(split_adjusted_asof=split_date)

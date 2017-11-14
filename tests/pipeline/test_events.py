@@ -397,6 +397,7 @@ class EventsLoaderTestCase(WithAssetFinder,
         # This method exists to be overridden by BlazeEventsLoaderTestCase
         return EventsLoader(events, next_value_columns, previous_value_columns)
 
+    @slow
     def test_load_with_trading_calendar(self):
         engine = SimplePipelineEngine(
             lambda x: self.loader,
@@ -426,6 +427,7 @@ class EventsLoaderTestCase(WithAssetFinder,
             else:
                 raise AssertionError("Unexpected column %s." % c)
 
+    @slow
     def test_load_properly_forward_fills(self):
         engine = SimplePipelineEngine(
             lambda x: self.loader,
