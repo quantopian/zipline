@@ -24,9 +24,10 @@ from empyrical.stats import beta_aligned as empyrical_beta
 from zipline.assets import Equity
 from zipline.errors import IncompatibleTerms, NonExistentAssetInTimeFrame
 from zipline.pipeline import CustomFactor, Pipeline
+from zipline.pipeline.common import PIPELINE_INDEX_NAMES
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.data.testing import TestingDataSet
-from zipline.pipeline.engine import PIPELINE_INDEX_NAMES, SimplePipelineEngine
+from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.factors import (
     Returns,
     RollingLinearRegressionOfReturns,

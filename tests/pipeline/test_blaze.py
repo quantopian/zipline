@@ -22,8 +22,9 @@ from toolz.curried import operator as op
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.errors import UnsupportedPipelineOutput
 from zipline.pipeline import Pipeline, CustomFactor
+from zipline.pipeline.common import PIPELINE_INDEX_NAMES
 from zipline.pipeline.data import DataSet, BoundColumn, Column
-from zipline.pipeline.engine import PIPELINE_INDEX_NAMES, SimplePipelineEngine
+from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.loaders.blaze import (
     from_blaze,
     BlazeLoader,

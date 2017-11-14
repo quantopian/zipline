@@ -14,8 +14,8 @@ from zipline.pipeline import (
     CustomClassifier,
     SimplePipelineEngine,
 )
+from zipline.pipeline.common import PIPELINE_INDEX_NAMES
 from zipline.pipeline.data.testing import TestingDataSet
-from zipline.pipeline.engine import PIPELINE_INDEX_NAMES
 from zipline.pipeline.factors import SimpleMovingAverage
 from zipline.pipeline.filters.smoothing import All
 from zipline.testing import ZiplineTestCase, parameter_space, ExplodingObject

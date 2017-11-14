@@ -42,9 +42,10 @@ from zipline.errors import NoFurtherDataError
 from zipline.lib.adjustment import MULTIPLY
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import CustomFactor, Pipeline
+from zipline.pipeline.common import PIPELINE_INDEX_NAMES
 from zipline.pipeline.data import Column, DataSet, USEquityPricing
 from zipline.pipeline.data.testing import TestingDataSet
-from zipline.pipeline.engine import PIPELINE_INDEX_NAMES, SimplePipelineEngine
+from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.factors import (
     AverageDollarVolume,
     EWMA,

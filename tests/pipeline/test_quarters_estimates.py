@@ -17,12 +17,11 @@ from zipline.pipeline.common import (
     EVENT_DATE_FIELD_NAME,
     FISCAL_QUARTER_FIELD_NAME,
     FISCAL_YEAR_FIELD_NAME,
+    PIPELINE_INDEX_NAMES,
     SID_FIELD_NAME,
     TS_FIELD_NAME,
 )
-from zipline.pipeline.data import DataSet
-from zipline.pipeline.data import Column
-from zipline.pipeline.engine import PIPELINE_INDEX_NAMES
+from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.loaders.blaze.estimates import (
     BlazeNextEstimatesLoader,
     BlazeNextSplitAdjustedEstimatesLoader,

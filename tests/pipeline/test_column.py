@@ -9,8 +9,8 @@ from pandas.util.testing import assert_frame_equal
 
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Pipeline
+from zipline.pipeline.common import DATE_INDEX_NAME, SID_INDEX_NAME
 from zipline.pipeline.data.testing import TestingDataSet as TDS
-from zipline.pipeline.engine import DATE_INDEX_NAME, SID_INDEX_NAME
 from zipline.testing import chrange, temp_pipeline_engine
 from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning
 

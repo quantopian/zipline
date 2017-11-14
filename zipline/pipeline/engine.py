@@ -18,23 +18,18 @@ from toolz.curried.operator import getitem
 
 from zipline.lib.adjusted_array import ensure_adjusted_array, ensure_ndarray
 from zipline.errors import NoFurtherDataError
+from zipline.utils.date_utils import compute_date_range_chunks
 from zipline.utils.numpy_utils import (
     as_column,
     repeat_first_axis,
     repeat_last_axis,
 )
-from zipline.utils.pandas_utils import explode
-
-from .term import AssetExists, InputDates, LoadableTerm
-
-from zipline.utils.date_utils import compute_date_range_chunks
-from zipline.utils.pandas_utils import categorical_df_concat
+from zipline.utils.pandas_utils import categorical_df_concat, explode
 from zipline.utils.sharedoc import copydoc
 
 
-DATE_INDEX_NAME = 'dates'
-SID_INDEX_NAME = 'sid'
-PIPELINE_INDEX_NAMES = (DATE_INDEX_NAME, SID_INDEX_NAME)
+from .common import PIPELINE_INDEX_NAMES
+from .term import AssetExists, InputDates, LoadableTerm
 
 
 class PipelineEngine(with_metaclass(ABCMeta)):
