@@ -4,13 +4,13 @@ Module for building a complete daily dataset from Quandl's WIKI dataset.
 from io import BytesIO
 import tarfile
 from zipfile import ZipFile
-import warnings
 
 from click import progressbar
 from logbook import Logger
 import pandas as pd
 import requests
 from six.moves.urllib.parse import urlencode
+from six import iteritems
 
 from zipline.utils.calendars import register_calendar_alias
 from zipline.utils.deprecate import deprecated
@@ -18,7 +18,6 @@ from . import core as bundles
 import numpy as np
 
 log = Logger(__name__)
-warnings.simplefilter('once', DeprecationWarning)
 
 ONE_MEGABYTE = 1024 * 1024
 QUANDL_DATA_URL = (
@@ -27,7 +26,7 @@ QUANDL_DATA_URL = (
 
 
 def format_metadata_url(api_key):
-    """ Build the query URL for the Quandl WIKI metadata.
+    """ Build the query URL for Quandl WIKI Prices metadata.
     """
     query_params = [('api_key', api_key), ('qopts.export', 'true')]
 
@@ -164,7 +163,7 @@ def parse_dividends(data, show_progress):
 def parse_pricing_and_vol(data,
                           sessions,
                           symbol_map):
-    for asset_id, symbol in symbol_map.iteritems():
+    for asset_id, symbol in iteritems(symbol_map):
         asset_data = data.xs(
             symbol,
             level=1
@@ -187,7 +186,7 @@ def quandl_bundle(environ,
                   show_progress,
                   output_dir):
     """
-    quandl_bundl builds a data bundle using Quandl's WIKI Prices dataset.
+    quandl_bundle builds a data bundle using Quandl's WIKI Prices dataset.
 
     For more information on Quandl's API and how to obtain an API key,
     please visit https://docs.quandl.com/docs#section-authentication

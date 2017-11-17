@@ -18,7 +18,7 @@ from zipline.testing import (
 )
 from zipline.testing.fixtures import (
     ZiplineTestCase,
-    WithResponses
+    WithResponses,
 )
 from zipline.testing.predicates import (
     assert_equal,
@@ -182,7 +182,7 @@ class QuandlBundleTestCase(WithResponses,
                 'https://file_url.mock.quandl',
                 body=quandl_response.read(),
                 content_type='application/zip',
-                status=200
+                status=200,
             )
 
         url_map = {

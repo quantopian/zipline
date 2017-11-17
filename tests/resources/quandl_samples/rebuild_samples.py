@@ -59,13 +59,13 @@ def main():
         'file.link',
         'file.status',
         'file.data_snapshot_time',
-        'datatable.last_refreshed_time\n'
+        'datatable.last_refreshed_time\n',
     )
     row = (
         'https://file_url.mock.quandl',
         'fresh',
         '2017-10-17 23:48:25 UTC',
-        '2017-10-17 23:48:15 UTC\n'
+        '2017-10-17 23:48:15 UTC\n',
     )
     metadata = ','.join(cols) + ','.join(row)
     path = zipfile_path('metadata.csv.gz')
