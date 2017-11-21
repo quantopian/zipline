@@ -23,8 +23,17 @@ single tool to install Python and non-Python dependencies, or if you're already
 using `Anaconda <http://continuum.io/downloads>`_ as your Python distribution,
 you can skip to the :ref:`Installing with Conda <conda>` section.
 
+Since building Zipline's C extensions requires numpy's CPython C API as well as
+`Cython <http://cython.org/>`_, it's safest to pip install these before pip
+installing zipline itself:
+
+.. code-block:: bash
+
+   $ pip install numpy Cython
+
+
 Once you've installed the necessary additional dependencies (see below for
-your particular platform), you should be able to simply run
+your particular platform), you should be able to simply run:
 
 .. code-block:: bash
 
