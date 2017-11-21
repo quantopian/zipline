@@ -28,6 +28,7 @@ from zipline.pipeline.factors import (
     RollingLinearRegressionOfReturns,
     RollingPearsonOfReturns,
     RollingSpearmanOfReturns,
+    SimpleBeta,
 )
 from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.pipeline.sentinels import NotSpecified
@@ -44,6 +45,7 @@ from zipline.testing.fixtures import (
     WithTradingEnvironment,
     ZiplineTestCase,
 )
+from zipline.testing.predicates import assert_equal
 from zipline.utils.numpy_utils import (
     bool_dtype,
     datetime64ns_dtype,
@@ -307,6 +309,22 @@ class StatisticalBuiltInsTestCase(WithTradingEnvironment, ZiplineTestCase):
                     columns=assets,
                 )
                 assert_frame_equal(output_result, expected_output_result)
+
+    def test_simple_beta_matches_regression(self):
+        run_pipeline = self.run_pipeline
+        simple_beta = SimpleBeta(target=self.my_asset, regression_length=10)
+        complex_beta = RollingLinearRegressionOfReturns(
+            target=self.my_asset,
+            returns_length=2,
+            regression_length=10,
+        ).beta
+        pipe = Pipeline({'simple': simple_beta, 'complex': complex_beta})
+        results = run_pipeline(
+            pipe,
+            self.pipeline_start_date,
+            self.pipeline_end_date,
+        )
+        assert_equal(results['simple'], results['complex'], check_names=False)
 
     def test_correlation_and_regression_with_bad_asset(self):
         """

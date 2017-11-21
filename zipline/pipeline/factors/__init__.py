@@ -27,6 +27,7 @@ from .statistical import (
     RollingLinearRegressionOfReturns,
     RollingPearsonOfReturns,
     RollingSpearmanOfReturns,
+    SimpleBeta,
 )
 from .technical import (
     Aroon,
@@ -68,6 +69,7 @@ __all__ = [
     'RollingPearsonOfReturns',
     'RollingSpearmanOfReturns',
     'RSI',
+    'SimpleBeta',
     'SimpleMovingAverage',
     'TrueRange',
     'VWAP',

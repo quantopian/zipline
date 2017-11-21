@@ -6,14 +6,21 @@ from scipy.stats import (
     spearmanr,
 )
 
+from zipline.assets import Asset
 from zipline.errors import IncompatibleTerms
 from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.filters import SingleAsset
-from zipline.pipeline.mixins import SingleInputMixin
+from zipline.pipeline.mixins import SingleInputMixin, StandardOutputs
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import AssetExists
-from zipline.utils.input_validation import expect_bounded, expect_dtypes
+from zipline.utils.input_validation import (
+    expect_bounded,
+    expect_dtypes,
+    expect_types,
+)
+from zipline.utils.math_utils import nanmean
 from zipline.utils.numpy_utils import float64_dtype, int64_dtype
+
 
 from .basic import Returns
 
@@ -148,11 +155,6 @@ class RollingLinearRegression(CustomFactor, SingleInputMixin):
         The factor/slice whose columns are the predictor/independent variable
         of each regression with `dependent`. If `independent` is a Factor,
         regressions are computed asset-wise.
-    independent : zipline.pipeline.Term with a numeric dtype
-        The term to use as the predictor/independent variable in each
-        regression with `dependent`. This term may be a Factor, a BoundColumn
-        or a Slice. If `independent` is two-dimensional, regressions are
-        computed asset-wise.
     regression_length : int
         Length of the lookback window over which to compute each regression.
     mask : zipline.pipeline.Filter, optional
@@ -475,3 +477,43 @@ class RollingLinearRegressionOfReturns(RollingLinearRegression):
             regression_length=regression_length,
             mask=mask,
         )
+
+
+class SimpleBeta(CustomFactor, StandardOutputs):
+    """
+    Factor producing the slope of a regression line between each asset's daily
+    returns the daily returns of a single "target" asset.
+
+    TODO: Decide on and document semantics for missing data.
+
+    Parameters
+    ----------
+    target : zipline.Asset
+        Asset against which other assets should be regressed.
+    regression_length : int
+        Number of days of daily returns to use for the regression.
+    """
+    window_safe = True
+    dtype = float64_dtype
+
+    @expect_types(regression_length=int, target=Asset)
+    @expect_bounded(regression_length=(2, None))
+    def __new__(cls, target, regression_length):
+        daily_returns = Returns(
+            window_length=2,
+            mask=(AssetExists() | SingleAsset(asset=target)),
+        )
+        return super(SimpleBeta, cls).__new__(
+            cls,
+            inputs=[daily_returns, daily_returns[target]],
+            window_length=regression_length,
+        )
+
+    def compute(self, today, assets, out, all_returns, target_returns):
+        target_residual = target_returns - nanmean(target_returns)
+        all_residual = all_returns - nanmean(all_returns, axis=0)
+        # Covariance of each asset with the target.
+        covariances = nanmean(all_residual * target_residual, axis=0)
+        # Target's variance with itself.
+        target_variance = nanmean(target_residual ** 2)
+        out[:] = covariances / target_variance
