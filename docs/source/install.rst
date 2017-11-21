@@ -24,8 +24,8 @@ using `Anaconda <http://continuum.io/downloads>`_ as your Python distribution,
 you can skip to the :ref:`Installing with Conda <conda>` section.
 
 Since building Zipline's C extensions requires numpy's CPython C API as well as
-`Cython <http://cython.org/>`_, it's safest to pip install these before pip
-installing zipline itself:
+`Cython <http://cython.org/>`_, pip install these before pip installing zipline
+itself:
 
 .. code-block:: bash
 
