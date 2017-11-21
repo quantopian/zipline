@@ -1,4 +1,4 @@
-
+import numpy as np
 from numpy import broadcast_arrays
 from scipy.stats import (
     linregress,
@@ -19,7 +19,10 @@ from zipline.utils.input_validation import (
     expect_types,
 )
 from zipline.utils.math_utils import nanmean
-from zipline.utils.numpy_utils import float64_dtype, int64_dtype
+from zipline.utils.numpy_utils import (
+    float64_dtype,
+    int64_dtype,
+)
 
 
 from .basic import Returns
@@ -510,10 +513,45 @@ class SimpleBeta(CustomFactor, StandardOutputs):
         )
 
     def compute(self, today, assets, out, all_returns, target_returns):
-        target_residual = target_returns - nanmean(target_returns)
-        all_residual = all_returns - nanmean(all_returns, axis=0)
-        # Covariance of each asset with the target.
-        covariances = nanmean(all_residual * target_residual, axis=0)
-        # Target's variance with itself.
-        target_variance = nanmean(target_residual ** 2)
-        out[:] = covariances / target_variance
+        out[:] = vectorized_beta(all_returns, target_returns)
+
+
+def vectorized_beta(dependents, independent):
+    """
+    Compute the slope of N linear regressions between columns of ``dependents``
+    and ``independent``.
+
+    Parameters
+    ----------
+    dependents : np.array[N, M]
+        Array with N columns of data to be regressed against ``independent``.
+    independent : np.array[1, M]
+        Independent variable of the regression
+    """
+    # Calculate beta as Cov(X, Y) / Cov(Y, Y).
+    # https://en.wikipedia.org/wiki/Simple_linear_regression#Fitting_the_regression_line
+
+    # Copy N times as a column vector and fill with nans to have the same
+    # missing value pattern as the dependent variable.
+    # PERF_TODO: We could probably avoid the space blowup by doing this in
+    # Cython.
+    independent = np.where(
+        np.isnan(dependents),
+        np.nan,
+        independent,
+    )
+
+    # shape: (N, M)
+    ind_residual = independent - nanmean(independent, axis=0)
+
+    # shape: (N, M)
+    dep_residual = dependents - nanmean(dependents, axis=0)
+
+    # shape: (N,)
+    covariances = nanmean(ind_residual * dep_residual, axis=0)
+
+    # shape: (N,)
+    independent_variance = nanmean(ind_residual ** 2, axis=0)
+
+    # shape: (N,)
+    return covariances / independent_variance

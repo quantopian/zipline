@@ -1,6 +1,7 @@
 """
 Tests for statistical pipeline terms.
 """
+import numpy as np
 from numpy import (
     arange,
     full,
@@ -17,6 +18,8 @@ from pandas import (
 from pandas.util.testing import assert_frame_equal
 from scipy.stats import linregress, pearsonr, spearmanr
 
+from empyrical.stats import beta_aligned as empyrical_beta
+
 from zipline.assets import Equity
 from zipline.errors import IncompatibleTerms, NonExistentAssetInTimeFrame
 from zipline.pipeline import CustomFactor, Pipeline
@@ -30,6 +33,7 @@ from zipline.pipeline.factors import (
     RollingSpearmanOfReturns,
     SimpleBeta,
 )
+from zipline.pipeline.factors.statistical import vectorized_beta
 from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.testing import (
@@ -47,6 +51,7 @@ from zipline.testing.fixtures import (
 )
 from zipline.testing.predicates import assert_equal
 from zipline.utils.numpy_utils import (
+    as_column,
     bool_dtype,
     datetime64ns_dtype,
     float64_dtype,
@@ -820,3 +825,42 @@ class StatisticalMethodsTestCase(WithSeededRandomPipelineEngine,
                 columns=assets,
             )
             assert_frame_equal(output_result, expected_output_result)
+
+
+class VectorizedBetaTestCase(ZiplineTestCase):
+
+    def compare_with_empyrical(self, dependents, independent):
+        result = vectorized_beta(dependents, independent)
+        expected = np.array([
+            empyrical_beta(dependents[:, i].ravel(), independent.ravel())
+            for i in range(dependents.shape[1])
+        ])
+        assert_equal(result, expected, array_decimal=7)
+        return result
+
+    @parameter_space(seed=[1, 2, 3])
+    def test_vectorized_beta_matches_empyrical_beta_aligned(self, seed):
+        rand = np.random.RandomState(seed)
+        true_betas = np.array([-0.5, 0.0, 0.5, 1.0, 1.5])
+        independent = as_column(np.linspace(-5., 5., 20))
+        noise = as_column(rand.uniform(-.1, .1, 20))
+        dependents = 1.0 + true_betas * independent + noise
+
+        result = self.compare_with_empyrical(dependents, independent)
+        self.assertTrue((np.abs(result - true_betas) < 0.01).all())
+
+    @parameter_space(seed=[1, 2, 3])
+    def test_vectorized_beta_nan_handling_matches_empyrical(self, seed):
+        rand = np.random.RandomState(seed)
+        true_betas = np.array([-0.5, 0.0, 0.5, 1.0, 1.5])
+        independent = as_column(np.linspace(-5., 5., 20))
+        noise = as_column(rand.uniform(-.1, .1, 20))
+        dependents = 1.0 + true_betas * independent + noise
+
+        # Fill 20% of the input arrays with nans randomly.
+        dependents[rand.uniform(0, 1, dependents.shape) < 0.2] = nan
+        independent[rand.uniform(0, 1, independent.shape) < 0.2] = nan
+
+        result = self.compare_with_empyrical(dependents, independent)
+        self.assertTrue(not np.isnan(result).any())
+        self.assertTrue((np.abs(result - true_betas) < 0.01).all())
