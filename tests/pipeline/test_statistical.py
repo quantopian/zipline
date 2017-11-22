@@ -331,6 +331,19 @@ class StatisticalBuiltInsTestCase(WithTradingEnvironment, ZiplineTestCase):
         )
         assert_equal(results['simple'], results['complex'], check_names=False)
 
+    def test_simple_beta_allowed_missing_calculation(self):
+        for percentage, expected in [(0.651, 65),
+                                     (0.659, 65),
+                                     (0.66, 66),
+                                     (0.0, 0),
+                                     (1.0, 100)]:
+            beta = SimpleBeta(
+                target=self.my_asset,
+                regression_length=100,
+                allowed_missing_percentage=percentage,
+            )
+            self.assertEqual(beta.params['allowed_missing_count'], expected)
+
     def test_correlation_and_regression_with_bad_asset(self):
         """
         Test that `RollingPearsonOfReturns`, `RollingSpearmanOfReturns` and
@@ -408,6 +421,47 @@ class StatisticalBuiltInsTestCase(WithTradingEnvironment, ZiplineTestCase):
                 returns_length=3,
                 regression_length=1,
             )
+
+    def test_simple_beta_input_validation(self):
+        with self.assertRaises(TypeError) as e:
+            SimpleBeta(
+                target="SPY",
+                regression_length=100,
+                allowed_missing_percentage=0.5,
+            )
+        result = str(e.exception)
+        expected = (
+            "SimpleBeta() expected a value of type"
+            " zipline.assets._assets.Asset for argument 'target',"
+            " but got str instead."
+        )
+        self.assertEqual(result, expected)
+
+        with self.assertRaises(ValueError) as e:
+            SimpleBeta(
+                target=self.my_asset,
+                regression_length=1,
+                allowed_missing_percentage=0.5,
+            )
+        result = str(e.exception)
+        expected = (
+            "SimpleBeta() expected a value greater than or equal to 3"
+            " for argument 'regression_length', but got 1 instead."
+        )
+        self.assertEqual(result, expected)
+
+        with self.assertRaises(ValueError) as e:
+            SimpleBeta(
+                target=self.my_asset,
+                regression_length=100,
+                allowed_missing_percentage=50,
+            )
+        result = str(e.exception)
+        expected = (
+            "SimpleBeta() expected a value inclusively between 0.0 and 1.0 "
+            "for argument 'allowed_missing_percentage', but got 50 instead."
+        )
+        self.assertEqual(result, expected)
 
 
 class StatisticalMethodsTestCase(WithSeededRandomPipelineEngine,
@@ -830,7 +884,10 @@ class StatisticalMethodsTestCase(WithSeededRandomPipelineEngine,
 class VectorizedBetaTestCase(ZiplineTestCase):
 
     def compare_with_empyrical(self, dependents, independent):
-        result = vectorized_beta(dependents, independent)
+        INFINITY = 1000000  # close enough
+        result = vectorized_beta(
+            dependents, independent, allowed_missing=INFINITY,
+        )
         expected = np.array([
             empyrical_beta(dependents[:, i].ravel(), independent.ravel())
             for i in range(dependents.shape[1])
@@ -838,29 +895,123 @@ class VectorizedBetaTestCase(ZiplineTestCase):
         assert_equal(result, expected, array_decimal=7)
         return result
 
-    @parameter_space(seed=[1, 2, 3])
-    def test_vectorized_beta_matches_empyrical_beta_aligned(self, seed):
+    @parameter_space(seed=[1, 2, 3], __fail_fast=True)
+    def test_matches_empyrical_beta_aligned(self, seed):
         rand = np.random.RandomState(seed)
+
         true_betas = np.array([-0.5, 0.0, 0.5, 1.0, 1.5])
-        independent = as_column(np.linspace(-5., 5., 20))
-        noise = as_column(rand.uniform(-.1, .1, 20))
+        independent = as_column(np.linspace(-5., 5., 30))
+        noise = as_column(rand.uniform(-.1, .1, 30))
         dependents = 1.0 + true_betas * independent + noise
 
         result = self.compare_with_empyrical(dependents, independent)
         self.assertTrue((np.abs(result - true_betas) < 0.01).all())
 
-    @parameter_space(seed=[1, 2, 3])
-    def test_vectorized_beta_nan_handling_matches_empyrical(self, seed):
+    @parameter_space(seed=[1, 2, 3], __fail_fast=True)
+    def test_nan_handling_matches_empyrical(self, seed):
         rand = np.random.RandomState(seed)
+
         true_betas = np.array([-0.5, 0.0, 0.5, 1.0, 1.5])
-        independent = as_column(np.linspace(-5., 5., 20))
-        noise = as_column(rand.uniform(-.1, .1, 20))
+        independent = as_column(np.linspace(-5., 5., 30))
+        noise = as_column(rand.uniform(-.1, .1, 30))
         dependents = 1.0 + true_betas * independent + noise
 
         # Fill 20% of the input arrays with nans randomly.
         dependents[rand.uniform(0, 1, dependents.shape) < 0.2] = nan
         independent[rand.uniform(0, 1, independent.shape) < 0.2] = nan
 
+        # Sanity check that we actually inserted some nans.
+        self.assertTrue(np.count_nonzero(np.isnan(dependents)) > 0)
+        self.assertTrue(np.count_nonzero(np.isnan(independent)) > 0)
+
         result = self.compare_with_empyrical(dependents, independent)
+
+        # compare_with_empyrical uses requred_observations=0, so we shouldn't
+        # have any nans in the output even though we had some in the input.
         self.assertTrue(not np.isnan(result).any())
+
+        # We should still have reasonable beta estimates.
         self.assertTrue((np.abs(result - true_betas) < 0.01).all())
+
+    @parameter_space(nan_offset=[-1, 0, 1])
+    def test_produce_nans_when_too_much_missing_data(self, nan_offset):
+        rand = np.random.RandomState(42)
+
+        true_betas = np.array([-0.5, 0.0, 0.5, 1.0, 1.5])
+        independent = as_column(np.linspace(-5., 5., 30))
+        noise = as_column(rand.uniform(-.1, .1, 30))
+        dependents = 1.0 + true_betas * independent + noise
+
+        # Write nans in a triangular pattern into the middle of the dependent
+        # array.
+        nan_grid = np.array([[1, 0, 0, 0, 0],
+                             [1, 1, 0, 0, 0],
+                             [1, 1, 1, 0, 0],
+                             [1, 1, 1, 1, 0],
+                             [1, 1, 1, 1, 1]], dtype=bool)
+        num_nans = nan_grid.sum(axis=0)
+        # Move the grid around in the parameterized tests. The positions
+        # shouldn't matter.
+        dependents[10 + nan_offset:15 + nan_offset][nan_grid] = np.nan
+
+        for allowed_missing in range(7):
+            results = vectorized_beta(dependents, independent, allowed_missing)
+            for i, expected in enumerate(true_betas):
+                result = results[i]
+                expect_nan = num_nans[i] > allowed_missing
+                true_beta = true_betas[i]
+                if expect_nan:
+                    self.assertTrue(np.isnan(result))
+                else:
+                    self.assertTrue(np.abs(result - true_beta) < 0.01)
+
+    def test_allowed_missing_doesnt_double_count(self):
+        # Test that allowed_missing only counts a row as missing one
+        # observation if it's missing in both the dependent and independent
+        # variable.
+        rand = np.random.RandomState(42)
+        true_betas = np.array([-0.5, 0.0, 0.5, 1.0, 1.5])
+        independent = as_column(np.linspace(-5., 5., 30))
+        noise = as_column(rand.uniform(-.1, .1, 30))
+        dependents = 1.0 + true_betas * independent + noise
+
+        # Each column has three nans in the grid.
+        dependent_nan_grid = np.array([[0, 1, 1, 1, 0],
+                                       [0, 0, 1, 1, 1],
+                                       [1, 0, 0, 1, 1],
+                                       [1, 1, 0, 0, 1],
+                                       [1, 1, 1, 0, 0]], dtype=bool)
+        # There's are also two nans in the independent data.
+        independent_nan_grid = np.array([[0],
+                                         [0],
+                                         [1],
+                                         [1],
+                                         [0]], dtype=bool)
+
+        dependents[10:15][dependent_nan_grid] = np.nan
+        independent[10:15][independent_nan_grid] = np.nan
+
+        # With only two allowed missing values, everything should come up nan,
+        # because column has at least 3 nans in the dependent data.
+        result3 = vectorized_beta(dependents, independent, allowed_missing=2)
+        assert_equal(np.isnan(result3),
+                     np.array([True, True, True, True, True]))
+
+        # With three allowed missing values, the first and last columns should
+        # produce a value, because they have nans at the same rows where the
+        # independent data has nans.
+        result4 = vectorized_beta(dependents, independent, allowed_missing=3)
+        assert_equal(np.isnan(result4),
+                     np.array([False, True, True, True, False]))
+
+        # With four allowed missing values, everything but the middle column
+        # should produce a value. The middle column will have 5 nans because
+        # the dependent nans have no overlap with the independent nans.
+        result5 = vectorized_beta(dependents, independent, allowed_missing=4)
+        assert_equal(np.isnan(result5),
+                     np.array([False, False, True, False, False]))
+
+        # With six allowed missing values, everything should produce a value.
+        result6 = vectorized_beta(dependents, independent, allowed_missing=5)
+        assert_equal(np.isnan(result6),
+                     np.array([False, False, False, False, False]))

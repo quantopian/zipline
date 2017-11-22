@@ -485,9 +485,7 @@ class RollingLinearRegressionOfReturns(RollingLinearRegression):
 class SimpleBeta(CustomFactor, StandardOutputs):
     """
     Factor producing the slope of a regression line between each asset's daily
-    returns the daily returns of a single "target" asset.
-
-    TODO: Decide on and document semantics for missing data.
+    returns to the daily returns of a single "target" asset.
 
     Parameters
     ----------
@@ -495,51 +493,109 @@ class SimpleBeta(CustomFactor, StandardOutputs):
         Asset against which other assets should be regressed.
     regression_length : int
         Number of days of daily returns to use for the regression.
+    allowed_missing_percentage : float, optional
+        Percentage of returns observations that are allowed to be missing when
+        calculating betas. Default is 25%.
     """
     window_safe = True
     dtype = float64_dtype
+    params = ('allowed_missing_count',)
 
-    @expect_types(regression_length=int, target=Asset)
-    @expect_bounded(regression_length=(2, None))
-    def __new__(cls, target, regression_length):
+    @expect_types(
+        regression_length=int,
+        target=Asset,
+        allowed_missing_percentage=(int, float),
+        __funcname='SimpleBeta',
+    )
+    @expect_bounded(
+        regression_length=(3, None),
+        allowed_missing_percentage=(0.0, 1.0),
+        __funcname='SimpleBeta',
+    )
+    def __new__(cls,
+                target,
+                regression_length,
+                allowed_missing_percentage=0.25):
         daily_returns = Returns(
             window_length=2,
             mask=(AssetExists() | SingleAsset(asset=target)),
         )
+        allowed_missing_count = int(np.floor(
+            allowed_missing_percentage * regression_length
+        ))
         return super(SimpleBeta, cls).__new__(
             cls,
             inputs=[daily_returns, daily_returns[target]],
             window_length=regression_length,
+            allowed_missing_count=allowed_missing_count,
         )
 
-    def compute(self, today, assets, out, all_returns, target_returns):
-        out[:] = vectorized_beta(all_returns, target_returns)
+    def compute(self,
+                today,
+                assets,
+                out,
+                all_returns,
+                target_returns,
+                allowed_missing_count):
+        vectorized_beta(
+            dependents=all_returns,
+            independent=target_returns,
+            allowed_missing=allowed_missing_count,
+            out=out,
+        )
+
+    def __repr__(self):
+        return "{}(window_length={}, allowed_missing={})".format(
+            type(self).__name__,
+            self.window_length,
+            self.params['allowed_missing'],
+        )
 
 
-def vectorized_beta(dependents, independent):
+def vectorized_beta(dependents, independent, allowed_missing, out=None):
     """
-    Compute the slope of N linear regressions between columns of ``dependents``
-    and ``independent``.
+    Compute slopes of linear regressions between columns of ``dependents`` and
+    ``independent``.
 
     Parameters
     ----------
     dependents : np.array[N, M]
-        Array with N columns of data to be regressed against ``independent``.
-    independent : np.array[1, M]
+        Array with columns of data to be regressed against ``independent``.
+    independent : np.array[N, 1]
         Independent variable of the regression
+    allowed_missing : int
+        Number of allowed missing (NaN) observations per column. Columns with
+        more than this many non-nan observations in both ``dependents`` and
+        ``independents`` will output NaN as the regression coefficient.
+
+    Returns
+    -------
+    slopes : np.array[M]
+        Linear regression coefficients for each column of ``dependents``.
     """
-    # Calculate beta as Cov(X, Y) / Cov(Y, Y).
-    # https://en.wikipedia.org/wiki/Simple_linear_regression#Fitting_the_regression_line
+    # Cache these as locals since we're going to call them multiple times.
+    nan = np.nan
+    isnan = np.isnan
+    N, M = dependents.shape
+
+    if out is None:
+        out = np.full(M, np.nan)
 
     # Copy N times as a column vector and fill with nans to have the same
     # missing value pattern as the dependent variable.
+    #
     # PERF_TODO: We could probably avoid the space blowup by doing this in
     # Cython.
+
+    # shape: (N, M)
     independent = np.where(
-        np.isnan(dependents),
-        np.nan,
+        isnan(dependents),
+        nan,
         independent,
     )
+
+    # Calculate beta as Cov(X, Y) / Cov(Y, Y).
+    # https://en.wikipedia.org/wiki/Simple_linear_regression#Fitting_the_regression_line  # noqa
 
     # shape: (N, M)
     ind_residual = independent - nanmean(independent, axis=0)
@@ -547,11 +603,19 @@ def vectorized_beta(dependents, independent):
     # shape: (N, M)
     dep_residual = dependents - nanmean(dependents, axis=0)
 
-    # shape: (N,)
+    # shape: (M,)
     covariances = nanmean(ind_residual * dep_residual, axis=0)
 
-    # shape: (N,)
-    independent_variance = nanmean(ind_residual ** 2, axis=0)
+    # We end up with different variances here in each column because each
+    # column may have a different subset of the data dropped due to missing
+    # data in the corresponding dependent column.
+    # shape: (M,)
+    independent_variances = nanmean(ind_residual ** 2, axis=0)
 
-    # shape: (N,)
-    return covariances / independent_variance
+    # shape: (M,)
+    np.divide(covariances, independent_variances, out=out)
+
+    nanlocs = isnan(independent).sum(axis=0) > allowed_missing
+    out[nanlocs] = nan
+
+    return out
