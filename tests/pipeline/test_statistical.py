@@ -431,11 +431,11 @@ class StatisticalBuiltInsTestCase(WithTradingEnvironment, ZiplineTestCase):
             )
         result = str(e.exception)
         expected = (
-            "SimpleBeta() expected a value of type"
-            " zipline.assets._assets.Asset for argument 'target',"
+            r"SimpleBeta\(\) expected a value of type"
+            " .*Asset for argument 'target',"
             " but got str instead."
         )
-        self.assertEqual(result, expected)
+        self.assertRegexpMatches(result, expected)
 
         with self.assertRaises(ValueError) as e:
             SimpleBeta(
