@@ -596,17 +596,42 @@ def vectorized_beta(dependents, independent, allowed_missing, out=None):
         independent,
     )
 
-    # Calculate beta as Cov(X, Y) / Cov(Y, Y).
+    # Calculate beta as Cov(X, Y) / Cov(X, X).
     # https://en.wikipedia.org/wiki/Simple_linear_regression#Fitting_the_regression_line  # noqa
+    #
+    # NOTE: The usual formula for covariance is::
+    #
+    #    mean((X - mean(X)) * (Y - mean(Y)))
+    #
+    # However, we don't actually need to take the mean of both sides of the
+    # product, because of the folllowing equivalence::
+    #
+    # Let X_res = (X - mean(X)).
+    # We have:
+    #
+    #     mean(X_res * (Y - mean(Y))) = mean(X_res * (Y - mean(Y)))
+    #                             (1) = mean((X_res * Y) - (X_res * mean(Y)))
+    #                             (2) = mean(X_res * Y) - mean(X_res * mean(Y))
+    #                             (3) = mean(X_res * Y) - mean(X_res) * mean(Y)
+    #                             (4) = mean(X_res * Y) - 0 * mean(Y)
+    #                             (5) = mean(X_res * Y)
+    #
+    #
+    # The tricky step in the above derivation is step (4). We know that
+    # mean(X_res) is zero because, for any X:
+    #
+    #     mean(X - mean(X)) = mean(X) - mean(X) = 0.
+    #
+    # The upshot of this is that we only have to center one of `independent`
+    # and `dependent` when calculating covariances. Since we need the centered
+    # `independent` to calculate its variance in the next step, we choose to
+    # center `independent`.
 
     # shape: (N, M)
     ind_residual = independent - nanmean(independent, axis=0)
 
-    # shape: (N, M)
-    dep_residual = dependents - nanmean(dependents, axis=0)
-
     # shape: (M,)
-    covariances = nanmean(ind_residual * dep_residual, axis=0)
+    covariances = nanmean(ind_residual * dependents, axis=0)
 
     # We end up with different variances in each column here because each
     # column may have a different subset of the data dropped due to missing
