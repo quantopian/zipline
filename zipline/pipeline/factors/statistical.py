@@ -546,11 +546,26 @@ class SimpleBeta(CustomFactor, StandardOutputs):
             out=out,
         )
 
-    def __repr__(self):
-        return "{}(window_length={}, allowed_missing={})".format(
+    def short_repr(self):
+        return "{}({!r}, {}, {})".format(
             type(self).__name__,
+            str(self.target.symbol),  # coerce from unicode to str in py2.
             self.window_length,
-            self.params['allowed_missing'],
+            self.params['allowed_missing_count'],
+        )
+
+    @property
+    def target(self):
+        """Get the target of the beta calculation.
+        """
+        return self.inputs[1].asset
+
+    def __repr__(self):
+        return "{}({}, length={}, allowed_missing={})".format(
+            type(self).__name__,
+            self.target,
+            self.window_length,
+            self.params['allowed_missing_count'],
         )
 
 
