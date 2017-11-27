@@ -504,8 +504,8 @@ class SimpleBeta(CustomFactor, StandardOutputs):
     params = ('allowed_missing_count',)
 
     @expect_types(
-        regression_length=int,
         target=Asset,
+        regression_length=int,
         allowed_missing_percentage=(int, float),
         __funcname='SimpleBeta',
     )
