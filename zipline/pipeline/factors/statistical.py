@@ -522,9 +522,9 @@ class SimpleBeta(CustomFactor, StandardOutputs):
             window_length=2,
             mask=(AssetExists() | SingleAsset(asset=target)),
         )
-        allowed_missing_count = int(np.floor(
+        allowed_missing_count = int(
             allowed_missing_percentage * regression_length
-        ))
+        )
         return super(SimpleBeta, cls).__new__(
             cls,
             inputs=[daily_returns, daily_returns[target]],
