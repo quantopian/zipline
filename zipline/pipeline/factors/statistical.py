@@ -596,7 +596,7 @@ def vectorized_beta(dependents, independent, allowed_missing, out=None):
     N, M = dependents.shape
 
     if out is None:
-        out = np.full(M, np.nan)
+        out = np.full(M, nan)
 
     # Copy N times as a column vector and fill with nans to have the same
     # missing value pattern as the dependent variable.
