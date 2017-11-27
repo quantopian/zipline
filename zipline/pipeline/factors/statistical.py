@@ -495,7 +495,9 @@ class SimpleBeta(CustomFactor, StandardOutputs):
         Number of days of daily returns to use for the regression.
     allowed_missing_percentage : float, optional
         Percentage of returns observations that are allowed to be missing when
-        calculating betas. Default is 25%.
+        calculating betas. Assets with more than this percentage of returns
+        observations missing will produce values of NaN. Default behavior is
+        that 25% of inputs can be missing.
     """
     window_safe = True
     dtype = float64_dtype
@@ -606,7 +608,7 @@ def vectorized_beta(dependents, independent, allowed_missing, out=None):
     # shape: (M,)
     covariances = nanmean(ind_residual * dep_residual, axis=0)
 
-    # We end up with different variances here in each column because each
+    # We end up with different variances in each column here because each
     # column may have a different subset of the data dropped due to missing
     # data in the corresponding dependent column.
     # shape: (M,)
@@ -615,6 +617,8 @@ def vectorized_beta(dependents, independent, allowed_missing, out=None):
     # shape: (M,)
     np.divide(covariances, independent_variances, out=out)
 
+    # Write nans back to locations where we have more then allowed number of
+    # missing entries.
     nanlocs = isnan(independent).sum(axis=0) > allowed_missing
     out[nanlocs] = nan
 

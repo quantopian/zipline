@@ -981,7 +981,7 @@ class VectorizedBetaTestCase(ZiplineTestCase):
                                        [1, 0, 0, 1, 1],
                                        [1, 1, 0, 0, 1],
                                        [1, 1, 1, 0, 0]], dtype=bool)
-        # There's are also two nans in the independent data.
+        # There are also two nans in the independent data.
         independent_nan_grid = np.array([[0],
                                          [0],
                                          [1],
