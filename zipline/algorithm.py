@@ -547,7 +547,7 @@ class TradingAlgorithm(object):
         else:
             benchmark_asset = None
             # get benchmark info from trading environment, which defaults to
-            # downloading data from Yahoo.
+            # downloading data from IEX Trading.
             benchmark_returns = self.trading_environment.benchmark_returns
         return BenchmarkSource(
             benchmark_asset=benchmark_asset,
