@@ -13,13 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from collections import OrderedDict
 
 import logbook
 import pandas as pd
-from pandas_datareader.data import DataReader
-import pytz
-from six import iteritems
 from six.moves.urllib_error import HTTPError
 
 from .benchmarks import get_benchmark_returns
@@ -354,93 +350,6 @@ def _load_cached_data(filename, first_date, last_date, now, resource_name,
         path=path,
     )
     return None
-
-
-def _load_raw_yahoo_data(indexes=None, stocks=None, start=None, end=None):
-    """Load closing prices from yahoo finance.
-
-    :Optional:
-        indexes : dict (Default: {'SPX': '^SPY'})
-            Financial indexes to load.
-        stocks : list (Default: ['AAPL', 'GE', 'IBM', 'MSFT',
-                                 'XOM', 'AA', 'JNJ', 'PEP', 'KO'])
-            Stock closing prices to load.
-        start : datetime (Default: datetime(1993, 1, 1, 0, 0, 0, 0, pytz.utc))
-            Retrieve prices from start date on.
-        end : datetime (Default: datetime(2002, 1, 1, 0, 0, 0, 0, pytz.utc))
-            Retrieve prices until end date.
-
-    :Note:
-        This is based on code presented in a talk by Wes McKinney:
-        http://wesmckinney.com/files/20111017/notebook_output.pdf
-    """
-    assert indexes is not None or stocks is not None, """
-must specify stocks or indexes"""
-
-    if start is None:
-        start = pd.datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc)
-
-    if start is not None and end is not None:
-        assert start < end, "start date is later than end date."
-
-    data = OrderedDict()
-
-    if stocks is not None:
-        for stock in stocks:
-            logger.info('Loading stock: {}'.format(stock))
-            stock_pathsafe = stock.replace(os.path.sep, '--')
-            cache_filename = "{stock}-{start}-{end}.csv".format(
-                stock=stock_pathsafe,
-                start=start,
-                end=end).replace(':', '-')
-            cache_filepath = get_cache_filepath(cache_filename)
-            if os.path.exists(cache_filepath):
-                stkd = pd.DataFrame.from_csv(cache_filepath)
-            else:
-                stkd = DataReader(stock, 'yahoo', start, end).sort_index()
-                stkd.to_csv(cache_filepath)
-            data[stock] = stkd
-
-    if indexes is not None:
-        for name, ticker in iteritems(indexes):
-            logger.info('Loading index: {} ({})'.format(name, ticker))
-            stkd = DataReader(ticker, 'yahoo', start, end).sort_index()
-            data[name] = stkd
-
-    return data
-
-
-def load_from_yahoo(indexes=None,
-                    stocks=None,
-                    start=None,
-                    end=None,
-                    adjusted=True):
-    """
-    Loads price data from Yahoo into a dataframe for each of the indicated
-    assets.  By default, 'price' is taken from Yahoo's 'Adjusted Close',
-    which removes the impact of splits and dividends. If the argument
-    'adjusted' is False, then the non-adjusted 'close' field is used instead.
-
-    :param indexes: Financial indexes to load.
-    :type indexes: dict
-    :param stocks: Stock closing prices to load.
-    :type stocks: list
-    :param start: Retrieve prices from start date on.
-    :type start: datetime
-    :param end: Retrieve prices until end date.
-    :type end: datetime
-    :param adjusted: Adjust the price for splits and dividends.
-    :type adjusted: bool
-
-    """
-    data = _load_raw_yahoo_data(indexes, stocks, start, end)
-    if adjusted:
-        close_key = 'Adj Close'
-    else:
-        close_key = 'Close'
-    df = pd.DataFrame({key: d[close_key] for key, d in iteritems(data)})
-    df.index = df.index.tz_localize(pytz.utc)
-    return df
 
 
 def load_prices_from_csv(filepath, identifier_col, tz='UTC'):
