@@ -261,9 +261,10 @@ setup_requires = setup_requirements(
     conda_format=conda_build,
 )
 
-conditional_arguments = {
-    'setup_requires' if not conda_build else 'build_requires': setup_requires,
-}
+conditional_arguments = (
+    {'build_requires': setup_requires} if conda_build else {}
+)
+
 
 setup(
     name='zipline',
