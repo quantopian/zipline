@@ -48,7 +48,7 @@ containing the current trading bar with open, high, low, and close
 more information on these functions, see the `relevant part of the
 Quantopian docs <https://www.quantopian.com/help#api-toplevel>`__.
 
-My first algorithm
+My First Algorithm
 ~~~~~~~~~~~~~~~~~~
 
 Lets take a look at a very simple algorithm from the ``examples``
@@ -92,7 +92,7 @@ further below). You also see how we can access the current price data of the
 AAPL stock in the ``data`` event frame (for more information see
 `here <https://www.quantopian.com/help#api-event-properties>`__).
 
-Running the algorithm
+Running the Algorithm
 ~~~~~~~~~~~~~~~~~~~~~
 
 To now test this algorithm on financial data, ``zipline`` provides three
@@ -113,7 +113,7 @@ where ``<bundle>`` is the name of the bundle to ingest, defaulting to
 you can check out the :ref:`ingesting data <ingesting-data>` section for
 more detail.
 
-Command line interface
+Command Line Interface
 ^^^^^^^^^^^^^^^^^^^^^^
 
 After you installed zipline you should be able to execute the following
@@ -605,7 +605,7 @@ space and contain the performance ``DataFrame`` we looked at above.
     </div>
 
 
-Access to previous prices using ``history``
+Access to Previous Prices Using ``history``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Working example: Dual Moving Average Cross-Over
