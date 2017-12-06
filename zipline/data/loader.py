@@ -139,21 +139,8 @@ def load_market_data(trading_day=None, trading_days=None, bm_symbol='SPY',
     first_date = trading_days[0]
     now = pd.Timestamp.utcnow()
 
-    # We expect to have benchmark and treasury data that's current up until
-    # **two** full trading days prior to the most recently completed trading
-    # day.
-    # Example:
-    # On Thu Oct 22 2015, the previous completed trading day is Wed Oct 21.
-    # However, data for Oct 21 doesn't become available until the early morning
-    # hours of Oct 22.  This means that there are times on the 22nd at which we
-    # cannot reasonably expect to have data for the 21st available.  To be
-    # conservative, we instead expect that at any time on the 22nd, we can
-    # download data for Tuesday the 20th, which is two full trading days prior
-    # to the date on which we're running a test.
-
-    # We'll attempt to download new data if the latest entry in our cache is
-    # before this date.
-    last_date = trading_days[trading_days.get_loc(now, method='ffill') - 2]
+    # we will fill missing benchmark data through latest trading date
+    last_date = trading_days[trading_days.get_loc(now, method='ffill')]
 
     br = ensure_benchmark_data(
         bm_symbol,
@@ -172,6 +159,12 @@ def load_market_data(trading_day=None, trading_days=None, bm_symbol='SPY',
         now,
         environ,
     )
+
+    # combine dt indices and reindex using ffill then bfill
+    all_dt = br.index.union(tc.index)
+    br = br.reindex(all_dt, method='ffill').fillna(method='bfill')
+    tc = tc.reindex(all_dt, method='ffill').fillna(method='bfill')
+
     benchmark_returns = br[br.index.slice_indexer(first_date, last_date)]
     treasury_curves = tc[tc.index.slice_indexer(first_date, last_date)]
     return benchmark_returns, treasury_curves
