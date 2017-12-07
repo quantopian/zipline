@@ -502,3 +502,30 @@ class VolatilityVolumeShare(MarketImpactBase):
     def get_txn_volume(self, data, order):
         volume = data.current(order.asset, 'volume')
         return volume * self.volume_limit
+
+
+class FixedBasisPointsSlippage(SlippageModel):
+    """
+    Model slippage as a fixed percentage of fill price.
+
+    Parameters
+    ----------
+    bps : int, optional
+        basis points to apply
+    """
+    def __init__(self, bps=5):
+        super(FixedBasisPointsSlippage, self).__init__()
+        self.bps = bps
+
+    def __repr__(self):
+        return '{class_name}(basis_points={bps})'.format(
+            class_name=self.__class__.__name__, spread=self.bps,
+        )
+
+    def process_order(self, data, order):
+        price = data.current(order.asset, "close")
+
+        return (
+            price + price * (self.bps / 10000.0 * order.direction),
+            order.amount
+        )
