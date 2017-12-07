@@ -506,26 +506,29 @@ class VolatilityVolumeShare(MarketImpactBase):
 
 class FixedBasisPointsSlippage(SlippageModel):
     """
-    Model slippage as a fixed percentage of fill price.
+    Model slippage as a fixed percentage of fill price. Executes the full
+    order immediately.
 
     Parameters
     ----------
-    bps : int, optional
+    basis_points : int, optional
         basis points to apply
     """
-    def __init__(self, bps=5):
+    def __init__(self, basis_points=5):
         super(FixedBasisPointsSlippage, self).__init__()
-        self.bps = bps
+        self.basis_points = basis_points
+        self.percentage = self.basis_points / 10000.0
 
     def __repr__(self):
-        return '{class_name}(basis_points={bps})'.format(
-            class_name=self.__class__.__name__, spread=self.bps,
+        return '{class_name}(basis_points={basis_points})'.format(
+            class_name=self.__class__.__name__,
+            basis_points=self.basis_points,
         )
 
     def process_order(self, data, order):
         price = data.current(order.asset, "close")
 
         return (
-            price + price * (self.bps / 10000.0 * order.direction),
+            price + price * (self.percentage * order.direction),
             order.amount
         )
