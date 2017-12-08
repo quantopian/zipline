@@ -37,6 +37,7 @@ from zipline.finance.slippage import (
     SlippageModel,
     VolatilityVolumeShare,
     VolumeShareSlippage,
+    FixedBasisPointsSlippage,
 )
 from zipline.protocol import DATASOURCE_TYPE, BarData
 from zipline.testing import (
@@ -1146,3 +1147,85 @@ class OrdersStopTestCase(WithSimParams,
 
                 for key, value in expected['transaction'].items():
                     self.assertEquals(value, txn[key])
+
+
+class FixedBasisPointsSlippageTestCase(WithCreateBarData,
+                                       WithSimParams,
+                                       ZiplineTestCase):
+
+    START_DATE = pd.Timestamp('2006-01-05 14:31', tz='utc')
+    END_DATE = pd.Timestamp('2006-01-05 14:36', tz='utc')
+    SIM_PARAMS_CAPITAL_BASE = 1.0e5
+    SIM_PARAMS_DATA_FREQUENCY = 'minute'
+    SIM_PARAMS_EMISSION_RATE = 'daily'
+
+    ASSET_FINDER_EQUITY_SIDS = (133,)
+    ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp('2006-01-05', tz='utc')
+    ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp('2006-01-07', tz='utc')
+    minutes = pd.DatetimeIndex(
+        start=START_DATE,
+        end=END_DATE - pd.Timedelta('1 minute'),
+        freq='1min'
+    )
+
+    @classproperty
+    def CREATE_BARDATA_DATA_FREQUENCY(cls):
+        return cls.sim_params.data_frequency
+
+    @classmethod
+    def make_equity_minute_bar_data(cls):
+        yield 133, pd.DataFrame(
+            {
+                'open': [3.00],
+                'high': [3.15],
+                'low': [2.85],
+                'close': [3.00],
+                'volume': [200],
+            },
+            index=[cls.minutes[0]],
+        )
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(FixedBasisPointsSlippageTestCase, cls).init_class_fixtures()
+        cls.ASSET133 = cls.env.asset_finder.retrieve_asset(133)
+
+    def test_fixed_bps_slippage(self):
+
+        slippage_model = FixedBasisPointsSlippage()
+
+        open_orders = [
+            Order(
+                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                amount=100,
+                filled=0,
+                asset=self.ASSET133
+            )
+        ]
+
+        bar_data = self.create_bardata(
+            simulation_dt_func=lambda: self.minutes[0],
+        )
+
+        orders_txns = list(slippage_model.simulate(
+            bar_data,
+            self.ASSET133,
+            open_orders,
+        ))
+
+        self.assertEquals(len(orders_txns), 1)
+        _, txn = orders_txns[0]
+
+        expected_txn = {
+            'price': float(3.0015),
+            'dt': datetime.datetime(
+                2006, 1, 5, 14, 31, tzinfo=pytz.utc),
+            'amount': int(100),
+            'asset': self.ASSET133,
+            'commission': None,
+            'type': DATASOURCE_TYPE.TRANSACTION,
+            'order_id': open_orders[0].id
+        }
+
+        self.assertIsNotNone(txn)
+        self.assertEquals(expected_txn, txn.__dict__)
