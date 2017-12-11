@@ -1150,14 +1150,10 @@ class OrdersStopTestCase(WithSimParams,
 
 
 class FixedBasisPointsSlippageTestCase(WithCreateBarData,
-                                       WithSimParams,
                                        ZiplineTestCase):
 
     START_DATE = pd.Timestamp('2006-01-05 14:31', tz='utc')
     END_DATE = pd.Timestamp('2006-01-05 14:36', tz='utc')
-    SIM_PARAMS_CAPITAL_BASE = 1.0e5
-    SIM_PARAMS_DATA_FREQUENCY = 'minute'
-    SIM_PARAMS_EMISSION_RATE = 'daily'
 
     ASSET_FINDER_EQUITY_SIDS = (133,)
     ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp('2006-01-05', tz='utc')
@@ -1167,10 +1163,6 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         end=END_DATE - pd.Timedelta('1 minute'),
         freq='1min'
     )
-
-    @classproperty
-    def CREATE_BARDATA_DATA_FREQUENCY(cls):
-        return cls.sim_params.data_frequency
 
     @classmethod
     def make_equity_minute_bar_data(cls):
