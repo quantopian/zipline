@@ -1220,7 +1220,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
             'price': float(3.0015),
             'dt': datetime.datetime(
                 2006, 1, 5, 14, 31, tzinfo=pytz.utc),
-            'amount': int(100),
+            'amount': int(20),
             'asset': self.ASSET133,
             'commission': None,
             'type': DATASOURCE_TYPE.TRANSACTION,

@@ -514,21 +514,33 @@ class FixedBasisPointsSlippage(SlippageModel):
     basis_points : int, optional
         basis points to apply
     """
-    def __init__(self, basis_points=5):
+    def __init__(self, basis_points=5, volume_limit=0.1):
         super(FixedBasisPointsSlippage, self).__init__()
         self.basis_points = basis_points
         self.percentage = self.basis_points / 10000.0
+        self.volume_limit = volume_limit
 
     def __repr__(self):
-        return '{class_name}(basis_points={basis_points})'.format(
+        return """
+{class_name}(
+    basis_points={basis_points},
+    volume_limit={volume_limit},
+)
+""".strip().format(
             class_name=self.__class__.__name__,
             basis_points=self.basis_points,
+            volume_limit=self.volume_limit,
         )
 
     def process_order(self, data, order):
+
+        volume = data.current(order.asset, "volume")
+        max_volume = self.volume_limit * volume
+
         price = data.current(order.asset, "close")
+        shares_to_fill = min(order.amount, max_volume)
 
         return (
             price + price * (self.percentage * order.direction),
-            order.amount
+            shares_to_fill
         )
