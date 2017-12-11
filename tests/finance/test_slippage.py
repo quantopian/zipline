@@ -1158,7 +1158,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
     ASSET_FINDER_EQUITY_SIDS = (133,)
     minutes = pd.DatetimeIndex(
         start=START_DATE,
-        end=END_DATE - pd.Timedelta('1 minute'),
+        end=START_DATE,
         freq='1min'
     )
 
