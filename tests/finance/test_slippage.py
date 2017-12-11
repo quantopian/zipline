@@ -1178,7 +1178,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
     @classmethod
     def init_class_fixtures(cls):
         super(FixedBasisPointsSlippageTestCase, cls).init_class_fixtures()
-        cls.ASSET133 = cls.env.asset_finder.retrieve_asset(133)
+        cls.ASSET133 = cls.asset_finder.retrieve_asset(133)
 
     def test_fixed_bps_slippage(self):
 
