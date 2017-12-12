@@ -185,6 +185,11 @@ def ipython_only(option):
     default=False,
     help='Print the algorithm to stdout.',
 )
+@click.option(
+    '--plot/--no-plot',
+    default=os.name != "nt",
+    help="plot result"
+)
 @ipython_only(click.option(
     '--local-namespace/--no-local-namespace',
     is_flag=True,
@@ -205,6 +210,7 @@ def run(ctx,
         output,
         trading_calendar,
         print_algo,
+        plot,
         local_namespace):
     """Run a backtest for the given algorithm.
     """
@@ -251,6 +257,9 @@ def run(ctx,
         environ=os.environ,
     )
 
+    if plot:
+        show_draw_result(algofile.name, perf, bundle)
+
     if output == '-':
         click.echo(str(perf))
     elif output != os.devnull:  # make the zipline magic not write any data
@@ -258,6 +267,89 @@ def run(ctx,
 
     return perf
 
+def show_draw_result(title, results_df, bundle):
+    import matplotlib
+    from matplotlib import gridspec
+    import matplotlib.image as mpimg
+    import matplotlib.pyplot as plt
+    from zipline.utils import paths
+    from datetime import datetime
+    plt.style.use('ggplot')
+
+    red = "#aa4643"
+    blue = "#4572a7"
+    black = "#000000"
+
+    figsize = (18, 6)
+    f = plt.figure(title, figsize=figsize)
+    gs = gridspec.GridSpec(10, 8)
+
+    # TODO draw logo
+    # ax = plt.subplot(gs[:3, -1:])
+    # ax.axis("off")
+    # filename = os.path.join(paths.zipline_root(), 'zipline.png')
+    # img = mpimg.imread(filename)
+    # imgplot = ax.imshow(img, interpolation="nearest")
+    # ax.autoscale_view()
+
+    # draw risk and portfolio
+    series = results_df.iloc[-1]
+
+    font_size = 12
+    value_font_size = 11
+    label_height, value_height = 0.8, 0.6
+    label_height2, value_height2 = 0.35, 0.15
+
+    fig_data = [
+        (0.00, label_height, value_height, "Total Returns", "{0:.3%}".format(series.algorithm_period_return), red,
+         black),
+        (0.15, label_height, value_height, "Annual Returns", "{0:.3%}".format(series.annualized_algorithm_return), red,
+         black),
+        (0.00, label_height2, value_height2, "Benchmark Total", "{0:.3%}".format(series.benchmark_period_return), blue,
+         black),
+        (0.15, label_height2, value_height2, "Benchmark Annual", "{0:.3%}".format(series.annualized_benchmark_return),
+         blue, black),
+
+        (0.30, label_height, value_height, "Alpha", "{0:.4}".format(series.alpha), black, black),
+        (0.40, label_height, value_height, "Beta", "{0:.4}".format(series.beta), black, black),
+        (0.55, label_height, value_height, "Sharpe", "{0:.4}".format(series.sharpe), black, black),
+        (0.70, label_height, value_height, "Sortino", "{0:.4}".format(series.sortino), black, black),
+        (0.85, label_height, value_height, "Information Ratio", "{0:.4}".format(series.information), black, black),
+
+        (0.30, label_height2, value_height2, "Volatility", "{0:.4}".format(series.algo_volatility), black, black),
+        (0.40, label_height2, value_height2, "MaxDrawdown", "{0:.3%}".format(series.max_drawdown), black, black),
+        # (0.55, label_height2, value_height2, "Tracking Error", "{0:.4}".format(series.tracking_error), black, black),
+        # (0.70, label_height2, value_height2, "Downside Risk", "{0:.4}".format(series.downside_risk), black, black),
+    ]
+
+    ax = plt.subplot(gs[:3, :-1])
+    ax.axis("off")
+    for x, y1, y2, label, value, label_color, value_color in fig_data:
+        ax.text(x, y1, label, color=label_color, fontsize=font_size)
+        ax.text(x, y2, value, color=value_color, fontsize=value_font_size)
+
+    # strategy vs benchmark
+    ax = plt.subplot(gs[4:, :])
+
+    ax.get_xaxis().set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+    ax.get_yaxis().set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+    ax.grid(b=True, which='minor', linewidth=.2)
+    ax.grid(b=True, which='major', linewidth=1)
+
+    ax.plot(results_df["benchmark_period_return"], label="benchmark", alpha=1, linewidth=2, color=blue)
+    ax.plot(results_df["algorithm_period_return"], label="algorithm", alpha=1, linewidth=2, color=red)
+
+    # manipulate
+    vals = ax.get_yticks()
+    ax.set_yticklabels(['{:3.2f}%'.format(x * 100) for x in vals])
+
+    leg = plt.legend(loc="upper left")
+    leg.get_frame().set_alpha(0.5)
+
+    plt.show()
+    now = datetime.now()
+    paths.ensure_directory(paths.zipline_path(['perf']))
+    plt.savefig(filename=os.path.join(paths.zipline_path(['perf']), os.path.basename(title).split('.')[0] + '_' + bundle + '_' + now.strftime( '%Y%m%dT%H%M%s') + '.png'))
 
 def zipline_magic(line, cell=None):
     """The zipline IPython cell magic.
