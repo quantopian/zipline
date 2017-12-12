@@ -545,8 +545,10 @@ class FixedBasisPointsSlippage(SlippageModel):
         max_volume = int(self.volume_limit * volume)
 
         price = data.current(order.asset, "close")
-        shares_to_fill = (min(abs(order.amount), max_volume) -
-                          self.volume_for_bar)
+        shares_to_fill = max(
+            min(abs(order.amount), max_volume) - self.volume_for_bar,
+            0
+        )
 
         return (
             price + price * (self.percentage * order.direction),
