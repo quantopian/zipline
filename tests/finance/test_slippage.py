@@ -1180,14 +1180,21 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         super(FixedBasisPointsSlippageTestCase, cls).init_class_fixtures()
         cls.ASSET133 = cls.asset_finder.retrieve_asset(133)
 
-    def test_fixed_bps_slippage(self):
+    @parameterized.expand([
+        ('5bps_over_vol_limit', 5, 0.1, 100, 3.0015, 20),
+        ('5bps_under_vol_limit', 5, 0.1, 10, 3.0015, 10),
+        ('5bps_negative_under_vol_limit', 5, 0.1, -10, 2.9985, -10),
+    ])
+    def test_fixed_bps_slippage(self, name, basis_points, volume_limit,
+                                order_amount, expected_price, expected_amount):
 
-        slippage_model = FixedBasisPointsSlippage()
+        slippage_model = FixedBasisPointsSlippage(basis_points=basis_points,
+                                                  volume_limit=volume_limit)
 
         open_orders = [
             Order(
                 dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
-                amount=100,
+                amount=order_amount,
                 filled=0,
                 asset=self.ASSET133
             )
@@ -1207,10 +1214,10 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         _, txn = orders_txns[0]
 
         expected_txn = {
-            'price': float(3.0015),
+            'price': expected_price,
             'dt': datetime.datetime(
                 2006, 1, 5, 14, 31, tzinfo=pytz.utc),
-            'amount': int(20),
+            'amount': expected_amount,
             'asset': self.ASSET133,
             'commission': None,
             'type': DATASOURCE_TYPE.TRANSACTION,
