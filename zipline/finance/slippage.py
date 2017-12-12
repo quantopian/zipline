@@ -509,10 +509,17 @@ class FixedBasisPointsSlippage(SlippageModel):
     Model slippage as a fixed percentage of fill price. Executes the full
     order immediately.
 
+    Orders to buy will be filled at: `price + (price * basis_points * 0.0001)`.
+    Orders to sell will be filled at:
+        `price - (price * basis_points * 0.0001)`.
+
     Parameters
     ----------
-    basis_points : int, optional
-        basis points to apply
+    basis_points : float, optional
+        Number of basis points of slippage to apply on each execution.
+
+    volume_limit : float, optional
+        fraction of the trading volume that can be filled each minute.
     """
     def __init__(self, basis_points=5, volume_limit=0.1):
         super(FixedBasisPointsSlippage, self).__init__()
@@ -535,12 +542,13 @@ class FixedBasisPointsSlippage(SlippageModel):
     def process_order(self, data, order):
 
         volume = data.current(order.asset, "volume")
-        max_volume = self.volume_limit * volume
+        max_volume = int(self.volume_limit * volume)
 
         price = data.current(order.asset, "close")
-        shares_to_fill = min(order.amount, max_volume)
+        shares_to_fill = (min(abs(order.amount), max_volume) -
+                          self.volume_for_bar)
 
         return (
             price + price * (self.percentage * order.direction),
-            shares_to_fill
+            shares_to_fill * order.direction
         )
