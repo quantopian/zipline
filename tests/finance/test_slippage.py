@@ -1288,12 +1288,12 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
 
     def test_broken_constructions(self):
         with self.assertRaises(ValueError) as e:
-            FixedBasisPointsSlippage(basis_points=0)
+            FixedBasisPointsSlippage(basis_points=-1)
 
         self.assertEqual(
             str(e.exception),
-            "FixedBasisPointsSlippage() expected a value strictly "
-            "greater than 0 for argument 'basis_points', but got 0 instead."
+            "FixedBasisPointsSlippage() expected a value greater than "
+            "or equal to 0 for argument 'basis_points', but got -1 instead."
         )
 
         with self.assertRaises(ValueError) as e:
