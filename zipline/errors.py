@@ -639,11 +639,29 @@ class NoSuchPipeline(ZiplineError, KeyError):
     )
 
 
+class DuplicatePipelineName(ZiplineError):
+    """
+    Raised when a user tries to attach a pipeline with a name that already
+    exists for another attached pipeline.
+    """
+    msg = (
+        "Attempted to attach pipeline named {name!r}, but the name already "
+        "exists for another pipeline. Please use a different name for this "
+        "pipeline."
+    )
+
+
 class UnsupportedDataType(ZiplineError):
     """
     Raised by CustomFactors with unsupported dtypes.
     """
-    msg = "{typename} instances with dtype {dtype} are not supported."
+    def __init__(self, hint='', **kwargs):
+        if hint:
+            hint = ' ' + hint
+        kwargs['hint'] = hint
+        super(UnsupportedDataType, self).__init__(**kwargs)
+
+    msg = "{typename} instances with dtype {dtype} are not supported.{hint}"
 
 
 class NoFurtherDataError(ZiplineError):

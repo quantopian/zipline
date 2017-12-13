@@ -41,7 +41,12 @@ from zipline.pipeline.filters import (
 from zipline.testing import parameter_space, permute_rows, ZiplineTestCase
 from zipline.testing.fixtures import WithSeededRandomPipelineEngine
 from zipline.testing.predicates import assert_equal
-from zipline.utils.numpy_utils import float64_dtype, int64_dtype, object_dtype
+from zipline.utils.numpy_utils import (
+    datetime64ns_dtype,
+    float64_dtype,
+    int64_dtype,
+    object_dtype,
+)
 from .base import BasePipelineTestCase, with_default_shape
 
 
@@ -79,6 +84,12 @@ class SomeFactor(Factor):
     window_length = 0
 
 
+class SomeDatetimeFactor(Factor):
+    dtype = datetime64ns_dtype
+    inputs = ()
+    window_length = 0
+
+
 class SomeOtherFactor(Factor):
     dtype = float64_dtype
     inputs = ()
@@ -104,6 +115,12 @@ class FilterTestCase(BasePipelineTestCase):
         self.f = SomeFactor()
         self.g = SomeOtherFactor()
         self.c = SomeClassifier()
+        self.datetime_f = SomeDatetimeFactor()
+
+        self.factors_by_dtype_name = {
+            'float64': self.f,
+            'datetime64[ns]': self.datetime_f,
+        }
 
     @with_default_shape
     def randn_data(self, seed, shape):
@@ -763,7 +780,7 @@ class FilterTestCase(BasePipelineTestCase):
                                           [0, 0, 0, 0, 1, 1, 1, 1],
                                           [0, 0, 0, 0, 0, 0, 0, 0],
                                           [0, 0, 0, 0, 0, 0, 0, 0]])
-        f = self.f
+        f = self.factors_by_dtype_name[dtype]
         c = self.c
         self.check_terms(
             terms={
@@ -833,7 +850,7 @@ class FilterTestCase(BasePipelineTestCase):
                                           [0, 0, 0, 0, 0, 0, 0, 0],
                                           [0, 0, 0, 0, 0, 0, 0, 0]])
 
-        f = self.f
+        f = self.factors_by_dtype_name[dtype]
         c = self.c
 
         self.check_terms(
@@ -940,7 +957,7 @@ class FilterTestCase(BasePipelineTestCase):
                                           [0, 0, 0, 0, 0, 0, 0, 0],
                                           [0, 0, 0, 0, 0, 0, 0, 0]])
 
-        f = self.f
+        f = self.factors_by_dtype_name[dtype]
         c = self.c
 
         self.check_terms(
