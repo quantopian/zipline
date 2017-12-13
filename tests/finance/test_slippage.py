@@ -1304,4 +1304,3 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
             "FixedBasisPointsSlippage() expected a value strictly "
             "greater than 0 for argument 'volume_limit', but got 0 instead."
         )
-
