@@ -29,6 +29,7 @@ from zipline.finance.shared import AllowedAssetMarker, FinancialModelMeta
 from zipline.finance.transaction import create_transaction
 from zipline.utils.cache import ExpiringCache
 from zipline.utils.dummy import DummyMapping
+from zipline.utils.input_validation import expect_strictly_bounded
 
 SELL = 1 << 0
 BUY = 1 << 1
@@ -521,6 +522,11 @@ class FixedBasisPointsSlippage(SlippageModel):
     volume_limit : float, optional
         fraction of the trading volume that can be filled each minute.
     """
+    @expect_strictly_bounded(
+        basis_points=(0, None),
+        volume_limit=(0, None),
+        __funcname='FixedBasisPointsSlippage',
+    )
     def __init__(self, basis_points=5, volume_limit=0.1):
         super(FixedBasisPointsSlippage, self).__init__()
         self.basis_points = basis_points

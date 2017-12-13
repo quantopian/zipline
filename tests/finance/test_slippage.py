@@ -1285,3 +1285,23 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         _, second_txn = orders_txns[1]
         self.assertEquals(first_txn['amount'], first_order_fill_amount)
         self.assertEquals(second_txn['amount'], second_order_fill_amount)
+
+    def test_broken_constructions(self):
+        with self.assertRaises(ValueError) as e:
+            FixedBasisPointsSlippage(basis_points=0)
+
+        self.assertEqual(
+            str(e.exception),
+            "FixedBasisPointsSlippage() expected a value strictly "
+            "greater than 0 for argument 'basis_points', but got 0 instead."
+        )
+
+        with self.assertRaises(ValueError) as e:
+            FixedBasisPointsSlippage(volume_limit=0)
+
+        self.assertEqual(
+            str(e.exception),
+            "FixedBasisPointsSlippage() expected a value strictly "
+            "greater than 0 for argument 'volume_limit', but got 0 instead."
+        )
+
