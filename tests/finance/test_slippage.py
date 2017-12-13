@@ -1180,8 +1180,13 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         cls.ASSET133 = cls.asset_finder.retrieve_asset(133)
 
     @parameterized.expand([
+        # Volume limit of 10% on an order of 100 shares. Since the bar volume
+        # is 200, we should hit the limit and only fill 20 shares.
         ('5bps_over_vol_limit', 5, 0.1, 100, 3.0015, 20),
+        # Volume limit of 10% on an order of 10 shares. We should fill the full
+        # amount.
         ('5bps_under_vol_limit', 5, 0.1, 10, 3.0015, 10),
+        # Same as previous, but on the short side.
         ('5bps_negative_under_vol_limit', 5, 0.1, -10, 2.9985, -10),
     ])
     def test_fixed_bps_slippage(self,
@@ -1232,7 +1237,11 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         self.assertEquals(expected_txn, txn.__dict__)
 
     @parameterized.expand([
+        # Volume limit for the bar is 20. We've ordered 10 total shares.
+        # We should fill both orders completely.
         ('order_under_limit', 9, 1, 9, 1),
+        # Volume limit for the bar is 20. We've ordered 21 total shares.
+        # The second order should have one share remaining after fill.
         ('order_over_limit', -3, 18, -3, 17),
     ])
     def test_volume_limit(self, name,
