@@ -1156,10 +1156,9 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
     END_DATE = pd.Timestamp('2006-01-05', tz='utc')
 
     ASSET_FINDER_EQUITY_SIDS = (133,)
-    minutes = pd.DatetimeIndex(
-        start=START_DATE,
-        end=START_DATE,
-        freq='1min'
+
+    first_minute = (
+        pd.Timestamp('2006-01-05 9:31', tz='US/Eastern').tz_convert('UTC')
     )
 
     @classmethod
@@ -1172,7 +1171,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
                 'close': [3.00],
                 'volume': [200],
             },
-            index=[cls.minutes[0]],
+            index=[cls.first_minute],
         )
 
     @classmethod
@@ -1206,7 +1205,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         ]
 
         bar_data = self.create_bardata(
-            simulation_dt_func=lambda: self.minutes[0],
+            simulation_dt_func=lambda: self.first_minute
         )
 
         orders_txns = list(slippage_model.simulate(
@@ -1256,7 +1255,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         ]
 
         bar_data = self.create_bardata(
-            simulation_dt_func=lambda: self.minutes[0],
+            simulation_dt_func=lambda: self.first_minute,
         )
 
         orders_txns = list(slippage_model.simulate(
