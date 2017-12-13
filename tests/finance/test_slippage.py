@@ -1165,7 +1165,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
     def make_equity_minute_bar_data(cls):
         yield 133, pd.DataFrame(
             {
-                'open': [3.00],
+                'open': [2.9],
                 'high': [3.15],
                 'low': [2.85],
                 'close': [3.00],
