@@ -1183,6 +1183,8 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         # Volume limit of 10% on an order of 100 shares. Since the bar volume
         # is 200, we should hit the limit and only fill 20 shares.
         ('5bps_over_vol_limit', 5, 0.1, 100, 3.0015, 20),
+        # Same as previous, but on the short side.
+        ('5bps_negative_over_vol_limit', 5, 0.1, -100, 2.9985, -20),
         # Volume limit of 10% on an order of 10 shares. We should fill the full
         # amount.
         ('5bps_under_vol_limit', 5, 0.1, 10, 3.0015, 10),
