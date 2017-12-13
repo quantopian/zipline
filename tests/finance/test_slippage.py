@@ -1190,6 +1190,10 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         ('5bps_under_vol_limit', 5, 0.1, 10, 3.0015, 10),
         # Same as previous, but on the short side.
         ('5bps_negative_under_vol_limit', 5, 0.1, -10, 2.9985, -10),
+        # Change the basis points value.
+        ('10bps', 10, 0.1, 100, 3.003, 20),
+        # Change the volume limit points value.
+        ('20pct_volume_limit', 5, 0.2, 100, 3.0015, 40),
     ])
     def test_fixed_bps_slippage(self,
                                 name,
