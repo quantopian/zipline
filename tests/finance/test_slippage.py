@@ -1226,3 +1226,43 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
 
         self.assertIsNotNone(txn)
         self.assertEquals(expected_txn, txn.__dict__)
+
+    @parameterized.expand([
+        ('order_under_limit', 9, 1, 9, 1),
+        ('order_over_limit', -3, 18, -3, 17),
+    ])
+    def test_volume_limit(self, name,
+                          first_order_amount,
+                          second_order_amount,
+                          first_order_fill_amount,
+                          second_order_fill_amount):
+
+        slippage_model = FixedBasisPointsSlippage(basis_points=5,
+                                                  volume_limit=0.1)
+
+        open_orders = [
+            Order(
+                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                amount=order_amount,
+                filled=0,
+                asset=self.ASSET133
+            )
+            for order_amount in [first_order_amount, second_order_amount]
+        ]
+
+        bar_data = self.create_bardata(
+            simulation_dt_func=lambda: self.minutes[0],
+        )
+
+        orders_txns = list(slippage_model.simulate(
+            bar_data,
+            self.ASSET133,
+            open_orders,
+        ))
+
+        self.assertEquals(len(orders_txns), 2)
+
+        _, first_txn = orders_txns[0]
+        _, second_txn = orders_txns[1]
+        self.assertEquals(first_txn['amount'], first_order_fill_amount)
+        self.assertEquals(second_txn['amount'], second_order_fill_amount)
