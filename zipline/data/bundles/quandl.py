@@ -16,7 +16,6 @@ from zipline.utils.calendars import register_calendar_alias
 from zipline.utils.deprecate import deprecated
 from . import core as bundles
 import numpy as np
-from memory_profiler import profile
 
 log = Logger(__name__)
 
@@ -36,7 +35,6 @@ def format_metadata_url(api_key):
     )
 
 
-@profile
 def load_data_table(file,
                     index_col,
                     show_progress=False):
@@ -115,7 +113,6 @@ def fetch_data_table(api_key,
         )
 
 
-@profile
 def gen_asset_metadata(data, show_progress):
     if show_progress:
         log.info('Generating asset metadata.')
@@ -137,7 +134,6 @@ def gen_asset_metadata(data, show_progress):
     return data
 
 
-@profile
 def parse_splits(data, show_progress):
     if show_progress:
         log.info('Parsing split data.')
@@ -153,7 +149,6 @@ def parse_splits(data, show_progress):
     return data
 
 
-@profile
 def parse_dividends(data, show_progress):
     if show_progress:
         log.info('Parsing dividend data.')
@@ -169,7 +164,6 @@ def parse_dividends(data, show_progress):
     return data
 
 
-@profile
 def parse_pricing_and_vol(data,
                           sessions,
                           symbol_map):
@@ -184,7 +178,6 @@ def parse_pricing_and_vol(data,
 
 
 @bundles.register('quandl')
-@profile
 def quandl_bundle(environ,
                   asset_db_writer,
                   minute_bar_writer,
