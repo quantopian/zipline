@@ -1152,27 +1152,26 @@ class OrdersStopTestCase(WithSimParams,
 class FixedBasisPointsSlippageTestCase(WithCreateBarData,
                                        ZiplineTestCase):
 
-    START_DATE = pd.Timestamp('2006-01-05 14:31', tz='utc')
-    END_DATE = pd.Timestamp('2006-01-05 14:36', tz='utc')
+    START_DATE = pd.Timestamp('2006-01-05', tz='utc')
+    END_DATE = pd.Timestamp('2006-01-05', tz='utc')
 
     ASSET_FINDER_EQUITY_SIDS = (133,)
-    minutes = pd.DatetimeIndex(
-        start=START_DATE,
-        end=START_DATE,
-        freq='1min'
+
+    first_minute = (
+        pd.Timestamp('2006-01-05 9:31', tz='US/Eastern').tz_convert('UTC')
     )
 
     @classmethod
     def make_equity_minute_bar_data(cls):
         yield 133, pd.DataFrame(
             {
-                'open': [3.00],
+                'open': [2.9],
                 'high': [3.15],
                 'low': [2.85],
                 'close': [3.00],
                 'volume': [200],
             },
-            index=[cls.minutes[0]],
+            index=[cls.first_minute],
         )
 
     @classmethod
@@ -1181,12 +1180,28 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         cls.ASSET133 = cls.asset_finder.retrieve_asset(133)
 
     @parameterized.expand([
+        # Volume limit of 10% on an order of 100 shares. Since the bar volume
+        # is 200, we should hit the limit and only fill 20 shares.
         ('5bps_over_vol_limit', 5, 0.1, 100, 3.0015, 20),
+        # Same as previous, but on the short side.
+        ('5bps_negative_over_vol_limit', 5, 0.1, -100, 2.9985, -20),
+        # Volume limit of 10% on an order of 10 shares. We should fill the full
+        # amount.
         ('5bps_under_vol_limit', 5, 0.1, 10, 3.0015, 10),
+        # Same as previous, but on the short side.
         ('5bps_negative_under_vol_limit', 5, 0.1, -10, 2.9985, -10),
+        # Change the basis points value.
+        ('10bps', 10, 0.1, 100, 3.003, 20),
+        # Change the volume limit points value.
+        ('20pct_volume_limit', 5, 0.2, 100, 3.0015, 40),
     ])
-    def test_fixed_bps_slippage(self, name, basis_points, volume_limit,
-                                order_amount, expected_price, expected_amount):
+    def test_fixed_bps_slippage(self,
+                                name,
+                                basis_points,
+                                volume_limit,
+                                order_amount,
+                                expected_price,
+                                expected_amount):
 
         slippage_model = FixedBasisPointsSlippage(basis_points=basis_points,
                                                   volume_limit=volume_limit)
@@ -1201,7 +1216,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         ]
 
         bar_data = self.create_bardata(
-            simulation_dt_func=lambda: self.minutes[0],
+            simulation_dt_func=lambda: self.first_minute
         )
 
         orders_txns = list(slippage_model.simulate(
@@ -1228,7 +1243,11 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         self.assertEquals(expected_txn, txn.__dict__)
 
     @parameterized.expand([
+        # Volume limit for the bar is 20. We've ordered 10 total shares.
+        # We should fill both orders completely.
         ('order_under_limit', 9, 1, 9, 1),
+        # Volume limit for the bar is 20. We've ordered 21 total shares.
+        # The second order should have one share remaining after fill.
         ('order_over_limit', -3, 18, -3, 17),
     ])
     def test_volume_limit(self, name,
@@ -1251,7 +1270,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         ]
 
         bar_data = self.create_bardata(
-            simulation_dt_func=lambda: self.minutes[0],
+            simulation_dt_func=lambda: self.first_minute,
         )
 
         orders_txns = list(slippage_model.simulate(
@@ -1266,3 +1285,23 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         _, second_txn = orders_txns[1]
         self.assertEquals(first_txn['amount'], first_order_fill_amount)
         self.assertEquals(second_txn['amount'], second_order_fill_amount)
+
+    def test_broken_constructions(self):
+        with self.assertRaises(ValueError) as e:
+            FixedBasisPointsSlippage(basis_points=0)
+
+        self.assertEqual(
+            str(e.exception),
+            "FixedBasisPointsSlippage() expected a value strictly "
+            "greater than 0 for argument 'basis_points', but got 0 instead."
+        )
+
+        with self.assertRaises(ValueError) as e:
+            FixedBasisPointsSlippage(volume_limit=0)
+
+        self.assertEqual(
+            str(e.exception),
+            "FixedBasisPointsSlippage() expected a value strictly "
+            "greater than 0 for argument 'volume_limit', but got 0 instead."
+        )
+
