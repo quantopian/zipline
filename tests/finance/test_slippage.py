@@ -1152,8 +1152,8 @@ class OrdersStopTestCase(WithSimParams,
 class FixedBasisPointsSlippageTestCase(WithCreateBarData,
                                        ZiplineTestCase):
 
-    START_DATE = pd.Timestamp('2006-01-05 14:31', tz='utc')
-    END_DATE = pd.Timestamp('2006-01-05 14:36', tz='utc')
+    START_DATE = pd.Timestamp('2006-01-05', tz='utc')
+    END_DATE = pd.Timestamp('2006-01-05', tz='utc')
 
     ASSET_FINDER_EQUITY_SIDS = (133,)
     minutes = pd.DatetimeIndex(
