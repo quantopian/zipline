@@ -29,6 +29,8 @@ from zipline.finance.shared import AllowedAssetMarker, FinancialModelMeta
 from zipline.finance.transaction import create_transaction
 from zipline.utils.cache import ExpiringCache
 from zipline.utils.dummy import DummyMapping
+from zipline.utils.input_validation import (expect_bounded,
+                                            expect_strictly_bounded)
 
 SELL = 1 << 0
 BUY = 1 << 1
@@ -502,3 +504,61 @@ class VolatilityVolumeShare(MarketImpactBase):
     def get_txn_volume(self, data, order):
         volume = data.current(order.asset, 'volume')
         return volume * self.volume_limit
+
+
+class FixedBasisPointsSlippage(SlippageModel):
+    """
+    Model slippage as a fixed percentage of fill price. Executes the full
+    order immediately.
+
+    Orders to buy will be filled at: `price + (price * basis_points * 0.0001)`.
+    Orders to sell will be filled at:
+        `price - (price * basis_points * 0.0001)`.
+
+    Parameters
+    ----------
+    basis_points : float, optional
+        Number of basis points of slippage to apply on each execution.
+
+    volume_limit : float, optional
+        fraction of the trading volume that can be filled each minute.
+    """
+    @expect_bounded(
+        basis_points=(0, None),
+        __funcname='FixedBasisPointsSlippage',
+    )
+    @expect_strictly_bounded(
+        volume_limit=(0, None),
+        __funcname='FixedBasisPointsSlippage',
+    )
+    def __init__(self, basis_points=5, volume_limit=0.1):
+        super(FixedBasisPointsSlippage, self).__init__()
+        self.basis_points = basis_points
+        self.percentage = self.basis_points / 10000.0
+        self.volume_limit = volume_limit
+
+    def __repr__(self):
+        return """
+{class_name}(
+    basis_points={basis_points},
+    volume_limit={volume_limit},
+)
+""".strip().format(
+            class_name=self.__class__.__name__,
+            basis_points=self.basis_points,
+            volume_limit=self.volume_limit,
+        )
+
+    def process_order(self, data, order):
+
+        volume = data.current(order.asset, "volume")
+        max_volume = int(self.volume_limit * volume)
+
+        price = data.current(order.asset, "close")
+        shares_to_fill = min(abs(order.open_amount),
+                             max_volume - self.volume_for_bar)
+
+        return (
+            price + price * (self.percentage * order.direction),
+            shares_to_fill * order.direction
+        )

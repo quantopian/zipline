@@ -37,6 +37,7 @@ from zipline.finance.slippage import (
     SlippageModel,
     VolatilityVolumeShare,
     VolumeShareSlippage,
+    FixedBasisPointsSlippage,
 )
 from zipline.protocol import DATASOURCE_TYPE, BarData
 from zipline.testing import (
@@ -1146,3 +1147,160 @@ class OrdersStopTestCase(WithSimParams,
 
                 for key, value in expected['transaction'].items():
                     self.assertEquals(value, txn[key])
+
+
+class FixedBasisPointsSlippageTestCase(WithCreateBarData,
+                                       ZiplineTestCase):
+
+    START_DATE = pd.Timestamp('2006-01-05', tz='utc')
+    END_DATE = pd.Timestamp('2006-01-05', tz='utc')
+
+    ASSET_FINDER_EQUITY_SIDS = (133,)
+
+    first_minute = (
+        pd.Timestamp('2006-01-05 9:31', tz='US/Eastern').tz_convert('UTC')
+    )
+
+    @classmethod
+    def make_equity_minute_bar_data(cls):
+        yield 133, pd.DataFrame(
+            {
+                'open': [2.9],
+                'high': [3.15],
+                'low': [2.85],
+                'close': [3.00],
+                'volume': [200],
+            },
+            index=[cls.first_minute],
+        )
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(FixedBasisPointsSlippageTestCase, cls).init_class_fixtures()
+        cls.ASSET133 = cls.asset_finder.retrieve_asset(133)
+
+    @parameterized.expand([
+        # Volume limit of 10% on an order of 100 shares. Since the bar volume
+        # is 200, we should hit the limit and only fill 20 shares.
+        ('5bps_over_vol_limit', 5, 0.1, 100, 3.0015, 20),
+        # Same as previous, but on the short side.
+        ('5bps_negative_over_vol_limit', 5, 0.1, -100, 2.9985, -20),
+        # Volume limit of 10% on an order of 10 shares. We should fill the full
+        # amount.
+        ('5bps_under_vol_limit', 5, 0.1, 10, 3.0015, 10),
+        # Same as previous, but on the short side.
+        ('5bps_negative_under_vol_limit', 5, 0.1, -10, 2.9985, -10),
+        # Change the basis points value.
+        ('10bps', 10, 0.1, 100, 3.003, 20),
+        # Change the volume limit points value.
+        ('20pct_volume_limit', 5, 0.2, 100, 3.0015, 40),
+    ])
+    def test_fixed_bps_slippage(self,
+                                name,
+                                basis_points,
+                                volume_limit,
+                                order_amount,
+                                expected_price,
+                                expected_amount):
+
+        slippage_model = FixedBasisPointsSlippage(basis_points=basis_points,
+                                                  volume_limit=volume_limit)
+
+        open_orders = [
+            Order(
+                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                amount=order_amount,
+                filled=0,
+                asset=self.ASSET133
+            )
+        ]
+
+        bar_data = self.create_bardata(
+            simulation_dt_func=lambda: self.first_minute
+        )
+
+        orders_txns = list(slippage_model.simulate(
+            bar_data,
+            self.ASSET133,
+            open_orders,
+        ))
+
+        self.assertEquals(len(orders_txns), 1)
+        _, txn = orders_txns[0]
+
+        expected_txn = {
+            'price': expected_price,
+            'dt': datetime.datetime(
+                2006, 1, 5, 14, 31, tzinfo=pytz.utc),
+            'amount': expected_amount,
+            'asset': self.ASSET133,
+            'commission': None,
+            'type': DATASOURCE_TYPE.TRANSACTION,
+            'order_id': open_orders[0].id
+        }
+
+        self.assertIsNotNone(txn)
+        self.assertEquals(expected_txn, txn.__dict__)
+
+    @parameterized.expand([
+        # Volume limit for the bar is 20. We've ordered 10 total shares.
+        # We should fill both orders completely.
+        ('order_under_limit', 9, 1, 9, 1),
+        # Volume limit for the bar is 20. We've ordered 21 total shares.
+        # The second order should have one share remaining after fill.
+        ('order_over_limit', -3, 18, -3, 17),
+    ])
+    def test_volume_limit(self, name,
+                          first_order_amount,
+                          second_order_amount,
+                          first_order_fill_amount,
+                          second_order_fill_amount):
+
+        slippage_model = FixedBasisPointsSlippage(basis_points=5,
+                                                  volume_limit=0.1)
+
+        open_orders = [
+            Order(
+                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                amount=order_amount,
+                filled=0,
+                asset=self.ASSET133
+            )
+            for order_amount in [first_order_amount, second_order_amount]
+        ]
+
+        bar_data = self.create_bardata(
+            simulation_dt_func=lambda: self.first_minute,
+        )
+
+        orders_txns = list(slippage_model.simulate(
+            bar_data,
+            self.ASSET133,
+            open_orders,
+        ))
+
+        self.assertEquals(len(orders_txns), 2)
+
+        _, first_txn = orders_txns[0]
+        _, second_txn = orders_txns[1]
+        self.assertEquals(first_txn['amount'], first_order_fill_amount)
+        self.assertEquals(second_txn['amount'], second_order_fill_amount)
+
+    def test_broken_constructions(self):
+        with self.assertRaises(ValueError) as e:
+            FixedBasisPointsSlippage(basis_points=-1)
+
+        self.assertEqual(
+            str(e.exception),
+            "FixedBasisPointsSlippage() expected a value greater than "
+            "or equal to 0 for argument 'basis_points', but got -1 instead."
+        )
+
+        with self.assertRaises(ValueError) as e:
+            FixedBasisPointsSlippage(volume_limit=0)
+
+        self.assertEqual(
+            str(e.exception),
+            "FixedBasisPointsSlippage() expected a value strictly "
+            "greater than 0 for argument 'volume_limit', but got 0 instead."
+        )
