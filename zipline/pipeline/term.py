@@ -737,6 +737,12 @@ class Slice(ComputableTerm):
         return windows[0][:, [asset_column]]
 
     @property
+    def asset(self):
+        """Get the asset whose data is selected by this slice.
+        """
+        return self._asset
+
+    @property
     def _downsampled_type(self):
         raise NotImplementedError(
             'downsampling of slices is not yet supported'

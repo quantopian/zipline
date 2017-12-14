@@ -74,6 +74,9 @@ def load_data_table(file,
         )
     return data_table
 
+    data_table['symbol'] = data_table['symbol'].astype('category')
+    return data_table
+
 
 def fetch_data_table(api_key,
                      show_progress,

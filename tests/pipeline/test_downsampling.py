@@ -6,6 +6,7 @@ from functools import partial
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
 
+from zipline.errors import NoFurtherDataError
 from zipline.pipeline import (
     Pipeline,
     CustomFactor,
@@ -48,7 +49,7 @@ class NDaysAgoClassifier(CustomClassifier):
         out[:] = cats[0]
 
 
-class ComputeExtraRowsTestcase(WithTradingSessions, ZiplineTestCase):
+class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
 
     DATA_MIN_DAY = pd.Timestamp('2012-06', tz='UTC')
     DATA_MAX_DAY = pd.Timestamp('2015', tz='UTC')
@@ -165,7 +166,7 @@ class ComputeExtraRowsTestcase(WithTradingSessions, ZiplineTestCase):
         # Simulate requesting computation where the unaltered lookback would
         # land on the last date of 2012. The downsampled terms should request
         # enough extra rows to push us back to the first known date, which is
-        # in the middle of 2012
+        # in the middle of 2012.
         for i in range(0, 30, 5):
             start_session = sessions_in_2013[i]
             self.check_extra_row_calculations(
@@ -180,6 +181,32 @@ class ComputeExtraRowsTestcase(WithTradingSessions, ZiplineTestCase):
                 base_terms,
                 all_sessions,
                 start_session,
+                end_session,
+                min_extra_rows=i + 1,
+                expected_extra_rows=i + 1,
+            )
+
+        # Simulate requesting computation where the unaltered lookback would
+        # land prior to the first date of 2012. The downsampled terms will fail
+        # to request enough extra rows.
+        for i in range(0, 30, 5):
+            with self.assertRaisesRegexp(
+                NoFurtherDataError,
+                '\s*Insufficient data to compute Pipeline'
+            ):
+                self.check_extra_row_calculations(
+                    downsampled_terms,
+                    all_sessions,
+                    all_sessions[i],
+                    end_session,
+                    min_extra_rows=i + 1,
+                    expected_extra_rows=i + 1,
+                )
+
+            self.check_extra_row_calculations(
+                base_terms,
+                all_sessions,
+                all_sessions[i],
                 end_session,
                 min_extra_rows=i + 1,
                 expected_extra_rows=i + 1,

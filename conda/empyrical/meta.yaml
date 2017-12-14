@@ -1,30 +1,21 @@
+{% set name = "empyrical" %}
+{% set version = "0.3.3" %}
+{% set file_ext = "tar.gz" %}
+{% set hash_type = "sha256" %}
+{% set hash_value = "fdae4107ac40779975b0474db5221aecdf29345f3ef38525f98abf3a0a7c0862" %}
+
 package:
-  name: empyrical
-  version: "0.2.2"
+  name: '{{ name|lower }}'
+  version: '{{ version }}'
 
 source:
-  fn: empyrical-0.2.2.tar.gz
-  url: https://pypi.python.org/packages/61/0a/959a48f176da49ddd939d49ad53bc6e5e4c82c022f1f724517cb7a82770c/empyrical-0.2.2.tar.gz
-  md5: d614402c585ccad847b35e6c73f85a67
-#  patches:
-   # List any patch files here
-   # - fix.patch
+  fn: '{{ name }}-{{ version }}.{{ file_ext }}'
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.{{ file_ext }}
+  '{{ hash_type }}': '{{ hash_value }}'
 
-# build:
-  # noarch_python: True
-  # preserve_egg_dir: True
-  # entry_points:
-    # Put any entry points (scripts to be generated automatically) here. The
-    # syntax is module:function.  For example
-    #
-    # - empyrical = empyrical:main
-    #
-    # Would create an entry point called empyrical that calls empyrical.main()
-
-
-  # If this is a new build for the same version, increment the build
-  # number. If you do not include this key, it defaults to 0.
-  # number: 1
+build:
+  number: 0
+  script: python setup.py install --single-version-externally-managed --record=record.txt
 
 requirements:
   build:
@@ -33,37 +24,44 @@ requirements:
     - numpy >=1.9.2
     - pandas >=0.16.1
     - scipy >=0.15.1
+    - pandas-datareader >=0.2
     - bottleneck >=1.0.0
-
   run:
     - python
     - numpy >=1.9.2
     - pandas >=0.16.1
     - scipy >=0.15.1
+    - pandas-datareader >=0.2
     - bottleneck >=1.0.0
 
 test:
-  # Python imports
   imports:
     - empyrical
     - empyrical.tests
-
-  # commands:
-    # You can put test commands to be run here.  Use this to test that the
-    # entry points work.
-
-
-  # You can also put a file called run_test.py in the recipe that will be run
-  # at test time.
-
   requires:
     - nose >=1.3.7
+    - parameterized >=0.6.1
 
 about:
   home: https://github.com/quantopian/empyrical
   license: Apache Software License
-  summary: 'empyrical is a Python library with performance and risk statistics\ncommonly used in quantitative finance'
+  license_family: APACHE
+  license_file: ''
+  summary: empyrical is a Python library with performance and risk statistics commonly used in quantitative finance
+  description: 'empyrical is a Python library with performance and risk
 
-# See
-# http://docs.continuum.io/conda/build.html for
-# more information about meta.yaml
+    statistics commonly used in quantitative finance by `Quantopian Inc`_.
+
+
+    .. _Quantopian Inc: https://www.quantopian.com
+
+    .. _Zipline: http://zipline.io
+
+    .. _pyfolio: http://quantopian.github.io/pyfolio/
+
+    '
+  doc_url: ''
+  dev_url: ''
+
+extra:
+  recipe-maintainers: ''

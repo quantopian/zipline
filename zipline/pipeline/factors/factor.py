@@ -9,11 +9,20 @@ from numpy import empty_like, inf, nan, where
 from scipy.stats import rankdata
 
 from zipline.utils.compat import wraps
-from zipline.errors import BadPercentileBounds, UnknownRankMethod
+from zipline.errors import (
+    BadPercentileBounds,
+    UnknownRankMethod,
+    UnsupportedDataType,
+)
 from zipline.lib.normalize import naive_grouped_rowwise_apply
 from zipline.lib.rank import masked_rankdata_2d, rankdata_1d_descending
 from zipline.pipeline.api_utils import restrict_to_dtype
 from zipline.pipeline.classifiers import Classifier, Everything, Quantiles
+from zipline.pipeline.dtypes import (
+    CLASSIFIER_DTYPES,
+    FACTOR_DTYPES,
+    FILTER_DTYPES,
+)
 from zipline.pipeline.expression import (
     BadBinaryOperator,
     COMPARISONS,
@@ -29,6 +38,7 @@ from zipline.pipeline.filters import (
     Filter,
     NumExprFilter,
     PercentileFilter,
+    MaximumFilter,
     NotNullFilter,
     NullFilter,
 )
@@ -49,11 +59,8 @@ from zipline.utils.math_utils import nanmean, nanstd
 from zipline.utils.memoize import classlazyval
 from zipline.utils.numpy_utils import (
     bool_dtype,
-    categorical_dtype,
     coerce_to_dtype,
-    datetime64ns_dtype,
     float64_dtype,
-    int64_dtype,
 )
 
 
@@ -318,8 +325,6 @@ float64_only = restrict_to_dtype(
         " but it was called on a Factor of dtype {received_dtype}."
     )
 )
-
-FACTOR_DTYPES = frozenset([datetime64ns_dtype, float64_dtype, int64_dtype])
 
 
 class Factor(RestrictedDTypeMixin, ComputableTerm):
@@ -1059,6 +1064,10 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         -------
         filter : zipline.pipeline.filters.Filter
         """
+        if N == 1:
+            # Special case: if N == 1, we can avoid doing a full sort on every
+            # group, which is a big win.
+            return self._maximum(mask=mask, groupby=groupby)
         return self.rank(ascending=False, mask=mask, groupby=groupby) <= N
 
     def bottom(self, N, mask=NotSpecified, groupby=NotSpecified):
@@ -1084,6 +1093,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         filter : zipline.pipeline.Filter
         """
         return self.rank(ascending=True, mask=mask, groupby=groupby) <= N
+
+    def _maximum(self, mask=NotSpecified, groupby=NotSpecified):
+        return MaximumFilter(self, groupby=groupby, mask=mask)
 
     def percentile_between(self,
                            min_percentile,
@@ -1291,21 +1303,7 @@ class GroupedRowTransform(Factor):
 
     def _compute(self, arrays, dates, assets, mask):
         data = arrays[0]
-        groupby_expr = self.inputs[1]
-        if groupby_expr.dtype == int64_dtype:
-            group_labels = arrays[1]
-            null_label = self.inputs[1].missing_value
-        elif groupby_expr.dtype == categorical_dtype:
-            # Coerce our LabelArray into an isomorphic array of ints.  This is
-            # necessary because np.where doesn't know about LabelArrays or the
-            # void dtype.
-            group_labels = arrays[1].as_int_array()
-            null_label = arrays[1].missing_value_code
-        else:
-            raise TypeError(
-                "Unexpected groupby dtype: %s." % groupby_expr.dtype
-            )
-
+        group_labels, null_label = self.inputs[1]._to_integral(arrays[1])
         # Make a copy with the null code written to masked locations.
         group_labels = where(mask, group_labels, null_label)
         return where(
@@ -1555,6 +1553,24 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
     beta must also be a float.
     '''
     dtype = float64_dtype
+
+    def _validate(self):
+        try:
+            super(CustomFactor, self)._validate()
+        except UnsupportedDataType:
+            if self.dtype in CLASSIFIER_DTYPES:
+                raise UnsupportedDataType(
+                    typename=type(self).__name__,
+                    dtype=self.dtype,
+                    hint='Did you mean to create a CustomClassifier?',
+                )
+            elif self.dtype in FILTER_DTYPES:
+                raise UnsupportedDataType(
+                    typename=type(self).__name__,
+                    dtype=self.dtype,
+                    hint='Did you mean to create a CustomFilter?',
+                )
+            raise
 
     def __getattribute__(self, name):
         outputs = object.__getattribute__(self, 'outputs')

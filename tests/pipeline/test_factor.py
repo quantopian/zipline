@@ -28,10 +28,11 @@ from zipline.errors import BadPercentileBounds, UnknownRankMethod
 from zipline.lib.labelarray import LabelArray
 from zipline.lib.rank import masked_rankdata_2d
 from zipline.lib.normalize import naive_grouped_rowwise_apply as grouped_apply
-from zipline.pipeline import Classifier, Factor, Filter
+from zipline.pipeline import Classifier, Factor, Filter, Pipeline
 from zipline.pipeline.data import DataSet, Column
 from zipline.pipeline.factors import (
     CustomFactor,
+    DailyReturns,
     Returns,
 )
 from zipline.testing import (
@@ -40,7 +41,10 @@ from zipline.testing import (
     parameter_space,
     permute_rows,
 )
-from zipline.testing.fixtures import ZiplineTestCase
+from zipline.testing.fixtures import (
+    WithEquityPricingPipelineEngine,
+    ZiplineTestCase,
+)
 from zipline.testing.predicates import assert_equal
 from zipline.utils.numpy_utils import (
     categorical_dtype,
@@ -1283,3 +1287,24 @@ class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
             f.to_workspace_value(pipeline_output, pd.Index([0, 1])),
             column_data,
         )
+
+
+class TestSpecialCases(WithEquityPricingPipelineEngine,
+                       ZiplineTestCase):
+
+    def check_equivalent_terms(self, terms):
+        self.assertTrue(len(terms) > 1, "Need at least two terms to compare")
+        pipe = Pipeline(terms)
+
+        start, end = self.trading_days[[-10, -1]]
+        results = self.pipeline_engine.run_pipeline(pipe, start, end)
+        first_column = results.iloc[:, 0]
+        for name in terms:
+            assert_equal(results.loc[:, name], first_column, check_names=False)
+
+    def test_daily_returns_is_special_case_of_returns(self):
+
+        self.check_equivalent_terms({
+            'daily': DailyReturns(),
+            'manual_daily': Returns(window_length=2),
+        })

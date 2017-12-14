@@ -54,7 +54,6 @@ from zipline.data.history_loader import (
     MinuteHistoryLoader,
 )
 from zipline.data.us_equity_pricing import NoDataOnDate
-
 from zipline.utils.math_utils import (
     nansum,
     nanmean,
@@ -155,6 +154,7 @@ class DataPortal(object):
                  daily_history_prefetch_length=_DEF_D_HIST_PREFETCH):
 
         self.trading_calendar = trading_calendar
+
         self.asset_finder = asset_finder
 
         self._adjustment_reader = adjustment_reader

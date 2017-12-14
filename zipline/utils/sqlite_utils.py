@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import partial
+import os
 import sqlite3
 
 import sqlalchemy as sa
@@ -28,7 +30,30 @@ def group_into_chunks(items, chunk_size=SQLITE_MAX_VARIABLE_NUMBER):
             for x in range(0, len(items), chunk_size)]
 
 
-coerce_string_to_conn = coerce_string(sqlite3.connect)
-coerce_string_to_eng = coerce_string(
-    lambda s: sa.create_engine('sqlite:///' + s)
-)
+def verify_sqlite_path_exists(path):
+    if path != ':memory:' and not os.path.exists(path):
+        raise ValueError("SQLite file {!r} doesn't exist.".format(path))
+
+
+def check_and_create_connection(path, require_exists):
+    if require_exists:
+        verify_sqlite_path_exists(path)
+    return sqlite3.connect(path)
+
+
+def check_and_create_engine(path, require_exists):
+    if require_exists:
+        verify_sqlite_path_exists(path)
+    return sa.create_engine('sqlite:///' + path)
+
+
+def coerce_string_to_conn(require_exists):
+    return coerce_string(
+        partial(check_and_create_connection, require_exists=require_exists)
+    )
+
+
+def coerce_string_to_eng(require_exists):
+    return coerce_string(
+        partial(check_and_create_engine, require_exists=require_exists)
+    )

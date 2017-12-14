@@ -10,7 +10,7 @@ from zipline.utils.preprocess import preprocess
 from zipline.utils.sqlite_utils import coerce_string_to_eng
 
 
-@preprocess(engine=coerce_string_to_eng)
+@preprocess(engine=coerce_string_to_eng(require_exists=True))
 def downgrade(engine, desired_version):
     """Downgrades the assets db at the given engine to the desired version.
 

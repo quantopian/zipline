@@ -1,62 +1,86 @@
+{% set name = "sortedcontainers" %}
+{% set version = "1.4.4" %}
+{% set file_ext = "tar.gz" %}
+{% set hash_type = "sha256" %}
+{% set hash_value = "192f59da6df6f91204f85a614a09b88e5ca680a4cc6a31fbc8689cad472da212" %}
+
 package:
-  name: sortedcontainers
-  version: "1.4.4"
+  name: '{{ name|lower }}'
+  version: '{{ version }}'
 
 source:
-  fn: sortedcontainers-1.4.4.tar.gz
-  url: https://pypi.python.org/packages/source/s/sortedcontainers/sortedcontainers-1.4.4.tar.gz
-  md5: 456638aea9f8f705bd2e3c891c402023
-#  patches:
-   # List any patch files here
-   # - fix.patch
+  fn: '{{ name }}-{{ version }}.{{ file_ext }}'
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.{{ file_ext }}
+  '{{ hash_type }}': '{{ hash_value }}'
 
-# build:
-  # noarch_python: True
-  # preserve_egg_dir: True
-  # entry_points:
-    # Put any entry points (scripts to be generated automatically) here. The
-    # syntax is module:function.  For example
-    #
-    # - sortedcontainers = sortedcontainers:main
-    #
-    # Would create an entry point called sortedcontainers that calls sortedcontainers.main()
-
-
-  # If this is a new build for the same version, increment the build
-  # number. If you do not include this key, it defaults to 0.
-  # number: 1
+build:
+  number: 0
+  script: python setup.py install --single-version-externally-managed --record=record.txt
 
 requirements:
   build:
     - python
     - setuptools
-
   run:
     - python
 
 test:
-  # Python imports
   imports:
     - sortedcontainers
-
-  # commands:
-    # You can put test commands to be run here.  Use this to test that the
-    # entry points work.
-
-
-  # You can also put a file called run_test.py in the recipe that will be run
-  # at test time.
-
   requires:
-    # - tox
-    # Put any additional test requirements here.  For example
-    # - nose
+    - tox
 
 about:
   home: http://www.grantjenks.com/docs/sortedcontainers/
   license: Apache Software License
+  license_family: APACHE
+  license_file: ''
   summary: 'Python Sorted Container Types: SortedList, SortedDict, and SortedSet'
+  description: "Python SortedContainers\n=======================\n\n.. image:: https://api.travis-ci.org/grantjenks/sorted_containers.svg\n    :target: http://www.grantjenks.com/docs/sortedcontainers/\n\
+    \n`SortedContainers`_ is an Apache2 licensed `sorted collections library`_,\nwritten in pure-Python, and fast as C-extensions.\n\nPython's standard library is great until you need a sorted collections\n\
+    type. Many will attest that you can get really far without one, but the moment\nyou **really need** a sorted list, dict, or set, you're faced with a dozen\ndifferent implementations, most using C-extensions\
+    \ without great documentation\nand benchmarking.\n\nIn Python, we can do better. And we can do it in pure-Python!\n\n.. code-block:: python\n\n    >>> sl = sortedcontainers.SortedList(xrange(10000000))\n\
+    \    >>> 1234567 in sl\n    True\n    >>> sl[7654321]\n    7654321\n    >>> sl.add(1234567)\n    >>> sl.count(1234567)\n    2\n    >>> sl *= 3\n    >>> len(sl)\n    30000003\n\n**Note:** don't try this\
+    \ without at least a half gigabyte of memory. In Python\nan integer requires about 24 bytes. SortedList will add about 8 bytes per\nobject stored in the container. That's pretty hard to beat as it's\
+    \ the cost of\na pointer to each object. It's also 66% less overhead than a typical binary\ntree implementation (e.g. red-black tree, avl tree, aa tree, splay tree, treap,\netc.) for which every node\
+    \ must also store two pointers to children nodes.\n\n`SortedContainers`_ takes all of the work out of Python sorted collections -\nmaking your deployment and use of Python easy. There's no need to install\
+    \ a C\ncompiler or pre-build and distribute custom extensions. Performance is a\nfeature and testing has 100% coverage with unit tests and hours of stress.\n\n.. _`SortedContainers`: http://www.grantjenks.com/docs/sortedcontainers/\n\
+    .. _`sorted collections library`: http://www.grantjenks.com/docs/sortedcontainers/\n\nTestimonials\n------------\n\n**Alex Martelli**, `Wikipedia`_\n\nGood stuff! ... I like the `simple, effective implementation`_\
+    \ idea of splitting\nthe sorted containers into smaller \"fragments\" to avoid the O(N) insertion costs.\n\n.. _`Wikipedia`: http://en.wikipedia.org/wiki/Alex_Martelli\n.. _`simple, effective implementation`:\
+    \ http://www.grantjenks.com/docs/sortedcontainers/implementation.html\n\n**Jeff Knupp**, `Review of SortedContainers`_\n\nThat last part, \"fast as C-extensions,\" was difficult to believe. I would\
+    \ need\nsome sort of `Performance Comparison`_ to be convinced this is true. The author\nincludes this in the docs. It is.\n\n.. _`Review of SortedContainers`: http://reviews.jeffknupp.com/reviews/sortedcontainers/3/\n\
+    \n**Kevin Samuel**, `Formations Python`_\n\nI'm quite amazed, not just by the code quality (it's incredibly\nreadable and has more comment than code, wow), but the actual\namount of work you put at\
+    \ stuff that is *not* code:\ndocumentation, benchmarking, implementation explanations. Even\nthe git log is clean and the unit tests run out of the box on\nPython 2 and 3.\n\n.. _`Formations Python`:\
+    \ http://formationspython.com/\n\n**Mark Summerfield**, a short plea for `Python Sorted Collections`_\n\nPython's \"batteries included\" standard library seems to have a battery\nmissing. And the argument\
+    \ that \"we never had it before\" has worn thin. It is\ntime that Python offered a full range of collection classes out of the box,\nincluding sorted ones.\n\n.. _`Python Sorted Collections`: http://www.qtrac.eu/pysorted.html\n\
+    \nFeatures\n--------\n\n- Pure-Python\n- Fully documented\n- Benchmark comparison (alternatives, runtimes, load-factors)\n- 100% test coverage\n- Hours of stress testing\n- Performance matters (often\
+    \ faster than C implementations)\n- Compatible API (nearly identical to popular blist and rbtree modules)\n- Feature-rich (e.g. get the five largest keys in a sorted dict: d.iloc[-5:])\n- Pragmatic\
+    \ design (e.g. SortedSet is a Python set with a SortedList index)\n- Developed on Python 2.7\n- Tested on CPython 2.6, 2.7, 3.2, 3.3, 3.4, 3.5 and PyPy 5.1+, PyPy3 2.4+\n\nQuickstart\n----------\n\n\
+    Installing `SortedContainers`_ is simple with\n`pip <http://www.pip-installer.org/>`_::\n\n    $ pip install sortedcontainers\n\nYou can access documentation in the interpreter with Python's built-in\
+    \ help\nfunction:\n\n.. code-block:: python\n\n    >>> from sortedcontainers import SortedList, SortedSet, SortedDict\n    >>> help(SortedList)\n\nDocumentation\n-------------\n\nComplete documentation\
+    \ including performance comparisons is available at\nhttp://www.grantjenks.com/docs/sortedcontainers/ .\n\nUser Guide\n..........\n\nFor those wanting more details, this part of the documentation describes\n\
+    introduction, implementation, performance, and development.\n\n- `Introduction`_\n- `Performance Comparison`_\n- `Load Factor Performance Comparison`_\n- `Runtime Performance Comparison`_\n- `Simulated\
+    \ Workload Performance Comparison`_\n- `Implementation Details`_\n- `Performance at Scale`_\n- `Developing and Contributing`_\n- `Release History`_\n\n.. _`Introduction`: http://www.grantjenks.com/docs/sortedcontainers/introduction.html\n\
+    .. _`Performance Comparison`: http://www.grantjenks.com/docs/sortedcontainers/performance.html\n.. _`Load Factor Performance Comparison`: http://www.grantjenks.com/docs/sortedcontainers/performance-load.html\n\
+    .. _`Runtime Performance Comparison`: http://www.grantjenks.com/docs/sortedcontainers/performance-runtime.html\n.. _`Simulated Workload Performance Comparison`: http://www.grantjenks.com/docs/sortedcontainers/performance-workload.html\n\
+    .. _`Implementation Details`: http://www.grantjenks.com/docs/sortedcontainers/implementation.html\n.. _`Performance at Scale`: http://www.grantjenks.com/docs/sortedcontainers/performance-scale.html\n\
+    .. _`Developing and Contributing`: http://www.grantjenks.com/docs/sortedcontainers/development.html\n.. _`Release History`: http://www.grantjenks.com/docs/sortedcontainers/history.html\n\nAPI Documentation\n\
+    .................\n\nIf you are looking for information on a specific function, class or method, this\npart of the documentation is for you.\n\n- `SortedList`_\n- `SortedListWithKey`_\n- `SortedDict`_\n\
+      - `SortedSet`_\n\n.. _`SortedList`: http://www.grantjenks.com/docs/sortedcontainers/sortedlist.html\n.. _`SortedListWithKey`: http://www.grantjenks.com/docs/sortedcontainers/sortedlistwithkey.html\n\
+    .. _`SortedDict`: http://www.grantjenks.com/docs/sortedcontainers/sorteddict.html\n.. _`SortedSet`: http://www.grantjenks.com/docs/sortedcontainers/sortedset.html\n\nTalks\n-----\n\n- `Python Sorted\
+    \ Collections | PyCon 2016 Talk`_\n- `SF Python Holiday Party 2015 Lightning Talk`_\n- `DjangoCon 2015 Lightning Talk`_\n\n.. _`Python Sorted Collections | PyCon 2016 Talk`: http://www.grantjenks.com/docs/sortedcontainers/pycon-2016-talk.html\n\
+    .. _`SF Python Holiday Party 2015 Lightning Talk`: http://www.grantjenks.com/docs/sortedcontainers/sf-python-2015-lightning-talk.html\n.. _`DjangoCon 2015 Lightning Talk`: http://www.grantjenks.com/docs/sortedcontainers/djangocon-2015-lightning-talk.html\n\
+    \nContribute\n----------\n\nCollaborators are welcome!\n\n#. Check for open issues or open a fresh issue to start a discussion around a\n   bug.  There is a Contributor Friendly tag for issues that\
+    \ should be used by\n   people who are not very familiar with the codebase yet.\n#. Fork the `SortedContainers repository\n   <https://github.com/grantjenks/sorted_containers>`_ on GitHub and start\n\
+    \   making your changes to a new branch.\n#. Write a test which shows that the bug was fixed.\n#. Send a pull request and bug the maintainer until it gets merged and\n   published.\n\nUseful Links\n\
+    ------------\n\n- `SortedContainers Documentation`_\n- `SortedContainers at PyPI`_\n- `SortedContainers at Github`_\n- `SortedContainers Issue Tracker`_\n\n.. _`SortedContainers Documentation`: http://www.grantjenks.com/docs/sortedcontainers/\n\
+    .. _`SortedContainers at PyPI`: https://pypi.python.org/pypi/sortedcontainers\n.. _`SortedContainers at Github`: https://github.com/grantjenks/sorted_containers\n.. _`SortedContainers Issue Tracker`:\
+    \ https://github.com/grantjenks/sorted_containers/issues\n\nSortedContainers License\n------------------------\n\nCopyright 2014-2016 Grant Jenks\n\nLicensed under the Apache License, Version 2.0 (the\
+    \ \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n    http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable\
+    \ law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License\
+    \ for the specific language governing permissions and\nlimitations under the License."
+  doc_url: ''
+  dev_url: ''
 
-# See
-# http://docs.continuum.io/conda/build.html for
-# more information about meta.yaml
+extra:
+  recipe-maintainers: ''
