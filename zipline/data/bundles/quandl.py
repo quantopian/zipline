@@ -69,7 +69,8 @@ def load_data_table(file,
                 'ticker': 'symbol',
                 'ex-dividend': 'ex_dividend'
             },
-            inplace=True
+            inplace=True,
+            copy=False,
         )
     return data_table
 
@@ -144,7 +145,8 @@ def parse_splits(data, show_progress):
             'split_ratio': 'ratio',
             'date': 'effective_date',
         },
-        inplace=True
+        inplace=True,
+        copy=False,
     )
     return data
 
@@ -159,7 +161,8 @@ def parse_dividends(data, show_progress):
             'ex_dividend': 'amount',
             'date': 'ex_date',
         },
-        inplace=True
+        inplace=True,
+        copy=False
     )
     return data
 
