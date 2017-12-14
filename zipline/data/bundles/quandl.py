@@ -45,33 +45,33 @@ def load_data_table(file,
         assert len(file_names) == 1, "Expected a single file from Quandl."
         wiki_prices = file_names.pop()
         table_file = zip_file.open(wiki_prices)
-        if show_progress:
-            log.info('Parsing raw data.')
-        data_table = pd.read_csv(
-            table_file,
-            parse_dates=['date'],
-            index_col=index_col,
-            usecols=[
-                'ticker',
-                'date',
-                'open',
-                'high',
-                'low',
-                'close',
-                'volume',
-                'ex-dividend',
-                'split_ratio'
-            ],
-            na_values=['NA']
-        ).rename(
+    if show_progress:
+        log.info('Parsing raw data.')
+    data_table = pd.read_csv(
+        table_file,
+        parse_dates=['date'],
+        index_col=index_col,
+        usecols=[
+            'ticker',
+            'date',
+            'open',
+            'high',
+            'low',
+            'close',
+            'volume',
+            'ex-dividend',
+            'split_ratio'
+        ],
+    )
+    table_file.close()
+    data_table.rename(
             columns={
                 'ticker': 'symbol',
                 'ex-dividend': 'ex_dividend'
-            }
+            },
+            inplace=True,
+            copy=False,
         )
-        table_file.close()
-
-    data_table['symbol'] = data_table['symbol'].astype('category')
     return data_table
 
 
@@ -118,46 +118,53 @@ def gen_asset_metadata(data, show_progress):
     if show_progress:
         log.info('Generating asset metadata.')
 
-    asset_metadata = data.groupby(
+    data = data.groupby(
         by='symbol'
     ).agg(
         {'date': [np.min, np.max]}
-    ).reset_index()
-    asset_metadata['start_date'] = asset_metadata.date.amin
-    asset_metadata['end_date'] = asset_metadata.date.amax
-    del asset_metadata['date']
-    asset_metadata.columns = asset_metadata.columns.get_level_values(0)
+    )
+    data.reset_index(inplace=True)
+    data['start_date'] = data.date.amin
+    data['end_date'] = data.date.amax
+    del data['date']
+    data.columns = data.columns.get_level_values(0)
 
-    asset_metadata['exchange'] = 'QUANDL'
-    asset_metadata['auto_close_date'] = \
-        asset_metadata['end_date'].values + pd.Timedelta(days=1)
-    return asset_metadata
+    data['exchange'] = 'QUANDL'
+    data['auto_close_date'] = \
+        data['end_date'].values + pd.Timedelta(days=1)
+    return data
 
 
 def parse_splits(data, show_progress):
     if show_progress:
         log.info('Parsing split data.')
 
-    split_ratios = data.split_ratio
-    return pd.DataFrame({
-        'ratio': 1.0 / split_ratios[split_ratios != 1],
-        'effective_date': data.date,
-        'sid': pd.factorize(data.symbol)[0]
-    }).dropna()
+    data['split_ratio'] = 1.0 / data.split_ratio
+    data.rename(
+        columns={
+            'split_ratio': 'ratio',
+            'date': 'effective_date',
+        },
+        inplace=True,
+        copy=False,
+    )
+    return data
 
 
 def parse_dividends(data, show_progress):
     if show_progress:
         log.info('Parsing dividend data.')
 
-    divs = data.ex_dividend
-    df = pd.DataFrame({
-        'amount': divs[divs != 0],
-        'ex_date': data.date,
-        'sid': pd.factorize(data.symbol)[0]
-    }).dropna()
-    df['record_date'] = df['declared_date'] = df['pay_date'] = pd.NaT
-    return df
+    data['record_date'] = data['declared_date'] = data['pay_date'] = pd.NaT
+    data.rename(
+        columns={
+            'ex_dividend': 'amount',
+            'date': 'ex_date',
+        },
+        inplace=True,
+        copy=False,
+    )
+    return data
 
 
 def parse_pricing_and_vol(data,
@@ -216,14 +223,27 @@ def quandl_bundle(environ,
     )
 
     raw_data.reset_index(inplace=True)
-
+    raw_data['symbol'] = raw_data['symbol'].astype('category')
+    raw_data['sid'] = raw_data.symbol.cat.codes
     adjustment_writer.write(
         splits=parse_splits(
-            raw_data[['symbol', 'date', 'split_ratio']],
+            pd.DataFrame(
+                raw_data[[
+                    'sid',
+                    'date',
+                    'split_ratio',
+                ]].loc[raw_data.split_ratio != 1]
+            ),
             show_progress=show_progress
         ),
         dividends=parse_dividends(
-            raw_data[['symbol', 'date', 'ex_dividend']],
+            pd.DataFrame(
+                raw_data[[
+                    'sid',
+                    'date',
+                    'ex_dividend',
+                ]].loc[raw_data.ex_dividend != 0]
+            ),
             show_progress=show_progress
         )
     )
