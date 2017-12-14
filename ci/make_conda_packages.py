@@ -31,6 +31,7 @@ def main(env, do_upload):
                "--python", env['CONDA_PY'],
                "--numpy", env['CONDA_NPY'],
                "--skip-existing",
+               "--old-build-string",
                "-c", "quantopian/label/ci",
                "-c", "quantopian"]
 

@@ -298,11 +298,16 @@ cdef _array_for_column_impl(object dtype,
                 # this timestamp falls after the last date requested
                 continue
 
+            sid = sids[n]
+
             asof_ix = asof_ixs[n]
             if asof_ix == out_of_bounds_ix:
-                raise ValueError('asof_date newer than timestamp')
-
-            sid = sids[n]
+                raise ValueError(
+                    'asof_date newer than timestamp: sid=%s, asof_date=%s' % (
+                        sid,
+                        np.datetime64(asof_dates[n], 'ns'),
+                    ),
+                )
 
         column_ix_ob = PyDict_GetItem(column_ixs, sid)
         if column_ix_ob is NULL:

@@ -3,7 +3,6 @@ sudo: false
 fast_finish: true
 python:
   - 2.7
-  - 3.4
   - 3.5
 env:
   global:
@@ -16,7 +15,7 @@ env:
     #   If authenticating travis gem with github, a github token with the following scopes
     #   is sufficient: ["read:org", "user:email", "repo_deployment", "repo:status", "write:repo_hook"]
     #   See https://docs.travis-ci.com/api#external-apis.
-    - secure: "W2tTHoZYLuEjoIMI/K3adv7QW7yx4iVOIkVOn73jUkv3IlyZZ+BraL0hBw5Dh/iBA9PnO1qOKeRFLDDfDza/1S+2QxZMBmJ8HAkcZehbtTPdCgn/+CYSlauUlJ2izxgnXFw49qJDllQWtwsK2PEuvHrir6wbdElkXKvIJoD7jQ4="
+    - secure: "qQ3vMSXUybUyKljJjgcVT9YaWcZ0PkdLZSFj6BVuo82SWO7e4L+hC8pqsa1Sm/EjyetVwfKk5lkvruPpro++8hDPLq3ahNOMmm4axfcWvACpW+acD/VCA5D8Dxz2ohrvpwsqo7BmIV6OUtIO5JeePHP1SqaIdVZFJ0pIAZToEWQ="
     - CONDA_ROOT_PYTHON_VERSION: "2.7"
   matrix:
     - NUMPY_VERSION=1.11.1 SCIPY_VERSION=0.17.1
@@ -25,13 +24,14 @@ cache:
     - $HOME/.cache/.pip/
 
 before_install:
-  - if [ ${CONDA_ROOT_PYTHON_VERSION:0:1} == "2" ]; then wget https://repo.continuum.io/miniconda/Miniconda-3.7.0-Linux-x86_64.sh -O miniconda.sh; else wget https://repo.continuum.io/miniconda/Miniconda3-3.7.0-Linux-x86_64.sh -O miniconda.sh; fi
+  - if [ ${CONDA_ROOT_PYTHON_VERSION:0:1} == "2" ]; then wget https://repo.continuum.io/miniconda/Miniconda2-4.3.30-Linux-x86_64.sh -O miniconda.sh; else wget https://repo.continuum.io/miniconda/Miniconda3-4.3.30-Linux-x86_64.sh -O miniconda.sh; fi
   - chmod +x miniconda.sh
   - ./miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
 install:
   - conda info -a
-  - conda install conda=4.3.25 conda-build=3.0.15 anaconda-client=1.6.3 --yes
+  - conda install conda=4.3.30 conda-build=3.0.28 anaconda-client=1.6.3 --yes -q
+  - conda list
 
   - TALIB_VERSION=$(cat ./etc/requirements_talib.txt | sed "s/TA-Lib==\(.*\)/\1/")
   - IFS='.' read -r -a NPY_VERSION_ARR <<< "$NUMPY_VERSION"
@@ -44,7 +44,7 @@ install:
       if [[ "$recipe" = "zipline" ]]; then continue; fi
 
       conda build conda/$recipe --python=$CONDA_PY --numpy=$CONDA_NPY --skip-existing --old-build-string -c quantopian -c quantopian/label/ci
-      RECIPE_OUTPUT=$(conda build conda/$recipe --python=$CONDA_PY --numpy=$CONDA_NPY --output)
+      RECIPE_OUTPUT=$(conda build conda/$recipe --python=$CONDA_PY --numpy=$CONDA_NPY --old-build-string --output)
       if [[ -f "$RECIPE_OUTPUT" && "$DO_UPLOAD" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload "$RECIPE_OUTPUT" -u quantopian --label ci; fi
     done
 

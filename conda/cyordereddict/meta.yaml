@@ -1,61 +1,63 @@
+{% set name = "cyordereddict" %}
+{% set version = "0.2.2" %}
+{% set file_ext = "tar.gz" %}
+{% set hash_type = "sha256" %}
+{% set hash_value = "f8387caaffba695d704311842291ede696080a5ed306f07f1825de126fb7f1ec" %}
+
 package:
-  name: cyordereddict
-  version: "0.2.2"
+  name: '{{ name|lower }}'
+  version: '{{ version }}'
 
 source:
-  fn: cyordereddict-0.2.2.tar.gz
-  url: https://pypi.python.org/packages/source/c/cyordereddict/cyordereddict-0.2.2.tar.gz
-  md5: 6279eb0bf9819f0293ad5315b2d484d0
-#  patches:
-   # List any patch files here
-   # - fix.patch
+  fn: '{{ name }}-{{ version }}.{{ file_ext }}'
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.{{ file_ext }}
+  '{{ hash_type }}': '{{ hash_value }}'
 
-# build:
-  # noarch_python: True
-  # preserve_egg_dir: True
-  # entry_points:
-    # Put any entry points (scripts to be generated automatically) here. The
-    # syntax is module:function.  For example
-    #
-    # - cyordereddict = cyordereddict:main
-    #
-    # Would create an entry point called cyordereddict that calls cyordereddict.main()
-
-
-  # If this is a new build for the same version, increment the build
-  # number. If you do not include this key, it defaults to 0.
-  # number: 1
+build:
+  number: 0
+  script: 'python setup.py install '
 
 requirements:
   build:
     - python
-
   run:
     - python
 
 test:
-  # Python imports
   imports:
     - cyordereddict
     - cyordereddict.benchmark
 
-  # commands:
-    # You can put test commands to be run here.  Use this to test that the
-    # entry points work.
-
-
-  # You can also put a file called run_test.py in the recipe that will be run
-  # at test time.
-
-  # requires:
-    # Put any additional test requirements here.  For example
-    # - nose
-
 about:
   home: https://github.com/shoyer/cyordereddict
   license: BSD License
-  summary: "Cython implementation of Python's collections.OrderedDict"
+  license_family: BSD
+  license_file: ''
+  summary: Cython implementation of Python's collections.OrderedDict
+  description: "**This library is obsolete!** Python 3.5's ``collections.OrderedDict`` was `rewritten in C`_, and is now significantly faster than ``cyordereddict.OrderedDict`` for almost all operations.\n\
+    \n.. _rewritten in C: https://bugs.python.org/issue16991\n\n=============\ncyordereddict\n=============\n\n.. image:: https://travis-ci.org/shoyer/cyordereddict.svg?branch=master\n    :target: https://travis-ci.org/shoyer/cyordereddict\n\
+    \n.. image:: https://badge.fury.io/py/cyordereddict.svg\n    :target: https://pypi.python.org/pypi/cyordereddict\n\nThe Python standard library's ``OrderedDict`` ported to Cython. A drop-in\nreplacement\
+    \ that is 2-6x faster.\n\nInstall:\n    ``pip install cyordereddict``\n\nDependencies:\n    CPython (2.6, 2.7, 3.3 or 3.4) and a C compiler. Cython is only required\n    for the dev version.\n\nUse:\n\
+    \    .. code-block:: python\n\n        from cyordereddict import OrderedDict\n\nBenchmarks:\n    Python 2.7:\n\n    ==================  =================================  =========================\n\
+    \    Test                Code                                 Ratio (stdlib / cython)\n    ==================  =================================  =========================\n    ``__init__`` empty  ``OrderedDict()``\
+    \                                        1.8\n    ``__init__`` list   ``OrderedDict(list_data)``                               4.8\n    ``__init__`` dict   ``OrderedDict(dict_data)``               \
+    \                4.6\n    ``__setitem__``     ``ordereddict[0] = 0``                                   8.6\n    ``__getitem__``     ``ordereddict[0]``                                       3\n    ``update``\
+    \          ``ordereddict.update(dict_data)``                        5.5\n    ``__iter__``        ``list(ordereddict)``                                    5.6\n    ``items``           ``ordereddict.items()``\
+    \                                  5.9\n    ``__contains__``    ``0 in ordereddict``                                     2.3\n    ==================  =================================  =========================\n\
+    \n    Python 3.4:\n\n    ==================  =================================  =========================\n    Test                Code                                 Ratio (stdlib / cython)\n    ==================\
+    \  =================================  =========================\n    ``__init__`` empty  ``OrderedDict()``                                        1.5\n    ``__init__`` list   ``OrderedDict(list_data)``\
+    \                               3.9\n    ``__init__`` dict   ``OrderedDict(dict_data)``                               4.2\n    ``__setitem__``     ``ordereddict[0] = 0``                            \
+    \       8.4\n    ``__getitem__``     ``ordereddict[0]``                                       2.9\n    ``update``          ``ordereddict.update(dict_data)``                        6.5\n    ``__iter__``\
+    \        ``list(ordereddict)``                                    2.3\n    ``items``           ``list(ordereddict.items())``                            2.1\n    ``__contains__``    ``0 in ordereddict``\
+    \                                     2.3\n    ==================  =================================  =========================\n    To run these yourself, use ``cyordereddict.benchmark()``\n\nCavaets:\n\
+    \    ``cyorderedddict.OrderedDict`` is an extension type (similar to the\n    built-in ``dict``) instead of a Python class. This is necessary for speed,\n    but means that in a few pathological cases\
+    \ its behavior will differ from\n    ``collections.OrderedDict``:\n\n    * The ``inspect`` module does not work on ``cyorderedddict.OrderedDict``\n      methods.\n    * Extension types use slots instead\
+    \ of dictionaries, so you cannot add\n      custom attributes without making a subclass (e.g.,\n      ``OrderedDict.foo = 'bar'`` will fail).\n\n    You can do anything else you might do with an OrderedDict,\
+    \ including\n    subclassing: everything else passes the ``collections.OrderedDict`` test\n    suite. We based the Cython code directly on the Python standard library,\n    and thus use separate code\
+    \ bases for Python 2 and 3, specifically to\n    reduce the potential for introducing new bugs or performance regressions.\n\nLicense:\n    MIT. Based on the Python standard library, which is under\
+    \ the Python\n    Software Foundation License."
+  doc_url: ''
+  dev_url: ''
 
-# See
-# http://docs.continuum.io/conda/build.html for
-# more information about meta.yaml
+extra:
+  recipe-maintainers: ''

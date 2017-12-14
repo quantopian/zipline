@@ -9,9 +9,15 @@ import re
 from numpy import where, isnan, nan, zeros
 import pandas as pd
 
+from zipline.errors import UnsupportedDataType
 from zipline.lib.labelarray import LabelArray
 from zipline.lib.quantiles import quantiles
 from zipline.pipeline.api_utils import restrict_to_dtype
+from zipline.pipeline.dtypes import (
+    CLASSIFIER_DTYPES,
+    FACTOR_DTYPES,
+    FILTER_DTYPES,
+)
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import ComputableTerm
 from zipline.utils.compat import unicode
@@ -56,7 +62,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
     which the classifier produced the same label.
     """
     # Used by RestrictedDTypeMixin
-    ALLOWED_DTYPES = (int64_dtype, categorical_dtype)
+    ALLOWED_DTYPES = CLASSIFIER_DTYPES
     categories = NotSpecified
 
     def isnull(self):
@@ -372,6 +378,26 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
     def _aliased_type(self):
         return AliasedMixin.make_aliased_type(Classifier)
 
+    def _to_integral(self, output_array):
+        """
+        Convert an array produced by this classifier into an array of integer
+        labels and a missing value label.
+        """
+        if self.dtype == int64_dtype:
+            group_labels = output_array
+            null_label = self.missing_value
+        elif self.dtype == categorical_dtype:
+            # Coerce LabelArray into an isomorphic array of ints.  This is
+            # necessary because np.where doesn't know about LabelArrays or the
+            # void dtype.
+            group_labels = output_array.as_int_array()
+            null_label = output_array.missing_value_code
+        else:
+            raise AssertionError(
+                "Unexpected Classifier dtype: %s." % self.dtype
+            )
+        return group_labels, null_label
+
 
 class Everything(Classifier):
     """
@@ -470,6 +496,24 @@ class CustomClassifier(PositiveWindowLengthMixin,
     zipline.pipeline.CustomFactor
     zipline.pipeline.CustomFilter
     """
+    def _validate(self):
+        try:
+            super(CustomClassifier, self)._validate()
+        except UnsupportedDataType:
+            if self.dtype in FACTOR_DTYPES:
+                raise UnsupportedDataType(
+                    typename=type(self).__name__,
+                    dtype=self.dtype,
+                    hint='Did you mean to create a CustomFactor?',
+                )
+            elif self.dtype in FILTER_DTYPES:
+                raise UnsupportedDataType(
+                    typename=type(self).__name__,
+                    dtype=self.dtype,
+                    hint='Did you mean to create a CustomFilter?',
+                )
+            raise
+
     def _allocate_output(self, windows, shape):
         """
         Override the default array allocation to produce a LabelArray when we

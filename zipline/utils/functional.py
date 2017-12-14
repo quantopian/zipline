@@ -1,7 +1,7 @@
 from functools import reduce
 from pprint import pformat
 
-from six import viewkeys
+from six import viewkeys, iteritems
 from six.moves import map, zip
 from toolz import curry, flip
 
@@ -390,3 +390,19 @@ def foldr(f, seq, default=_no_default):
         reversed(seq),
         *(default,) if default is not _no_default else ()
     )
+
+
+def invert(d):
+    """
+    Invert a dictionary into a dictionary of sets.
+
+    >>> invert({'a': 1, 'b': 2, 'c': 1})  # doctest: +SKIP
+    {1: {'a', 'c'}, 2: {'b'}}
+    """
+    out = {}
+    for k, v in iteritems(d):
+        try:
+            out[v].add(k)
+        except KeyError:
+            out[v] = {k}
+    return out

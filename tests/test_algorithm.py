@@ -178,8 +178,7 @@ from zipline.test_algorithms import (
 from zipline.testing.predicates import assert_equal
 from zipline.utils.api_support import ZiplineAPI, set_algo_instance
 from zipline.utils.calendars import get_calendar, register_calendar
-from zipline.utils.context_tricks import CallbackManager
-from zipline.utils.control_flow import nullctx
+from zipline.utils.context_tricks import CallbackManager, nop_context
 import zipline.utils.events
 from zipline.utils.events import date_rules, time_rules, Always
 import zipline.utils.factory as factory
@@ -3015,7 +3014,7 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
                     expected_exc):
 
         algo._handle_data = handle_data
-        with self.assertRaises(expected_exc) if expected_exc else nullctx():
+        with self.assertRaises(expected_exc) if expected_exc else nop_context:
             algo.run(self.data_portal)
         self.assertEqual(algo.order_count, expected_order_count)
 
@@ -3497,7 +3496,7 @@ class TestAccountControls(WithDataPortal, WithSimParams, ZiplineTestCase):
                     expected_exc):
 
         algo._handle_data = handle_data
-        with self.assertRaises(expected_exc) if expected_exc else nullctx():
+        with self.assertRaises(expected_exc) if expected_exc else nop_context:
             algo.run(self.data_portal)
 
     def check_algo_succeeds(self, algo, handle_data):
