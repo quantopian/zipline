@@ -629,6 +629,15 @@ class ComputableTerm(Term):
             "for instances of %s." % type(self).__name__
         )
 
+    def _cumulating_downsampled_type(self, *args, **kwargs):
+        """
+        The expression type to return from self.cumulating_downsample().
+        """
+        raise NotImplementedError(
+            "cumulating downsampling is not yet implemented "
+            "for instances of %s." % type(self).__name__
+        )
+
     @expect_downsample_frequency
     @templated_docstring(frequency=PIPELINE_DOWNSAMPLING_FREQUENCY_DOC)
     def downsample(self, frequency):
@@ -640,6 +649,20 @@ class ComputableTerm(Term):
         {frequency}
         """
         return self._downsampled_type(term=self, frequency=frequency)
+
+    @expect_downsample_frequency
+    @templated_docstring(frequency=PIPELINE_DOWNSAMPLING_FREQUENCY_DOC)
+    def cumulating_downsample(self, frequency):
+        """
+        Make a term that computes from ``self`` at lower-than-daily frequency.
+
+        Parameters
+        ----------
+        {frequency}
+        """
+        return self._cumulating_downsampled_type(
+            term=self, frequency=frequency
+        )
 
     def _aliased_type(self, *args, **kwargs):
         """

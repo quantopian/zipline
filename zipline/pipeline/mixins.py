@@ -317,25 +317,13 @@ class AliasedMixin(SingleInputMixin):
         )
 
 
-class DownsampledMixin(StandardOutputs):
-    """
-    Mixin for behavior shared by Downsampled{Factor,Filter,Classifier}
-
-    A downsampled term is a wrapper around the "real" term that performs actual
-    computation. The downsampler is responsible for calling the real term's
-    `compute` method at selected intervals and forward-filling the computed
-    values.
-
-    Downsampling is not currently supported for terms with multiple outputs.
-    """
-    # There's no reason to take a window of a downsampled term.  The whole
-    # point is that you're re-using the same result multiple times.
+class SampleMixin(StandardOutputs):
     window_safe = False
 
     @expect_types(term=Term)
     @expect_downsample_frequency
     def __new__(cls, term, frequency):
-        return super(DownsampledMixin, cls).__new__(
+        return super(SampleMixin, cls).__new__(
             cls,
             inputs=term.inputs,
             outputs=term.outputs,
@@ -351,12 +339,12 @@ class DownsampledMixin(StandardOutputs):
     def _init(self, frequency, wrapped_term, *args, **kwargs):
         self._frequency = frequency
         self._wrapped_term = wrapped_term
-        return super(DownsampledMixin, self)._init(*args, **kwargs)
+        return super(SampleMixin, self)._init(*args, **kwargs)
 
     @classmethod
     def _static_identity(cls, frequency, wrapped_term, *args, **kwargs):
         return (
-            super(DownsampledMixin, cls)._static_identity(*args, **kwargs),
+            super(SampleMixin, cls)._static_identity(*args, **kwargs),
             frequency,
             wrapped_term,
         )
@@ -429,6 +417,125 @@ class DownsampledMixin(StandardOutputs):
             "Computed negative extra rows!"
 
         return min_extra_rows + (current_start_pos - new_start_pos)
+
+    @classmethod
+    def make_downsampled_type(cls, other_base):
+        """
+        Factory for making Downsampled{Filter,Factor,Classifier}.
+        """
+        docstring = dedent(
+            """
+            A {t} that defers to another {t} at lower-than-daily frequency.
+
+            Parameters
+            ----------
+            term : {t}
+            {{frequency}}
+            """
+        ).format(t=other_base.__name__)
+
+        doc = format_docstring(
+            owner_name=other_base.__name__,
+            docstring=docstring,
+            formatters={'frequency': PIPELINE_DOWNSAMPLING_FREQUENCY_DOC},
+        )
+
+        return type(
+            'Downsampled' + other_base.__name__,
+            (cls, other_base,),
+            {'__doc__': doc,
+             '__module__': other_base.__module__},
+        )
+
+
+class CumulatingFilterSampleMixin(SampleMixin, RestrictedDTypeMixin):
+
+    def _compute(self, inputs, dates, assets, mask):
+        """
+        Compute by delegating to self._wrapped_term._compute on sample dates.
+
+        On non-sample dates, forward-fill from previously-computed samples.
+        """
+        to_sample = dates[select_sampling_indices(dates, self._frequency)]
+        assert to_sample[0] == dates[0], \
+            "Misaligned sampling dates in %s." % type(self).__name__
+
+        real_compute = self._wrapped_term._compute
+
+        # Inputs will contain different kinds of values depending on whether or
+        # not we're a windowed computation.
+
+        # If we're windowed, then `inputs` is a list of iterators of ndarrays.
+        # If we're not windowed, then `inputs` is just a list of ndarrays.
+        # There are two things we care about doing with the input:
+        #   1. Preparing an input to be passed to our wrapped term.
+        #   2. Skipping an input if we're going to use an already-computed row.
+        # We perform these actions differently based on the expected kind of
+        # input, and we encapsulate these actions with closures so that we
+        # don't clutter the code below with lots of branching.
+        if self.windowed:
+            # If we're windowed, inputs are stateful AdjustedArrays.  We don't
+            # need to do any preparation before forwarding to real_compute, but
+            # we need to call `next` on them if we want to skip an iteration.
+            def prepare_inputs():
+                return inputs
+
+        else:
+            # If we're not windowed, inputs are just ndarrays.  We need to
+            # slice out a single row when forwarding to real_compute, but we
+            # don't need to do anything to skip an input.
+            def prepare_inputs():
+                # i is the loop iteration variable below.
+                return [a[[i]] for a in inputs]
+
+        results = []
+        samples = iter(to_sample)
+        next_sample = next(samples)
+        for i, compute_date in enumerate(dates):
+            this_output = real_compute(
+                prepare_inputs(),
+                dates[i:i + 1],
+                assets,
+                mask[i:i + 1],
+            )
+            if next_sample == compute_date:
+                results.append(this_output)
+                try:
+                    next_sample = next(samples)
+                except StopIteration:
+                    # No more samples to take. Set next_sample to Nat, which
+                    # compares False with any other datetime.
+                    next_sample = pd_NaT
+            else:
+                last_output = results[-1]
+                results.append(this_output & last_output)
+
+        # We should have exhausted our sample dates.
+        try:
+            next_sample = next(samples)
+        except StopIteration:
+            pass
+        else:
+            raise AssertionError("Unconsumed sample date: %s" % next_sample)
+
+        # Concatenate stored results.
+        return vstack(results)
+
+
+class DownsampledMixin(SampleMixin):
+    """
+    Mixin for behavior shared by Downsampled{Factor,Filter,Classifier}
+
+    A downsampled term is a wrapper around the "real" term that performs actual
+    computation. The downsampler is responsible for calling the real term's
+    `compute` method at selected intervals and forward-filling the computed
+    values.
+
+    Downsampling is not currently supported for terms with multiple outputs.
+    """
+    # There's no reason to take a window of a downsampled term.  The whole
+    # point is that you're re-using the same result multiple times.
+    window_safe = False
 
     def _compute(self, inputs, dates, assets, mask):
         """
@@ -508,32 +615,3 @@ class DownsampledMixin(StandardOutputs):
 
         # Concatenate stored results.
         return vstack(results)
-
-    @classmethod
-    def make_downsampled_type(cls, other_base):
-        """
-        Factory for making Downsampled{Filter,Factor,Classifier}.
-        """
-        docstring = dedent(
-            """
-            A {t} that defers to another {t} at lower-than-daily frequency.
-
-            Parameters
-            ----------
-            term : {t}
-            {{frequency}}
-            """
-        ).format(t=other_base.__name__)
-
-        doc = format_docstring(
-            owner_name=other_base.__name__,
-            docstring=docstring,
-            formatters={'frequency': PIPELINE_DOWNSAMPLING_FREQUENCY_DOC},
-        )
-
-        return type(
-            'Downsampled' + other_base.__name__,
-            (cls, other_base,),
-            {'__doc__': doc,
-             '__module__': other_base.__module__},
-        )

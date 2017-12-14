@@ -2,8 +2,10 @@
 Tests for Downsampled Filters/Factors/Classifiers
 """
 from functools import partial
+from itertools import cycle
 
 import pandas as pd
+import numpy as np
 from pandas.util.testing import assert_frame_equal
 
 from zipline.errors import NoFurtherDataError
@@ -15,13 +17,16 @@ from zipline.pipeline import (
     SimplePipelineEngine,
 )
 from zipline.pipeline.data.testing import TestingDataSet
+from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.factors import SimpleMovingAverage
+from zipline.pipeline.filters import Latest
 from zipline.pipeline.filters.smoothing import All
 from zipline.testing import ZiplineTestCase, parameter_space, ExplodingObject
 from zipline.testing.fixtures import (
     WithTradingSessions,
     WithSeededRandomPipelineEngine,
     WithAssetFinder,
+    WithEquityPricingPipelineEngine,
 )
 from zipline.utils.input_validation import _qualified_name
 from zipline.utils.numpy_utils import int64_dtype
@@ -784,3 +789,56 @@ class TestDownsampledRowwiseOperation(WithAssetFinder, ZiplineTestCase):
         results_month_start_aligned = results_month_start.loc[half_way_start:]
 
         assert_frame_equal(results_month_start_aligned, results_halfway_start)
+
+
+class TestCumulatingFilterSampleMixin(WithEquityPricingPipelineEngine,
+                                      ZiplineTestCase,
+                                      ):
+
+    EQUITY_DAILY_BAR_START_DATE = pd.Timestamp('2005-12-01', tz='UTC')
+    PIPELINE_START_DATE = pd.Timestamp('2006-01-03', tz='UTC')
+    START_DATE = pd.Timestamp('2005-12-30', tz='UTC')
+    END_DATE = pd.Timestamp('2006-12-29', tz='UTC')
+
+    @classmethod
+    def make_equity_daily_bar_data(cls):
+        length = len(cls.equity_daily_bar_days)
+        for sid_idx, sid in enumerate(cls.asset_finder.equities_sids):
+            value_cycle = cycle(np.array([1, 2, 3, 4, 3, 2]))
+            for x in range(sid_idx):
+                next(value_cycle)
+            values = [next(value_cycle) for x in range(length)]
+
+            yield sid, pd.DataFrame(
+                {
+                    "open": values,
+                    "high": values,
+                    "low": values,
+                    "close": values,
+                    "volume": values,
+                    "day": [
+                        session.value for session in cls.equity_daily_bar_days
+                    ]
+                },
+                index=cls.equity_daily_bar_days,
+            )
+
+    def test_cumulating(self):
+        pipe = Pipeline(
+            columns={
+                'less_max': (USEquityPricing.close.latest < 4.0),
+                'less_max_ds':
+                    (USEquityPricing.close.latest < 4.0)
+                    .cumulating_downsample('month_start'),
+                'close': USEquityPricing.close.latest,
+            },
+        )
+        pipeline_result = self.pipeline_engine.run_pipeline(
+            pipe,
+            start_date=self.PIPELINE_START_DATE,
+            end_date=self.END_DATE,
+        )
+
+        index = pipeline_result.index
+        eq1 = index[0][1]
+        a_only = pipeline_result.loc[pd.IndexSlice[:, eq1], :]

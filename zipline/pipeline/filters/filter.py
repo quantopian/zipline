@@ -39,6 +39,7 @@ from zipline.pipeline.mixins import (
     RestrictedDTypeMixin,
     SingleInputMixin,
     StandardOutputs,
+    CumulatingFilterSampleMixin,
 )
 from zipline.pipeline.term import ComputableTerm, Term
 from zipline.utils.input_validation import expect_types
@@ -220,6 +221,10 @@ class Filter(RestrictedDTypeMixin, ComputableTerm):
     @classlazyval
     def _downsampled_type(self):
         return DownsampledMixin.make_downsampled_type(Filter)
+
+    @classlazyval
+    def _cumulating_downsampled_type(self):
+        return CumulatingFilterSampleMixin.make_downsampled_type(Filter)
 
     @classlazyval
     def _aliased_type(self):
