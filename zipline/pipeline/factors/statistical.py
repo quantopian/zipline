@@ -494,10 +494,10 @@ class SimpleBeta(CustomFactor, StandardOutputs):
     regression_length : int
         Number of days of daily returns to use for the regression.
     allowed_missing_percentage : float, optional
-        Percentage of returns observations that are allowed to be missing when
-        calculating betas. Assets with more than this percentage of returns
-        observations missing will produce values of NaN. Default behavior is
-        that 25% of inputs can be missing.
+        Percentage of returns observations (between 0 and 1) that are allowed
+        to be missing when calculating betas. Assets with more than this
+        percentage of returns observations missing will produce values of
+        NaN. Default behavior is that 25% of inputs can be missing.
     """
     window_safe = True
     dtype = float64_dtype
