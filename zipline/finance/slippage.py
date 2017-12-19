@@ -559,7 +559,7 @@ class FixedBasisPointsSlippage(SlippageModel):
                              max_volume - self.volume_for_bar)
 
         if shares_to_fill == 0:
-            return None, None
+            raise LiquidityExceeded()
 
         return (
             price + price * (self.percentage * order.direction),
