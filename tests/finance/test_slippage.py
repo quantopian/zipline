@@ -1312,7 +1312,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
 
         # since the volume limit for the bar is 20, the first order will be
         # filled and there will be a transaction for it, and the second order
-        # so there should not b a transaction for it.
+        # will order zero shares so there should not be a transaction for it.
         open_orders = [
             Order(
                 dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
