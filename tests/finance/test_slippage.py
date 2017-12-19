@@ -1304,3 +1304,49 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
             "FixedBasisPointsSlippage() expected a value strictly "
             "greater than 0 for argument 'volume_limit', but got 0 instead."
         )
+
+    def test_order_zero_shares(self):
+
+        slippage_model = FixedBasisPointsSlippage(basis_points=5,
+                                                  volume_limit=0.1)
+
+        # since the volume limit for the bar is 20, the first order will be
+        # filled and there will be a transaction for it, and the second order
+        # so there should not b a transaction for it.
+        open_orders = [
+            Order(
+                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                amount=20,
+                filled=0,
+                asset=self.ASSET133
+            )
+        ] * 2
+
+        bar_data = self.create_bardata(
+            simulation_dt_func=lambda: self.first_minute
+        )
+
+        orders_txns = list(slippage_model.simulate(
+            bar_data,
+            self.ASSET133,
+            open_orders,
+        ))
+
+        self.assertEqual(1, len(orders_txns))
+
+        # ordering zero shares should result in zero transactions
+        open_orders = [
+            Order(
+                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                amount=0,
+                filled=0,
+                asset=self.ASSET133
+            )
+        ]
+
+        orders_txns = list(slippage_model.simulate(
+            bar_data,
+            self.ASSET133,
+            open_orders,
+        ))
+        self.assertEqual(0, len(orders_txns))
