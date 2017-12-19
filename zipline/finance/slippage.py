@@ -558,6 +558,9 @@ class FixedBasisPointsSlippage(SlippageModel):
         shares_to_fill = min(abs(order.open_amount),
                              max_volume - self.volume_for_bar)
 
+        if shares_to_fill == 0:
+            return None, None
+
         return (
             price + price * (self.percentage * order.direction),
             shares_to_fill * order.direction
