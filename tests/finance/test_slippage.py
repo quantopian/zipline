@@ -1305,8 +1305,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
             "greater than 0 for argument 'volume_limit', but got 0 instead."
         )
 
-    def test_order_zero_shares(self):
-
+    def test_fill_zero_shares(self):
         slippage_model = FixedBasisPointsSlippage(basis_points=5,
                                                   volume_limit=0.1)
 
