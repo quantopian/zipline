@@ -7,10 +7,13 @@ A trading calendar represents the timing information of a single market exchange
 
 A session represents a contiguous set of minutes, and has a label that is midnight UTC. It is important to note that a session label should not be considered a specific point in time, and that midnight UTC is just being used for convenience.
 
+For an average day of the `New York Stock Exchange <https://www.nyse.com/index>`__, the market opens at 9:30AM and closes at 4PM. Trading sessions can change depending on the exchange, day of the year, etc.
+
+
 Why Should You Care About Trading Calendars?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Let's say you want to buy a share of some equity on Tuesday, and then sell it on Saturday. If the exchange in which you're trading that equity is not open on Saturday, then in reality it would not be possible to trade that equity at that time, and you would have to wait until some other number of days past Saturday. It would then be unreasonable to allow your trading algorithm to also place a trade on Saturday.
+Let's say you want to buy a share of some equity on Tuesday, and then sell it on Saturday. If the exchange in which you're trading that equity is not open on Saturday, then in reality it would not be possible to trade that equity at that time, and you would have to wait until some other number of days past Saturday. Since you wouldn't be able to place the trade in reality, it would also be unreasonable for your backtest to place a trade on Saturday.
 
 In order for you to backtest your strategy, the dates in that are accounted for in your `data bundle <http://www.zipline.io/bundles.html>`__ and the dates in your ``TradingCalendar`` should match up; if the dates don't match up, then you you're going to see some errors along the way. This holds for both minutely and daily data.
 
@@ -24,7 +27,7 @@ The ``TradingCalendar`` class has many properties we should be thinking about if
   - Timezone
   - Open Time
   - Close Time
-  - Regular & Adhoc Holidays
+  - Regular & Ad hoc Holidays
   - Special Opens & Closes
 
 And several others. If you'd like to see all of the properties and methods available to you through the ``TradingCalendar`` API, please take a look at the `API Reference <http://www.zipline.io/appendix.html#trading-calendar-api>`__
@@ -84,7 +87,23 @@ Now we'll take a look at the London Stock Exchange Calendar :class:`~zipline.uti
         WeekendBoxingDay
       ])
 
-You can create the ``Holiday`` objects mentioned in ``def regular_holidays(self)` through the `pandas <http://pandas.pydata.org/pandas-docs/stable/>`__ module, ``pandas.tseries.holiday.Holiday``, and also take a look at the `LSEExchangeCalendar <https://github.com/quantopian/zipline/blob/master/zipline/utils/calendars/exchange_calendar_lse.py>`__ code as an example.
+
+You can create the ``Holiday`` objects mentioned in ``def regular_holidays(self)` through the `pandas <http://pandas.pydata.org/pandas-docs/stable/>`__ module, ``pandas.tseries.holiday.Holiday``, and also take a look at the `LSEExchangeCalendar <https://github.com/quantopian/zipline/blob/master/zipline/utils/calendars/exchange_calendar_lse.py>`__ code as an example, or take a look at the code snippet below.
+
+.. code-block:: python
+
+  from pandas.tseries.holiday import (
+      Holiday,
+      DateOffset,
+      MO
+  )
+
+  SomeSpecialDay = Holiday(
+      "Some Special Day",
+      month=1,
+      day=9,
+      offset=DateOffSet(weekday=MO(-1))
+  )
 
 
 Building a Custom Trading Calendar
@@ -119,7 +138,7 @@ And now we'll actually build this calendar, which we'll call ``TFSExchangeCalend
 
   class TFSExchangeCalendar(TradingCalendar):
     """
-    An exchange calendar for trading assets 24/7
+    An exchange calendar for trading assets 24/7.
 
     Open Time: 12AM, UTC
     Close Time: 11:59PM, UTC
@@ -130,35 +149,35 @@ And now we'll actually build this calendar, which we'll call ``TFSExchangeCalend
       """
       The name of the exchange, which Zipline will look for
       when we run our algorithm and pass TFS to
-      the --trading-calendar CLI flag
+      the --trading-calendar CLI flag.
       """
       return "TFS"
 
     @property
     def tz(self):
       """
-      The timezone in which we'll be running our algorithm
+      The timezone in which we'll be running our algorithm.
       """
       return timezone("UTC")
 
     @property
     def open_time(self):
       """
-      The time in which our exchange will open each day
+      The time in which our exchange will open each day.
       """
       return time(0, 0)
 
     @property
     def close_time(self):
       """
-      The time in which our exchange will close each day
+      The time in which our exchange will close each day.
       """
       return time(23, 59)
 
     @lazyval
     def day(self):
       """
-      The days on which our exchange will be open
+      The days on which our exchange will be open.
       """
       weekmask = "Mon Tue Wed Thu Fri Sat Sun"
       return CustomBusinessDay(
