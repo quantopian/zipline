@@ -6,6 +6,7 @@
    install
    beginner-tutorial
    bundles
+   trading-calendars
    development-guidelines
    appendix
    release-process

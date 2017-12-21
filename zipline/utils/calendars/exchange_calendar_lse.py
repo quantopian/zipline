@@ -28,7 +28,8 @@ from .trading_calendar import (
     TradingCalendar,
     MONDAY,
     TUESDAY,
-    HolidayCalendar)
+    HolidayCalendar
+)
 
 # New Year's Day
 LSENewYearsDay = Holiday(
