@@ -116,7 +116,8 @@ class LiveTradingAlgorithm(TradingAlgorithm):
             execution_closes,
             before_trading_start_minutes,
             minute_emission=minutely_emission,
-            time_skew=self.broker.time_skew
+            time_skew=self.broker.time_skew,
+            is_broker_alive=self.broker.is_alive
         )
 
     def _create_generator(self, sim_params):
