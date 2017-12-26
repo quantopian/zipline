@@ -136,8 +136,8 @@ class TestUtils(TestCase):
 class TestEventManager(TestCase):
     def setUp(self):
         self.em = EventManager()
-        self.event1 = Event(Always(), lambda context, data: None)
-        self.event2 = Event(Always(), lambda context, data: None)
+        self.event1 = Event(Always())
+        self.event2 = Event(Always())
 
     def test_add_event(self):
         self.em.add_event(self.event1)
@@ -162,9 +162,7 @@ class TestEventManager(TestCase):
                 return True
 
         for r in [CountingRule] * 5:
-                self.em.add_event(
-                    Event(r(), lambda context, data: None)
-                )
+            self.em.add_event(Event(r()))
 
         self.em.handle_data(None, None, datetime.datetime.now())
 
