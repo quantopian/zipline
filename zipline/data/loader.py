@@ -93,7 +93,7 @@ def load_market_data(trading_day=None, trading_days=None, bm_symbol='SPY',
     Load benchmark returns and treasury yield curves for the given calendar and
     benchmark symbol.
 
-    Benchmarks are downloaded as a Series from Google Finance.  Treasury curves
+    Benchmarks are downloaded as a Series from IEX Trading.  Treasury curves
     are US Treasury Bond rates and are downloaded from 'www.federalreserve.gov'
     by default.  For Canadian exchanges, a loader for Canadian bonds from the
     Bank of Canada is also available.
@@ -111,8 +111,8 @@ def load_market_data(trading_day=None, trading_days=None, bm_symbol='SPY',
         A calendar of trading days.  Also used for determining what cached
         dates we should expect to have cached. Defaults to the NYSE calendar.
     bm_symbol : str, optional
-        Symbol for the benchmark index to load.  Defaults to 'SPY', the Google
-        ticker for the S&P 500.
+        Symbol for the benchmark index to load. Defaults to 'SPY', the ticker
+        for the S&P 500, provided by IEX Trading.
 
     Returns
     -------
@@ -213,11 +213,7 @@ def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day,
     )
 
     try:
-        data = get_benchmark_returns(
-            symbol,
-            first_date - trading_day,
-            last_date,
-        )
+        data = get_benchmark_returns(symbol)
         data.to_csv(get_data_filepath(filename, environ))
     except (OSError, IOError, HTTPError):
         logger.exception('Failed to cache the new benchmark returns')
