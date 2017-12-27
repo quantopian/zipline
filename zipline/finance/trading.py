@@ -93,6 +93,9 @@ class TradingEnvironment(object):
         if not trading_calendar:
             trading_calendar = get_calendar("NYSE")
 
+
+        print('trading_calendar2: {}'.format(trading_calendar))
+
         self.benchmark_returns, self.treasury_curves = load(
             trading_calendar.day,
             trading_calendar.schedule.index,

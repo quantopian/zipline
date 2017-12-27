@@ -412,6 +412,8 @@ class TradingCalendar(with_metaclass(ABCMeta)):
         Raises ValueError if the given session is the last session in this
         calendar.
         """
+        print('session_label {}'.format(session_label))
+        print('self.schedule {}'.format(self.schedule))
         idx = self.schedule.index.get_loc(session_label)
         try:
             return self.schedule.index[idx + 1]
@@ -481,6 +483,8 @@ class TradingCalendar(with_metaclass(ABCMeta)):
             raise KeyError("Can't start minute window at {}".format(start_dt))
 
         end_idx = start_idx + count
+
+        print('start_idx, end_idx: {}, {}'.format(start_idx, end_idx))
 
         if start_idx > end_idx:
             return self.all_minutes[(end_idx + 1):(start_idx + 1)]
