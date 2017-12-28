@@ -70,6 +70,7 @@ from zipline.finance.controls import (
     MaxOrderSize,
     MaxPositionSize,
     MaxLeverage,
+    MinLeverage,
     RestrictedListOrder
 )
 from zipline.finance.execution import (
@@ -2232,6 +2233,22 @@ class TradingAlgorithm(object):
             be no maximum.
         """
         control = MaxLeverage(max_leverage)
+        self.register_account_control(control)
+
+    @api_method
+    def set_min_leverage(self, min_leverage, grace_period):
+        """
+        Set a limit on the minimum leverage of the algorithm.
+
+        Parameters
+        ----------
+        min_leverage : float
+            The minimum leverage for the algorithm.
+        grace_period : pd.Timedelta
+            The offset from the start date used to enforce a minimum leverage.
+        """
+        deadline = self.sim_params.start_session + grace_period
+        control = MinLeverage(min_leverage, deadline)
         self.register_account_control(control)
 
     ####################

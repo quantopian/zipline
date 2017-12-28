@@ -633,6 +633,20 @@ def set_max_leverage(max_leverage):
         be no maximum.
     """
 
+def set_min_leverage(min_leverage, timedelta):
+
+    """
+    Set a limit on the minimum leverage of the algorithm.
+
+    Parameters
+    ----------
+    min_leverage : float
+        The minimum leverage for the algorithm. If not provided there will
+        be no minimum.
+    timedelta : pd.Timedelta
+        The offset from the start date used to enforce a minimum leverage
+    """
+
 def set_max_order_count(max_count, on_error='fail'):
     """Set a limit on the number of orders that can be placed in a single
     day.

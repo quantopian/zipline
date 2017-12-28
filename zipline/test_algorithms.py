@@ -485,6 +485,13 @@ class SetMaxLeverageAlgorithm(TradingAlgorithm):
         self.set_max_leverage(max_leverage=max_leverage)
 
 
+class SetMinLeverageAlgorithm(TradingAlgorithm):
+    def initialize(self, min_leverage, grace_period):
+        self.set_min_leverage(
+            min_leverage=min_leverage, grace_period=grace_period
+        )
+
+
 ############################
 # TradingControl Test Algos#
 ############################
