@@ -49,7 +49,6 @@ class BenchmarkSource(object):
                     self.data_portal
                 )
 
-            print('self._precalculated_series: {}'.format(self._precalculated_series))
         elif benchmark_returns is not None:
             daily_series = benchmark_returns[sessions[0]:sessions[-1]]
 

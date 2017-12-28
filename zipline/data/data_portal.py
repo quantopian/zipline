@@ -848,8 +848,6 @@ class DataPortal(object):
         except KeyError:
             self._handle_minute_history_out_of_bounds(bar_count)
 
-        print('minutes_for_window: {}'.format(minutes_for_window))
-
         if minutes_for_window[0] < self._first_trading_minute:
             self._handle_minute_history_out_of_bounds(bar_count)
 

@@ -146,7 +146,7 @@ def _run(handle_data,
             equity_daily_reader=bundle_data.equity_daily_bar_reader,
             adjustment_reader=bundle_data.adjustment_reader,
         )
-        print('data1: {}'.format(data))
+        # print('data1: {}'.format(data))
 
         pipeline_loader = USEquityPricingLoader(
             bundle_data.equity_daily_bar_reader,
@@ -163,7 +163,7 @@ def _run(handle_data,
         env = TradingEnvironment(environ=environ)
         choose_loader = None
 
-    print('data2: {}'.format(data))
+    # print('data2: {}'.format(data))
 
     perf = TradingAlgorithm(
         namespace=namespace,
