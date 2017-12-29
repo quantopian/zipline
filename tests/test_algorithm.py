@@ -137,6 +137,7 @@ from zipline.test_algorithms import (
     SetAssetRestrictionsAlgorithm,
     SetMultipleAssetRestrictionsAlgorithm,
     SetMaxLeverageAlgorithm,
+    SetMinLeverageAlgorithm,
     api_algo,
     api_get_environment_algo,
     api_symbol_algo,
@@ -3531,6 +3532,46 @@ class TestAccountControls(WithDataPortal, WithSimParams, ZiplineTestCase):
                                        env=self.env)
         self.check_algo_succeeds(algo, handle_data)
 
+    def test_set_min_leverage(self):
+        def handle_data(algo, data):
+            algo.order_target_percent(algo.sid(self.sidint), .5)
+            algo.record(latest_time=algo.get_datetime())
+
+        # Set min leverage to 1.
+        # The algorithm will succeed because it doesn't run for more
+        # than 10 days.
+        offset = pd.Timedelta('10 days')
+        algo = SetMinLeverageAlgorithm(1, offset, sim_params=self.sim_params,
+                                       env=self.env)
+        self.check_algo_succeeds(algo, handle_data)
+
+        # The algorithm will fail because it doesn't reach a min leverage of 1
+        # after 1 day.
+        offset = pd.Timedelta('1 days')
+        algo = SetMinLeverageAlgorithm(1, offset, sim_params=self.sim_params,
+                                       env=self.env)
+        self.check_algo_fails(algo, handle_data)
+        self.assertEqual(
+            algo.recorded_vars['latest_time'],
+            pd.Timestamp('2006-01-04 21:00:00', tz='UTC'),
+        )
+
+        # Increase the offset to 2 days, and the algorithm fails a day later
+        offset = pd.Timedelta('2 days')
+        algo = SetMinLeverageAlgorithm(1, offset, sim_params=self.sim_params,
+                                       env=self.env)
+        self.check_algo_fails(algo, handle_data)
+        self.assertEqual(
+            algo.recorded_vars['latest_time'],
+            pd.Timestamp('2006-01-05 21:00:00', tz='UTC'),
+        )
+
+        # Set the min_leverage to .0001 and the algorithm succeeds.
+        algo = SetMinLeverageAlgorithm(.0001,
+                                       offset,
+                                       sim_params=self.sim_params,
+                                       env=self.env)
+        self.check_algo_succeeds(algo, handle_data)
 
 # FIXME re-implement this testcase in q2
 # class TestClosePosAlgo(TestCase):
