@@ -48,6 +48,7 @@ class BenchmarkSource(object):
                     self.sessions,
                     self.data_portal
                 )
+
         elif benchmark_returns is not None:
             daily_series = benchmark_returns[sessions[0]:sessions[-1]]
 
@@ -148,14 +149,14 @@ class BenchmarkSource(object):
             benchmark_series = data_portal.get_history_window(
                 [asset],
                 minutes[-1],
-                bar_count=len(minutes) + 1,
+                bar_count=len(minutes),
                 frequency="1m",
                 field="price",
                 data_frequency=self.emission_rate,
                 ffill=True
             )[asset]
 
-            return benchmark_series.pct_change()[1:]
+            return benchmark_series.pct_change()[:]
         else:
             start_date = asset.start_date
             if start_date < trading_days[0]:

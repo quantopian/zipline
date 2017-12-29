@@ -308,6 +308,7 @@ def _load_cached_data(filename, first_date, last_date, now, resource_name,
         try:
             data = from_csv(path)
             data.index = data.index.to_datetime().tz_localize('UTC')
+
             if has_data_for_dates(data, first_date, last_date):
                 return data
 

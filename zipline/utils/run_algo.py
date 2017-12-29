@@ -116,6 +116,8 @@ def _run(handle_data,
     if trading_calendar is None:
         trading_calendar = get_calendar('NYSE')
 
+    print('trading_calendar1: {}'.format(trading_calendar))
+
     if bundle is not None:
         bundle_data = load(
             bundle,
@@ -133,7 +135,7 @@ def _run(handle_data,
                 "invalid url %r, must begin with 'sqlite:///'" %
                 str(bundle_data.asset_finder.engine.url),
             )
-        env = TradingEnvironment(asset_db_path=connstr, environ=environ)
+        env = TradingEnvironment(asset_db_path=connstr, environ=environ, trading_calendar=trading_calendar)
         first_trading_day =\
             bundle_data.equity_minute_bar_reader.first_trading_day
         data = DataPortal(
@@ -144,6 +146,7 @@ def _run(handle_data,
             equity_daily_reader=bundle_data.equity_daily_bar_reader,
             adjustment_reader=bundle_data.adjustment_reader,
         )
+        # print('data1: {}'.format(data))
 
         pipeline_loader = USEquityPricingLoader(
             bundle_data.equity_daily_bar_reader,
@@ -160,16 +163,20 @@ def _run(handle_data,
         env = TradingEnvironment(environ=environ)
         choose_loader = None
 
+    # print('data2: {}'.format(data))
+
     perf = TradingAlgorithm(
         namespace=namespace,
         env=env,
         get_pipeline_loader=choose_loader,
         trading_calendar=trading_calendar,
         sim_params=create_simulation_parameters(
+            year=2016,
             start=start,
             end=end,
             capital_base=capital_base,
-            data_frequency=data_frequency,
+            data_frequency=data_frequency, # minute
+            emission_rate='minute',
             trading_calendar=trading_calendar,
         ),
         **{

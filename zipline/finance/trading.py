@@ -78,7 +78,7 @@ class TradingEnvironment(object):
     def __init__(
         self,
         load=None,
-        bm_symbol='SPY',
+        bm_symbol='BTC_USD',
         exchange_tz="US/Eastern",
         trading_calendar=None,
         asset_db_path=':memory:',
@@ -93,11 +93,18 @@ class TradingEnvironment(object):
         if not trading_calendar:
             trading_calendar = get_calendar("NYSE")
 
-        self.benchmark_returns, self.treasury_curves = load(
-            trading_calendar.day,
-            trading_calendar.schedule.index,
-            self.bm_symbol,
-        )
+        print('trading_calendar2: {}'.format(trading_calendar))
+        print('self.bm_symbol: {}'.format(self.bm_symbol))
+        print('trading_calendar.day: {}'.format(trading_calendar.day))
+        print('trading_calendar.schedule.index: {}'.format(trading_calendar.schedule.index))
+
+        # This block is a piece of love.
+        #
+        # self.benchmark_returns, self.treasury_curves = load(
+        #     trading_calendar.day,
+        #     trading_calendar.schedule.index,
+        #     self.bm_symbol,
+        # )
 
         self.exchange_tz = exchange_tz
 
