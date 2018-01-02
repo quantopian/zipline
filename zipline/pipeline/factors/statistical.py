@@ -582,8 +582,11 @@ def vectorized_beta(dependents, independent, allowed_missing, out=None):
         Independent variable of the regression
     allowed_missing : int
         Number of allowed missing (NaN) observations per column. Columns with
-        more than this many non-nan observations in both ``dependents`` and
+        more than this many non-nan observations in either ``dependents`` or
         ``independents`` will output NaN as the regression coefficient.
+    out : np.array[M] or None, optional
+        Output array into which to write results.  If None, a new array is
+        created and returned.
 
     Returns
     -------
