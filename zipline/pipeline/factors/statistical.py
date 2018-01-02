@@ -715,7 +715,7 @@ def vectorized_pearson_r(dependents, independents, allowed_missing, out=None):
         # column where there's ever a nan.
         mean = np.mean
 
-    # Pearson R is Cov(X, Y) / Var(X) * Var(Y).
+    # Pearson R is Cov(X, Y) / StdDev(X) * StdDev(Y)
     # c.f. https://en.wikipedia.org/wiki/Pearson_correlation_coefficient
     ind_residual = independents - mean(independents, axis=0)
     dep_residual = dependents - mean(dependents, axis=0)
