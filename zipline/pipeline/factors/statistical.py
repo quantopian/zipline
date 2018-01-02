@@ -3,7 +3,6 @@ import numpy as np
 from numpy import broadcast_arrays
 from scipy.stats import (
     linregress,
-    pearsonr,
     spearmanr,
 )
 

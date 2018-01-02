@@ -1103,7 +1103,6 @@ class VectorizedCorrelationTestCase(ZiplineTestCase):
                              [0, 0, 1, 1, 1],
                              [0, 0, 0, 1, 1],
                              [0, 0, 0, 0, 1]], dtype=bool)
-        num_nans = nan_grid.sum(axis=0)
 
         if nans == 'dependent' or nans == 'both':
             dependents[10 + nan_offset:15 + nan_offset][nan_grid] = np.nan
@@ -1117,14 +1116,12 @@ class VectorizedCorrelationTestCase(ZiplineTestCase):
             )
             for i, result in enumerate(results):
                 # column i has i + 1 missing values.
-                if i + 1 >  allowed_missing:
+                if i + 1 > allowed_missing:
                     self.assertTrue(np.isnan(result))
                 else:
                     assert_equal(result, expected[i])
 
     def test_broadcasting(self):
-        rand = np.random.RandomState(42)
-
         _independent = as_column(np.array([1, 2, 3, 4, 5]))
         dependent = _independent * [2.5, 1.0, -3.5]
 
