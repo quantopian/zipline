@@ -63,5 +63,6 @@ responses==0.4.0
 
 # Debugging
 pdbpp==0.9.1
+pyrepl==0.8.4;python_version<'3.0'
 fancycompleter==0.7
 wmctrl==0.3
