@@ -820,7 +820,6 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         ('low_sid_3', 'low', 3),
         ('close_sid_3', 'close', 3),
         ('volume_sid_3', 'volume', 3),
-
     ])
     def test_minute_regular(self, name, field, sid):
         # asset2 and asset3 both started on 1/5/2015, but asset3 trades every
@@ -1397,7 +1396,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                     first_day_minutes[5],
                     15,
                     '1m',
-                    'price',
+                    field,
                     'minute',
                 )[self.ASSET1]
 
