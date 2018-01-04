@@ -1592,6 +1592,49 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                                            err_msg='field={0} minute={1}'.
                                            format(field, minute))
 
+    @parameterized.expand([(("bar_count%s" % x), x) for x in [1, 2, 3]])
+    def test_daily_history_minute_gaps_price_ffill(self, test_name, bar_count):
+        # Make sure we use the previous day's value when there's been no volume
+        # yet today.
+
+        # January 5 2015 is the first day, and there is volume only every
+        # 10 minutes.
+        for day_idx, day in enumerate([pd.Timestamp('2015-01-05', tz='UTC'),
+                                       pd.Timestamp('2015-01-06', tz='UTC')]):
+
+            minutes = self.trading_calendar.minutes_for_session(day)
+
+            equity_cal = self.trading_calendars[Equity]
+            equity_minutes = equity_cal.minutes_for_session(day)
+            equity_close = equity_minutes[-1]
+
+            # minute data, baseline:
+            # Jan 5: 2 to 391
+            # Jan 6: 392 to 781
+            # Jan 7: 782 to 1171
+            for minute in minutes:
+                idx = equity_minutes.searchsorted(min(minute, equity_close))
+
+                window = self.data_portal.get_history_window(
+                    [self.ASSET3],
+                    minute,
+                    bar_count,
+                    '1d',
+                    'price',
+                    'minute',
+                )[self.ASSET3]
+
+                self.assertEqual(len(window), bar_count)
+
+                if not day_idx and idx + 1 < 10:
+                    self.assertTrue(np.isnan(window[-1]))
+                else:
+                    self.assertEqual(
+                        window[-1],
+                        day_idx * 390 +  # prev day
+                        ((idx + 1) // 10) * 10 + 1  # today
+                    )
+
 
 class NoPrefetchMinuteEquityHistoryTestCase(MinuteEquityHistoryTestCase):
     DATA_PORTAL_MINUTE_HISTORY_PREFETCH = 0
