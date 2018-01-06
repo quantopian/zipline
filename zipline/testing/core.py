@@ -712,6 +712,12 @@ class FakeDataPortal(DataPortal):
         else:
             return 1.0
 
+    def get_scalar_asset_spot_value(self, asset, field, dt, data_frequency):
+        if field == "volume":
+            return 100
+        else:
+            return 1.0
+
     def get_history_window(self, assets, end_dt, bar_count, frequency, field,
                            data_frequency, ffill=True):
         if frequency == "1d":

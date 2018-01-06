@@ -37,23 +37,36 @@ from collections import OrderedDict
 import numpy as np
 import logbook
 
-from zipline.assets import Future, Asset
-from zipline.utils.input_validation import expect_types
+from zipline.assets import Future
+import zipline.protocol as zp
 
 log = logbook.Logger('Performance')
 
 
 class Position(object):
+    __slots__ = '_inner_position', 'protocol_position'
 
-    @expect_types(asset=Asset)
-    def __init__(self, asset, amount=0, cost_basis=0.0,
-                 last_sale_price=0.0, last_sale_date=None):
+    def __init__(self,
+                 asset,
+                 amount=0,
+                 cost_basis=0.0,
+                 last_sale_price=0.0,
+                 last_sale_date=None):
+        inner = zp.InnerPosition(
+            asset=asset,
+            amount=amount,
+            cost_basis=cost_basis,
+            last_sale_price=last_sale_price,
+            last_sale_date=last_sale_date,
+        )
+        object.__setattr__(self, '_inner_position', inner)
+        object.__setattr__(self, 'protocol_position', zp.Position(inner))
 
-        self.asset = asset
-        self.amount = amount
-        self.cost_basis = cost_basis  # per share
-        self.last_sale_price = last_sale_price
-        self.last_sale_date = last_sale_date
+    def __getattr__(self, attr):
+        return getattr(self._inner_position, attr)
+
+    def __setattr__(self, attr, value):
+        setattr(self._inner_position, attr, value)
 
     def earn_dividend(self, dividend):
         """
@@ -76,7 +89,6 @@ class Position(object):
             )
         }
 
-    @expect_types(asset=Asset)
     def handle_split(self, asset, ratio):
         """
         Update the position by the split ratio, and return the resulting
@@ -150,7 +162,6 @@ class Position(object):
 
         self.amount = total_shares
 
-    @expect_types(asset=Asset)
     def adjust_commission_cost_basis(self, asset, cost):
         """
         A note about cost-basis in zipline: all positions are considered
@@ -213,8 +224,3 @@ last_sale_price: {last_sale_price}"
             'cost_basis': self.cost_basis,
             'last_sale_price': self.last_sale_price
         }
-
-
-class positiondict(OrderedDict):
-    def __missing__(self, key):
-        return None

@@ -74,3 +74,5 @@ zipline.iml
 TAGS
 
 .ipynb_checkpoints/
+
+.gdb_history

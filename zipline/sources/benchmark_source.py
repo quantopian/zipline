@@ -1,5 +1,5 @@
 #
-# Copyright 2015 Quantopian, Inc.
+# Copyright 2018 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import pandas as pd
+import numpy as np
 
 from zipline.errors import (
     InvalidBenchmarkAsset,
@@ -38,18 +39,18 @@ class BenchmarkSource(object):
         if len(sessions) == 0:
             self._precalculated_series = pd.Series()
         elif benchmark_asset is not None:
-
             self._validate_benchmark(benchmark_asset)
-
-            self._precalculated_series = \
-                self._initialize_precalculated_series(
-                    benchmark_asset,
-                    trading_calendar,
-                    self.sessions,
-                    self.data_portal
-                )
+            (self._precalculated_series,
+             self._daily_returns) = self._initialize_precalculated_series(
+                 benchmark_asset,
+                 trading_calendar,
+                 self.sessions,
+                 self.data_portal
+             )
         elif benchmark_returns is not None:
-            daily_series = benchmark_returns[sessions[0]:sessions[-1]]
+            self._daily_returns = daily_series = benchmark_returns[
+                sessions[0]:sessions[-1]
+            ]
 
             if self.emission_rate == "minute":
                 # we need to take the env's benchmark returns, which are daily,
@@ -72,10 +73,77 @@ class BenchmarkSource(object):
                             "benchmark_returns.")
 
     def get_value(self, dt):
+        """Look up the returns for a given dt.
+
+        Parameters
+        ----------
+        dt : datetime
+            The label to look up.
+
+        Returns
+        -------
+        returns : float
+            The returns at the given dt or session.
+
+        Warning
+        -------
+        This method expects minute inputs if ``emission_rate == 'minute'`` and
+        session labels when ``emission_rate == 'daily``.
+
+        See Also
+        --------
+        :class:`~zipline.sources.benchmark_source.BenchmarkSource.daily_returns`
+        """
         return self._precalculated_series.loc[dt]
 
     def get_range(self, start_dt, end_dt):
+        """Look up the returns for a given period.
+
+        Parameters
+        ----------
+        start_dt : datetime
+            The inclusive start label.
+        end_dt : datetime
+            The inclusive end label.
+
+        Returns
+        -------
+        returns : pd.Series
+            The series of returns.
+
+        Warning
+        -------
+        This method expects minute inputs if ``emission_rate == 'minute'`` and
+        session labels when ``emission_rate == 'daily``.
+
+        See Also
+        --------
+        :class:`~zipline.sources.benchmark_source.BenchmarkSource.daily_returns`
+        """
         return self._precalculated_series.loc[start_dt:end_dt]
+
+    def daily_returns(self, start, end=None):
+        """Returns the daily returns for the given period.
+
+        Parameters
+        ----------
+        start : datetime
+            The inclusive starting session label.
+        end : datetime, optional
+            The inclusive ending session label. If not provided, treat
+            ``start`` as a scalar key.
+
+        Returns
+        -------
+        returns : pd.Series or float
+            The returns in the given period. The index will be the trading
+            calendar in the range [start, end]. If just ``start`` is provided,
+            return the scalar value on that day.
+        """
+        if end is None:
+            return self._daily_returns[start]
+
+        return self._daily_returns[start:end]
 
     def _validate_benchmark(self, benchmark_asset):
         # check if this security has a stock dividend.  if so, raise an
@@ -107,8 +175,11 @@ class BenchmarkSource(object):
                 end_dt=benchmark_asset.end_date
             )
 
-    def _initialize_precalculated_series(self, asset, trading_calendar,
-                                         trading_days, data_portal):
+    def _initialize_precalculated_series(self,
+                                         asset,
+                                         trading_calendar,
+                                         trading_days,
+                                         data_portal):
         """
         Internal method that pre-calculates the benchmark return series for
         use in the simulation.
@@ -172,7 +243,19 @@ class BenchmarkSource(object):
                     data_frequency=self.emission_rate,
                     ffill=True
                 )[asset]
-                return benchmark_series.pct_change()[1:]
+
+                def daily_returns(g):
+                    if g.empty:
+                        return np.nan
+                    else:
+                        return (g[-1] - g[0]) / g[0]
+
+                return (
+                    benchmark_series.pct_change()[1:],
+                    benchmark_series.groupby(pd.TimeGrouper('D')).apply(
+                        daily_returns,
+                    ),
+                )
             elif start_date == trading_days[0]:
                 # Attempt to handle case where stock data starts on first
                 # day, in this case use the open to close return.
@@ -188,12 +271,20 @@ class BenchmarkSource(object):
 
                 # get a minute history window of the first day
                 first_open = data_portal.get_spot_value(
-                    asset, 'open', trading_days[0], 'daily')
+                    asset,
+                    'open',
+                    trading_days[0],
+                    'daily',
+                )
                 first_close = data_portal.get_spot_value(
-                    asset, 'close', trading_days[0], 'daily')
+                    asset,
+                    'close',
+                    trading_days[0],
+                    'daily',
+                )
 
                 first_day_return = (first_close - first_open) / first_open
 
                 returns = benchmark_series.pct_change()[:]
                 returns[0] = first_day_return
-                return returns
+                return returns, returns

@@ -1,6 +1,8 @@
-from six import PY2
 import functools
+from operator import methodcaller
 import sys
+
+from six import PY2
 
 
 if PY2:
@@ -48,6 +50,8 @@ if PY2:
         return functools.partial(update_wrapper, wrapped=wrapped,
                                  assigned=assigned, updated=updated)
 
+    values_as_list = methodcaller('values')
+
 else:
     from types import MappingProxyType as mappingproxy
 
@@ -58,6 +62,12 @@ else:
 
     update_wrapper = functools.update_wrapper
     wraps = functools.wraps
+
+    def values_as_list(dictionary):
+        """Return the dictionary values as a list without forcing a copy
+        in Python 2.
+        """
+        return list(dictionary.values())
 
 
 unicode = type(u'')

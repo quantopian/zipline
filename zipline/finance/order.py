@@ -76,7 +76,8 @@ class Order(object):
         self.type = zp.DATASOURCE_TYPE.ORDER
         self.broker_order_id = None
 
-    def make_id(self):
+    @staticmethod
+    def make_id():
         return uuid.uuid4().hex
 
     def to_dict(self):
