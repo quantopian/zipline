@@ -44,22 +44,6 @@ CACHE_FILE_TEMPLATE = '/tmp/.%s-%s.v7.cache'
 
 
 cdef class Asset:
-
-    cdef readonly int sid
-    # Cached hash of self.sid
-    cdef int sid_hash
-
-    cdef readonly object symbol
-    cdef readonly object asset_name
-
-    cdef readonly object start_date
-    cdef readonly object end_date
-    cdef public object first_traded
-    cdef readonly object auto_close_date
-
-    cdef readonly object exchange
-    cdef readonly object exchange_full
-
     _kwargnames = frozenset({
         'sid',
         'symbol',
@@ -73,7 +57,7 @@ cdef class Asset:
     })
 
     def __init__(self,
-                 int sid, # sid is required
+                 int64_t sid, # sid is required
                  object exchange, # exchange is required
                  object symbol="",
                  object asset_name="",
@@ -84,7 +68,6 @@ cdef class Asset:
                  object exchange_full=None):
 
         self.sid = sid
-        self.sid_hash = hash(sid)
         self.symbol = symbol
         self.asset_name = asset_name
         self.exchange = exchange
@@ -102,14 +85,14 @@ cdef class Asset:
         return self.sid
 
     def __hash__(self):
-        return self.sid_hash
+        return self.sid
 
     def __richcmp__(x, y, int op):
         """
         Cython rich comparison method.  This is used in place of various
         equality checkers in pure python.
         """
-        cdef int x_as_int, y_as_int
+        cdef int64_t x_as_int, y_as_int
 
         try:
             x_as_int = PyNumber_Index(x)
@@ -259,13 +242,6 @@ cdef class Equity(Asset):
 
 
 cdef class Future(Asset):
-
-    cdef readonly object root_symbol
-    cdef readonly object notice_date
-    cdef readonly object expiration_date
-    cdef readonly object tick_size
-    cdef readonly float multiplier
-
     _kwargnames = frozenset({
         'sid',
         'symbol',
@@ -284,7 +260,7 @@ cdef class Future(Asset):
     })
 
     def __init__(self,
-                 int sid, # sid is required
+                 int64_t sid, # sid is required
                  object exchange, # exchange is required
                  object symbol="",
                  object root_symbol="",

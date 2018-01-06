@@ -198,7 +198,7 @@ class DataPortal(object):
                 if reader is not None
             ]
             if last_minutes:
-                self._last_available_minute = min(last_minutes)
+                self._last_available_minute = max(last_minutes)
             else:
                 self._last_available_minute = None
 
@@ -442,6 +442,50 @@ class DataPortal(object):
         except KeyError:
             return np.NaN
 
+    def _get_single_asset_value(self,
+                                session_label,
+                                asset,
+                                field,
+                                dt,
+                                data_frequency):
+        if self._is_extra_source(
+                asset, field, self._augmented_sources_map):
+            return self._get_fetcher_value(asset, field, dt)
+
+        if field not in BASE_FIELDS:
+            raise KeyError("Invalid column: " + str(field))
+
+        if dt < asset.start_date or \
+                (data_frequency == "daily" and
+                    session_label > asset.end_date) or \
+                (data_frequency == "minute" and
+                 session_label > asset.end_date):
+            if field == "volume":
+                return 0
+            elif field == "contract":
+                return None
+            elif field != "last_traded":
+                return np.NaN
+
+        if data_frequency == "daily":
+            if field == "contract":
+                return self._get_current_contract(asset, session_label)
+            else:
+                return self._get_daily_spot_value(
+                    asset, field, session_label,
+                )
+        else:
+            if field == "last_traded":
+                return self.get_last_traded_dt(asset, dt, 'minute')
+            elif field == "price":
+                return self._get_minute_spot_value(
+                    asset, "close", dt, ffill=True,
+                )
+            elif field == "contract":
+                return self._get_current_contract(asset, dt)
+            else:
+                return self._get_minute_spot_value(asset, field, dt)
+
     def get_spot_value(self, assets, field, dt, data_frequency):
         """
         Public API method that returns a scalar value representing the value
@@ -485,49 +529,62 @@ class DataPortal(object):
 
         session_label = self.trading_calendar.minute_to_session_label(dt)
 
-        def get_single_asset_value(asset):
-            if self._is_extra_source(
-                    asset, field, self._augmented_sources_map):
-                return self._get_fetcher_value(asset, field, dt)
-
-            if field not in BASE_FIELDS:
-                raise KeyError("Invalid column: " + str(field))
-
-            if dt < asset.start_date or \
-                    (data_frequency == "daily" and
-                        session_label > asset.end_date) or \
-                    (data_frequency == "minute" and
-                     session_label > asset.end_date):
-                if field == "volume":
-                    return 0
-                elif field == "contract":
-                    return None
-                elif field != "last_traded":
-                    return np.NaN
-
-            if data_frequency == "daily":
-                if field == "contract":
-                    return self._get_current_contract(asset, session_label)
-                else:
-                    return self._get_daily_spot_value(
-                        asset, field, session_label,
-                    )
-            else:
-                if field == "last_traded":
-                    return self.get_last_traded_dt(asset, dt, 'minute')
-                elif field == "price":
-                    return self._get_minute_spot_value(
-                        asset, "close", dt, ffill=True,
-                    )
-                elif field == "contract":
-                    return self._get_current_contract(asset, dt)
-                else:
-                    return self._get_minute_spot_value(asset, field, dt)
-
         if assets_is_scalar:
-            return get_single_asset_value(assets)
+            return self._get_single_asset_value(
+                session_label,
+                assets,
+                field,
+                dt,
+                data_frequency,
+            )
         else:
-            return list(map(get_single_asset_value, assets))
+            get_single_asset_value = self._get_single_asset_value
+            return [
+                get_single_asset_value(
+                    session_label,
+                    asset,
+                    field,
+                    dt,
+                    data_frequency,
+                )
+                for asset in assets
+            ]
+
+    def get_scalar_asset_spot_value(self, asset, field, dt, data_frequency):
+        """
+        Public API method that returns a scalar value representing the value
+        of the desired asset's field at either the given dt.
+
+        Parameters
+        ----------
+        assets : Asset
+            The asset or assets whose data is desired. This cannot be
+            an arbitrary AssetConvertible.
+        field : {'open', 'high', 'low', 'close', 'volume',
+                 'price', 'last_traded'}
+            The desired field of the asset.
+        dt : pd.Timestamp
+            The timestamp for the desired value.
+        data_frequency : str
+            The frequency of the data to query; i.e. whether the data is
+            'daily' or 'minute' bars
+
+        Returns
+        -------
+        value : float, int, or pd.Timestamp
+            The spot value of ``field`` for ``asset`` The return type is based
+            on the ``field`` requested. If the field is one of 'open', 'high',
+            'low', 'close', or 'price', the value will be a float. If the
+            ``field`` is 'volume' the value will be a int. If the ``field`` is
+            'last_traded' the value will be a Timestamp.
+        """
+        return self._get_single_asset_value(
+            self.trading_calendar.minute_to_session_label(dt),
+            asset,
+            field,
+            dt,
+            data_frequency,
+        )
 
     def get_adjustments(self, assets, field, dt, perspective_dt):
         """
@@ -1413,3 +1470,7 @@ class DataPortal(object):
         if contract_sid is None:
             return None
         return self.asset_finder.retrieve_asset(contract_sid)
+
+    @property
+    def adjustment_reader(self):
+        return self._adjustment_reader

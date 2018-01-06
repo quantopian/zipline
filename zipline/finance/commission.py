@@ -70,6 +70,19 @@ class CommissionModel(with_metaclass(FinancialModelMeta)):
         raise NotImplementedError('calculate')
 
 
+class NoCommission(CommissionModel):
+    """A commission model where all transactions are free.
+
+    Notes
+    -----
+    This is primarily used for testing.
+    """
+
+    @staticmethod
+    def calculate(order, transaction):
+        return 0.0
+
+
 class EquityCommissionModel(with_metaclass(AllowedAssetMarker,
                                            CommissionModel)):
     """

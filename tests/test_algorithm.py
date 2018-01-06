@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Quantopian, Inc.
+# Copyright 2018 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -175,7 +175,6 @@ from zipline.test_algorithms import (
     call_with_good_kwargs_get_open_orders,
     call_with_no_kwargs_get_open_orders,
     empty_positions,
-    set_benchmark_algo,
     no_handle_data,
 )
 from zipline.testing.predicates import assert_equal
@@ -1777,7 +1776,7 @@ def handle_data(context, data):
         # for that day was therefore 9.95k, but after the $100 commission,
         # it should be 9.85k.
         self.assertEqual(9850, results.capital_used[1])
-        self.assertEqual(100, results["orders"][1][0]["commission"])
+        self.assertEqual(100, results["orders"].iloc[1][0]["commission"])
 
     @parameterized.expand(
         [
@@ -1952,9 +1951,8 @@ def handle_data(context, data):
 
                 def handle_data(context, data):
                     if not context.placed:
-                        for asset, shares in iteritems(OrderedDict(zip(
-                            context.assets, {share_counts}
-                        ))):
+                        it = zip(context.assets, {share_counts})
+                        for asset, shares in it:
                             order(asset, shares)
 
                         context.placed = True
@@ -2256,28 +2254,6 @@ def handle_data(context, data):
         self.assertTrue(all(num_positions == 0))
         self.assertTrue(all(amounts == 0))
 
-    @parameterized.expand([
-        ('noop_algo', noop_algo),
-        ('with_benchmark_set', set_benchmark_algo)]
-    )
-    def test_zero_trading_days(self, name, algocode):
-        """
-        Test that when we run a simulation with no trading days (e.g. beginning
-        and ending the same weekend), we don't crash on calculating the
-        benchmark
-        """
-        sim_params = factory.create_simulation_parameters(
-            start=pd.Timestamp('2006-01-14', tz='UTC'),
-            end=pd.Timestamp('2006-01-15', tz='UTC')
-        )
-
-        algo = TradingAlgorithm(
-            script=algocode,
-            sim_params=sim_params,
-            env=self.env
-        )
-        algo.run(self.data_portal)
-
     def test_schedule_function_time_rule_positionally_misplaced(self):
         """
         Test that when a user specifies a time rule for the date_rule argument,
@@ -2403,7 +2379,7 @@ class TestCapitalChanges(WithLogger,
         )
 
     @parameterized.expand([
-        ('target', 153000.0), ('delta', 50000.0)
+        ('target', 151000.0), ('delta', 50000.0)
     ])
     def test_capital_changes_daily_mode(self, change_type, value):
         sim_params = factory.create_simulation_parameters(
@@ -2434,7 +2410,7 @@ def order_stuff(context, data):
             sim_params=sim_params,
             env=self.env,
             data_portal=self.data_portal,
-            capital_changes=capital_changes
+            capital_changes=capital_changes,
         )
 
         gen = algo.get_generator()
@@ -2451,7 +2427,7 @@ def order_stuff(context, data):
             capital_change_packets[0],
             {'date': pd.Timestamp('2006-01-06', tz='UTC'),
              'type': 'cash',
-             'target': 153000.0 if change_type == 'target' else None,
+             'target': 151000.0 if change_type == 'target' else None,
              'delta': 50000.0})
 
         # 1/03: price = 10, place orders
@@ -2473,11 +2449,11 @@ def order_stuff(context, data):
             0.0,
             0.0,
             # 1000 shares * gain of 1
-            (100000.0 + 1000.0)/100000.0 - 1.0,
-            # 2000 shares * gain of 1, capital change of +5000
-            (151000.0 + 2000.0)/151000.0 - 1.0,
+            (100000.0 + 1000.0) / 100000.0 - 1.0,
+            # 2000 shares * gain of 1, capital change of +50000
+            (151000.0 + 2000.0) / 151000.0 - 1.0,
             # 3000 shares * gain of 1
-            (153000.0 + 3000.0)/153000.0 - 1.0,
+            (153000.0 + 3000.0) / 153000.0 - 1.0,
         ])
 
         expected_daily['pnl'] = np.array([
@@ -2505,13 +2481,13 @@ def order_stuff(context, data):
             expected_daily['ending_cash'] - \
             expected_daily['capital_used']
 
-        expected_daily['starting_value'] = [
+        expected_daily['starting_value'] = np.array([
             0.0,
             0.0,
             11000.0,  # 1000 shares at price = 11
             24000.0,  # 2000 shares at price = 12
             39000.0,  # 3000 shares at price = 13
-        ]
+        ])
 
         expected_daily['ending_value'] = \
             expected_daily['starting_value'] + \
@@ -2543,11 +2519,13 @@ def order_stuff(context, data):
         for stat in stats:
             np.testing.assert_array_almost_equal(
                 np.array([perf[stat] for perf in daily_perf]),
-                expected_daily[stat]
+                expected_daily[stat],
+                err_msg='daily ' + stat,
             )
             np.testing.assert_array_almost_equal(
                 np.array([perf[stat] for perf in cumulative_perf]),
-                expected_cumulative[stat]
+                expected_cumulative[stat],
+                err_msg='cumulative ' + stat,
             )
 
         self.assertEqual(
@@ -2558,8 +2536,8 @@ def order_stuff(context, data):
     @parameterized.expand([
         ('interday_target', [('2006-01-04', 2388.0)]),
         ('interday_delta', [('2006-01-04', 1000.0)]),
-        ('intraday_target', [('2006-01-04 17:00', 2186.0),
-                             ('2006-01-04 18:00', 2806.0)]),
+        ('intraday_target', [('2006-01-04 17:00', 2184.0),
+                             ('2006-01-04 18:00', 2804.0)]),
         ('intraday_delta', [('2006-01-04 17:00', 500.0),
                             ('2006-01-04 18:00', 500.0)]),
     ])
@@ -2573,8 +2551,13 @@ def order_stuff(context, data):
             capital_base=1000.0
         )
 
-        capital_changes = {pd.Timestamp(val[0], tz='UTC'): {
-            'type': change_type, 'value': val[1]} for val in values}
+        capital_changes = {
+            pd.Timestamp(datestr, tz='UTC'): {
+                'type': change_type,
+                'value': value
+            }
+            for datestr, value in values
+        }
 
         algocode = """
 from zipline.api import set_slippage, set_commission, slippage, commission, \
@@ -2623,26 +2606,26 @@ def order_stuff(context, data):
 
         expected_daily = {}
 
-        expected_capital_changes = np.array([
-            0.0, 1000.0, 0.0
-        ])
+        expected_capital_changes = np.array([0.0, 1000.0, 0.0])
 
         if change_loc == 'intraday':
             # Fills at 491, +500 capital change comes at 638 (17:00) and
             # 698 (18:00), ends day at 879
-            day2_return = (1388.0 + 149.0 + 147.0)/1388.0 * \
-                          (2184.0 + 60.0 + 60.0)/2184.0 * \
-                          (2804.0 + 181.0 + 181.0)/2804.0 - 1.0
+            day2_return = (
+                (1388.0 + 149.0 + 147.0) / 1388.0 *
+                (2184.0 + 60.0 + 60.0) / 2184.0 *
+                (2804.0 + 181.0 + 181.0) / 2804.0 - 1.0
+            )
         else:
             # Fills at 491, ends day at 879, capital change +1000
-            day2_return = (2388.0 + 390.0 + 388.0)/2388.0 - 1
+            day2_return = (2388.0 + 390.0 + 388.0) / 2388.0 - 1
 
         expected_daily['returns'] = np.array([
             # Fills at 101, ends day at 489
-            (1000.0 + 388.0)/1000.0 - 1.0,
+            (1000.0 + 489 - 101) / 1000.0 - 1.0,
             day2_return,
             # Fills at 881, ends day at 1269
-            (3166.0 + 390.0 + 390.0 + 388.0)/3166.0 - 1.0,
+            (3166.0 + 390.0 + 390.0 + 388.0) / 3166.0 - 1.0,
         ])
 
         expected_daily['pnl'] = np.array([
@@ -2724,8 +2707,8 @@ def order_stuff(context, data):
     @parameterized.expand([
         ('interday_target', [('2006-01-04', 2388.0)]),
         ('interday_delta', [('2006-01-04', 1000.0)]),
-        ('intraday_target', [('2006-01-04 17:00', 2186.0),
-                             ('2006-01-04 18:00', 2806.0)]),
+        ('intraday_target', [('2006-01-04 17:00', 2184.0),
+                             ('2006-01-04 18:00', 2804.0)]),
         ('intraday_delta', [('2006-01-04 17:00', 500.0),
                             ('2006-01-04 18:00', 500.0)]),
     ])
@@ -3903,11 +3886,8 @@ class TestFuturesAlgo(WithDataPortal, WithSimParams, ZiplineTestCase):
         expected_spread = 0.05
         expected_price = (algo.order_price + 1) + expected_spread
 
-        # Capital used should be 0 because there is no commission, and the cost
-        # to enter into a long position on a futures contract is 0.
         self.assertEqual(txn['price'], expected_price)
         self.assertEqual(results['orders'][0][0]['commission'], 0.0)
-        self.assertEqual(results.capital_used[0], 0.0)
 
     def test_volume_contract_slippage(self):
         algo_code = self.algo_with_slippage(
@@ -4062,7 +4042,7 @@ class TestOrderCancelation(WithDataPortal,
 
     @parameter_space(
         direction=[1, -1],
-        minute_emission=[True, False]
+        minute_emission=[True, False],
     )
     def test_eod_order_cancel_minute(self, direction, minute_emission):
         """
@@ -4491,7 +4471,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
             first_auto_close_transaction,
             {
                 'amount': -order_size,
-                'commission': 0.0,
+                'commission': None,
                 'dt': self.trading_calendar.session_close(
                     assets[0].auto_close_date,
                 ),
@@ -4508,7 +4488,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
             second_auto_close_transaction,
             {
                 'amount': -order_size,
-                'commission': 0.0,
+                'commission': None,
                 'dt': self.trading_calendar.session_close(
                     assets[1].auto_close_date,
                 ),
@@ -4583,7 +4563,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
         self.assertDictContainsSubset(
             {
                 'amount': 10,
-                'commission': 0,
+                'commission': 0.0,
                 'created': last_close_for_asset,
                 'dt': last_close_for_asset,
                 'sid': assets[0],
@@ -4598,7 +4578,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
         self.assertDictContainsSubset(
             {
                 'amount': 10,
-                'commission': 0,
+                'commission': 0.0,
                 'created': last_close_for_asset,
                 'dt': algo.trading_calendar.session_close(
                     first_asset_auto_close_date,
@@ -4717,7 +4697,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
             first_auto_close_transaction,
             {
                 'amount': -order_size,
-                'commission': 0.0,
+                'commission': None,
                 'dt': algo.trading_calendar.session_close(
                     assets[0].auto_close_date,
                 ),
@@ -4734,7 +4714,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
             second_auto_close_transaction,
             {
                 'amount': -order_size,
-                'commission': 0.0,
+                'commission': None,
                 'dt': algo.trading_calendar.session_close(
                     assets[1].auto_close_date,
                 ),

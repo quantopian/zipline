@@ -28,10 +28,10 @@ from pandas import (
 )
 from pandas.tseries.offsets import CustomBusinessDay
 from zipline.utils.calendars._calendar_helpers import (
+    compute_all_minutes,
+    is_open,
     next_divider_idx,
     previous_divider_idx,
-    is_open,
-    minutes_to_session_labels,
 )
 from zipline.utils.input_validation import (
     attrgetter,
@@ -467,6 +467,39 @@ class TradingCalendar(with_metaclass(ABCMeta)):
             end_minute=self.schedule.at[session_label, 'market_close'],
         )
 
+    def execution_minutes_for_session(self, session_label):
+        """
+        Given a session label, return the execution minutes for that session.
+
+        Parameters
+        ----------
+        session_label: pd.Timestamp (midnight UTC)
+            A session label whose session's minutes are desired.
+
+        Returns
+        -------
+        pd.DateTimeIndex
+            All the execution minutes for the given session.
+        """
+        return self.minutes_in_range(
+            start_minute=self.execution_time_from_open(
+                self.schedule.at[session_label, 'market_open'],
+            ),
+            end_minute=self.execution_time_from_close(
+                self.schedule.at[session_label, 'market_close'],
+            ),
+        )
+
+    def execution_minutes_for_sessions_in_range(self, start, stop):
+        minutes = self.execution_minutes_for_session
+        return pd.DatetimeIndex(
+            np.concatenate([
+                minutes(session)
+                for session in self.sessions_in_range(start, stop)
+            ]),
+            tz='UTC',
+        )
+
     def minutes_window(self, start_dt, count):
         start_dt_nanos = start_dt.value
         all_minutes_nanos = self._trading_minutes_nanos
@@ -600,7 +633,8 @@ class TradingCalendar(with_metaclass(ABCMeta)):
 
         return self.all_minutes[start_idx:end_idx]
 
-    def minutes_for_sessions_in_range(self, start_session_label,
+    def minutes_for_sessions_in_range(self,
+                                      start_session_label,
                                       end_session_label):
         """
         Returns all the minutes for all the sessions from the given start
@@ -697,38 +731,18 @@ class TradingCalendar(with_metaclass(ABCMeta)):
         """
         Returns a DatetimeIndex representing all the minutes in this calendar.
         """
-        opens_in_ns = \
-            self._opens.values.astype('datetime64[ns]')
+        opens_in_ns = self._opens.values.astype(
+            'datetime64[ns]',
+        ).view('int64')
 
-        closes_in_ns = \
-            self._closes.values.astype('datetime64[ns]')
+        closes_in_ns = self._closes.values.astype(
+            'datetime64[ns]',
+        ).view('int64')
 
-        deltas = closes_in_ns - opens_in_ns
-
-        # + 1 because we want 390 days per standard day, not 389
-        daily_sizes = (deltas / NANOS_IN_MINUTE) + 1
-        num_minutes = np.sum(daily_sizes).astype(np.int64)
-
-        # One allocation for the entire thing. This assumes that each day
-        # represents a contiguous block of minutes.
-        all_minutes = np.empty(num_minutes, dtype='datetime64[ns]')
-
-        idx = 0
-        for day_idx, size in enumerate(daily_sizes):
-            # lots of small allocations, but it's fast enough for now.
-
-            # size is a np.timedelta64, so we need to int it
-            size_int = int(size)
-            all_minutes[idx:(idx + size_int)] = \
-                np.arange(
-                    opens_in_ns[day_idx],
-                    closes_in_ns[day_idx] + NANOS_IN_MINUTE,
-                    NANOS_IN_MINUTE
-                )
-
-            idx += size_int
-
-        return DatetimeIndex(all_minutes).tz_localize("UTC")
+        return DatetimeIndex(
+            compute_all_minutes(opens_in_ns, closes_in_ns),
+            tz='utc',
+        )
 
     @preprocess(dt=coerce(pd.Timestamp, attrgetter('value')))
     def minute_to_session_label(self, dt, direction="next"):
@@ -799,14 +813,7 @@ class TradingCalendar(with_metaclass(ABCMeta)):
         pd.DatetimeIndex (UTC)
             The list of session labels corresponding to the given minutes.
         """
-        def minute_to_session_label_nanos(dt_nanos):
-            return self.minute_to_session_label(dt_nanos).value
-
-        return DatetimeIndex(minutes_to_session_labels(
-            index.values.astype(np.int64),
-            minute_to_session_label_nanos,
-            self.market_closes_nanos,
-        ).astype('datetime64[ns]'), tz='UTC')
+        return pd.Index(map(self.minute_to_session_label, index))
 
     def _special_dates(self, calendars, ad_hoc_dates, start_date, end_date):
         """
