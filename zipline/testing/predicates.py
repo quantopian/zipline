@@ -44,10 +44,11 @@ from six import iteritems, viewkeys, PY2
 from toolz import dissoc, keyfilter
 import toolz.curried.operator as op
 
-from zipline.testing.core import ensure_doctest
 from zipline.dispatch import dispatch
 from zipline.lib.adjustment import Adjustment
 from zipline.lib.labelarray import LabelArray
+from zipline.testing.core import ensure_doctest
+from zipline.utils.compat import mappingproxy
 from zipline.utils.functional import dzip_exact, instance
 from zipline.utils.math_utils import tolerant_equals
 
@@ -254,6 +255,22 @@ def assert_raises_regex(exc, pattern, msg=''):
         raise AssertionError('%s%s was not raised' % (_fmt_msg(msg), exc))
 
 
+def assert_raises_str(exc, expected_str, msg=''):
+    """Assert that some exception is raised in a context and that the message
+    exactly matches some string.
+
+    Parameters
+    ----------
+    exc : type or tuple[type]
+        The exception type or types to expect.
+    expected_str : str
+        The expected result of ``str(exception)``.
+    msg : str, optional
+        An extra assertion message to print if this fails.
+    """
+    return assert_raises_regex(exc, '^%s$' % re.escape(expected_str), msg=msg)
+
+
 @dispatch(object, object)
 def assert_equal(result, expected, path=(), msg='', **kwargs):
     """Assert that two objects are equal using the ``==`` operator.
@@ -354,6 +371,37 @@ def assert_dict_equal(result, expected, path=(), msg='', **kwargs):
 
     failures = []
     for k, (resultv, expectedv) in iteritems(dzip_exact(result, expected)):
+        try:
+            assert_equal(
+                resultv,
+                expectedv,
+                path=path + ('[%r]' % (k,),),
+                msg=msg,
+                **kwargs
+            )
+        except AssertionError as e:
+            failures.append(str(e))
+
+    if failures:
+        raise AssertionError('\n'.join(failures))
+
+
+@assert_equal.register(mappingproxy, mappingproxy)
+def asssert_mappingproxy_equal(result, expected, path=(), msg='', **kwargs):
+    # mappingproxies compare like dict but shouldn't compare to dicts
+    _check_sets(
+        set(result),
+        set(expected),
+        msg,
+        path + ('.keys()',),
+        'key',
+    )
+
+    failures = []
+    for k, resultv in iteritems(result):
+        # we know this exists because of the _check_sets call above
+        expectedv = expected[k]
+
         try:
             assert_equal(
                 resultv,

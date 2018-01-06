@@ -30,7 +30,7 @@ from testfixtures import TempDirectory
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.finance.blotter import Blotter
 from zipline.finance.execution import MarketOrder, LimitOrder
-from zipline.finance.performance import PerformanceTracker
+from zipline.finance.metrics import MetricsTracker, load as load_metrics_set
 from zipline.finance.trading import SimulationParameters
 from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.data.minute_bars import BcolzMinuteBarReader
@@ -286,8 +286,16 @@ class FinanceTestCase(WithLogger,
             else:
                 alternator = 1
 
-            tracker = PerformanceTracker(sim_params, self.trading_calendar,
-                                         self.env)
+            tracker = MetricsTracker(
+                trading_calendar=self.trading_calendar,
+                first_session=sim_params.start_session,
+                last_session=sim_params.end_session,
+                capital_base=sim_params.capital_base,
+                emission_rate=sim_params.emission_rate,
+                data_frequency=sim_params.data_frequency,
+                asset_finder=self.asset_finder,
+                metrics=load_metrics_set('none'),
+            )
 
             # replicate what tradesim does by going through every minute or day
             # of the simulation and processing open orders each time
@@ -308,7 +316,8 @@ class FinanceTestCase(WithLogger,
                     order_id = blotter.order(
                         asset1,
                         order_amount * direction,
-                        MarketOrder())
+                        MarketOrder(),
+                    )
                     order_list.append(blotter.orders[order_id])
                     order_date = order_date + order_interval
                     # move after market orders to just after market next
@@ -352,10 +361,10 @@ class FinanceTestCase(WithLogger,
 
             self.assertEqual(len(transactions), expected_txn_count)
 
-            cumulative_pos = tracker.position_tracker.positions[asset1]
             if total_volume == 0:
-                self.assertIsNone(cumulative_pos)
+                self.assertRaises(KeyError, lambda: tracker.positions[asset1])
             else:
+                cumulative_pos = tracker.positions[asset1]
                 self.assertEqual(total_volume, cumulative_pos.amount)
 
             # the open orders should not contain the asset.

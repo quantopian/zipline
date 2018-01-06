@@ -3,6 +3,7 @@ Caching utilities for zipline
 """
 from collections import MutableMapping
 import errno
+from functools import partial
 import os
 import pickle
 from distutils import dir_util
@@ -11,6 +12,7 @@ from tempfile import mkdtemp, NamedTemporaryFile
 
 import pandas as pd
 
+from .compat import PY2
 from .context_tricks import nop_context
 from .paths import ensure_directory
 from .sentinel import sentinel
@@ -223,7 +225,10 @@ class dataframe_cache(MutableMapping):
             self._protocol = int(s[1]) if len(s) == 2 else None
 
             self.serialize = self._serialize_pickle
-            self.deserialize = pickle.load
+            self.deserialize = (
+                pickle.load if PY2 else
+                partial(pickle.load, encoding='latin-1')
+            )
 
         ensure_directory(self.path)
 
