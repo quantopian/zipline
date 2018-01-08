@@ -47,15 +47,15 @@ process will invoke some custom bundle command and then write the data to a
 standard location that zipline can find. By default the location where ingested
 data will be written is ``$ZIPLINE_ROOT/data/<bundle>`` where by default
 ``ZIPLINE_ROOT=~/.zipline``. The ingestion step may take some time as it could
-involve downloading and processing a lot of data. This can be run with:
+involve downloading and processing a lot of data. You'll need a
+`Quandl <https://docs.quandl.com/docs#section-authentication>`__ API key to ingest the default bundle. This can be run with:
 
 .. code-block:: bash
 
-   $ zipline ingest [-b <bundle>]
+   $ QUANDL_API_KEY=<yourkey> zipline ingest [-b <bundle>]
 
 
-where ``<bundle>`` is the name of the bundle to ingest, defaulting to
-:ref:`quantopian-quandl <quantopian-quandl-mirror>`.
+where ``<bundle>`` is the name of the bundle to ingest, defaulting to ``quandl``.
 
 Old Data
 ~~~~~~~~
@@ -143,15 +143,6 @@ that we will retry each attempt 5 times.
    one request per 100 equities for the metadata followed by one request per
    equity.
 
-
-.. _quantopian-quandl-mirror:
-
-Quantopian Quandl WIKI Mirror
-'''''''''''''''''''''''''''''
-
-Quantopian provides a mirror of the quandl WIKI dataset with the data in the
-formats that zipline expects. This is available under the name:
-``quantopian-quandl`` and is the default bundle for zipline.
 
 Writing a New Bundle
 ~~~~~~~~~~~~~~~~~~~~
@@ -314,3 +305,74 @@ contain the time of the start of the current ingestion. This can be used to
 directly move resources here if for some reason your ingest function can produce
 it's own outputs without the writers. For example, the ``quantopian:quandl``
 bundle uses this to directly untar the bundle into the ``output_dir``.
+
+Ingesting Data from .csv Files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Zipline provides a bundle called ``csvdir``, which allows users to ingest data
+from ``.csv`` files. The format of the files should be in OHLCV format, with dates,
+dividends, and splits. A sample is provided below. There are other samples for testing
+purposes in ``zipline/tests/resources/csvdir_samples``.
+
+.. code-block:: text
+
+	 date,open,high,low,close,volume,dividend,split
+	 2012-01-03,58.485714,58.92857,58.42857,58.747143,75555200,0.0,1.0
+	 2012-01-04,58.57143,59.240002,58.468571,59.062859,65005500,0.0,1.0
+	 2012-01-05,59.278572,59.792858,58.952858,59.718571,67817400,0.0,1.0
+	 2012-01-06,59.967144,60.392857,59.888573,60.342857,79573200,0.0,1.0
+	 2012-01-09,60.785713,61.107143,60.192856,60.247143,98506100,0.0,1.0
+	 2012-01-10,60.844284,60.857143,60.214287,60.462856,64549100,0.0,1.0
+	 2012-01-11,60.382858,60.407143,59.901428,60.364285,53771200,0.0,1.0
+
+Once you have your data in the correct format, you can edit your ``extension.py`` file in
+``~/.zipline/extension.py`` and import the csvdir bundle, along with ``pandas``.
+
+.. code-block:: python
+
+	 import pandas as pd
+	 
+	 from zipline.data.bundles import register
+	 from zipline.data.bundles.csvdir import csvdir_equities
+
+We'll then want to specify the start and end sessions of our bundle data:
+
+.. code-block:: python
+
+	 start_session = pd.Timestamp('2016-1-1', tz='utc')
+	 end_session = pd.Timestamp('2018-1-1', tz='utc')
+
+And then we can ``register()`` our bundle, and pass the location of the directory in which
+our ``.csv`` files exist:
+
+.. code-block:: python
+
+    register(
+        'custom-csvdir-bundle',
+        csvdir_equities(
+            ['daily'],
+            '/path/to/your/csvs',
+        ),
+        calendar_name='NYSE', # US equities
+        start_session=start_session,
+        end_session=end_session
+    )
+
+To finally ingest our data, we can run:
+
+.. code-block:: bash
+
+	 $ zipline ingest -b custom-csvdir-bundle
+	 Loading custom pricing data:   [############------------------------]   33% | FAKE: sid 0
+	 Loading custom pricing data:   [########################------------]   66% | FAKE1: sid 1
+	 Loading custom pricing data:   [####################################]  100% | FAKE2: sid 2
+	 Loading custom pricing data:   [####################################]  100%
+	 Merging daily equity files:  [####################################]  
+	 
+	 # optionally, we can pass the location of our csvs via the command line
+	 $ CSVDIR=/path/to/your/csvs zipline ingest -b custom-csvdir-bundle
+
+
+If you would like to use equities that are not in the NYSE calendar, or the existing zipline calendars,
+you can look at the ``Trading Calendar Tutorial`` to build a custom trading calendar that you can then pass
+the name of to ``register()``.

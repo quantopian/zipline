@@ -13,28 +13,28 @@
 |Coverage Status|
 
 Zipline is a Pythonic algorithmic trading library. It is an event-driven
-system that supports both backtesting and live-trading. Zipline is currently used in production as the backtesting and live-trading
+system for backtesting. Zipline is currently used in production as the backtesting and live-trading
 engine powering `Quantopian <https://www.quantopian.com>`_ -- a free,
 community-centered, hosted platform for building and executing trading
 strategies.
 
-- `Join our community! <https://groups.google.com/forum/#!forum/zipline>`_
+- `Join our Community! <https://groups.google.com/forum/#!forum/zipline>`_
 - `Documentation <http://www.zipline.io>`_
-- Want to contribute? See our `development guidelines <http://zipline.io/development-guidelines.html>`_
+- Want to Contribute? See our `Development Guidelines <http://zipline.io/development-guidelines.html>`_
 
 Features
 ========
 
-- Ease of use: Zipline tries to get out of your way so that you can
+- **Ease of Use:** Zipline tries to get out of your way so that you can
   focus on algorithm development. See below for a code example.
-- Zipline comes "batteries included" as many common statistics like
+- **"Batteries Included":** many common statistics like
   moving average and linear regression can be readily accessed from
   within a user-written algorithm.
-- Input of historical data and output of performance statistics are
+- **PyData Integration:** Input of historical data and output of performance statistics are
   based on Pandas DataFrames to integrate nicely into the existing
-  PyData eco-system.
-- Statistic and machine learning libraries like matplotlib, scipy,
-  statsmodels, and sklearn support development, analysis, and
+  PyData ecosystem.
+- **Statistics and Machine Learning Libraries:** You can use libraries like matplotlib, scipy,
+  statsmodels, and sklearn to support development, analysis, and
   visualization of state-of-the-art trading systems.
 
 Installation
@@ -139,18 +139,17 @@ The following code implements a simple dual moving average algorithm.
                long_mavg=long_mavg)
 
 
-You can then run this algorithm using the Zipline CLI. From the command
-line, run:
+You can then run this algorithm using the Zipline CLI; you'll need a `Quandl <https://docs.quandl.com/docs#section-authentication>`__ API key to ingest the default data bundle.
+Once you have your key, run the following from the command line:
 
 .. code:: bash
 
-    $ zipline ingest
-    $ zipline run -f dual_moving_average.py --start 2011-1-1 --end 2012-1-1 -o dma.pickle
+    $ QUANDL_API_KEY=<yourkey> zipline ingest -b quandl
+    $ zipline run -f dual_moving_average.py --start 2014-1-1 --end 2018-1-1 -o dma.pickle
 
-This will download the AAPL price data from `quantopian-quandl` in the
-specified time range and stream it through the algorithm and save the
-resulting performance dataframe to dma.pickle which you can then load
-and analyze from within Python.
+This will download asset pricing data data from `quandl`, and stream it through the algorithm
+over the specified time range. Then, the resulting performance DataFrame is saved in `dma.pickle`, which you
+can load an analyze from within Python.
 
 You can find other examples in the ``zipline/examples`` directory.
 
