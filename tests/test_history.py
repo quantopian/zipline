@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import OrderedDict
 from textwrap import dedent
 
 from nose_parameterized import parameterized
@@ -1601,18 +1602,35 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         for day_idx, day in enumerate([pd.Timestamp('2015-01-05', tz='UTC'),
                                        pd.Timestamp('2015-01-06', tz='UTC')]):
 
-            minutes = self.trading_calendar.minutes_for_session(day)
+            session_minutes = self.trading_calendar.minutes_for_session(day)
 
             equity_cal = self.trading_calendars[Equity]
             equity_minutes = equity_cal.minutes_for_session(day)
-            equity_close = equity_minutes[-1]
 
-            # minute data, baseline:
-            # Jan 5: 2 to 391
-            # Jan 6: 392 to 781
-            # Jan 7: 782 to 1171
-            for minute in minutes:
-                idx = equity_minutes.searchsorted(min(minute, equity_close))
+            if day_idx == 0:
+                # dedupe when session_minutes are same as equity_minutes
+                minutes_to_test = OrderedDict([
+                    (session_minutes[0], np.nan),  # No volume yet on first day
+                    (equity_minutes[0], np.nan),   # No volume yet on first day
+                    (equity_minutes[1], np.nan),   # ...
+                    (equity_minutes[8], np.nan),   # Minute before > 0 volume
+                    (equity_minutes[9], 11.0),     # We have a price!
+                    (equity_minutes[10], 11.0),    # ffill
+                    (equity_minutes[-2], 381.0),   # ...
+                    (equity_minutes[-1], 391.0),   # Last minute of exchange
+                    (session_minutes[-1], 391.0),  # Last minute of day
+                ])
+            else:
+                minutes_to_test = OrderedDict([
+                    (session_minutes[0], 391.0),   # ffill from yesterday
+                    (equity_minutes[0], 391.0),    # ...
+                    (equity_minutes[8], 391.0),    # ...
+                    (equity_minutes[9], 401.0),    # New price today
+                    (equity_minutes[-1], 781.0),   # Last minute of exchange
+                    (session_minutes[-1], 781.0),  # Last minute of day
+                ])
+
+            for minute, expected in minutes_to_test.items():
 
                 window = self.data_portal.get_history_window(
                     [self.ASSET3],
@@ -1624,15 +1642,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                 )[self.ASSET3]
 
                 self.assertEqual(len(window), bar_count)
-
-                if not day_idx and idx + 1 < 10:
-                    self.assertTrue(np.isnan(window[-1]))
-                else:
-                    self.assertEqual(
-                        window[-1],
-                        day_idx * 390 +  # prev day
-                        ((idx + 1) // 10) * 10 + 1  # today
-                    )
+                np.testing.assert_allclose(window[-1], expected)
 
 
 class NoPrefetchMinuteEquityHistoryTestCase(MinuteEquityHistoryTestCase):
