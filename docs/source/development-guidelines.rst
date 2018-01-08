@@ -208,3 +208,8 @@ When adding or editing docstrings for classes, functions, etc, we use `numpy`__ 
 __ https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 
 
+Updating the Whatsnew
+---------------------
+
+We have a set of `whatsnew <https://github.com/quantopian/zipline/tree/master/docs/source/whatsnew>`__ files that are used for documenting changes that have occurred between different versions of Zipline.
+Once you've made a change to Zipline, in your Pull Request, please update the most recent ``whatsnew`` file with a comment about what you changed. You can find examples in previous ``whatsnew`` files.
