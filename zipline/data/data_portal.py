@@ -924,9 +924,9 @@ class DataPortal(object):
         # forward-fill price
         if field == "price":
             if frequency == "1m":
-                data_frequency = 'minute'
+                ffill_data_frequency = 'minute'
             elif frequency == "1d":
-                data_frequency = 'daily'
+                ffill_data_frequency = 'daily'
             else:
                 raise Exception(
                     "Only 1d and 1m are supported for forward-filling.")
@@ -934,12 +934,19 @@ class DataPortal(object):
             assets_with_leading_nan = np.where(isnull(df.iloc[0]))[0]
 
             history_start, history_end = df.index[[0, -1]]
+            if ffill_data_frequency == 'daily' and data_frequency == 'minute':
+                # When we're looking for a daily value, but we haven't seen any
+                # volume in today's minute bars yet, we need to use the
+                # previous day's ffilled daily price. Using today's daily price
+                # could yield a value from later today.
+                history_start -= pd.Timedelta(days=1)
+
             initial_values = []
             for asset in df.columns[assets_with_leading_nan]:
                 last_traded = self.get_last_traded_dt(
                     asset,
                     history_start,
-                    data_frequency,
+                    ffill_data_frequency,
                 )
                 if isnull(last_traded):
                     initial_values.append(nan)
@@ -950,7 +957,7 @@ class DataPortal(object):
                             field,
                             dt=last_traded,
                             perspective_dt=history_end,
-                            data_frequency=data_frequency,
+                            data_frequency=ffill_data_frequency,
                         )
                     )
 

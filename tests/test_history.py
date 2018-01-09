@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import OrderedDict
 from textwrap import dedent
 
 from nose_parameterized import parameterized
@@ -820,7 +821,6 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         ('low_sid_3', 'low', 3),
         ('close_sid_3', 'close', 3),
         ('volume_sid_3', 'volume', 3),
-
     ])
     def test_minute_regular(self, name, field, sid):
         # asset2 and asset3 both started on 1/5/2015, but asset3 trades every
@@ -1397,7 +1397,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                     first_day_minutes[5],
                     15,
                     '1m',
-                    'price',
+                    field,
                     'minute',
                 )[self.ASSET1]
 
@@ -1591,6 +1591,58 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
             np.testing.assert_almost_equal(window[-1], last_val,
                                            err_msg='field={0} minute={1}'.
                                            format(field, minute))
+
+    @parameterized.expand([(("bar_count%s" % x), x) for x in [1, 2, 3]])
+    def test_daily_history_minute_gaps_price_ffill(self, test_name, bar_count):
+        # Make sure we use the previous day's value when there's been no volume
+        # yet today.
+
+        # January 5 2015 is the first day, and there is volume only every
+        # 10 minutes.
+        for day_idx, day in enumerate([pd.Timestamp('2015-01-05', tz='UTC'),
+                                       pd.Timestamp('2015-01-06', tz='UTC')]):
+
+            session_minutes = self.trading_calendar.minutes_for_session(day)
+
+            equity_cal = self.trading_calendars[Equity]
+            equity_minutes = equity_cal.minutes_for_session(day)
+
+            if day_idx == 0:
+                # dedupe when session_minutes are same as equity_minutes
+                minutes_to_test = OrderedDict([
+                    (session_minutes[0], np.nan),  # No volume yet on first day
+                    (equity_minutes[0], np.nan),   # No volume yet on first day
+                    (equity_minutes[1], np.nan),   # ...
+                    (equity_minutes[8], np.nan),   # Minute before > 0 volume
+                    (equity_minutes[9], 11.0),     # We have a price!
+                    (equity_minutes[10], 11.0),    # ffill
+                    (equity_minutes[-2], 381.0),   # ...
+                    (equity_minutes[-1], 391.0),   # Last minute of exchange
+                    (session_minutes[-1], 391.0),  # Last minute of day
+                ])
+            else:
+                minutes_to_test = OrderedDict([
+                    (session_minutes[0], 391.0),   # ffill from yesterday
+                    (equity_minutes[0], 391.0),    # ...
+                    (equity_minutes[8], 391.0),    # ...
+                    (equity_minutes[9], 401.0),    # New price today
+                    (equity_minutes[-1], 781.0),   # Last minute of exchange
+                    (session_minutes[-1], 781.0),  # Last minute of day
+                ])
+
+            for minute, expected in minutes_to_test.items():
+
+                window = self.data_portal.get_history_window(
+                    [self.ASSET3],
+                    minute,
+                    bar_count,
+                    '1d',
+                    'price',
+                    'minute',
+                )[self.ASSET3]
+
+                self.assertEqual(len(window), bar_count)
+                np.testing.assert_allclose(window[-1], expected)
 
 
 class NoPrefetchMinuteEquityHistoryTestCase(MinuteEquityHistoryTestCase):
