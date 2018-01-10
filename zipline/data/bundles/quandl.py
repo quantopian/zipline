@@ -197,8 +197,14 @@ def quandl_bundle(environ,
     For more information on Quandl's API and how to obtain an API key,
     please visit https://docs.quandl.com/docs#section-authentication
     """
+    api_key = environ.get('QUANDL_API_KEY')
+    if api_key is None:
+        raise ValueError(
+            "Please set your QUANDL_API_KEY environment variable and retry."
+        )
+
     raw_data = fetch_data_table(
-        environ.get('QUANDL_API_KEY'),
+        api_key,
         show_progress,
         environ.get('QUANDL_DOWNLOAD_ATTEMPTS', 5)
     )
