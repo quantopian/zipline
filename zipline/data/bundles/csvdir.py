@@ -72,6 +72,7 @@ class CSVDIRBundle:
                minute_bar_writer,
                daily_bar_writer,
                adjustment_writer,
+               metadata_writer,
                calendar,
                start_session,
                end_session,
@@ -84,6 +85,7 @@ class CSVDIRBundle:
                       minute_bar_writer,
                       daily_bar_writer,
                       adjustment_writer,
+                      metadata_writer,
                       calendar,
                       start_session,
                       end_session,
@@ -100,6 +102,7 @@ def csvdir_bundle(environ,
                   minute_bar_writer,
                   daily_bar_writer,
                   adjustment_writer,
+                  metadata_writer,
                   calendar,
                   start_session,
                   end_session,
@@ -126,24 +129,36 @@ def csvdir_bundle(environ,
             raise ValueError("'daily' and 'minute' directories "
                              "not found in '%s'" % csvdir)
 
-    divs_splits = {'divs': DataFrame(columns=['sid', 'amount',
-                                              'ex_date', 'record_date',
-                                              'declared_date', 'pay_date']),
-                   'splits': DataFrame(columns=['sid', 'ratio',
-                                                'effective_date'])}
+    divs_splits = {
+        'divs': DataFrame(
+            columns=['sid', 'amount',
+                     'ex_date', 'record_date',
+                     'declared_date', 'pay_date']
+        ),
+        'splits': DataFrame(
+            columns=['sid', 'ratio', 'effective_date']
+        )
+    }
+
     for tframe in tframes:
         ddir = os.path.join(csvdir, tframe)
 
-        symbols = sorted(item.split('.csv')[0]
-                         for item in os.listdir(ddir)
-                         if '.csv' in item)
+        symbols = sorted(
+            item.split('.csv')[0]
+            for item in os.listdir(ddir)
+            if '.csv' in item
+        )
+
         if not symbols:
             raise ValueError("no <symbol>.csv* files found in %s" % ddir)
 
-        dtype = [('start_date', 'datetime64[ns]'),
-                 ('end_date', 'datetime64[ns]'),
-                 ('auto_close_date', 'datetime64[ns]'),
-                 ('symbol', 'object')]
+        dtype = [
+            ('start_date', 'datetime64[ns]'),
+            ('end_date', 'datetime64[ns]'),
+            ('auto_close_date', 'datetime64[ns]'),
+            ('symbol', 'object')
+        ]
+
         metadata = DataFrame(empty(len(symbols), dtype=dtype))
 
         if tframe == 'minute':
@@ -164,8 +179,11 @@ def csvdir_bundle(environ,
 
         divs_splits['divs']['sid'] = divs_splits['divs']['sid'].astype(int)
         divs_splits['splits']['sid'] = divs_splits['splits']['sid'].astype(int)
-        adjustment_writer.write(splits=divs_splits['splits'],
-                                dividends=divs_splits['divs'])
+
+        adjustment_writer.write(
+            splits=divs_splits['splits'],
+            dividends=divs_splits['divs']
+        )
 
 
 def _pricing_iter(csvdir, symbols, metadata, divs_splits, show_progress):
