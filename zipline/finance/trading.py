@@ -93,10 +93,9 @@ class TradingEnvironment(object):
         if not trading_calendar:
             trading_calendar = get_calendar("NYSE")
 
-        self.benchmark_returns, self.treasury_curves = load(
+        self.treasury_curves = load(
             trading_calendar.day,
             trading_calendar.schedule.index,
-            self.bm_symbol,
         )
 
         self.exchange_tz = exchange_tz
