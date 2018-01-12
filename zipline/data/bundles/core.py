@@ -1,12 +1,16 @@
 from collections import namedtuple
 import errno
+import json
 import os
 import shutil
 import warnings
 
 from contextlib2 import ExitStack
 import click
+import logbook
+import numpy as np
 import pandas as pd
+import requests
 from toolz import curry, complement, take
 
 from ..us_equity_pricing import (
@@ -19,8 +23,18 @@ from ..minute_bars import (
     BcolzMinuteBarReader,
     BcolzMinuteBarWriter,
 )
-from zipline.assets import AssetDBWriter, AssetFinder, ASSET_DB_VERSION
+from zipline.assets import (
+    AssetDBWriter,
+    AssetFinder,
+    ASSET_DB_VERSION,
+    Equity,
+)
 from zipline.assets.asset_db_migrations import downgrade
+from zipline.finance.constants import (
+    DEFAULT_BENCHMARK,
+    SPY_BENCHMARK_SID,
+    ZPLN_BENCHMARK_SID,
+)
 from zipline.utils.cache import (
     dataframe_cache,
     working_dir,
@@ -31,6 +45,10 @@ from zipline.utils.input_validation import ensure_timestamp, optionally
 import zipline.utils.paths as pth
 from zipline.utils.preprocess import preprocess
 from zipline.utils.calendars import get_calendar
+
+log = logbook.Logger('bundles.core')
+
+OHLCV = ['open', 'high', 'low', 'close', 'volume']
 
 
 def asset_db_path(bundle_name, timestr, environ=None, db_version=None):
@@ -65,6 +83,13 @@ def cache_path(bundle_name, environ=None):
     return pth.data_path(
         cache_relative(bundle_name, environ),
         environ=environ,
+    )
+
+
+def bundle_path(bundle_name, timestr, environ=None):
+    return pth.data_path(
+        [bundle_name, timestr],
+        environ=environ
     )
 
 
@@ -145,7 +170,7 @@ RegisteredBundle = namedtuple(
 BundleData = namedtuple(
     'BundleData',
     'asset_finder equity_minute_bar_reader equity_daily_bar_reader '
-    'adjustment_reader',
+    'adjustment_reader metadata_reader',
 )
 
 BundleCore = namedtuple(
@@ -194,6 +219,161 @@ class BadClean(click.ClickException, ValueError):
 
     def __str__(self):
         return self.message
+
+
+class MetadataWriter:
+    """
+    Creates a json file for the `default_benchmark_sid` metadata.
+    """
+    def __init__(self, path):
+        self.path = os.path.join(path, 'default_benchmark_sid.json')
+
+    def write_benchmark_metadata(self, default_benchmark_sid):
+        benchmark_metadata = {
+            'default_benchmark_sid': default_benchmark_sid
+        }
+
+        with open(self.path, 'w') as outfile:
+            json.dump(benchmark_metadata, outfile)
+
+
+class MetadataReader:
+    """
+    Reads a json file for the `default_benchmark_sid` metadata.
+    """
+    def __init__(self, path):
+        self.path = os.path.join(path, 'default_benchmark_sid.json')
+
+    def get_default_benchmark_sid(self):
+        with open(self.path, 'r') as infile:
+            metadata = json.load(infile)
+
+        return metadata['default_benchmark_sid']
+
+
+def get_benchmark_data(symbol, trading_calendar):
+    """
+    Get a Series of benchmark returns from IEX associated with `symbol`.
+    Default is `SPY`.
+
+    Parameters
+    ----------
+    symbol : str
+        Benchmark symbol for which we're getting the returns.
+
+    The data is provided by IEX (https://iextrading.com/), and we can
+    get up to 5 years worth of data.
+    """
+    r = requests.get(
+        'https://api.iextrading.com/1.0/stock/{}/chart/5y'.format(symbol)
+    )
+
+    if r.ok:
+        data = json.loads(r.text)
+
+        df = pd.DataFrame(data)
+        df.index = pd.DatetimeIndex(df['date'])
+
+        df = df[OHLCV]
+
+        num_zeros = len(df)
+        df['dividends'] = np.zeros((num_zeros,))
+        df['splits'] = np.ones((num_zeros,))
+
+        sessions = pd.date_range(
+            start=trading_calendar.first_session,
+            end=trading_calendar.last_session
+        )
+        start_date = pd.Timestamp(sessions.values[0], tz='UTC')
+        end_date = pd.Timestamp(sessions.values[-1], tz='UTC')
+
+        benchmark_data = df.sort_index().tz_localize('UTC')
+        benchmark_asset = Equity(
+            sid=SPY_BENCHMARK_SID,
+            exchange=trading_calendar.name,
+            symbol=symbol,
+            start_date=start_date,
+            end_date=end_date
+        )
+    else:
+        benchmark_data = None
+
+    return benchmark_asset, benchmark_data
+
+
+def create_fake_benchmark(trading_calendar):
+    """
+    Creates a fake asset called ZPLN with data completely zero'd
+    out so that we can still run a Zipline backtest if getting data
+    for SPY from a 3rd-Party data source fails.
+    """
+    sessions = trading_calendar.sessions_in_range(
+        trading_calendar.first_session,
+        trading_calendar.last_session
+    )
+    start_date = pd.Timestamp(sessions.values[0], tz='UTC')
+    end_date = pd.Timestamp(sessions.values[-1], tz='UTC')
+    num_days = len(sessions)
+
+    fake_benchmark_asset = Equity(
+        sid=ZPLN_BENCHMARK_SID,
+        exchange=trading_calendar.name,
+        symbol='ZPLN',
+        start_date=start_date,
+        end_date=end_date
+    )
+    # we do the following in order to get a DataFrame with a format
+    # that a BcolzDailyBarWriter object would expect
+    # and then call write()
+    # with this DataFrame in store_fake_benchmark_in_bundle
+    fake_benchmark_data = pd.DataFrame(
+        data=np.zeros(
+            shape=(num_days, len(OHLCV))
+        ),
+        columns=OHLCV,
+        index=sessions,
+    )
+
+    num_zeros = len(fake_benchmark_data)
+    fake_benchmark_data['dividend'] = np.zeros((num_zeros,))
+    fake_benchmark_data['splits'] = np.ones((num_zeros,))
+    fake_benchmark_data.index.rename = 'date'
+
+    return fake_benchmark_asset, fake_benchmark_data
+
+
+def store_benchmark_in_bundle(asset_db_writer,
+                              daily_bar_writer,
+                              adjustment_writer,
+                              benchmark_asset,
+                              benchmark_data):
+    # uses logic similar to the csvdir bundle
+    dtypes = [
+        ('start_date', 'datetime64[ns]'),
+        ('end_date', 'datetime64[ns]'),
+        ('auto_close_date', 'datetime64[ns]'),
+        ('symbol', 'object'),
+    ]
+
+    metadata = pd.DataFrame(np.empty(1, dtype=dtypes))
+
+    # set the correct sid as the index
+    index = metadata.index.tolist()
+    index[0] = benchmark_asset.sid
+    metadata.index = index
+
+    metadata['exchange'] = benchmark_asset.exchange
+    metadata['symbol'] = benchmark_asset.symbol
+    metadata['auto_close_date'] =\
+        benchmark_asset.end_date + pd.Timedelta(days=1)
+    metadata['start_date'] = benchmark_asset.start_date
+    metadata['end_date'] = benchmark_asset.end_date
+
+    daily_bar_writer.write(
+        [(benchmark_asset.sid, benchmark_data)],
+        show_progress=True
+    )
+    asset_db_writer.write(equities=metadata)
 
 
 def _make_bundle_core():
@@ -248,6 +428,9 @@ def _make_bundle_core():
                   The daily bar writer to write into.
               adjustment_writer : SQLiteAdjustmentWriter
                   The adjustment db writer to write into.
+              metadata_writer : MetadataWriter
+                  The metadata writer to use for writing
+                  our default benchmark sid.
               calendar : zipline.utils.calendars.TradingCalendar
                   The trading calendar to ingest for.
               start_session : pd.Timestamp
