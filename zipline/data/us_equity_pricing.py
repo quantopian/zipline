@@ -292,16 +292,33 @@ class BcolzDailyBarWriter(object):
 
         `iterator` should be an iterator yielding pairs of (asset, ctable).
         """
-        total_rows = 0
-        first_row = {}
-        last_row = {}
-        calendar_offset = {}
+        try:
+            full_table = ctable(rootdir=self._filename, mode='a')
+        except OSError:
+            # Maps column name -> output carray.
+            columns = {
+                k: carray(array([], dtype=uint32))
+                for k in US_EQUITY_PRICING_BCOLZ_COLUMNS
+            }
+            full_table = ctable(
+                columns=[
+                    columns[colname]
+                    for colname in US_EQUITY_PRICING_BCOLZ_COLUMNS
+                ],
+                names=US_EQUITY_PRICING_BCOLZ_COLUMNS,
+                rootdir=self._filename,
+                mode='w',
+            )
+        else:
+            columns = {
+                k: full_table[k] for k in US_EQUITY_PRICING_BCOLZ_COLUMNS
+            }
 
-        # Maps column name -> output carray.
-        columns = {
-            k: carray(array([], dtype=uint32))
-            for k in US_EQUITY_PRICING_BCOLZ_COLUMNS
-        }
+        first_row = full_table.attrs.attrs.get('first_row', {})
+        last_row = full_table.attrs.attrs.get('last_row', {})
+        calendar_offset = full_table.attrs.attrs.get('calendar_offset', {})
+
+        total_rows = len(full_table)
 
         earliest_date = None
         sessions = self._calendar.sessions_in_range(
@@ -385,15 +402,6 @@ class BcolzDailyBarWriter(object):
             calendar_offset[asset_key] = sessions.get_loc(asset_first_day)
 
         # This writes the table to disk.
-        full_table = ctable(
-            columns=[
-                columns[colname]
-                for colname in US_EQUITY_PRICING_BCOLZ_COLUMNS
-            ],
-            names=US_EQUITY_PRICING_BCOLZ_COLUMNS,
-            rootdir=self._filename,
-            mode='w',
-        )
 
         full_table.attrs['first_trading_day'] = (
             earliest_date if earliest_date is not None else iNaT
