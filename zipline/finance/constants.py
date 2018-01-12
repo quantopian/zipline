@@ -177,3 +177,7 @@ ROOT_SYMBOL_TO_ETA = {
     'YM': DEFAULT_ETA,           # Dow Jones e-mini
     'YS': DEFAULT_ETA,           # Silver e-mini
 }
+
+DEFAULT_BENCHMARK = 'SPY'
+SPY_BENCHMARK_SID = 9999
+ZPLN_BENCHMARK_SID = 8888
