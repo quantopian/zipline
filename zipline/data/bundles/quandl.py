@@ -12,6 +12,7 @@ import requests
 from six.moves.urllib.parse import urlencode
 from six import iteritems
 
+from zipline.finance.constants import SPY_BENCHMARK_SID
 from zipline.utils.calendars import register_calendar_alias
 from zipline.utils.deprecate import deprecated
 from . import core as bundles
@@ -185,6 +186,7 @@ def quandl_bundle(environ,
                   minute_bar_writer,
                   daily_bar_writer,
                   adjustment_writer,
+                  metadata_writer,
                   calendar,
                   start_session,
                   end_session,
@@ -230,6 +232,7 @@ def quandl_bundle(environ,
     raw_data.reset_index(inplace=True)
     raw_data['symbol'] = raw_data['symbol'].astype('category')
     raw_data['sid'] = raw_data.symbol.cat.codes
+
     adjustment_writer.write(
         splits=parse_splits(
             raw_data[[
@@ -247,6 +250,10 @@ def quandl_bundle(environ,
             ]].loc[raw_data.ex_dividend != 0],
             show_progress=show_progress
         )
+    )
+
+    metadata_writer.write_benchmark_metadata(
+        default_benchmark_sid=SPY_BENCHMARK_SID
     )
 
 
@@ -300,43 +307,6 @@ def download_without_progress(url):
     resp = requests.get(url)
     resp.raise_for_status()
     return BytesIO(resp.content)
-
-
-QUANTOPIAN_QUANDL_URL = (
-    'https://s3.amazonaws.com/quantopian-public-zipline-data/quandl'
-)
-
-
-@bundles.register('quantopian-quandl', create_writers=False)
-@deprecated(
-    'quantopian-quandl has been deprecated and '
-    'will be removed in a future release.'
-)
-def quantopian_quandl_bundle(environ,
-                             asset_db_writer,
-                             minute_bar_writer,
-                             daily_bar_writer,
-                             adjustment_writer,
-                             calendar,
-                             start_session,
-                             end_session,
-                             cache,
-                             show_progress,
-                             output_dir):
-
-    if show_progress:
-        data = download_with_progress(
-            QUANTOPIAN_QUANDL_URL,
-            chunk_size=ONE_MEGABYTE,
-            label="Downloading Bundle: quantopian-quandl",
-        )
-    else:
-        data = download_without_progress(QUANTOPIAN_QUANDL_URL)
-
-    with tarfile.open('r', fileobj=data) as tar:
-        if show_progress:
-            log.info("Writing data to %s." % output_dir)
-        tar.extractall(output_dir)
 
 
 register_calendar_alias("QUANDL", "NYSE")
