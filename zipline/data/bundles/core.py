@@ -464,7 +464,7 @@ def _make_bundle_core():
 
         Notes
         -----
-        This function my be used as a decorator, for example:
+        This function may be used as a decorator, for example:
 
         .. code-block:: python
 
@@ -561,11 +561,17 @@ def _make_bundle_core():
 
         timestr = to_bundle_ingest_dirname(timestamp)
         cachepath = cache_path(name, environ=environ)
-        pth.ensure_directory(pth.data_path([name, timestr], environ=environ))
+
+        # will check if ~/.zipline/data/<bundle_name>/<timestamp>
+        # and ~/.zipline/data/<bundle_name>/.cache exist
+        # and create the directories if they do not
+        bundle_directory = pth.data_path([name, timestr], environ=environ)
+        pth.ensure_directory(bundle_directory)
         pth.ensure_directory(cachepath)
+
         with dataframe_cache(cachepath, clean_on_failure=False) as cache, \
                 ExitStack() as stack:
-            # we use `cleanup_on_failure=False` so that we don't purge the
+            # we use `clean_on_failure=False` so that we don't purge the
             # cache directory if the load fails in the middle
             if bundle.create_writers:
                 wd = stack.enter_context(working_dir(
@@ -620,18 +626,50 @@ def _make_bundle_core():
                     raise ValueError('Need to ingest a bundle that creates '
                                      'writers in order to downgrade the assets'
                                      ' db.')
+
+            # writes the default benchmark sid to the bundle directory
+            metadata_writer = MetadataWriter(
+                path=bundle_directory
+            )
+
+            # TODO: What sort of useful message can we put here?
+            log.info('Writing SPY from IEX and fake ZPLN asset')
+            fake_benchmark_asset, fake_benchmark_data =\
+                create_fake_benchmark(calendar)
+
+            store_benchmark_in_bundle(
+                asset_db_writer,
+                daily_bar_writer,
+                adjustment_db_writer,
+                fake_benchmark_asset,
+                fake_benchmark_data
+            )
+
+            spy_benchmark_asset, spy_data = get_benchmark_data(
+                DEFAULT_BENCHMARK,
+                calendar
+            )
+            store_benchmark_in_bundle(
+                asset_db_writer,
+                daily_bar_writer,
+                adjustment_db_writer,
+                spy_benchmark_asset,
+                spy_data
+            )
+
             bundle.ingest(
                 environ,
                 asset_db_writer,
                 minute_bar_writer,
                 daily_bar_writer,
                 adjustment_db_writer,
+                metadata_writer,
                 calendar,
                 start_session,
                 end_session,
                 cache,
                 show_progress,
-                pth.data_path([name, timestr], environ=environ),
+                bundle_directory
             )
 
             for version in sorted(set(assets_versions), reverse=True):
@@ -657,7 +695,6 @@ def _make_bundle_core():
         """
         if bundle_name not in bundles:
             raise UnknownBundle(bundle_name)
-
         try:
             candidates = os.listdir(
                 pth.data_path([bundle_name], environ=environ),
@@ -715,6 +752,9 @@ def _make_bundle_core():
             adjustment_reader=SQLiteAdjustmentReader(
                 adjustment_db_path(name, timestr, environ=environ),
             ),
+            metadata_reader=MetadataReader(
+                bundle_path(name, timestr, environ=environ)
+            )
         )
 
     @preprocess(
