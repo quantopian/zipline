@@ -36,6 +36,7 @@ from six import (
 )
 
 from zipline._protocol import handle_non_market_minutes
+from zipline.assets import Asset, Equity, Future
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.data.data_portal import DataPortal
 from zipline.data.resample import minute_panel_to_session_panel
@@ -58,12 +59,20 @@ from zipline.errors import (
     SetCancelPolicyPostInit,
     SetCommissionPostInit,
     SetSlippagePostInit,
+    SidsNotFound,
     UnsupportedCancelPolicy,
     UnsupportedDatetimeFormat,
     UnsupportedOrderParameters,
 )
-from zipline.finance.trading import TradingEnvironment
+from zipline.finance.asset_restrictions import (
+    NoRestrictions,
+    Restrictions,
+    StaticRestrictions,
+    SecurityListRestrictions,
+)
 from zipline.finance.blotter import Blotter
+from zipline.finance.cancel_policy import NeverCancel, CancelPolicy
+from zipline.finance.constants import ZPLN_BENCHMARK_SID
 from zipline.finance.controls import (
     LongOnly,
     MaxOrderCount,
@@ -86,7 +95,8 @@ from zipline.finance.asset_restrictions import (
     StaticRestrictions,
     SecurityListRestrictions,
 )
-from zipline.assets import Asset, Equity, Future
+from zipline.finance.performance import PerformanceTracker
+from zipline.finance.trading import TradingEnvironment
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.finance.metrics import MetricsTracker, load as load_metrics_set
 from zipline.pipeline import Pipeline
