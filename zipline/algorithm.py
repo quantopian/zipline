@@ -553,14 +553,22 @@ class TradingAlgorithm(object):
 
     def _create_benchmark_source(self):
         if self.benchmark_sid is not None:
+            # expecting this to be SPY from IEX
             benchmark_asset = self.asset_finder.retrieve_asset(
-                self.benchmark_sid)
-            benchmark_returns = None
+                self.benchmark_sid
+            )
         else:
-            benchmark_asset = None
-            # get benchmark info from trading environment, which defaults to
-            # downloading data from IEX Trading.
-            benchmark_returns = self.trading_environment.benchmark_returns
+            # when we don't have benchmark_returns from IEX
+            # or when someone passes --no-benchmark
+            # we'll generate a fake asset (ZPLN) that just has zero returns
+            # so that users can still run backtests if IEX is down.
+            # TODO: Come up with a more useful/informative warning???
+            log.warn("Using fake asset with zero returns.")
+            benchmark_asset = self.asset_finder.retrieve_asset(
+                ZPLN_BENCHMARK_SID
+            )
+
+        benchmark_returns = None
         return BenchmarkSource(
             benchmark_asset=benchmark_asset,
             trading_calendar=self.trading_calendar,
