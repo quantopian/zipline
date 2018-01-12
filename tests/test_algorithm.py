@@ -90,7 +90,6 @@ from zipline.finance.asset_restrictions import (
 from zipline.finance.slippage import VolumeShareSlippage
 from zipline.testing import (
     FakeDataPortal,
-    copy_market_data,
     create_daily_df_for_asset,
     create_data_portal,
     create_data_portal_from_trade_history,
@@ -4930,7 +4929,6 @@ class TestPanelData(WithTradingEnvironment, ZiplineTestCase):
 
         with tmp_dir() as tmpdir:
             root = tmpdir.getpath('example_data/root')
-            copy_market_data(self.MARKET_DATA_DIR, root)
 
             run_algorithm(
                 start=start_dt,

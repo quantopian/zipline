@@ -30,7 +30,7 @@ from zipline.assets import AssetFinder, AssetDBWriter
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.utils.compat import wraps
 from zipline.data.data_portal import DataPortal
-from zipline.data.loader import get_benchmark_filename, INDEX_MAPPING
+from zipline.data.loader import INDEX_MAPPING
 from zipline.data.minute_bars import (
     BcolzMinuteBarReader,
     BcolzMinuteBarWriter,
@@ -1511,19 +1511,6 @@ def patch_read_csv(url_map, module=pd, strict=False):
 
     with patch.object(module, 'read_csv', patched_read_csv):
         yield
-
-
-def copy_market_data(src_market_data_dir, dest_root_dir):
-    symbol = 'SPY'
-    filenames = (get_benchmark_filename(symbol), INDEX_MAPPING[symbol][1])
-
-    ensure_directory(os.path.join(dest_root_dir, 'data'))
-
-    for filename in filenames:
-        shutil.copyfile(
-            os.path.join(src_market_data_dir, filename),
-            os.path.join(dest_root_dir, 'data', filename)
-        )
 
 
 @curry
