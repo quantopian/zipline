@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import partial
 from math import sqrt
 import operator as op
 
@@ -162,79 +163,22 @@ class StartOfPeriodLedgerField(object):
         self._end_of_period('daily_perf', packet, ledger)
 
 
-class ReturnsAndVolatility(object):
-    """Tracks daily and cumulative returns for the algorithm.
+class Returns(object):
+    """Tracks the daily and cumulative returns of the algorithm.
     """
-    def start_of_simulation(self,
-                            ledger,
-                            emission_rate,
-                            trading_calendar,
-                            sessions,
-                            benchmark_source):
-        self._previous_total_returns = 0
-
-        self._day_ix = 0
-        self._daily_sum = 0
-        self._todays_prod = 1
-        self._annualization_factor = sqrt(252)
-
-    def end_of_bar(self,
-                   packet,
-                   ledger,
-                   dt,
-                   data_portal):
-        current_total_returns = ledger.portfolio.returns
-        todays_returns = (
-            (current_total_returns + 1) /
-            (self._previous_total_returns + 1) -
-            1
-        )
-
-        packet['minute_perf']['returns'] = todays_returns
-        packet['cumulative_perf']['returns'] = current_total_returns
-
-        if self._day_ix < 1:
-            variance = np.nan
-        else:
-            self._todays_prod *= 1 + todays_returns
-
-            intermediate_sum = self._daily_sum + self._todays_prod - 1
-            mean = intermediate_sum / (self._day_ix + 1)
-
-            demeaned_old = ledger.daily_returns[:dt.normalize()] - mean
-            variance = (
-                (self._todays_prod - 1 - mean) ** 2 +
-                demeaned_old.dot(demeaned_old)
-            )
-
-        packet['cumulative_risk_metrics']['algorithm_volatility'] = (
-            sqrt(variance) * self._annualization_factor
-        )
-
-    def end_of_session(self,
+    def _end_of_period(field,
                        packet,
                        ledger,
-                       session,
+                       dt,
                        data_portal):
-        packet['daily_perf']['returns'] = dr = ledger.daily_returns[session]
-        packet['cumulative_perf']['returns'] = r = ledger.portfolio.returns
-        self._previous_total_returns = r
-
-        self._day_ix += 1
-        self._daily_sum += dr
-        self._todays_prod = 1
-
-        mean = self._daily_sum / self._day_ix
-        variance = ((ledger.daily_returns[:session] - mean) ** 2).sum()
-        packet['cumulative_risk_metrics']['algorithm_volatility'] = (
-            sqrt(variance) * self._annualization_factor
+        packet[field]['returns'] = ledger.todays_returns
+        packet['cumulative_perf']['returns'] = ledger.portfolio.returns
+        packet['cumulative_risk_metrics']['algorithm_period_return'] = (
+            ledger.portfolio.returns
         )
 
-    def end_of_simulation(self, packet, ledger, benchmark_source, sessions):
-        packet['cumulative_algorithm_returns'] = (
-            (1 + ledger.daily_returns).prod() - 1
-        )
-        packet['daily_algorithm_returns'] = ledger.daily_returns.tolist()
+    end_of_bar = partial(_end_of_period, 'minute_perf')
+    end_of_session = partial(_end_of_period, 'daily_perf')
 
 
 class BenchmarkReturnsAndVolatility(object):
@@ -294,9 +238,11 @@ class BenchmarkReturnsAndVolatility(object):
                    dt,
                    data_portal):
         packet['minute_perf']['benchmark_returns'] = self._minute_returns[dt]
-        packet['cumulative_perf']['benchmark_returns'] = (
-            self._minute_cumulative_returns[dt]
-        )
+
+        r = self._minute_cumulative_returns[dt]
+        packet['cumulative_perf']['benchmark_returns'] = r
+        packet['cumulative_risk_metrics']['benchmark_period_return'] = r
+
         packet['cumulative_risk_metrics']['benchmark_volatility'] = (
             self._minute_annual_volatility[dt]
         )
@@ -309,9 +255,11 @@ class BenchmarkReturnsAndVolatility(object):
         packet['daily_perf']['benchmark_returns'] = (
             self._daily_returns[session]
         )
-        packet['cumulative_perf']['benchmark_returns'] = (
-            self._daily_cumulative_returns[session]
-        )
+
+        r = self._daily_cumulative_returns[session]
+        packet['cumulative_perf']['benchmark_returns'] = r
+        packet['cumulative_risk_metrics']['benchmark_period_return'] = r
+
         packet['cumulative_risk_metrics']['benchmark_volatility'] = (
             self._daily_annual_volatility[session]
         )
@@ -477,6 +425,17 @@ class ReturnsStatistic(object):
         self._function = function
         self._field_name = field_name
 
+    def end_of_bar(self,
+                   packet,
+                   ledger,
+                   dt,
+                   data_portal):
+        packet['cumulative_risk_metrics'][self._field_name] = self._function(
+            ledger.daily_returns[:dt],
+        )
+
+    end_of_session = end_of_bar
+
     def end_of_simulation(self, packet, ledger, benchmark_source, sessions):
         packet[self._field_name] = self._function(ledger.daily_returns)
 
@@ -484,22 +443,33 @@ class ReturnsStatistic(object):
 class AlphaBeta(object):
     """End of simulation alpha and beta to the benchmark.
     """
-    def end_of_simulation(self, packet, ledger, benchmark_source, sessions):
-        packet['alpha'], packet['beta'] = empyrical.alpha_beta_aligned(
-            ledger.daily_returns,
-            benchmark_source.daily_returns(sessions[0], sessions[-1]),
-        )
-
-
-class MaxLeverage(object):
-    """Tracks the maximum account leverage.
-    """
     def start_of_simulation(self,
                             ledger,
                             emission_rate,
                             trading_calendar,
                             sessions,
                             benchmark_source):
+        self._start = sessions[0]
+        self._benchmark_source = benchmark_source
+
+    def end_of_bar(self,
+                   packet,
+                   ledger,
+                   dt,
+                   data_portal):
+        risk = packet['cumulative_risk_metrics']
+        risk['alpha'], risk['beta'] = empyrical.alpha_beta_aligned(
+            ledger.daily_returns[:dt],
+            self._benchmark_source.daily_returns(self._start, dt),
+        )
+
+    end_of_session = end_of_bar
+
+
+class MaxLeverage(object):
+    """Tracks the maximum account leverage.
+    """
+    def start_of_simulation(self, *args):
         self._max_leverage = 0.0
 
     def end_of_bar(self,
@@ -508,6 +478,7 @@ class MaxLeverage(object):
                    dt,
                    data_portal):
         self._max_leverage = max(self._max_leverage, ledger.account.leverage)
+        packet['cumulative_risk_metrics']['max_leverage'] = self._max_leverage
 
     end_of_session = end_of_bar
 
@@ -518,5 +489,22 @@ class MaxLeverage(object):
 class NumTradingDays(object):
     """Report the number of trading days.
     """
+    def start_of_simulation(self, *args):
+        self._num_trading_days = 0
+
+    def start_of_session(self, *args):
+        self._num_trading_days += 1
+
+    def end_of_bar(self,
+                   packet,
+                   ledger,
+                   dt,
+                   data_portal):
+        packet['cumulative_risk_metrics']['trading_days'] = (
+            self._num_trading_days
+        )
+
+    end_of_session = end_of_bar
+
     def end_of_simulation(self, packet, ledger, benchmark_source, sessions):
-        packet['num_trading_days'] = len(sessions)
+        packet['trading_days'] = len(sessions)

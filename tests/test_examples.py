@@ -73,6 +73,7 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
                 'ZIPLINE_ROOT': self.tmpdir.getpath('example_data/root'),
             },
         )
+        from nose.tools import set_trace;set_trace()
         assert_equal(
             actual_perf[examples._cols_to_check],
             self.expected_perf[example_name][examples._cols_to_check],

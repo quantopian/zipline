@@ -26,7 +26,7 @@ from .metric import (
     NumTradingDays,
     Orders,
     PNL,
-    ReturnsAndVolatility,
+    Returns,
     ReturnsStatistic,
     SimpleLedgerField,
     StartOfPeriodLedgerField,
@@ -100,7 +100,8 @@ def default_metrics():
     return {
         NumTradingDays(),
 
-        ReturnsAndVolatility(),
+        Returns(),
+        ReturnsStatistic(empyrical.annual_volatility, 'algo_volatility'),
         BenchmarkReturnsAndVolatility(),
         PNL(),
         CashFlow(),

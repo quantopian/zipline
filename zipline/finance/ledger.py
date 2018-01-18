@@ -26,7 +26,6 @@ from six import iteritems, itervalues, PY2
 from zipline.assets import Future
 from zipline.finance.transaction import Transaction
 import zipline.protocol as zp
-from zipline.utils.compat import values_as_list
 from zipline.utils.sentinel import sentinel
 from .position import Position
 
@@ -434,6 +433,10 @@ class Ledger(object):
         The portfolio being managed.
     position_tracker : PositionTracker
         The current set of positions.
+    todays_returns : float
+        The current day's returns. In minute emission mode, this is the partial
+        day's returns. In daily emission mode, this is
+        ``daily_returns[session]``.
     daily_returns : pd.Series
         The daily returns series. Days that have not yet finished will hold
         a value of ``np.nan``.
@@ -484,6 +487,16 @@ class Ledger(object):
         self._payout_last_sale_prices = {}
 
     @property
+    def todays_returns(self):
+        # compute today's returns in returns space instead of portfolio-value
+        # space to work even when we have capital changes
+        return (
+            (self.portfolio.returns + 1) /
+            (self._previous_total_returns + 1) -
+            1
+        )
+
+    @property
     def _dirty_portfolio(self):
         return self.__dirty_portfolio
 
@@ -500,16 +513,21 @@ class Ledger(object):
         self._orders_by_modified.clear()
         self._orders_by_id.clear()
 
+        # Save the previous day's total returns so that ``todays_returns``
+        # produces returns since yesterday. This does not happen in
+        # ``end_of_session`` because we want ``todays_returns`` to produce the
+        # correct value in metric ``end_of_session`` handlers.
+        self._previous_total_returns = self.portfolio.returns
+
+    def end_of_bar(self, dt):
+        # make daily_returns hold the partial returns, this saves many
+        # metrics from doing a concat and copying all of the previous
+        # returns
+        self.daily_returns[dt.normalize()] = self.todays_returns
+
     def end_of_session(self, session_label):
-        # compute the day's return from the cumulative returns today and
-        # yesterday
-        current_total_returns = self.portfolio.returns
-        self.daily_returns[session_label] = (
-            (current_total_returns + 1) /
-            (self._previous_total_returns + 1) -
-            1
-        )
-        self._previous_total_returns = current_total_returns
+        # save the daily returns time-series
+        self.daily_returns[session_label] = self.todays_returns
 
     def sync_last_sale_prices(self,
                               dt,

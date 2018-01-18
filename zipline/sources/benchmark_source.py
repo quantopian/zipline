@@ -48,9 +48,9 @@ class BenchmarkSource(object):
                  self.data_portal
              )
         elif benchmark_returns is not None:
-            self._daily_returns = daily_series = benchmark_returns[
-                sessions[0]:sessions[-1]
-            ]
+            self._daily_returns = daily_series = benchmark_returns.reindex(
+                sessions,
+            ).fillna(0)
 
             if self.emission_rate == "minute":
                 # we need to take the env's benchmark returns, which are daily,
