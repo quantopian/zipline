@@ -123,8 +123,7 @@ class PositionTracker(object):
             self.positions[asset].adjust_commission_cost_basis(asset, cost)
 
     def handle_splits(self, splits):
-        """
-        Processes a list of splits by modifying any positions as needed.
+        """Processes a list of splits by modifying any positions as needed.
 
         Parameters
         ----------
@@ -133,7 +132,7 @@ class PositionTracker(object):
 
         Returns
         -------
-        int: The leftover cash from fractional sahres after modifying each
+        int: The leftover cash from fractional shares after modifying each
             position.
         """
         total_leftover_cash = 0
@@ -151,10 +150,9 @@ class PositionTracker(object):
         return total_leftover_cash
 
     def earn_dividends(self, dividends, stock_dividends):
-        """
-        Given a list of dividends whose ex_dates are all the next trading day,
-        calculate and store the cash and/or stock payments to be paid on each
-        dividend's pay date.
+        """Given a list of dividends whose ex_dates are all the next trading
+        day, calculate and store the cash and/or stock payments to be paid on
+        each dividend's pay date.
 
         Parameters
         ----------
@@ -242,10 +240,9 @@ class PositionTracker(object):
 
         txn = Transaction(
             asset=asset,
-            amount=(-1 * amount),
+            amount=-amount,
             dt=dt,
             price=price,
-            commission=0,
             order_id=None,
         )
         return txn
@@ -319,7 +316,7 @@ class PositionTracker(object):
         data_frequency = self.data_frequency
 
         for asset, position in iteritems(self.positions):
-            if position.last_sale_date == dt:
+            if False and position.last_sale_date == dt:
                 # this position is already synced
                 continue
 
@@ -360,14 +357,13 @@ class PositionTracker(object):
             if exposure > 0:
                 longs_count += 1
                 long_value += value
-                long_exposure = exposure
+                long_exposure += exposure
             elif exposure < 0:
                 shorts_count += 1
                 short_value += value
                 short_exposure += exposure
 
-            net_value += value
-
+        net_value = long_value + short_value
         gross_value = long_value - short_value
         gross_exposure = long_exposure - short_exposure
         net_exposure = long_exposure + short_exposure
@@ -541,22 +537,12 @@ class Ledger(object):
         self._dirty_portfolio = True
 
     @staticmethod
-    def _calculate_execution_cash_flow(transaction):
-        """Calculates the cash flow from executing the given transaction
-        """
-        if isinstance(transaction.asset, Future):
-            return 0.0
-
-        return -1 * transaction.price * transaction.amount
-
-    @staticmethod
     def _calculate_payout(multiplier, amount, old_price, price):
 
         return (price - old_price) * multiplier * amount
 
     def _cash_flow(self, amount):
         self._dirty_portfolio = True
-
         p = self._portfolio
         p.cash_flow += amount
         p.cash += amount
@@ -569,8 +555,6 @@ class Ledger(object):
         transaction : zp.Transaction
             The transaction to execute.
         """
-        self._cash_flow(self._calculate_execution_cash_flow(transaction))
-
         asset = transaction.asset
         if isinstance(asset, Future):
             try:
@@ -582,17 +566,21 @@ class Ledger(object):
                 amount = position.amount
                 price = transaction.price
 
-                self._portfolio.cash += self._calculate_payout(
-                    asset.multiplier,
-                    amount,
-                    old_price,
-                    price,
+                self._cash_flow(
+                    self._calculate_payout(
+                        asset.multiplier,
+                        amount,
+                        old_price,
+                        price,
+                    ),
                 )
 
                 if amount + transaction.amount == 0:
                     del self._payout_last_sale_prices[asset]
                 else:
                     self._payout_last_sale_prices[asset] = price
+        else:
+            self._cash_flow(-(transaction.price * transaction.amount))
 
         self.position_tracker.execute_transaction(transaction)
 
@@ -651,8 +639,7 @@ class Ledger(object):
         cost = commission['cost']
 
         self.position_tracker.handle_commission(asset, cost)
-        self._dirty_portfolio = True
-        self._portfolio.cash_flow -= cost
+        self._cash_flow(-cost)
 
     def close_position(self, asset, dt, data_portal):
         txn = self.position_tracker.maybe_create_close_position_transaction(
@@ -699,8 +686,10 @@ class Ledger(object):
         # Pay out the dividends whose pay-date is the next session. This does
         # affect out cash.
         self._dirty_portfolio = True
-        self._portfolio.cash_flow += position_tracker.pay_dividends(
-            next_session,
+        self._cash_flow(
+            position_tracker.pay_dividends(
+                next_session,
+            ),
         )
 
     def capital_change(self, change_amount):
@@ -781,7 +770,9 @@ class Ledger(object):
 
         return total
 
-    def _update_portfolio(self):
+    def update_portfolio(self):
+        """Force a computation of the current portfolio state.
+        """
         if not self._dirty_portfolio:
             return
 
@@ -795,10 +786,7 @@ class Ledger(object):
             position_stats.net_value
         )
         portfolio.positions_exposure = position_stats.net_exposure
-
-        payout = self._get_payout_total(pt.positions)
-
-        portfolio.cash += payout
+        self._cash_flow(self._get_payout_total(pt.positions))
 
         start_value = portfolio.portfolio_value
 
@@ -830,7 +818,7 @@ class Ledger(object):
         This is cached, repeated access will not recompute the portfolio until
         the portfolio has changed.
         """
-        self._update_portfolio()
+        self.update_portfolio()
         return self._immutable_portfolio
 
     @staticmethod

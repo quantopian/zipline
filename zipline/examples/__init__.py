@@ -35,6 +35,7 @@ _cols_to_check = [
     'ending_cash',
     'ending_exposure',
     'ending_value',
+    'excess_return',
     'gross_leverage',
     'long_exposure',
     'long_value',
@@ -43,6 +44,7 @@ _cols_to_check = [
     'max_leverage',
     'net_leverage',
     'period_close',
+    'period_label',
     'period_open',
     'pnl',
     'portfolio_value',
@@ -56,6 +58,7 @@ _cols_to_check = [
     'starting_exposure',
     'starting_value',
     'trading_days',
+    'treasury_period_return',
 ]
 
 

@@ -25,12 +25,14 @@ from .metric import (
     MaxLeverage,
     NumTradingDays,
     Orders,
+    PeriodLabel,
     PNL,
     Returns,
     ReturnsStatistic,
     SimpleLedgerField,
     StartOfPeriodLedgerField,
     Transactions,
+    _ConstantCumulativeRiskMetric,
 )
 from .tracker import MetricsTracker
 
@@ -99,6 +101,7 @@ register_metrics_set('none', set)
 def default_metrics():
     return {
         NumTradingDays(),
+        PeriodLabel(),
 
         Returns(),
         ReturnsStatistic(empyrical.annual_volatility, 'algo_volatility'),
@@ -152,4 +155,8 @@ def default_metrics():
         ReturnsStatistic(empyrical.downside_risk),
         ReturnsStatistic(empyrical.max_drawdown),
         MaxLeverage(),
+
+        # Please kill this!
+        _ConstantCumulativeRiskMetric('excess_return', 0.0),
+        _ConstantCumulativeRiskMetric('treasury_period_return', 0.0),
     }

@@ -14,7 +14,6 @@
 # limitations under the License.
 
 from functools import partial
-from math import sqrt
 import operator as op
 
 import empyrical
@@ -285,28 +284,30 @@ class PNL(object):
         # initialize the whole series to 0 so this will give us the results
         # we want without an explicit check.
         self._pnl_index = -1
-        self._pnl = pd.Series(0, index=sessions)
+        self._pnl = pd.Series(0.0, index=sessions, dtype='float64')
 
-    def _compute_pnl_in_period(self, ledger):
-        return ledger.portfolio.pnl - self._pnl[self._pnl_index]
+    def start_of_session(self, ledger, session, data_portal):
+        self._pnl[self._pnl_index] = ledger.portfolio.pnl
+
+    def _end_of_period(self, field, packet, ledger):
+        pnl = ledger.portfolio.pnl
+        packet[field]['pnl'] = pnl - self._pnl[self._pnl_index]
+        packet['cumulative_perf']['pnl'] = ledger.portfolio.pnl
 
     def end_of_bar(self,
                    packet,
                    ledger,
                    dt,
                    data_portal):
-        packet['minute_perf']['pnl'] = self._compute_pnl_in_period(ledger)
-        packet['cumulative_perf']['pnl'] = ledger.portfolio.pnl
+        self._end_of_period('minute_perf', packet, ledger)
 
     def end_of_session(self,
                        packet,
                        ledger,
                        session,
                        data_portal):
-        packet['daily_perf']['pnl'] = self._compute_pnl_in_period(ledger)
-        packet['cumulative_perf']['pnl'] = pnl = ledger.portfolio.pnl
+        self._end_of_period('daily_perf', packet, ledger)
         self._pnl_index += 1
-        self._pnl[self._pnl_index] = pnl
 
     def end_of_simulation(self, packet, ledger, benchmark_source, sessions):
         packet['total_pnl'] = ledger.portfolio.pnl
@@ -508,3 +509,34 @@ class NumTradingDays(object):
 
     def end_of_simulation(self, packet, ledger, benchmark_source, sessions):
         packet['trading_days'] = len(sessions)
+
+
+class _ConstantCumulativeRiskMetric(object):
+    """A metric which does not change, ever.
+
+    Notes
+    -----
+    This exists to maintain the existing structure of the perf packets. We
+    should kill this as soon as possible.
+    """
+    def __init__(self, field, value):
+        self._field = field
+        self._value = value
+
+    def end_of_bar(self, packet, *args):
+        packet['cumulative_risk_metrics'][self._field] = self._value
+
+    def end_of_session(self, packet, *args):
+        packet['cumulative_risk_metrics'][self._field] = self._value
+
+
+class PeriodLabel(object):
+    """Backwards compat, please kill me.
+    """
+    def start_of_session(self, ledger, session, data_portal):
+        self._label = session.strftime('%Y-%m')
+
+    def end_of_bar(self, packet, *args):
+        packet['cumulative_risk_metrics']['period_label'] = self._label
+
+    end_of_session = end_of_bar

@@ -5,10 +5,24 @@ from unittest import TestCase
 from contextlib2 import ExitStack
 from logbook import NullHandler, Logger
 from six import with_metaclass, iteritems
-from toolz import flip
+from toolz import flip, merge
 import pandas as pd
 import responses
 
+import zipline
+from zipline.algorithm import TradingAlgorithm
+from zipline.assets import Equity, Future
+from zipline.finance.asset_restrictions import NoRestrictions
+from zipline.pipeline import SimplePipelineEngine
+from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.loaders import USEquityPricingLoader
+from zipline.pipeline.loaders.testing import make_seeded_random_loader
+from zipline.protocol import BarData
+from zipline.utils.calendars import (
+    get_calendar,
+    register_calendar,
+)
+from zipline.utils.paths import ensure_directory
 from .core import (
     create_daily_bar_data,
     create_minute_bar_data,
@@ -46,18 +60,6 @@ from ..utils import factory
 from ..utils.classproperty import classproperty
 from ..utils.final import FinalMeta, final
 
-import zipline
-from zipline.assets import Equity, Future
-from zipline.finance.asset_restrictions import NoRestrictions
-from zipline.pipeline import SimplePipelineEngine
-from zipline.pipeline.data import USEquityPricing
-from zipline.pipeline.loaders import USEquityPricingLoader
-from zipline.pipeline.loaders.testing import make_seeded_random_loader
-from zipline.protocol import BarData
-from zipline.utils.calendars import (
-    get_calendar,
-    register_calendar)
-from zipline.utils.paths import ensure_directory
 
 zipline_dir = os.path.dirname(zipline.__file__)
 
@@ -1748,3 +1750,100 @@ class WithCreateBarData(WithDataPortal):
             self.trading_calendar,
             restrictions or NoRestrictions()
         )
+
+
+class WithMakeAlgoKwargs(WithTradingEnvironment):
+    """
+    A fixture providing a `make_algo_kwargs` method producing Algo
+    keyword arguments.
+
+    Methods
+    -------
+    make_algo_kwargs(self, **overrides)
+    """
+    def make_algo_kwargs(self, **overrides):
+        return merge(
+            {'env': self.env},
+            overrides,
+        )
+
+    def merge_with_inherited_algo_kwargs(self,
+                                         overriding_type,
+                                         suite_overrides,
+                                         method_overrides):
+        """
+        Helper for subclasses overriding ``make_algo_kwargs``.
+
+        A common pattern for tests using `WithMakeAlgoKwargs` is that a
+        particular test suite has a set of default keywords it wants to use
+        everywhere, but also accepts test-specific overrides.
+
+        Test suites that fit that pattern can call this method and pass the
+        test class, suite-specific overrides, and method-specific overrides,
+        and this method takes care of fetching parent class overrides and
+        merging them with the suite- and instance-specific overrides.
+
+        Parameters
+        ----------
+        overriding_type : type
+            The type from which we're being called. This is forwarded to
+            super().make_algo_kwargs()
+        suite_overrides : dict
+            Keywords which should take precedence over kwargs returned by
+            super(overriding_type, self).make_algo_kwargs().  These are
+            generally keyword arguments that are constant within a test suite.
+        method_overrides : dict
+            Keywords which should take precedence over `suite_overrides` and
+            superclass kwargs.  These are generally keyword arguments that are
+            overridden on a per-test basis.
+        """
+        # NOTE: This is a weird invocation of super().
+        # Our goal here is to provide the behavior that the caller would get if
+        # they called super() in the normal way, so that we dispatch to the
+        # make_algo_kwargs() for the parent of the type that's calling
+        # into us. We achieve that goal by requiring the caller to tell us
+        # what type they're calling us from.
+        return super(overriding_type, self).make_algo_kwargs(
+            **merge(suite_overrides, method_overrides)
+        )
+
+
+class WithMakeAlgo(WithSimParams,
+                   WithLogger,
+                   WithDataPortal,
+                   WithMakeAlgoKwargs):
+    """
+    ZiplineTestCase mixin that provides a ``make_algo`` method.
+    """
+    START_DATE = pd.Timestamp('2014-12-29', tz='UTC')
+    END_DATE = pd.Timestamp('2015-1-05', tz='UTC')
+    SIM_PARAMS_DATA_FREQUENCY = 'minute'
+
+    @classproperty
+    def BENCHMARK_SID(cls):
+        """The sid to use as a benchmark.
+
+        Can be overridden to use an alternative benchmark.
+        """
+        return cls.asset_finder.sids[0]
+
+    def make_algo_kwargs(self, **overrides):
+        return self.merge_with_inherited_algo_kwargs(
+            WithMakeAlgo,
+            {
+                'sim_params': self.sim_params,
+                'data_portal': self.data_portal,
+                'benchmark_sid': self.BENCHMARK_SID,
+                'env': self.env,
+            },
+            overrides,
+        )
+
+    def make_algo(self, **overrides):
+        return TradingAlgorithm(**self.make_algo_kwargs(**overrides))
+
+    def run_algorithm(self, **overrides):
+        """
+        Create and run an TradingAlgorithm in memory.
+        """
+        return self.make_algo(**overrides).run()
