@@ -36,7 +36,7 @@ from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.data.minute_bars import BcolzMinuteBarReader
 from zipline.data.data_portal import DataPortal
 from zipline.data.us_equity_pricing import BcolzDailyBarWriter
-from zipline.finance.slippage import FixedSlippage
+from zipline.finance.slippage import FixedSlippage, FixedBasisPointsSlippage
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.protocol import BarData
 from zipline.testing import (
@@ -83,10 +83,11 @@ class FinanceTestCase(WithLogger,
             'order_amount': 100,
             'order_interval': timedelta(minutes=1),
             # because we placed two orders for 100 shares each, and the volume
-            # of each trade is 100, and by default you can take up 2.5% of the
-            # bar's volume, the simulator should spread the order into 100
-            # trades of 2 shares per order.
-            'expected_txn_count': 100,
+            # of each trade is 100, and by default you can take up 10% of the
+            # bar's volume (per FixedBasisPointsSlippage, the default slippage
+            # model), the simulator should spread the order into 20 trades of
+            # 10 shares per order.
+            'expected_txn_count': 20,
             'expected_txn_volume': 2 * 100,
             'default_slippage': True
         }
@@ -100,7 +101,7 @@ class FinanceTestCase(WithLogger,
             'order_count': 2,
             'order_amount': -100,
             'order_interval': timedelta(minutes=1),
-            'expected_txn_count': 100,
+            'expected_txn_count': 20,
             'expected_txn_volume': 2 * -100,
             'default_slippage': True
         }
@@ -272,7 +273,7 @@ class FinanceTestCase(WithLogger,
 
             if "default_slippage" not in params or \
                not params["default_slippage"]:
-                slippage_func = FixedSlippage()
+                slippage_func = FixedBasisPointsSlippage()
             else:
                 slippage_func = None
 
