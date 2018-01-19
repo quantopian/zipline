@@ -30,6 +30,7 @@ from zipline.finance.order import ORDER_STATUS, Order
 from zipline.finance.slippage import (
     DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT,
     FixedSlippage,
+    VolumeShareSlippage,
 )
 from zipline.gens.sim_engine import BAR, SESSION_END
 from zipline.testing.fixtures import (
@@ -261,7 +262,8 @@ class BlotterTestCase(WithCreateBarData,
         status indication. When a fill happens, the order should switch
         status to OPEN/FILLED as necessary
         """
-        blotter = Blotter(self.sim_params.data_frequency)
+        blotter = Blotter(self.sim_params.data_frequency,
+                          equity_slippage=VolumeShareSlippage())
         # Nothing happens on held of a non-existent order
         blotter.hold(56)
         self.assertEqual(blotter.new_orders, [])
@@ -297,7 +299,8 @@ class BlotterTestCase(WithCreateBarData,
             expected_status = ORDER_STATUS.OPEN if expected_open else \
                 ORDER_STATUS.FILLED
 
-            blotter = Blotter(self.sim_params.data_frequency)
+            blotter = Blotter(self.sim_params.data_frequency,
+                              equity_slippage=VolumeShareSlippage())
             open_id = blotter.order(self.asset_24, order_size, MarketOrder())
             open_order = blotter.open_orders[self.asset_24][0]
             self.assertEqual(open_id, open_order.id)

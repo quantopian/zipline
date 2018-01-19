@@ -86,6 +86,7 @@ from zipline.finance.asset_restrictions import (
     StaticRestrictions,
     RESTRICTION_STATES,
 )
+from zipline.finance.slippage import VolumeShareSlippage
 from zipline.testing import (
     FakeDataPortal,
     copy_market_data,
@@ -1481,8 +1482,9 @@ class TestBeforeTradingStart(WithDataPortal,
             script=algo_code,
             data_frequency="minute",
             sim_params=self.sim_params,
-            env=self.env
+            env=self.env,
         )
+        algo.set_slippage(VolumeShareSlippage())
 
         results = algo.run(self.data_portal)
 
@@ -1565,8 +1567,9 @@ class TestBeforeTradingStart(WithDataPortal,
             script=algo_code,
             data_frequency="minute",
             sim_params=self.sim_params,
-            env=self.env
+            env=self.env,
         )
+        algo.set_slippage(VolumeShareSlippage())
 
         results = algo.run(self.data_portal)
 
