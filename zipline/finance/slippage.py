@@ -531,7 +531,7 @@ class FixedBasisPointsSlippage(SlippageModel):
         volume_limit=(0, None),
         __funcname='FixedBasisPointsSlippage',
     )
-    def __init__(self, basis_points=5, volume_limit=0.1):
+    def __init__(self, basis_points=5.0, volume_limit=0.1):
         super(FixedBasisPointsSlippage, self).__init__()
         self.basis_points = basis_points
         self.percentage = self.basis_points / 10000.0
