@@ -56,6 +56,14 @@ class MetricsTracker(object):
         'end_of_bar',
     )
 
+    @staticmethod
+    def _execution_open_and_close(calendar, session):
+        open_, close = calendar.open_and_close_for_session(session)
+        execution_open = calendar.execution_time_from_open(open_)
+        execution_close = calendar.execution_time_from_close(close)
+
+        return execution_open, execution_close
+
     def __init__(self,
                  trading_calendar,
                  first_session,
@@ -74,9 +82,9 @@ class MetricsTracker(object):
         self._asset_finder = asset_finder
 
         self._current_session = first_session
-        (self._market_open,
-         self._market_close) = trading_calendar.open_and_close_for_session(
-             first_session,
+        self._market_open, self._market_close = self._execution_open_and_close(
+            trading_calendar,
+            first_session,
         )
         self._session_count = 0
 
@@ -236,8 +244,10 @@ class MetricsTracker(object):
         self._current_session = session_label
 
         cal = self._trading_calendar
-        (self._market_open,
-         self._market_close) = cal.open_and_close_for_session(session_label)
+        self._market_open, self._market_close = self._execution_open_and_close(
+            cal,
+            session_label,
+        )
 
         self.start_of_session(ledger, session_label, data_portal)
 

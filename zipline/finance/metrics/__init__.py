@@ -74,6 +74,7 @@ def get_metrics_set(name):
 
     Returns
     -------
+    metrics : set[Metric]
         A new instance of the metrics set.
 
     Raises

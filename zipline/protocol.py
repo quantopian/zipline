@@ -246,24 +246,24 @@ class Account(object):
     """
 
     def __init__(self, portfolio):
-        dict_ = vars(self)
-        dict_['settled_cash'] = 0.0
-        dict_['accrued_interest'] = 0.0
-        dict_['buying_power'] = float('inf')
-        dict_['equity_with_loan'] = 0.0
-        dict_['total_positions_value'] = 0.0
-        dict_['total_positions_exposure'] = 0.0
-        dict_['regt_equity'] = 0.0
-        dict_['regt_margin'] = float('inf')
-        dict_['initial_margin_requirement'] = 0.0
-        dict_['maintenance_margin_requirement'] = 0.0
-        dict_['available_funds'] = 0.0
-        dict_['excess_liquidity'] = 0.0
-        dict_['cushion'] = 0.0
-        dict_['day_trades_remaining'] = float('inf')
-        dict_['leverage'] = 0.0
-        dict_['net_leverage'] = 0.0
-        dict_['net_liquidation'] = 0.0
+        self_ = MutableView(self)
+        self_.settled_cash = 0.0
+        self_.accrued_interest = 0.0
+        self_.buying_power = float('inf')
+        self_.equity_with_loan = 0.0
+        self_.total_positions_value = 0.0
+        self_.total_positions_exposure = 0.0
+        self_.regt_equity = 0.0
+        self_.regt_margin = float('inf')
+        self_.initial_margin_requirement = 0.0
+        self_.maintenance_margin_requirement = 0.0
+        self_.available_funds = 0.0
+        self_.excess_liquidity = 0.0
+        self_.cushion = 0.0
+        self_.day_trades_remaining = float('inf')
+        self_.leverage = 0.0
+        self_.net_leverage = 0.0
+        self_.net_liquidation = 0.0
 
     def __setattr__(self, attr, value):
         raise AttributeError('cannot mutate Account objects')

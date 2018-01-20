@@ -114,7 +114,7 @@ class SlippageModel(with_metaclass(FinancialModelMeta)):
             the shares ordered in which case the order will be filled over
             multiple bars.
         """
-        pass
+        raise NotImplementedError('process_order')
 
     def simulate(self, data, asset, orders_for_asset):
         self._volume_for_bar = 0
@@ -167,6 +167,22 @@ class SlippageModel(with_metaclass(FinancialModelMeta)):
 
     def asdict(self):
         return self.__dict__
+
+
+class NoSlippage(SlippageModel):
+    """A slippage model where all orders fill immediately and completely at the
+    current close price.
+
+    Notes
+    -----
+    This is primarily used for testing.
+    """
+    @staticmethod
+    def process_order(data, order):
+        return (
+            data.current(order.asset, 'close'),
+            order.amount,
+        )
 
 
 class EquitySlippageModel(with_metaclass(AllowedAssetMarker, SlippageModel)):

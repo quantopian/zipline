@@ -1,6 +1,7 @@
 import os
 import sqlite3
 from unittest import TestCase
+import warnings
 
 from contextlib2 import ExitStack
 from logbook import NullHandler, Logger
@@ -718,13 +719,6 @@ class WithInstanceTmpDir(object):
         )
 
 
-class _WithDailyBarDataBase(WithTradingEnvironment):
-    DAILY_BAR_USE_FULL_CALENDAR = False
-    DAILY_BAR_START_DATE = alias('START_DATE')
-    DAILY_BAR_END_DATE = alias('END_DATE')
-    DAILY_BAR_SOURCE_FROM_MINUTE = None
-
-
 class WithEquityDailyBarData(WithTradingEnvironment):
     """
     ZiplineTestCase mixin providing cls.make_equity_daily_bar_data.
@@ -1116,13 +1110,7 @@ def _trading_days_for_minute_bars(calendar,
     return calendar.sessions_in_range(first_session, end_date)
 
 
-class _WithMinuteBarDataBase(WithTradingEnvironment):
-    MINUTE_BAR_LOOKBACK_DAYS = 0
-    MINUTE_BAR_START_DATE = alias('START_DATE')
-    MINUTE_BAR_END_DATE = alias('END_DATE')
-
-
-class WithEquityMinuteBarData(_WithMinuteBarDataBase):
+class WithEquityMinuteBarData(WithTradingEnvironment):
     """
     ZiplineTestCase mixin providing cls.equity_minute_bar_days.
 
@@ -1154,9 +1142,9 @@ class WithEquityMinuteBarData(_WithMinuteBarDataBase):
     WithEquityDailyBarData
     zipline.testing.create_minute_bar_data
     """
-    EQUITY_MINUTE_BAR_LOOKBACK_DAYS = alias('MINUTE_BAR_LOOKBACK_DAYS')
-    EQUITY_MINUTE_BAR_START_DATE = alias('MINUTE_BAR_START_DATE')
-    EQUITY_MINUTE_BAR_END_DATE = alias('MINUTE_BAR_END_DATE')
+    EQUITY_MINUTE_BAR_LOOKBACK_DAYS = 0
+    EQUITY_MINUTE_BAR_START_DATE = alias('START_DATE')
+    EQUITY_MINUTE_BAR_END_DATE = alias('END_DATE')
 
     @classmethod
     def make_equity_minute_bar_data(cls):
@@ -1181,7 +1169,7 @@ class WithEquityMinuteBarData(_WithMinuteBarDataBase):
         )
 
 
-class WithFutureMinuteBarData(_WithMinuteBarDataBase):
+class WithFutureMinuteBarData(WithTradingEnvironment):
     """
     ZiplineTestCase mixin providing cls.future_minute_bar_days.
 
@@ -1214,9 +1202,9 @@ class WithFutureMinuteBarData(_WithMinuteBarDataBase):
     --------
     zipline.testing.create_minute_bar_data
     """
-    FUTURE_MINUTE_BAR_LOOKBACK_DAYS = alias('MINUTE_BAR_LOOKBACK_DAYS')
-    FUTURE_MINUTE_BAR_START_DATE = alias('MINUTE_BAR_START_DATE')
-    FUTURE_MINUTE_BAR_END_DATE = alias('MINUTE_BAR_END_DATE')
+    FUTURE_MINUTE_BAR_LOOKBACK_DAYS = 0
+    FUTURE_MINUTE_BAR_START_DATE = alias('START_DATE')
+    FUTURE_MINUTE_BAR_END_DATE = alias('END_DATE')
 
     @classmethod
     def make_future_minute_bar_data(cls):
@@ -1847,3 +1835,12 @@ class WithMakeAlgo(WithSimParams,
         Create and run an TradingAlgorithm in memory.
         """
         return self.make_algo(**overrides).run()
+
+
+class WithWerror(object):
+    @classmethod
+    def init_class_fixtures(cls):
+        cls.enter_class_context(warnings.catch_warnings())
+        warnings.simplefilter('error')
+
+        super(WithWerror, cls).init_class_fixtures()

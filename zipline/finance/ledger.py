@@ -426,7 +426,9 @@ class Ledger(object):
     Attributes
     ----------
     portfolio : zipline.protocol.Portfolio
-        The portfolio being managed.
+        The updated portfolio being managed.
+    account : zipline.protocol.Account
+        The updated account being managed.
     position_tracker : PositionTracker
         The current set of positions.
     todays_returns : float
@@ -685,7 +687,6 @@ class Ledger(object):
 
         # Pay out the dividends whose pay-date is the next session. This does
         # affect out cash.
-        self._dirty_portfolio = True
         self._cash_flow(
             position_tracker.pay_dividends(
                 next_session,
@@ -756,16 +757,18 @@ class Ledger(object):
 
     def _get_payout_total(self, positions):
         calculate_payout = self._calculate_payout
+        payout_last_sale_prices = self._payout_last_sale_prices
 
         total = 0
-        for asset, old_price in iteritems(self._payout_last_sale_prices):
+        for asset, old_price in iteritems(payout_last_sale_prices):
             position = positions[asset]
+            payout_last_sale_prices[asset] = price = position.last_sale_price
             amount = position.amount
             total += calculate_payout(
                 asset.multiplier,
                 amount,
                 old_price,
-                position.last_sale_price,
+                price,
             )
 
         return total

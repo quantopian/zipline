@@ -467,6 +467,39 @@ class TradingCalendar(with_metaclass(ABCMeta)):
             end_minute=self.schedule.at[session_label, 'market_close'],
         )
 
+    def execution_minutes_for_session(self, session_label):
+        """
+        Given a session label, return the execution minutes for that session.
+
+        Parameters
+        ----------
+        session_label: pd.Timestamp (midnight UTC)
+            A session label whose session's minutes are desired.
+
+        Returns
+        -------
+        pd.DateTimeIndex
+            All the execution minutes for the given session.
+        """
+        return self.minutes_in_range(
+            start_minute=self.execution_time_from_open(
+                self.schedule.at[session_label, 'market_open'],
+            ),
+            end_minute=self.execution_time_from_close(
+                self.schedule.at[session_label, 'market_close'],
+            ),
+        )
+
+    def execution_minutes_for_sessions_in_range(self, start, stop):
+        minutes = self.execution_minutes_for_session
+        return pd.DatetimeIndex(
+            np.concatenate([
+                minutes(session)
+                for session in self.sessions_in_range(start, stop)
+            ]),
+            tz='UTC',
+        )
+
     def minutes_window(self, start_dt, count):
         start_dt_nanos = start_dt.value
         all_minutes_nanos = self._trading_minutes_nanos
@@ -600,7 +633,8 @@ class TradingCalendar(with_metaclass(ABCMeta)):
 
         return self.all_minutes[start_idx:end_idx]
 
-    def minutes_for_sessions_in_range(self, start_session_label,
+    def minutes_for_sessions_in_range(self,
+                                      start_session_label,
                                       end_session_label):
         """
         Returns all the minutes for all the sessions from the given start

@@ -198,7 +198,7 @@ class DataPortal(object):
                 if reader is not None
             ]
             if last_minutes:
-                self._last_available_minute = min(last_minutes)
+                self._last_available_minute = max(last_minutes)
             else:
                 self._last_available_minute = None
 
