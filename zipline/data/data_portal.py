@@ -939,7 +939,7 @@ class DataPortal(object):
                 # volume in today's minute bars yet, we need to use the
                 # previous day's ffilled daily price. Using today's daily price
                 # could yield a value from later today.
-                history_start -= pd.Timedelta(days=1)
+                history_start -= self.trading_calendar.day
 
             initial_values = []
             for asset in df.columns[assets_with_leading_nan]:
