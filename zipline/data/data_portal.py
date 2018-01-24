@@ -545,9 +545,6 @@ class DataPortal(object):
             The timestamp for the desired value.
         perspective_dt : pd.Timestamp
             The timestamp from which the data is being viewed back from.
-        data_frequency : str
-            The frequency of the data to query; i.e. whether the data is
-            'daily' or 'minute' bars
 
         Returns
         -------
