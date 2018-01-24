@@ -18,6 +18,7 @@ from numpy import array, append, nan, full
 from numpy.testing import assert_almost_equal
 import pandas as pd
 from pandas.tslib import Timedelta
+from six import iteritems
 
 from zipline.assets import Equity, Future
 from zipline.data.data_portal import HISTORY_FREQUENCIES, OHLCV_FIELDS
@@ -40,7 +41,8 @@ class DataPortalTestBase(WithDataPortal,
                          WithTradingSessions,
                          ZiplineTestCase):
 
-    ASSET_FINDER_EQUITY_SIDS = (1, 2)
+    ASSET_FINDER_EQUITY_SIDS = (1, 2, 3)
+    DIVIDEND_ASSET_SID = 3
     START_DATE = pd.Timestamp('2016-08-01')
     END_DATE = pd.Timestamp('2016-08-08')
 
@@ -140,6 +142,8 @@ class DataPortalTestBase(WithDataPortal,
         )
         yield 2, asset2_df
 
+        yield cls.DIVIDEND_ASSET_SID, asset2_df.copy()
+
     @classmethod
     def make_future_minute_bar_data(cls):
         trading_calendar = cls.trading_calendars[Future]
@@ -204,6 +208,31 @@ class DataPortalTestBase(WithDataPortal,
             index=missing_dts.append(asset10000_df.index),
         )
         yield 10001, asset10001_df
+
+    @classmethod
+    def make_dividends_data(cls):
+        return pd.DataFrame([
+            {
+                # only care about ex date, the other dates don't matter here
+                'ex_date':
+                    cls.trading_days[2].to_datetime64(),
+                'record_date':
+                    cls.trading_days[2].to_datetime64(),
+                'declared_date':
+                    cls.trading_days[2].to_datetime64(),
+                'pay_date':
+                    cls.trading_days[2].to_datetime64(),
+                'amount': 0.5,
+                'sid': cls.DIVIDEND_ASSET_SID,
+            }],
+            columns=[
+                'ex_date',
+                'record_date',
+                'declared_date',
+                'pay_date',
+                'amount',
+                'sid'],
+        )
 
     def test_get_last_traded_equity_minute(self):
         trading_calendar = self.trading_calendars[Equity]
@@ -369,6 +398,43 @@ class DataPortalTestBase(WithDataPortal,
             for field in expected.index
         ]
         assert_almost_equal(expected.values.tolist(), result)
+
+    @parameter_space(data_frequency=['daily', 'minute'],
+                     field=['close', 'price'])
+    def test_get_adjustments(self, data_frequency, field):
+        asset = self.asset_finder.retrieve_asset(self.DIVIDEND_ASSET_SID)
+        calendar = self.trading_calendars[Equity]
+        day = calendar.day
+        dividend_date = self.trading_days[2]
+
+        prev_day_price = 1.005
+        dividend_amount = 0.5  # see self.make_dividends_data
+        ratio = 1.0 - dividend_amount / prev_day_price
+
+        cases = OrderedDict([
+            ((dividend_date - day, dividend_date - day), 1.0),
+            ((dividend_date - day, dividend_date), ratio),
+            ((dividend_date - day, dividend_date + day), ratio),
+            ((dividend_date, dividend_date), 1.0),
+            ((dividend_date, dividend_date + day), 1.0),
+            ((dividend_date + day, dividend_date + day), 1.0),
+        ])
+
+        for (dt, perspective_dt), expected in iteritems(cases):
+
+            if data_frequency == 'minute':
+                dt = calendar.session_open(dt)
+                perspective_dt = calendar.session_open(perspective_dt)
+
+            val = self.data_portal.get_adjustments(
+                asset,
+                field,
+                dt,
+                perspective_dt,
+            )[0]
+            assert_almost_equal(val, expected,
+                                err_msg="at dt={} perspective={}"
+                                .format(dt, perspective_dt))
 
     def test_bar_count_for_simple_transforms(self):
         # July 2015

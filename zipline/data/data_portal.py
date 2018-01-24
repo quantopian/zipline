@@ -568,7 +568,7 @@ class DataPortal(object):
                 asset, self._splits_dict, "SPLITS"
             )
             for adj_dt, adj in split_adjustments:
-                if dt <= adj_dt <= perspective_dt:
+                if dt < adj_dt <= perspective_dt:
                     adjustments_for_asset.append(split_adj_factor(adj))
                 elif adj_dt > perspective_dt:
                     break
@@ -578,7 +578,7 @@ class DataPortal(object):
                     asset, self._mergers_dict, "MERGERS"
                 )
                 for adj_dt, adj in merger_adjustments:
-                    if dt <= adj_dt <= perspective_dt:
+                    if dt < adj_dt <= perspective_dt:
                         adjustments_for_asset.append(adj)
                     elif adj_dt > perspective_dt:
                         break
@@ -587,7 +587,7 @@ class DataPortal(object):
                     asset, self._dividends_dict, "DIVIDENDS",
                 )
                 for adj_dt, adj in dividend_adjustments:
-                    if dt <= adj_dt <= perspective_dt:
+                    if dt < adj_dt <= perspective_dt:
                         adjustments_for_asset.append(adj)
                     elif adj_dt > perspective_dt:
                         break

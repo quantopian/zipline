@@ -717,7 +717,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         # before any of the dividends
         window1 = self.data_portal.get_history_window(
             [asset],
-            self.trading_calendar.open_and_close_for_session(jan5)[1],
+            self.trading_calendar.session_close(jan5),
             2,
             '1d',
             'close',
