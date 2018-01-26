@@ -470,13 +470,21 @@ class SimplePipelineEngine(PipelineEngine):
 
         # Copy the supplied initial workspace so we don't mutate it in place.
         workspace = initial_workspace.copy()
+        refcounts = graph.initial_refcounts(workspace)
+        execution_order = graph.execution_order(refcounts)
 
         # If loadable terms share the same loader and extra_rows, load them all
         # together.
+        loadable_terms = graph.loadable_terms
         loader_group_key = juxt(get_loader, getitem(graph.extra_rows))
-        loader_groups = groupby(loader_group_key, graph.loadable_terms)
-
-        refcounts = graph.initial_refcounts(workspace)
+        loader_groups = groupby(
+            loader_group_key,
+            # Only produce loader groups for the terms we expect to load.  This
+            # ensures that we can run pipelines for graphs where we don't have
+            # a loader registered for an atomic term if all the dependencies of
+            # that term were supplied in the initial workspace.
+            (t for t in execution_order if t in loadable_terms),
+        )
 
         for term in graph.execution_order(refcounts):
             # `term` may have been supplied in `initial_workspace`, and in the
