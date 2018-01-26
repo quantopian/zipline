@@ -1437,10 +1437,9 @@ class PopulateInitialWorkspaceTestCase(WithConstantInputs, ZiplineTestCase):
             return ws
 
         def dispatcher(c):
-            if c is column:
-                # the base_term should never be loaded, its initial refcount
-                # should be zero
-                return ExplodingObject()
+            self.assertIsNot(
+                c, column, "Shouldn't need to dispatch precomputed term input!"
+            )
             return self.loader
 
         engine = SimplePipelineEngine(

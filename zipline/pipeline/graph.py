@@ -109,9 +109,7 @@ class TermGraph(object):
 
     @lazyval
     def loadable_terms(self):
-        return tuple(
-            term for term in self.graph if isinstance(term, LoadableTerm)
-        )
+        return {term for term in self.graph if isinstance(term, LoadableTerm)}
 
     @lazyval
     def jpeg(self):
