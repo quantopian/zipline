@@ -9,8 +9,6 @@ from six import iteritems, itervalues
 from zipline.utils.memoize import lazyval
 from zipline.pipeline.visualize import display_graph
 
-from .term import LoadableTerm
-
 
 class CyclicDependency(Exception):
     pass
@@ -106,10 +104,6 @@ class TermGraph(object):
 
     def ordered(self):
         return iter(topological_sort(self.graph))
-
-    @lazyval
-    def loadable_terms(self):
-        return {term for term in self.graph if isinstance(term, LoadableTerm)}
 
     @lazyval
     def jpeg(self):

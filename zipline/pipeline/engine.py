@@ -475,7 +475,6 @@ class SimplePipelineEngine(PipelineEngine):
 
         # If loadable terms share the same loader and extra_rows, load them all
         # together.
-        loadable_terms = graph.loadable_terms
         loader_group_key = juxt(get_loader, getitem(graph.extra_rows))
         loader_groups = groupby(
             loader_group_key,
@@ -483,10 +482,10 @@ class SimplePipelineEngine(PipelineEngine):
             # ensures that we can run pipelines for graphs where we don't have
             # a loader registered for an atomic term if all the dependencies of
             # that term were supplied in the initial workspace.
-            (t for t in execution_order if t in loadable_terms),
+            (t for t in execution_order if isinstance(t, LoadableTerm))
         )
 
-        for term in graph.execution_order(refcounts):
+        for term in execution_order:
             # `term` may have been supplied in `initial_workspace`, and in the
             # future we may pre-compute loadable terms coming from the same
             # dataset.  In either case, we will already have an entry for this
