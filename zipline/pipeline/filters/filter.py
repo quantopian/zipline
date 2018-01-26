@@ -619,4 +619,9 @@ class MaximumFilter(Filter, StandardOutputs):
         )
 
     def __repr__(self):
-        return "Maximum({}, groupby={}, mask={})".format(*self.inputs)
+        return "Maximum({!r}, groupby={!r}, mask={!r})".format(
+            self.inputs[0], self.inputs[1], self.mask,
+        )
+
+    def short_repr(self):
+        return "Maximum()"

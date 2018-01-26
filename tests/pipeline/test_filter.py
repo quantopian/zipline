@@ -84,6 +84,12 @@ class SomeFactor(Factor):
     window_length = 0
 
 
+class SomeFilter(Filter):
+    inputs = ()
+    window_length = 0
+    missing_value = False
+
+
 class SomeDatetimeFactor(Factor):
     dtype = datetime64ns_dtype
     inputs = ()
@@ -1085,3 +1091,22 @@ class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
             f.to_workspace_value(pipeline_output, pd.Index([0, 1])),
             column_data,
         )
+
+
+class ReprTestCase(ZiplineTestCase):
+
+    def test_maximum_repr(self):
+        m = SomeFactor().top(1, groupby=SomeClassifier(), mask=SomeFilter())
+
+        rep = repr(m)
+        assert_equal(
+            rep,
+            "Maximum({!r}, groupby={!r}, mask={!r})".format(
+                SomeFactor(),
+                SomeClassifier(),
+                SomeFilter(),
+            )
+        )
+
+        short_rep = m.short_repr()
+        assert_equal(short_rep, "Maximum()")
