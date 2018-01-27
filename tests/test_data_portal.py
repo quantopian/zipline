@@ -38,8 +38,7 @@ from zipline.utils.numpy_utils import float64_dtype
 
 
 class DataPortalTestBase(WithDataPortal,
-                         WithTradingSessions,
-                         ZiplineTestCase):
+                         WithTradingSessions):
 
     ASSET_FINDER_EQUITY_SIDS = (1, 2, 3)
     DIVIDEND_ASSET_SID = 3
@@ -578,11 +577,13 @@ class DataPortalTestBase(WithDataPortal,
         assert_equal(result, expected_result)
 
 
-class TestDataPortal(DataPortalTestBase):
+class TestDataPortal(DataPortalTestBase,
+                     ZiplineTestCase):
     DATA_PORTAL_LAST_AVAILABLE_SESSION = None
     DATA_PORTAL_LAST_AVAILABLE_MINUTE = None
 
 
-class TestDataPortalExplicitLastAvailable(DataPortalTestBase):
+class TestDataPortalExplicitLastAvailable(DataPortalTestBase,
+                                          ZiplineTestCase):
     DATA_PORTAL_LAST_AVAILABLE_SESSION = alias('START_DATE')
     DATA_PORTAL_LAST_AVAILABLE_MINUTE = alias('END_DATE')
