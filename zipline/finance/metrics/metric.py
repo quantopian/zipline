@@ -102,15 +102,10 @@ class DailyLedgerField(object):
                        ledger,
                        session,
                        data_portal):
-        self._daily_value[session] = value = self._get_ledger_field(ledger)
-
         field = self._packet_field
         packet['cumulative_perf'][field] = packet['daily_perf'][field] = (
-            value
+            self._get_ledger_field(ledger)
         )
-
-    def end_of_simulation(self, packet, ledger, benchmark_source, sessions):
-        packet[self._packet_field] = self._daily_value.tolist()
 
 
 class StartOfPeriodLedgerField(object):
@@ -263,12 +258,6 @@ class BenchmarkReturnsAndVolatility(object):
             self._daily_annual_volatility[session]
         )
 
-    def end_of_simulation(self, packet, ledger, benchmark_source, sessions):
-        packet['cumulative_benchmark_returns'] = (
-            self._daily_cumulative_returns.iloc[-1]
-        )
-        packet['daily_benchmark_returns'] = self._daily_returns.tolist()
-
 
 class PNL(object):
     """Tracks daily and total PNL.
@@ -279,19 +268,14 @@ class PNL(object):
                             trading_calendar,
                             sessions,
                             benchmark_source):
-        # We start the index at -1 because we want to point the previous day.
-        # -1 will wrap around and point to the *last* day; however, we
-        # initialize the whole series to 0 so this will give us the results
-        # we want without an explicit check.
-        self._pnl_index = -1
-        self._pnl = pd.Series(0.0, index=sessions, dtype='float64')
+        self._previous_pnl = 0.0
 
     def start_of_session(self, ledger, session, data_portal):
-        self._pnl[self._pnl_index] = ledger.portfolio.pnl
+        self._previous_pnl = ledger.portfolio.pnl
 
     def _end_of_period(self, field, packet, ledger):
         pnl = ledger.portfolio.pnl
-        packet[field]['pnl'] = pnl - self._pnl[self._pnl_index]
+        packet[field]['pnl'] = pnl - self._previous_pnl
         packet['cumulative_perf']['pnl'] = ledger.portfolio.pnl
 
     def end_of_bar(self,
@@ -307,11 +291,6 @@ class PNL(object):
                        session,
                        data_portal):
         self._end_of_period('daily_perf', packet, ledger)
-        self._pnl_index += 1
-
-    def end_of_simulation(self, packet, ledger, benchmark_source, sessions):
-        packet['total_pnl'] = ledger.portfolio.pnl
-        packet['daily_pnl'] = self._pnl.tolist()
 
 
 class CashFlow(object):
@@ -437,9 +416,6 @@ class ReturnsStatistic(object):
 
     end_of_session = end_of_bar
 
-    def end_of_simulation(self, packet, ledger, benchmark_source, sessions):
-        packet[self._field_name] = self._function(ledger.daily_returns)
-
 
 class AlphaBeta(object):
     """End of simulation alpha and beta to the benchmark.
@@ -483,9 +459,6 @@ class MaxLeverage(object):
 
     end_of_session = end_of_bar
 
-    def end_of_simulation(self, packet, ledger, benchmark_source, sessions):
-        packet['max_leverage'] = self._max_leverage
-
 
 class NumTradingDays(object):
     """Report the number of trading days.
@@ -506,9 +479,6 @@ class NumTradingDays(object):
         )
 
     end_of_session = end_of_bar
-
-    def end_of_simulation(self, packet, ledger, benchmark_source, sessions):
-        packet['trading_days'] = len(sessions)
 
 
 class _ConstantCumulativeRiskMetric(object):
