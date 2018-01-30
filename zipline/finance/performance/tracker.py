@@ -339,9 +339,8 @@ class PerformanceTracker(object):
         A minute perf packet.
         """
         self.position_tracker.sync_last_sale_prices(dt, False, data_portal)
-        self.update_performance()
         todays_date = normalize_date(dt)
-        account = self.get_account(False)
+        account = self.get_account(True)
 
         bench_returns = self.all_benchmark_returns.loc[todays_date:dt]
         # cumulative returns
@@ -377,8 +376,7 @@ class PerformanceTracker(object):
             # this chunk of code here only applies for daily emissions. (since
             # it's done every minute, elsewhere, for minutely emission).
             self.position_tracker.sync_last_sale_prices(dt, False, data_portal)
-            self.update_performance()
-            account = self.get_account(False)
+            account = self.get_account(True)
 
             benchmark_value = self.all_benchmark_returns[completed_session]
 
