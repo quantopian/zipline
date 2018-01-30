@@ -554,8 +554,7 @@ class SlippageTestCase(WithCreateBarData,
 
         expected_txn = {
             'price': float(3.49978125),
-            'dt': datetime.datetime(
-                2006, 1, 5, 14, 32, tzinfo=pytz.utc),
+            'dt': datetime.datetime(2006, 1, 5, 14, 32, tzinfo=pytz.utc),
             'amount': int(-50),
             'asset': self.ASSET133,
         }
@@ -660,11 +659,9 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
 
         expected_txn = {
             'price': float(3.0001875),
-            'dt': datetime.datetime(
-                2006, 1, 5, 14, 31, tzinfo=pytz.utc),
+            'dt': datetime.datetime(2006, 1, 5, 14, 31, tzinfo=pytz.utc),
             'amount': int(5),
             'asset': self.ASSET133,
-            'commission': None,
             'type': DATASOURCE_TYPE.TRANSACTION,
             'order_id': open_orders[0].id
         }
@@ -732,7 +729,6 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
             'dt': datetime.datetime(2006, 1, 5, 14, 31, tzinfo=pytz.utc),
             'amount': 10,
             'asset': self.ASSET1000,
-            'commission': None,
             'type': DATASOURCE_TYPE.TRANSACTION,
             'order_id': open_orders[0].id,
         }
@@ -1230,11 +1226,9 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
 
         expected_txn = {
             'price': expected_price,
-            'dt': datetime.datetime(
-                2006, 1, 5, 14, 31, tzinfo=pytz.utc),
+            'dt': datetime.datetime(2006, 1, 5, 14, 31, tzinfo=pytz.utc),
             'amount': expected_amount,
             'asset': self.ASSET133,
-            'commission': None,
             'type': DATASOURCE_TYPE.TRANSACTION,
             'order_id': open_orders[0].id
         }

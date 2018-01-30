@@ -3887,11 +3887,8 @@ class TestFuturesAlgo(WithDataPortal, WithSimParams, ZiplineTestCase):
         expected_spread = 0.05
         expected_price = (algo.order_price + 1) + expected_spread
 
-        # Capital used should be 0 because there is no commission, and the cost
-        # to enter into a long position on a futures contract is 0.
         self.assertEqual(txn['price'], expected_price)
         self.assertEqual(results['orders'][0][0]['commission'], 0.0)
-        self.assertEqual(results.capital_used[0], 0.0)
 
     def test_volume_contract_slippage(self):
         algo_code = self.algo_with_slippage(
@@ -4475,7 +4472,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
             first_auto_close_transaction,
             {
                 'amount': -order_size,
-                'commission': 0.0,
+                'commission': None,
                 'dt': self.trading_calendar.session_close(
                     assets[0].auto_close_date,
                 ),
@@ -4492,7 +4489,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
             second_auto_close_transaction,
             {
                 'amount': -order_size,
-                'commission': 0.0,
+                'commission': None,
                 'dt': self.trading_calendar.session_close(
                     assets[1].auto_close_date,
                 ),
@@ -4567,7 +4564,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
         self.assertDictContainsSubset(
             {
                 'amount': 10,
-                'commission': 0,
+                'commission': 0.0,
                 'created': last_close_for_asset,
                 'dt': last_close_for_asset,
                 'sid': assets[0],
@@ -4582,7 +4579,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
         self.assertDictContainsSubset(
             {
                 'amount': 10,
-                'commission': 0,
+                'commission': 0.0,
                 'created': last_close_for_asset,
                 'dt': algo.trading_calendar.session_close(
                     first_asset_auto_close_date,
@@ -4701,7 +4698,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
             first_auto_close_transaction,
             {
                 'amount': -order_size,
-                'commission': 0.0,
+                'commission': None,
                 'dt': algo.trading_calendar.session_close(
                     assets[0].auto_close_date,
                 ),
@@ -4718,7 +4715,7 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
             second_auto_close_transaction,
             {
                 'amount': -order_size,
-                'commission': 0.0,
+                'commission': None,
                 'dt': algo.trading_calendar.session_close(
                     assets[1].auto_close_date,
                 ),

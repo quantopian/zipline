@@ -175,6 +175,13 @@ class BenchmarkSource(object):
                 end_dt=benchmark_asset.end_date
             )
 
+    @staticmethod
+    def _daily_returns(g):
+        if g.empty:
+            return np.nan
+        else:
+            return (g[-1] - g[0]) / g[0]
+
     def _initialize_precalculated_series(self,
                                          asset,
                                          trading_calendar,
@@ -209,8 +216,11 @@ class BenchmarkSource(object):
 
         Returns
         -------
-        A pd.Series, indexed by trading day, whose values represent the %
-        change from close to close.
+        returns : pd.Series
+            indexed by trading day, whose values represent the %
+            change from close to close.
+        daily_returns : pd.Series
+            the partial daily returns for each minute
         """
         if self.emission_rate == "minute":
             minutes = trading_calendar.minutes_for_sessions_in_range(
@@ -226,7 +236,12 @@ class BenchmarkSource(object):
                 ffill=True
             )[asset]
 
-            return benchmark_series.pct_change()[1:]
+            return (
+                benchmark_series.pct_change()[1:],
+                benchmark_series.groupby(pd.TimeGrouper('D')).apply(
+                    self._daily_returns,
+                ),
+            )
         else:
             start_date = asset.start_date
             if start_date < trading_days[0]:
@@ -244,16 +259,10 @@ class BenchmarkSource(object):
                     ffill=True
                 )[asset]
 
-                def daily_returns(g):
-                    if g.empty:
-                        return np.nan
-                    else:
-                        return (g[-1] - g[0]) / g[0]
-
                 return (
                     benchmark_series.pct_change()[1:],
                     benchmark_series.groupby(pd.TimeGrouper('D')).apply(
-                        daily_returns,
+                        self._daily_returns,
                     ),
                 )
             elif start_date == trading_days[0]:

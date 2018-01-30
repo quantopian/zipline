@@ -238,14 +238,13 @@ class PositionTracker(object):
         if isnan(price):
             price = self.positions.get(asset).last_sale_price
 
-        txn = Transaction(
+        return Transaction(
             asset=asset,
             amount=-amount,
             dt=dt,
             price=price,
             order_id=None,
         )
-        return txn
 
     def get_positions(self):
 
@@ -694,7 +693,7 @@ class Ledger(object):
         )
 
     def capital_change(self, change_amount):
-        self._update_portfolio()
+        self.update_portfolio()
         portfolio = self._portfolio
 
         # we update the cash and total value so this is not dirty
