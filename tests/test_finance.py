@@ -30,7 +30,7 @@ from testfixtures import TempDirectory
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.finance.blotter import Blotter
 from zipline.finance.execution import MarketOrder, LimitOrder
-from zipline.finance.metrics import MetricsTracker, get_metrics_set
+from zipline.finance.metrics import MetricsTracker, load as load_metrics_set
 from zipline.finance.trading import SimulationParameters
 from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.data.minute_bars import BcolzMinuteBarReader
@@ -294,7 +294,7 @@ class FinanceTestCase(WithLogger,
                 emission_rate=sim_params.emission_rate,
                 data_frequency=sim_params.data_frequency,
                 asset_finder=self.asset_finder,
-                metrics=get_metrics_set('none'),
+                metrics=load_metrics_set('none'),
             )
 
             # replicate what tradesim does by going through every minute or day

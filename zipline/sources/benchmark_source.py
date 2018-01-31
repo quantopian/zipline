@@ -85,14 +85,14 @@ class BenchmarkSource(object):
         returns : float
             The returns at the given dt or session.
 
-        Warning
-        -------
-        This method expects minute inputs if ``emission_rate == 'minute'`` and
-        session labels when ``emission_rate == 'daily``.
-
         See Also
         --------
-        :class:`~zipline.sources.benchmark_source.BenchmarkSource.daily_returns`
+        :class:`zipline.sources.benchmark_source.BenchmarkSource.daily_returns`
+
+        .. warning::
+
+           This method expects minute inputs if ``emission_rate == 'minute'``
+           and session labels when ``emission_rate == 'daily``.
         """
         return self._precalculated_series.loc[dt]
 
@@ -111,14 +111,14 @@ class BenchmarkSource(object):
         returns : pd.Series
             The series of returns.
 
-        Warning
-        -------
-        This method expects minute inputs if ``emission_rate == 'minute'`` and
-        session labels when ``emission_rate == 'daily``.
-
         See Also
         --------
-        :class:`~zipline.sources.benchmark_source.BenchmarkSource.daily_returns`
+        :class:`zipline.sources.benchmark_source.BenchmarkSource.daily_returns`
+
+        .. warning::
+
+           This method expects minute inputs if ``emission_rate == 'minute'``
+           and session labels when ``emission_rate == 'daily``.
         """
         return self._precalculated_series.loc[start_dt:end_dt]
 

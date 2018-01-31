@@ -231,7 +231,7 @@ class AlgorithmSimulator(object):
 
                     yield minute_msg
 
-        risk_message = metrics_tracker.handle_simulation_end()
+        risk_message = metrics_tracker.handle_simulation_end(self.data_portal)
         yield risk_message
 
     def _cleanup_expired_assets(self, dt, position_assets):

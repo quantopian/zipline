@@ -10,15 +10,15 @@ try:
     from pygments.lexers import PythonLexer
     from pygments.formatters import TerminalFormatter
     PYGMENTS = True
-except:
+except ImportError:
     PYGMENTS = False
 import six
 from toolz import valfilter, concatv
 
 from zipline.algorithm import TradingAlgorithm
-from zipline.data.bundles.core import load
+from zipline.data import bundles
 from zipline.data.data_portal import DataPortal
-from zipline.finance.metrics import get_metrics_set
+from zipline.finance import metrics
 from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders import USEquityPricingLoader
@@ -132,7 +132,7 @@ def _run(handle_data,
         )
 
     if bundle is not None:
-        bundle_data = load(
+        bundle_data = bundles.load(
             bundle,
             environ,
             bundle_timestamp,
@@ -177,7 +177,7 @@ def _run(handle_data,
 
     if isinstance(metrics_set, six.string_types):
         try:
-            metrics_set = get_metrics_set(metrics_set)
+            metrics_set = metrics.load(metrics_set)
         except ValueError as e:
             raise _RunAlgoError(str(e))
 
@@ -330,7 +330,7 @@ def run_algorithm(start,
         The trading calendar to use for your backtest.
     metrics_set : iterable[Metric] or str, optional
         The set of metrics to compute in the simulation. If a string is passed,
-        resolve the set with :func:`~zipline.finance.metrics.get_metrics_set`.
+        resolve the set with :func:`zipline.finance.metrics.load`.
     default_extension : bool, optional
         Should the default zipline extension be loaded. This is found at
         ``$ZIPLINE_ROOT/extension.py``

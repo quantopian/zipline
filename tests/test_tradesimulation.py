@@ -23,7 +23,7 @@ from zipline import TradingAlgorithm
 from zipline.gens.sim_engine import BEFORE_TRADING_START_BAR
 
 from zipline.finance.asset_restrictions import NoRestrictions
-from zipline.finance.metrics import get_metrics_set
+from zipline.finance import metrics
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.test_algorithms import NoopAlgorithm
@@ -126,7 +126,7 @@ def initialize(context):
             script=code,
             sim_params=self.sim_params,
             env=self.env,
-            metrics=get_metrics_set('none'),
+            metrics=metrics.load('none'),
         )
 
         algo.metrics_tracker = algo._create_metrics_tracker()

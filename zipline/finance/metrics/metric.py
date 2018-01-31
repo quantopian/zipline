@@ -25,7 +25,7 @@ from ._metric import minute_annual_volatility
 
 
 class SimpleLedgerField(object):
-    """Emit the current value of a ledger field every day.
+    """Emit the current value of a ledger field every bar or every session.
 
     Parameters
     ----------
@@ -62,7 +62,8 @@ class SimpleLedgerField(object):
 
 
 class DailyLedgerField(object):
-    """Keep a daily record of a field of the ledger object.
+    """Like :class:`~zipline.finance.metrics.metric.SimpleLedgerField` but
+    also puts the current value in the ``cumulative_perf`` section.
 
     Parameters
     ----------
@@ -78,14 +79,6 @@ class DailyLedgerField(object):
             self._packet_field = ledger_field.rsplit('.', 1)[-1]
         else:
             self._packet_field = packet_field
-
-    def start_of_simulation(self,
-                            ledger,
-                            emission_rate,
-                            trading_calendar,
-                            sessions,
-                            benchmark_source):
-        self._daily_value = pd.Series(np.nan, index=sessions)
 
     def end_of_bar(self,
                    packet,
@@ -260,7 +253,7 @@ class BenchmarkReturnsAndVolatility(object):
 
 
 class PNL(object):
-    """Tracks daily and total PNL.
+    """Tracks daily and cumulative PNL.
     """
     def start_of_simulation(self,
                             ledger,

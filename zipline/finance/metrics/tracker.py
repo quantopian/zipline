@@ -299,7 +299,7 @@ class MetricsTracker(object):
 
         return packet
 
-    def handle_simulation_end(self):
+    def handle_simulation_end(self, data_portal):
         """
         When the simulation is complete, run the full period risk report
         and send it out on the results socket.
@@ -317,7 +317,9 @@ class MetricsTracker(object):
         self.end_of_simulation(
             packet,
             self._ledger,
-            self._benchmark_source,
+            self._trading_calendar,
             self._sessions,
+            data_portal,
+            self._benchmark_source,
         )
         return packet

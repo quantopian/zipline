@@ -88,7 +88,7 @@ from zipline.finance.asset_restrictions import (
 )
 from zipline.assets import Asset, Equity, Future
 from zipline.gens.tradesimulation import AlgorithmSimulator
-from zipline.finance.metrics import MetricsTracker, get_metrics_set
+from zipline.finance.metrics import MetricsTracker, load as load_metrics_set
 from zipline.pipeline import Pipeline
 from zipline.pipeline.engine import (
     ExplodingPipelineEngine,
@@ -308,7 +308,7 @@ class TradingAlgorithm(object):
         self._last_sync_time = pd.NaT
         self._metrics_set = kwargs.pop('metrics_set', None)
         if self._metrics_set is None:
-            self._metrics_set = get_metrics_set('default')
+            self._metrics_set = load_metrics_set('default')
 
         # Pull in the environment's new AssetFinder for quick reference
         self.asset_finder = self.trading_environment.asset_finder
