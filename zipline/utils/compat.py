@@ -6,11 +6,35 @@ from six import PY2
 
 
 if PY2:
+    from abc import ABCMeta
+    from types import DictProxyType
     from ctypes import py_object, pythonapi
 
-    mappingproxy = pythonapi.PyDictProxy_New
-    mappingproxy.argtypes = [py_object]
-    mappingproxy.restype = py_object
+    _new_mappingproxy = pythonapi.PyDictProxy_New
+    _new_mappingproxy.argtypes = [py_object]
+    _new_mappingproxy.restype = py_object
+
+    # Make mappingproxy a "class" so that we can use multipledispatch
+    # with it or do an ``isinstance(ob, mappingproxy)`` check in Python 2.
+    # You will never actually get an instance of this object, you will just
+    # get instances of ``types.DictProxyType``; however, ``mappingproxy`` is
+    # registered as a virtual super class so ``isinstance`` and ``issubclass``
+    # will work as expected. The only thing that will appear strange is that:
+    # ``type(mappingproxy({})) is not mappingproxy``, but you shouldn't do
+    # that.
+    class mappingproxy(object):
+        __metaclass__ = ABCMeta
+
+        def __new__(cls, *args, **kwargs):
+            return _new_mappingproxy(*args, **kwargs)
+
+    mappingproxy.register(DictProxyType)
+
+    # clear names not imported in the other branch
+    del DictProxyType
+    del ABCMeta
+    del py_object
+    del pythonapi
 
     def exc_clear():
         sys.exc_clear()
@@ -73,6 +97,11 @@ else:
 unicode = type(u'')
 
 __all__ = [
+    'PY2',
+    'exc_clear',
     'mappingproxy',
     'unicode',
+    'update_wrapper',
+    'values_as_list',
+    'wraps',
 ]
