@@ -149,28 +149,34 @@ class PositionTracker(object):
 
         return total_leftover_cash
 
-    def earn_dividends(self, dividends, stock_dividends):
+    def earn_dividends(self, cash_dividends, stock_dividends):
         """Given a list of dividends whose ex_dates are all the next trading
         day, calculate and store the cash and/or stock payments to be paid on
         each dividend's pay date.
 
         Parameters
         ----------
-        dividends: iterable of (asset, amount, pay_date) namedtuples
+        cash_dividends : iterable of (asset, amount, pay_date) namedtuples
 
         stock_dividends: iterable of (asset, payment_asset, ratio, pay_date)
             namedtuples.
         """
-        for dividend in dividends:
+        for cash_dividend in cash_dividends:
+            self._dirty_stats = True  # only mark dirty if we pay a dividend
+
             # Store the earned dividends so that they can be paid on the
             # dividends' pay_dates.
-            div_owed = self.positions[dividend.asset].earn_dividend(dividend)
+            div_owed = self.positions[cash_dividend.asset].earn_dividend(
+                cash_dividend,
+            )
             try:
-                self._unpaid_dividends[dividend.pay_date].append(div_owed)
+                self._unpaid_dividends[cash_dividend.pay_date].append(div_owed)
             except KeyError:
-                self._unpaid_dividends[dividend.pay_date] = [div_owed]
+                self._unpaid_dividends[cash_dividend.pay_date] = [div_owed]
 
         for stock_dividend in stock_dividends:
+            self._dirty_stats = True  # only mark dirty if we pay a dividend
+
             div_owed = self.positions[
                 stock_dividend.asset
             ].earn_stock_dividend(stock_dividend)

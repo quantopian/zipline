@@ -2450,7 +2450,7 @@ def order_stuff(context, data):
             0.0,
             # 1000 shares * gain of 1
             (100000.0 + 1000.0) / 100000.0 - 1.0,
-            # 2000 shares * gain of 1, capital change of +5000
+            # 2000 shares * gain of 1, capital change of +50000
             (151000.0 + 2000.0) / 151000.0 - 1.0,
             # 3000 shares * gain of 1
             (153000.0 + 3000.0) / 153000.0 - 1.0,
