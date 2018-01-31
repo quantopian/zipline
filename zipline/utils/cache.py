@@ -227,7 +227,7 @@ class dataframe_cache(MutableMapping):
             self.serialize = self._serialize_pickle
             self.deserialize = (
                 pickle.load if PY2 else
-                partial(pickle.load, encoding='bytes')
+                partial(pickle.load, encoding='latin-1')
             )
 
         ensure_directory(self.path)
