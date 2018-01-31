@@ -33,7 +33,6 @@ Position Tracking
 
 from __future__ import division
 from math import copysign
-from collections import OrderedDict
 import numpy as np
 import logbook
 

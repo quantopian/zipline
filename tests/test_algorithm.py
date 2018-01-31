@@ -175,7 +175,6 @@ from zipline.test_algorithms import (
     call_with_good_kwargs_get_open_orders,
     call_with_no_kwargs_get_open_orders,
     empty_positions,
-    set_benchmark_algo,
     no_handle_data,
 )
 from zipline.testing.predicates import assert_equal
