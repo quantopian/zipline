@@ -12,7 +12,17 @@ Development
 Highlights
 ~~~~~~~~~~
 
-None
+Extensible Risk and Performance Metrics (:issue:`2081`)
+```````````````````````````````````````````````````````
+
+The risk and performance metrics are summarizing values calculated by Zipline
+when running a simulation, for example: returns or Sharpe ratio. 1.1.2
+introduces a new API for registering custom risk and performance metrics defined
+by the user. We have also made it possible to run a backtest without computing
+any metrics to improve the feedback cycle when debugging an algorithm.
+
+For more information, see :ref:`metrics`.
+
 
 Enhancements
 ~~~~~~~~~~~~
@@ -31,12 +41,14 @@ None
 Bug Fixes
 ~~~~~~~~~
 
-- ``history`` calls with a frequency of ``1d`` now work when using a Panel as the minute data source. (:issue:`1920`)
+- ``history`` calls with a frequency of ``1d`` now work when using a Panel as
+  the minute data source. (:issue:`1920`)
 
 Performance
 ~~~~~~~~~~~
 
-- Change algorithm account validation from happening every minute in ``handle_data`` to only occurring once at the end of each day (:issue:`1884`)
+- Change algorithm account validation from happening every minute in
+  ``handle_data`` to only occurring once at the end of each day (:issue:`1884`)
 
 Maintenance and Refactorings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -51,7 +63,7 @@ None
 Documentation
 ~~~~~~~~~~~~~
 
-None
+- Documented the new risk and performance metrics API (:issue:`2081`).
 
 Miscellaneous
 ~~~~~~~~~~~~~
