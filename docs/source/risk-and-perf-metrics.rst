@@ -199,6 +199,7 @@ The ``end_of_session`` method should have the following signature:
                       packet,
                       ledger,
                       session_label,
+                      next_session_ix,
                       data_portal):
 
 ``packet`` is a dictionary to write the end of session values. This dictionary
@@ -213,6 +214,10 @@ current portfolio values.
 
 ``session_label`` is a :class:`~pandas.Timestamp` which is the label of the
 session which is has just completed.
+
+``next_session_label`` is an :class:`int` which is the index of the next trading
+session to be run. This is provided to allow for efficient access to the daily
+returns through ``ledger.daily_returns_array[:next_session_ix]``.
 
 ``data_portal`` is an instance of :class:`~zipline.data.data_portal.DataPortal`
 which is the metric's interface to pricing data
@@ -232,6 +237,7 @@ The ``end_of_bar`` method should have the following signature:
                   packet,
                   ledger,
                   dt,
+                  next_session_ix,
                   data_portal):
 
 ``packet`` is a dictionary to write the end of session values. This dictionary
@@ -246,6 +252,10 @@ current portfolio values.
 
 ``dt`` is a :class:`~pandas.Timestamp` which is the label of bar that has just
 completed.
+
+``next_session_label`` is an :class:`int` which is the index of the next trading
+session to be run. This is provided to allow for efficient access to the daily
+returns through ``ledger.daily_returns_array[:next_session_ix]``.
 
 ``data_portal`` is an instance of :class:`~zipline.data.data_portal.DataPortal`
 which is the metric's interface to pricing data.

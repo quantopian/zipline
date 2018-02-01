@@ -44,22 +44,6 @@ CACHE_FILE_TEMPLATE = '/tmp/.%s-%s.v7.cache'
 
 
 cdef class Asset:
-
-    cdef readonly int sid
-    # Cached hash of self.sid
-    cdef int sid_hash
-
-    cdef readonly object symbol
-    cdef readonly object asset_name
-
-    cdef readonly object start_date
-    cdef readonly object end_date
-    cdef public object first_traded
-    cdef readonly object auto_close_date
-
-    cdef readonly object exchange
-    cdef readonly object exchange_full
-
     _kwargnames = frozenset({
         'sid',
         'symbol',
@@ -259,13 +243,6 @@ cdef class Equity(Asset):
 
 
 cdef class Future(Asset):
-
-    cdef readonly object root_symbol
-    cdef readonly object notice_date
-    cdef readonly object expiration_date
-    cdef readonly object tick_size
-    cdef readonly float multiplier
-
     _kwargnames = frozenset({
         'sid',
         'symbol',

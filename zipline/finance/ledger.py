@@ -28,25 +28,9 @@ from zipline.finance.transaction import Transaction
 import zipline.protocol as zp
 from zipline.utils.sentinel import sentinel
 from .position import Position
+from ._finance_ext import calculate_position_tracker_stats
 
 log = logbook.Logger('Performance')
-
-
-PositionStats = namedtuple(
-    'PositionStats',
-    [
-        'net_exposure',
-        'gross_value',
-        'gross_exposure',
-        'short_value',
-        'short_exposure',
-        'shorts_count',
-        'long_value',
-        'long_exposure',
-        'longs_count',
-        'net_value',
-    ],
-)
 
 
 class PositionTracker(object):
@@ -321,10 +305,6 @@ class PositionTracker(object):
         data_frequency = self.data_frequency
 
         for asset, position in iteritems(self.positions):
-            if False and position.last_sale_date == dt:
-                # this position is already synced
-                continue
-
             last_sale_price = get_price(
                 position.asset,
                 previous_minute,
@@ -333,7 +313,9 @@ class PositionTracker(object):
                 data_frequency,
             )
 
-            if not np.isnan(last_sale_price):
+            # inline isnan because this gets called once per position per
+            # minute
+            if not last_sale_price != last_sale_price:
                 position.last_sale_price = last_sale_price
                 position.last_sale_date = dt
 
@@ -342,51 +324,8 @@ class PositionTracker(object):
         if not self._dirty_stats:
             return self._stats
 
-        net_value = long_value = short_value = 0
-        long_exposure = short_exposure = 0
-        longs_count = shorts_count = 0
-        for position in itervalues(self.positions):
-            # NOTE: this loop does a lot of stuff!
-            # we call this function every single minute of the simulations
-            # so let's not iterate through every single position multiple
-            # times.
-            exposure = position.amount * position.last_sale_price
-
-            if isinstance(position.asset, Future):
-                # Futures don't have an inherent position value.
-                value = 0
-                exposure *= position.asset.multiplier
-            else:
-                value = exposure
-
-            if exposure > 0:
-                longs_count += 1
-                long_value += value
-                long_exposure += exposure
-            elif exposure < 0:
-                shorts_count += 1
-                short_value += value
-                short_exposure += exposure
-
-        net_value = long_value + short_value
-        gross_value = long_value - short_value
-        gross_exposure = long_exposure - short_exposure
-        net_exposure = long_exposure + short_exposure
-
-        # TODO: investigate cnamedtuple here because instance creation speed
-        # is much faster
-        self._stats = stats = PositionStats(
-            long_value=long_value,
-            gross_value=gross_value,
-            short_value=short_value,
-            long_exposure=long_exposure,
-            short_exposure=short_exposure,
-            gross_exposure=gross_exposure,
-            net_exposure=net_exposure,
-            longs_count=longs_count,
-            shorts_count=shorts_count,
-            net_value=net_value
-        )
+        self._stats = stats = calculate_position_tracker_stats(self.positions)
+        self._dirty_stats = False
         return stats
 
 
@@ -440,9 +379,12 @@ class Ledger(object):
         The current day's returns. In minute emission mode, this is the partial
         day's returns. In daily emission mode, this is
         ``daily_returns[session]``.
-    daily_returns : pd.Series
+    daily_returns_series : pd.Series
         The daily returns series. Days that have not yet finished will hold
         a value of ``np.nan``.
+    daily_returns_array : np.ndarray
+        The daily returns as an ndarray. Days that have not yet finished will
+        hold a value of ``np.nan``.
     """
     def __init__(self, trading_sessions, capital_base, data_frequency):
         if len(trading_sessions):
@@ -456,10 +398,14 @@ class Ledger(object):
         self._immutable_portfolio = zp.Portfolio(start, capital_base)
         self._portfolio = zp.MutableView(self._immutable_portfolio)
 
-        self.daily_returns = pd.Series(
+        self.daily_returns_series = pd.Series(
             np.nan,
             index=trading_sessions,
         )
+        # Get a view into the storage of the returns series. Metrics
+        # can access this directly in minute mode for performance reasons.
+        self.daily_returns_array = self.daily_returns_series.values
+
         self._previous_total_returns = 0
 
         # this is a component of the cache key for the account
@@ -522,15 +468,15 @@ class Ledger(object):
         # correct value in metric ``end_of_session`` handlers.
         self._previous_total_returns = self.portfolio.returns
 
-    def end_of_bar(self, dt):
+    def end_of_bar(self, session_ix):
         # make daily_returns hold the partial returns, this saves many
         # metrics from doing a concat and copying all of the previous
         # returns
-        self.daily_returns[dt.normalize()] = self.todays_returns
+        self.daily_returns_array[session_ix] = self.todays_returns
 
-    def end_of_session(self, session_label):
+    def end_of_session(self, session_ix):
         # save the daily returns time-series
-        self.daily_returns[session_label] = self.todays_returns
+        self.daily_returns_series[session_ix] = self.todays_returns
 
     def sync_last_sale_prices(self,
                               dt,

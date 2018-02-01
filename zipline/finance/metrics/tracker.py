@@ -211,10 +211,13 @@ class MetricsTracker(object):
             'progress': self.progress,
             'cumulative_risk_metrics': {},
         }
+        ledger = self._ledger
+        ledger.end_of_bar(self._session_count)
         self.end_of_bar(
             packet,
-            self._ledger,
+            ledger,
             dt,
+            self._session_count + 1,
             data_portal,
         )
         return packet
@@ -273,6 +276,7 @@ class MetricsTracker(object):
             # it's done every minute, elsewhere, for minutely emission).
             self.sync_last_sale_prices(dt, data_portal)
 
+        session_ix = self._session_count
         # increment the day counter before we move markers forward.
         self._session_count += 1
 
@@ -289,11 +293,12 @@ class MetricsTracker(object):
             'cumulative_risk_metrics': {},
         }
         ledger = self._ledger
-        ledger.end_of_session(completed_session)
+        ledger.end_of_session(session_ix)
         self.end_of_session(
             packet,
             ledger,
             completed_session,
+            self._session_count,
             data_portal,
         )
 

@@ -1,3 +1,5 @@
+cimport numpy as np
+import numpy as np
 from numpy cimport ndarray, int64_t
 from numpy import empty, searchsorted, int64
 cimport cython
@@ -72,3 +74,43 @@ def minutes_to_session_labels(ndarray[int64_t, ndim=1] minutes,
         current_idx = next_idx
 
     return results
+
+
+cdef np.int64_t NANOS_IN_MINUTE = 60000000000
+
+
+def compute_all_minutes(np.ndarray[np.int64_t] opens_in_ns,
+                        np.ndarray[np.int64_t] closes_in_ns):
+    cdef np.ndarray[np.int64_t] deltas = closes_in_ns - opens_in_ns
+
+    # + 1 because we want 390 days per standard day, not 389
+    cdef np.ndarray[np.int64_t] daily_sizes = (deltas // NANOS_IN_MINUTE) + 1
+    cdef np.int64_t num_minutes = daily_sizes.sum()
+
+    # One allocation for the entire thing. This assumes that each day
+    # represents a contiguous block of minutes.
+    cdef np.ndarray[np.int64_t] all_minutes = np.empty(
+        num_minutes,
+        dtype='int64',
+    )
+
+    cdef np.int64_t minute
+    cdef np.uint64_t ix = 0
+
+    cdef np.uint64_t day_ix
+    cdef np.uint64_t minute_ix
+    cdef np.int64_t size
+    for day_ix in range(len(daily_sizes)):
+        with cython.boundscheck(False), cython.wraparound(False):
+            size = daily_sizes[day_ix]
+            minute = opens_in_ns[day_ix]
+
+        for minute_ix in range(size):
+            with cython.boundscheck(False), cython.wraparound(False):
+                all_minutes[ix + minute_ix] = minute
+
+            minute += NANOS_IN_MINUTE
+
+        ix += size
+
+    return all_minutes.view('datetime64[ns]')

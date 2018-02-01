@@ -43,7 +43,7 @@ log = logbook.Logger('Performance')
 
 
 class Position(object):
-    __slots__ = '_inner_position', 'protocol_position'
+    __slots__ = 'inner_position', 'protocol_position'
 
     def __init__(self,
                  asset,
@@ -58,14 +58,14 @@ class Position(object):
             last_sale_price=last_sale_price,
             last_sale_date=last_sale_date,
         )
-        object.__setattr__(self, '_inner_position', inner)
+        object.__setattr__(self, 'inner_position', inner)
         object.__setattr__(self, 'protocol_position', zp.Position(inner))
 
     def __getattr__(self, attr):
-        return getattr(self._inner_position, attr)
+        return getattr(self.inner_position, attr)
 
     def __setattr__(self, attr, value):
-        setattr(self._inner_position, attr, value)
+        setattr(self.inner_position, attr, value)
 
     def earn_dividend(self, dividend):
         """

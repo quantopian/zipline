@@ -28,10 +28,11 @@ from pandas import (
 )
 from pandas.tseries.offsets import CustomBusinessDay
 from zipline.utils.calendars._calendar_helpers import (
-    next_divider_idx,
-    previous_divider_idx,
+    compute_all_minutes,
     is_open,
     minutes_to_session_labels,
+    next_divider_idx,
+    previous_divider_idx,
 )
 from zipline.utils.input_validation import (
     attrgetter,
@@ -731,38 +732,18 @@ class TradingCalendar(with_metaclass(ABCMeta)):
         """
         Returns a DatetimeIndex representing all the minutes in this calendar.
         """
-        opens_in_ns = \
-            self._opens.values.astype('datetime64[ns]')
+        opens_in_ns = self._opens.values.astype(
+            'datetime64[ns]',
+        ).view('int64')
 
-        closes_in_ns = \
-            self._closes.values.astype('datetime64[ns]')
+        closes_in_ns = self._closes.values.astype(
+            'datetime64[ns]',
+        ).view('int64')
 
-        deltas = closes_in_ns - opens_in_ns
-
-        # + 1 because we want 390 days per standard day, not 389
-        daily_sizes = (deltas / NANOS_IN_MINUTE) + 1
-        num_minutes = np.sum(daily_sizes).astype(np.int64)
-
-        # One allocation for the entire thing. This assumes that each day
-        # represents a contiguous block of minutes.
-        all_minutes = np.empty(num_minutes, dtype='datetime64[ns]')
-
-        idx = 0
-        for day_idx, size in enumerate(daily_sizes):
-            # lots of small allocations, but it's fast enough for now.
-
-            # size is a np.timedelta64, so we need to int it
-            size_int = int(size)
-            all_minutes[idx:(idx + size_int)] = \
-                np.arange(
-                    opens_in_ns[day_idx],
-                    closes_in_ns[day_idx] + NANOS_IN_MINUTE,
-                    NANOS_IN_MINUTE
-                )
-
-            idx += size_int
-
-        return DatetimeIndex(all_minutes).tz_localize("UTC")
+        return DatetimeIndex(
+            compute_all_minutes(opens_in_ns, closes_in_ns),
+            tz='utc',
+        )
 
     @preprocess(dt=coerce(pd.Timestamp, attrgetter('value')))
     def minute_to_session_label(self, dt, direction="next"):
