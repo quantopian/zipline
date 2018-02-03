@@ -245,11 +245,18 @@ def install_requires(strict_bounds=False, conda_format=False):
 def extras_requires(conda_format=False):
     extras = {
         extra: read_requirements('etc/requirements_{0}.txt'.format(extra),
-                                 strict_bounds=False,
+                                 strict_bounds=True,
                                  conda_format=conda_format)
         for extra in ('dev', 'talib')
     }
     extras['all'] = [req for reqs in extras.values() for req in reqs]
+
+    extras['testing'] = {
+        'nose',
+        'nose-parameterized',
+        'nose-ignore-docstring',
+        'nose-timer',
+    }
 
     return extras
 
