@@ -245,7 +245,7 @@ def install_requires(strict_bounds=False, conda_format=False):
 def extras_requires(conda_format=False):
     extras = {
         extra: read_requirements('etc/requirements_{0}.txt'.format(extra),
-                                 strict_bounds=True,
+                                 strict_bounds=False,
                                  conda_format=conda_format)
         for extra in ('dev', 'talib')
     }
