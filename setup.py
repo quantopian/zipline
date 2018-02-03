@@ -237,9 +237,15 @@ def read_requirements(path,
 
 
 def install_requires(strict_bounds=False, conda_format=False):
-    return read_requirements('etc/requirements.txt',
-                             strict_bounds=strict_bounds,
-                             conda_format=conda_format)
+    return [
+        'cyordereddict',
+        'bottleneck',
+        'intervaltree',
+        'numpy',
+        'pandas==0.18.1',
+        'pandas-datareader<0.6.0',
+        'bcolz==0.12.1',
+    ]
 
 
 def extras_requires(conda_format=False):
@@ -256,6 +262,7 @@ def extras_requires(conda_format=False):
         'nose-parameterized',
         'nose-ignore-docstring',
         'nose-timer',
+        'testfixtures',
     }
 
     return extras
