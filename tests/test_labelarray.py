@@ -434,7 +434,7 @@ class LabelArrayTestCase(ZiplineTestCase):
         # uint8
         categories = create_categories(8, plus_one=False)
         arr = LabelArray(
-            [],
+            categories,
             missing_value=categories[0],
             categories=categories,
         )
@@ -449,7 +449,7 @@ class LabelArrayTestCase(ZiplineTestCase):
         # just over uint8
         categories = create_categories(8, plus_one=True)
         arr = LabelArray(
-            [],
+            categories,
             missing_value=categories[0],
             categories=categories,
         )
@@ -459,7 +459,8 @@ class LabelArrayTestCase(ZiplineTestCase):
         # fits in uint16
         categories = create_categories(16, plus_one=False)
         arr = LabelArray(
-            [], missing_value=categories[0],
+            categories,
+            missing_value=categories[0],
             categories=categories,
         )
         self.assertEqual(arr.itemsize, 2)
@@ -473,7 +474,7 @@ class LabelArrayTestCase(ZiplineTestCase):
         # just over uint16
         categories = create_categories(16, plus_one=True)
         arr = LabelArray(
-            [],
+            categories,
             missing_value=categories[0],
             categories=categories,
         )
@@ -487,6 +488,20 @@ class LabelArrayTestCase(ZiplineTestCase):
 
         # NOTE: we could do this for 32 and 64; however, no one has enough RAM
         # or time for that.
+
+    def test_known_categories_without_missing_at_boundary(self):
+        # This tests the case where we have exactly 256 unique categories but
+        # we didn't include the missing value in the categories.
+        categories = self.create_categories(8, plus_one=False)
+
+        arr = LabelArray(
+            categories,
+            None,
+            categories=categories,
+        )
+        self.check_roundtrip(arr)
+        # the missing value pushes us into 2 byte storage
+        self.assertEqual(arr.itemsize, 2)
 
     def test_narrow_condense_back_to_valid_size(self):
         categories = ['a'] * (2 ** 8 + 1)
