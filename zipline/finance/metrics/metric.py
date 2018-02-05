@@ -22,6 +22,7 @@ import pandas as pd
 
 from zipline.utils.exploding_object import NamedExplodingObject
 from zipline.finance._finance_ext import minute_annual_volatility
+import zipline.finance.risk as risk
 
 
 class SimpleLedgerField(object):
@@ -531,3 +532,45 @@ class PeriodLabel(object):
         packet['cumulative_risk_metrics']['period_label'] = self._label
 
     end_of_session = end_of_bar
+
+
+class ClassicRiskMetrics(object):
+    """Produces original risk packet
+    """
+
+    def start_of_simulation(self,
+                            ledger,
+                            emission_rate,
+                            trading_calendar,
+                            sessions,
+                            benchmark_source):
+        self._sessions = sessions
+        self._leverages = pd.Series(data=np.NAN, index=sessions)
+        self._daily_benchmark_returns = benchmark_source.daily_returns(
+            sessions[0],
+            sessions[-1],
+        )
+
+    def end_of_session(self,
+                       packet,
+                       ledger,
+                       dt,
+                       next_session_ix,
+                       data_portal):
+        self._leverages[dt] = ledger.account.leverage
+
+    def end_of_simulation(self,
+                          packet,
+                          ledger,
+                          trading_calendar,
+                          sessions,
+                          data_portal,
+                          benchmark_source):
+
+        risk_report = risk.RiskReport(
+            ledger.daily_returns_series,
+            benchmark_returns=self._daily_benchmark_returns,
+            algorithm_leverages=self._leverages,
+            trading_calendar=trading_calendar,
+        )
+        packet.update(risk_report.to_dict())

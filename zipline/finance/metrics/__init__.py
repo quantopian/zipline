@@ -24,6 +24,7 @@ from .metric import (
     AlphaBeta,
     BenchmarkReturnsAndVolatility,
     CashFlow,
+    ClassicRiskMetrics,
     DailyLedgerField,
     MaxLeverage,
     NumTradingDays,
@@ -107,4 +108,5 @@ def default_metrics():
         _ConstantCumulativeRiskMetric('treasury_period_return', 0.0),
         NumTradingDays(),
         PeriodLabel(),
+        ClassicRiskMetrics(),
     }
