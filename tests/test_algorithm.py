@@ -1403,7 +1403,7 @@ class TestBeforeTradingStart(WithDataPortal,
                 [sid(1), sid(2)],
                 ["price", "high"],
                 1,
-                "1m"
+                "1d",
             ))
 
         def handle_data(context, data):
@@ -1429,7 +1429,7 @@ class TestBeforeTradingStart(WithDataPortal,
         self.assertEqual(392, algo.history_values[0]["high"][1][0])
         self.assertEqual(390, algo.history_values[0]["price"][1][0])
 
-        self.assertTrue(np.isnan(algo.history_values[0]["high"][2][0]))
+        self.assertEqual(352, algo.history_values[0]["high"][2][0])
         self.assertEqual(350, algo.history_values[0]["price"][2][0])
 
     def test_portfolio_bts(self):
