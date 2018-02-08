@@ -244,12 +244,6 @@ class PositionTracker(object):
         positions = self._positions_store
 
         for asset, pos in iteritems(self.positions):
-            if pos.amount == 0:
-                # Clear out the position if it has become empty since the last
-                # time get_positions was called.
-                positions.pop(asset, None)
-                continue
-
             # Adds the new position if we didn't have one before, or overwrite
             # one we have currently
             positions[asset] = pos.protocol_position
