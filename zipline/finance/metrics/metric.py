@@ -46,7 +46,7 @@ class SimpleLedgerField(object):
                    packet,
                    ledger,
                    dt,
-                   next_session_ix,
+                   session_ix,
                    data_portal):
         packet['minute_perf'][self._packet_field] = self._get_ledger_field(
             ledger,
@@ -56,7 +56,7 @@ class SimpleLedgerField(object):
                        packet,
                        ledger,
                        session,
-                       next_session_ix,
+                       session_ix,
                        data_portal):
         packet['daily_perf'][self._packet_field] = self._get_ledger_field(
             ledger,
@@ -86,7 +86,7 @@ class DailyLedgerField(object):
                    packet,
                    ledger,
                    dt,
-                   next_session_ix,
+                   session_ix,
                    data_portal):
         field = self._packet_field
         packet['cumulative_perf'][field] = packet['minute_perf'][field] = (
@@ -97,7 +97,7 @@ class DailyLedgerField(object):
                        packet,
                        ledger,
                        session,
-                       next_session_ix,
+                       session_ix,
                        data_portal):
         field = self._packet_field
         packet['cumulative_perf'][field] = packet['daily_perf'][field] = (
@@ -143,7 +143,7 @@ class StartOfPeriodLedgerField(object):
                    packet,
                    ledger,
                    dt,
-                   next_session_ix,
+                   session_ix,
                    data_portal):
         self._end_of_period('minute_perf', packet, ledger)
 
@@ -151,7 +151,7 @@ class StartOfPeriodLedgerField(object):
                        packet,
                        ledger,
                        session,
-                       next_session_ix,
+                       session_ix,
                        data_portal):
         self._end_of_period('daily_perf', packet, ledger)
 
@@ -163,7 +163,7 @@ class Returns(object):
                        packet,
                        ledger,
                        dt,
-                       next_session_ix,
+                       session_ix,
                        data_portal):
         packet[field]['returns'] = ledger.todays_returns
         packet['cumulative_perf']['returns'] = ledger.portfolio.returns
@@ -230,7 +230,7 @@ class BenchmarkReturnsAndVolatility(object):
                    packet,
                    ledger,
                    dt,
-                   next_session_ix,
+                   session_ix,
                    data_portal):
         packet['minute_perf']['benchmark_returns'] = self._minute_returns[dt]
 
@@ -246,7 +246,7 @@ class BenchmarkReturnsAndVolatility(object):
                        packet,
                        ledger,
                        session,
-                       next_session_ix,
+                       session_ix,
                        data_portal):
         packet['daily_perf']['benchmark_returns'] = (
             self._daily_returns[session]
@@ -284,7 +284,7 @@ class PNL(object):
                    packet,
                    ledger,
                    dt,
-                   next_session_ix,
+                   session_ix,
                    data_portal):
         self._end_of_period('minute_perf', packet, ledger)
 
@@ -292,7 +292,7 @@ class PNL(object):
                        packet,
                        ledger,
                        session,
-                       next_session_ix,
+                       session_ix,
                        data_portal):
         self._end_of_period('daily_perf', packet, ledger)
 
@@ -316,7 +316,7 @@ class CashFlow(object):
                    packet,
                    ledger,
                    dt,
-                   next_session_ix,
+                   session_ix,
                    data_portal):
         cash_flow = ledger.portfolio.cash_flow
         packet['minute_perf']['capital_used'] = (
@@ -328,7 +328,7 @@ class CashFlow(object):
                        packet,
                        ledger,
                        session,
-                       next_session_ix,
+                       session_ix,
                        data_portal):
         cash_flow = ledger.portfolio.cash_flow
         packet['daily_perf']['capital_used'] = (
@@ -345,7 +345,7 @@ class Orders(object):
                    packet,
                    ledger,
                    dt,
-                   next_session_ix,
+                   session_ix,
                    data_portal):
         packet['minute_perf']['orders'] = ledger.orders(dt)
 
@@ -353,7 +353,7 @@ class Orders(object):
                        packet,
                        ledger,
                        dt,
-                       next_session_ix,
+                       session_ix,
                        data_portal):
         packet['daily_perf']['orders'] = ledger.orders()
 
@@ -365,7 +365,7 @@ class Transactions(object):
                    packet,
                    ledger,
                    dt,
-                   next_session_ix,
+                   session_ix,
                    data_portal):
         packet['minute_perf']['transactions'] = ledger.transactions(dt)
 
@@ -373,7 +373,7 @@ class Transactions(object):
                        packet,
                        ledger,
                        dt,
-                       next_session_ix,
+                       session_ix,
                        data_portal):
         packet['daily_perf']['transactions'] = ledger.transactions()
 
@@ -385,7 +385,7 @@ class Positions(object):
                    packet,
                    ledger,
                    dt,
-                   next_session_ix,
+                   session_ix,
                    data_portal):
         packet['minute_perf']['positions'] = ledger.positions(dt)
 
@@ -393,7 +393,7 @@ class Positions(object):
                        packet,
                        ledger,
                        dt,
-                       next_session_ix,
+                       session_ix,
                        data_portal):
         packet['daily_perf']['positions'] = ledger.positions()
 
@@ -421,10 +421,10 @@ class ReturnsStatistic(object):
                    packet,
                    ledger,
                    dt,
-                   next_session_ix,
+                   session_ix,
                    data_portal):
         packet['cumulative_risk_metrics'][self._field_name] = self._function(
-            ledger.daily_returns_array[:next_session_ix],
+            ledger.daily_returns_array[:session_ix + 1],
         )
 
     end_of_session = end_of_bar
@@ -448,12 +448,12 @@ class AlphaBeta(object):
                    packet,
                    ledger,
                    dt,
-                   next_session_ix,
+                   session_ix,
                    data_portal):
         risk = packet['cumulative_risk_metrics']
         risk['alpha'], risk['beta'] = empyrical.alpha_beta_aligned(
-            ledger.daily_returns_array[:next_session_ix],
-            self._daily_returns_array[:next_session_ix],
+            ledger.daily_returns_array[:session_ix + 1],
+            self._daily_returns_array[:session_ix + 1],
         )
 
     end_of_session = end_of_bar
@@ -469,7 +469,7 @@ class MaxLeverage(object):
                    packet,
                    ledger,
                    dt,
-                   next_session_ix,
+                   session_ix,
                    data_portal):
         self._max_leverage = max(self._max_leverage, ledger.account.leverage)
         packet['cumulative_risk_metrics']['max_leverage'] = self._max_leverage
@@ -490,7 +490,7 @@ class NumTradingDays(object):
                    packet,
                    ledger,
                    dt,
-                   next_session_ix,
+                   session_ix,
                    data_portal):
         packet['cumulative_risk_metrics']['trading_days'] = (
             self._num_trading_days

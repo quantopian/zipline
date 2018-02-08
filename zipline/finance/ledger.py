@@ -16,6 +16,7 @@
 from __future__ import division
 
 from collections import namedtuple, OrderedDict
+from functools import partial
 from math import isnan
 
 import logbook
@@ -28,7 +29,10 @@ from zipline.finance.transaction import Transaction
 import zipline.protocol as zp
 from zipline.utils.sentinel import sentinel
 from .position import Position
-from ._finance_ext import calculate_position_tracker_stats
+from ._finance_ext import (
+    calculate_position_tracker_stats,
+    update_position_last_sale_prices,
+)
 
 log = logbook.Logger('Performance')
 
@@ -42,8 +46,8 @@ class PositionTracker(object):
         The data frequency of the simulation.
     """
     def __init__(self, data_frequency):
-        # asset => position object
         self.positions = OrderedDict()
+
         self._unpaid_dividends = {}
         self._unpaid_stock_dividends = {}
         self._positions_store = zp.Positions()
@@ -237,15 +241,12 @@ class PositionTracker(object):
         )
 
     def get_positions(self):
-
         positions = self._positions_store
 
         for asset, pos in iteritems(self.positions):
             if pos.amount == 0:
                 # Clear out the position if it has become empty since the last
-                # time get_positions was called.  Catching the KeyError is
-                # faster than checking `if asset in positions`, and this can be
-                # potentially called in a tight inner loop.
+                # time get_positions was called.
                 positions.pop(asset, None)
                 continue
 
@@ -256,38 +257,11 @@ class PositionTracker(object):
         return positions
 
     def get_position_list(self):
-        positions = []
-        for asset, pos in iteritems(self.positions):
-            if pos.amount != 0:
-                positions.append(pos.to_dict())
-        return positions
-
-    def _market_minute_get_price(self,
-                                 asset,
-                                 _,
-                                 dt,
-                                 data_portal,
-                                 data_frequency):
-        return data_portal.get_scalar_asset_spot_value(
-            asset,
-            'price',
-            dt,
-            data_frequency,
-        )
-
-    def _non_market_minute_get_price(self,
-                                     asset,
-                                     previous_minute,
-                                     dt,
-                                     data_portal,
-                                     data_frequency):
-        return data_portal.get_adjusted_value(
-            asset,
-            'price',
-            previous_minute,
-            dt,
-            data_frequency,
-        )
+        return [
+            pos.to_dict()
+            for asset, pos in iteritems(self.positions)
+            if pos.amount != 0
+        ]
 
     def sync_last_sale_prices(self,
                               dt,
@@ -297,27 +271,23 @@ class PositionTracker(object):
 
         if handle_non_market_minutes:
             previous_minute = data_portal.trading_calendar.previous_minute(dt)
-            get_price = self._non_market_minute_get_price
-        else:
-            previous_minute = None
-            get_price = self._market_minute_get_price
-
-        data_frequency = self.data_frequency
-
-        for asset, position in iteritems(self.positions):
-            last_sale_price = get_price(
-                position.asset,
-                previous_minute,
-                dt,
-                data_portal,
-                data_frequency,
+            get_price = partial(
+                data_portal.get_adjusted_value,
+                field='close',
+                dt=previous_minute,
+                perspective_dt=dt,
+                data_frequency=self.data_frequency,
             )
 
-            # inline isnan because this gets called once per position per
-            # minute
-            if not last_sale_price != last_sale_price:
-                position.last_sale_price = last_sale_price
-                position.last_sale_date = dt
+        else:
+            get_price = partial(
+                data_portal.get_scalar_asset_spot_value,
+                field='close',
+                dt=dt,
+                data_frequency=self.data_frequency,
+            )
+
+        update_position_last_sale_prices(self.positions, get_price, dt)
 
     @property
     def stats(self):

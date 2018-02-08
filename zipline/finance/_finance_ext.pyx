@@ -9,6 +9,32 @@ from zipline._protocol cimport InnerPosition
 from zipline.assets._assets cimport Future
 
 
+cpdef update_position_last_sale_prices(positions, get_price, dt):
+    """Update the positions' last sale prices.
+
+    Parameters
+    ----------
+    positions : OrderedDict
+        The positions to update.
+    get_price : callable[Asset, float]
+        The function to retrieve the price for the asset.
+    dt : pd.Timestamp
+        The dt to set as the last sale date if the price is not nan.
+    """
+    cdef InnerPosition inner_position
+    cdef np.float64_t last_sale_price
+
+    for outer_position in itervalues(positions):
+        inner_position = outer_position.inner_position
+
+        last_sale_price = get_price(inner_position.asset)
+
+        # inline ~isnan because this gets called once per position per minute
+        if last_sale_price == last_sale_price:
+            inner_position.last_sale_price = last_sale_price
+            inner_position.last_sale_date = dt
+
+
 @cython.final
 cdef class PositionStats:
     cdef readonly np.float64_t net_exposure
