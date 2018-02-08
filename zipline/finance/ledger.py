@@ -267,7 +267,7 @@ class PositionTracker(object):
             previous_minute = data_portal.trading_calendar.previous_minute(dt)
             get_price = partial(
                 data_portal.get_adjusted_value,
-                field='close',
+                field='price',
                 dt=previous_minute,
                 perspective_dt=dt,
                 data_frequency=self.data_frequency,
@@ -276,7 +276,7 @@ class PositionTracker(object):
         else:
             get_price = partial(
                 data_portal.get_scalar_asset_spot_value,
-                field='close',
+                field='price',
                 dt=dt,
                 data_frequency=self.data_frequency,
             )
