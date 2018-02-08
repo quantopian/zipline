@@ -14,6 +14,8 @@
 # limitations under the License.
 import empyrical
 
+from zipline.utils.deprecate import deprecated
+
 from .core import (
     metrics_sets,
     register,
@@ -108,5 +110,15 @@ def default_metrics():
         _ConstantCumulativeRiskMetric('treasury_period_return', 0.0),
         NumTradingDays(),
         PeriodLabel(),
-        ClassicRiskMetrics(),
     }
+
+
+@register('classic')
+@deprecated(
+    'The original risk packet has been deprecated and will be removed in a '
+    'future release. Please use "default" metrics instead.'
+)
+def classic_metrics():
+    metrics = default_metrics()
+    metrics.add(ClassicRiskMetrics())
+    return metrics
