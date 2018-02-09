@@ -22,7 +22,7 @@ def iter_stdout(cmd):
             raise subprocess.CalledProcessError(retcode, cmd[0])
 
 
-PKG_PATH_PATTERN = re.compile(".* anaconda upload (?P<pkg_path>.+)$")
+PKG_PATH_PATTERN = re.compile(".*anaconda upload (?P<pkg_path>.+)$")
 
 
 def main(env, do_upload):
