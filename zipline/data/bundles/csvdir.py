@@ -8,6 +8,10 @@ from logbook import Logger, StreamHandler
 from numpy import empty
 from pandas import DataFrame, read_csv, Index, Timedelta, NaT
 
+from zipline.finance.constants import (
+    SPY_BENCHMARK_SID,
+    ZPLN_BENCHMARK_SID,
+)
 from zipline.utils.calendars import register_calendar_alias
 from zipline.utils.cli import maybe_show_progress
 
@@ -18,7 +22,7 @@ logger = Logger(__name__)
 logger.handlers.append(handler)
 
 
-def csvdir_equities(tframes=None, csvdir=None):
+def csvdir_equities(tframes=None, csvdir=None, use_spy=True):
     """
     Generate an ingest function for custom data bundle
     This function can be used in ~/.zipline/extension.py
@@ -37,7 +41,9 @@ def csvdir_equities(tframes=None, csvdir=None):
         <directory>/<timeframe2>/<symbol1>.csv
         <directory>/<timeframe2>/<symbol2>.csv
         <directory>/<timeframe2>/<symbol3>.csv
-
+    use_spy : boolean, optional, default: True
+        Sets the SPY as the default benchmark. Set this to False if
+        you're using equities outside of US Markets.
     Returns
     -------
     ingest : callable
@@ -53,18 +59,23 @@ def csvdir_equities(tframes=None, csvdir=None):
                 '/full/path/to/the/csvdir/directory'))
     """
 
-    return CSVDIRBundle(tframes, csvdir).ingest
+    return CSVDIRBundle(tframes, csvdir, use_spy).ingest
 
 
 class CSVDIRBundle:
     """
     Wrapper class to call csvdir_bundle with provided
     list of time frames and a path to the csvdir directory
+
+    Parameters
+    ----------
+    tframes : list
     """
 
-    def __init__(self, tframes=None, csvdir=None):
+    def __init__(self, tframes=None, csvdir=None, use_spy=True):
         self.tframes = tframes
         self.csvdir = csvdir
+        self.use_spy = use_spy
 
     def ingest(self,
                environ,
@@ -93,7 +104,8 @@ class CSVDIRBundle:
                       show_progress,
                       output_dir,
                       self.tframes,
-                      self.csvdir)
+                      self.csvdir,
+                      self.use_spy)
 
 
 @bundles.register("csvdir")
@@ -110,7 +122,8 @@ def csvdir_bundle(environ,
                   show_progress,
                   output_dir,
                   tframes=None,
-                  csvdir=None):
+                  csvdir=None,
+                  use_spy=True):
     """
     Build a zipline data bundle from the directory with csv files.
     """
@@ -184,6 +197,15 @@ def csvdir_bundle(environ,
             splits=divs_splits['splits'],
             dividends=divs_splits['divs']
         )
+
+    if use_spy:
+        default_benchmark_sid = SPY_BENCHMARK_SID
+    else:
+        default_benchmark_sid = ZPLN_BENCHMARK_SID
+
+    metadata_writer.write_benchmark_metadata(
+        default_benchmark_sid=default_benchmark_sid
+    )
 
 
 def _pricing_iter(csvdir, symbols, metadata, divs_splits, show_progress):
