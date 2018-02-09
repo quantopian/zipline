@@ -784,6 +784,14 @@ class TradingCalendar(with_metaclass(ABCMeta)):
                 pass
 
         idx = searchsorted(self.market_closes_nanos, dt)
+        if idx == len(self.schedule.index):
+            raise IndexError(
+                ("The end session of your trading_calendar might be before "
+                 "the end session of the asset. "
+                 "Try changing the asset end_session "
+                 "or auto_close_date.")
+            )
+
         current_or_next_session = self.schedule.index[idx]
         self._minute_to_session_label_cache[dt] = current_or_next_session
 
