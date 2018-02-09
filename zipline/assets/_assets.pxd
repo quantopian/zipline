@@ -1,8 +1,8 @@
+cimport numpy as np
+
 cdef class Asset:
 
-    cdef readonly int sid
-    # Cached hash of self.sid
-    cdef int sid_hash
+    cdef readonly np.int64_t sid
 
     cdef readonly object symbol
     cdef readonly object asset_name

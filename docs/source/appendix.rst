@@ -401,6 +401,8 @@ Algorithm State
 .. autoclass:: zipline.finance.ledger.PositionTracker
    :members:
 
+.. autoclass:: zipline.finance._finance_ext.PositionStats
+
 Built-in Metrics
 ````````````````
 

@@ -57,7 +57,7 @@ cdef class Asset:
     })
 
     def __init__(self,
-                 int sid, # sid is required
+                 int64_t sid, # sid is required
                  object exchange, # exchange is required
                  object symbol="",
                  object asset_name="",
@@ -68,7 +68,6 @@ cdef class Asset:
                  object exchange_full=None):
 
         self.sid = sid
-        self.sid_hash = hash(sid)
         self.symbol = symbol
         self.asset_name = asset_name
         self.exchange = exchange
@@ -86,14 +85,14 @@ cdef class Asset:
         return self.sid
 
     def __hash__(self):
-        return self.sid_hash
+        return self.sid
 
     def __richcmp__(x, y, int op):
         """
         Cython rich comparison method.  This is used in place of various
         equality checkers in pure python.
         """
-        cdef int x_as_int, y_as_int
+        cdef int64_t x_as_int, y_as_int
 
         try:
             x_as_int = PyNumber_Index(x)
@@ -261,7 +260,7 @@ cdef class Future(Asset):
     })
 
     def __init__(self,
-                 int sid, # sid is required
+                 int64_t sid, # sid is required
                  object exchange, # exchange is required
                  object symbol="",
                  object root_symbol="",

@@ -30,6 +30,7 @@ import zipline.protocol as zp
 from zipline.utils.sentinel import sentinel
 from .position import Position
 from ._finance_ext import (
+    PositionStats,
     calculate_position_tracker_stats,
     update_position_last_sale_prices,
 )
@@ -56,7 +57,7 @@ class PositionTracker(object):
 
         # cache the stats until something alters our positions
         self._dirty_stats = True
-        self._stats = None
+        self._stats = PositionStats.new()
 
     def update_position(self,
                         asset,
@@ -285,12 +286,23 @@ class PositionTracker(object):
 
     @property
     def stats(self):
-        if not self._dirty_stats:
-            return self._stats
+        """The current status of the positions.
 
-        self._stats = stats = calculate_position_tracker_stats(self.positions)
-        self._dirty_stats = False
-        return stats
+        Returns
+        -------
+        stats : PositionStats
+            The current stats position stats.
+
+        Notes
+        -----
+        This is cached, repeated access will not recompute the stats until
+        the stats may have changed.
+        """
+        if self._dirty_stats:
+            calculate_position_tracker_stats(self.positions, self._stats)
+            self._dirty_stats = False
+
+        return self._stats
 
 
 if PY2:
@@ -734,39 +746,22 @@ class Ledger(object):
         Notes
         -----
         This is cached, repeated access will not recompute the portfolio until
-        the portfolio has changed.
+        the portfolio may have changed.
         """
         self.update_portfolio()
         return self._immutable_portfolio
 
-    @staticmethod
-    def _calculate_net_liquidation(ending_cash, long_value, short_value):
-        return ending_cash + long_value + short_value
-
-    @staticmethod
-    def _calculate_leverage(exposure, net_liquidation):
-        if net_liquidation != 0:
-            return exposure / net_liquidation
-
-        return np.inf
-
     def calculate_period_stats(self):
         position_stats = self.position_tracker.stats
-        net_liquidation = self._calculate_net_liquidation(
-            self._portfolio.cash,
-            position_stats.long_value,
-            position_stats.short_value,
-        )
-        gross_leverage = self._calculate_leverage(
-            position_stats.gross_exposure,
-            net_liquidation,
-        )
-        net_leverage = self._calculate_leverage(
-            position_stats.net_exposure,
-            net_liquidation,
-        )
+        portfolio_value = self.portfolio.portfolio_value
 
-        return net_liquidation, gross_leverage, net_leverage
+        if portfolio_value == 0:
+            gross_leverage = net_leverage = np.inf
+        else:
+            gross_leverage = position_stats.gross_exposure / portfolio_value
+            net_leverage = position_stats.net_exposure / portfolio_value
+
+        return portfolio_value, gross_leverage, net_leverage
 
     def override_account_fields(self,
                                 settled_cash=not_overridden,
