@@ -70,6 +70,10 @@ def get_cache_filepath(name):
     return os.path.join(cr, name)
 
 
+def get_benchmark_filename(symbol):
+    return "%s_benchmark.csv" % symbol
+
+
 def has_data_for_dates(series_or_df, first_date, last_date):
     """
     Does `series_or_df` have data on or before first_date and on or after
