@@ -71,7 +71,7 @@ script:
   # unshallow the clone so the conda build can clone it.
   - git fetch --unshallow
   - exec 3>&1; ZP_OUT=$(conda build conda/zipline --python=$CONDA_PY --numpy=$CONDA_NPY -c quantopian -c quantopian/label/ci | tee >(cat - >&3))
-  - ZP_OUTPUT=$(echo "$ZP_OUT" | grep "anaconda upload" | awk '{print $NF}')
+  - ZP_OUTPUT=$(echo "$ZP_OUT" | grep "anaconda upload " | awk '{print $NF}')
   - if [ -z "$ZP_OUTPUT" ]; then exit 1; fi
   - if [[ "$DO_UPLOAD" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload $ZP_OUTPUT -u quantopian --label ci; fi
   # reactivate env (necessary for coveralls)
