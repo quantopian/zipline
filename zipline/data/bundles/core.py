@@ -273,21 +273,25 @@ def get_benchmark_data(symbol, trading_calendar):
 
         df = pd.DataFrame(data)
         df.index = pd.DatetimeIndex(df['date'])
-
         df = df[OHLCV]
 
         num_zeros = len(df)
         df['dividends'] = np.zeros((num_zeros,))
         df['splits'] = np.ones((num_zeros,))
 
-        sessions = pd.date_range(
-            start=trading_calendar.first_session,
-            end=trading_calendar.last_session
+        sessions = trading_calendar.sessions_in_range(
+            trading_calendar.first_session,
+            trading_calendar.last_session
         )
         start_date = pd.Timestamp(sessions.values[0], tz='UTC')
         end_date = pd.Timestamp(sessions.values[-1], tz='UTC')
 
         benchmark_data = df.sort_index().tz_localize('UTC')
+        # IEX only gives us 5 years worth of data from the current day,
+        # for US Markets; we ffill() and bfill() so we don't error
+        # when using a trading calendar that, for example, trades 24/7
+        benchmark_data = benchmark_data.reindex(sessions).ffill().bfill()
+
         benchmark_asset = Equity(
             sid=SPY_BENCHMARK_SID,
             exchange=trading_calendar.name,
@@ -306,6 +310,20 @@ def create_fake_benchmark(trading_calendar):
     Creates a fake asset called ZPLN with data completely zero'd
     out so that we can still run a Zipline backtest if getting data
     for SPY from a 3rd-Party data source fails.
+
+    Parameters
+    ----------
+    trading_calendar : TradingCalendar
+        The TradingCalendar object we want to use for the dates
+        associated with our ZPLN asset
+
+    Returns
+    -------
+    fake_benchmark_asset : Equity
+        Equity object representation of ZPLN
+    fake_benchmark_data  : pd.DataFrame
+        DataFrame containing the zero'd out OHLCV columns and dates
+        matching our trading_calendar
     """
     sessions = trading_calendar.sessions_in_range(
         trading_calendar.first_session,
@@ -325,7 +343,7 @@ def create_fake_benchmark(trading_calendar):
     # we do the following in order to get a DataFrame with a format
     # that a BcolzDailyBarWriter object would expect
     # and then call write()
-    # with this DataFrame in store_fake_benchmark_in_bundle
+    # with this DataFrame in store_benchmark_in_bundle
     fake_benchmark_data = pd.DataFrame(
         data=np.zeros(
             shape=(num_days, len(OHLCV))
@@ -347,7 +365,6 @@ def store_benchmark_in_bundle(asset_db_writer,
                               adjustment_writer,
                               benchmark_asset,
                               benchmark_data):
-    # uses logic similar to the csvdir bundle
     dtypes = [
         ('start_date', 'datetime64[ns]'),
         ('end_date', 'datetime64[ns]'),
@@ -633,7 +650,7 @@ def _make_bundle_core():
             )
 
             # TODO: What sort of useful message can we put here?
-            log.info('Writing SPY from IEX and fake ZPLN asset')
+            log.info('Writing both SPY from IEX and our fake ZPLN asset')
             fake_benchmark_asset, fake_benchmark_data =\
                 create_fake_benchmark(calendar)
 
