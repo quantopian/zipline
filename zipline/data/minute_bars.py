@@ -1140,7 +1140,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
         return self._pos_to_minute(minute_pos)
 
     def _find_last_traded_position(self, asset, dt):
-        volumes = self._open_minute_file('volume', asset)
+        volumes = self._open_minute_file('close', asset)
         start_date_minute = asset.start_date.value / NANOS_IN_MINUTE
         dt_minute = dt.value / NANOS_IN_MINUTE
 
