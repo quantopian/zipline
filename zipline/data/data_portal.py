@@ -657,16 +657,14 @@ class DataPortal(object):
                 else:
                     return 0
 
+        # At this point the pairing of column='close' and ffill=True is
+        # assumed.
         try:
             # Optimize the best case scenario of a liquid asset
             # returning a valid price.
             result = reader.get_value(asset.sid, dt, column)
-            if column != 'volume':
-                if not pd.isnull(result):
-                    return result
-            else:
-                if result != 0:
-                    return result
+            if not pd.isnull(result):
+                return result
         except NoDataOnDate:
             # Handling of no data for the desired date is done by the
             # forward filling logic.
@@ -678,10 +676,7 @@ class DataPortal(object):
 
         if pd.isnull(query_dt):
             # no last traded dt, bail
-            if column != 'volume':
-                return np.nan
-            else:
-                return 0
+            return np.nan
 
         result = reader.get_value(asset.sid, query_dt, column)
 
