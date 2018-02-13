@@ -144,6 +144,8 @@ cdef class PositionStats:
     cdef readonly object position_exposure_array
     cdef readonly object position_exposure_series
 
+    # These are the same memory exposed through ``position_exposure_array``
+    # and ``position_exposure_series``. These are hidden from Python.
     cdef object underlying_value_array
     cdef object underlying_index_array
 
