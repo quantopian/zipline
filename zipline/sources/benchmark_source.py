@@ -44,9 +44,9 @@ class BenchmarkSource(object):
              self._daily_returns) = self._initialize_precalculated_series(
                  benchmark_asset,
                  trading_calendar,
-                 self.sessions,
-                 self.data_portal
-             )
+                 sessions,
+                 data_portal
+              )
         elif benchmark_returns is not None:
             self._daily_returns = daily_series = benchmark_returns.reindex(
                 sessions,
@@ -182,6 +182,12 @@ class BenchmarkSource(object):
         else:
             return (g[-1] - g[0]) / g[0]
 
+    @classmethod
+    def downsample_minute_return_series(cls, minutely_returns):
+        return minutely_returns.groupby(pd.TimeGrouper('D')).apply(
+            cls._daily_returns,
+        )
+
     def _initialize_precalculated_series(self,
                                          asset,
                                          trading_calendar,
@@ -238,62 +244,65 @@ class BenchmarkSource(object):
 
             return (
                 benchmark_series.pct_change()[1:],
+                self.downsample_minute_return_series(benchmark_series),
+            )
+
+        start_date = asset.start_date
+        if start_date < trading_days[0]:
+            # get the window of close prices for benchmark_asset from the
+            # last trading day of the simulation, going up to one day
+            # before the simulation start day (so that we can get the %
+            # change on day 1)
+            benchmark_series = data_portal.get_history_window(
+                [asset],
+                trading_days[-1],
+                bar_count=len(trading_days) + 1,
+                frequency="1d",
+                field="price",
+                data_frequency=self.emission_rate,
+                ffill=True
+            )[asset]
+
+            return (
+                benchmark_series.pct_change()[1:],
                 benchmark_series.groupby(pd.TimeGrouper('D')).apply(
                     self._daily_returns,
                 ),
             )
+        elif start_date == trading_days[0]:
+            # Attempt to handle case where stock data starts on first
+            # day, in this case use the open to close return.
+            benchmark_series = data_portal.get_history_window(
+                [asset],
+                trading_days[-1],
+                bar_count=len(trading_days),
+                frequency="1d",
+                field="price",
+                data_frequency=self.emission_rate,
+                ffill=True
+            )[asset]
+
+            # get a minute history window of the first day
+            first_open = data_portal.get_spot_value(
+                asset,
+                'open',
+                trading_days[0],
+                'daily',
+            )
+            first_close = data_portal.get_spot_value(
+                asset,
+                'close',
+                trading_days[0],
+                'daily',
+            )
+
+            first_day_return = (first_close - first_open) / first_open
+
+            returns = benchmark_series.pct_change()[:]
+            returns[0] = first_day_return
+            return returns, returns
         else:
-            start_date = asset.start_date
-            if start_date < trading_days[0]:
-                # get the window of close prices for benchmark_asset from the
-                # last trading day of the simulation, going up to one day
-                # before the simulation start day (so that we can get the %
-                # change on day 1)
-                benchmark_series = data_portal.get_history_window(
-                    [asset],
-                    trading_days[-1],
-                    bar_count=len(trading_days) + 1,
-                    frequency="1d",
-                    field="price",
-                    data_frequency=self.emission_rate,
-                    ffill=True
-                )[asset]
-
-                return (
-                    benchmark_series.pct_change()[1:],
-                    benchmark_series.groupby(pd.TimeGrouper('D')).apply(
-                        self._daily_returns,
-                    ),
-                )
-            elif start_date == trading_days[0]:
-                # Attempt to handle case where stock data starts on first
-                # day, in this case use the open to close return.
-                benchmark_series = data_portal.get_history_window(
-                    [asset],
-                    trading_days[-1],
-                    bar_count=len(trading_days),
-                    frequency="1d",
-                    field="price",
-                    data_frequency=self.emission_rate,
-                    ffill=True
-                )[asset]
-
-                # get a minute history window of the first day
-                first_open = data_portal.get_spot_value(
-                    asset,
-                    'open',
-                    trading_days[0],
-                    'daily',
-                )
-                first_close = data_portal.get_spot_value(
-                    asset,
-                    'close',
-                    trading_days[0],
-                    'daily',
-                )
-
-                first_day_return = (first_close - first_open) / first_open
-
-                returns = benchmark_series.pct_change()[:]
-                returns[0] = first_day_return
-                return returns, returns
+            raise ValueError(
+                'cannot set benchmark to asset that does not exist during'
+                ' the simulation period (asset start date=%r)' % start_date
+            )

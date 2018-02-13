@@ -156,6 +156,23 @@ class MetricsTracker(object):
     def positions(self):
         return self._ledger.position_tracker.positions
 
+    def update_position(self,
+                        asset,
+                        amount=None,
+                        last_sale_price=None,
+                        last_sale_date=None,
+                        cost_basis=None):
+        self._ledger.position_tracker.update_position(
+            asset,
+            amount,
+            last_sale_price,
+            last_sale_date,
+            cost_basis,
+        )
+
+    def override_account_fields(self, **kwargs):
+        self._ledger.override_account_fields(**kwargs)
+
     def process_transaction(self, transaction):
         self._ledger.process_transaction(transaction)
 

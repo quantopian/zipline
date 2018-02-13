@@ -245,7 +245,7 @@ class Account(object):
     account values as reported by the broker.
     """
 
-    def __init__(self, portfolio):
+    def __init__(self):
         self_ = MutableView(self)
         self_.settled_cash = 0.0
         self_.accrued_interest = 0.0

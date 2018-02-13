@@ -389,7 +389,7 @@ class Ledger(object):
 
         # Have some fields of the account changed?
         self._dirty_account = True
-        self._immutable_account = zp.Account(self._portfolio)
+        self._immutable_account = zp.Account()
         self._account = zp.MutableView(self._immutable_account)
 
         # The broker blotter can override some fields on the account. This is

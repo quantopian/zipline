@@ -185,16 +185,17 @@ class BenchmarkReturnsAndVolatility(object):
                             trading_calendar,
                             sessions,
                             benchmark_source):
-        self._daily_returns = benchmark_source.daily_returns(
+        daily_returns_series = benchmark_source.daily_returns(
             sessions[0],
             sessions[-1],
         )
+        self._daily_returns = daily_returns_array = daily_returns_series.values
         self._daily_cumulative_returns = (
-            (1 + self._daily_returns).cumprod() - 1
+            np.cumprod(1 + daily_returns_array) - 1
         )
         self._daily_annual_volatility = (
-            self._daily_returns.expanding(2).std(ddof=1) * np.sqrt(252)
-        )
+            daily_returns_series.expanding(2).std(ddof=1) * np.sqrt(252)
+        ).values
 
         if emission_rate == 'daily':
             self._minute_returns = NamedExplodingObject(
@@ -216,12 +217,14 @@ class BenchmarkReturnsAndVolatility(object):
             self._minute_returns = returns.groupby(pd.TimeGrouper('D')).apply(
                 lambda g: (g + 1).cumprod() - 1,
             )
-            self._minute_cumulative_returns = (1 + returns).cumprod() - 1
+            self._minute_cumulative_returns = (
+                (1 + returns).cumprod() - 1
+            )
             self._minute_annual_volatility = pd.Series(
                 minute_annual_volatility(
                     returns.index.normalize().view('int64'),
                     returns.values,
-                    self._daily_returns.values,
+                    daily_returns_array,
                 ),
                 index=returns.index,
             )
@@ -249,15 +252,15 @@ class BenchmarkReturnsAndVolatility(object):
                        session_ix,
                        data_portal):
         packet['daily_perf']['benchmark_returns'] = (
-            self._daily_returns[session]
+            self._daily_returns[session_ix]
         )
 
-        r = self._daily_cumulative_returns[session]
+        r = self._daily_cumulative_returns[session_ix]
         packet['cumulative_perf']['benchmark_returns'] = r
         packet['cumulative_risk_metrics']['benchmark_period_return'] = r
 
         packet['cumulative_risk_metrics']['benchmark_volatility'] = (
-            self._daily_annual_volatility[session]
+            self._daily_annual_volatility[session_ix]
         )
 
 
