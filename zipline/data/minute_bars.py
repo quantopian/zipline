@@ -906,7 +906,8 @@ class BcolzMinuteBarReader(MinuteBarReader):
         'low': 1550,
         'volume': 1550,
     }
-    assert set(FIELDS) == set(DEFAULT_MINUTELY_SID_CACHE_SIZES)
+    assert set(FIELDS) == set(DEFAULT_MINUTELY_SID_CACHE_SIZES), \
+        "FIELDS should match DEFAULT_MINUTELY_SID_CACHE_SIZES keys"
 
     # Wrap the defaults in proxy so that we don't accidentally mutate them in
     # place in the constructor. If a user wants to change the defaults, they
