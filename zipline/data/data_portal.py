@@ -648,34 +648,43 @@ class DataPortal(object):
     def _get_minute_spot_value(self, asset, column, dt, ffill=False):
         reader = self._get_pricing_reader('minute')
 
-        if ffill:
-            # If forward filling, we want the last minute with values (up to
-            # and including dt).
-            query_dt = reader.get_last_traded_dt(asset, dt)
-
-            if pd.isnull(query_dt):
-                # no last traded dt, bail
-                if column == 'volume':
-                    return 0
-                else:
+        if not ffill:
+            try:
+                return reader.get_value(asset.sid, dt, column)
+            except NoDataOnDate:
+                if column != 'volume':
                     return np.nan
-        else:
-            # If not forward filling, we just want dt.
-            query_dt = dt
+                else:
+                    return 0
 
+        # At this point the pairing of column='close' and ffill=True is
+        # assumed.
         try:
-            result = reader.get_value(asset.sid, query_dt, column)
+            # Optimize the best case scenario of a liquid asset
+            # returning a valid price.
+            result = reader.get_value(asset.sid, dt, column)
+            if not pd.isnull(result):
+                return result
         except NoDataOnDate:
-            if column == 'volume':
-                return 0
-            else:
-                return np.nan
+            # Handling of no data for the desired date is done by the
+            # forward filling logic.
+            # The last trade may occur on a previous day.
+            pass
+        # If forward filling, we want the last minute with values (up to
+        # and including dt).
+        query_dt = reader.get_last_traded_dt(asset, dt)
 
-        if not ffill or (dt == query_dt) or (dt.date() == query_dt.date()):
+        if pd.isnull(query_dt):
+            # no last traded dt, bail
+            return np.nan
+
+        result = reader.get_value(asset.sid, query_dt, column)
+
+        if (dt == query_dt) or (dt.date() == query_dt.date()):
             return result
 
-        # the value we found came from a different day, so we have to adjust
-        # the data if there are any adjustments on that day barrier
+        # the value we found came from a different day, so we have to
+        # adjust the data if there are any adjustments on that day barrier
         return self.get_adjusted_value(
             asset, column, query_dt,
             dt, "minute", spot_value=result
