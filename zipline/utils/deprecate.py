@@ -28,12 +28,17 @@ def deprecated(msg=None, stacklevel=2):
     stacklevel : int
         How far up the stack the warning needs to go, before
         showing the relevant calling lines.
+
     Examples
     --------
     @deprecated(msg='function_a is deprecated! Use function_b instead.')
     def function_a(*args, **kwargs):
     """
     def deprecated_dec(fn):
+        if isinstance(fn, type):
+            fn.__new__ = deprecated_dec(fn.__new__)
+            return fn
+
         @wraps(fn)
         def wrapper(*args, **kwargs):
             warnings.warn(

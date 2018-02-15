@@ -22,7 +22,7 @@ from zipline.utils import factory
 from zipline.finance.trading import SimulationParameters
 from zipline.testing.fixtures import WithTradingEnvironment, ZiplineTestCase
 
-from zipline.finance.risk import risk_report, risk_metric_period
+from zipline.finance.metrics import ClassicRiskMetrics
 
 RETURNS_BASE = 0.01
 RETURNS = [RETURNS_BASE] * 251
@@ -61,7 +61,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             BENCHMARK,
             self.sim_params
         )
-        self.metrics = risk_report(
+        self.metrics = ClassicRiskMetrics.risk_report(
             algorithm_returns=self.algo_returns,
             benchmark_returns=self.benchmark_returns,
             algorithm_leverages=pd.Series(0.0, index=self.algo_returns.index)
@@ -170,7 +170,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
 
     def test_treasury_returns(self):
         returns = factory.create_returns_from_range(self.sim_params)
-        metrics = risk_report(
+        metrics = ClassicRiskMetrics.risk_report(
             algorithm_returns=returns,
             benchmark_returns=self.env.benchmark_returns,
             algorithm_leverages=pd.Series(0.0, index=returns.index)
@@ -200,7 +200,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
         )
 
         returns = factory.create_returns_from_range(sim_params)
-        metrics = risk_report(
+        metrics = ClassicRiskMetrics.risk_report(
             algorithm_returns=returns,
             benchmark_returns=self.env.benchmark_returns,
             algorithm_leverages=pd.Series(0.0, index=returns.index)
@@ -225,7 +225,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
 
         returns = factory.create_returns_from_range(sim_params90s)
         returns = returns[:-10]  # truncate the returns series to end mid-month
-        metrics = risk_report(
+        metrics = ClassicRiskMetrics.risk_report(
             algorithm_returns=returns,
             benchmark_returns=self.env.benchmark_returns,
             algorithm_leverages=pd.Series(0.0, index=returns.index)
@@ -285,7 +285,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
                 [0.0] * expected_len,
             )
 
-        test_period = risk_metric_period(
+        test_period = ClassicRiskMetrics.risk_metric_period(
             start_session=self.start_session,
             end_session=self.end_session,
             algorithm_returns=self.algo_returns,
@@ -297,37 +297,13 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
         # Confirm that max_leverage is set to the max of those values
         self.assertEqual(test_period['max_leverage'], .03)
 
-    def test_index_mismatch_exception(self):
-        # An exception is raised when returns and benchmark returns
-        # have indexes that do not match
-        bench_params = SimulationParameters(
-            start_session=pd.Timestamp("2006-02-01", tz='UTC'),
-            end_session=pd.Timestamp("2006-02-28", tz='UTC'),
-            trading_calendar=self.trading_calendar,
-        )
-        benchmark = factory.create_returns_from_list(
-            [BENCHMARK_BASE]*19,
-            bench_params
-        )
-        with np.testing.assert_raises(AssertionError):
-            risk_metric_period(
-                start_session=self.start_session,
-                end_session=self.end_session,
-                algorithm_returns=self.algo_returns,
-                benchmark_returns=benchmark,
-                algorithm_leverages=pd.Series(
-                    0.0,
-                    index=self.algo_returns.index
-                )
-            )
-
     def test_sharpe_value_when_null(self):
         # Sharpe is displayed as '0.0' instead of np.nan
         null_returns = factory.create_returns_from_list(
             [0.0]*251,
             self.sim_params
         )
-        test_period = risk_metric_period(
+        test_period = ClassicRiskMetrics.risk_metric_period(
             start_session=self.start_session,
             end_session=self.end_session,
             algorithm_returns=null_returns,
@@ -340,7 +316,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
         self.assertEqual(test_period['sharpe'], 0.0)
 
     def test_representation(self):
-        test_period = risk_metric_period(
+        test_period = ClassicRiskMetrics.risk_metric_period(
             start_session=self.start_session,
             end_session=self.end_session,
             algorithm_returns=self.algo_returns,
