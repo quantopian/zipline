@@ -545,9 +545,6 @@ class DataPortal(object):
             The timestamp for the desired value.
         perspective_dt : pd.Timestamp
             The timestamp from which the data is being viewed back from.
-        data_frequency : str
-            The frequency of the data to query; i.e. whether the data is
-            'daily' or 'minute' bars
 
         Returns
         -------
@@ -568,7 +565,7 @@ class DataPortal(object):
                 asset, self._splits_dict, "SPLITS"
             )
             for adj_dt, adj in split_adjustments:
-                if dt <= adj_dt <= perspective_dt:
+                if dt < adj_dt <= perspective_dt:
                     adjustments_for_asset.append(split_adj_factor(adj))
                 elif adj_dt > perspective_dt:
                     break
@@ -578,7 +575,7 @@ class DataPortal(object):
                     asset, self._mergers_dict, "MERGERS"
                 )
                 for adj_dt, adj in merger_adjustments:
-                    if dt <= adj_dt <= perspective_dt:
+                    if dt < adj_dt <= perspective_dt:
                         adjustments_for_asset.append(adj)
                     elif adj_dt > perspective_dt:
                         break
@@ -587,7 +584,7 @@ class DataPortal(object):
                     asset, self._dividends_dict, "DIVIDENDS",
                 )
                 for adj_dt, adj in dividend_adjustments:
-                    if dt <= adj_dt <= perspective_dt:
+                    if dt < adj_dt <= perspective_dt:
                         adjustments_for_asset.append(adj)
                     elif adj_dt > perspective_dt:
                         break
@@ -651,34 +648,43 @@ class DataPortal(object):
     def _get_minute_spot_value(self, asset, column, dt, ffill=False):
         reader = self._get_pricing_reader('minute')
 
-        if ffill:
-            # If forward filling, we want the last minute with values (up to
-            # and including dt).
-            query_dt = reader.get_last_traded_dt(asset, dt)
-
-            if pd.isnull(query_dt):
-                # no last traded dt, bail
-                if column == 'volume':
-                    return 0
-                else:
+        if not ffill:
+            try:
+                return reader.get_value(asset.sid, dt, column)
+            except NoDataOnDate:
+                if column != 'volume':
                     return np.nan
-        else:
-            # If not forward filling, we just want dt.
-            query_dt = dt
+                else:
+                    return 0
 
+        # At this point the pairing of column='close' and ffill=True is
+        # assumed.
         try:
-            result = reader.get_value(asset.sid, query_dt, column)
+            # Optimize the best case scenario of a liquid asset
+            # returning a valid price.
+            result = reader.get_value(asset.sid, dt, column)
+            if not pd.isnull(result):
+                return result
         except NoDataOnDate:
-            if column == 'volume':
-                return 0
-            else:
-                return np.nan
+            # Handling of no data for the desired date is done by the
+            # forward filling logic.
+            # The last trade may occur on a previous day.
+            pass
+        # If forward filling, we want the last minute with values (up to
+        # and including dt).
+        query_dt = reader.get_last_traded_dt(asset, dt)
 
-        if not ffill or (dt == query_dt) or (dt.date() == query_dt.date()):
+        if pd.isnull(query_dt):
+            # no last traded dt, bail
+            return np.nan
+
+        result = reader.get_value(asset.sid, query_dt, column)
+
+        if (dt == query_dt) or (dt.date() == query_dt.date()):
             return result
 
-        # the value we found came from a different day, so we have to adjust
-        # the data if there are any adjustments on that day barrier
+        # the value we found came from a different day, so we have to
+        # adjust the data if there are any adjustments on that day barrier
         return self.get_adjusted_value(
             asset, column, query_dt,
             dt, "minute", spot_value=result
@@ -939,7 +945,7 @@ class DataPortal(object):
                 # volume in today's minute bars yet, we need to use the
                 # previous day's ffilled daily price. Using today's daily price
                 # could yield a value from later today.
-                history_start -= pd.Timedelta(days=1)
+                history_start -= self.trading_calendar.day
 
             initial_values = []
             for asset in df.columns[assets_with_leading_nan]:

@@ -34,6 +34,7 @@ import pandas as pd
 import pytz
 from pandas.core.common import PerformanceWarning
 
+import zipline.api
 from zipline import run_algorithm
 from zipline import TradingAlgorithm
 from zipline.api import FixedSlippage
@@ -86,6 +87,7 @@ from zipline.finance.asset_restrictions import (
     StaticRestrictions,
     RESTRICTION_STATES,
 )
+from zipline.finance.slippage import VolumeShareSlippage
 from zipline.testing import (
     FakeDataPortal,
     copy_market_data,
@@ -180,8 +182,14 @@ from zipline.testing.predicates import assert_equal
 from zipline.utils.api_support import ZiplineAPI, set_algo_instance
 from zipline.utils.calendars import get_calendar, register_calendar
 from zipline.utils.context_tricks import CallbackManager, nop_context
-import zipline.utils.events
-from zipline.utils.events import date_rules, time_rules, Always
+from zipline.utils.events import (
+    date_rules,
+    time_rules,
+    Always,
+    ComposedRule,
+    Never,
+    OncePerDay,
+)
 import zipline.utils.factory as factory
 
 # Because test cases appear to reuse some resources.
@@ -634,27 +642,36 @@ def log_nyse_close(context, data):
         )
 
         # Schedule something for NOT Always.
-        algo.schedule_function(nop, time_rule=zipline.utils.events.Never())
+        # Compose two rules to ensure calendar is set properly.
+        algo.schedule_function(nop, time_rule=Never() & Always())
 
         event_rule = algo.event_manager._events[1].rule
-
-        self.assertIsInstance(event_rule, zipline.utils.events.OncePerDay)
+        self.assertIsInstance(event_rule, OncePerDay)
+        self.assertEqual(event_rule.cal, algo.trading_calendar)
 
         inner_rule = event_rule.rule
-        self.assertIsInstance(inner_rule, zipline.utils.events.ComposedRule)
+        self.assertIsInstance(inner_rule, ComposedRule)
+        self.assertEqual(inner_rule.cal, algo.trading_calendar)
 
         first = inner_rule.first
         second = inner_rule.second
         composer = inner_rule.composer
 
-        self.assertIsInstance(first, zipline.utils.events.Always)
+        self.assertIsInstance(first, Always)
+        self.assertEqual(first.cal, algo.trading_calendar)
+        self.assertEqual(second.cal, algo.trading_calendar)
 
         if mode == 'daily':
-            self.assertIsInstance(second, zipline.utils.events.Always)
+            self.assertIsInstance(second, Always)
         else:
-            self.assertIsInstance(second, zipline.utils.events.Never)
+            self.assertIsInstance(second, ComposedRule)
+            self.assertIsInstance(second.first, Never)
+            self.assertEqual(second.first.cal, algo.trading_calendar)
 
-        self.assertIs(composer, zipline.utils.events.ComposedRule.lazy_and)
+            self.assertIsInstance(second.second, Always)
+            self.assertEqual(second.second.cal, algo.trading_calendar)
+
+        self.assertIs(composer, ComposedRule.lazy_and)
 
     def test_asset_lookup(self):
         algo = TradingAlgorithm(env=self.env)
@@ -1386,7 +1403,7 @@ class TestBeforeTradingStart(WithDataPortal,
                 [sid(1), sid(2)],
                 ["price", "high"],
                 1,
-                "1m"
+                "1d",
             ))
 
         def handle_data(context, data):
@@ -1412,7 +1429,7 @@ class TestBeforeTradingStart(WithDataPortal,
         self.assertEqual(392, algo.history_values[0]["high"][1][0])
         self.assertEqual(390, algo.history_values[0]["price"][1][0])
 
-        self.assertTrue(np.isnan(algo.history_values[0]["high"][2][0]))
+        self.assertEqual(352, algo.history_values[0]["high"][2][0])
         self.assertEqual(350, algo.history_values[0]["price"][2][0])
 
     def test_portfolio_bts(self):
@@ -1481,8 +1498,9 @@ class TestBeforeTradingStart(WithDataPortal,
             script=algo_code,
             data_frequency="minute",
             sim_params=self.sim_params,
-            env=self.env
+            env=self.env,
         )
+        algo.set_slippage(VolumeShareSlippage())
 
         results = algo.run(self.data_portal)
 
@@ -1565,8 +1583,9 @@ class TestBeforeTradingStart(WithDataPortal,
             script=algo_code,
             data_frequency="minute",
             sim_params=self.sim_params,
-            env=self.env
+            env=self.env,
         )
+        algo.set_slippage(VolumeShareSlippage())
 
         results = algo.run(self.data_portal)
 

@@ -68,7 +68,6 @@ from zipline.pipeline.term import InputDates
 from zipline.testing import (
     AssetID,
     AssetIDPlusDay,
-    ExplodingObject,
     check_arrays,
     make_alternating_boolean_array,
     make_cascading_boolean_array,
@@ -1437,10 +1436,9 @@ class PopulateInitialWorkspaceTestCase(WithConstantInputs, ZiplineTestCase):
             return ws
 
         def dispatcher(c):
-            if c is column:
-                # the base_term should never be loaded, its initial refcount
-                # should be zero
-                return ExplodingObject()
+            self.assertIsNot(
+                c, column, "Shouldn't need to dispatch precomputed term input!"
+            )
             return self.loader
 
         engine = SimplePipelineEngine(

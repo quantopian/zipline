@@ -63,9 +63,6 @@ cdef factorize_strings_known_impl(np.ndarray[object] values,
                                   object missing_value,
                                   bint sort,
                                   np.ndarray[unsigned_integral] codes):
-    if missing_value not in categories:
-        categories.insert(0, missing_value)
-
     if sort:
         categories = sorted(categories, key=_NoneFirstSortKey)
 
@@ -91,6 +88,9 @@ cpdef factorize_strings_known_categories(np.ndarray[object] values,
     Any entries not in the specified categories will be given the code for
     `missing_value`.
     """
+    if missing_value not in categories:
+        categories.insert(0, missing_value)
+
     cdef Py_ssize_t ncategories = len(categories)
     cdef Py_ssize_t nvalues = len(values)
     if ncategories <= 2 ** 8:
@@ -134,7 +134,6 @@ cpdef factorize_strings_known_categories(np.ndarray[object] values,
 
 
 cdef factorize_strings_impl(np.ndarray[object] values,
-                            Py_ssize_t nvalues,
                             object missing_value,
                             bint sort,
                             np.ndarray[unsigned_integral] codes):
@@ -144,7 +143,7 @@ cdef factorize_strings_impl(np.ndarray[object] values,
     cdef Py_ssize_t i, code
     cdef object key = None
 
-    for i in range(nvalues):
+    for i in range(len(values)):
         key = values[i]
         code = reverse_categories.get(key, -1)
         if code == -1:
@@ -165,11 +164,13 @@ cdef factorize_strings_impl(np.ndarray[object] values,
     if sort:
         # This is all adapted from pandas.core.algorithms.factorize.
         ncategories = len(categories_array)
-        sorter = np.zeros(ncategories, dtype=np.int64)
+        sorter = np.empty(ncategories, dtype=np.int64)
 
         # Don't include missing_value in the argsort, because None is
         # unorderable with bytes/str in py3. Always just sort it to 0.
         sorter[1:] = categories_array[1:].argsort() + 1
+        sorter[0] = 0
+
         reverse_indexer = np.empty(ncategories, dtype=codes.dtype)
         reverse_indexer.put(sorter, np.arange(ncategories))
 
@@ -204,45 +205,43 @@ cpdef factorize_strings(np.ndarray[object] values,
     cdef np.ndarray categories_array
     cdef dict reverse_categories
 
-    if nvalues <= 2 ** 8:
+    # use exclusive less than because we need to account for the possibility
+    # that the missing value is not in values
+    if nvalues < 2 ** 8:
         # we won't try to shrink because the ``codes`` array cannot get any
         # smaller
         return factorize_strings_impl[np.uint8_t](
             values,
-            nvalues,
             missing_value,
             sort,
             np.empty(nvalues, dtype=np.uint8)
         )
-    elif nvalues <= 2 ** 16:
+    elif nvalues < 2 ** 16:
         (codes,
          categories_array,
          reverse_categories) = factorize_strings_impl[np.uint16_t](
             values,
-            nvalues,
             missing_value,
             sort,
-            np.empty(nvalues, np.uint16),
+            np.empty(nvalues, dtype=np.uint16),
         )
-    elif nvalues <= 2 ** 32:
+    elif nvalues < 2 ** 32:
         (codes,
          categories_array,
          reverse_categories) = factorize_strings_impl[np.uint32_t](
             values,
-            nvalues,
             missing_value,
             sort,
-            np.empty(nvalues, np.uint32),
+            np.empty(nvalues, dtype=np.uint32),
         )
-    elif nvalues <= 2 ** 64:
+    elif nvalues < 2 ** 64:
         (codes,
          categories_array,
          reverse_categories) = factorize_strings_impl[np.uint64_t](
             values,
-            nvalues,
             missing_value,
             sort,
-            np.empty(nvalues, np.uint64),
+            np.empty(nvalues, dtype=np.uint64),
         )
     else:
         # unreachable

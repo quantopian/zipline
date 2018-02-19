@@ -42,6 +42,7 @@ from zipline.data.bar_reader import BarReader, NoDataForSid, NoDataOnDate
 from zipline.data.us_equity_pricing import check_uint32_safe
 from zipline.utils.calendars import get_calendar
 from zipline.utils.cli import maybe_show_progress
+from zipline.utils.compat import mappingproxy
 from zipline.utils.memoize import lazyval
 
 
@@ -898,8 +899,23 @@ class BcolzMinuteBarReader(MinuteBarReader):
     zipline.data.minute_bars.BcolzMinuteBarWriter
     """
     FIELDS = ('open', 'high', 'low', 'close', 'volume')
+    DEFAULT_MINUTELY_SID_CACHE_SIZES = {
+        'close': 3000,
+        'open': 1550,
+        'high': 1550,
+        'low': 1550,
+        'volume': 1550,
+    }
+    assert set(FIELDS) == set(DEFAULT_MINUTELY_SID_CACHE_SIZES), \
+        "FIELDS should match DEFAULT_MINUTELY_SID_CACHE_SIZES keys"
 
-    def __init__(self, rootdir, sid_cache_size=1550):
+    # Wrap the defaults in proxy so that we don't accidentally mutate them in
+    # place in the constructor. If a user wants to change the defaults, they
+    # can do so by mutating DEFAULT_MINUTELY_SID_CACHE_SIZES.
+    _default_proxy = mappingproxy(DEFAULT_MINUTELY_SID_CACHE_SIZES)
+
+    def __init__(self, rootdir, sid_cache_sizes=_default_proxy):
+
         self._rootdir = rootdir
 
         metadata = self._get_metadata()
@@ -931,7 +947,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
         self._minutes_per_day = metadata.minutes_per_day
 
         self._carrays = {
-            field: LRU(sid_cache_size)
+            field: LRU(sid_cache_sizes[field])
             for field in self.FIELDS
         }
 
