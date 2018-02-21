@@ -61,11 +61,8 @@ from zipline.utils.math_utils import (
 )
 from zipline.utils.memoize import remember_last, weak_lru_cache
 from zipline.utils.pandas_utils import timedelta_to_integral_minutes
-from zipline.errors import (
-    NoTradeDataAvailableTooEarly,
-    NoTradeDataAvailableTooLate,
-    HistoryWindowStartsBeforeData,
-)
+from zipline.errors import HistoryWindowStartsBeforeData
+
 
 log = Logger('DataPortal')
 
@@ -163,10 +160,6 @@ class DataPortal(object):
         self._splits_dict = {}
         self._mergers_dict = {}
         self._dividends_dict = {}
-
-        # Cache of sid -> the first trading day of an asset.
-        self._asset_start_dates = {}
-        self._asset_end_dates = {}
 
         # Handle extra sources, like Fetcher.
         self._augmented_sources_map = {}
@@ -377,10 +370,6 @@ class DataPortal(object):
         extra_source_df = pd.DataFrame()
 
         for identifier, df in iteritems(group_dict):
-            # Before reindexing, save the earliest and latest dates
-            earliest_date = df.index[0]
-            latest_date = df.index[-1]
-
             # Since we know this df only contains a single sid, we can safely
             # de-dupe by the index (dt). If minute granularity, will take the
             # last data point on any given day
@@ -389,11 +378,6 @@ class DataPortal(object):
             # Reindex the dataframe based on the backtest start/end date.
             # This makes reads easier during the backtest.
             df = self._reindex_extra_source(df, source_date_index)
-
-            if not isinstance(identifier, Asset):
-                # for fake assets we need to store a start/end date
-                self._asset_start_dates[identifier] = earliest_date
-                self._asset_end_dates[identifier] = latest_date
 
             for col_name in df.columns.difference(['sid']):
                 if col_name not in self._augmented_sources_map:
@@ -1106,48 +1090,6 @@ class DataPortal(object):
                 get_adjustments_for_sid(table_name, sid)
 
         return adjustments
-
-    def _check_is_currently_alive(self, asset, dt):
-        sid = int(asset)
-
-        if sid not in self._asset_start_dates:
-            self._get_asset_start_date(asset)
-
-        start_date = self._asset_start_dates[sid]
-        if self._asset_start_dates[sid] > dt:
-            raise NoTradeDataAvailableTooEarly(
-                sid=sid,
-                dt=normalize_date(dt),
-                start_dt=start_date
-            )
-
-        end_date = self._asset_end_dates[sid]
-        if self._asset_end_dates[sid] < dt:
-            raise NoTradeDataAvailableTooLate(
-                sid=sid,
-                dt=normalize_date(dt),
-                end_dt=end_date
-            )
-
-    def _get_asset_start_date(self, asset):
-        self._ensure_asset_dates(asset)
-        return self._asset_start_dates[asset]
-
-    def _get_asset_end_date(self, asset):
-        self._ensure_asset_dates(asset)
-        return self._asset_end_dates[asset]
-
-    def _ensure_asset_dates(self, asset):
-        sid = int(asset)
-
-        if sid not in self._asset_start_dates:
-            if self._first_trading_day is not None:
-                self._asset_start_dates[sid] = \
-                    max(asset.start_date, self._first_trading_day)
-            else:
-                self._asset_start_dates[sid] = asset.start_date
-
-            self._asset_end_dates[sid] = asset.end_date
 
     def get_splits(self, assets, dt):
         """
