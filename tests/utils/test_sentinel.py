@@ -1,5 +1,6 @@
 from copy import copy, deepcopy
 from pickle import loads, dumps
+import sys
 from unittest import TestCase
 from weakref import ref
 
@@ -17,6 +18,9 @@ class SentinelTestCase(TestCase):
         self.assertEqual(sentinel('a', 'b').__doc__, 'b')
 
     def test_doc_differentiates(self):
+        # the following assignment must be exactly one source line above
+        # the assignment of ``a``.
+        line = sys._getframe().f_lineno
         a = sentinel('sentinel-name', 'original-doc')
         with self.assertRaises(ValueError) as e:
             sentinel(a.__name__, 'new-doc')
@@ -24,6 +28,9 @@ class SentinelTestCase(TestCase):
         msg = str(e.exception)
         self.assertIn(a.__name__, msg)
         self.assertIn(a.__doc__, msg)
+        # strip the 'c' in case ``__file__`` is a .pyc and we are running this
+        # test twice in the same process...
+        self.assertIn('%s:%s' % (__file__.rstrip('c'), line + 1), msg)
 
     def test_memo(self):
         self.assertIs(sentinel('a'), sentinel('a'))
