@@ -96,7 +96,7 @@ class RollFinder(with_metaclass(ABCMeta, object)):
         else:
             first = front
         first_contract = oc.sid_to_contract[first]
-        rolls = [((first_contract >> offset).contract.sid, None)]
+        rolls = [((first_contract >> offset).contract, None)]
         tc = self.trading_calendar
         sessions = tc.sessions_in_range(tc.minute_to_session_label(start),
                                         tc.minute_to_session_label(end))
@@ -115,7 +115,7 @@ class RollFinder(with_metaclass(ABCMeta, object)):
         session = sessions[-1]
 
         while session > start and curr is not None:
-            front = curr.contract.sid
+            front = curr.contract
             back = rolls[0][0]
             prev_c = curr.prev
             while session > start:
@@ -127,7 +127,7 @@ class RollFinder(with_metaclass(ABCMeta, object)):
                     # TODO: Instead of listing each contract with its roll date
                     # as tuples, create a series which maps every day to the
                     # active contract on that day.
-                    rolls.insert(0, ((curr >> offset).contract.sid, session))
+                    rolls.insert(0, ((curr >> offset).contract, session))
                     break
                 session = prev
             curr = curr.prev

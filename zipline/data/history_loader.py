@@ -221,14 +221,14 @@ class ContinuousFutureAdjustmentReader(object):
         adjs = {}
 
         for front, back in sliding_window(2, rolls):
-            front_sid, roll_dt = front
-            back_sid = back[0]
+            front_contract, roll_dt = front
+            back_contract = back[0]
             dt = tc.previous_session_label(roll_dt)
             if self._frequency == 'minute':
                 dt = tc.open_and_close_for_session(dt)[1]
                 roll_dt = tc.open_and_close_for_session(roll_dt)[0]
-            partitions.append((front_sid,
-                               back_sid,
+            partitions.append((front_contract,
+                               back_contract,
                                dt,
                                roll_dt))
         for partition in partitions:
