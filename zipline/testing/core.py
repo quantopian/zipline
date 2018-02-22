@@ -721,20 +721,27 @@ class FakeDataPortal(DataPortal):
 
     def get_history_window(self, assets, end_dt, bar_count, frequency, field,
                            data_frequency, ffill=True):
-        if frequency == "1d":
-            end_idx = \
-                self.trading_calendar.all_sessions.searchsorted(end_dt)
-            days = self.trading_calendar.all_sessions[
-                (end_idx - bar_count + 1):(end_idx + 1)
-            ]
+        end_idx = self.trading_calendar.all_sessions.searchsorted(end_dt)
+        days = self.trading_calendar.all_sessions[
+            (end_idx - bar_count + 1):(end_idx + 1)
+        ]
 
-            df = pd.DataFrame(
-                np.full((bar_count, len(assets)), 100.0),
-                index=days,
-                columns=assets
+        df = pd.DataFrame(
+            np.full((bar_count, len(assets)), 100.0),
+            index=days,
+            columns=assets
+        )
+
+        if frequency == "1m" and not df.empty:
+            df = df.reindex(
+                self.trading_calendar.minutes_for_sessions_in_range(
+                    df.index[0],
+                    df.index[-1],
+                ),
+                method='ffill',
             )
 
-            return df
+        return df
 
 
 class FetcherDataPortal(DataPortal):
