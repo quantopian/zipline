@@ -20,7 +20,8 @@ import numpy as np
 from numpy import float64, int64, nan
 import pandas as pd
 from pandas import isnull
-from pandas.tslib import normalize_date
+#from pandas.tslib import normalize_date
+from zipline.normalize_date import normalize_date
 from six import iteritems
 from six.moves import reduce
 

@@ -9,19 +9,19 @@ Logbook==0.12.5
 # Scientific Libraries
 
 pytz==2016.4
-numpy==1.11.1
+numpy>=1.14.0, <2.0.0
 
 # for pandas-datareader
 requests-file==1.4.1
 
 # scipy and pandas are required for statsmodels,
 # statsmodels in turn is required for some pandas packages
-scipy==0.17.1
-pandas==0.18.1
-pandas-datareader==0.2.1
+scipy>=1.0.0
+pandas>=0.22.0
+pandas-datareader>=0.5.0
 # Needed for parts of pandas.stats
 patsy==0.4.0
-statsmodels==0.6.1
+statsmodels>=0.6.1
 
 python-dateutil==2.4.2
 six==1.10.0

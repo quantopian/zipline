@@ -43,9 +43,14 @@ from pandas import (
     read_csv,
     read_sql,
     to_datetime,
-    Timestamp,
+    Timestamp,    
 )
-from pandas.tslib import iNaT
+
+#from pandas.tslibs import iNaT
+# Written from: http://nullege.com/codes/search/pandas.tslib.iNaT
+def iNaT(x, base=10):
+	return int(x, base)
+
 from six import (
     iteritems,
     string_types,
