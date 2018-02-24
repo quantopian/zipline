@@ -64,7 +64,8 @@ def _run(handle_data,
          trading_calendar,
          print_algo,
          local_namespace,
-         environ):
+         environ,
+         force_redownload=False):
     """Run a backtest for the given algorithm.
 
     This is shared between the cli and :func:`zipline.run_algo`.
@@ -133,7 +134,8 @@ def _run(handle_data,
                 "invalid url %r, must begin with 'sqlite:///'" %
                 str(bundle_data.asset_finder.engine.url),
             )
-        env = TradingEnvironment(asset_db_path=connstr, environ=environ)
+        env = TradingEnvironment(asset_db_path=connstr, environ=environ,
+                                 force_redownload=force_redownload)
         first_trading_day =\
             bundle_data.equity_minute_bar_reader.first_trading_day
         data = DataPortal(
@@ -157,7 +159,8 @@ def _run(handle_data,
                 "No PipelineLoader registered for column %s." % column
             )
     else:
-        env = TradingEnvironment(environ=environ)
+        env = TradingEnvironment(environ=environ,
+                                 force_redownload=force_redownload)
         choose_loader = None
 
     perf = TradingAlgorithm(
@@ -369,4 +372,5 @@ def run_algorithm(start,
         print_algo=False,
         local_namespace=False,
         environ=environ,
+        force_redownload=False,
     )

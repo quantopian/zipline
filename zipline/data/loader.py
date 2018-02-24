@@ -88,7 +88,7 @@ def has_data_for_dates(series_or_df, first_date, last_date):
 
 
 def load_market_data(trading_day=None, trading_days=None, bm_symbol='SPY',
-                     environ=None):
+                     force_redownload=False, environ=None):
     """
     Load benchmark returns and treasury yield curves for the given calendar and
     benchmark symbol.
@@ -147,6 +147,7 @@ def load_market_data(trading_day=None, trading_days=None, bm_symbol='SPY',
         # date so that we can compute returns for the first date.
         trading_day,
         environ,
+        force_redownload,
     )
     tc = ensure_treasury_data(
         bm_symbol,
@@ -154,6 +155,7 @@ def load_market_data(trading_day=None, trading_days=None, bm_symbol='SPY',
         last_date,
         now,
         environ,
+        force_redownload,
     )
 
     # combine dt indices and reindex using ffill then bfill
@@ -167,7 +169,7 @@ def load_market_data(trading_day=None, trading_days=None, bm_symbol='SPY',
 
 
 def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day,
-                          environ=None):
+                          environ=None, force_redownload=False):
     """
     Ensure we have benchmark data for `symbol` from `first_date` to `last_date`
 
@@ -198,7 +200,7 @@ def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day,
     """
     filename = get_benchmark_filename(symbol)
     data = _load_cached_data(filename, first_date, last_date, now, 'benchmark',
-                             environ)
+                             environ, force_redownload)
     if data is not None:
         return data
 
@@ -229,7 +231,8 @@ def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day,
     return data
 
 
-def ensure_treasury_data(symbol, first_date, last_date, now, environ=None):
+def ensure_treasury_data(symbol, first_date, last_date, now,
+                         environ=None, force_redownload=False):
     """
     Ensure we have treasury data from treasury module associated with
     `symbol`.
@@ -262,7 +265,7 @@ def ensure_treasury_data(symbol, first_date, last_date, now, environ=None):
     first_date = max(first_date, loader_module.earliest_possible_date())
 
     data = _load_cached_data(filename, first_date, last_date, now, 'treasury',
-                             environ)
+                             environ, force_redownload)
     if data is not None:
         return data
 
@@ -293,7 +296,7 @@ def ensure_treasury_data(symbol, first_date, last_date, now, environ=None):
 
 
 def _load_cached_data(filename, first_date, last_date, now, resource_name,
-                      environ=None):
+                      environ=None, force_redownload=False):
     if resource_name == 'benchmark':
         from_csv = pd.Series.from_csv
     else:
@@ -314,7 +317,7 @@ def _load_cached_data(filename, first_date, last_date, now, resource_name,
             # Don't re-download if we've successfully downloaded and written a
             # file in the last hour.
             last_download_time = last_modified_time(path)
-            if (now - last_download_time) <= ONE_HOUR:
+            if (now - last_download_time) <= ONE_HOUR and not force_redownload:
                 logger.warn(
                     "Refusing to download new {resource} data because a "
                     "download succeeded at {time}.",

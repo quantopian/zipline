@@ -84,6 +84,7 @@ class TradingEnvironment(object):
         asset_db_path=':memory:',
         future_chain_predicates=CHAIN_PREDICATES,
         environ=None,
+        force_redownload=False,
     ):
 
         self.bm_symbol = bm_symbol
@@ -97,6 +98,7 @@ class TradingEnvironment(object):
             trading_calendar.day,
             trading_calendar.schedule.index,
             self.bm_symbol,
+            force_redownload=force_redownload,
         )
 
         self.exchange_tz = exchange_tz
