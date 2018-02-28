@@ -932,7 +932,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         post_map = finder.map_identifier_index_to_sids(pre_map, dt)
         self.assertListEqual([1, 2, 200, 201], post_map)
         for sid in post_map:
-            self.assertIsInstance(sid, int)
+            self.assertIsInstance(sid, integer_types)
 
         # Change order and check mapping again
         pre_map = [asset201, asset2, asset200, asset1]
