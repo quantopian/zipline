@@ -736,6 +736,7 @@ class TradingAlgorithm(object):
             self.analyze(daily_stats)
         finally:
             self.data_portal = None
+            self.metrics_tracker = None
 
         return daily_stats
 
