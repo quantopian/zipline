@@ -559,7 +559,7 @@ class TradingAlgorithm(object):
             )
         else:
             # when we don't have benchmark_returns from IEX
-            # or when someone passes --no-benchmark
+            # or when someone calls set_benchmark('ZPLN')
             # we'll generate a fake asset (ZPLN) that just has zero returns
             # so that users can still run backtests if IEX is down.
             # TODO: Come up with a more useful/informative warning???
