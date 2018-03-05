@@ -103,14 +103,14 @@ class MetricsTracker(object):
         )
 
         if emission_rate == 'minute':
-            def progress():
+            def progress(self):
                 return 1.0  # a fake value
         else:
-            def progress():
+            def progress(self):
                 return self._session_count / self._total_session_count
 
         # don't compare these strings over and over again!
-        self.progress = progress
+        self._progress = progress
 
         # bind all of the hooks from the passed metric objects.
         for hook in self._hooks:
@@ -228,7 +228,7 @@ class MetricsTracker(object):
                 'period_open': self._first_session,
                 'period_close': self._last_session,
             },
-            'progress': self.progress(),
+            'progress': self._progress(self),
             'cumulative_risk_metrics': {},
         }
         ledger = self._ledger
@@ -312,7 +312,7 @@ class MetricsTracker(object):
                 'period_open': self._first_session,
                 'period_close': self._last_session,
             },
-            'progress': self.progress(),
+            'progress': self._progress(self),
             'cumulative_risk_metrics': {},
         }
         ledger = self._ledger
