@@ -61,7 +61,7 @@ install:
   # Make sure stdout is in blocking mode. If we don't, then conda create will barf during downloads.
   # See https://github.com/travis-ci/travis-ci/issues/4704#issuecomment-348435959 for details.
   - python -c 'import os,sys,fcntl; flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);'
-  - conda create -n testenv --debug --use-local --yes -c quantopian -c quantopian/label/ci pip python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION libgfortran=3.0 ta-lib=$TALIB_VERSION
+  - conda create -n testenv --use-local --yes -c quantopian -c quantopian/label/ci pip python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION libgfortran=3.0 ta-lib=$TALIB_VERSION
   - source activate testenv
 
   - CACHE_DIR="$HOME/.cache/.pip/pip_np""$CONDA_NPY"
