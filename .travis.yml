@@ -61,7 +61,7 @@ install:
   # Make sure stdout is in blocking mode. If we don't, then conda create will barf during downloads.
   # See https://github.com/travis-ci/travis-ci/issues/4704#issuecomment-348435959 for details.
   - python -c 'import os,sys,fcntl; flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);'
-  - conda create -n testenv --use-local --yes -c quantopian -c quantopian/label/ci pip python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION libgfortran=3.0 ta-lib=$TALIB_VERSION
+  - conda create -n testenv --use-local --yes -c quantopian -c quantopian/label/ci pip python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION pandas=$PANDAS_VERSION scipy=$SCIPY_VERSION ta-lib=$TALIB_VERSION libgfortran=3.0
   - source activate testenv
 
   - CACHE_DIR="$HOME/.cache/.pip/pip_np""$CONDA_NPY"
@@ -84,6 +84,8 @@ script:
   - exec 3>&1; ZP_OUT=$(conda build conda/zipline --python=$CONDA_PY --numpy=$CONDA_NPY -c quantopian -c quantopian/label/ci | tee >(cat - >&3))
   - ZP_OUTPUT=$(echo "$ZP_OUT" | grep "anaconda upload " | awk '{print $NF}')
   - if [ -z "$ZP_OUTPUT" ]; then exit 1; fi
+  # test that we can conda install zipline in a new env
+  - conda create -n installenv --yes -q --use-local python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION zipline -c quantopian -c https://conda.anaconda.org/quantopian/label/ci
   - if [[ "$DO_UPLOAD" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload $ZP_OUTPUT -u quantopian --label ci; fi
   # reactivate env (necessary for coveralls)
   - source activate testenv
