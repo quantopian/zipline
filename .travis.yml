@@ -24,6 +24,8 @@ matrix:
   include:
     - python: 3.5
       env: PANDAS_VERSION=0.19.2
+    - python: 3.5
+      env: NUMPY_VERSION=1.14.1 PANDAS_VERSION=0.22.0 SCIPY_VERSION=1.0.0
 cache:
   directories:
     - $HOME/.cache/.pip/

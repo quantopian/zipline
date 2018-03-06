@@ -28,10 +28,12 @@ environment:
     - PYTHON_VERSION: "3.5"
 
     - PYTHON_VERSION: "3.5"
-      PYTHON_ARCH: "64"
       PANDAS_VERSION: "0.19.2"
-      NUMPY_VERSION: "1.11.1"
-      SCIPY_VERSION: "0.17.1"
+
+    - PYTHON_VERSION: "3.5"
+      PANDAS_VERSION: "0.22.0"
+      NUMPY_VERSION: "1.14.1"
+      SCIPY_VERSION: "1.0.0"
 
 # We always use a 64-bit machine, but can build x86 distributions
 # with the PYTHON_ARCH variable (which is used by CMD_IN_ENV).
@@ -72,7 +74,7 @@ install:
   - sed -i "s/numpy==.*/numpy==%NUMPY_VERSION%/" etc/requirements.txt
   - sed -i "s/pandas==.*/pandas==%PANDAS_VERSION%/" etc/requirements.txt
   - sed -i "s/scipy==.*/scipy==%SCIPY_VERSION%/" etc/requirements.txt
-
+  - cat etc/requirements.txt
   - conda info -a
   - conda install conda=4.3.30 conda-build=3.0.28 anaconda-client=1.6.3 --yes -q
   - conda list
