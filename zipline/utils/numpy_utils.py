@@ -321,7 +321,7 @@ def rolling_window(array, length):
 
 # Sentinel value that isn't NaT.
 _notNaT = make_datetime64D(0)
-iNaT = NaTns.view(int64_dtype)
+iNaT = int(NaTns.view(int64_dtype))
 assert iNaT == NaTD.view(int64_dtype), "iNaTns != iNaTD"
 
 
