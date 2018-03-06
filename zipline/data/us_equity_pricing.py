@@ -45,7 +45,6 @@ from pandas import (
     to_datetime,
     Timestamp,
 )
-from pandas.tslib import iNaT
 from six import (
     iteritems,
     string_types,
@@ -67,6 +66,7 @@ from zipline.utils.input_validation import (
     preprocess,
     verify_indices_all_unique,
 )
+from zipline.utils.numpy_utils import iNaT
 from zipline.utils.sqlite_utils import group_into_chunks, coerce_string_to_conn
 from zipline.utils.memoize import lazyval
 from zipline.utils.cli import maybe_show_progress
