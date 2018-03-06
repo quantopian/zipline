@@ -13,6 +13,11 @@ from distutils.version import StrictVersion
 
 pandas_version = StrictVersion(pd.__version__)
 
+if pandas_version >= StrictVersion('0.20.0'):
+    from pandas.core.tools.datetimes import normalize_date  # noqa
+else:
+    from pandas.tseries.tools import normalize_date  # noqa
+
 
 def july_5th_holiday_observance(datetime_index):
     return datetime_index[datetime_index.year != 2013]

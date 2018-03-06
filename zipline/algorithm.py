@@ -21,7 +21,6 @@ import logbook
 import pytz
 import pandas as pd
 from contextlib2 import ExitStack
-from pandas.tseries.tools import normalize_date
 import numpy as np
 
 from itertools import chain, repeat
@@ -109,6 +108,7 @@ from zipline.utils.input_validation import (
     optional,
 )
 from zipline.utils.numpy_utils import int64_dtype
+from zipline.utils.pandas_utils import normalize_date
 from zipline.utils.calendars.trading_calendar import days_at_time
 from zipline.utils.cache import ExpiringCache
 from zipline.utils.calendars import get_calendar
