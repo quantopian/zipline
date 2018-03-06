@@ -17,7 +17,7 @@ from collections import OrderedDict
 from numpy import array, append, nan, full
 from numpy.testing import assert_almost_equal
 import pandas as pd
-from pandas.tslib import Timedelta
+from pandas import Timedelta
 from six import iteritems
 
 from zipline.assets import Equity, Future
