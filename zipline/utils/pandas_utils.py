@@ -14,6 +14,20 @@ from trading_calendars.utils.pandas_utils import days_at_time  # noqa: reexport
 
 pandas_version = StrictVersion(pd.__version__)
 
+if pandas_version >= StrictVersion('0.20.0'):
+    def normalize_date(dt):
+        """
+        Normalize datetime.datetime value to midnight. Returns datetime.date as
+        a datetime.datetime at midnight
+
+        Returns
+        -------
+        normalized : datetime.datetime or Timestamp
+        """
+        return dt.normalize()
+else:
+    from pandas.tseries.tools import normalize_date  # noqa
+
 
 def july_5th_holiday_observance(datetime_index):
     return datetime_index[datetime_index.year != 2013]
