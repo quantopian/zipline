@@ -22,6 +22,7 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
 )
 from zipline.testing.slippage import TestingSlippage
+from zipline.testing.predicates import wildcard, instance_of
 from zipline.utils.numpy_utils import bool_dtype
 
 
@@ -173,3 +174,29 @@ class TestTestingSlippage(WithConstantEquityMinuteBarData,
 
         self.assertEqual(price, self.EQUITY_MINUTE_CONSTANT_CLOSE)
         self.assertEqual(volume, order_amount)
+
+
+class TestPredicates(ZiplineTestCase):
+
+    def test_wildcard(self):
+        for obj in 1, object(), "foo", {}:
+            self.assertEqual(obj, wildcard)
+            self.assertEqual([obj], [wildcard])
+            self.assertEqual({'foo': wildcard}, {'foo': wildcard})
+
+    def test_instance_of(self):
+        self.assertEqual(1, instance_of(int))
+        self.assertNotEqual(1, instance_of(str))
+        self.assertEqual(1, instance_of((str, int)))
+        self.assertEqual("foo", instance_of((str, int)))
+
+    def test_instance_of_exact(self):
+
+        class Foo(object):
+            pass
+
+        class Bar(Foo):
+            pass
+
+        self.assertEqual(Bar(), instance_of(Foo))
+        self.assertNotEqual(Bar(), instance_of(Foo, exact=True))
