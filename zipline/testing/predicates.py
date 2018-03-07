@@ -84,7 +84,49 @@ class wildcard(object):
 
     def __repr__(self):
         return '<%s>' % type(self).__name__
-    __str__ = __repr__
+
+
+class instance_of(object):
+    """An object that compares equal to any instance of a given type or types.
+
+    Parameters
+    ----------
+    types : type or tuple[type]
+        The types to compare equal to.
+    exact : bool, optional
+        Only compare equal to exact instances, not instances of subclasses?
+    """
+    def __init__(self, types, exact=False):
+        if not isinstance(types, tuple):
+            types = (types,)
+
+        for type_ in types:
+            if not isinstance(type_, type):
+                raise TypeError('types must be a type or tuple of types')
+
+        self.types = types
+        self.exact = exact
+
+    def __eq__(self, other):
+        if self.exact:
+            return type(other) in self.types
+
+        return isinstance(other, self.types)
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __repr__(self):
+        typenames = tuple(t.__name__ for t in self.types)
+        return '%s(%s%s)' % (
+            type(self).__name__,
+            (
+                typenames[0]
+                if len(typenames) == 1 else
+                '(%s)' % ', '.join(typenames)
+            ),
+            ', exact=True' if self.exact else ''
+        )
 
 
 def keywords(func):
