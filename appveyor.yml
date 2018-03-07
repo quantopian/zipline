@@ -35,6 +35,7 @@ environment:
       NUMPY_VERSION: "1.14.1"
       SCIPY_VERSION: "1.0.0"
       PANDAS_DATAREADER_VERSION: "0.4.0"
+      DASK_VERSION: "0.17.1"
 
 # We always use a 64-bit machine, but can build x86 distributions
 # with the PYTHON_ARCH variable (which is used by CMD_IN_ENV).
@@ -76,6 +77,7 @@ install:
   - sed -i "s/pandas==.*/pandas==%PANDAS_VERSION%/" etc/requirements.txt
   - sed -i "s/scipy==.*/scipy==%SCIPY_VERSION%/" etc/requirements.txt
   - IF NOT "%PANDAS_DATAREADER_VERSION%"=="" sed -i "s/pandas-datareader==.*/pandas-datareader==%PANDAS_DATAREADER_VERSION%/" etc/requirements.txt
+  - IF NOT "%DASK_VERSION%"=="" sed -i "s/dask\[dataframe\]==.*/dask\[dataframe\]==%DASK_VERSION%/" etc/requirements_blaze.txt
   - cat etc/requirements.txt
   - conda info -a
   - conda install conda=4.3.30 conda-build=3.0.28 anaconda-client=1.6.3 --yes -q

@@ -25,7 +25,7 @@ matrix:
     - python: 3.5
       env: PANDAS_VERSION=0.19.2
     - python: 3.5
-      env: NUMPY_VERSION=1.14.1 PANDAS_VERSION=0.22.0 SCIPY_VERSION=1.0.0 PANDAS_DATAREADER_VERSION=0.4.0
+      env: NUMPY_VERSION=1.14.1 PANDAS_VERSION=0.22.0 SCIPY_VERSION=1.0.0 PANDAS_DATAREADER_VERSION=0.4.0 DASK_VERSION=0.17.1
 cache:
   directories:
     - $HOME/.cache/.pip/
@@ -39,6 +39,7 @@ before_install:
   - sed -i "s/pandas==.*/pandas==$PANDAS_VERSION/" etc/requirements.txt
   - sed -i "s/scipy==.*/scipy==$SCIPY_VERSION/" etc/requirements.txt
   - if [ -n "$PANDAS_DATAREADER_VERSION" ]; then sed -i "s/pandas-datareader==.*/pandas-datareader==$PANDAS_DATAREADER_VERSION/" etc/requirements.txt; fi
+  - if [ -n "$DASK_VERSION" ]; then sed -i "s/dask\[dataframe\]==.*/dask\[dataframe\]==$DASK_VERSION/" etc/requirements_blaze.txt; fi
   - cat etc/requirements.txt
 install:
   - conda info -a
