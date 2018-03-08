@@ -319,7 +319,7 @@ class LabelArray(ndarray):
         """
         return self.categories[self.as_int_array()]
 
-    def as_categorical(self, name=None):
+    def as_categorical(self):
         """
         Coerce self into a pandas categorical.
 
@@ -335,7 +335,6 @@ class LabelArray(ndarray):
                 # buffer isn't writeable.
                 self.categories.copy(),
                 ordered=False,
-                name=name,
             )
 
     def as_categorical_frame(self, index, columns, name=None):
@@ -360,7 +359,8 @@ class LabelArray(ndarray):
 
         return pd.Series(
             index=pd.MultiIndex.from_product([index, columns]),
-            data=self.ravel().as_categorical(name=name),
+            data=self.ravel().as_categorical(),
+            name=name,
         ).unstack()
 
     def __setitem__(self, indexer, value):
