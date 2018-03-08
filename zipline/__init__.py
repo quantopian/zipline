@@ -17,11 +17,16 @@ import os
 
 # This is *not* a place to dump arbitrary classes/modules for convenience,
 # it is a place to expose the public interfaces.
+from distutils.version import StrictVersion
+import numpy as np
+
 from . import data
 from . import finance
 from . import gens
 from . import utils
 from .utils.calendars import get_calendar
+from .utils.numpy_utils import numpy_version
+from .utils.pandas_utils import new_pandas
 from .utils.run_algo import run_algorithm
 from ._version import get_versions
 
@@ -80,3 +85,38 @@ __all__ = [
     'run_algorithm',
     'utils',
 ]
+
+
+def setup(self,
+          np=np,
+          numpy_version=numpy_version,
+          StrictVersion=StrictVersion,
+          new_pandas=new_pandas):
+
+    legacy_version = '1.13'
+    if numpy_version > StrictVersion(legacy_version):
+        self.old_opts = np.get_printoptions()
+        np.set_printoptions(legacy=legacy_version)
+    else:
+        self.old_opts = None
+
+    if new_pandas:
+        self.old_err = np.geterr()
+        # old pandas has numpy compat that sets this
+        np.seterr(all='ignore')
+    else:
+        self.old_err = None
+
+
+def teardown(self, np=np):
+    if self.old_err is not None:
+        np.seterr(**self.old_err)
+
+    if self.old_opts is not None:
+        np.set_printoptions(**self.old_opts)
+
+
+del np
+del numpy_version
+del StrictVersion
+del new_pandas
