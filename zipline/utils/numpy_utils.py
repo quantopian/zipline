@@ -3,6 +3,7 @@ Utilities for working with numpy arrays.
 """
 from collections import OrderedDict
 from datetime import datetime
+from distutils.version import StrictVersion
 from warnings import (
     catch_warnings,
     filterwarnings,
@@ -25,6 +26,8 @@ from numpy import (
 )
 from numpy.lib.stride_tricks import as_strided
 from toolz import flip
+
+numpy_version = StrictVersion(np.__version__)
 
 uint8_dtype = dtype('uint8')
 bool_dtype = dtype('bool')
