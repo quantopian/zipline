@@ -103,13 +103,13 @@ like:
 
 
 We may also specify the date to use to look up the bundle data with the
-``--bundle-date`` option. Setting the ``--bundle-date`` will cause run to use
-the most recent bundle ingestion that is less than or equal to the
-``bundle-date``. This is how we can run backtests with older data. The reason
-that ``-bundle-date`` uses a less than or equal to relationship is that we can
+``--bundle-timestamp`` option. Setting the ``--bundle-timestamp`` will cause
+``run`` to use the most recent bundle ingestion that is less than or equal to
+the ``bundle-timestamp``. This is how we can run backtests with older data.
+``bundle-timestamp`` uses a less-than-or-equal-to relationship so that we can
 specify the date that we ran an old backtest and get the same data that would
-have been available to us on that date. The ``bundle-date`` defaults to the
-current day to use the most recent data.
+have been available to us on that date. The ``bundle-timestamp`` defaults to
+the current day to use the most recent data.
 
 Default Data Bundles
 ~~~~~~~~~~~~~~~~~~~~
