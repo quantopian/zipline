@@ -574,32 +574,40 @@ class TradingCalendar(with_metaclass(ABCMeta)):
 
     def session_distance(self, start_session_label, end_session_label):
         """
-        Given a start and end session label, returns the distance between
-        them.  For example, for three consecutive sessions Mon., Tues., and
-        Wed, `session_distance(Mon, Wed)` would return 2.
+        Given a start and end session label, returns the distance between them.
+        For example, for three consecutive sessions Mon., Tues., and Wed,
+        ``session_distance(Mon, Wed)`` returns 3. If ``start_session`` is after
+        ``end_session``, the value will be negated.
 
         Parameters
         ----------
         start_session_label: pd.Timestamp
             The label of the start session.
-
         end_session_label: pd.Timestamp
-            The label of the ending session.
+            The label of the ending session inclusive.
 
         Returns
         -------
         int
             The distance between the two sessions.
         """
-        start_idx = self.all_sessions.searchsorted(
-            self.minute_to_session_label(start_session_label)
-        )
-
+        negate = end_session_label < start_session_label
+        if negate:
+            start_session_label, end_session_label = (
+                end_session_label,
+                start_session_label,
+            )
+        start_idx = self.all_sessions.searchsorted(start_session_label)
         end_idx = self.all_sessions.searchsorted(
-            self.minute_to_session_label(end_session_label)
+            end_session_label,
+            side='right',
         )
 
-        return abs(end_idx - start_idx)
+        out = end_idx - start_idx
+        if negate:
+            out = -out
+
+        return out
 
     def minutes_in_range(self, start_minute, end_minute):
         """
