@@ -661,8 +661,23 @@ class ExchangeCalendarTestBase(object):
     def test_session_distance(self):
         sessions = self._get_session_block()
 
-        self.assertEqual(2, self.calendar.session_distance(sessions[0],
-                                                           sessions[-1]))
+        forward_distance = self.calendar.session_distance(
+            sessions[0],
+            sessions[-1],
+        )
+        self.assertEqual(forward_distance, len(sessions))
+
+        backward_distance = self.calendar.session_distance(
+            sessions[-1],
+            sessions[0],
+        )
+        self.assertEqual(backward_distance, -len(sessions))
+
+        one_day_distance = self.calendar.session_distance(
+            sessions[0],
+            sessions[0],
+        )
+        self.assertEqual(one_day_distance, 1)
 
     def test_open_and_close_for_session(self):
         for index, row in self.answers.iterrows():
