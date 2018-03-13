@@ -175,7 +175,7 @@ class Blotter(object):
         """
         return [self.order(*order_args) for order_args in order_arg_lists]
 
-    def cancel(self, order_id, relay_status=True):
+    def cancel(self, order_id, reason=None, relay_status=True):
         if order_id not in self.orders:
             return
 
@@ -188,7 +188,7 @@ class Blotter(object):
 
             if cur_order in self.new_orders:
                 self.new_orders.remove(cur_order)
-            cur_order.cancel()
+            cur_order.cancel(reason=reason)
             cur_order.dt = self.current_dt
 
             if relay_status:
@@ -209,47 +209,48 @@ class Blotter(object):
         # self.open_orders no longer a defaultdict.  If we do that, then we
         # should just remove the orders once here and be done with the matter.
         for order in orders[:]:
-            self.cancel(order.id, relay_status)
+            if order.filled > 0:
+                reason = (
+                    'Your order for {order_amt} shares of '
+                    '{order_sym} has been partially filled. '
+                    '{order_filled} shares were successfully '
+                    'purchased. {order_failed} shares were not '
+                    'filled by the end of day and '
+                    'were canceled.'.format(
+                        order_amt=order.amount,
+                        order_sym=order.asset.symbol,
+                        order_filled=order.filled,
+                        order_failed=order.amount - order.filled,
+                    )
+                )
+            elif order.filled < 0:
+                reason = (
+                    'Your order for {order_amt} shares of '
+                    '{order_sym} has been partially filled. '
+                    '{order_filled} shares were successfully '
+                    'sold. {order_failed} shares were not '
+                    'filled by the end of day and '
+                    'were canceled.'.format(
+                        order_amt=order.amount,
+                        order_sym=order.asset.symbol,
+                        order_filled=-1 * order.filled,
+                        order_failed=-1 * (order.amount - order.filled),
+                    )
+                )
+            else:
+                reason = (
+                    'Your order for {order_amt} shares of '
+                    '{order_sym} failed to fill by the end of day '
+                    'and was canceled.'.format(
+                        order_amt=order.amount,
+                        order_sym=order.asset.symbol,
+                    )
+                )
+            self.cancel(order.id, reason, relay_status)
             if warn:
                 # Message appropriately depending on whether there's
                 # been a partial fill or not.
-                if order.filled > 0:
-                    warning_logger.warn(
-                        'Your order for {order_amt} shares of '
-                        '{order_sym} has been partially filled. '
-                        '{order_filled} shares were successfully '
-                        'purchased. {order_failed} shares were not '
-                        'filled by the end of day and '
-                        'were canceled.'.format(
-                            order_amt=order.amount,
-                            order_sym=order.asset.symbol,
-                            order_filled=order.filled,
-                            order_failed=order.amount - order.filled,
-                        )
-                    )
-                elif order.filled < 0:
-                    warning_logger.warn(
-                        'Your order for {order_amt} shares of '
-                        '{order_sym} has been partially filled. '
-                        '{order_filled} shares were successfully '
-                        'sold. {order_failed} shares were not '
-                        'filled by the end of day and '
-                        'were canceled.'.format(
-                            order_amt=order.amount,
-                            order_sym=order.asset.symbol,
-                            order_filled=-1 * order.filled,
-                            order_failed=-1 * (order.amount - order.filled),
-                        )
-                    )
-                else:
-                    warning_logger.warn(
-                        'Your order for {order_amt} shares of '
-                        '{order_sym} failed to fill by the end of day '
-                        'and was canceled.'.format(
-                            order_amt=order.amount,
-                            order_sym=order.asset.symbol,
-                        )
-                    )
+                warning_logger.warn(reason)
 
         assert not orders
         del self.open_orders[asset]

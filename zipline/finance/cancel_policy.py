@@ -64,8 +64,7 @@ class EODCancel(CancelPolicy):
 class NeverCancel(CancelPolicy):
     """Orders are never automatically canceled.
     """
-    def __init__(self):
-        self.warn_on_cancel = False
+    warn_on_cancel = False
 
     def should_cancel(self, event):
         return False

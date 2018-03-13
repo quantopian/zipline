@@ -2132,9 +2132,10 @@ class TradingAlgorithm(object):
         order_param : str or Order
             The order_id or order object to cancel.
         """
-        order_id = order_param
         if isinstance(order_param, zipline.protocol.Order):
             order_id = order_param.id
+        else:
+            order_id = order_param
 
         self.blotter.cancel(order_id)
 

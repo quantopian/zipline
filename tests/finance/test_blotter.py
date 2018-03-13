@@ -285,6 +285,7 @@ class BlotterTestCase(WithCreateBarData,
         cancelled_order = blotter.new_orders[0]
         self.assertEqual(cancelled_order.id, held_order.id)
         self.assertEqual(cancelled_order.status, ORDER_STATUS.CANCELLED)
+        self.assertEqual(cancelled_order.reason, None)
 
         for data in ([100, self.sim_params.sessions[0]],
                      [400, self.sim_params.sessions[1]]):

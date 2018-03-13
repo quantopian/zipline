@@ -211,8 +211,10 @@ class Order(object):
     def status(self, status):
         self._status = status
 
-    def cancel(self):
+    def cancel(self, reason=None):
         self.status = ORDER_STATUS.CANCELLED
+        if reason is not None:
+            self.reason = reason
 
     def reject(self, reason=''):
         self.status = ORDER_STATUS.REJECTED
