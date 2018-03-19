@@ -313,6 +313,36 @@ def assert_raises_str(exc, expected_str, msg=''):
     return assert_raises_regex(exc, '^%s$' % re.escape(expected_str), msg=msg)
 
 
+def make_assert_equal_assertion_error(assertion_message, path, msg):
+    """Create an assertion error formatted for use in ``assert_equal``.
+
+    Parameters
+    ----------
+    assertion_message : str
+        The concrete reason for the failure.
+    path : tuple[str]
+        The path leading up to the failure.
+    msg : str
+        The user supplied message.
+
+    Returns
+    -------
+    exception_instance : AssertionError
+        The new exception instance.
+
+    Notes
+    -----
+    This doesn't raise the exception, it only returns it.
+    """
+    return AssertionError(
+        '%s%s\n%s' % (
+            _fmt_msg(msg),
+            assertion_message,
+            _fmt_path(path),
+        ),
+    )
+
+
 @dispatch(object, object)
 def assert_equal(result, expected, path=(), msg='', **kwargs):
     """Assert that two objects are equal using the ``==`` operator.
@@ -329,12 +359,12 @@ def assert_equal(result, expected, path=(), msg='', **kwargs):
     AssertionError
         Raised when ``result`` is not equal to ``expected``.
     """
-    assert result == expected, '%s%s != %s\n%s' % (
-        _fmt_msg(msg),
-        result,
-        expected,
-        _fmt_path(path),
-    )
+    if result != expected:
+        raise make_assert_equal_assertion_error(
+            '%s != %s' % (result, expected),
+            path,
+            msg,
+        )
 
 
 @assert_equal.register(float, float)
