@@ -18,18 +18,18 @@ from toolz.curried.operator import getitem
 
 from zipline.lib.adjusted_array import ensure_adjusted_array, ensure_ndarray
 from zipline.errors import NoFurtherDataError
+from zipline.utils.date_utils import compute_date_range_chunks
 from zipline.utils.numpy_utils import (
     as_column,
     repeat_first_axis,
     repeat_last_axis,
 )
-from zipline.utils.pandas_utils import explode
-
-from .term import AssetExists, InputDates, LoadableTerm
-
-from zipline.utils.date_utils import compute_date_range_chunks
-from zipline.utils.pandas_utils import categorical_df_concat
+from zipline.utils.pandas_utils import categorical_df_concat, explode
 from zipline.utils.sharedoc import copydoc
+
+
+from .common import PIPELINE_INDEX_NAMES
+from .term import AssetExists, InputDates, LoadableTerm
 
 
 class PipelineEngine(with_metaclass(ABCMeta)):
@@ -587,7 +587,10 @@ class SimplePipelineEngine(PipelineEngine):
                     name: array([], dtype=arr.dtype)
                     for name, arr in iteritems(data)
                 },
-                index=MultiIndex.from_arrays([empty_dates, empty_assets]),
+                index=MultiIndex.from_arrays(
+                    [empty_dates, empty_assets],
+                    names=PIPELINE_INDEX_NAMES,
+                ),
             )
 
         resolved_assets = array(self._finder.retrieve_all(assets))
@@ -605,7 +608,10 @@ class SimplePipelineEngine(PipelineEngine):
 
         return DataFrame(
             data=final_columns,
-            index=MultiIndex.from_arrays([dates_kept, assets_kept]),
+            index=MultiIndex.from_arrays(
+                [dates_kept, assets_kept],
+                names=PIPELINE_INDEX_NAMES,
+            ),
         ).tz_localize('UTC', level=0)
 
     def _validate_compute_chunk_params(self, dates, assets, initial_workspace):

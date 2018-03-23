@@ -26,6 +26,7 @@ from pandas import (
     Categorical,
     DataFrame,
     date_range,
+    Index,
     Int64Index,
     MultiIndex,
     Series,
@@ -41,6 +42,7 @@ from zipline.errors import NoFurtherDataError
 from zipline.lib.adjustment import MULTIPLY
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import CustomFactor, Pipeline
+from zipline.pipeline.common import PIPELINE_INDEX_NAMES
 from zipline.pipeline.data import Column, DataSet, USEquityPricing
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.engine import SimplePipelineEngine
@@ -59,9 +61,9 @@ from zipline.pipeline.loaders.equity_pricing_loader import (
 )
 from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.pipeline.loaders.synthetic import (
-    PrecomputedLoader,
-    make_bar_data,
     expected_bar_values_2d,
+    make_bar_data,
+    PrecomputedLoader,
 )
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import InputDates
@@ -196,6 +198,7 @@ class WithConstantInputs(WithTradingEnvironment):
             sids=cls.asset_ids,
         )
         cls.assets = cls.asset_finder.retrieve_all(cls.asset_ids)
+        cls.index_names = PIPELINE_INDEX_NAMES
 
 
 class ConstantInputTestCase(WithConstantInputs, ZiplineTestCase):
@@ -291,7 +294,10 @@ class ConstantInputTestCase(WithConstantInputs, ZiplineTestCase):
             expected_sids = asset_ids[asset_ids <= asset_id]
             expected_assets = finder.retrieve_all(expected_sids)
             expected_result = DataFrame(
-                index=MultiIndex.from_product([dates, expected_assets]),
+                index=MultiIndex.from_product(
+                    [dates, expected_assets],
+                    names=self.index_names,
+                ),
                 data=tile(expected_sids.astype(float), [len(dates)]),
                 columns=['f'],
             )
@@ -404,25 +410,28 @@ class ConstantInputTestCase(WithConstantInputs, ZiplineTestCase):
             dates[-1],
         )
 
+        index = dates.set_names([self.index_names[0]])
+        columns = Index(self.assets, name=self.index_names[1])
+
         high_low_result = results['high_low'].unstack()
         expected_high_low = 3.0 * (constants[high] - constants[low])
         assert_frame_equal(
             high_low_result,
-            DataFrame(expected_high_low, index=dates, columns=self.assets),
+            DataFrame(expected_high_low, index=index, columns=columns),
         )
 
         open_close_result = results['open_close'].unstack()
         expected_open_close = 3.0 * (constants[open] - constants[close])
         assert_frame_equal(
             open_close_result,
-            DataFrame(expected_open_close, index=dates, columns=self.assets),
+            DataFrame(expected_open_close, index=index, columns=columns),
         )
 
         avg_result = results['avg'].unstack()
         expected_avg = (expected_high_low + expected_open_close) / 2.0
         assert_frame_equal(
             avg_result,
-            DataFrame(expected_avg, index=dates, columns=self.assets),
+            DataFrame(expected_avg, index=index, columns=columns),
         )
 
     def test_masked_factor(self):
@@ -451,7 +460,11 @@ class ConstantInputTestCase(WithConstantInputs, ZiplineTestCase):
 
         def create_expected_results(expected_value, mask):
             expected_values = where(mask, expected_value, nan)
-            return DataFrame(expected_values, index=dates, columns=assets)
+            return DataFrame(
+                expected_values,
+                index=dates.set_names([self.index_names[0]]),
+                columns=Index(assets, name=self.index_names[1]),
+            )
 
         cascading_mask = AssetIDPlusDay() < (asset_ids[-1] + dates[0].day)
         expected_cascading_mask_result = make_cascading_boolean_array(
@@ -596,7 +609,10 @@ class ConstantInputTestCase(WithConstantInputs, ZiplineTestCase):
                 ('open_attribute', open_attribute_expected)):
             column_results = results[colname].unstack()
             expected_results = DataFrame(
-                expected_values, index=dates, columns=assets, dtype=float64,
+                expected_values,
+                index=dates.set_names([self.index_names[0]]),
+                columns=Index(assets, name=self.index_names[1]),
+                dtype=float64,
             )
             assert_frame_equal(column_results, expected_results)
 
@@ -615,7 +631,11 @@ class ConstantInputTestCase(WithConstantInputs, ZiplineTestCase):
 
         def create_expected_results(expected_value, mask):
             expected_values = where(mask, expected_value, nan)
-            return DataFrame(expected_values, index=dates, columns=assets)
+            return DataFrame(
+                expected_values,
+                index=dates.set_names([self.index_names[0]]),
+                columns=Index(assets, name=self.index_names[1]),
+            )
 
         cascading_mask = AssetIDPlusDay() < (asset_ids[-1] + dates[0].day)
         expected_cascading_mask_result = make_cascading_boolean_array(
@@ -676,7 +696,10 @@ class ConstantInputTestCase(WithConstantInputs, ZiplineTestCase):
         close_values = [constants[USEquityPricing.close]] * num_assets
         expected_values = [list(zip(open_values, close_values))] * num_dates
         expected_results = DataFrame(
-            expected_values, index=dates, columns=assets, dtype=float64,
+            expected_values,
+            index=dates.set_names([self.index_names[0]]),
+            columns=Index(assets, name=self.index_names[1]),
+            dtype=float64,
         )
 
         multiple_outputs = MultipleOutputs()
@@ -699,7 +722,11 @@ class ConstantInputTestCase(WithConstantInputs, ZiplineTestCase):
             expected_values = full(
                 (num_dates, num_assets), expected_value, float64,
             )
-            return DataFrame(expected_values, index=dates, columns=assets)
+            return DataFrame(
+                expected_values,
+                index=dates.set_names([self.index_names[0]]),
+                columns=Index(assets, name=self.index_names[1]),
+            )
 
         for window_length in range(1, 3):
             sum_, diff = OpenCloseSumAndDiff(
@@ -781,7 +808,10 @@ class ConstantInputTestCase(WithConstantInputs, ZiplineTestCase):
                        * pipe_col.window_length)
                 for name, pipe_col in iteritems(columns)}
 
-        index = MultiIndex.from_product([self.dates[2:], self.assets])
+        index = MultiIndex.from_product(
+            [self.dates[2:], self.assets],
+            names=self.index_names
+        )
 
         def expected_for_col(col):
             val = vals[col]
@@ -836,7 +866,11 @@ class FrameInputTestCase(WithTradingEnvironment, ZiplineTestCase):
         return self.make_frame(True)
 
     def make_frame(self, data):
-        return DataFrame(data, columns=self.assets, index=self.dates)
+        return DataFrame(
+            data,
+            index=Index(self.dates, name=PIPELINE_INDEX_NAMES[0]),
+            columns=Index(self.assets, name=PIPELINE_INDEX_NAMES[1]),
+        )
 
     def test_compute_with_adjustments(self):
         dates, asset_ids = self.dates, self.asset_ids
@@ -952,6 +986,7 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
             cls.bcolz_equity_daily_bar_reader,
             cls.adjustment_reader,
         )
+        cls.index_names = PIPELINE_INDEX_NAMES
 
     def write_nans(self, df):
         """
@@ -1023,11 +1058,17 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
         ).mean(
         ).values
 
+        # dates_to_test is dates[window_length:]
+        expected_index = dates_to_test.set_names([self.index_names[0]])
+        expected_columns = Index(
+            self.asset_finder.retrieve_all(asset_ids),
+            name=self.index_names[1]
+        )
         expected = DataFrame(
             # Truncate off the extra rows needed to compute the SMAs.
             expected_raw[window_length:],
-            index=dates_to_test,  # dates_to_test is dates[window_length:]
-            columns=self.asset_finder.retrieve_all(asset_ids),
+            index=expected_index,
+            columns=expected_columns,
         )
         self.write_nans(expected)
         result = results['sma'].unstack()
@@ -1064,12 +1105,17 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
             dates_to_test[-1],
         )
 
+        expected_index = dates_to_test.set_names([self.index_names[0]])
+        expected_columns = Index(
+            self.asset_finder.retrieve_all(asset_ids),
+            name=self.index_names[1]
+        )
         # We expect NaNs when the asset was undefined, otherwise 0 everywhere,
         # since the input is always increasing.
         expected = DataFrame(
             data=zeros((len(dates_to_test), len(asset_ids)), dtype=float),
-            index=dates_to_test,
-            columns=self.asset_finder.retrieve_all(asset_ids),
+            index=expected_index,
+            columns=expected_columns,
         )
         self.write_nans(expected)
         result = results['drawdown'].unstack()
@@ -1099,8 +1145,11 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
             data=arange(len(dates) * len(sids), dtype=float).reshape(
                 len(dates), len(sids),
             ),
-            index=dates,
-            columns=cls.asset_finder.retrieve_all(sids),
+            index=dates.set_names([PIPELINE_INDEX_NAMES[0]]),
+            columns=Index(
+                cls.asset_finder.retrieve_all(sids),
+                name=PIPELINE_INDEX_NAMES[1],
+            ),
         )
         cls.raw_data_with_nans = cls.raw_data.where((cls.raw_data % 2) != 0)
 
@@ -1317,9 +1366,14 @@ class StringColumnTestCase(WithSeededRandomPipelineEngine,
             end_date,
         )
         expected_labels = LabelArray(expected_raw_data, col.missing_value)
+        expected_index = run_dates.set_names([PIPELINE_INDEX_NAMES[0]])
+        expected_columns = Index(
+            self.asset_finder.retrieve_all(self.asset_finder.sids),
+            name=PIPELINE_INDEX_NAMES[1],
+        )
         expected_final_result = expected_labels.as_categorical_frame(
-            index=run_dates,
-            columns=self.asset_finder.retrieve_all(self.asset_finder.sids),
+            index=expected_index,
+            columns=expected_columns,
         )
         assert_frame_equal(result.c.unstack(), expected_final_result)
 
@@ -1352,16 +1406,18 @@ class WindowSafetyPropagationTestCase(WithSeededRandomPipelineEngine,
         )
         results = self.run_pipeline(pipe, start_date, end_date).unstack()
 
+        expected_columns = Index(
+            self.asset_finder.retrieve_all(self.ASSET_FINDER_EQUITY_SIDS),
+            name=PIPELINE_INDEX_NAMES[1],
+        )
         expected_ranks = DataFrame(
             self.raw_expected_values(
                 col,
                 dates[-19],
                 dates[-1],
             ),
-            index=dates[-19:],
-            columns=self.asset_finder.retrieve_all(
-                self.ASSET_FINDER_EQUITY_SIDS,
-            )
+            index=dates[-19:].set_names([PIPELINE_INDEX_NAMES[0]]),
+            columns=expected_columns,
         ).rank(axis='columns')
 
         # All three expressions should be equivalent and evaluate to this.

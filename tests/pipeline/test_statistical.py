@@ -12,6 +12,7 @@ from numpy import (
 from pandas import (
     DataFrame,
     date_range,
+    Index,
     Int64Index,
     Timestamp,
 )
@@ -23,6 +24,7 @@ from empyrical.stats import beta_aligned as empyrical_beta
 from zipline.assets import Equity
 from zipline.errors import IncompatibleTerms, NonExistentAssetInTimeFrame
 from zipline.pipeline import CustomFactor, Pipeline
+from zipline.pipeline.common import PIPELINE_INDEX_NAMES
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.engine import SimplePipelineEngine
@@ -62,7 +64,7 @@ class StatisticalBuiltInsTestCase(WithTradingEnvironment, ZiplineTestCase):
     sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
     START_DATE = Timestamp('2015-01-31', tz='UTC')
     END_DATE = Timestamp('2015-03-01', tz='UTC')
-    ASSET_FINDER_EQUITY_SYMBOLS = ('A', 'B', 'C')
+    index_names = PIPELINE_INDEX_NAMES
 
     @classmethod
     def init_class_fixtures(cls):
@@ -206,17 +208,21 @@ class StatisticalBuiltInsTestCase(WithTradingEnvironment, ZiplineTestCase):
                         my_asset_returns, other_asset_returns,
                     )[0]
 
+            expected_index = dates[
+                start_date_index:end_date_index + 1
+            ].set_names([self.index_names[0]])
+            expected_columns = Index(assets, name=self.index_names[1])
             expected_pearson_results = DataFrame(
                 data=where(expected_mask, expected_pearson_results, nan),
-                index=dates[start_date_index:end_date_index + 1],
-                columns=assets,
+                index=expected_index,
+                columns=expected_columns,
             )
             assert_frame_equal(pearson_results, expected_pearson_results)
 
             expected_spearman_results = DataFrame(
                 data=where(expected_mask, expected_spearman_results, nan),
-                index=dates[start_date_index:end_date_index + 1],
-                columns=assets,
+                index=expected_index,
+                columns=expected_columns,
             )
             assert_frame_equal(spearman_results, expected_spearman_results)
 
@@ -307,12 +313,16 @@ class StatisticalBuiltInsTestCase(WithTradingEnvironment, ZiplineTestCase):
                         expected_output_results[output][day, asset_column] = \
                             expected_regression_results[i]
 
+            expected_index = dates[
+                start_date_index:end_date_index + 1
+            ].set_names(self.index_names[0])
+            expected_columns = Index(assets, name=self.index_names[1])
             for output in outputs:
                 output_result = output_results[output]
                 expected_output_result = DataFrame(
                     where(expected_mask, expected_output_results[output], nan),
-                    index=dates[start_date_index:end_date_index + 1],
-                    columns=assets,
+                    index=expected_index,
+                    columns=expected_columns,
                 )
                 assert_frame_equal(output_result, expected_output_result)
 
@@ -500,6 +510,7 @@ class StatisticalMethodsTestCase(WithSeededRandomPipelineEngine,
     sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
     START_DATE = Timestamp('2015-01-31', tz='UTC')
     END_DATE = Timestamp('2015-03-01', tz='UTC')
+    index_names = PIPELINE_INDEX_NAMES
 
     @classmethod
     def init_class_fixtures(cls):
@@ -800,17 +811,22 @@ class StatisticalMethodsTestCase(WithSeededRandomPipelineEngine,
                     asset_returns_5, asset_returns_10,
                 )[0]
 
+        expected_index = dates[start_date_index:end_date_index + 1].set_names(
+            self.index_names[0]
+        )
+        expected_columns = Index(assets, name=self.index_names[1])
+
         expected_pearson_results = DataFrame(
             data=expected_pearson_results,
-            index=dates[start_date_index:end_date_index + 1],
-            columns=assets,
+            index=expected_index,
+            columns=expected_columns,
         )
         assert_frame_equal(pearson_results, expected_pearson_results)
 
         expected_spearman_results = DataFrame(
             data=expected_spearman_results,
-            index=dates[start_date_index:end_date_index + 1],
-            columns=assets,
+            index=expected_index,
+            columns=expected_columns,
         )
         assert_frame_equal(spearman_results, expected_spearman_results)
 
@@ -902,12 +918,16 @@ class StatisticalMethodsTestCase(WithSeededRandomPipelineEngine,
                     expected_output_results[output][day, asset_column] = \
                         expected_regression_results[i]
 
+        expected_index = dates[start_date_index:end_date_index + 1].set_names(
+            [self.index_names[0]]
+        )
+        expected_columns = Index(assets, name=self.index_names[1])
         for output in outputs:
             output_result = output_results[output]
             expected_output_result = DataFrame(
                 expected_output_results[output],
-                index=dates[start_date_index:end_date_index + 1],
-                columns=assets,
+                index=expected_index,
+                columns=expected_columns,
             )
             assert_frame_equal(output_result, expected_output_result)
 

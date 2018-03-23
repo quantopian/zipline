@@ -13,12 +13,13 @@ import pandas as pd
 from zipline.pipeline import Pipeline, SimplePipelineEngine
 from zipline.pipeline.common import (
     EVENT_DATE_FIELD_NAME,
-    TS_FIELD_NAME,
+    PIPELINE_INDEX_NAMES,
     SID_FIELD_NAME,
+    TS_FIELD_NAME,
 )
 from zipline.pipeline.data import DataSet, Column
-from zipline.pipeline.loaders.events import EventsLoader
 from zipline.pipeline.loaders.blaze.events import BlazeEventsLoader
+from zipline.pipeline.loaders.events import EventsLoader
 from zipline.pipeline.loaders.utils import (
     next_event_indexer,
     normalize_timestamp_to_query_time,
@@ -342,7 +343,10 @@ class EventsLoaderEmptyTestCase(WithAssetFinder,
         dates = self.trading_days
 
         expected = self.frame_containing_all_missing_values(
-            index=pd.MultiIndex.from_product([dates, assets]),
+            index=pd.MultiIndex.from_product(
+                [dates, assets],
+                names=PIPELINE_INDEX_NAMES,
+            ),
             columns=EventDataSet.columns,
         )
 

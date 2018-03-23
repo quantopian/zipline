@@ -17,11 +17,11 @@ from zipline.pipeline.common import (
     EVENT_DATE_FIELD_NAME,
     FISCAL_QUARTER_FIELD_NAME,
     FISCAL_YEAR_FIELD_NAME,
+    PIPELINE_INDEX_NAMES,
     SID_FIELD_NAME,
     TS_FIELD_NAME,
 )
-from zipline.pipeline.data import DataSet
-from zipline.pipeline.data import Column
+from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.loaders.blaze.estimates import (
     BlazeNextEstimatesLoader,
     BlazeNextSplitAdjustedEstimatesLoader,
@@ -42,10 +42,12 @@ from zipline.testing.fixtures import (
     WithTradingSessions,
     ZiplineTestCase,
 )
-from zipline.testing.predicates import assert_equal, assert_raises_regex
-from zipline.testing.predicates import assert_frame_equal
-from zipline.utils.numpy_utils import datetime64ns_dtype
-from zipline.utils.numpy_utils import float64_dtype
+from zipline.testing.predicates import (
+    assert_equal,
+    assert_frame_equal,
+    assert_raises_regex,
+)
+from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
 
 
 class Estimates(DataSet):
@@ -266,7 +268,8 @@ class PreviousWithOneDayPipeline(WithOneDayPipeline, ZiplineTestCase):
                 FISCAL_YEAR_FIELD_NAME: 2015.,
             },
             index=pd.MultiIndex.from_tuples(
-                ((pd.Timestamp('2015-01-15', tz='utc'), cls.sid0),)
+                ((pd.Timestamp('2015-01-15', tz='utc'), cls.sid0),),
+                names=PIPELINE_INDEX_NAMES
             )
         )
 
@@ -291,7 +294,8 @@ class NextWithOneDayPipeline(WithOneDayPipeline, ZiplineTestCase):
                 FISCAL_YEAR_FIELD_NAME: 2015.,
             },
             index=pd.MultiIndex.from_tuples(
-                ((pd.Timestamp('2015-01-15', tz='utc'), cls.sid0),)
+                ((pd.Timestamp('2015-01-15', tz='utc'), cls.sid0),),
+                names=PIPELINE_INDEX_NAMES,
             )
         )
 
@@ -602,13 +606,14 @@ class WithEstimatesTimeZero(WithEstimates):
             else:
                 ts_sorted_estimates = self.events[
                     self.events[SID_FIELD_NAME] == sid
-                ].sort(TS_FIELD_NAME)
+                ].sort_values(by=[TS_FIELD_NAME])
                 q1_knowledge = ts_sorted_estimates[
                     ts_sorted_estimates[FISCAL_QUARTER_FIELD_NAME] == 1
                 ]
                 q2_knowledge = ts_sorted_estimates[
                     ts_sorted_estimates[FISCAL_QUARTER_FIELD_NAME] == 2
                 ]
+
                 all_expected = pd.concat(
                     [self.get_expected_estimate(
                         q1_knowledge[q1_knowledge[TS_FIELD_NAME] <=
@@ -618,6 +623,7 @@ class WithEstimatesTimeZero(WithEstimates):
                         date.tz_localize(None),
                     ).set_index([[date]]) for date in sid_estimates.index],
                     axis=0)
+                all_expected.index.name = PIPELINE_INDEX_NAMES[0]
                 assert_equal(all_expected[sid_estimates.columns],
                              sid_estimates)
 
@@ -645,8 +651,10 @@ class NextEstimate(WithEstimatesTimeZero, ZiplineTestCase):
               q2_knowledge[EVENT_DATE_FIELD_NAME].iloc[-1] >=
                 comparable_date):
             return q2_knowledge.iloc[-1:]
-        return pd.DataFrame(columns=q1_knowledge.columns,
-                            index=[comparable_date])
+        return pd.DataFrame(
+            index=pd.Index([comparable_date], name=PIPELINE_INDEX_NAMES[0]),
+            columns=q1_knowledge.columns
+        )
 
 
 class BlazeNextEstimateLoaderTestCase(NextEstimate):
@@ -684,8 +692,10 @@ class PreviousEstimate(WithEstimatesTimeZero, ZiplineTestCase):
               q1_knowledge[EVENT_DATE_FIELD_NAME].iloc[-1] <=
                 comparable_date):
             return q1_knowledge.iloc[-1:]
-        return pd.DataFrame(columns=q1_knowledge.columns,
-                            index=[comparable_date])
+        return pd.DataFrame(
+            index=pd.Index([comparable_date], name=PIPELINE_INDEX_NAMES[0]),
+            columns=q1_knowledge.columns
+        )
 
 
 class BlazePreviousEstimateLoaderTestCase(PreviousEstimate):
@@ -747,11 +757,13 @@ class WithEstimateMultipleQuarters(WithEstimates):
 
     @classmethod
     def make_expected_out(cls):
-        expected = pd.DataFrame(columns=[cls.columns[col] + '1'
-                                         for col in cls.columns] +
-                                        [cls.columns[col] + '2'
-                                         for col in cls.columns],
-                                index=cls.trading_days)
+
+        expected_columns = pd.Index(
+            [cls.columns[col] + '1' for col in cls.columns] +
+            [cls.columns[col] + '2' for col in cls.columns]
+        )
+        expected_index = cls.trading_days.set_names([PIPELINE_INDEX_NAMES[0]])
+        expected = pd.DataFrame(index=expected_index, columns=expected_columns)
 
         for (col, raw_name), suffix in itertools.product(
             cls.columns.items(), ('1', '2')
@@ -766,7 +778,7 @@ class WithEstimateMultipleQuarters(WithEstimates):
                     expected_name
                 ].astype(col.dtype)
         cls.fill_expected_out(expected)
-        return expected.reindex(cls.trading_days)
+        return expected
 
     def test_multiple_qtrs_requested(self):
         dataset1 = QuartersEstimates(1)
