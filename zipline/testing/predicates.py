@@ -2,7 +2,6 @@ from contextlib import contextmanager
 import datetime
 from functools import partial
 import inspect
-from itertools import izip_longest
 import re
 
 from nose.tools import (  # noqa
@@ -42,6 +41,7 @@ from pandas.util.testing import (
     assert_index_equal,
 )
 from six import iteritems, viewkeys, PY2
+from six.moves import zip_longest
 from toolz import dissoc, keyfilter
 import toolz.curried.operator as op
 
@@ -723,7 +723,7 @@ def assert_messages_equal(result, expected):
     # name :(.
     left_lines = result.splitlines(True)
     right_lines = expected.splitlines(True)
-    iter_lines = enumerate(izip_longest(left_lines, right_lines))
+    iter_lines = enumerate(zip_longest(left_lines, right_lines))
     for line, (ll, rl) in iter_lines:
         if ll != rl:
             col = index_of_first_difference(ll, rl)
@@ -737,7 +737,7 @@ def assert_messages_equal(result, expected):
 
 def index_of_first_difference(left, right):
     """Get the index of the first difference between two strings."""
-    difflocs = (i for (i, (lc, rc)) in enumerate(izip_longest(left, right))
+    difflocs = (i for (i, (lc, rc)) in enumerate(zip_longest(left, right))
                 if lc != rc)
     try:
         return next(difflocs)
