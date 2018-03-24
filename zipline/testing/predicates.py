@@ -2,6 +2,7 @@ from contextlib import contextmanager
 import datetime
 from functools import partial
 import inspect
+from itertools import izip_longest
 import re
 
 from nose.tools import (  # noqa
@@ -712,6 +713,36 @@ def assert_isidentical(result, expected, msg=''):
     assert result.isidentical(expected), (
         '%s%s is not identical to %s' % (_fmt_msg(msg), result, expected)
     )
+
+
+def assert_messages_equal(result, expected):
+    """Assertion helper for comparing very long strings (e.g. error messages).
+    """
+    # The arg here is "keepends" which keeps trailing newlines (which
+    # matters for checking trailing whitespace). You can't pass keepends by
+    # name :(.
+    left_lines = result.splitlines(True)
+    right_lines = expected.splitlines(True)
+    iter_lines = enumerate(izip_longest(left_lines, right_lines))
+    for line, (ll, rl) in iter_lines:
+        if ll != rl:
+            col = index_of_first_difference(ll, rl)
+            raise AssertionError(
+                "Messages differ on line {line}, col {col}:"
+                "\n{ll!r}\n!=\n{rl!r}".format(
+                    line=line, col=col, ll=ll, rl=rl
+                )
+            )
+
+
+def index_of_first_difference(left, right):
+    """Get the index of the first difference between two strings."""
+    difflocs = (i for (i, (lc, rc)) in enumerate(izip_longest(left, right))
+                if lc != rc)
+    try:
+        return next(difflocs)
+    except StopIteration:
+        raise ValueError("Left was equal to right!")
 
 
 try:
