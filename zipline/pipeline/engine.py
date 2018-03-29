@@ -379,8 +379,19 @@ class SimplePipelineEngine(PipelineEngine):
             include_start_date=False
         )
 
-        assert lifetimes.index[extra_rows] == start_date
-        assert lifetimes.index[-1] == end_date
+        if lifetimes.index[extra_rows] != start_date:
+            raise ValueError(
+                'The first date of the lifetimes matrix does not match the'
+                ' start date of the pipeline. Did you forget to align the'
+                ' start_date to the trading calendar?'
+            )
+        if lifetimes.index[-1] != end_date:
+            raise ValueError(
+                'The last date of the lifetimes matrix does not match the'
+                ' start date of the pipeline. Did you forget to align the'
+                ' end_date to the trading calendar?'
+            )
+
         if not lifetimes.columns.unique:
             columns = lifetimes.columns
             duplicated = columns[columns.duplicated()].unique()
