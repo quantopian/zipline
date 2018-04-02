@@ -1,5 +1,6 @@
 from abc import abstractmethod, abstractproperty
 
+import itertools
 import numpy as np
 import pandas as pd
 from six import viewvalues
@@ -22,11 +23,8 @@ from zipline.pipeline.common import (
     TS_FIELD_NAME,
 )
 from zipline.pipeline.loaders.base import PipelineLoader
-from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
-from zipline.pipeline.loaders.utils import (
-    ffill_across_cols,
-    last_in_date_group
-)
+from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype, \
+    default_missing_value_for_dtype
 
 
 INVALID_NUM_QTRS_MESSAGE = "Passed invalid number of quarters %s; " \
@@ -58,6 +56,177 @@ metadata_columns = frozenset({
     FISCAL_QUARTER_FIELD_NAME,
     FISCAL_YEAR_FIELD_NAME,
 })
+
+
+def grouped_ffilled_reindex(df, index, group_columns, missing_type_map):
+    """Perform a groupwise reindex(method='ffill') for dataframe columns
+    without altering the dtypes of columns. Builds up structure for 2
+    dataframes - stacked and unstacked.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The dataframe to reshape.
+    index : pd.Index
+        The new index per group.
+    group_columns : str or list[str]
+        The group_columns of column or columns to group by.
+    missing_type_map : dict[str -> np.dtype]
+        The missing type to use for certain columns.
+
+    Returns
+    -------
+    last_per_qtr : pd.DataFrame
+        A DataFrame with a column MultiIndex of [self.estimates.columns,
+        normalized_quarters, sid] that allows easily getting the timeline
+        of estimates for a particular sid for a particular quarter.
+    stacked_last_per_qtr : pd.DataFrame
+        The latest estimate known with the dates, normalized quarter, and
+        sid as the index.
+    """
+    groups = df.groupby(group_columns).indices
+    columns_to_ffill = set(df.columns) - {SID_FIELD_NAME, NORMALIZED_QUARTERS}
+    group_index_len = len(groups) * len(index)
+    df_dtypes = {column: df.dtypes[column] for column in columns_to_ffill}
+
+    # We will build this up in the loop, since the key is (column,
+    # normalized_quarter, sid) and is relatively costly to build.
+    last_per_qtr_columns = {}
+
+    # For the stacked dataframe, we need to build up the index as we loop
+    # through each group. It is fastest to do this by pre-allocating arrays
+    # for each index level and filling them up as we go.
+    normalize_qtr_idx = np.full(
+        group_index_len,
+        default_missing_value_for_dtype(np.dtype('float64')),
+        dtype='float64'
+    )
+    sid_idx = np.full(
+        group_index_len,
+        default_missing_value_for_dtype(np.dtype('float64')),
+        dtype='float64'
+    )
+    # There are only a few keys here - the columns - so we can pre-allocate
+    # these arrays now.
+    stacked_last_per_qtr_columns = {
+        column:
+            np.full(
+                group_index_len,
+                default_missing_value_for_dtype(df_dtypes[column]),
+                dtype=df_dtypes[column]
+            )
+        for column in columns_to_ffill
+    }
+    col_nan_idxs = {}
+    for column in columns_to_ffill:
+        col_nan_idxs[column] = np.argwhere(
+            pd.isnull(df[column].values)
+        ).flatten()
+    for n, ((sid, normalized_quarter), group_ix) in enumerate(groups.items()):
+        # ``group_ix`` is an array with all of the integer indices for the
+        # elements of a single group.
+        group_start_idx = n * len(index)
+        group_stop_idx = group_start_idx + len(index)
+
+        # Cheaper to do this 1 time for all columns.
+        where = df.index[group_ix].get_indexer_for(
+            index, method='ffill'
+        )
+        group_mask = where != -1
+        for column in columns_to_ffill:
+            # Determine which of the group_ixs are for nan values for this
+            # column.
+            nan_ixs_in_df = np.intersect1d(group_ix, col_nan_idxs[column])
+            # Find the indexes of the nan values in group_ix
+            nan_ixs_in_group_ix = np.searchsorted(group_ix, nan_ixs_in_df)
+            # Replace each index with the value at the index before it in the
+            # group, as long as the previous one was not a nan as well.
+            for ix in nan_ixs_in_group_ix:
+                if ix > 0 and ix - 1 not in nan_ixs_in_group_ix:
+                    where[where == ix] = ix - 1
+
+            column_dtype = df_dtypes[column]
+            out_buf = np.full(
+                len(index),
+                default_missing_value_for_dtype(column_dtype),
+                dtype=column_dtype
+            )
+            out_buf[group_mask] = df[column].values[group_ix].take(
+                where[group_mask],
+            )
+            if column in missing_type_map:
+                out_buf[~group_mask] = missing_type_map[column]
+            # For the last-per-qtr key, the value is just the out_buf.
+            last_per_qtr_columns[(column, normalized_quarter, sid)] = out_buf
+            # For the stacked-last-per-qtr key, since the value is a
+            # pre-allocated np array, we just need to copy the contents of the
+            # out-buffer to the correct location.
+            stacked_last_per_qtr_columns[column][
+                group_start_idx: group_stop_idx
+            ] = out_buf.copy()
+        # Now, we set the index for the stacked-last-per-qtr dataframe for
+        # the given group.
+        normalize_qtr_idx[
+            group_start_idx: group_stop_idx
+        ] = normalized_quarter
+        sid_idx[group_start_idx: group_stop_idx] = sid
+    last_per_qtr = pd.DataFrame(last_per_qtr_columns, index=index)
+    last_per_qtr.columns.names = [None, 'normalized_quarters', 'sid']
+    stacked_last_per_qtr = pd.DataFrame(
+        stacked_last_per_qtr_columns,
+        index=pd.MultiIndex.from_tuples(
+            zip(
+                np.tile(index, len(groups)),
+                sid_idx,
+                normalize_qtr_idx,
+    ),
+        names=[SIMULATION_DATES, SID_FIELD_NAME, NORMALIZED_QUARTERS])
+    ).tz_localize('utc', level=0)
+    return last_per_qtr, stacked_last_per_qtr
+
+
+def flat_last_in_date_group(df, dates, group_columns, missing_type_map):
+    """Compute a stacked and un-stacked dataframe with the last forward-filled
+    value in each date group.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The input dataframe of non forward filled records.
+    dates : pd.Index
+        The date index to align the timestamps to.
+    group_columns : str or list[str]
+        The group_columns of column or columns to group by.
+    missing_type_map : dict[str -> np.dtype]
+        The missing type to use for certain columns.
+
+    Returns
+    -------
+    last_per_qtr : pd.DataFrame
+        A DataFrame with a column MultiIndex of [self.estimates.columns,
+        normalized_quarters, sid] that allows easily getting the timeline
+        of estimates for a particular sid for a particular quarter.
+    stacked_last_per_qtr : pd.DataFrame
+        The latest estimate known with the dates, normalized quarter, and
+        sid as the index.
+    """
+    idx = [
+        dates[dates.searchsorted(
+            df[TS_FIELD_NAME].values.astype('datetime64[D]')
+        )],
+    ] + group_columns
+    last_in_group = df.drop(TS_FIELD_NAME, axis=1).groupby(
+        idx,
+        sort=True,
+    ).last()
+    last_in_group.reset_index(group_columns, inplace=True)
+    last_in_group, stacked_last_in_group = grouped_ffilled_reindex(
+        last_in_group,
+        dates,
+        group_columns,
+        missing_type_map
+    )
+    return last_in_group, stacked_last_in_group
 
 
 def required_estimates_fields(columns):
@@ -226,9 +395,7 @@ class EarningsEstimatesLoader(PipelineLoader):
                 zero_qtr_data_idx.get_level_values(0),
                 zero_qtr_data_idx.get_level_values(1),
                 self.get_shifted_qtrs(
-                    zeroth_quarter_idx.get_level_values(
-                        NORMALIZED_QUARTERS,
-                    ),
+                    zeroth_quarter_idx.get_level_values(NORMALIZED_QUARTERS,),
                     num_announcements,
                 ),
             ],
@@ -691,28 +858,21 @@ class EarningsEstimatesLoader(PipelineLoader):
         # Get a DataFrame indexed by date with a MultiIndex of columns of [
         # self.estimates.columns, normalized_quarters, sid], where each cell
         # contains the latest data for that day.
-        last_per_qtr = last_in_date_group(
+        missing_type_map = {
+            self.name_map[column.name]:
+            column.missing_value for column in columns
+        }
+        last_per_qtr, stacked_last_per_qtr = flat_last_in_date_group(
             self.estimates,
             dates,
-            assets_with_data,
-            reindex=True,
-            extra_groupers=[NORMALIZED_QUARTERS],
-        )
-        # Forward fill values for each quarter/sid/dataset column.
-        ffill_across_cols(last_per_qtr, columns, self.name_map)
-        # Stack quarter and sid into the index.
-        stacked_last_per_qtr = last_per_qtr.stack(
             [SID_FIELD_NAME, NORMALIZED_QUARTERS],
+            missing_type_map
         )
         # Set date index name for ease of reference
-        stacked_last_per_qtr.index.set_names(
-            SIMULATION_DATES,
-            level=0,
-            inplace=True,
-        )
+        # Stack quarter and sid into the index.
         stacked_last_per_qtr = stacked_last_per_qtr.sort_values(
             EVENT_DATE_FIELD_NAME,
-        )
+        ).sort_index()
         stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] = pd.to_datetime(
             stacked_last_per_qtr[EVENT_DATE_FIELD_NAME]
         )
@@ -1143,7 +1303,7 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
             split-asof-date.
         """
         col_to_split_adjustments = {}
-        if post_adjustments:
+        if len(post_adjustments[0]):
             # Get an integer index
             requested_qtr_timeline = requested_qtr_data[
                 SHIFTED_NORMALIZED_QTRS
