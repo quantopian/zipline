@@ -2232,8 +2232,7 @@ class TradingAlgorithm(object):
 
     @api_method
     def set_min_leverage(self, min_leverage, grace_period):
-        """
-        Set a limit on the minimum leverage of the algorithm.
+        """Set a limit on the minimum leverage of the algorithm.
 
         Parameters
         ----------
