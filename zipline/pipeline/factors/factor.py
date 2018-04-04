@@ -855,29 +855,30 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
                   mask=NotSpecified,
                   groupby=NotSpecified):
         """
-        Construct a Factor returns a winsorized row. Winsorizing changes values
-        ranked less than the minimum percentile to to value at the minimum
-        percentile. Similarly, values ranking above the maximum percentile will
-        be changed to the value at the maximum percentile. This is useful
-        when limiting the impact of extreme values.
+        Construct a new factor that winsorizes the result of this factor.
+
+        Winsorizing changes values ranked less than the minimum percentile to
+        the value at the minimum percentile. Similarly, values ranking above
+        the maximum percentile are changed to the value at the maximum
+        percentile. Winsorizing is often useful for limiting the impact of
+        extreme data pointswithout completely removing those points.
 
         If ``mask`` is supplied, ignore values where ``mask`` returns False
-        when computing row means and standard deviations, and output NaN
-        anywhere the mask is False.
+        when computing percentile cutoffs, and output NaN anywhere the mask is
+        False.
 
-        If ``groupby`` is supplied, compute by partitioning each row based on
-        the values produced by ``groupby``, winsorizing the partitioned arrays,
-        and stitching the sub-results back together.
+        If ``groupby`` is supplied, winsorization is applied separately
+        separately to each group defined by ``groupby``.
 
         Parameters
         ----------
         min_percentile: float, int
             Entries with values at or below this percentile will be replaced
-            with the (len(inp) * min_percentile)th lowest value. If low values
-            should not be clipped, use 0.
+            with the (len(input) * min_percentile)th lowest value. If low
+            values should not be clipped, use 0.
         max_percentile: float, int
             Entries with values at or above this percentile will be replaced
-            with the (len(inp) * max_percentile)th lowest value. If high
+            with the (len(input) * max_percentile)th lowest value. If high
             values should not be clipped, use 1.
         mask : zipline.pipeline.Filter, optional
             A Filter defining values to ignore when winsorizing.
