@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.factors.events &mdash; Zipline 1.2.0 documentation</title>
+  <title>zipline.pipeline.filters.smoothing &mdash; Zipline 1.2.0 documentation</title>
   
 
   
@@ -298,7 +298,7 @@
       
           <li><a href="../../../index.html">Module code</a> &raquo;</li>
       
-    <li>zipline.pipeline.factors.events</li>
+    <li>zipline.pipeline.filters.smoothing</li>
       <li class="wy-breadcrumbs-aside">
         
           
@@ -309,86 +309,58 @@
 </div>
           <div role="main" class="document">
             
-  <h1>Source code for zipline.pipeline.factors.events</h1><div class="highlight"><pre>
+  <h1>Source code for zipline.pipeline.filters.smoothing</h1><div class="highlight"><pre>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Factors describing information about event data (e.g. earnings</span>
-<span class="sd">announcements, acquisitions, dividends, etc.).</span>
+<span class="sd">Filters that apply smoothing operations on other filters.</span>
+
+<span class="sd">These are generally useful for controlling/minimizing turnover on existing</span>
+<span class="sd">Filters.</span>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">newaxis</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">NaTD</span><span class="p">,</span>
-    <span class="n">busday_count_mask_NaT</span><span class="p">,</span>
-    <span class="n">datetime64D_dtype</span><span class="p">,</span>
-    <span class="n">float64_dtype</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="kn">from</span> <span class="nn">.factor</span> <span class="kn">import</span> <span class="n">Factor</span>
+<span class="kn">from</span> <span class="nn">.filter</span> <span class="kn">import</span> <span class="n">CustomFilter</span>
 
 
-<div class="viewcode-block" id="BusinessDaysSincePreviousEvent"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.BusinessDaysSincePreviousEvent">[docs]</a><span class="k">class</span> <span class="nc">BusinessDaysSincePreviousEvent</span><span class="p">(</span><span class="n">Factor</span><span class="p">):</span>
+<div class="viewcode-block" id="All"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.filters.All">[docs]</a><span class="k">class</span> <span class="nc">All</span><span class="p">(</span><span class="n">CustomFilter</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Abstract class for business days since a previous event.</span>
-<span class="sd">    Returns the number of **business days** (not trading days!) since</span>
-<span class="sd">    the most recent event date for each asset.</span>
+<span class="sd">    A Filter requiring that assets produce True for ``window_length``</span>
+<span class="sd">    consecutive days.</span>
 
-<span class="sd">    This doesn&#39;t use trading days for symmetry with</span>
-<span class="sd">    BusinessDaysUntilNextEarnings.</span>
+<span class="sd">    **Default Inputs:** None</span>
 
-<span class="sd">    Assets which announced or will announce the event today will produce a</span>
-<span class="sd">    value of 0.0. Assets that announced the event on the previous business</span>
-<span class="sd">    day will produce a value of 1.0.</span>
-
-<span class="sd">    Assets for which the event date is `NaT` will produce a value of `NaN`.</span>
+<span class="sd">    **Default Window Length:** None</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">window_length</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">dtype</span> <span class="o">=</span> <span class="n">float64_dtype</span>
 
-    <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
-
-        <span class="c"># Coerce from [ns] to [D] for numpy busday_count.</span>
-        <span class="n">announce_dates</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)</span>
-
-        <span class="c"># Set masked values to NaT.</span>
-        <span class="n">announce_dates</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">NaTD</span>
-
-        <span class="c"># Convert row labels into a column vector for broadcasted comparison.</span>
-        <span class="n">reference_dates</span> <span class="o">=</span> <span class="n">dates</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)[:,</span> <span class="n">newaxis</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">busday_count_mask_NaT</span><span class="p">(</span><span class="n">announce_dates</span><span class="p">,</span> <span class="n">reference_dates</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
+        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="BusinessDaysUntilNextEvent"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.BusinessDaysUntilNextEvent">[docs]</a><span class="k">class</span> <span class="nc">BusinessDaysUntilNextEvent</span><span class="p">(</span><span class="n">Factor</span><span class="p">):</span>
+<div class="viewcode-block" id="Any"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.filters.Any">[docs]</a><span class="k">class</span> <span class="nc">Any</span><span class="p">(</span><span class="n">CustomFilter</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Abstract class for business days since a next event.</span>
-<span class="sd">    Returns the number of **business days** (not trading days!) until</span>
-<span class="sd">    the next known event date for each asset.</span>
+<span class="sd">    A Filter requiring that assets produce True for at least one day in the</span>
+<span class="sd">    last ``window_length`` days.</span>
 
-<span class="sd">    This doesn&#39;t use trading days because the trading calendar includes</span>
-<span class="sd">    information that may not have been available to the algorithm at the time</span>
-<span class="sd">    when `compute` is called.</span>
+<span class="sd">    **Default Inputs:** None</span>
 
-<span class="sd">    For example, the NYSE closings September 11th 2001, would not have been</span>
-<span class="sd">    known to the algorithm on September 10th.</span>
-
-<span class="sd">    Assets that announced or will announce the event today will produce a value</span>
-<span class="sd">    of 0.0.  Assets that will announce the event on the next upcoming business</span>
-<span class="sd">    day will produce a value of 1.0.</span>
-
-<span class="sd">    Assets for which the event date is `NaT` will produce a value of `NaN`.</span>
+<span class="sd">    **Default Window Length:** None</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">window_length</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">dtype</span> <span class="o">=</span> <span class="n">float64_dtype</span>
 
-    <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
+        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span></div>
 
-        <span class="c"># Coerce from [ns] to [D] for numpy busday_count.</span>
-        <span class="n">announce_dates</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)</span>
 
-        <span class="c"># Set masked values to NaT.</span>
-        <span class="n">announce_dates</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">NaTD</span>
+<div class="viewcode-block" id="AtLeastN"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.filters.AtLeastN">[docs]</a><span class="k">class</span> <span class="nc">AtLeastN</span><span class="p">(</span><span class="n">CustomFilter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A Filter requiring that assets produce True for at least N days in the</span>
+<span class="sd">    last ``window_length`` days.</span>
 
-        <span class="c"># Convert row labels into a column vector for broadcasted comparison.</span>
-        <span class="n">reference_dates</span> <span class="o">=</span> <span class="n">dates</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)[:,</span> <span class="n">newaxis</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">busday_count_mask_NaT</span><span class="p">(</span><span class="n">reference_dates</span><span class="p">,</span> <span class="n">announce_dates</span><span class="p">)</span></div>
+<span class="sd">    **Default Inputs:** None</span>
+
+<span class="sd">    **Default Window Length:** None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">params</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;N&#39;</span><span class="p">,)</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">arg</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">N</span><span class="p">)</span></div>
 </pre></div>
 
           </div>

@@ -1,0 +1,753 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>zipline.protocol &mdash; Zipline 1.2.0 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Zipline 1.2.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+
+        
+          <a href="../../index.html" class="icon icon-home"> Zipline
+        
+
+        
+        </a>
+
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../install.html#installing-with-pip">Installing with <code class="docutils literal"><span class="pre">pip</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../install.html#gnu-linux">GNU/Linux</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../install.html#osx">OSX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../install.html#windows">Windows</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../install.html#managing-conda-environments">Managing <code class="docutils literal"><span class="pre">conda</span></code> environments</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../beginner-tutorial.html">Zipline Beginner Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../beginner-tutorial.html#basics">Basics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../beginner-tutorial.html#my-first-algorithm">My First Algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../beginner-tutorial.html#running-the-algorithm">Running the Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../beginner-tutorial.html#ingesting-data">Ingesting Data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../beginner-tutorial.html#command-line-interface">Command Line Interface</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../beginner-tutorial.html#access-to-previous-prices-using-history">Access to Previous Prices Using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../beginner-tutorial.html#conclusions">Conclusions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../bundles.html">Data Bundles</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../bundles.html#discovering-available-bundles">Discovering Available Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bundles.html#ingesting-data">Ingesting Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bundles.html#old-data">Old Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bundles.html#running-backtests-with-data-bundles">Running Backtests with Data Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bundles.html#default-data-bundles">Default Data Bundles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../bundles.html#quandl-wiki-bundle">Quandl WIKI Bundle</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../bundles.html#writing-a-new-bundle">Writing a New Bundle</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../bundles.html#environ"><code class="docutils literal"><span class="pre">environ</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../bundles.html#asset-db-writer"><code class="docutils literal"><span class="pre">asset_db_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../bundles.html#minute-bar-writer"><code class="docutils literal"><span class="pre">minute_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../bundles.html#start-session"><code class="docutils literal"><span class="pre">start_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../bundles.html#end-session"><code class="docutils literal"><span class="pre">end_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../bundles.html#ingesting-data-from-csv-files">Ingesting Data from .csv Files</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../trading-calendars.html">Trading Calendars</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../trading-calendars.html#what-is-a-trading-calendar">What is a Trading Calendar?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../trading-calendars.html#why-should-you-care-about-trading-calendars">Why Should You Care About Trading Calendars?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../trading-calendars.html#the-tradingcalendar-class">The TradingCalendar Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../trading-calendars.html#building-a-custom-trading-calendar">Building a Custom Trading Calendar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../trading-calendars.html#conclusions">Conclusions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../risk-and-perf-metrics.html">Risk and Performance Metrics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../risk-and-perf-metrics.html#metrics-sets">Metrics Sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../risk-and-perf-metrics.html#selecting-the-metrics-set">Selecting the Metrics Set</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../risk-and-perf-metrics.html#command-line-and-ipython-magic">Command Line and IPython Magic</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../risk-and-perf-metrics.html#run-algorithm"><code class="docutils literal"><span class="pre">run_algorithm</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../risk-and-perf-metrics.html#running-without-metrics">Running Without Metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../risk-and-perf-metrics.html#defining-new-metrics">Defining New Metrics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../risk-and-perf-metrics.html#start-of-simulation"><code class="docutils literal"><span class="pre">start_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../risk-and-perf-metrics.html#end-of-simulation"><code class="docutils literal"><span class="pre">end_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../risk-and-perf-metrics.html#start-of-session"><code class="docutils literal"><span class="pre">start_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../risk-and-perf-metrics.html#end-of-session"><code class="docutils literal"><span class="pre">end_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../risk-and-perf-metrics.html#end-of-bar"><code class="docutils literal"><span class="pre">end_of_bar</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../risk-and-perf-metrics.html#defining-new-metrics-sets">Defining New Metrics Sets</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../development-guidelines.html">Development Guidelines</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../development-guidelines.html#creating-a-development-environment">Creating a Development Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../development-guidelines.html#development-with-docker">Development with Docker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../development-guidelines.html#style-guide-running-tests">Style Guide &amp; Running Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../development-guidelines.html#continuous-integration">Continuous Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../development-guidelines.html#packaging">Packaging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../development-guidelines.html#contributing-to-the-docs">Contributing to the Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../development-guidelines.html#commit-messages">Commit messages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../development-guidelines.html#formatting-docstrings">Formatting Docstrings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../development-guidelines.html#updating-the-whatsnew">Updating the Whatsnew</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../appendix.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../appendix.html#running-a-backtest">Running a Backtest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../appendix.html#algorithm-api">Algorithm API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#data-object">Data Object</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#scheduling-functions">Scheduling Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#orders">Orders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../appendix.html#order-cancellation-policies">Order Cancellation Policies</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#assets">Assets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#trading-controls">Trading Controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#simulation-parameters">Simulation Parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../appendix.html#commission-models">Commission Models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../appendix.html#slippage-models">Slippage Models</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#pipeline">Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../appendix.html#pipeline-api">Pipeline API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#built-in-factors">Built-in Factors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#built-in-filters">Built-in Filters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#pipeline-engine">Pipeline Engine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#data-loaders">Data Loaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../appendix.html#trading-calendar-api">Trading Calendar API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../appendix.html#data-api">Data API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#writers">Writers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#readers">Readers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#bundles">Bundles</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../appendix.html#risk-metrics">Risk Metrics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#algorithm-state">Algorithm State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#built-in-metrics">Built-in Metrics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#metrics-sets">Metrics Sets</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../appendix.html#utilities">Utilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#caching">Caching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../appendix.html#command-line">Command Line</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-process.html">Release Process</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../release-process.html#updating-the-release-notes">Updating the Release Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../release-process.html#updating-the-python-stub-files">Updating the Python stub files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../release-process.html#updating-the-version">Updating the <code class="docutils literal"><span class="pre">__version__</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../release-process.html#uploading-pypi-packages">Uploading PyPI packages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../release-process.html#sdist"><code class="docutils literal"><span class="pre">sdist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../release-process.html#bdist"><code class="docutils literal"><span class="pre">bdist</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../release-process.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../release-process.html#uploading-conda-packages">Uploading conda packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../release-process.html#next-commit">Next Commit</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../releases.html">Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-2-0">Release 1.2.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#experimental-features">Experimental Features</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#performance">Performance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#build">Build</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-1-1">Release 1.1.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-1-0">Release 1.1.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-0-2">Release 1.0.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-0-1">Release 1.0.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#id3">Enhancements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#id4">Experimental Features</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#id5">Bug Fixes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#id6">Performance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#id7">Maintenance and Refactorings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#id8">Build</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#id9">Documentation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#id10">Miscellaneous</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-9-0">Release 0.9.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-8-4">Release 0.8.4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-8-3">Release 0.8.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-8-0">Release 0.8.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-7-0">Release 0.7.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-6-1">Release 0.6.1</a></li>
+</ul>
+</li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../index.html">Zipline</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      
+    <li>zipline.protocol</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <h1>Source code for zipline.protocol</h1><div class="highlight"><pre>
+<span class="c">#</span>
+<span class="c"># Copyright 2016 Quantopian, Inc.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+<span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">.assets</span> <span class="kn">import</span> <span class="n">Asset</span><span class="p">,</span> <span class="n">Future</span>
+<span class="kn">from</span> <span class="nn">.utils.enum</span> <span class="kn">import</span> <span class="n">enum</span>
+<span class="kn">from</span> <span class="nn">._protocol</span> <span class="kn">import</span> <span class="n">BarData</span><span class="p">,</span> <span class="n">InnerPosition</span>  <span class="c"># noqa</span>
+
+
+<span class="k">class</span> <span class="nc">MutableView</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A mutable view over an &quot;immutable&quot; object.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ob : any</span>
+<span class="sd">        The object to take a view over.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># add slots so we don&#39;t accidentally add attributes to the view instead of</span>
+    <span class="c"># ``ob``</span>
+    <span class="n">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;_mutable_view_ob&#39;</span><span class="p">,)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ob</span><span class="p">):</span>
+        <span class="nb">object</span><span class="o">.</span><span class="n">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&#39;_mutable_view_ob&#39;</span><span class="p">,</span> <span class="n">ob</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mutable_view_ob</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mutable_view_ob</span><span class="p">)[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">(</span><span class="si">%r</span><span class="s">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mutable_view_ob</span><span class="p">)</span>
+
+
+<span class="c"># Datasource type should completely determine the other fields of a</span>
+<span class="c"># message with its type.</span>
+<span class="n">DATASOURCE_TYPE</span> <span class="o">=</span> <span class="n">enum</span><span class="p">(</span>
+    <span class="s">&#39;AS_TRADED_EQUITY&#39;</span><span class="p">,</span>
+    <span class="s">&#39;MERGER&#39;</span><span class="p">,</span>
+    <span class="s">&#39;SPLIT&#39;</span><span class="p">,</span>
+    <span class="s">&#39;DIVIDEND&#39;</span><span class="p">,</span>
+    <span class="s">&#39;TRADE&#39;</span><span class="p">,</span>
+    <span class="s">&#39;TRANSACTION&#39;</span><span class="p">,</span>
+    <span class="s">&#39;ORDER&#39;</span><span class="p">,</span>
+    <span class="s">&#39;EMPTY&#39;</span><span class="p">,</span>
+    <span class="s">&#39;DONE&#39;</span><span class="p">,</span>
+    <span class="s">&#39;CUSTOM&#39;</span><span class="p">,</span>
+    <span class="s">&#39;BENCHMARK&#39;</span><span class="p">,</span>
+    <span class="s">&#39;COMMISSION&#39;</span><span class="p">,</span>
+    <span class="s">&#39;CLOSE_POSITION&#39;</span>
+<span class="p">)</span>
+
+<span class="c"># Expected fields/index values for a dividend Series.</span>
+<span class="n">DIVIDEND_FIELDS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s">&#39;declared_date&#39;</span><span class="p">,</span>
+    <span class="s">&#39;ex_date&#39;</span><span class="p">,</span>
+    <span class="s">&#39;gross_amount&#39;</span><span class="p">,</span>
+    <span class="s">&#39;net_amount&#39;</span><span class="p">,</span>
+    <span class="s">&#39;pay_date&#39;</span><span class="p">,</span>
+    <span class="s">&#39;payment_sid&#39;</span><span class="p">,</span>
+    <span class="s">&#39;ratio&#39;</span><span class="p">,</span>
+    <span class="s">&#39;sid&#39;</span><span class="p">,</span>
+<span class="p">]</span>
+<span class="c"># Expected fields/index values for a dividend payment Series.</span>
+<span class="n">DIVIDEND_PAYMENT_FIELDS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s">&#39;id&#39;</span><span class="p">,</span>
+    <span class="s">&#39;payment_sid&#39;</span><span class="p">,</span>
+    <span class="s">&#39;cash_amount&#39;</span><span class="p">,</span>
+    <span class="s">&#39;share_count&#39;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">Event</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initial_values</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">initial_values</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">initial_values</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s">&#39;__dict__&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">__dict__</span>
+
+    <span class="k">def</span> <span class="nf">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;Event({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">to_series</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_deprecated_getitem_method</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">attrs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a deprecated ``__getitem__`` method that tells users to use</span>
+<span class="sd">    getattr instead.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : str</span>
+<span class="sd">        The name of the object in the warning message.</span>
+<span class="sd">    attrs : iterable[str]</span>
+<span class="sd">        The set of allowed attributes.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    __getitem__ : callable[any, str]</span>
+<span class="sd">        The ``__getitem__`` method to put in the class dict.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">attrs</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">attrs</span><span class="p">)</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s">&quot;&#39;{name}[{attr!r}]&#39; is deprecated, please use&quot;</span>
+        <span class="s">&quot; &#39;{name}.{attr}&#39; instead&quot;</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;``__getitem__`` is deprecated, please use attribute access instead.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="n">key</span><span class="p">),</span> <span class="ne">DeprecationWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">__getitem__</span>
+
+
+<span class="k">class</span> <span class="nc">Order</span><span class="p">(</span><span class="n">Event</span><span class="p">):</span>
+    <span class="c"># If you are adding new attributes, don&#39;t update this set. This method</span>
+    <span class="c"># is deprecated to normal attribute access so we don&#39;t want to encourage</span>
+    <span class="c"># new usages.</span>
+    <span class="n">__getitem__</span> <span class="o">=</span> <span class="n">_deprecated_getitem_method</span><span class="p">(</span>
+        <span class="s">&#39;order&#39;</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s">&#39;dt&#39;</span><span class="p">,</span>
+            <span class="s">&#39;sid&#39;</span><span class="p">,</span>
+            <span class="s">&#39;amount&#39;</span><span class="p">,</span>
+            <span class="s">&#39;stop&#39;</span><span class="p">,</span>
+            <span class="s">&#39;limit&#39;</span><span class="p">,</span>
+            <span class="s">&#39;id&#39;</span><span class="p">,</span>
+            <span class="s">&#39;filled&#39;</span><span class="p">,</span>
+            <span class="s">&#39;commission&#39;</span><span class="p">,</span>
+            <span class="s">&#39;stop_reached&#39;</span><span class="p">,</span>
+            <span class="s">&#39;limit_reached&#39;</span><span class="p">,</span>
+            <span class="s">&#39;created&#39;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">asset_multiplier</span><span class="p">(</span><span class="n">asset</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">asset</span><span class="o">.</span><span class="n">multiplier</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">Future</span><span class="p">)</span> <span class="k">else</span> <span class="mi">1</span>
+
+
+<div class="viewcode-block" id="Portfolio"><a class="viewcode-back" href="../../appendix.html#zipline.protocol.Portfolio">[docs]</a><span class="k">class</span> <span class="nc">Portfolio</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The portfolio at a given time.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    start_date : pd.Timestamp</span>
+<span class="sd">        The start date for the period being recorded.</span>
+<span class="sd">    capital_base : float</span>
+<span class="sd">        The starting value for the portfolio. This will be used as the starting</span>
+<span class="sd">        cash, current cash, and portfolio value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_date</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">capital_base</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+        <span class="n">self_</span> <span class="o">=</span> <span class="n">MutableView</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">cash_flow</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">starting_cash</span> <span class="o">=</span> <span class="n">capital_base</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">portfolio_value</span> <span class="o">=</span> <span class="n">capital_base</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">pnl</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">returns</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">cash</span> <span class="o">=</span> <span class="n">capital_base</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">positions</span> <span class="o">=</span> <span class="n">Positions</span><span class="p">()</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">start_date</span> <span class="o">=</span> <span class="n">start_date</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">positions_value</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">positions_exposure</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">capital_used</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cash_flow</span>
+
+    <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s">&#39;cannot mutate Portfolio objects&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;Portfolio({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">)</span>
+
+    <span class="c"># If you are adding new attributes, don&#39;t update this set. This method</span>
+    <span class="c"># is deprecated to normal attribute access so we don&#39;t want to encourage</span>
+    <span class="c"># new usages.</span>
+    <span class="n">__getitem__</span> <span class="o">=</span> <span class="n">_deprecated_getitem_method</span><span class="p">(</span>
+        <span class="s">&#39;portfolio&#39;</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s">&#39;capital_used&#39;</span><span class="p">,</span>
+            <span class="s">&#39;starting_cash&#39;</span><span class="p">,</span>
+            <span class="s">&#39;portfolio_value&#39;</span><span class="p">,</span>
+            <span class="s">&#39;pnl&#39;</span><span class="p">,</span>
+            <span class="s">&#39;returns&#39;</span><span class="p">,</span>
+            <span class="s">&#39;cash&#39;</span><span class="p">,</span>
+            <span class="s">&#39;positions&#39;</span><span class="p">,</span>
+            <span class="s">&#39;start_date&#39;</span><span class="p">,</span>
+            <span class="s">&#39;positions_value&#39;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">current_portfolio_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute each asset&#39;s weight in the portfolio by calculating its held</span>
+<span class="sd">        value divided by the total value of all positions.</span>
+
+<span class="sd">        Each equity&#39;s value is its price times the number of shares held. Each</span>
+<span class="sd">        futures contract&#39;s value is its unit price times number of shares held</span>
+<span class="sd">        times the multiplier.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">position_values</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">({</span>
+            <span class="n">asset</span><span class="p">:</span> <span class="p">(</span>
+                <span class="n">position</span><span class="o">.</span><span class="n">last_sale_price</span> <span class="o">*</span>
+                <span class="n">position</span><span class="o">.</span><span class="n">amount</span> <span class="o">*</span>
+                <span class="n">asset_multiplier</span><span class="p">(</span><span class="n">asset</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">asset</span><span class="p">,</span> <span class="n">position</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">})</span>
+        <span class="k">return</span> <span class="n">position_values</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_value</span></div>
+
+
+<div class="viewcode-block" id="Account"><a class="viewcode-back" href="../../appendix.html#zipline.protocol.Account">[docs]</a><span class="k">class</span> <span class="nc">Account</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The account object tracks information about the trading account. The</span>
+<span class="sd">    values are updated as the algorithm runs and its keys remain unchanged.</span>
+<span class="sd">    If connected to a broker, one can update these values with the trading</span>
+<span class="sd">    account values as reported by the broker.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">self_</span> <span class="o">=</span> <span class="n">MutableView</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">settled_cash</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">accrued_interest</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">buying_power</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s">&#39;inf&#39;</span><span class="p">)</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">equity_with_loan</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">total_positions_value</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">total_positions_exposure</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">regt_equity</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">regt_margin</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s">&#39;inf&#39;</span><span class="p">)</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">initial_margin_requirement</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">maintenance_margin_requirement</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">available_funds</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">excess_liquidity</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">cushion</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">day_trades_remaining</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s">&#39;inf&#39;</span><span class="p">)</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">leverage</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">net_leverage</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">net_liquidation</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s">&#39;cannot mutate Account objects&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;Account({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">)</span>
+
+    <span class="c"># If you are adding new attributes, don&#39;t update this set. This method</span>
+    <span class="c"># is deprecated to normal attribute access so we don&#39;t want to encourage</span>
+    <span class="c"># new usages.</span>
+    <span class="n">__getitem__</span> <span class="o">=</span> <span class="n">_deprecated_getitem_method</span><span class="p">(</span>
+        <span class="s">&#39;account&#39;</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s">&#39;settled_cash&#39;</span><span class="p">,</span>
+            <span class="s">&#39;accrued_interest&#39;</span><span class="p">,</span>
+            <span class="s">&#39;buying_power&#39;</span><span class="p">,</span>
+            <span class="s">&#39;equity_with_loan&#39;</span><span class="p">,</span>
+            <span class="s">&#39;total_positions_value&#39;</span><span class="p">,</span>
+            <span class="s">&#39;total_positions_exposure&#39;</span><span class="p">,</span>
+            <span class="s">&#39;regt_equity&#39;</span><span class="p">,</span>
+            <span class="s">&#39;regt_margin&#39;</span><span class="p">,</span>
+            <span class="s">&#39;initial_margin_requirement&#39;</span><span class="p">,</span>
+            <span class="s">&#39;maintenance_margin_requirement&#39;</span><span class="p">,</span>
+            <span class="s">&#39;available_funds&#39;</span><span class="p">,</span>
+            <span class="s">&#39;excess_liquidity&#39;</span><span class="p">,</span>
+            <span class="s">&#39;cushion&#39;</span><span class="p">,</span>
+            <span class="s">&#39;day_trades_remaining&#39;</span><span class="p">,</span>
+            <span class="s">&#39;leverage&#39;</span><span class="p">,</span>
+            <span class="s">&#39;net_leverage&#39;</span><span class="p">,</span>
+            <span class="s">&#39;net_liquidation&#39;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">Position</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;_underlying_position&#39;</span><span class="p">,)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">underlying_position</span><span class="p">):</span>
+        <span class="nb">object</span><span class="o">.</span><span class="n">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&#39;_underlying_position&#39;</span><span class="p">,</span> <span class="n">underlying_position</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_underlying_position</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s">&#39;cannot mutate Position objects&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">sid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c"># for backwards compatibility</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">asset</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&#39;Position(</span><span class="si">%r</span><span class="s">)&#39;</span> <span class="o">%</span> <span class="p">{</span>
+            <span class="n">k</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="s">&#39;asset&#39;</span><span class="p">,</span>
+                <span class="s">&#39;amount&#39;</span><span class="p">,</span>
+                <span class="s">&#39;cost_basis&#39;</span><span class="p">,</span>
+                <span class="s">&#39;last_sale_price&#39;</span><span class="p">,</span>
+                <span class="s">&#39;last_sale_date&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">}</span>
+
+    <span class="c"># If you are adding new attributes, don&#39;t update this set. This method</span>
+    <span class="c"># is deprecated to normal attribute access so we don&#39;t want to encourage</span>
+    <span class="c"># new usages.</span>
+    <span class="n">__getitem__</span> <span class="o">=</span> <span class="n">_deprecated_getitem_method</span><span class="p">(</span>
+        <span class="s">&#39;position&#39;</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s">&#39;sid&#39;</span><span class="p">,</span>
+            <span class="s">&#39;amount&#39;</span><span class="p">,</span>
+            <span class="s">&#39;cost_basis&#39;</span><span class="p">,</span>
+            <span class="s">&#39;last_sale_price&#39;</span><span class="p">,</span>
+            <span class="s">&#39;last_sale_date&#39;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+
+
+<span class="c"># Copied from Position and renamed.  This is used to handle cases where a user</span>
+<span class="c"># does something like `context.portfolio.positions[100]` instead of</span>
+<span class="c"># `context.portfolio.positions[sid(100)]`.</span>
+<span class="k">class</span> <span class="nc">_DeprecatedSidLookupPosition</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sid</span> <span class="o">=</span> <span class="n">sid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">amount</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cost_basis</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c"># per share</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_sale_price</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_sale_date</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;_DeprecatedSidLookupPosition({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">)</span>
+
+    <span class="c"># If you are adding new attributes, don&#39;t update this set. This method</span>
+    <span class="c"># is deprecated to normal attribute access so we don&#39;t want to encourage</span>
+    <span class="c"># new usages.</span>
+    <span class="n">__getitem__</span> <span class="o">=</span> <span class="n">_deprecated_getitem_method</span><span class="p">(</span>
+        <span class="s">&#39;position&#39;</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s">&#39;sid&#39;</span><span class="p">,</span>
+            <span class="s">&#39;amount&#39;</span><span class="p">,</span>
+            <span class="s">&#39;cost_basis&#39;</span><span class="p">,</span>
+            <span class="s">&#39;last_sale_price&#39;</span><span class="p">,</span>
+            <span class="s">&#39;last_sale_date&#39;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">Positions</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__missing__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">Asset</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">Position</span><span class="p">(</span><span class="n">InnerPosition</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">warn</span><span class="p">(</span><span class="s">&quot;Referencing positions by integer is deprecated.&quot;</span>
+                 <span class="s">&quot; Use an asset instead.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">warn</span><span class="p">(</span><span class="s">&quot;Position lookup expected a value of type Asset but got {0}&quot;</span>
+                 <span class="s">&quot; instead.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">_DeprecatedSidLookupPosition</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Quantopian Inc..
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'1.2.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

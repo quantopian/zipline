@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Zipline Beginner Tutorial &mdash; Zipline 1.1.1 documentation</title>
+  <title>Zipline Beginner Tutorial &mdash; Zipline 1.2.0 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 1.1.1 documentation" href="index.html"/>
+    <link rel="top" title="Zipline 1.2.0 documentation" href="index.html"/>
         <link rel="next" title="Data Bundles" href="bundles.html"/>
         <link rel="prev" title="Install" href="install.html"/> 
 
@@ -79,19 +79,22 @@
 <li class="toctree-l3"><a class="reference internal" href="install.html#windows">Windows</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#managing-conda-environments">Managing <code class="docutils literal"><span class="pre">conda</span></code> environments</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="">Zipline Beginner Tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#basics">Basics</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#my-first-algorithm">My first algorithm</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#my-first-algorithm">My First Algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-the-algorithm">Running the Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#ingesting-data">Ingesting Data</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#command-line-interface">Command line interface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#command-line-interface">Command Line Interface</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#ipython-notebook">IPython Notebook</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#access-to-previous-prices-using-history">Access to previous prices using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#access-to-previous-prices-using-history">Access to Previous Prices Using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
 </ul>
 </li>
@@ -104,10 +107,7 @@
 <li class="toctree-l2"><a class="reference internal" href="bundles.html#old-data">Old Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="bundles.html#running-backtests-with-data-bundles">Running Backtests with Data Bundles</a></li>
 <li class="toctree-l2"><a class="reference internal" href="bundles.html#default-data-bundles">Default Data Bundles</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#quandl-wiki-bundle">Quandl WIKI Bundle</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="bundles.html#quantopian-quandl-wiki-mirror">Quantopian Quandl WIKI Mirror</a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#quandl-wiki-bundle">Quandl WIKI Bundle</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="bundles.html#writing-a-new-bundle">Writing a New Bundle</a><ul>
@@ -124,6 +124,34 @@
 <li class="toctree-l3"><a class="reference internal" href="bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="bundles.html#ingesting-data-from-csv-files">Ingesting Data from .csv Files</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="trading-calendars.html">Trading Calendars</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#what-is-a-trading-calendar">What is a Trading Calendar?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#why-should-you-care-about-trading-calendars">Why Should You Care About Trading Calendars?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#the-tradingcalendar-class">The TradingCalendar Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#building-a-custom-trading-calendar">Building a Custom Trading Calendar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#conclusions">Conclusions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="risk-and-perf-metrics.html">Risk and Performance Metrics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#metrics-sets">Metrics Sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#selecting-the-metrics-set">Selecting the Metrics Set</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#command-line-and-ipython-magic">Command Line and IPython Magic</a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#run-algorithm"><code class="docutils literal"><span class="pre">run_algorithm</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#running-without-metrics">Running Without Metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#defining-new-metrics">Defining New Metrics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#start-of-simulation"><code class="docutils literal"><span class="pre">start_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-simulation"><code class="docutils literal"><span class="pre">end_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#start-of-session"><code class="docutils literal"><span class="pre">start_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-session"><code class="docutils literal"><span class="pre">end_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-bar"><code class="docutils literal"><span class="pre">end_of_bar</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#defining-new-metrics-sets">Defining New Metrics Sets</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="development-guidelines.html">Development Guidelines</a><ul>
@@ -135,6 +163,7 @@
 <li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#contributing-to-the-docs">Contributing to the Docs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#commit-messages">Commit messages</a></li>
 <li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#formatting-docstrings">Formatting Docstrings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#updating-the-whatsnew">Updating the Whatsnew</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="appendix.html">API Reference</a><ul>
@@ -159,6 +188,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#pipeline-api">Pipeline API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#built-in-factors">Built-in Factors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#built-in-filters">Built-in Filters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#pipeline-engine">Pipeline Engine</a></li>
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#data-loaders">Data Loaders</a></li>
 </ul>
@@ -169,6 +199,12 @@
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#writers">Writers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#readers">Readers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#bundles">Bundles</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="appendix.html#risk-metrics">Risk Metrics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#algorithm-state">Algorithm State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#built-in-metrics">Built-in Metrics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#metrics-sets">Metrics Sets</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#utilities">Utilities</a><ul>
@@ -193,119 +229,48 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-1">Release 1.1.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#highlights">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#performance">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#build">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#documentation">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-2-0">Release 1.2.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#performance">Performance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#build">Build</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#documentation">Documentation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-0">Release 1.1.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id1">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id2">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id3">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id4">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id5">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id6">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id7">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-2">Release 1.0.2</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id8">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#experimental">Experimental</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id9">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id10">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id11">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id12">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#testing">Testing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#data-format-changes">Data Format Changes</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-1">Release 1.0.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id13">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id14">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id15">Documentation</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-1">Release 1.1.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-0">Release 1.1.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-2">Release 1.0.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-1">Release 1.0.1</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-0">Release 1.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id16">Highlights</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#id3">Enhancements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#id4">Experimental Features</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#id5">Bug Fixes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#id6">Performance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#id7">Maintenance and Refactorings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#id8">Build</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#id9">Documentation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#id10">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id17">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id18">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id19">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id20">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id21">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id22">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id23">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id24">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-9-0">Release 0.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id25">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id26">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id27">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id28">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id29">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id30">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id31">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id32">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id33">Miscellaneous</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-4">Release 0.8.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id34">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id35">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id36">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id37">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id38">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id39">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id40">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id41">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id42">Miscellaneous</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-9-0">Release 0.9.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-4">Release 0.8.4</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-3">Release 0.8.3</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-0">Release 0.8.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id43">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id44">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id45">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id46">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id47">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id48">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id49">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id50">Documentation</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id51">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id52">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id53">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id54">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id55">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id56">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#contributors">Contributors</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-6-1">Release 0.6.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id57">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id58">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id59">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id60">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id61">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id62">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id63">Contributors</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-0">Release 0.8.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-7-0">Release 0.7.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-6-1">Release 0.6.1</a></li>
 </ul>
 </li>
 </ul>
@@ -390,7 +355,7 @@ more information on these functions, see the <a class="reference external" href=
 Quantopian docs</a>.</p>
 </div>
 <div class="section" id="my-first-algorithm">
-<h2>My first algorithm<a class="headerlink" href="#my-first-algorithm" title="Permalink to this headline">¶</a></h2>
+<h2>My First Algorithm<a class="headerlink" href="#my-first-algorithm" title="Permalink to this headline">¶</a></h2>
 <p>Lets take a look at a very simple algorithm from the <code class="docutils literal"><span class="pre">examples</span></code>
 directory, <code class="docutils literal"><span class="pre">buyapple.py</span></code>:</p>
 <div class="highlight-python"><div class="highlight"><pre>from zipline.examples import buyapple
@@ -423,26 +388,27 @@ finished running you will have access to each variable value you tracked
 with <a class="reference internal" href="appendix.html#zipline.api.record" title="zipline.api.record"><code class="xref py py-func docutils literal"><span class="pre">record()</span></code></a> under the name you provided (we will see this
 further below). You also see how we can access the current price data of the
 AAPL stock in the <code class="docutils literal"><span class="pre">data</span></code> event frame (for more information see
-<a class="reference external" href="https://www.quantopian.com/help#api-event-properties">here</a>.</p>
+<a class="reference external" href="https://www.quantopian.com/help#api-event-properties">here</a>).</p>
 </div>
 <div class="section" id="running-the-algorithm">
-<h2>Running the algorithm<a class="headerlink" href="#running-the-algorithm" title="Permalink to this headline">¶</a></h2>
+<h2>Running the Algorithm<a class="headerlink" href="#running-the-algorithm" title="Permalink to this headline">¶</a></h2>
 <p>To now test this algorithm on financial data, <code class="docutils literal"><span class="pre">zipline</span></code> provides three
 interfaces: A command-line interface, <code class="docutils literal"><span class="pre">IPython</span> <span class="pre">Notebook</span></code> magic, and
 <a class="reference internal" href="appendix.html#zipline.run_algorithm" title="zipline.run_algorithm"><code class="xref py py-func docutils literal"><span class="pre">run_algorithm()</span></code></a>.</p>
 <div class="section" id="ingesting-data">
 <h3>Ingesting Data<a class="headerlink" href="#ingesting-data" title="Permalink to this headline">¶</a></h3>
-<p>If you haven&#8217;t ingested the data, run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>zipline ingest <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span>
+<p>If you haven&#8217;t ingested the data, you&#8217;ll need a <a class="reference external" href="https://docs.quandl.com/docs#section-authentication">Quandl</a> API key to
+ingest the default bundle. Then run:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ QUANDL_API_KEY</span><span class="o">=</span>&lt;yourkey&gt; zipline ingest <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span>
 </pre></div>
 </div>
 <p>where <code class="docutils literal"><span class="pre">&lt;bundle&gt;</span></code> is the name of the bundle to ingest, defaulting to
-<a class="reference internal" href="bundles.html#quantopian-quandl-mirror"><span>quantopian-quandl</span></a>.</p>
+<code class="docutils literal"><span class="pre">quandl</span></code>.</p>
 <p>you can check out the <a class="reference internal" href="bundles.html#ingesting-data"><span>ingesting data</span></a> section for
 more detail.</p>
 </div>
 <div class="section" id="command-line-interface">
-<h3>Command line interface<a class="headerlink" href="#command-line-interface" title="Permalink to this headline">¶</a></h3>
+<h3>Command Line Interface<a class="headerlink" href="#command-line-interface" title="Permalink to this headline">¶</a></h3>
 <p>After you installed zipline you should be able to execute the following
 from your command line (e.g. <code class="docutils literal"><span class="pre">cmd.exe</span></code> on Windows, or the Terminal app
 on OSX):</p>
@@ -451,37 +417,40 @@ on OSX):</p>
 </div>
 <div class="highlight-python"><div class="highlight"><pre>Usage: zipline run [OPTIONS]
 
-  Run a backtest for the given algorithm.
+Run a backtest for the given algorithm.
 
 Options:
-  -f, --algofile FILENAME         The file that contains the algorithm to run.
-  -t, --algotext TEXT             The algorithm script to run.
-  -D, --define TEXT               Define a name to be bound in the namespace
-                                  before executing the algotext. For example
-                                  &#39;-Dname=value&#39;. The value may be any python
-                                  expression. These are evaluated in order so
-                                  they may refer to previously defined names.
-  --data-frequency [minute|daily]
-                                  The data frequency of the simulation.
-                                  [default: daily]
-  --capital-base FLOAT            The starting capital for the simulation.
-                                  [default: 10000000.0]
-  -b, --bundle BUNDLE-NAME        The data bundle to use for the simulation.
-                                  [default: quantopian-quandl]
-  --bundle-timestamp TIMESTAMP    The date to lookup data on or before.
-                                  [default: &lt;current-time&gt;]
-  -s, --start DATE                The start date of the simulation.
-  -e, --end DATE                  The end date of the simulation.
-  -o, --output FILENAME           The location to write the perf data. If this
-                                  is &#39;-&#39; the perf will be written to stdout.
-                                  [default: -]
-  --print-algo / --no-print-algo  Print the algorithm to stdout.
-  --help                          Show this message and exit.
+ -f, --algofile FILENAME         The file that contains the algorithm to run.
+ -t, --algotext TEXT             The algorithm script to run.
+ -D, --define TEXT               Define a name to be bound in the namespace
+                                 before executing the algotext. For example
+                                 &#39;-Dname=value&#39;. The value may be any python
+                                 expression. These are evaluated in order so
+                                 they may refer to previously defined names.
+ --data-frequency [daily|minute]
+                                 The data frequency of the simulation.
+                                 [default: daily]
+ --capital-base FLOAT            The starting capital for the simulation.
+                                 [default: 10000000.0]
+ -b, --bundle BUNDLE-NAME        The data bundle to use for the simulation.
+                                 [default: quandl]
+ --bundle-timestamp TIMESTAMP    The date to lookup data on or before.
+                                 [default: &lt;current-time&gt;]
+ -s, --start DATE                The start date of the simulation.
+ -e, --end DATE                  The end date of the simulation.
+ -o, --output FILENAME           The location to write the perf data. If this
+                                 is &#39;-&#39; the perf will be written to stdout.
+                                 [default: -]
+ --trading-calendar TRADING-CALENDAR
+                                 The calendar you want to use e.g. LSE. NYSE
+                                 is the default.
+ --print-algo / --no-print-algo  Print the algorithm to stdout.
+ --help                          Show this message and exit.
 </pre></div>
 </div>
 <p>As you can see there are a couple of flags that specify where to find your
 algorithm (<code class="docutils literal"><span class="pre">-f</span></code>) as well as parameters specifying which data to use,
-defaulting to the <a class="reference internal" href="bundles.html#quantopian-quandl-mirror"><span>Quantopian Quandl WIKI Mirror</span></a>. There are also arguments for
+defaulting to <code class="docutils literal"><span class="pre">quandl</span></code>. There are also arguments for
 the date range to run the algorithm over (<code class="docutils literal"><span class="pre">--start</span></code> and <code class="docutils literal"><span class="pre">--end</span></code>). Finally,
 you&#8217;ll want to save the performance metrics of your algorithm so that you can
 analyze how it performed. This is done via the <code class="docutils literal"><span class="pre">--output</span></code> flag and will cause
@@ -492,13 +461,15 @@ supply the command line args all the time (see the .conf files in the examples
 directory).</p>
 <p>Thus, to execute our algorithm from above and save the results to
 <code class="docutils literal"><span class="pre">buyapple_out.pickle</span></code> we would call <code class="docutils literal"><span class="pre">zipline</span> <span class="pre">run</span></code> as follows:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">zipline</span> <span class="n">run</span> <span class="o">-</span><span class="n">f</span> <span class="o">../../</span><span class="n">zipline</span><span class="o">/</span><span class="n">examples</span><span class="o">/</span><span class="n">buyapple</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2000</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2014</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span><span class="n">o</span> <span class="n">buyapple_out</span><span class="o">.</span><span class="n">pickle</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">zipline</span> <span class="n">run</span> <span class="o">-</span><span class="n">f</span> <span class="o">../../</span><span class="n">zipline</span><span class="o">/</span><span class="n">examples</span><span class="o">/</span><span class="n">buyapple</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span><span class="n">o</span> <span class="n">buyapple_out</span><span class="o">.</span><span class="n">pickle</span>
 </pre></div>
 </div>
 <div class="highlight-python"><div class="highlight"><pre>AAPL
-[2015-11-04 22:45:32.820166] INFO: Performance: Simulated 3521 trading days out of 3521.
-[2015-11-04 22:45:32.820314] INFO: Performance: first open: 2000-01-03 14:31:00+00:00
-[2015-11-04 22:45:32.820401] INFO: Performance: last close: 2013-12-31 21:00:00+00:00
+[2018-01-03 04:30:50.150039] WARNING: Loader: Refusing to download new benchmark data because a download succeeded at 2018-01-03 04:01:34+00:00.
+[2018-01-03 04:30:50.191479] WARNING: Loader: Refusing to download new treasury data because a download succeeded at 2018-01-03 04:01:35+00:00.
+[2018-01-03 04:30:51.843465] INFO: Performance: Simulated 503 trading days out of 503.
+[2018-01-03 04:30:51.843598] INFO: Performance: first open: 2016-01-04 14:31:00+00:00
+[2018-01-03 04:30:51.843672] INFO: Performance: last close: 2017-12-29 21:00:00+00:00
 </pre></div>
 </div>
 <p><code class="docutils literal"><span class="pre">run</span></code> first calls the <code class="docutils literal"><span class="pre">initialize()</span></code> function, and then
@@ -525,160 +496,261 @@ it.</p>
 <span class="n">perf</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
 </div>
-<div style="max-height:1000px;max-width:1500px;overflow:auto;">
+<div style="max-height: 1000px; max-width: 1500px; overflow: auto;">
 <table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>AAPL</th>
-      <th>algo_volatility</th>
-      <th>algorithm_period_return</th>
-      <th>alpha</th>
-      <th>benchmark_period_return</th>
-      <th>benchmark_volatility</th>
-      <th>beta</th>
-      <th>capital_used</th>
-      <th>ending_cash</th>
-      <th>ending_exposure</th>
-      <th>...</th>
-      <th>short_exposure</th>
-      <th>short_value</th>
-      <th>shorts_count</th>
-      <th>sortino</th>
-      <th>starting_cash</th>
-      <th>starting_exposure</th>
-      <th>starting_value</th>
-      <th>trading_days</th>
-      <th>transactions</th>
-      <th>treasury_period_return</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>2000-01-03 21:00:00</th>
-      <td>3.738314</td>
-      <td>0.000000e+00</td>
-      <td>0.000000e+00</td>
-      <td>-0.065800</td>
-      <td>-0.009549</td>
-      <td>0.000000</td>
-      <td>0.000000</td>
-      <td>0.00000</td>
-      <td>10000000.00000</td>
-      <td>0.00000</td>
-      <td>...</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0.000000</td>
-      <td>10000000.00000</td>
-      <td>0.00000</td>
-      <td>0.00000</td>
-      <td>1</td>
-      <td>[]</td>
-      <td>0.0658</td>
-    </tr>
-    <tr>
-      <th>2000-01-04 21:00:00</th>
-      <td>3.423135</td>
-      <td>3.367492e-07</td>
-      <td>-3.000000e-08</td>
-      <td>-0.064897</td>
-      <td>-0.047528</td>
-      <td>0.323229</td>
-      <td>0.000001</td>
-      <td>-34.53135</td>
-      <td>9999965.46865</td>
-      <td>34.23135</td>
-      <td>...</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0.000000</td>
-      <td>10000000.00000</td>
-      <td>0.00000</td>
-      <td>0.00000</td>
-      <td>2</td>
-      <td>[{u'order_id': u'513357725cb64a539e3dd02b47da7...</td>
-      <td>0.0649</td>
-    </tr>
-    <tr>
-      <th>2000-01-05 21:00:00</th>
-      <td>3.473229</td>
-      <td>4.001918e-07</td>
-      <td>-9.906000e-09</td>
-      <td>-0.066196</td>
-      <td>-0.045697</td>
-      <td>0.329321</td>
-      <td>0.000001</td>
-      <td>-35.03229</td>
-      <td>9999930.43636</td>
-      <td>69.46458</td>
-      <td>...</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0.000000</td>
-      <td>9999965.46865</td>
-      <td>34.23135</td>
-      <td>34.23135</td>
-      <td>3</td>
-      <td>[{u'order_id': u'd7d4ad03cfec4d578c0d817dc3829...</td>
-      <td>0.0662</td>
-    </tr>
-    <tr>
-      <th>2000-01-06 21:00:00</th>
-      <td>3.172661</td>
-      <td>4.993979e-06</td>
-      <td>-6.410420e-07</td>
-      <td>-0.065758</td>
-      <td>-0.044785</td>
-      <td>0.298325</td>
-      <td>-0.000006</td>
-      <td>-32.02661</td>
-      <td>9999898.40975</td>
-      <td>95.17983</td>
-      <td>...</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>-12731.780516</td>
-      <td>9999930.43636</td>
-      <td>69.46458</td>
-      <td>69.46458</td>
-      <td>4</td>
-      <td>[{u'order_id': u'1fbf5e9bfd7c4d9cb2e8383e1085e...</td>
-      <td>0.0657</td>
-    </tr>
-    <tr>
-      <th>2000-01-07 21:00:00</th>
-      <td>3.322945</td>
-      <td>5.977002e-06</td>
-      <td>-2.201900e-07</td>
-      <td>-0.065206</td>
-      <td>-0.018908</td>
-      <td>0.375301</td>
-      <td>0.000005</td>
-      <td>-33.52945</td>
-      <td>9999864.88030</td>
-      <td>132.91780</td>
-      <td>...</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>-12629.274583</td>
-      <td>9999898.40975</td>
-      <td>95.17983</td>
-      <td>95.17983</td>
-      <td>5</td>
-      <td>[{u'order_id': u'9ea6b142ff09466b9113331a37437...</td>
-      <td>0.0652</td>
-    </tr>
-  </tbody>
+<thead>
+  <tr style="text-align: right;">
+    <th></th>
+    <th>AAPL</th>
+    <th>algo_volatility</th>
+    <th>algorithm_period_return</th>
+    <th>alpha</th>
+    <th>benchmark_period_return</th>
+    <th>benchmark_volatility</th>
+    <th>beta</th>
+    <th>capital_used</th>
+    <th>ending_cash</th>
+    <th>ending_exposure</th>
+    <th>ending_value</th>
+    <th>excess_return</th>
+    <th>gross_leverage</th>
+    <th>long_exposure</th>
+    <th>long_value</th>
+    <th>longs_count</th>
+    <th>max_drawdown</th>
+    <th>max_leverage</th>
+    <th>net_leverage</th>
+    <th>orders</th>
+    <th>period_close</th>
+    <th>period_label</th>
+    <th>period_open</th>
+    <th>pnl</th>
+    <th>portfolio_value</th>
+    <th>positions</th>
+    <th>returns</th>
+    <th>sharpe</th>
+    <th>short_exposure</th>
+    <th>short_value</th>
+    <th>shorts_count</th>
+    <th>sortino</th>
+    <th>starting_cash</th>
+    <th>starting_exposure</th>
+    <th>starting_value</th>
+    <th>trading_days</th>
+    <th>transactions</th>
+    <th>treasury_period_return</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <th>2016-01-04 21:00:00+00:00</th>
+    <td>105.35</td>
+    <td>NaN</td>
+    <td>0.000000e+00</td>
+    <td>NaN</td>
+    <td>-0.013983</td>
+    <td>NaN</td>
+    <td>NaN</td>
+    <td>0.0</td>
+    <td>10000000.0</td>
+    <td>0.0</td>
+    <td>0.0</td>
+    <td>0.0</td>
+    <td>0.000000</td>
+    <td>0.0</td>
+    <td>0.0</td>
+    <td>0</td>
+    <td>0.000000e+00</td>
+    <td>0.0</td>
+    <td>0.000000</td>
+    <td>[{\'dt\': 2016-01-04 21:00:00+00:00, \'reason\': N...</td>
+    <td>2016-01-04 21:00:00+00:00</td>
+    <td>2016-01</td>
+    <td>2016-01-04 14:31:00+00:00</td>
+    <td>0.0</td>
+    <td>10000000.0</td>
+    <td>[]</td>
+    <td>0.000000e+00</td>
+    <td>NaN</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+    <td>NaN</td>
+    <td>10000000.0</td>
+    <td>0.0</td>
+    <td>0.0</td>
+    <td>1</td>
+    <td>[]</td>
+    <td>0.0</td>
+  </tr>
+  <tr>
+    <th>2016-01-05 21:00:00+00:00</th>
+    <td>102.71</td>
+    <td>0.000001</td>
+    <td>-1.000000e-07</td>
+    <td>-0.000022</td>
+    <td>-0.012312</td>
+    <td>0.175994</td>
+    <td>-0.000006</td>
+    <td>-1028.1</td>
+    <td>9998971.9</td>
+    <td>1027.1</td>
+    <td>1027.1</td>
+    <td>0.0</td>
+    <td>0.000103</td>
+    <td>1027.1</td>
+    <td>1027.1</td>
+    <td>1</td>
+    <td>-1.000000e-07</td>
+    <td>0.0</td>
+    <td>0.000103</td>
+    <td>[{\'dt\': 2016-01-05 21:00:00+00:00, \'reason\': N...</td>
+    <td>2016-01-05 21:00:00+00:00</td>
+    <td>2016-01</td>
+    <td>2016-01-05 14:31:00+00:00</td>
+    <td>-1.0</td>
+    <td>9999999.0</td>
+    <td>[{\'sid\': Equity(8 [AAPL]), \'last_sale_price\': ...</td>
+    <td>-1.000000e-07</td>
+    <td>-11.224972</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+    <td>-11.224972</td>
+    <td>10000000.0</td>
+    <td>0.0</td>
+    <td>0.0</td>
+    <td>2</td>
+    <td>[{\'order_id\': \'4011063b5c094e82a5391527044098b...</td>
+    <td>0.0</td>
+  </tr>
+  <tr>
+    <th>2016-01-06 21:00:00+00:00</th>
+    <td>100.70</td>
+    <td>0.000019</td>
+    <td>-2.210000e-06</td>
+    <td>-0.000073</td>
+    <td>-0.024771</td>
+    <td>0.137853</td>
+    <td>0.000054</td>
+    <td>-1008.0</td>
+    <td>9997963.9</td>
+    <td>2014.0</td>
+    <td>2014.0</td>
+    <td>0.0</td>
+    <td>0.000201</td>
+    <td>2014.0</td>
+    <td>2014.0</td>
+    <td>1</td>
+    <td>-2.210000e-06</td>
+    <td>0.0</td>
+    <td>0.000201</td>
+    <td>[{\'dt\': 2016-01-06 21:00:00+00:00, \'reason\': N...</td>
+    <td>2016-01-06 21:00:00+00:00</td>
+    <td>2016-01</td>
+    <td>2016-01-06 14:31:00+00:00</td>
+    <td>-21.1</td>
+    <td>9999977.9</td>
+    <td>[{\'sid\': Equity(8 [AAPL]), \'last_sale_price\': ...</td>
+    <td>-2.110000e-06</td>
+    <td>-9.823839</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+    <td>-9.588756</td>
+    <td>9998971.9</td>
+    <td>1027.1</td>
+    <td>1027.1</td>
+    <td>3</td>
+    <td>[{\'order_id\': \'3bf9fe20cc46468d99f741474226c03...</td>
+    <td>0.0</td>
+  </tr>
+  <tr>
+    <th>2016-01-07 21:00:00+00:00</th>
+    <td>96.45</td>
+    <td>0.000064</td>
+    <td>-1.081000e-05</td>
+    <td>0.000243</td>
+    <td>-0.048168</td>
+    <td>0.167868</td>
+    <td>0.000300</td>
+    <td>-965.5</td>
+    <td>9996998.4</td>
+    <td>2893.5</td>
+    <td>2893.5</td>
+    <td>0.0</td>
+    <td>0.000289</td>
+    <td>2893.5</td>
+    <td>2893.5</td>
+    <td>1</td>
+    <td>-1.081000e-05</td>
+    <td>0.0</td>
+    <td>0.000289</td>
+    <td>[{\'dt\': 2016-01-07 21:00:00+00:00, \'reason\': N...</td>
+    <td>2016-01-07 21:00:00+00:00</td>
+    <td>2016-01</td>
+    <td>2016-01-07 14:31:00+00:00</td>
+    <td>-86.0</td>
+    <td>9999891.9</td>
+    <td>[{\'sid\': Equity(8 [AAPL]), \'last_sale_price\': ...</td>
+    <td>-8.600019e-06</td>
+    <td>-10.592737</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+    <td>-9.688947</td>
+    <td>9997963.9</td>
+    <td>2014.0</td>
+    <td>2014.0</td>
+    <td>4</td>
+    <td>[{\'order_id\': \'6af6aed9fbb44a6bba17e802051b94d...</td>
+    <td>0.0</td>
+  </tr>
+  <tr>
+    <th>2016-01-08 21:00:00+00:00</th>
+    <td>96.96</td>
+    <td>0.000063</td>
+    <td>-9.380000e-06</td>
+    <td>0.000466</td>
+    <td>-0.058601</td>
+    <td>0.145654</td>
+    <td>0.000311</td>
+    <td>-970.6</td>
+    <td>9996027.8</td>
+    <td>3878.4</td>
+    <td>3878.4</td>
+    <td>0.0</td>
+    <td>0.000388</td>
+    <td>3878.4</td>
+    <td>3878.4</td>
+    <td>1</td>
+    <td>-1.081000e-05</td>
+    <td>0.0</td>
+    <td>0.000388</td>
+    <td>[{\'dt\': 2016-01-08 21:00:00+00:00, \'reason\': N...</td>
+    <td>2016-01-08 21:00:00+00:00</td>
+    <td>2016-01</td>
+    <td>2016-01-08 14:31:00+00:00</td>
+    <td>14.3</td>
+    <td>9999906.2</td>
+    <td>[{\'sid\': Equity(8 [AAPL]), \'last_sale_price\': ...</td>
+    <td>1.430015e-06</td>
+    <td>-7.511729</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+    <td>-7.519659</td>
+    <td>9996998.4</td>
+    <td>2893.5</td>
+    <td>2893.5</td>
+    <td>5</td>
+    <td>[{\'order_id\': \'18f64975732449a18fca06e9c69bf5c...</td>
+    <td>0.0</td>
+  </tr>
+</tbody>
 </table>
-<p>5 rows × 39 columns</p>
 </div><p>As you can see, there is a row for each trading day, starting on the
-first business day of 2000. In the columns you can find various
+first business day of 2016. In the columns you can find various
 information about the state of your algorithm. The very first column
 <code class="docutils literal"><span class="pre">AAPL</span></code> was placed there by the <code class="docutils literal"><span class="pre">record()</span></code> function mentioned earlier
 and allows us to plot the price of apple. For example, we could easily
@@ -690,16 +762,16 @@ AAPL stock price.</p>
 
 <span class="n">ax1</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">211</span><span class="p">)</span>
 <span class="n">perf</span><span class="o">.</span><span class="n">portfolio_value</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax1</span><span class="p">)</span>
-<span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;portfolio value&#39;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;Portfolio Value&#39;</span><span class="p">)</span>
 <span class="n">ax2</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">212</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="n">ax1</span><span class="p">)</span>
 <span class="n">perf</span><span class="o">.</span><span class="n">AAPL</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax2</span><span class="p">)</span>
-<span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;AAPL stock price&#39;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;AAPL Stock Price&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <div class="highlight-python"><div class="highlight"><pre>Populating the interactive namespace from numpy and matplotlib
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre>&lt;matplotlib.text.Text at 0x7ff5c6147f90&gt;
+<div class="highlight-python"><div class="highlight"><pre>&lt;matplotlib.text.Text at 0x10c48c198&gt;
 </pre></div>
 </div>
 <img alt="_images/tutorial_11_2.png" src="_images/tutorial_11_2.png" />
@@ -726,7 +798,7 @@ magic.</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="o">%</span><span class="n">load_ext</span> <span class="n">zipline</span>
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre><span class="o">%%</span><span class="n">zipline</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2000</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2014</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="o">%%</span><span class="n">zipline</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span>
 <span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">record</span>
 
 <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
@@ -745,161 +817,262 @@ space and contain the performance <code class="docutils literal"><span class="pr
 <div class="highlight-python"><div class="highlight"><pre><span class="n">_</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
 </div>
-<div style="max-height:1000px;max-width:1500px;overflow:auto;">
+<div style="max-height: 1000px; max-width: 1500px; overflow: auto;">
 <table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>AAPL</th>
-      <th>algo_volatility</th>
-      <th>algorithm_period_return</th>
-      <th>alpha</th>
-      <th>benchmark_period_return</th>
-      <th>benchmark_volatility</th>
-      <th>beta</th>
-      <th>capital_used</th>
-      <th>ending_cash</th>
-      <th>ending_exposure</th>
-      <th>...</th>
-      <th>short_exposure</th>
-      <th>short_value</th>
-      <th>shorts_count</th>
-      <th>sortino</th>
-      <th>starting_cash</th>
-      <th>starting_exposure</th>
-      <th>starting_value</th>
-      <th>trading_days</th>
-      <th>transactions</th>
-      <th>treasury_period_return</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>2000-01-03 21:00:00</th>
-      <td>3.738314</td>
-      <td>0.000000e+00</td>
-      <td>0.000000e+00</td>
-      <td>-0.065800</td>
-      <td>-0.009549</td>
-      <td>0.000000</td>
-      <td>0.000000</td>
-      <td>0.00000</td>
-      <td>10000000.00000</td>
-      <td>0.00000</td>
-      <td>...</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0.000000</td>
-      <td>10000000.00000</td>
-      <td>0.00000</td>
-      <td>0.00000</td>
-      <td>1</td>
-      <td>[]</td>
-      <td>0.0658</td>
-    </tr>
-    <tr>
-      <th>2000-01-04 21:00:00</th>
-      <td>3.423135</td>
-      <td>3.367492e-07</td>
-      <td>-3.000000e-08</td>
-      <td>-0.064897</td>
-      <td>-0.047528</td>
-      <td>0.323229</td>
-      <td>0.000001</td>
-      <td>-34.53135</td>
-      <td>9999965.46865</td>
-      <td>34.23135</td>
-      <td>...</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0.000000</td>
-      <td>10000000.00000</td>
-      <td>0.00000</td>
-      <td>0.00000</td>
-      <td>2</td>
-      <td>[{u'commission': 0.3, u'amount': 10, u'sid': 0...</td>
-      <td>0.0649</td>
-    </tr>
-    <tr>
-      <th>2000-01-05 21:00:00</th>
-      <td>3.473229</td>
-      <td>4.001918e-07</td>
-      <td>-9.906000e-09</td>
-      <td>-0.066196</td>
-      <td>-0.045697</td>
-      <td>0.329321</td>
-      <td>0.000001</td>
-      <td>-35.03229</td>
-      <td>9999930.43636</td>
-      <td>69.46458</td>
-      <td>...</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0.000000</td>
-      <td>9999965.46865</td>
-      <td>34.23135</td>
-      <td>34.23135</td>
-      <td>3</td>
-      <td>[{u'commission': 0.3, u'amount': 10, u'sid': 0...</td>
-      <td>0.0662</td>
-    </tr>
-    <tr>
-      <th>2000-01-06 21:00:00</th>
-      <td>3.172661</td>
-      <td>4.993979e-06</td>
-      <td>-6.410420e-07</td>
-      <td>-0.065758</td>
-      <td>-0.044785</td>
-      <td>0.298325</td>
-      <td>-0.000006</td>
-      <td>-32.02661</td>
-      <td>9999898.40975</td>
-      <td>95.17983</td>
-      <td>...</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>-12731.780516</td>
-      <td>9999930.43636</td>
-      <td>69.46458</td>
-      <td>69.46458</td>
-      <td>4</td>
-      <td>[{u'commission': 0.3, u'amount': 10, u'sid': 0...</td>
-      <td>0.0657</td>
-    </tr>
-    <tr>
-      <th>2000-01-07 21:00:00</th>
-      <td>3.322945</td>
-      <td>5.977002e-06</td>
-      <td>-2.201900e-07</td>
-      <td>-0.065206</td>
-      <td>-0.018908</td>
-      <td>0.375301</td>
-      <td>0.000005</td>
-      <td>-33.52945</td>
-      <td>9999864.88030</td>
-      <td>132.91780</td>
-      <td>...</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>-12629.274583</td>
-      <td>9999898.40975</td>
-      <td>95.17983</td>
-      <td>95.17983</td>
-      <td>5</td>
-      <td>[{u'commission': 0.3, u'amount': 10, u'sid': 0...</td>
-      <td>0.0652</td>
-    </tr>
-  </tbody>
+ <thead>
+   <tr style="text-align: right;">
+     <th></th>
+     <th>AAPL</th>
+     <th>algo_volatility</th>
+     <th>algorithm_period_return</th>
+     <th>alpha</th>
+     <th>benchmark_period_return</th>
+     <th>benchmark_volatility</th>
+     <th>beta</th>
+     <th>capital_used</th>
+     <th>ending_cash</th>
+     <th>ending_exposure</th>
+     <th>ending_value</th>
+     <th>excess_return</th>
+     <th>gross_leverage</th>
+     <th>long_exposure</th>
+     <th>long_value</th>
+     <th>longs_count</th>
+     <th>max_drawdown</th>
+     <th>max_leverage</th>
+     <th>net_leverage</th>
+     <th>orders</th>
+     <th>period_close</th>
+     <th>period_label</th>
+     <th>period_open</th>
+     <th>pnl</th>
+     <th>portfolio_value</th>
+     <th>positions</th>
+     <th>returns</th>
+     <th>sharpe</th>
+     <th>short_exposure</th>
+     <th>short_value</th>
+     <th>shorts_count</th>
+     <th>sortino</th>
+     <th>starting_cash</th>
+     <th>starting_exposure</th>
+     <th>starting_value</th>
+     <th>trading_days</th>
+     <th>transactions</th>
+     <th>treasury_period_return</th>
+   </tr>
+ </thead>
+ <tbody>
+   <tr>
+     <th>2016-01-04 21:00:00+00:00</th>
+     <td>105.35</td>
+     <td>NaN</td>
+     <td>0.000000e+00</td>
+     <td>NaN</td>
+     <td>-0.013983</td>
+     <td>NaN</td>
+     <td>NaN</td>
+     <td>0.00</td>
+     <td>10000000.00</td>
+     <td>0.0</td>
+     <td>0.0</td>
+     <td>0.0</td>
+     <td>0.000000</td>
+     <td>0.0</td>
+     <td>0.0</td>
+     <td>0</td>
+     <td>0.000000e+00</td>
+     <td>0.0</td>
+     <td>0.000000</td>
+     <td>[{\'created\': 2016-01-04 21:00:00+00:00, \'reaso...</td>
+     <td>2016-01-04 21:00:00+00:00</td>
+     <td>2016-01</td>
+     <td>2016-01-04 14:31:00+00:00</td>
+     <td>0.00</td>
+     <td>10000000.00</td>
+     <td>[]</td>
+     <td>0.000000e+00</td>
+     <td>NaN</td>
+     <td>0</td>
+     <td>0</td>
+     <td>0</td>
+     <td>NaN</td>
+     <td>10000000.00</td>
+     <td>0.0</td>
+     <td>0.0</td>
+     <td>1</td>
+     <td>[]</td>
+     <td>0.0</td>
+   </tr>
+   <tr>
+     <th>2016-01-05 21:00:00+00:00</th>
+     <td>102.71</td>
+     <td>1.122497e-08</td>
+     <td>-1.000000e-09</td>
+     <td>-2.247510e-07</td>
+     <td>-0.012312</td>
+     <td>0.175994</td>
+     <td>-6.378047e-08</td>
+     <td>-1027.11</td>
+     <td>9998972.89</td>
+     <td>1027.1</td>
+     <td>1027.1</td>
+     <td>0.0</td>
+     <td>0.000103</td>
+     <td>1027.1</td>
+     <td>1027.1</td>
+     <td>1</td>
+     <td>-9.999999e-10</td>
+     <td>0.0</td>
+     <td>0.000103</td>
+     <td>[{\'created\': 2016-01-04 21:00:00+00:00, \'reaso...</td>
+     <td>2016-01-05 21:00:00+00:00</td>
+     <td>2016-01</td>
+     <td>2016-01-05 14:31:00+00:00</td>
+     <td>-0.01</td>
+     <td>9999999.99</td>
+     <td>[{\'amount\': 10, \'cost_basis\': 102.711000000000...</td>
+     <td>-1.000000e-09</td>
+     <td>-11.224972</td>
+     <td>0</td>
+     <td>0</td>
+     <td>0</td>
+     <td>-11.224972</td>
+     <td>10000000.00</td>
+     <td>0.0</td>
+     <td>0.0</td>
+     <td>2</td>
+     <td>[{\'dt\': 2016-01-05 21:00:00+00:00, \'order_id\':...</td>
+     <td>0.0</td>
+   </tr>
+   <tr>
+     <th>2016-01-06 21:00:00+00:00</th>
+     <td>100.70</td>
+     <td>1.842654e-05</td>
+     <td>-2.012000e-06</td>
+     <td>-4.883861e-05</td>
+     <td>-0.024771</td>
+     <td>0.137853</td>
+     <td>5.744807e-05</td>
+     <td>-1007.01</td>
+     <td>9997965.88</td>
+     <td>2014.0</td>
+     <td>2014.0</td>
+     <td>0.0</td>
+     <td>0.000201</td>
+     <td>2014.0</td>
+     <td>2014.0</td>
+     <td>1</td>
+     <td>-2.012000e-06</td>
+     <td>0.0</td>
+     <td>0.000201</td>
+     <td>[{\'created\': 2016-01-05 21:00:00+00:00, \'reaso...</td>
+     <td>2016-01-06 21:00:00+00:00</td>
+     <td>2016-01</td>
+     <td>2016-01-06 14:31:00+00:00</td>
+     <td>-20.11</td>
+     <td>9999979.88</td>
+     <td>[{\'amount\': 20, \'cost_basis\': 101.706000000000...</td>
+     <td>-2.011000e-06</td>
+     <td>-9.171989</td>
+     <td>0</td>
+     <td>0</td>
+     <td>0</td>
+     <td>-9.169708</td>
+     <td>9998972.89</td>
+     <td>1027.1</td>
+     <td>1027.1</td>
+     <td>3</td>
+     <td>[{\'dt\': 2016-01-06 21:00:00+00:00, \'order_id\':...</td>
+     <td>0.0</td>
+   </tr>
+   <tr>
+     <th>2016-01-07 21:00:00+00:00</th>
+     <td>96.45</td>
+     <td>6.394658e-05</td>
+     <td>-1.051300e-05</td>
+     <td>2.633450e-04</td>
+     <td>-0.048168</td>
+     <td>0.167868</td>
+     <td>3.005102e-04</td>
+     <td>-964.51</td>
+     <td>9997001.37</td>
+     <td>2893.5</td>
+     <td>2893.5</td>
+     <td>0.0</td>
+     <td>0.000289</td>
+     <td>2893.5</td>
+     <td>2893.5</td>
+     <td>1</td>
+     <td>-1.051300e-05</td>
+     <td>0.0</td>
+     <td>0.000289</td>
+     <td>[{\'created\': 2016-01-06 21:00:00+00:00, \'reaso...</td>
+     <td>2016-01-07 21:00:00+00:00</td>
+     <td>2016-01</td>
+     <td>2016-01-07 14:31:00+00:00</td>
+     <td>-85.01</td>
+     <td>9999894.87</td>
+     <td>[{\'amount\': 30, \'cost_basis\': 99.9543333333335...</td>
+     <td>-8.501017e-06</td>
+     <td>-10.357397</td>
+     <td>0</td>
+     <td>0</td>
+     <td>0</td>
+     <td>-9.552189</td>
+     <td>9997965.88</td>
+     <td>2014.0</td>
+     <td>2014.0</td>
+     <td>4</td>
+     <td>[{\'dt\': 2016-01-07 21:00:00+00:00, \'order_id\':...</td>
+     <td>0.0</td>
+   </tr>
+   <tr>
+     <th>2016-01-08 21:00:00+00:00</th>
+     <td>96.96</td>
+     <td>6.275294e-05</td>
+     <td>-8.984000e-06</td>
+     <td>4.879306e-04</td>
+     <td>-0.058601</td>
+     <td>0.145654</td>
+     <td>3.118401e-04</td>
+     <td>-969.61</td>
+     <td>9996031.76</td>
+     <td>3878.4</td>
+     <td>3878.4</td>
+     <td>0.0</td>
+     <td>0.000388</td>
+     <td>3878.4</td>
+     <td>3878.4</td>
+     <td>1</td>
+     <td>-1.051300e-05</td>
+     <td>0.0</td>
+     <td>0.000388</td>
+     <td>[{\'created\': 2016-01-07 21:00:00+00:00, \'reaso...</td>
+     <td>2016-01-08 21:00:00+00:00</td>
+     <td>2016-01</td>
+     <td>2016-01-08 14:31:00+00:00</td>
+     <td>15.29</td>
+     <td>9999910.16</td>
+     <td>[{\'amount\': 40, \'cost_basis\': 99.2060000000002...</td>
+     <td>1.529016e-06</td>
+     <td>-7.215497</td>
+     <td>0</td>
+     <td>0</td>
+     <td>0</td>
+     <td>-7.301134</td>
+     <td>9997001.37</td>
+     <td>2893.5</td>
+     <td>2893.5</td>
+     <td>5</td>
+     <td>[{\'dt\': 2016-01-08 21:00:00+00:00, \'order_id\':...</td>
+     <td>0.0</td>
+   </tr>
+ </tbody>
 </table>
-<p>5 rows × 39 columns</p>
 </div></div>
 <div class="section" id="access-to-previous-prices-using-history">
-<h2>Access to previous prices using <code class="docutils literal"><span class="pre">history</span></code><a class="headerlink" href="#access-to-previous-prices-using-history" title="Permalink to this headline">¶</a></h2>
+<h2>Access to Previous Prices Using <code class="docutils literal"><span class="pre">history</span></code><a class="headerlink" href="#access-to-previous-prices-using-history" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="working-example-dual-moving-average-cross-over">
 <h3>Working example: Dual Moving Average Cross-Over<a class="headerlink" href="#working-example-dual-moving-average-cross-over" title="Permalink to this headline">¶</a></h3>
 <p>The Dual Moving Average (DMA) is a classic momentum strategy. It&#8217;s
@@ -915,12 +1088,12 @@ the stock to go down further.</p>
 we need a new concept: History</p>
 <p><code class="docutils literal"><span class="pre">data.history()</span></code> is a convenience function that keeps a rolling window of
 data for you. The first argument is the number of bars you want to
-collect, the second argument is the unit (either <code class="docutils literal"><span class="pre">'1d'</span></code> for <code class="docutils literal"><span class="pre">'1m'</span></code>
+collect, the second argument is the unit (either <code class="docutils literal"><span class="pre">'1d'</span></code> or <code class="docutils literal"><span class="pre">'1m'</span></code>,
 but note that you need to have minute-level data for using <code class="docutils literal"><span class="pre">1m</span></code>). For
-a more detailed description <code class="docutils literal"><span class="pre">history()</span></code>&#8216;s features, see the
+a more detailed description of <code class="docutils literal"><span class="pre">history()</span></code>&#8216;s features, see the
 <a class="reference external" href="https://www.quantopian.com/help#ide-history">Quantopian docs</a>.
 Let&#8217;s look at the strategy which should make this clear:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="o">%%</span><span class="n">zipline</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2000</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2012</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span><span class="n">o</span> <span class="n">dma</span><span class="o">.</span><span class="n">pickle</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="o">%%</span><span class="n">zipline</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2014</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span><span class="n">o</span> <span class="n">dma</span><span class="o">.</span><span class="n">pickle</span>
 
 
 <span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">order_target</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">symbol</span>
@@ -995,7 +1168,7 @@ the <code class="docutils literal"><span class="pre">scikit-learn</span></code> 
 <p>We also used the <code class="docutils literal"><span class="pre">order_target()</span></code> function above. This and other
 functions like it can make order management and portfolio rebalancing
 much easier. See the <a class="reference external" href="https://www.quantopian.com/help#api-order-methods">Quantopian documentation on order
-functions</a> fore
+functions</a> for
 more details.</p>
 </div>
 </div>
@@ -1054,7 +1227,7 @@ and <a class="reference external" href="https://quantopian.com">checkout Quantop
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'1.1.1',
+            VERSION:'1.2.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.factors.statistical &mdash; Zipline 1.1.1 documentation</title>
+  <title>zipline.pipeline.factors.statistical &mdash; Zipline 1.2.0 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 1.1.1 documentation" href="../../../../index.html"/>
+    <link rel="top" title="Zipline 1.2.0 documentation" href="../../../../index.html"/>
         <link rel="up" title="Module code" href="../../../index.html"/> 
 
   
@@ -78,19 +78,22 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../../install.html#windows">Windows</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../install.html#managing-conda-environments">Managing <code class="docutils literal"><span class="pre">conda</span></code> environments</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../beginner-tutorial.html">Zipline Beginner Tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#basics">Basics</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#my-first-algorithm">My First Algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#running-the-algorithm">Running the Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#ingesting-data">Ingesting Data</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#command-line-interface">Command line interface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#command-line-interface">Command Line Interface</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#access-to-previous-prices-using-history">Access to previous prices using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#access-to-previous-prices-using-history">Access to Previous Prices Using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
 </ul>
 </li>
@@ -103,10 +106,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#old-data">Old Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#running-backtests-with-data-bundles">Running Backtests with Data Bundles</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#default-data-bundles">Default Data Bundles</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#quandl-wiki-bundle">Quandl WIKI Bundle</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../../../bundles.html#quantopian-quandl-wiki-mirror">Quantopian Quandl WIKI Mirror</a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#quandl-wiki-bundle">Quandl WIKI Bundle</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#writing-a-new-bundle">Writing a New Bundle</a><ul>
@@ -123,6 +123,34 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#ingesting-data-from-csv-files">Ingesting Data from .csv Files</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../trading-calendars.html">Trading Calendars</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../trading-calendars.html#what-is-a-trading-calendar">What is a Trading Calendar?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../trading-calendars.html#why-should-you-care-about-trading-calendars">Why Should You Care About Trading Calendars?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../trading-calendars.html#the-tradingcalendar-class">The TradingCalendar Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../trading-calendars.html#building-a-custom-trading-calendar">Building a Custom Trading Calendar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../trading-calendars.html#conclusions">Conclusions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../risk-and-perf-metrics.html">Risk and Performance Metrics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#metrics-sets">Metrics Sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#selecting-the-metrics-set">Selecting the Metrics Set</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#command-line-and-ipython-magic">Command Line and IPython Magic</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#run-algorithm"><code class="docutils literal"><span class="pre">run_algorithm</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#running-without-metrics">Running Without Metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#defining-new-metrics">Defining New Metrics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#start-of-simulation"><code class="docutils literal"><span class="pre">start_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#end-of-simulation"><code class="docutils literal"><span class="pre">end_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#start-of-session"><code class="docutils literal"><span class="pre">start_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#end-of-session"><code class="docutils literal"><span class="pre">end_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#end-of-bar"><code class="docutils literal"><span class="pre">end_of_bar</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#defining-new-metrics-sets">Defining New Metrics Sets</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../development-guidelines.html">Development Guidelines</a><ul>
@@ -134,6 +162,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../development-guidelines.html#contributing-to-the-docs">Contributing to the Docs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../development-guidelines.html#commit-messages">Commit messages</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../development-guidelines.html#formatting-docstrings">Formatting Docstrings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../development-guidelines.html#updating-the-whatsnew">Updating the Whatsnew</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../appendix.html">API Reference</a><ul>
@@ -158,6 +187,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#pipeline-api">Pipeline API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#built-in-factors">Built-in Factors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#built-in-filters">Built-in Filters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#pipeline-engine">Pipeline Engine</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#data-loaders">Data Loaders</a></li>
 </ul>
@@ -168,6 +198,12 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#writers">Writers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#readers">Readers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#bundles">Bundles</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#risk-metrics">Risk Metrics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#algorithm-state">Algorithm State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#built-in-metrics">Built-in Metrics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#metrics-sets">Metrics Sets</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#utilities">Utilities</a><ul>
@@ -192,119 +228,48 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-1-1">Release 1.1.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#highlights">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#enhancements">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#bug-fixes">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#performance">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#build">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#documentation">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-2-0">Release 1.2.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#experimental-features">Experimental Features</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#performance">Performance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#build">Build</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-1-0">Release 1.1.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id1">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id2">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id3">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id4">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id5">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id6">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id7">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-2">Release 1.0.2</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id8">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#experimental">Experimental</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id9">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id10">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id11">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id12">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#testing">Testing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#data-format-changes">Data Format Changes</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id13">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id14">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id15">Documentation</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-1-1">Release 1.1.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-1-0">Release 1.1.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-2">Release 1.0.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-1">Release 1.0.1</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id16">Highlights</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id3">Enhancements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id4">Experimental Features</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id5">Bug Fixes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id6">Performance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id7">Maintenance and Refactorings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id8">Build</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id9">Documentation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id10">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id17">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id18">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id19">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id20">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id21">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id22">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id23">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id24">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-9-0">Release 0.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id25">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id26">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id27">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id28">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id29">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id30">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id31">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id32">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id33">Miscellaneous</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id34">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id35">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id36">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id37">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id38">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id39">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id40">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id41">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id42">Miscellaneous</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-9-0">Release 0.9.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-4">Release 0.8.4</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-3">Release 0.8.3</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-0">Release 0.8.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id43">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id44">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id45">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id46">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id47">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id48">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id49">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id50">Documentation</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id51">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id52">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id53">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id54">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id55">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id56">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#contributors">Contributors</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id57">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id58">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id59">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id60">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id61">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id62">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id63">Contributors</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-0">Release 0.8.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-7-0">Release 0.7.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-6-1">Release 0.6.1</a></li>
 </ul>
 </li>
 </ul>
@@ -345,7 +310,7 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.pipeline.factors.statistical</h1><div class="highlight"><pre>
-
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">broadcast_arrays</span>
 <span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">linregress</span><span class="p">,</span>
@@ -353,16 +318,26 @@
     <span class="n">spearmanr</span><span class="p">,</span>
 <span class="p">)</span>
 
+<span class="kn">from</span> <span class="nn">zipline.assets</span> <span class="kn">import</span> <span class="n">Asset</span>
 <span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="n">IncompatibleTerms</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.factors</span> <span class="kn">import</span> <span class="n">CustomFactor</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.filters</span> <span class="kn">import</span> <span class="n">SingleAsset</span>
-<span class="kn">from</span> <span class="nn">zipline.pipeline.mixins</span> <span class="kn">import</span> <span class="n">SingleInputMixin</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.mixins</span> <span class="kn">import</span> <span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">StandardOutputs</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.sentinels</span> <span class="kn">import</span> <span class="n">NotSpecified</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="n">AssetExists</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="n">expect_bounded</span><span class="p">,</span> <span class="n">expect_dtypes</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="n">float64_dtype</span><span class="p">,</span> <span class="n">int64_dtype</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">expect_bounded</span><span class="p">,</span>
+    <span class="n">expect_dtypes</span><span class="p">,</span>
+    <span class="n">expect_types</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.math_utils</span> <span class="kn">import</span> <span class="n">nanmean</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">float64_dtype</span><span class="p">,</span>
+    <span class="n">int64_dtype</span><span class="p">,</span>
+<span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">.technical</span> <span class="kn">import</span> <span class="n">Returns</span>
+
+<span class="kn">from</span> <span class="nn">.basic</span> <span class="kn">import</span> <span class="n">Returns</span>
 
 
 <span class="n">ALLOWED_DTYPES</span> <span class="o">=</span> <span class="p">(</span><span class="n">float64_dtype</span><span class="p">,</span> <span class="n">int64_dtype</span><span class="p">)</span>
@@ -495,11 +470,6 @@
 <span class="sd">        The factor/slice whose columns are the predictor/independent variable</span>
 <span class="sd">        of each regression with `dependent`. If `independent` is a Factor,</span>
 <span class="sd">        regressions are computed asset-wise.</span>
-<span class="sd">    independent : zipline.pipeline.Term with a numeric dtype</span>
-<span class="sd">        The term to use as the predictor/independent variable in each</span>
-<span class="sd">        regression with `dependent`. This term may be a Factor, a BoundColumn</span>
-<span class="sd">        or a Slice. If `independent` is two-dimensional, regressions are</span>
-<span class="sd">        computed asset-wise.</span>
 <span class="sd">    regression_length : int</span>
 <span class="sd">        Length of the lookback window over which to compute each regression.</span>
 <span class="sd">    mask : zipline.pipeline.Filter, optional</span>
@@ -802,6 +772,8 @@
 <span class="sd">    :class:`zipline.pipeline.factors.RollingPearsonOfReturns`</span>
 <span class="sd">    :class:`zipline.pipeline.factors.RollingSpearmanOfReturns`</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">window_safe</span> <span class="o">=</span> <span class="bp">True</span>
+
     <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
                 <span class="n">target</span><span class="p">,</span>
                 <span class="n">returns_length</span><span class="p">,</span>
@@ -820,6 +792,189 @@
             <span class="n">regression_length</span><span class="o">=</span><span class="n">regression_length</span><span class="p">,</span>
             <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
         <span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">SimpleBeta</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">,</span> <span class="n">StandardOutputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Factor producing the slope of a regression line between each asset&#39;s daily</span>
+<span class="sd">    returns to the daily returns of a single &quot;target&quot; asset.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    target : zipline.Asset</span>
+<span class="sd">        Asset against which other assets should be regressed.</span>
+<span class="sd">    regression_length : int</span>
+<span class="sd">        Number of days of daily returns to use for the regression.</span>
+<span class="sd">    allowed_missing_percentage : float, optional</span>
+<span class="sd">        Percentage of returns observations (between 0 and 1) that are allowed</span>
+<span class="sd">        to be missing when calculating betas. Assets with more than this</span>
+<span class="sd">        percentage of returns observations missing will produce values of</span>
+<span class="sd">        NaN. Default behavior is that 25% of inputs can be missing.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">window_safe</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">float64_dtype</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;allowed_missing_count&#39;</span><span class="p">,)</span>
+
+    <span class="nd">@expect_types</span><span class="p">(</span>
+        <span class="n">target</span><span class="o">=</span><span class="n">Asset</span><span class="p">,</span>
+        <span class="n">regression_length</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">allowed_missing_percentage</span><span class="o">=</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+        <span class="n">__funcname</span><span class="o">=</span><span class="s">&#39;SimpleBeta&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="nd">@expect_bounded</span><span class="p">(</span>
+        <span class="n">regression_length</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span>
+        <span class="n">allowed_missing_percentage</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+        <span class="n">__funcname</span><span class="o">=</span><span class="s">&#39;SimpleBeta&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+                <span class="n">target</span><span class="p">,</span>
+                <span class="n">regression_length</span><span class="p">,</span>
+                <span class="n">allowed_missing_percentage</span><span class="o">=</span><span class="mf">0.25</span><span class="p">):</span>
+        <span class="n">daily_returns</span> <span class="o">=</span> <span class="n">Returns</span><span class="p">(</span>
+            <span class="n">window_length</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="p">(</span><span class="n">AssetExists</span><span class="p">()</span> <span class="o">|</span> <span class="n">SingleAsset</span><span class="p">(</span><span class="n">asset</span><span class="o">=</span><span class="n">target</span><span class="p">)),</span>
+        <span class="p">)</span>
+        <span class="n">allowed_missing_count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="n">allowed_missing_percentage</span> <span class="o">*</span> <span class="n">regression_length</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">SimpleBeta</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
+            <span class="n">cls</span><span class="p">,</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">daily_returns</span><span class="p">,</span> <span class="n">daily_returns</span><span class="p">[</span><span class="n">target</span><span class="p">]],</span>
+            <span class="n">window_length</span><span class="o">=</span><span class="n">regression_length</span><span class="p">,</span>
+            <span class="n">allowed_missing_count</span><span class="o">=</span><span class="n">allowed_missing_count</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">today</span><span class="p">,</span>
+                <span class="n">assets</span><span class="p">,</span>
+                <span class="n">out</span><span class="p">,</span>
+                <span class="n">all_returns</span><span class="p">,</span>
+                <span class="n">target_returns</span><span class="p">,</span>
+                <span class="n">allowed_missing_count</span><span class="p">):</span>
+        <span class="n">vectorized_beta</span><span class="p">(</span>
+            <span class="n">dependents</span><span class="o">=</span><span class="n">all_returns</span><span class="p">,</span>
+            <span class="n">independent</span><span class="o">=</span><span class="n">target_returns</span><span class="p">,</span>
+            <span class="n">allowed_missing</span><span class="o">=</span><span class="n">allowed_missing_count</span><span class="p">,</span>
+            <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">short_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;{}({!r}, {}, {})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+            <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">symbol</span><span class="p">),</span>  <span class="c"># coerce from unicode to str in py2.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;allowed_missing_count&#39;</span><span class="p">],</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">target</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the target of the beta calculation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">asset</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;{}({}, length={}, allowed_missing={})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;allowed_missing_count&#39;</span><span class="p">],</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">vectorized_beta</span><span class="p">(</span><span class="n">dependents</span><span class="p">,</span> <span class="n">independent</span><span class="p">,</span> <span class="n">allowed_missing</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute slopes of linear regressions between columns of ``dependents`` and</span>
+<span class="sd">    ``independent``.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dependents : np.array[N, M]</span>
+<span class="sd">        Array with columns of data to be regressed against ``independent``.</span>
+<span class="sd">    independent : np.array[N, 1]</span>
+<span class="sd">        Independent variable of the regression</span>
+<span class="sd">    allowed_missing : int</span>
+<span class="sd">        Number of allowed missing (NaN) observations per column. Columns with</span>
+<span class="sd">        more than this many non-nan observations in both ``dependents`` and</span>
+<span class="sd">        ``independents`` will output NaN as the regression coefficient.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    slopes : np.array[M]</span>
+<span class="sd">        Linear regression coefficients for each column of ``dependents``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># Cache these as locals since we&#39;re going to call them multiple times.</span>
+    <span class="n">nan</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="n">isnan</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span>
+    <span class="n">N</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">dependents</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">nan</span><span class="p">)</span>
+
+    <span class="c"># Copy N times as a column vector and fill with nans to have the same</span>
+    <span class="c"># missing value pattern as the dependent variable.</span>
+    <span class="c">#</span>
+    <span class="c"># PERF_TODO: We could probably avoid the space blowup by doing this in</span>
+    <span class="c"># Cython.</span>
+
+    <span class="c"># shape: (N, M)</span>
+    <span class="n">independent</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">isnan</span><span class="p">(</span><span class="n">dependents</span><span class="p">),</span>
+        <span class="n">nan</span><span class="p">,</span>
+        <span class="n">independent</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c"># Calculate beta as Cov(X, Y) / Cov(X, X).</span>
+    <span class="c"># https://en.wikipedia.org/wiki/Simple_linear_regression#Fitting_the_regression_line  # noqa</span>
+    <span class="c">#</span>
+    <span class="c"># NOTE: The usual formula for covariance is::</span>
+    <span class="c">#</span>
+    <span class="c">#    mean((X - mean(X)) * (Y - mean(Y)))</span>
+    <span class="c">#</span>
+    <span class="c"># However, we don&#39;t actually need to take the mean of both sides of the</span>
+    <span class="c"># product, because of the folllowing equivalence::</span>
+    <span class="c">#</span>
+    <span class="c"># Let X_res = (X - mean(X)).</span>
+    <span class="c"># We have:</span>
+    <span class="c">#</span>
+    <span class="c">#     mean(X_res * (Y - mean(Y))) = mean(X_res * (Y - mean(Y)))</span>
+    <span class="c">#                             (1) = mean((X_res * Y) - (X_res * mean(Y)))</span>
+    <span class="c">#                             (2) = mean(X_res * Y) - mean(X_res * mean(Y))</span>
+    <span class="c">#                             (3) = mean(X_res * Y) - mean(X_res) * mean(Y)</span>
+    <span class="c">#                             (4) = mean(X_res * Y) - 0 * mean(Y)</span>
+    <span class="c">#                             (5) = mean(X_res * Y)</span>
+    <span class="c">#</span>
+    <span class="c">#</span>
+    <span class="c"># The tricky step in the above derivation is step (4). We know that</span>
+    <span class="c"># mean(X_res) is zero because, for any X:</span>
+    <span class="c">#</span>
+    <span class="c">#     mean(X - mean(X)) = mean(X) - mean(X) = 0.</span>
+    <span class="c">#</span>
+    <span class="c"># The upshot of this is that we only have to center one of `independent`</span>
+    <span class="c"># and `dependent` when calculating covariances. Since we need the centered</span>
+    <span class="c"># `independent` to calculate its variance in the next step, we choose to</span>
+    <span class="c"># center `independent`.</span>
+
+    <span class="c"># shape: (N, M)</span>
+    <span class="n">ind_residual</span> <span class="o">=</span> <span class="n">independent</span> <span class="o">-</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">independent</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c"># shape: (M,)</span>
+    <span class="n">covariances</span> <span class="o">=</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">ind_residual</span> <span class="o">*</span> <span class="n">dependents</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c"># We end up with different variances in each column here because each</span>
+    <span class="c"># column may have a different subset of the data dropped due to missing</span>
+    <span class="c"># data in the corresponding dependent column.</span>
+    <span class="c"># shape: (M,)</span>
+    <span class="n">independent_variances</span> <span class="o">=</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">ind_residual</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c"># shape: (M,)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">covariances</span><span class="p">,</span> <span class="n">independent_variances</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span>
+
+    <span class="c"># Write nans back to locations where we have more then allowed number of</span>
+    <span class="c"># missing entries.</span>
+    <span class="n">nanlocs</span> <span class="o">=</span> <span class="n">isnan</span><span class="p">(</span><span class="n">independent</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">allowed_missing</span>
+    <span class="n">out</span><span class="p">[</span><span class="n">nanlocs</span><span class="p">]</span> <span class="o">=</span> <span class="n">nan</span>
+
+    <span class="k">return</span> <span class="n">out</span>
 </pre></div>
 
           </div>
@@ -851,7 +1006,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'1.1.1',
+            VERSION:'1.2.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

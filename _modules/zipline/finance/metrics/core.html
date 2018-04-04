@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.factors.events &mdash; Zipline 1.2.0 documentation</title>
+  <title>zipline.finance.metrics.core &mdash; Zipline 1.2.0 documentation</title>
   
 
   
@@ -298,7 +298,7 @@
       
           <li><a href="../../../index.html">Module code</a> &raquo;</li>
       
-    <li>zipline.pipeline.factors.events</li>
+    <li>zipline.finance.metrics.core</li>
       <li class="wy-breadcrumbs-aside">
         
           
@@ -309,86 +309,113 @@
 </div>
           <div role="main" class="document">
             
-  <h1>Source code for zipline.pipeline.factors.events</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Factors describing information about event data (e.g. earnings</span>
-<span class="sd">announcements, acquisitions, dividends, etc.).</span>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">newaxis</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">NaTD</span><span class="p">,</span>
-    <span class="n">busday_count_mask_NaT</span><span class="p">,</span>
-    <span class="n">datetime64D_dtype</span><span class="p">,</span>
-    <span class="n">float64_dtype</span><span class="p">,</span>
-<span class="p">)</span>
+  <h1>Source code for zipline.finance.metrics.core</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 
-<span class="kn">from</span> <span class="nn">.factor</span> <span class="kn">import</span> <span class="n">Factor</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.compat</span> <span class="kn">import</span> <span class="n">mappingproxy</span>
 
 
-<div class="viewcode-block" id="BusinessDaysSincePreviousEvent"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.BusinessDaysSincePreviousEvent">[docs]</a><span class="k">class</span> <span class="nc">BusinessDaysSincePreviousEvent</span><span class="p">(</span><span class="n">Factor</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Abstract class for business days since a previous event.</span>
-<span class="sd">    Returns the number of **business days** (not trading days!) since</span>
-<span class="sd">    the most recent event date for each asset.</span>
+<span class="k">def</span> <span class="nf">_make_metrics_set_core</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Create a family of metrics sets functions that read from the same</span>
+<span class="sd">    metrics set mapping.</span>
 
-<span class="sd">    This doesn&#39;t use trading days for symmetry with</span>
-<span class="sd">    BusinessDaysUntilNextEarnings.</span>
-
-<span class="sd">    Assets which announced or will announce the event today will produce a</span>
-<span class="sd">    value of 0.0. Assets that announced the event on the previous business</span>
-<span class="sd">    day will produce a value of 1.0.</span>
-
-<span class="sd">    Assets for which the event date is `NaT` will produce a value of `NaN`.</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    metrics_sets : mappingproxy</span>
+<span class="sd">        The mapping of metrics sets to load functions.</span>
+<span class="sd">    register : callable</span>
+<span class="sd">        The function which registers new metrics sets in the ``metrics_sets``</span>
+<span class="sd">        mapping.</span>
+<span class="sd">    unregister : callable</span>
+<span class="sd">        The function which deregisters metrics sets from the ``metrics_sets``</span>
+<span class="sd">        mapping.</span>
+<span class="sd">    load : callable</span>
+<span class="sd">        The function which loads the ingested metrics sets back into memory.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">window_length</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">dtype</span> <span class="o">=</span> <span class="n">float64_dtype</span>
+    <span class="n">_metrics_sets</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="c"># Expose _metrics_sets through a proxy so that users cannot mutate this</span>
+    <span class="c"># accidentally. Users may go through `register` to update this which will</span>
+    <span class="c"># warn when trampling another metrics set.</span>
+    <span class="n">metrics_sets</span> <span class="o">=</span> <span class="n">mappingproxy</span><span class="p">(</span><span class="n">_metrics_sets</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">register</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Register a new metrics set.</span>
 
-        <span class="c"># Coerce from [ns] to [D] for numpy busday_count.</span>
-        <span class="n">announce_dates</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the metrics set</span>
+<span class="sd">        function : callable</span>
+<span class="sd">            The callable which produces the metrics set.</span>
 
-        <span class="c"># Set masked values to NaT.</span>
-        <span class="n">announce_dates</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">NaTD</span>
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This may be used as a decorator if only ``name`` is passed.</span>
 
-        <span class="c"># Convert row labels into a column vector for broadcasted comparison.</span>
-        <span class="n">reference_dates</span> <span class="o">=</span> <span class="n">dates</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)[:,</span> <span class="n">newaxis</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">busday_count_mask_NaT</span><span class="p">(</span><span class="n">announce_dates</span><span class="p">,</span> <span class="n">reference_dates</span><span class="p">)</span></div>
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        zipline.finance.metrics.get_metrics_set</span>
+<span class="sd">        zipline.finance.metrics.unregister_metrics_set</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">function</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="c"># allow as decorator with just name.</span>
+            <span class="k">return</span> <span class="n">partial</span><span class="p">(</span><span class="n">register</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">_metrics_sets</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&#39;metrics set </span><span class="si">%r</span><span class="s"> is already registered&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
+
+        <span class="n">_metrics_sets</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">function</span>
+
+        <span class="k">return</span> <span class="n">function</span>
+
+    <span class="k">def</span> <span class="nf">unregister</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Unregister an existing metrics set.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the metrics set</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        zipline.finance.metrics.register_metrics_set</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">_metrics_sets</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s">&#39;metrics set </span><span class="si">%r</span><span class="s"> was not already registered&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return an instance of the metrics set registered with the given name.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        metrics : set[Metric]</span>
+<span class="sd">            A new instance of the metrics set.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            Raised when no metrics set is registered to ``name``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">function</span> <span class="o">=</span> <span class="n">_metrics_sets</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s">&#39;no metrics set registered as </span><span class="si">%r</span><span class="s">, options are: </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="n">name</span><span class="p">,</span>
+                    <span class="nb">sorted</span><span class="p">(</span><span class="n">_metrics_sets</span><span class="p">),</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">function</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">metrics_sets</span><span class="p">,</span> <span class="n">register</span><span class="p">,</span> <span class="n">unregister</span><span class="p">,</span> <span class="n">load</span>
 
 
-<div class="viewcode-block" id="BusinessDaysUntilNextEvent"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.BusinessDaysUntilNextEvent">[docs]</a><span class="k">class</span> <span class="nc">BusinessDaysUntilNextEvent</span><span class="p">(</span><span class="n">Factor</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Abstract class for business days since a next event.</span>
-<span class="sd">    Returns the number of **business days** (not trading days!) until</span>
-<span class="sd">    the next known event date for each asset.</span>
-
-<span class="sd">    This doesn&#39;t use trading days because the trading calendar includes</span>
-<span class="sd">    information that may not have been available to the algorithm at the time</span>
-<span class="sd">    when `compute` is called.</span>
-
-<span class="sd">    For example, the NYSE closings September 11th 2001, would not have been</span>
-<span class="sd">    known to the algorithm on September 10th.</span>
-
-<span class="sd">    Assets that announced or will announce the event today will produce a value</span>
-<span class="sd">    of 0.0.  Assets that will announce the event on the next upcoming business</span>
-<span class="sd">    day will produce a value of 1.0.</span>
-
-<span class="sd">    Assets for which the event date is `NaT` will produce a value of `NaN`.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">window_length</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">dtype</span> <span class="o">=</span> <span class="n">float64_dtype</span>
-
-    <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
-
-        <span class="c"># Coerce from [ns] to [D] for numpy busday_count.</span>
-        <span class="n">announce_dates</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)</span>
-
-        <span class="c"># Set masked values to NaT.</span>
-        <span class="n">announce_dates</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">NaTD</span>
-
-        <span class="c"># Convert row labels into a column vector for broadcasted comparison.</span>
-        <span class="n">reference_dates</span> <span class="o">=</span> <span class="n">dates</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)[:,</span> <span class="n">newaxis</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">busday_count_mask_NaT</span><span class="p">(</span><span class="n">reference_dates</span><span class="p">,</span> <span class="n">announce_dates</span><span class="p">)</span></div>
+<span class="n">metrics_sets</span><span class="p">,</span> <span class="n">register</span><span class="p">,</span> <span class="n">unregister</span><span class="p">,</span> <span class="n">load</span> <span class="o">=</span> <span class="n">_make_metrics_set_core</span><span class="p">()</span>
 </pre></div>
 
           </div>

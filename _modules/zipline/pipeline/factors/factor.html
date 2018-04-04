@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.factors.factor &mdash; Zipline 1.1.1 documentation</title>
+  <title>zipline.pipeline.factors.factor &mdash; Zipline 1.2.0 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 1.1.1 documentation" href="../../../../index.html"/>
+    <link rel="top" title="Zipline 1.2.0 documentation" href="../../../../index.html"/>
         <link rel="up" title="Module code" href="../../../index.html"/> 
 
   
@@ -78,19 +78,22 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../../install.html#windows">Windows</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../install.html#managing-conda-environments">Managing <code class="docutils literal"><span class="pre">conda</span></code> environments</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../beginner-tutorial.html">Zipline Beginner Tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#basics">Basics</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#my-first-algorithm">My First Algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#running-the-algorithm">Running the Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#ingesting-data">Ingesting Data</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#command-line-interface">Command line interface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#command-line-interface">Command Line Interface</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#access-to-previous-prices-using-history">Access to previous prices using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#access-to-previous-prices-using-history">Access to Previous Prices Using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
 </ul>
 </li>
@@ -103,10 +106,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#old-data">Old Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#running-backtests-with-data-bundles">Running Backtests with Data Bundles</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#default-data-bundles">Default Data Bundles</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#quandl-wiki-bundle">Quandl WIKI Bundle</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../../../bundles.html#quantopian-quandl-wiki-mirror">Quantopian Quandl WIKI Mirror</a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#quandl-wiki-bundle">Quandl WIKI Bundle</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#writing-a-new-bundle">Writing a New Bundle</a><ul>
@@ -123,6 +123,34 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#ingesting-data-from-csv-files">Ingesting Data from .csv Files</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../trading-calendars.html">Trading Calendars</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../trading-calendars.html#what-is-a-trading-calendar">What is a Trading Calendar?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../trading-calendars.html#why-should-you-care-about-trading-calendars">Why Should You Care About Trading Calendars?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../trading-calendars.html#the-tradingcalendar-class">The TradingCalendar Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../trading-calendars.html#building-a-custom-trading-calendar">Building a Custom Trading Calendar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../trading-calendars.html#conclusions">Conclusions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../risk-and-perf-metrics.html">Risk and Performance Metrics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#metrics-sets">Metrics Sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#selecting-the-metrics-set">Selecting the Metrics Set</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#command-line-and-ipython-magic">Command Line and IPython Magic</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#run-algorithm"><code class="docutils literal"><span class="pre">run_algorithm</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#running-without-metrics">Running Without Metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#defining-new-metrics">Defining New Metrics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#start-of-simulation"><code class="docutils literal"><span class="pre">start_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#end-of-simulation"><code class="docutils literal"><span class="pre">end_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#start-of-session"><code class="docutils literal"><span class="pre">start_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#end-of-session"><code class="docutils literal"><span class="pre">end_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#end-of-bar"><code class="docutils literal"><span class="pre">end_of_bar</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#defining-new-metrics-sets">Defining New Metrics Sets</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../development-guidelines.html">Development Guidelines</a><ul>
@@ -134,6 +162,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../development-guidelines.html#contributing-to-the-docs">Contributing to the Docs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../development-guidelines.html#commit-messages">Commit messages</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../development-guidelines.html#formatting-docstrings">Formatting Docstrings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../development-guidelines.html#updating-the-whatsnew">Updating the Whatsnew</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../appendix.html">API Reference</a><ul>
@@ -158,6 +187,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#pipeline-api">Pipeline API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#built-in-factors">Built-in Factors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#built-in-filters">Built-in Filters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#pipeline-engine">Pipeline Engine</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#data-loaders">Data Loaders</a></li>
 </ul>
@@ -168,6 +198,12 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#writers">Writers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#readers">Readers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#bundles">Bundles</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#risk-metrics">Risk Metrics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#algorithm-state">Algorithm State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#built-in-metrics">Built-in Metrics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#metrics-sets">Metrics Sets</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#utilities">Utilities</a><ul>
@@ -192,119 +228,48 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-1-1">Release 1.1.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#highlights">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#enhancements">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#bug-fixes">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#performance">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#build">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#documentation">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-2-0">Release 1.2.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#experimental-features">Experimental Features</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#performance">Performance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#build">Build</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-1-0">Release 1.1.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id1">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id2">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id3">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id4">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id5">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id6">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id7">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-2">Release 1.0.2</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id8">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#experimental">Experimental</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id9">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id10">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id11">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id12">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#testing">Testing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#data-format-changes">Data Format Changes</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id13">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id14">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id15">Documentation</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-1-1">Release 1.1.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-1-0">Release 1.1.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-2">Release 1.0.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-1">Release 1.0.1</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id16">Highlights</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id3">Enhancements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id4">Experimental Features</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id5">Bug Fixes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id6">Performance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id7">Maintenance and Refactorings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id8">Build</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id9">Documentation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id10">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id17">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id18">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id19">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id20">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id21">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id22">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id23">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id24">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-9-0">Release 0.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id25">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id26">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id27">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id28">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id29">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id30">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id31">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id32">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id33">Miscellaneous</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id34">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id35">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id36">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id37">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id38">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id39">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id40">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id41">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id42">Miscellaneous</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-9-0">Release 0.9.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-4">Release 0.8.4</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-3">Release 0.8.3</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-0">Release 0.8.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id43">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id44">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id45">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id46">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id47">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id48">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id49">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id50">Documentation</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id51">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id52">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id53">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id54">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id55">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id56">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#contributors">Contributors</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id57">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id58">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id59">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id60">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id61">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id62">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id63">Contributors</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-0">Release 0.8.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-7-0">Release 0.7.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-6-1">Release 0.6.1</a></li>
 </ul>
 </li>
 </ul>
@@ -348,7 +313,6 @@
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">factor.py</span>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">wraps</span>
 <span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">attrgetter</span>
 <span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Number</span>
 <span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">ceil</span>
@@ -356,11 +320,21 @@
 <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">empty_like</span><span class="p">,</span> <span class="n">inf</span><span class="p">,</span> <span class="n">nan</span><span class="p">,</span> <span class="n">where</span>
 <span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">rankdata</span>
 
-<span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="n">BadPercentileBounds</span><span class="p">,</span> <span class="n">UnknownRankMethod</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.compat</span> <span class="kn">import</span> <span class="n">wraps</span>
+<span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BadPercentileBounds</span><span class="p">,</span>
+    <span class="n">UnknownRankMethod</span><span class="p">,</span>
+    <span class="n">UnsupportedDataType</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.lib.normalize</span> <span class="kn">import</span> <span class="n">naive_grouped_rowwise_apply</span>
 <span class="kn">from</span> <span class="nn">zipline.lib.rank</span> <span class="kn">import</span> <span class="n">masked_rankdata_2d</span><span class="p">,</span> <span class="n">rankdata_1d_descending</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.api_utils</span> <span class="kn">import</span> <span class="n">restrict_to_dtype</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.classifiers</span> <span class="kn">import</span> <span class="n">Classifier</span><span class="p">,</span> <span class="n">Everything</span><span class="p">,</span> <span class="n">Quantiles</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.dtypes</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CLASSIFIER_DTYPES</span><span class="p">,</span>
+    <span class="n">FACTOR_DTYPES</span><span class="p">,</span>
+    <span class="n">FILTER_DTYPES</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.expression</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">BadBinaryOperator</span><span class="p">,</span>
     <span class="n">COMPARISONS</span><span class="p">,</span>
@@ -376,6 +350,7 @@
     <span class="n">Filter</span><span class="p">,</span>
     <span class="n">NumExprFilter</span><span class="p">,</span>
     <span class="n">PercentileFilter</span><span class="p">,</span>
+    <span class="n">MaximumFilter</span><span class="p">,</span>
     <span class="n">NotNullFilter</span><span class="p">,</span>
     <span class="n">NullFilter</span><span class="p">,</span>
 <span class="p">)</span>
@@ -396,11 +371,8 @@
 <span class="kn">from</span> <span class="nn">zipline.utils.memoize</span> <span class="kn">import</span> <span class="n">classlazyval</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">bool_dtype</span><span class="p">,</span>
-    <span class="n">categorical_dtype</span><span class="p">,</span>
     <span class="n">coerce_to_dtype</span><span class="p">,</span>
-    <span class="n">datetime64ns_dtype</span><span class="p">,</span>
     <span class="n">float64_dtype</span><span class="p">,</span>
-    <span class="n">int64_dtype</span><span class="p">,</span>
 <span class="p">)</span>
 
 
@@ -630,6 +602,7 @@
     <span class="k">if</span> <span class="n">func</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">NUMEXPR_MATH_FUNCS</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Unsupported mathematical function &#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="n">func</span><span class="p">)</span>
 
+    <span class="nd">@with_doc</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
     <span class="nd">@with_name</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">mathfunc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">NumericalExpression</span><span class="p">):</span>
@@ -664,8 +637,6 @@
         <span class="s">&quot; but it was called on a Factor of dtype {received_dtype}.&quot;</span>
     <span class="p">)</span>
 <span class="p">)</span>
-
-<span class="n">FACTOR_DTYPES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="n">datetime64ns_dtype</span><span class="p">,</span> <span class="n">float64_dtype</span><span class="p">,</span> <span class="n">int64_dtype</span><span class="p">])</span>
 
 
 <div class="viewcode-block" id="Factor"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor">[docs]</a><span class="k">class</span> <span class="nc">Factor</span><span class="p">(</span><span class="n">RestrictedDTypeMixin</span><span class="p">,</span> <span class="n">ComputableTerm</span><span class="p">):</span>
@@ -730,6 +701,8 @@
 
     <span class="n">__truediv__</span> <span class="o">=</span> <span class="n">clsdict</span><span class="p">[</span><span class="s">&#39;__div__&#39;</span><span class="p">]</span>
     <span class="n">__rtruediv__</span> <span class="o">=</span> <span class="n">clsdict</span><span class="p">[</span><span class="s">&#39;__rdiv__&#39;</span><span class="p">]</span>
+
+    <span class="k">del</span> <span class="n">clsdict</span>  <span class="c"># don&#39;t pollute the class namespace with this.</span>
 
     <span class="n">eq</span> <span class="o">=</span> <span class="n">binary_operator</span><span class="p">(</span><span class="s">&#39;==&#39;</span><span class="p">)</span>
 
@@ -1403,6 +1376,10 @@
 <span class="sd">        -------</span>
 <span class="sd">        filter : zipline.pipeline.filters.Filter</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">N</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c"># Special case: if N == 1, we can avoid doing a full sort on every</span>
+            <span class="c"># group, which is a big win.</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maximum</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">groupby</span><span class="o">=</span><span class="n">groupby</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">groupby</span><span class="o">=</span><span class="n">groupby</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">N</span></div>
 
 <div class="viewcode-block" id="Factor.bottom"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.bottom">[docs]</a>    <span class="k">def</span> <span class="nf">bottom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">,</span> <span class="n">groupby</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
@@ -1428,6 +1405,9 @@
 <span class="sd">        filter : zipline.pipeline.Filter</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">groupby</span><span class="o">=</span><span class="n">groupby</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">N</span></div>
+
+    <span class="k">def</span> <span class="nf">_maximum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">,</span> <span class="n">groupby</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">MaximumFilter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">groupby</span><span class="o">=</span><span class="n">groupby</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Factor.percentile_between"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.percentile_between">[docs]</a>    <span class="k">def</span> <span class="nf">percentile_between</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                            <span class="n">min_percentile</span><span class="p">,</span>
@@ -1635,21 +1615,7 @@
 
     <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">groupby_expr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">groupby_expr</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">int64_dtype</span><span class="p">:</span>
-            <span class="n">group_labels</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-            <span class="n">null_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">missing_value</span>
-        <span class="k">elif</span> <span class="n">groupby_expr</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">categorical_dtype</span><span class="p">:</span>
-            <span class="c"># Coerce our LabelArray into an isomorphic array of ints.  This is</span>
-            <span class="c"># necessary because np.where doesn&#39;t know about LabelArrays or the</span>
-            <span class="c"># void dtype.</span>
-            <span class="n">group_labels</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">as_int_array</span><span class="p">()</span>
-            <span class="n">null_label</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">missing_value_code</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-                <span class="s">&quot;Unexpected groupby dtype: </span><span class="si">%s</span><span class="s">.&quot;</span> <span class="o">%</span> <span class="n">groupby_expr</span><span class="o">.</span><span class="n">dtype</span>
-            <span class="p">)</span>
-
+        <span class="n">group_labels</span><span class="p">,</span> <span class="n">null_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">_to_integral</span><span class="p">(</span><span class="n">arrays</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="c"># Make a copy with the null code written to masked locations.</span>
         <span class="n">group_labels</span> <span class="o">=</span> <span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">group_labels</span><span class="p">,</span> <span class="n">null_label</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">where</span><span class="p">(</span>
@@ -1669,6 +1635,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform</span><span class="o">.</span><span class="n">__name__</span>
 
     <span class="k">def</span> <span class="nf">short_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Short repr to use when rendering Pipeline graphs.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span> <span class="o">+</span> <span class="s">&#39;(</span><span class="si">%r</span><span class="s">)&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform_name</span>
 
 
@@ -1899,6 +1866,24 @@
 <span class="sd">    &#39;&#39;&#39;</span>
     <span class="n">dtype</span> <span class="o">=</span> <span class="n">float64_dtype</span>
 
+    <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="nb">super</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_validate</span><span class="p">()</span>
+        <span class="k">except</span> <span class="n">UnsupportedDataType</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">in</span> <span class="n">CLASSIFIER_DTYPES</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">UnsupportedDataType</span><span class="p">(</span>
+                    <span class="n">typename</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                    <span class="n">hint</span><span class="o">=</span><span class="s">&#39;Did you mean to create a CustomClassifier?&#39;</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">in</span> <span class="n">FILTER_DTYPES</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">UnsupportedDataType</span><span class="p">(</span>
+                    <span class="n">typename</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                    <span class="n">hint</span><span class="o">=</span><span class="s">&#39;Did you mean to create a CustomFilter?&#39;</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">raise</span>
+
     <span class="k">def</span> <span class="nf">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="n">outputs</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="n">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&#39;outputs&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">outputs</span> <span class="ow">is</span> <span class="n">NotSpecified</span><span class="p">:</span>
@@ -1957,6 +1942,9 @@
 
     <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">windows</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">windows</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">_attribute</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">short_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;{}.{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">short_repr</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attribute</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="Latest"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Latest">[docs]</a><span class="k">class</span> <span class="nc">Latest</span><span class="p">(</span><span class="n">LatestMixin</span><span class="p">,</span> <span class="n">CustomFactor</span><span class="p">):</span>
@@ -2031,7 +2019,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'1.1.1',
+            VERSION:'1.2.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

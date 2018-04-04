@@ -1,0 +1,837 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>zipline.pipeline.factors.basic &mdash; Zipline 1.2.0 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Zipline 1.2.0 documentation" href="../../../../index.html"/>
+        <link rel="up" title="Module code" href="../../../index.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+
+        
+          <a href="../../../../index.html" class="icon icon-home"> Zipline
+        
+
+        
+        </a>
+
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../install.html#installing-with-pip">Installing with <code class="docutils literal"><span class="pre">pip</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../install.html#gnu-linux">GNU/Linux</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../install.html#osx">OSX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../install.html#windows">Windows</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../install.html#managing-conda-environments">Managing <code class="docutils literal"><span class="pre">conda</span></code> environments</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../beginner-tutorial.html">Zipline Beginner Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#basics">Basics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#my-first-algorithm">My First Algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#running-the-algorithm">Running the Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#ingesting-data">Ingesting Data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#command-line-interface">Command Line Interface</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#access-to-previous-prices-using-history">Access to Previous Prices Using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#conclusions">Conclusions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../bundles.html">Data Bundles</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#discovering-available-bundles">Discovering Available Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#ingesting-data">Ingesting Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#old-data">Old Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#running-backtests-with-data-bundles">Running Backtests with Data Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#default-data-bundles">Default Data Bundles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#quandl-wiki-bundle">Quandl WIKI Bundle</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#writing-a-new-bundle">Writing a New Bundle</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#environ"><code class="docutils literal"><span class="pre">environ</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#asset-db-writer"><code class="docutils literal"><span class="pre">asset_db_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#minute-bar-writer"><code class="docutils literal"><span class="pre">minute_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#start-session"><code class="docutils literal"><span class="pre">start_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#end-session"><code class="docutils literal"><span class="pre">end_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#ingesting-data-from-csv-files">Ingesting Data from .csv Files</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../trading-calendars.html">Trading Calendars</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../trading-calendars.html#what-is-a-trading-calendar">What is a Trading Calendar?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../trading-calendars.html#why-should-you-care-about-trading-calendars">Why Should You Care About Trading Calendars?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../trading-calendars.html#the-tradingcalendar-class">The TradingCalendar Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../trading-calendars.html#building-a-custom-trading-calendar">Building a Custom Trading Calendar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../trading-calendars.html#conclusions">Conclusions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../risk-and-perf-metrics.html">Risk and Performance Metrics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#metrics-sets">Metrics Sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#selecting-the-metrics-set">Selecting the Metrics Set</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#command-line-and-ipython-magic">Command Line and IPython Magic</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#run-algorithm"><code class="docutils literal"><span class="pre">run_algorithm</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#running-without-metrics">Running Without Metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#defining-new-metrics">Defining New Metrics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#start-of-simulation"><code class="docutils literal"><span class="pre">start_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#end-of-simulation"><code class="docutils literal"><span class="pre">end_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#start-of-session"><code class="docutils literal"><span class="pre">start_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#end-of-session"><code class="docutils literal"><span class="pre">end_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#end-of-bar"><code class="docutils literal"><span class="pre">end_of_bar</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../risk-and-perf-metrics.html#defining-new-metrics-sets">Defining New Metrics Sets</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../development-guidelines.html">Development Guidelines</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../development-guidelines.html#creating-a-development-environment">Creating a Development Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../development-guidelines.html#development-with-docker">Development with Docker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../development-guidelines.html#style-guide-running-tests">Style Guide &amp; Running Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../development-guidelines.html#continuous-integration">Continuous Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../development-guidelines.html#packaging">Packaging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../development-guidelines.html#contributing-to-the-docs">Contributing to the Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../development-guidelines.html#commit-messages">Commit messages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../development-guidelines.html#formatting-docstrings">Formatting Docstrings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../development-guidelines.html#updating-the-whatsnew">Updating the Whatsnew</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../appendix.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#running-a-backtest">Running a Backtest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#algorithm-api">Algorithm API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#data-object">Data Object</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#scheduling-functions">Scheduling Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#orders">Orders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../appendix.html#order-cancellation-policies">Order Cancellation Policies</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#assets">Assets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#trading-controls">Trading Controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#simulation-parameters">Simulation Parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../appendix.html#commission-models">Commission Models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../appendix.html#slippage-models">Slippage Models</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#pipeline">Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#pipeline-api">Pipeline API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#built-in-factors">Built-in Factors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#built-in-filters">Built-in Filters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#pipeline-engine">Pipeline Engine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#data-loaders">Data Loaders</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#trading-calendar-api">Trading Calendar API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#data-api">Data API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#writers">Writers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#readers">Readers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#bundles">Bundles</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#risk-metrics">Risk Metrics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#algorithm-state">Algorithm State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#built-in-metrics">Built-in Metrics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#metrics-sets">Metrics Sets</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#utilities">Utilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#caching">Caching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#command-line">Command Line</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../release-process.html">Release Process</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#updating-the-release-notes">Updating the Release Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#updating-the-python-stub-files">Updating the Python stub files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#updating-the-version">Updating the <code class="docutils literal"><span class="pre">__version__</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#uploading-pypi-packages">Uploading PyPI packages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../release-process.html#sdist"><code class="docutils literal"><span class="pre">sdist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../release-process.html#bdist"><code class="docutils literal"><span class="pre">bdist</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#uploading-conda-packages">Uploading conda packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#next-commit">Next Commit</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../releases.html">Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-2-0">Release 1.2.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#experimental-features">Experimental Features</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#performance">Performance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#build">Build</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-1-1">Release 1.1.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-1-0">Release 1.1.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-2">Release 1.0.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-1">Release 1.0.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id3">Enhancements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id4">Experimental Features</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id5">Bug Fixes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id6">Performance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id7">Maintenance and Refactorings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id8">Build</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id9">Documentation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id10">Miscellaneous</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-9-0">Release 0.9.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-4">Release 0.8.4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-3">Release 0.8.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-0">Release 0.8.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-7-0">Release 0.7.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-6-1">Release 0.6.1</a></li>
+</ul>
+</li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../../../index.html">Zipline</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+      
+    <li>zipline.pipeline.factors.basic</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <h1>Source code for zipline.pipeline.factors.basic</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;Simple common factors.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Number</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">arange</span><span class="p">,</span>
+    <span class="n">average</span><span class="p">,</span>
+    <span class="n">exp</span><span class="p">,</span>
+    <span class="n">fmax</span><span class="p">,</span>
+    <span class="n">full</span><span class="p">,</span>
+    <span class="n">isnan</span><span class="p">,</span>
+    <span class="n">log</span><span class="p">,</span>
+    <span class="n">NINF</span><span class="p">,</span>
+    <span class="n">sqrt</span><span class="p">,</span>
+    <span class="nb">sum</span> <span class="k">as</span> <span class="n">np_sum</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">zipline.pipeline.data</span> <span class="kn">import</span> <span class="n">USEquityPricing</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="n">expect_types</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.math_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">nanargmax</span><span class="p">,</span>
+    <span class="n">nanmax</span><span class="p">,</span>
+    <span class="n">nanmean</span><span class="p">,</span>
+    <span class="n">nanstd</span><span class="p">,</span>
+    <span class="n">nansum</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">float64_dtype</span><span class="p">,</span>
+    <span class="n">ignore_nanwarnings</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">.factor</span> <span class="kn">import</span> <span class="n">CustomFactor</span>
+<span class="kn">from</span> <span class="nn">..mixins</span> <span class="kn">import</span> <span class="n">SingleInputMixin</span>
+
+
+<div class="viewcode-block" id="Returns"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.Returns">[docs]</a><span class="k">class</span> <span class="nc">Returns</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the percent change in close price over the given window_length.</span>
+
+<span class="sd">    **Default Inputs**: [USEquityPricing.close]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">]</span>
+    <span class="n">window_safe</span> <span class="o">=</span> <span class="bp">True</span>
+
+    <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Returns</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_validate</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s">&quot;&#39;Returns&#39; expected a window length of at least 2, but was &quot;</span>
+                <span class="s">&quot;given {window_length}. For daily returns, use a window &quot;</span>
+                <span class="s">&quot;length of 2.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">window_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">window_length</span><span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">close</span><span class="p">):</span>
+        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span><span class="n">close</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">close</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">close</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<span class="k">class</span> <span class="nc">DailyReturns</span><span class="p">(</span><span class="n">Returns</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates daily percent change in close price.</span>
+
+<span class="sd">    **Default Inputs**: [USEquityPricing.close]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">]</span>
+    <span class="n">window_safe</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="n">window_length</span> <span class="o">=</span> <span class="mi">2</span>
+
+
+<div class="viewcode-block" id="SimpleMovingAverage"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.SimpleMovingAverage">[docs]</a><span class="k">class</span> <span class="nc">SimpleMovingAverage</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">,</span> <span class="n">SingleInputMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Average Value of an arbitrary column</span>
+
+<span class="sd">    **Default Inputs**: None</span>
+
+<span class="sd">    **Default Window Length**: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># numpy&#39;s nan functions throw warnings when passed an array containing only</span>
+    <span class="c"># nans, but they still returns the desired value (nan), so we ignore the</span>
+    <span class="c"># warning.</span>
+    <span class="n">ctx</span> <span class="o">=</span> <span class="n">ignore_nanwarnings</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="WeightedAverageValue"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.WeightedAverageValue">[docs]</a><span class="k">class</span> <span class="nc">WeightedAverageValue</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Helper for VWAP-like computations.</span>
+
+<span class="sd">    **Default Inputs:** None</span>
+
+<span class="sd">    **Default Window Length:** None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">weight</span><span class="p">):</span>
+        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">nansum</span><span class="p">(</span><span class="n">base</span> <span class="o">*</span> <span class="n">weight</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">nansum</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VWAP"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.VWAP">[docs]</a><span class="k">class</span> <span class="nc">VWAP</span><span class="p">(</span><span class="n">WeightedAverageValue</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Volume Weighted Average Price</span>
+
+<span class="sd">    **Default Inputs:** [USEquityPricing.close, USEquityPricing.volume]</span>
+
+<span class="sd">    **Default Window Length:** None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">volume</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MaxDrawdown"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.MaxDrawdown">[docs]</a><span class="k">class</span> <span class="nc">MaxDrawdown</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">,</span> <span class="n">SingleInputMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Max Drawdown</span>
+
+<span class="sd">    **Default Inputs:** None</span>
+
+<span class="sd">    **Default Window Length:** None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ctx</span> <span class="o">=</span> <span class="n">ignore_nanwarnings</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="n">drawdowns</span> <span class="o">=</span> <span class="n">fmax</span><span class="o">.</span><span class="n">accumulate</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">data</span>
+        <span class="n">drawdowns</span><span class="p">[</span><span class="n">isnan</span><span class="p">(</span><span class="n">drawdowns</span><span class="p">)]</span> <span class="o">=</span> <span class="n">NINF</span>
+        <span class="n">drawdown_ends</span> <span class="o">=</span> <span class="n">nanargmax</span><span class="p">(</span><span class="n">drawdowns</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c"># TODO: Accelerate this loop in Cython or Numba.</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">drawdown_ends</span><span class="p">):</span>
+            <span class="n">peak</span> <span class="o">=</span> <span class="n">nanmax</span><span class="p">(</span><span class="n">data</span><span class="p">[:</span><span class="n">end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">])</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">peak</span> <span class="o">-</span> <span class="n">data</span><span class="p">[</span><span class="n">end</span><span class="p">,</span> <span class="n">i</span><span class="p">])</span> <span class="o">/</span> <span class="n">data</span><span class="p">[</span><span class="n">end</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="AverageDollarVolume"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.AverageDollarVolume">[docs]</a><span class="k">class</span> <span class="nc">AverageDollarVolume</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Average Daily Dollar Volume</span>
+
+<span class="sd">    **Default Inputs:** [USEquityPricing.close, USEquityPricing.volume]</span>
+
+<span class="sd">    **Default Window Length:** None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">volume</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">close</span><span class="p">,</span> <span class="n">volume</span><span class="p">):</span>
+        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">nansum</span><span class="p">(</span><span class="n">close</span> <span class="o">*</span> <span class="n">volume</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">close</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">exponential_weights</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">decay_rate</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build a weight vector for an exponentially-weighted statistic.</span>
+
+<span class="sd">    The resulting ndarray is of the form::</span>
+
+<span class="sd">        [decay_rate ** length, ..., decay_rate ** 2, decay_rate]</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    length : int</span>
+<span class="sd">        The length of the desired weight vector.</span>
+<span class="sd">    decay_rate : float</span>
+<span class="sd">        The rate at which entries in the weight vector increase or decrease.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    weights : ndarray[float64]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">full</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">decay_rate</span><span class="p">,</span> <span class="n">float64_dtype</span><span class="p">)</span> <span class="o">**</span> <span class="n">arange</span><span class="p">(</span><span class="n">length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_ExponentialWeightedFactor</span><span class="p">(</span><span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">CustomFactor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for factors implementing exponential-weighted operations.</span>
+
+<span class="sd">    **Default Inputs:** None</span>
+
+<span class="sd">    **Default Window Length:** None</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    inputs : length-1 list or tuple of BoundColumn</span>
+<span class="sd">        The expression over which to compute the average.</span>
+<span class="sd">    window_length : int &gt; 0</span>
+<span class="sd">        Length of the lookback window over which to compute the average.</span>
+<span class="sd">    decay_rate : float, 0 &lt; decay_rate &lt;= 1</span>
+<span class="sd">        Weighting factor by which to discount past observations.</span>
+
+<span class="sd">        When calculating historical averages, rows are multiplied by the</span>
+<span class="sd">        sequence::</span>
+
+<span class="sd">            decay_rate, decay_rate ** 2, decay_rate ** 3, ...</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    weights</span>
+<span class="sd">    from_span</span>
+<span class="sd">    from_halflife</span>
+<span class="sd">    from_center_of_mass</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;decay_rate&#39;</span><span class="p">,)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="nd">@expect_types</span><span class="p">(</span><span class="n">span</span><span class="o">=</span><span class="n">Number</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">from_span</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">window_length</span><span class="p">,</span> <span class="n">span</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convenience constructor for passing `decay_rate` in terms of `span`.</span>
+
+<span class="sd">        Forwards `decay_rate` as `1 - (2.0 / (1 + span))`.  This provides the</span>
+<span class="sd">        behavior equivalent to passing `span` to pandas.ewma.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            # Equivalent to:</span>
+<span class="sd">            # my_ewma = EWMA(</span>
+<span class="sd">            #    inputs=[USEquityPricing.close],</span>
+<span class="sd">            #    window_length=30,</span>
+<span class="sd">            #    decay_rate=(1 - (2.0 / (1 + 15.0))),</span>
+<span class="sd">            # )</span>
+<span class="sd">            my_ewma = EWMA.from_span(</span>
+<span class="sd">                inputs=[USEquityPricing.close],</span>
+<span class="sd">                window_length=30,</span>
+<span class="sd">                span=15,</span>
+<span class="sd">            )</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This classmethod is provided by both</span>
+<span class="sd">        :class:`ExponentialWeightedMovingAverage` and</span>
+<span class="sd">        :class:`ExponentialWeightedMovingStdDev`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">span</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s">&quot;`span` must be a positive number. </span><span class="si">%s</span><span class="s"> was passed.&quot;</span> <span class="o">%</span> <span class="n">span</span>
+            <span class="p">)</span>
+
+        <span class="n">decay_rate</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">span</span><span class="p">)))</span>
+        <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">decay_rate</span> <span class="o">&lt;=</span> <span class="mf">1.0</span>
+
+        <span class="k">return</span> <span class="n">cls</span><span class="p">(</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+            <span class="n">window_length</span><span class="o">=</span><span class="n">window_length</span><span class="p">,</span>
+            <span class="n">decay_rate</span><span class="o">=</span><span class="n">decay_rate</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="nd">@expect_types</span><span class="p">(</span><span class="n">halflife</span><span class="o">=</span><span class="n">Number</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">from_halflife</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">window_length</span><span class="p">,</span> <span class="n">halflife</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convenience constructor for passing ``decay_rate`` in terms of half</span>
+<span class="sd">        life.</span>
+
+<span class="sd">        Forwards ``decay_rate`` as ``exp(log(.5) / halflife)``.  This provides</span>
+<span class="sd">        the behavior equivalent to passing `halflife` to pandas.ewma.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            # Equivalent to:</span>
+<span class="sd">            # my_ewma = EWMA(</span>
+<span class="sd">            #    inputs=[USEquityPricing.close],</span>
+<span class="sd">            #    window_length=30,</span>
+<span class="sd">            #    decay_rate=np.exp(np.log(0.5) / 15),</span>
+<span class="sd">            # )</span>
+<span class="sd">            my_ewma = EWMA.from_halflife(</span>
+<span class="sd">                inputs=[USEquityPricing.close],</span>
+<span class="sd">                window_length=30,</span>
+<span class="sd">                halflife=15,</span>
+<span class="sd">            )</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This classmethod is provided by both</span>
+<span class="sd">        :class:`ExponentialWeightedMovingAverage` and</span>
+<span class="sd">        :class:`ExponentialWeightedMovingStdDev`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">halflife</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s">&quot;`span` must be a positive number. </span><span class="si">%s</span><span class="s"> was passed.&quot;</span> <span class="o">%</span> <span class="n">halflife</span>
+            <span class="p">)</span>
+        <span class="n">decay_rate</span> <span class="o">=</span> <span class="n">exp</span><span class="p">(</span><span class="n">log</span><span class="p">(</span><span class="o">.</span><span class="mi">5</span><span class="p">)</span> <span class="o">/</span> <span class="n">halflife</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">decay_rate</span> <span class="o">&lt;=</span> <span class="mf">1.0</span>
+
+        <span class="k">return</span> <span class="n">cls</span><span class="p">(</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+            <span class="n">window_length</span><span class="o">=</span><span class="n">window_length</span><span class="p">,</span>
+            <span class="n">decay_rate</span><span class="o">=</span><span class="n">decay_rate</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_center_of_mass</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+                            <span class="n">inputs</span><span class="p">,</span>
+                            <span class="n">window_length</span><span class="p">,</span>
+                            <span class="n">center_of_mass</span><span class="p">,</span>
+                            <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convenience constructor for passing `decay_rate` in terms of center of</span>
+<span class="sd">        mass.</span>
+
+<span class="sd">        Forwards `decay_rate` as `1 - (1 / 1 + center_of_mass)`.  This provides</span>
+<span class="sd">        behavior equivalent to passing `center_of_mass` to pandas.ewma.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            # Equivalent to:</span>
+<span class="sd">            # my_ewma = EWMA(</span>
+<span class="sd">            #    inputs=[USEquityPricing.close],</span>
+<span class="sd">            #    window_length=30,</span>
+<span class="sd">            #    decay_rate=(1 - (1 / 15.0)),</span>
+<span class="sd">            # )</span>
+<span class="sd">            my_ewma = EWMA.from_center_of_mass(</span>
+<span class="sd">                inputs=[USEquityPricing.close],</span>
+<span class="sd">                window_length=30,</span>
+<span class="sd">                center_of_mass=15,</span>
+<span class="sd">            )</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This classmethod is provided by both</span>
+<span class="sd">        :class:`ExponentialWeightedMovingAverage` and</span>
+<span class="sd">        :class:`ExponentialWeightedMovingStdDev`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">cls</span><span class="p">(</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+            <span class="n">window_length</span><span class="o">=</span><span class="n">window_length</span><span class="p">,</span>
+            <span class="n">decay_rate</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">center_of_mass</span><span class="p">))),</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+
+
+<div class="viewcode-block" id="ExponentialWeightedMovingAverage"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.ExponentialWeightedMovingAverage">[docs]</a><span class="k">class</span> <span class="nc">ExponentialWeightedMovingAverage</span><span class="p">(</span><span class="n">_ExponentialWeightedFactor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exponentially Weighted Moving Average</span>
+
+<span class="sd">    **Default Inputs:** None</span>
+
+<span class="sd">    **Default Window Length:** None</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    inputs : length-1 list/tuple of BoundColumn</span>
+<span class="sd">        The expression over which to compute the average.</span>
+<span class="sd">    window_length : int &gt; 0</span>
+<span class="sd">        Length of the lookback window over which to compute the average.</span>
+<span class="sd">    decay_rate : float, 0 &lt; decay_rate &lt;= 1</span>
+<span class="sd">        Weighting factor by which to discount past observations.</span>
+
+<span class="sd">        When calculating historical averages, rows are multiplied by the</span>
+<span class="sd">        sequence::</span>
+
+<span class="sd">            decay_rate, decay_rate ** 2, decay_rate ** 3, ...</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    - This class can also be imported under the name ``EWMA``.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :func:`pandas.ewma`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">decay_rate</span><span class="p">):</span>
+        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">average</span><span class="p">(</span>
+            <span class="n">data</span><span class="p">,</span>
+            <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">weights</span><span class="o">=</span><span class="n">exponential_weights</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">decay_rate</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ExponentialWeightedMovingStdDev"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.ExponentialWeightedMovingStdDev">[docs]</a><span class="k">class</span> <span class="nc">ExponentialWeightedMovingStdDev</span><span class="p">(</span><span class="n">_ExponentialWeightedFactor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exponentially Weighted Moving Standard Deviation</span>
+
+<span class="sd">    **Default Inputs:** None</span>
+
+<span class="sd">    **Default Window Length:** None</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    inputs : length-1 list/tuple of BoundColumn</span>
+<span class="sd">        The expression over which to compute the average.</span>
+<span class="sd">    window_length : int &gt; 0</span>
+<span class="sd">        Length of the lookback window over which to compute the average.</span>
+<span class="sd">    decay_rate : float, 0 &lt; decay_rate &lt;= 1</span>
+<span class="sd">        Weighting factor by which to discount past observations.</span>
+
+<span class="sd">        When calculating historical averages, rows are multiplied by the</span>
+<span class="sd">        sequence::</span>
+
+<span class="sd">            decay_rate, decay_rate ** 2, decay_rate ** 3, ...</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    - This class can also be imported under the name ``EWMSTD``.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :func:`pandas.ewmstd`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">decay_rate</span><span class="p">):</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">exponential_weights</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">decay_rate</span><span class="p">)</span>
+
+        <span class="n">mean</span> <span class="o">=</span> <span class="n">average</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+        <span class="n">variance</span> <span class="o">=</span> <span class="n">average</span><span class="p">((</span><span class="n">data</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+
+        <span class="n">squared_weight_sum</span> <span class="o">=</span> <span class="p">(</span><span class="n">np_sum</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">bias_correction</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">squared_weight_sum</span> <span class="o">/</span> <span class="p">(</span><span class="n">squared_weight_sum</span> <span class="o">-</span> <span class="n">np_sum</span><span class="p">(</span><span class="n">weights</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="p">)</span>
+        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">variance</span> <span class="o">*</span> <span class="n">bias_correction</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">LinearWeightedMovingAverage</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">,</span> <span class="n">SingleInputMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Weighted Average Value of an arbitrary column</span>
+
+<span class="sd">    **Default Inputs**: None</span>
+
+<span class="sd">    **Default Window Length**: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># numpy&#39;s nan functions throw warnings when passed an array containing only</span>
+    <span class="c"># nans, but they still returns the desired value (nan), so we ignore the</span>
+    <span class="c"># warning.</span>
+    <span class="n">ctx</span> <span class="o">=</span> <span class="n">ignore_nanwarnings</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="n">ndays</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c"># Initialize weights array</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ndays</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float64_dtype</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ndays</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c"># Compute normalizer</span>
+        <span class="n">normalizer</span> <span class="o">=</span> <span class="p">(</span><span class="n">ndays</span> <span class="o">*</span> <span class="p">(</span><span class="n">ndays</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span>
+
+        <span class="c"># Weight the data</span>
+        <span class="n">weighted_data</span> <span class="o">=</span> <span class="n">data</span> <span class="o">*</span> <span class="n">weights</span>
+
+        <span class="c"># Compute weighted averages</span>
+        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">nansum</span><span class="p">(</span><span class="n">weighted_data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">normalizer</span>
+
+
+<span class="k">class</span> <span class="nc">AnnualizedVolatility</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Volatility. The degree of variation of a series over time as measured by</span>
+<span class="sd">    the standard deviation of daily returns.</span>
+<span class="sd">    https://en.wikipedia.org/wiki/Volatility_(finance)</span>
+
+<span class="sd">    **Default Inputs:** :data:`zipline.pipeline.factors.Returns(window_length=2)`  # noqa</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    annualization_factor : float, optional</span>
+<span class="sd">        The number of time units per year. Defaults is 252, the number of NYSE</span>
+<span class="sd">        trading days in a normal year.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">Returns</span><span class="p">(</span><span class="n">window_length</span><span class="o">=</span><span class="mi">2</span><span class="p">)]</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;annualization_factor&#39;</span><span class="p">:</span> <span class="mf">252.0</span><span class="p">}</span>
+    <span class="n">window_length</span> <span class="o">=</span> <span class="mi">252</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">returns</span><span class="p">,</span> <span class="n">annualization_factor</span><span class="p">):</span>
+        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">nanstd</span><span class="p">(</span><span class="n">returns</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">annualization_factor</span> <span class="o">**</span> <span class="o">.</span><span class="mi">5</span><span class="p">)</span>
+
+
+<span class="c"># Convenience aliases</span>
+<span class="n">EWMA</span> <span class="o">=</span> <span class="n">ExponentialWeightedMovingAverage</span>
+<span class="n">EWMSTD</span> <span class="o">=</span> <span class="n">ExponentialWeightedMovingStdDev</span>
+</pre></div>
+
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Quantopian Inc..
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'1.2.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

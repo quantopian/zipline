@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Data Bundles &mdash; Zipline 1.1.1 documentation</title>
+  <title>Data Bundles &mdash; Zipline 1.2.0 documentation</title>
   
 
   
@@ -30,8 +30,8 @@
   
 
   
-    <link rel="top" title="Zipline 1.1.1 documentation" href="index.html"/>
-        <link rel="next" title="Development Guidelines" href="development-guidelines.html"/>
+    <link rel="top" title="Zipline 1.2.0 documentation" href="index.html"/>
+        <link rel="next" title="Trading Calendars" href="trading-calendars.html"/>
         <link rel="prev" title="Zipline Beginner Tutorial" href="beginner-tutorial.html"/> 
 
   
@@ -79,19 +79,22 @@
 <li class="toctree-l3"><a class="reference internal" href="install.html#windows">Windows</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#managing-conda-environments">Managing <code class="docutils literal"><span class="pre">conda</span></code> environments</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="beginner-tutorial.html">Zipline Beginner Tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#basics">Basics</a></li>
-<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
-<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#my-first-algorithm">My First Algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#running-the-algorithm">Running the Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="beginner-tutorial.html#ingesting-data">Ingesting Data</a></li>
-<li class="toctree-l3"><a class="reference internal" href="beginner-tutorial.html#command-line-interface">Command line interface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="beginner-tutorial.html#command-line-interface">Command Line Interface</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
-<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#access-to-previous-prices-using-history">Access to previous prices using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#access-to-previous-prices-using-history">Access to Previous Prices Using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
 </ul>
 </li>
@@ -104,10 +107,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#old-data">Old Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#running-backtests-with-data-bundles">Running Backtests with Data Bundles</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#default-data-bundles">Default Data Bundles</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#quandl-wiki-bundle">Quandl WIKI Bundle</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#quantopian-quandl-wiki-mirror">Quantopian Quandl WIKI Mirror</a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="#quandl-wiki-bundle">Quandl WIKI Bundle</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#writing-a-new-bundle">Writing a New Bundle</a><ul>
@@ -124,6 +124,34 @@
 <li class="toctree-l3"><a class="reference internal" href="#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#ingesting-data-from-csv-files">Ingesting Data from .csv Files</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="trading-calendars.html">Trading Calendars</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#what-is-a-trading-calendar">What is a Trading Calendar?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#why-should-you-care-about-trading-calendars">Why Should You Care About Trading Calendars?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#the-tradingcalendar-class">The TradingCalendar Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#building-a-custom-trading-calendar">Building a Custom Trading Calendar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#conclusions">Conclusions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="risk-and-perf-metrics.html">Risk and Performance Metrics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#metrics-sets">Metrics Sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#selecting-the-metrics-set">Selecting the Metrics Set</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#command-line-and-ipython-magic">Command Line and IPython Magic</a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#run-algorithm"><code class="docutils literal"><span class="pre">run_algorithm</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#running-without-metrics">Running Without Metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#defining-new-metrics">Defining New Metrics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#start-of-simulation"><code class="docutils literal"><span class="pre">start_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-simulation"><code class="docutils literal"><span class="pre">end_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#start-of-session"><code class="docutils literal"><span class="pre">start_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-session"><code class="docutils literal"><span class="pre">end_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-bar"><code class="docutils literal"><span class="pre">end_of_bar</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#defining-new-metrics-sets">Defining New Metrics Sets</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="development-guidelines.html">Development Guidelines</a><ul>
@@ -135,6 +163,7 @@
 <li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#contributing-to-the-docs">Contributing to the Docs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#commit-messages">Commit messages</a></li>
 <li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#formatting-docstrings">Formatting Docstrings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#updating-the-whatsnew">Updating the Whatsnew</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="appendix.html">API Reference</a><ul>
@@ -159,6 +188,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#pipeline-api">Pipeline API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#built-in-factors">Built-in Factors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#built-in-filters">Built-in Filters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#pipeline-engine">Pipeline Engine</a></li>
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#data-loaders">Data Loaders</a></li>
 </ul>
@@ -169,6 +199,12 @@
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#writers">Writers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#readers">Readers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#bundles">Bundles</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="appendix.html#risk-metrics">Risk Metrics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#algorithm-state">Algorithm State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#built-in-metrics">Built-in Metrics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#metrics-sets">Metrics Sets</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#utilities">Utilities</a><ul>
@@ -193,119 +229,48 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-1">Release 1.1.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#highlights">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#performance">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#build">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#documentation">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-2-0">Release 1.2.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#performance">Performance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#build">Build</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#documentation">Documentation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-0">Release 1.1.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id1">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id2">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id3">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id4">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id5">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id6">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id7">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-2">Release 1.0.2</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id8">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#experimental">Experimental</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id9">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id10">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id11">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id12">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#testing">Testing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#data-format-changes">Data Format Changes</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-1">Release 1.0.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id13">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id14">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id15">Documentation</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-1">Release 1.1.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-0">Release 1.1.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-2">Release 1.0.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-1">Release 1.0.1</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-0">Release 1.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id16">Highlights</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#id3">Enhancements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#id4">Experimental Features</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#id5">Bug Fixes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#id6">Performance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#id7">Maintenance and Refactorings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#id8">Build</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#id9">Documentation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#id10">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id17">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id18">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id19">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id20">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id21">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id22">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id23">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id24">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-9-0">Release 0.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id25">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id26">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id27">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id28">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id29">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id30">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id31">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id32">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id33">Miscellaneous</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-4">Release 0.8.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id34">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id35">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id36">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id37">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id38">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id39">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id40">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id41">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id42">Miscellaneous</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-9-0">Release 0.9.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-4">Release 0.8.4</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-3">Release 0.8.3</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-0">Release 0.8.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id43">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id44">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id45">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id46">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id47">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id48">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id49">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id50">Documentation</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id51">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id52">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id53">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id54">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id55">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id56">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#contributors">Contributors</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-6-1">Release 0.6.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id57">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id58">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id59">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id60">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id61">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id62">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id63">Contributors</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-0">Release 0.8.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-7-0">Release 0.7.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-6-1">Release 0.6.1</a></li>
 </ul>
 </li>
 </ul>
@@ -353,7 +318,7 @@ backtests and store the data for future runs.</p>
 <div class="section" id="discovering-available-bundles">
 <span id="bundles-command"></span><h2>Discovering Available Bundles<a class="headerlink" href="#discovering-available-bundles" title="Permalink to this headline">¶</a></h2>
 <p>Zipline comes with a few bundles by default as well as the ability to register
-new bundles. To see which bundles we have have available, we may run the
+new bundles. To see which bundles we have available, we may run the
 <code class="docutils literal"><span class="pre">bundles</span></code> command, for example:</p>
 <div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>zipline bundles
 my-custom-bundle 2016-05-05 20:35:19.809398
@@ -382,12 +347,12 @@ process will invoke some custom bundle command and then write the data to a
 standard location that zipline can find. By default the location where ingested
 data will be written is <code class="docutils literal"><span class="pre">$ZIPLINE_ROOT/data/&lt;bundle&gt;</span></code> where by default
 <code class="docutils literal"><span class="pre">ZIPLINE_ROOT=~/.zipline</span></code>. The ingestion step may take some time as it could
-involve downloading and processing a lot of data. This can be run with:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>zipline ingest <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span>
+involve downloading and processing a lot of data. You&#8217;ll need a
+<a class="reference external" href="https://docs.quandl.com/docs#section-authentication">Quandl</a> API key to ingest the default bundle. This can be run with:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ QUANDL_API_KEY</span><span class="o">=</span>&lt;yourkey&gt; zipline ingest <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span>
 </pre></div>
 </div>
-<p>where <code class="docutils literal"><span class="pre">&lt;bundle&gt;</span></code> is the name of the bundle to ingest, defaulting to
-<a class="reference internal" href="#quantopian-quandl-mirror"><span>quantopian-quandl</span></a>.</p>
+<p>where <code class="docutils literal"><span class="pre">&lt;bundle&gt;</span></code> is the name of the bundle to ingest, defaulting to <code class="docutils literal"><span class="pre">quandl</span></code>.</p>
 </div>
 <div class="section" id="old-data">
 <h2>Old Data<a class="headerlink" href="#old-data" title="Permalink to this headline">¶</a></h2>
@@ -425,13 +390,13 @@ like:</p>
 </pre></div>
 </div>
 <p>We may also specify the date to use to look up the bundle data with the
-<code class="docutils literal"><span class="pre">--bundle-date</span></code> option. Setting the <code class="docutils literal"><span class="pre">--bundle-date</span></code> will cause run to use
-the most recent bundle ingestion that is less than or equal to the
-<code class="docutils literal"><span class="pre">bundle-date</span></code>. This is how we can run backtests with older data. The reason
-that <code class="docutils literal"><span class="pre">-bundle-date</span></code> uses a less than or equal to relationship is that we can
+<code class="docutils literal"><span class="pre">--bundle-timestamp</span></code> option. Setting the <code class="docutils literal"><span class="pre">--bundle-timestamp</span></code> will cause
+<code class="docutils literal"><span class="pre">run</span></code> to use the most recent bundle ingestion that is less than or equal to
+the <code class="docutils literal"><span class="pre">bundle-timestamp</span></code>. This is how we can run backtests with older data.
+<code class="docutils literal"><span class="pre">bundle-timestamp</span></code> uses a less-than-or-equal-to relationship so that we can
 specify the date that we ran an old backtest and get the same data that would
-have been available to us on that date. The <code class="docutils literal"><span class="pre">bundle-date</span></code> defaults to the
-current day to use the most recent data.</p>
+have been available to us on that date. The <code class="docutils literal"><span class="pre">bundle-timestamp</span></code> defaults to
+the current day to use the most recent data.</p>
 </div>
 <div class="section" id="default-data-bundles">
 <h2>Default Data Bundles<a class="headerlink" href="#default-data-bundles" title="Permalink to this headline">¶</a></h2>
@@ -457,12 +422,6 @@ that we will retry each attempt 5 times.</p>
 just the number of allowed failures per request. The quandl loader will make
 one request per 100 equities for the metadata followed by one request per
 equity.</p>
-</div>
-<div class="section" id="quantopian-quandl-wiki-mirror">
-<span id="quantopian-quandl-mirror"></span><h4>Quantopian Quandl WIKI Mirror<a class="headerlink" href="#quantopian-quandl-wiki-mirror" title="Permalink to this headline">¶</a></h4>
-<p>Quantopian provides a mirror of the quandl WIKI dataset with the data in the
-formats that zipline expects. This is available under the name:
-<code class="docutils literal"><span class="pre">quantopian-quandl</span></code> and is the default bundle for zipline.</p>
 </div>
 </div>
 </div>
@@ -572,12 +531,12 @@ help some bundles generate queries for the days needed.</p>
 </div>
 <div class="section" id="start-session">
 <h3><code class="docutils literal"><span class="pre">start_session</span></code><a class="headerlink" href="#start-session" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal"><span class="pre">start_session</span></code> is a <code class="xref py py-class docutils literal"><span class="pre">pandas.Timestamp</span></code> object indicating the first
+<p><code class="docutils literal"><span class="pre">start_session</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.22.0)"><code class="xref py py-class docutils literal"><span class="pre">pandas.Timestamp</span></code></a> object indicating the first
 day that the bundle should load data for.</p>
 </div>
 <div class="section" id="end-session">
 <h3><code class="docutils literal"><span class="pre">end_session</span></code><a class="headerlink" href="#end-session" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal"><span class="pre">end_session</span></code> is a <code class="xref py py-class docutils literal"><span class="pre">pandas.Timestamp</span></code> object indicating the last day
+<p><code class="docutils literal"><span class="pre">end_session</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.22.0)"><code class="xref py py-class docutils literal"><span class="pre">pandas.Timestamp</span></code></a> object indicating the last day
 that the bundle should load data for.</p>
 </div>
 <div class="section" id="cache">
@@ -612,6 +571,65 @@ it&#8217;s own outputs without the writers. For example, the <code class="docuti
 bundle uses this to directly untar the bundle into the <code class="docutils literal"><span class="pre">output_dir</span></code>.</p>
 </div>
 </div>
+<div class="section" id="ingesting-data-from-csv-files">
+<h2>Ingesting Data from .csv Files<a class="headerlink" href="#ingesting-data-from-csv-files" title="Permalink to this headline">¶</a></h2>
+<p>Zipline provides a bundle called <code class="docutils literal"><span class="pre">csvdir</span></code>, which allows users to ingest data
+from <code class="docutils literal"><span class="pre">.csv</span></code> files. The format of the files should be in OHLCV format, with dates,
+dividends, and splits. A sample is provided below. There are other samples for testing
+purposes in <code class="docutils literal"><span class="pre">zipline/tests/resources/csvdir_samples</span></code>.</p>
+<div class="highlight-text"><div class="highlight"><pre>date,open,high,low,close,volume,dividend,split
+2012-01-03,58.485714,58.92857,58.42857,58.747143,75555200,0.0,1.0
+2012-01-04,58.57143,59.240002,58.468571,59.062859,65005500,0.0,1.0
+2012-01-05,59.278572,59.792858,58.952858,59.718571,67817400,0.0,1.0
+2012-01-06,59.967144,60.392857,59.888573,60.342857,79573200,0.0,1.0
+2012-01-09,60.785713,61.107143,60.192856,60.247143,98506100,0.0,1.0
+2012-01-10,60.844284,60.857143,60.214287,60.462856,64549100,0.0,1.0
+2012-01-11,60.382858,60.407143,59.901428,60.364285,53771200,0.0,1.0
+</pre></div>
+</div>
+<p>Once you have your data in the correct format, you can edit your <code class="docutils literal"><span class="pre">extension.py</span></code> file in
+<code class="docutils literal"><span class="pre">~/.zipline/extension.py</span></code> and import the csvdir bundle, along with <code class="docutils literal"><span class="pre">pandas</span></code>.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">zipline.data.bundles</span> <span class="kn">import</span> <span class="n">register</span>
+<span class="kn">from</span> <span class="nn">zipline.data.bundles.csvdir</span> <span class="kn">import</span> <span class="n">csvdir_equities</span>
+</pre></div>
+</div>
+<p>We&#8217;ll then want to specify the start and end sessions of our bundle data:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">start_session</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s">&#39;2016-1-1&#39;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;utc&#39;</span><span class="p">)</span>
+<span class="n">end_session</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s">&#39;2018-1-1&#39;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;utc&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>And then we can <code class="docutils literal"><span class="pre">register()</span></code> our bundle, and pass the location of the directory in which
+our <code class="docutils literal"><span class="pre">.csv</span></code> files exist:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">register</span><span class="p">(</span>
+    <span class="s">&#39;custom-csvdir-bundle&#39;</span><span class="p">,</span>
+    <span class="n">csvdir_equities</span><span class="p">(</span>
+        <span class="p">[</span><span class="s">&#39;daily&#39;</span><span class="p">],</span>
+        <span class="s">&#39;/path/to/your/csvs&#39;</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">calendar_name</span><span class="o">=</span><span class="s">&#39;NYSE&#39;</span><span class="p">,</span> <span class="c"># US equities</span>
+    <span class="n">start_session</span><span class="o">=</span><span class="n">start_session</span><span class="p">,</span>
+    <span class="n">end_session</span><span class="o">=</span><span class="n">end_session</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>To finally ingest our data, we can run:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>zipline ingest -b custom-csvdir-bundle
+Loading custom pricing data:   <span class="o">[</span><span class="c">############------------------------]   33% | FAKE: sid 0</span>
+Loading custom pricing data:   <span class="o">[</span><span class="c">########################------------]   66% | FAKE1: sid 1</span>
+Loading custom pricing data:   <span class="o">[</span><span class="c">####################################]  100% | FAKE2: sid 2</span>
+Loading custom pricing data:   <span class="o">[</span><span class="c">####################################]  100%</span>
+Merging daily equity files:  <span class="o">[</span><span class="c">####################################]</span>
+
+<span class="c"># optionally, we can pass the location of our csvs via the command line</span>
+<span class="nv">$ CSVDIR</span><span class="o">=</span>/path/to/your/csvs zipline ingest -b custom-csvdir-bundle
+</pre></div>
+</div>
+<p>If you would like to use equities that are not in the NYSE calendar, or the existing zipline calendars,
+you can look at the <code class="docutils literal"><span class="pre">Trading</span> <span class="pre">Calendar</span> <span class="pre">Tutorial</span></code> to build a custom trading calendar that you can then pass
+the name of to <code class="docutils literal"><span class="pre">register()</span></code>.</p>
+</div>
 </div>
 
 
@@ -620,7 +638,7 @@ bundle uses this to directly untar the bundle into the <code class="docutils lit
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="development-guidelines.html" class="btn btn-neutral float-right" title="Development Guidelines" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="trading-calendars.html" class="btn btn-neutral float-right" title="Trading Calendars" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="beginner-tutorial.html" class="btn btn-neutral" title="Zipline Beginner Tutorial" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
@@ -653,7 +671,7 @@ bundle uses this to directly untar the bundle into the <code class="docutils lit
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'1.1.1',
+            VERSION:'1.2.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

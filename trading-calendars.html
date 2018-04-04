@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Install &mdash; Zipline 1.2.0 documentation</title>
+  <title>Trading Calendars &mdash; Zipline 1.2.0 documentation</title>
   
 
   
@@ -31,8 +31,8 @@
 
   
     <link rel="top" title="Zipline 1.2.0 documentation" href="index.html"/>
-        <link rel="next" title="Zipline Beginner Tutorial" href="beginner-tutorial.html"/>
-        <link rel="prev" title="Features" href="index.html"/> 
+        <link rel="next" title="Risk and Performance Metrics" href="risk-and-perf-metrics.html"/>
+        <link rel="prev" title="Data Bundles" href="bundles.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -72,15 +72,15 @@
           
           
               <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="">Install</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#installing-with-pip">Installing with <code class="docutils literal"><span class="pre">pip</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#gnu-linux">GNU/Linux</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#osx">OSX</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#windows">Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-pip">Installing with <code class="docutils literal"><span class="pre">pip</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#gnu-linux">GNU/Linux</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#osx">OSX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#windows">Windows</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#managing-conda-environments">Managing <code class="docutils literal"><span class="pre">conda</span></code> environments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#managing-conda-environments">Managing <code class="docutils literal"><span class="pre">conda</span></code> environments</a></li>
 </ul>
 </li>
 </ul>
@@ -127,12 +127,12 @@
 <li class="toctree-l2"><a class="reference internal" href="bundles.html#ingesting-data-from-csv-files">Ingesting Data from .csv Files</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="trading-calendars.html">Trading Calendars</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#what-is-a-trading-calendar">What is a Trading Calendar?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#why-should-you-care-about-trading-calendars">Why Should You Care About Trading Calendars?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#the-tradingcalendar-class">The TradingCalendar Class</a></li>
-<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#building-a-custom-trading-calendar">Building a Custom Trading Calendar</a></li>
-<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#conclusions">Conclusions</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Trading Calendars</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#what-is-a-trading-calendar">What is a Trading Calendar?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#why-should-you-care-about-trading-calendars">Why Should You Care About Trading Calendars?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-tradingcalendar-class">The TradingCalendar Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#building-a-custom-trading-calendar">Building a Custom Trading Calendar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#conclusions">Conclusions</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="risk-and-perf-metrics.html">Risk and Performance Metrics</a><ul>
@@ -297,11 +297,11 @@
   <ul class="wy-breadcrumbs">
     <li><a href="index.html">Docs</a> &raquo;</li>
       
-    <li>Install</li>
+    <li>Trading Calendars</li>
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="_sources/install.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/trading-calendars.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -310,128 +310,177 @@
 </div>
           <div role="main" class="document">
             
-  <div class="section" id="install">
-<h1>Install<a class="headerlink" href="#install" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="installing-with-pip">
-<h2>Installing with <code class="docutils literal"><span class="pre">pip</span></code><a class="headerlink" href="#installing-with-pip" title="Permalink to this headline">¶</a></h2>
-<p>Installing Zipline via <code class="docutils literal"><span class="pre">pip</span></code> is slightly more involved than the average
-Python package.</p>
-<p>There are two reasons for the additional complexity:</p>
-<ol class="arabic simple">
-<li>Zipline ships several C extensions that require access to the CPython C API.
-In order to build the C extensions, <code class="docutils literal"><span class="pre">pip</span></code> needs access to the CPython
-header files for your Python installation.</li>
-<li>Zipline depends on <a class="reference external" href="http://www.numpy.org/">numpy</a>, the core library for
-numerical array computing in Python.  Numpy depends on having the <a class="reference external" href="http://www.netlib.org/lapack">LAPACK</a> linear algebra routines available.</li>
-</ol>
-<p>Because LAPACK and the CPython headers are non-Python dependencies, the correct
-way to install them varies from platform to platform.  If you&#8217;d rather use a
-single tool to install Python and non-Python dependencies, or if you&#8217;re already
-using <a class="reference external" href="http://continuum.io/downloads">Anaconda</a> as your Python distribution,
-you can skip to the <a class="reference internal" href="#conda"><span>Installing with Conda</span></a> section.</p>
-<p>Once you&#8217;ve installed the necessary additional dependencies (see below for
-your particular platform), you should be able to simply run</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>pip install zipline
-</pre></div>
+  <div class="section" id="trading-calendars">
+<h1>Trading Calendars<a class="headerlink" href="#trading-calendars" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="what-is-a-trading-calendar">
+<h2>What is a Trading Calendar?<a class="headerlink" href="#what-is-a-trading-calendar" title="Permalink to this headline">¶</a></h2>
+<p>A trading calendar represents the timing information of a single market exchange. The timing information is made up of two parts: sessions, and opens/closes. This is represented by the Zipline <code class="xref py py-class docutils literal"><span class="pre">TradingCalendar</span></code> class, and is used as the parent class for all new <code class="docutils literal"><span class="pre">TradingCalendar</span></code> s.</p>
+<p>A session represents a contiguous set of minutes, and has a label that is midnight UTC. It is important to note that a session label should not be considered a specific point in time, and that midnight UTC is just being used for convenience.</p>
+<p>For an average day of the <a class="reference external" href="https://www.nyse.com/index">New York Stock Exchange</a>, the market opens at 9:30AM and closes at 4PM. Trading sessions can change depending on the exchange, day of the year, etc.</p>
 </div>
-<p>If you use Python for anything other than Zipline, we <strong>strongly</strong> recommend
-that you install in a <a class="reference external" href="https://virtualenv.readthedocs.org/en/latest">virtualenv</a>.  The <a class="reference external" href="http://docs.python-guide.org/en/latest/">Hitchhiker&#8217;s Guide to
-Python</a> provides an <a class="reference external" href="http://docs.python-guide.org/en/latest/dev/virtualenvs/">excellent tutorial on virtualenv</a>.</p>
-<div class="section" id="gnu-linux">
-<h3>GNU/Linux<a class="headerlink" href="#gnu-linux" title="Permalink to this headline">¶</a></h3>
-<p>On <a class="reference external" href="https://www.debian.org/misc/children-distros">Debian-derived</a> Linux distributions, you can acquire all the necessary
-binary dependencies from <code class="docutils literal"><span class="pre">apt</span></code> by running:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>sudo apt-get install libatlas-base-dev python-dev gfortran pkg-config libfreetype6-dev
-</pre></div>
+<div class="section" id="why-should-you-care-about-trading-calendars">
+<h2>Why Should You Care About Trading Calendars?<a class="headerlink" href="#why-should-you-care-about-trading-calendars" title="Permalink to this headline">¶</a></h2>
+<p>Let&#8217;s say you want to buy a share of some equity on Tuesday, and then sell it on Saturday. If the exchange in which you&#8217;re trading that equity is not open on Saturday, then in reality it would not be possible to trade that equity at that time, and you would have to wait until some other number of days past Saturday. Since you wouldn&#8217;t be able to place the trade in reality, it would also be unreasonable for your backtest to place a trade on Saturday.</p>
+<p>In order for you to backtest your strategy, the dates in that are accounted for in your <a class="reference external" href="http://www.zipline.io/bundles.html">data bundle</a> and the dates in your <code class="docutils literal"><span class="pre">TradingCalendar</span></code> should match up; if the dates don&#8217;t match up, then you you&#8217;re going to see some errors along the way. This holds for both minutely and daily data.</p>
 </div>
-<p>On recent <a class="reference external" href="https://en.wikipedia.org/wiki/Red_Hat_Enterprise_Linux_derivatives">RHEL-derived</a> derived Linux distributions (e.g. Fedora), the
-following should be sufficient to acquire the necessary additional
-dependencies:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>sudo dnf install atlas-devel gcc-c++ gcc-gfortran libgfortran python-devel redhat-rep-config
-</pre></div>
-</div>
-<p>On <a class="reference external" href="https://www.archlinux.org/">Arch Linux</a>, you can acquire the additional dependencies via <code class="docutils literal"><span class="pre">pacman</span></code>:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>pacman -S lapack gcc gcc-fortran pkg-config
-</pre></div>
-</div>
-<p>There are also AUR packages available for installing <a class="reference external" href="https://aur.archlinux.org/packages/python34/">Python 3.4</a> (Arch&#8217;s default python is now
-3.5, but Zipline only currently supports 3.4), and <a class="reference external" href="https://aur.archlinux.org/packages/ta-lib/">ta-lib</a>, an optional Zipline dependency.
-Python 2 is also installable via:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>pacman -S python2
-</pre></div>
-</div>
-</div>
-<div class="section" id="osx">
-<h3>OSX<a class="headerlink" href="#osx" title="Permalink to this headline">¶</a></h3>
-<p>The version of Python shipped with OSX by default is generally out of date, and
-has a number of quirks because it&#8217;s used directly by the operating system.  For
-these reasons, many developers choose to install and use a separate Python
-installation. The <a class="reference external" href="http://docs.python-guide.org/en/latest/">Hitchhiker&#8217;s Guide to Python</a> provides an excellent guide
-to <a class="reference external" href="http://docs.python-guide.org/en/latest/">Installing Python on OSX</a>, which
-explains how to install Python with the <a class="reference external" href="http://brew.sh">Homebrew</a> manager.</p>
-<p>Assuming you&#8217;ve installed Python with Homebrew, you&#8217;ll also likely need the
-following brew packages:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>brew install freetype pkg-config gcc openssl
-</pre></div>
-</div>
-</div>
-<div class="section" id="windows">
-<h3>Windows<a class="headerlink" href="#windows" title="Permalink to this headline">¶</a></h3>
-<p>For windows, the easiest and best supported way to install zipline is to use
-<a class="reference internal" href="#conda"><span>Conda</span></a>.</p>
-</div>
-</div>
-<div class="section" id="installing-with-conda">
-<span id="conda"></span><h2>Installing with <code class="docutils literal"><span class="pre">conda</span></code><a class="headerlink" href="#installing-with-conda" title="Permalink to this headline">¶</a></h2>
-<p>Another way to install Zipline is via the <code class="docutils literal"><span class="pre">conda</span></code> package manager, which
-comes as part of Continuum Analytics&#8217; <a class="reference external" href="http://continuum.io/downloads">Anaconda</a> distribution.</p>
-<p>The primary advantage of using Conda over <code class="docutils literal"><span class="pre">pip</span></code> is that conda natively
-understands the complex binary dependencies of packages like <code class="docutils literal"><span class="pre">numpy</span></code> and
-<code class="docutils literal"><span class="pre">scipy</span></code>.  This means that <code class="docutils literal"><span class="pre">conda</span></code> can install Zipline and its dependencies
-without requiring the use of a second tool to acquire Zipline&#8217;s non-Python
-dependencies.</p>
-<p>For instructions on how to install <code class="docutils literal"><span class="pre">conda</span></code>, see the <a class="reference external" href="http://conda.pydata.org/docs/download.html">Conda Installation
-Documentation</a></p>
-<p>Once <code class="docutils literal"><span class="pre">conda</span></code> has been set up you can install Zipline from our <code class="docutils literal"><span class="pre">Quantopian</span></code>
-channel:</p>
-<div class="highlight-bash"><div class="highlight"><pre>conda install -c Quantopian zipline
-</pre></div>
-</div>
-<div class="section" id="managing-conda-environments">
-<h3>Managing <code class="docutils literal"><span class="pre">conda</span></code> environments<a class="headerlink" href="#managing-conda-environments" title="Permalink to this headline">¶</a></h3>
-<p>It is recommended to install Zipline in an isolated <code class="docutils literal"><span class="pre">conda</span></code> environment.
-Installing Zipline in <code class="docutils literal"><span class="pre">conda</span></code> environments will not interfere your default
-Python deployment or site-packages, which will prevent any possible conflict
-with your global libraries. For more information on <code class="docutils literal"><span class="pre">conda</span></code> environment, see
-the <a class="reference external" href="https://conda.io/docs/user-guide/tasks/manage-environments.html">Conda User Guide</a></p>
-<p>Assuming <code class="docutils literal"><span class="pre">conda</span></code> has been set up, you can create a <code class="docutils literal"><span class="pre">conda</span></code> environment:</p>
-<ul class="simple">
-<li>Python 2.7:</li>
+<div class="section" id="the-tradingcalendar-class">
+<h2>The TradingCalendar Class<a class="headerlink" href="#the-tradingcalendar-class" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal"><span class="pre">TradingCalendar</span></code> class has many properties we should be thinking about if we were to build our own <code class="docutils literal"><span class="pre">TradingCalendar</span></code> for an exchange. These include properties such as:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Name of the Exchange</li>
+<li>Timezone</li>
+<li>Open Time</li>
+<li>Close Time</li>
+<li>Regular &amp; Ad hoc Holidays</li>
+<li>Special Opens &amp; Closes</li>
 </ul>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>conda create -n env_zipline <span class="nv">python</span><span class="o">=</span>2.7
+</div></blockquote>
+<p>And several others. If you&#8217;d like to see all of the properties and methods available to you through the <code class="docutils literal"><span class="pre">TradingCalendar</span></code> API, please take a look at the <a class="reference external" href="http://www.zipline.io/appendix.html#trading-calendar-api">API Reference</a></p>
+<p>Now we&#8217;ll take a look at the London Stock Exchange Calendar <code class="xref py py-class docutils literal"><span class="pre">LSEExchangeCalendar</span></code> as an example below:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">LSEExchangeCalendar</span><span class="p">(</span><span class="n">TradingCalendar</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">  Exchange calendar for the London Stock Exchange</span>
+
+<span class="sd">  Open Time: 8:00 AM, GMT</span>
+<span class="sd">  Close Time: 4:30 PM, GMT</span>
+
+<span class="sd">  Regularly-Observed Holidays:</span>
+<span class="sd">    - New Years Day (observed on first business day on/after)</span>
+<span class="sd">    - Good Friday</span>
+<span class="sd">    - Easter Monday</span>
+<span class="sd">    - Early May Bank Holiday (first Monday in May)</span>
+<span class="sd">    - Spring Bank Holiday (last Monday in May)</span>
+<span class="sd">    - Summer Bank Holiday (last Monday in May)</span>
+<span class="sd">    - Christmas Day</span>
+<span class="sd">    - Dec. 27th (if Christmas is on a weekend)</span>
+<span class="sd">    - Boxing Day</span>
+<span class="sd">    - Dec. 28th (if Boxing Day is on a weekend)</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s">&quot;LSE&quot;</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">tz</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">timezone</span><span class="p">(</span><span class="s">&#39;Europe/London&#39;</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">open_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">time</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">close_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">time</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">regular_holidays</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">HolidayCalendar</span><span class="p">([</span>
+      <span class="n">LSENewYearsDay</span><span class="p">,</span>
+      <span class="n">GoodFriday</span><span class="p">,</span>
+      <span class="n">EasterMonday</span><span class="p">,</span>
+      <span class="n">MayBank</span><span class="p">,</span>
+      <span class="n">SpringBank</span><span class="p">,</span>
+      <span class="n">SummerBank</span><span class="p">,</span>
+      <span class="n">Christmas</span><span class="p">,</span>
+      <span class="n">WeekendChristmas</span><span class="p">,</span>
+      <span class="n">BoxingDay</span><span class="p">,</span>
+      <span class="n">WeekendBoxingDay</span>
+    <span class="p">])</span>
 </pre></div>
 </div>
-<ul class="simple">
-<li>Python 3.5:</li>
-</ul>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>conda create -n env_zipline <span class="nv">python</span><span class="o">=</span>3.5
-</pre></div>
-</div>
-<p>Now you have set up an isolated environment called <code class="docutils literal"><span class="pre">env_zipline</span></code>, a sandbox-like
-structure to install Zipline. Then you should activate the conda environment
-by using the command</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span><span class="nb">source </span>activate env_zipline
-</pre></div>
-</div>
-<p>You can install Zipline by running</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="o">(</span>env_zipline<span class="o">)</span> <span class="nv">$ </span>conda install -c Quantopian zipline
-</pre></div>
-</div>
-<p>To deactivate the <code class="docutils literal"><span class="pre">conda</span></code> environment:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="o">(</span>env_zipline<span class="o">)</span> <span class="nv">$ </span><span class="nb">source </span>deactivate
+<p>You can create the <code class="docutils literal"><span class="pre">Holiday</span></code> objects mentioned in <code class="docutils literal"><span class="pre">def</span> <span class="pre">regular_holidays(self)`</span> <span class="pre">through</span> <span class="pre">the</span> <span class="pre">`pandas</span> <span class="pre">&lt;http://pandas.pydata.org/pandas-docs/stable/&gt;`__</span> <span class="pre">module,</span> <span class="pre">``pandas.tseries.holiday.Holiday</span></code>, and also take a look at the <a class="reference external" href="https://github.com/quantopian/zipline/blob/master/zipline/utils/calendars/exchange_calendar_lse.py">LSEExchangeCalendar</a> code as an example, or take a look at the code snippet below.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">pandas.tseries.holiday</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Holiday</span><span class="p">,</span>
+    <span class="n">DateOffset</span><span class="p">,</span>
+    <span class="n">MO</span>
+<span class="p">)</span>
+
+<span class="n">SomeSpecialDay</span> <span class="o">=</span> <span class="n">Holiday</span><span class="p">(</span>
+    <span class="s">&quot;Some Special Day&quot;</span><span class="p">,</span>
+    <span class="n">month</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">day</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span>
+    <span class="n">offset</span><span class="o">=</span><span class="n">DateOffSet</span><span class="p">(</span><span class="n">weekday</span><span class="o">=</span><span class="n">MO</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </div>
+<div class="section" id="building-a-custom-trading-calendar">
+<h2>Building a Custom Trading Calendar<a class="headerlink" href="#building-a-custom-trading-calendar" title="Permalink to this headline">¶</a></h2>
+<p>Now we&#8217;ll build our own custom trading calendar. This calendar will be used for trading assets that can be traded on a 24/7 exchange calendar. This means that it will be open on Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, and Sunday, and the exchange will open at 12AM and close at 11:59PM. The timezone which we&#8217;ll use is UTC.</p>
+<p>First we&#8217;ll start off by importing some modules that will be useful to us.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c"># for setting our open and close times</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">time</span>
+<span class="c"># for setting our start and end sessions</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="c"># for setting which days of the week we trade on</span>
+<span class="kn">from</span> <span class="nn">pandas.tseries.offsets</span> <span class="kn">import</span> <span class="n">CustomBusinessDay</span>
+<span class="c"># for setting our timezone</span>
+<span class="kn">from</span> <span class="nn">pytz</span> <span class="kn">import</span> <span class="n">timezone</span>
+
+<span class="c"># for creating and registering our calendar</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.calendars</span> <span class="kn">import</span> <span class="p">(</span>
+  <span class="n">register_calendar</span><span class="p">,</span>
+  <span class="n">TradingCalendar</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.memoize</span> <span class="kn">import</span> <span class="n">lazyval</span>
+</pre></div>
+</div>
+<p>And now we&#8217;ll actually build this calendar, which we&#8217;ll call <code class="docutils literal"><span class="pre">TFSExchangeCalendar</span></code>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">TFSExchangeCalendar</span><span class="p">(</span><span class="n">TradingCalendar</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">  An exchange calendar for trading assets 24/7.</span>
+
+<span class="sd">  Open Time: 12AM, UTC</span>
+<span class="sd">  Close Time: 11:59PM, UTC</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The name of the exchange, which Zipline will look for</span>
+<span class="sd">    when we run our algorithm and pass TFS to</span>
+<span class="sd">    the --trading-calendar CLI flag.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s">&quot;TFS&quot;</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">tz</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The timezone in which we&#39;ll be running our algorithm.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">timezone</span><span class="p">(</span><span class="s">&quot;UTC&quot;</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">open_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The time in which our exchange will open each day.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">time</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">close_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The time in which our exchange will close each day.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">time</span><span class="p">(</span><span class="mi">23</span><span class="p">,</span> <span class="mi">59</span><span class="p">)</span>
+
+  <span class="nd">@lazyval</span>
+  <span class="k">def</span> <span class="nf">day</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The days on which our exchange will be open.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">weekmask</span> <span class="o">=</span> <span class="s">&quot;Mon Tue Wed Thu Fri Sat Sun&quot;</span>
+    <span class="k">return</span> <span class="n">CustomBusinessDay</span><span class="p">(</span>
+      <span class="n">weekmask</span><span class="o">=</span><span class="n">weekmask</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="conclusions">
+<h2>Conclusions<a class="headerlink" href="#conclusions" title="Permalink to this headline">¶</a></h2>
+<p>In order for you to run your algorithm with this calendar, you&#8217;ll need have a data bundle in which your assets have dates that run through all days of the week. You can read about how to make your own data bundle in the <a class="reference external" href="http://www.zipline.io/bundles.html#writing-a-new-bundle">Writing a New Bundle</a> documentation, or use the <a class="reference external" href="https://github.com/quantopian/zipline/blob/master/zipline/data/bundles/csvdir.py">csvdir bundle</a> for creating a bundle from CSV files.</p>
 </div>
 </div>
 
@@ -441,10 +490,10 @@ by using the command</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="beginner-tutorial.html" class="btn btn-neutral float-right" title="Zipline Beginner Tutorial" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="risk-and-perf-metrics.html" class="btn btn-neutral float-right" title="Risk and Performance Metrics" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="index.html" class="btn btn-neutral" title="Features" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="bundles.html" class="btn btn-neutral" title="Data Bundles" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
