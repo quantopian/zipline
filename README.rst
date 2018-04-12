@@ -156,7 +156,7 @@ You can find other examples in the ``zipline/examples`` directory.
 Questions?
 ==========
 
-If you find a bug, feel free to `open an issue <https://github.com/quantopian/zipline/issues/new>`_ and fill out the issue template.
+If you find a bug, feel free to `open an issue <https://github.com/quantopian/zipline/issues/new>`_ and fill out the issue template, with a `Minimal, Complete, and Verifiable Example <https://stackoverflow.com/help/mcve>`_.
 
 Contributing
 ============
