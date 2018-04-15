@@ -185,6 +185,12 @@ def ipython_only(option):
     default=False,
     help='Print the algorithm to stdout.',
 )
+@click.option(
+    '--metrics-set',
+    default='default',
+    help='The metrics set to use. New metrics sets may be registered in your'
+    ' extension.py.',
+)
 @ipython_only(click.option(
     '--local-namespace/--no-local-namespace',
     is_flag=True,
@@ -205,6 +211,7 @@ def run(ctx,
         output,
         trading_calendar,
         print_algo,
+        metrics_set,
         local_namespace):
     """Run a backtest for the given algorithm.
     """
@@ -247,6 +254,7 @@ def run(ctx,
         output=output,
         trading_calendar=trading_calendar,
         print_algo=print_algo,
+        metrics_set=metrics_set,
         local_namespace=local_namespace,
         environ=os.environ,
     )

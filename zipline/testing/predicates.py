@@ -41,13 +41,15 @@ from pandas.util.testing import (
     assert_index_equal,
 )
 from six import iteritems, viewkeys, PY2
+from six.moves import zip_longest
 from toolz import dissoc, keyfilter
 import toolz.curried.operator as op
 
-from zipline.testing.core import ensure_doctest
 from zipline.dispatch import dispatch
 from zipline.lib.adjustment import Adjustment
 from zipline.lib.labelarray import LabelArray
+from zipline.testing.core import ensure_doctest
+from zipline.utils.compat import mappingproxy
 from zipline.utils.functional import dzip_exact, instance
 from zipline.utils.math_utils import tolerant_equals
 
@@ -83,7 +85,49 @@ class wildcard(object):
 
     def __repr__(self):
         return '<%s>' % type(self).__name__
-    __str__ = __repr__
+
+
+class instance_of(object):
+    """An object that compares equal to any instance of a given type or types.
+
+    Parameters
+    ----------
+    types : type or tuple[type]
+        The types to compare equal to.
+    exact : bool, optional
+        Only compare equal to exact instances, not instances of subclasses?
+    """
+    def __init__(self, types, exact=False):
+        if not isinstance(types, tuple):
+            types = (types,)
+
+        for type_ in types:
+            if not isinstance(type_, type):
+                raise TypeError('types must be a type or tuple of types')
+
+        self.types = types
+        self.exact = exact
+
+    def __eq__(self, other):
+        if self.exact:
+            return type(other) in self.types
+
+        return isinstance(other, self.types)
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __repr__(self):
+        typenames = tuple(t.__name__ for t in self.types)
+        return '%s(%s%s)' % (
+            type(self).__name__,
+            (
+                typenames[0]
+                if len(typenames) == 1 else
+                '(%s)' % ', '.join(typenames)
+            ),
+            ', exact=True' if self.exact else ''
+        )
 
 
 def keywords(func):
@@ -254,6 +298,52 @@ def assert_raises_regex(exc, pattern, msg=''):
         raise AssertionError('%s%s was not raised' % (_fmt_msg(msg), exc))
 
 
+def assert_raises_str(exc, expected_str, msg=''):
+    """Assert that some exception is raised in a context and that the message
+    exactly matches some string.
+
+    Parameters
+    ----------
+    exc : type or tuple[type]
+        The exception type or types to expect.
+    expected_str : str
+        The expected result of ``str(exception)``.
+    msg : str, optional
+        An extra assertion message to print if this fails.
+    """
+    return assert_raises_regex(exc, '^%s$' % re.escape(expected_str), msg=msg)
+
+
+def make_assert_equal_assertion_error(assertion_message, path, msg):
+    """Create an assertion error formatted for use in ``assert_equal``.
+
+    Parameters
+    ----------
+    assertion_message : str
+        The concrete reason for the failure.
+    path : tuple[str]
+        The path leading up to the failure.
+    msg : str
+        The user supplied message.
+
+    Returns
+    -------
+    exception_instance : AssertionError
+        The new exception instance.
+
+    Notes
+    -----
+    This doesn't raise the exception, it only returns it.
+    """
+    return AssertionError(
+        '%s%s\n%s' % (
+            _fmt_msg(msg),
+            assertion_message,
+            _fmt_path(path),
+        ),
+    )
+
+
 @dispatch(object, object)
 def assert_equal(result, expected, path=(), msg='', **kwargs):
     """Assert that two objects are equal using the ``==`` operator.
@@ -270,12 +360,12 @@ def assert_equal(result, expected, path=(), msg='', **kwargs):
     AssertionError
         Raised when ``result`` is not equal to ``expected``.
     """
-    assert result == expected, '%s%s != %s\n%s' % (
-        _fmt_msg(msg),
-        result,
-        expected,
-        _fmt_path(path),
-    )
+    if result != expected:
+        raise make_assert_equal_assertion_error(
+            '%s != %s' % (result, expected),
+            path,
+            msg,
+        )
 
 
 @assert_equal.register(float, float)
@@ -354,6 +444,37 @@ def assert_dict_equal(result, expected, path=(), msg='', **kwargs):
 
     failures = []
     for k, (resultv, expectedv) in iteritems(dzip_exact(result, expected)):
+        try:
+            assert_equal(
+                resultv,
+                expectedv,
+                path=path + ('[%r]' % (k,),),
+                msg=msg,
+                **kwargs
+            )
+        except AssertionError as e:
+            failures.append(str(e))
+
+    if failures:
+        raise AssertionError('\n'.join(failures))
+
+
+@assert_equal.register(mappingproxy, mappingproxy)
+def asssert_mappingproxy_equal(result, expected, path=(), msg='', **kwargs):
+    # mappingproxies compare like dict but shouldn't compare to dicts
+    _check_sets(
+        set(result),
+        set(expected),
+        msg,
+        path + ('.keys()',),
+        'key',
+    )
+
+    failures = []
+    for k, resultv in iteritems(result):
+        # we know this exists because of the _check_sets call above
+        expectedv = expected[k]
+
         try:
             assert_equal(
                 resultv,
@@ -592,6 +713,36 @@ def assert_isidentical(result, expected, msg=''):
     assert result.isidentical(expected), (
         '%s%s is not identical to %s' % (_fmt_msg(msg), result, expected)
     )
+
+
+def assert_messages_equal(result, expected):
+    """Assertion helper for comparing very long strings (e.g. error messages).
+    """
+    # The arg here is "keepends" which keeps trailing newlines (which
+    # matters for checking trailing whitespace). You can't pass keepends by
+    # name :(.
+    left_lines = result.splitlines(True)
+    right_lines = expected.splitlines(True)
+    iter_lines = enumerate(zip_longest(left_lines, right_lines))
+    for line, (ll, rl) in iter_lines:
+        if ll != rl:
+            col = index_of_first_difference(ll, rl)
+            raise AssertionError(
+                "Messages differ on line {line}, col {col}:"
+                "\n{ll!r}\n!=\n{rl!r}".format(
+                    line=line, col=col, ll=ll, rl=rl
+                )
+            )
+
+
+def index_of_first_difference(left, right):
+    """Get the index of the first difference between two strings."""
+    difflocs = (i for (i, (lc, rc)) in enumerate(zip_longest(left, right))
+                if lc != rc)
+    try:
+        return next(difflocs)
+    except StopIteration:
+        raise ValueError("Left was equal to right!")
 
 
 try:

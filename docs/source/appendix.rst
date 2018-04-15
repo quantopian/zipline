@@ -362,6 +362,9 @@ Readers
 .. autoclass:: zipline.data.data_portal.DataPortal
    :members:
 
+.. autoclass:: zipline.sources.benchmark_source.BenchmarkSource
+   :members:
+
 Bundles
 ```````
 .. autofunction:: zipline.data.bundles.register
@@ -375,9 +378,75 @@ Bundles
 .. data:: zipline.data.bundles.bundles
 
    The bundles that have been registered as a mapping from bundle name to bundle
-   data. This mapping is immutable and should only be updated through
+   data. This mapping is immutable and may only be updated through
    :func:`~zipline.data.bundles.register` or
    :func:`~zipline.data.bundles.unregister`.
+
+
+Risk Metrics
+~~~~~~~~~~~~
+
+Algorithm State
+```````````````
+
+.. autoclass:: zipline.finance.ledger.Ledger
+   :members:
+
+.. autoclass:: zipline.protocol.Portfolio
+   :members:
+
+.. autoclass:: zipline.protocol.Account
+   :members:
+
+.. autoclass:: zipline.finance.ledger.PositionTracker
+   :members:
+
+.. autoclass:: zipline.finance._finance_ext.PositionStats
+
+Built-in Metrics
+````````````````
+
+.. autoclass:: zipline.finance.metrics.metric.SimpleLedgerField
+
+.. autoclass:: zipline.finance.metrics.metric.DailyLedgerField
+
+.. autoclass:: zipline.finance.metrics.metric.StartOfPeriodLedgerField
+
+.. autoclass:: zipline.finance.metrics.metric.StartOfPeriodLedgerField
+
+.. autoclass:: zipline.finance.metrics.metric.Returns
+
+.. autoclass:: zipline.finance.metrics.metric.BenchmarkReturnsAndVolatility
+
+.. autoclass:: zipline.finance.metrics.metric.CashFlow
+
+.. autoclass:: zipline.finance.metrics.metric.Orders
+
+.. autoclass:: zipline.finance.metrics.metric.Transactions
+
+.. autoclass:: zipline.finance.metrics.metric.Positions
+
+.. autoclass:: zipline.finance.metrics.metric.ReturnsStatistic
+
+.. autoclass:: zipline.finance.metrics.metric.AlphaBeta
+
+.. autoclass:: zipline.finance.metrics.metric.MaxLeverage
+
+Metrics Sets
+````````````
+
+.. autofunction:: zipline.finance.metrics.register
+
+.. autofunction:: zipline.finance.metrics.load
+
+.. autofunction:: zipline.finance.metrics.unregister
+
+.. data:: zipline.data.finance.metrics.metrics_sets
+
+   The metrics sets that have been registered as a mapping from metrics set name
+   to load function. This mapping is immutable and may only be updated through
+   :func:`~zipline.finance.metrics.register` or
+   :func:`~zipline.finance.metrics.unregister`.
 
 
 Utilities

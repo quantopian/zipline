@@ -15,7 +15,6 @@
 from contextlib2 import ExitStack
 from copy import copy
 from logbook import Logger, Processor
-from pandas.tslib import normalize_date
 from zipline.finance.order import ORDER_STATUS
 from zipline.protocol import BarData
 from zipline.utils.api_support import ZiplineAPI
@@ -101,18 +100,17 @@ class AlgorithmSimulator(object):
         Main generator work loop.
         """
         algo = self.algo
-        perf_tracker = algo.perf_tracker
-        emission_rate = perf_tracker.emission_rate
+        metrics_tracker = algo.metrics_tracker
+        emission_rate = metrics_tracker.emission_rate
 
         def every_bar(dt_to_use, current_data=self.current_data,
                       handle_data=algo.event_manager.handle_data):
-            # called every tick (minute or day).
-            algo.on_dt_changed(dt_to_use)
-
             for capital_change in calculate_minute_capital_changes(dt_to_use):
                 yield capital_change
 
             self.simulation_dt = dt_to_use
+            # called every tick (minute or day).
+            algo.on_dt_changed(dt_to_use)
 
             blotter = algo.blotter
 
@@ -124,15 +122,14 @@ class AlgorithmSimulator(object):
             blotter.prune_orders(closed_orders)
 
             for transaction in new_transactions:
-                perf_tracker.process_transaction(transaction)
+                metrics_tracker.process_transaction(transaction)
 
                 # since this order was modified, record it
                 order = blotter.orders[transaction.order_id]
-                perf_tracker.process_order(order)
+                metrics_tracker.process_order(order)
 
-            if new_commissions:
-                for commission in new_commissions:
-                    perf_tracker.process_commission(commission)
+            for commission in new_commissions:
+                metrics_tracker.process_commission(commission)
 
             handle_data(algo, current_data, dt_to_use)
 
@@ -143,42 +140,38 @@ class AlgorithmSimulator(object):
 
             # if we have any new orders, record them so that we know
             # in what perf period they were placed.
-            if new_orders:
-                for new_order in new_orders:
-                    perf_tracker.process_order(new_order)
-
-            algo.portfolio_needs_update = True
-            algo.account_needs_update = True
-            algo.performance_needs_update = True
+            for new_order in new_orders:
+                metrics_tracker.process_order(new_order)
 
         def once_a_day(midnight_dt, current_data=self.current_data,
                        data_portal=self.data_portal):
-
-            # set all the timestamps
-            self.simulation_dt = midnight_dt
-            algo.on_dt_changed(midnight_dt)
-
             # process any capital changes that came overnight
             for capital_change in algo.calculate_capital_changes(
                     midnight_dt, emission_rate=emission_rate,
                     is_interday=True):
                 yield capital_change
 
+            # set all the timestamps
+            self.simulation_dt = midnight_dt
+            algo.on_dt_changed(midnight_dt)
+
+            metrics_tracker.handle_market_open(
+                midnight_dt,
+                algo.data_portal,
+            )
+
             # handle any splits that impact any positions or any open orders.
-            assets_we_care_about = \
-                viewkeys(perf_tracker.position_tracker.positions) | \
+            assets_we_care_about = (
+                viewkeys(metrics_tracker.positions) |
                 viewkeys(algo.blotter.open_orders)
+            )
 
             if assets_we_care_about:
                 splits = data_portal.get_splits(assets_we_care_about,
                                                 midnight_dt)
                 if splits:
                     algo.blotter.process_splits(splits)
-                    perf_tracker.position_tracker.handle_splits(splits)
-
-        def handle_benchmark(date, benchmark_source=self.benchmark_source):
-            perf_tracker.all_benchmark_returns[date] = \
-                benchmark_source.get_value(date)
+                    metrics_tracker.handle_splits(splits)
 
         def on_exit():
             # Remove references to algo, data portal, et al to break cycles
@@ -217,34 +210,31 @@ class AlgorithmSimulator(object):
                         yield capital_change_packet
                 elif action == SESSION_END:
                     # End of the session.
-                    positions = perf_tracker.position_tracker.positions
+                    positions = metrics_tracker.positions
                     position_assets = algo.asset_finder.retrieve_all(positions)
                     self._cleanup_expired_assets(dt, position_assets)
 
-                    if emission_rate == 'daily':
-                        handle_benchmark(normalize_date(dt))
-                    else:
-                        # If the emission rate is minutely then the performance
-                        # update already happened by this point, so if any
-                        # equities were just auto closed do another update.
-                        perf_tracker.update_performance()
                     execute_order_cancellation_policy()
                     algo.validate_account_controls()
 
-                    yield self._get_daily_message(dt, algo, perf_tracker)
+                    yield self._get_daily_message(dt, algo, metrics_tracker)
                 elif action == BEFORE_TRADING_START_BAR:
                     self.simulation_dt = dt
                     algo.on_dt_changed(dt)
                     algo.before_trading_start(self.current_data)
                 elif action == MINUTE_END:
-                    handle_benchmark(dt)
-                    minute_msg = \
-                        self._get_minute_message(dt, algo, perf_tracker)
+                    minute_msg = self._get_minute_message(
+                        dt,
+                        algo,
+                        metrics_tracker,
+                    )
 
                     yield minute_msg
 
-        risk_message = perf_tracker.handle_simulation_end()
-        yield risk_message
+            risk_message = metrics_tracker.handle_simulation_end(
+                self.data_portal,
+            )
+            yield risk_message
 
     def _cleanup_expired_assets(self, dt, position_assets):
         """
@@ -268,10 +258,10 @@ class AlgorithmSimulator(object):
         # Remove positions in any sids that have reached their auto_close date.
         assets_to_clear = \
             [asset for asset in position_assets if past_auto_close_date(asset)]
-        perf_tracker = algo.perf_tracker
+        metrics_tracker = algo.metrics_tracker
         data_portal = self.data_portal
         for asset in assets_to_clear:
-            perf_tracker.process_close_position(asset, dt, data_portal)
+            metrics_tracker.process_close_position(asset, dt, data_portal)
 
         # Remove open orders for any sids that have reached their auto close
         # date. These orders get processed immediately because otherwise they
@@ -288,27 +278,29 @@ class AlgorithmSimulator(object):
         # iterated over.
         for order in copy(blotter.new_orders):
             if order.status == ORDER_STATUS.CANCELLED:
-                perf_tracker.process_order(order)
+                metrics_tracker.process_order(order)
                 blotter.new_orders.remove(order)
 
-    def _get_daily_message(self, dt, algo, perf_tracker):
+    def _get_daily_message(self, dt, algo, metrics_tracker):
         """
         Get a perf message for the given datetime.
         """
-        perf_message = perf_tracker.handle_market_close(
-            dt, self.data_portal,
+        perf_message = metrics_tracker.handle_market_close(
+            dt,
+            self.data_portal,
         )
         perf_message['daily_perf']['recorded_vars'] = algo.recorded_vars
         return perf_message
 
-    def _get_minute_message(self, dt, algo, perf_tracker):
+    def _get_minute_message(self, dt, algo, metrics_tracker):
         """
         Get a perf message for the given datetime.
         """
         rvars = algo.recorded_vars
 
-        minute_message = perf_tracker.handle_minute_close(
-            dt, self.data_portal,
+        minute_message = metrics_tracker.handle_minute_close(
+            dt,
+            self.data_portal,
         )
 
         minute_message['minute_perf']['recorded_vars'] = rvars

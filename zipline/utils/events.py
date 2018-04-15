@@ -223,7 +223,7 @@ class Event(namedtuple('Event', ['rule', 'callback'])):
     with the current algorithm context, data, and datetime only when the rule
     is triggered.
     """
-    def __new__(cls, rule=None, callback=None):
+    def __new__(cls, rule, callback=None):
         callback = callback or (lambda *args, **kwargs: None)
         return super(cls, cls).__new__(cls, rule=rule, callback=callback)
 
@@ -236,6 +236,18 @@ class Event(namedtuple('Event', ['rule', 'callback'])):
 
 
 class EventRule(six.with_metaclass(ABCMeta)):
+    # Instances of EventRule are assigned a calendar instance when scheduling
+    # a function.
+    _cal = None
+
+    @property
+    def cal(self):
+        return self._cal
+
+    @cal.setter
+    def cal(self, value):
+        self._cal = value
+
     @abstractmethod
     def should_trigger(self, dt):
         """
@@ -300,6 +312,15 @@ class ComposedRule(StatelessRule):
         second rule if the first one returns False.
         """
         return first_should_trigger(dt) and second_should_trigger(dt)
+
+    @property
+    def cal(self):
+        return self.first.cal
+
+    @cal.setter
+    def cal(self, value):
+        # Thread the calendar through to the underlying rules.
+        self.first.cal = self.second.cal = value
 
 
 class Always(StatelessRule):
@@ -546,11 +567,14 @@ class StatefulRule(EventRule):
     def __init__(self, rule=None):
         self.rule = rule or Always()
 
-    def new_should_trigger(self, callable_):
-        """
-        Replace the should trigger implementation for the current rule.
-        """
-        self.should_trigger = callable_
+    @property
+    def cal(self):
+        return self.rule.cal
+
+    @cal.setter
+    def cal(self, value):
+        # Thread the calendar through to the underlying rule.
+        self.rule.cal = value
 
 
 class OncePerDay(StatefulRule):
@@ -614,16 +638,12 @@ def make_eventrule(date_rule, time_rule, cal, half_days=True):
     """
     Constructs an event rule from the factory api.
     """
-
-    # Insert the calendar in to the individual rules
-    date_rule.cal = cal
-    time_rule.cal = cal
-
     if half_days:
         inner_rule = date_rule & time_rule
     else:
-        nhd_rule = NotHalfDay()
-        nhd_rule.cal = cal
-        inner_rule = date_rule & time_rule & nhd_rule
+        inner_rule = date_rule & time_rule & NotHalfDay()
 
-    return OncePerDay(rule=inner_rule)
+    opd = OncePerDay(rule=inner_rule)
+    # This is where a scheduled function's rule is associated with a calendar.
+    opd.cal = cal
+    return opd

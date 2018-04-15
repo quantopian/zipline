@@ -16,10 +16,34 @@ from warnings import warn
 
 import pandas as pd
 
-from zipline.assets import Asset, Future
-from zipline.utils.input_validation import expect_types
+from .assets import Asset, Future
 from .utils.enum import enum
-from zipline._protocol import BarData  # noqa
+from ._protocol import BarData, InnerPosition  # noqa
+
+
+class MutableView(object):
+    """A mutable view over an "immutable" object.
+
+    Parameters
+    ----------
+    ob : any
+        The object to take a view over.
+    """
+    # add slots so we don't accidentally add attributes to the view instead of
+    # ``ob``
+    __slots__ = ('_mutable_view_ob',)
+
+    def __init__(self, ob):
+        object.__setattr__(self, '_mutable_view_ob', ob)
+
+    def __getattr__(self, attr):
+        return getattr(self._mutable_view_ob, attr)
+
+    def __setattr__(self, attr, value):
+        vars(self._mutable_view_ob)[attr] = value
+
+    def __repr__(self):
+        return '%s(%r)' % (type(self).__name__, self._mutable_view_ob)
 
 
 # Datasource type should completely determine the other fields of a
@@ -109,7 +133,7 @@ def _deprecated_getitem_method(name, attrs):
         """
         warn(msg.format(name=name, attr=key), DeprecationWarning, stacklevel=2)
         if key in attrs:
-            return self.__dict__[key]
+            return getattr(self, key)
         raise KeyError(key)
 
     return __getitem__
@@ -141,17 +165,36 @@ def asset_multiplier(asset):
 
 
 class Portfolio(object):
+    """The portfolio at a given time.
 
-    def __init__(self):
-        self.capital_used = 0.0
-        self.starting_cash = 0.0
-        self.portfolio_value = 0.0
-        self.pnl = 0.0
-        self.returns = 0.0
-        self.cash = 0.0
-        self.positions = Positions()
-        self.start_date = None
-        self.positions_value = 0.0
+    Parameters
+    ----------
+    start_date : pd.Timestamp
+        The start date for the period being recorded.
+    capital_base : float
+        The starting value for the portfolio. This will be used as the starting
+        cash, current cash, and portfolio value.
+    """
+
+    def __init__(self, start_date=None, capital_base=0.0):
+        self_ = MutableView(self)
+        self_.cash_flow = 0.0
+        self_.starting_cash = capital_base
+        self_.portfolio_value = capital_base
+        self_.pnl = 0.0
+        self_.returns = 0.0
+        self_.cash = capital_base
+        self_.positions = Positions()
+        self_.start_date = start_date
+        self_.positions_value = 0.0
+        self_.positions_exposure = 0.0
+
+    @property
+    def capital_used(self):
+        return self.cash_flow
+
+    def __setattr__(self, attr, value):
+        raise AttributeError('cannot mutate Portfolio objects')
 
     def __repr__(self):
         return "Portfolio({0})".format(self.__dict__)
@@ -195,31 +238,35 @@ class Portfolio(object):
 
 
 class Account(object):
-    '''
+    """
     The account object tracks information about the trading account. The
     values are updated as the algorithm runs and its keys remain unchanged.
     If connected to a broker, one can update these values with the trading
     account values as reported by the broker.
-    '''
+    """
 
     def __init__(self):
-        self.settled_cash = 0.0
-        self.accrued_interest = 0.0
-        self.buying_power = float('inf')
-        self.equity_with_loan = 0.0
-        self.total_positions_value = 0.0
-        self.total_positions_exposure = 0.0
-        self.regt_equity = 0.0
-        self.regt_margin = float('inf')
-        self.initial_margin_requirement = 0.0
-        self.maintenance_margin_requirement = 0.0
-        self.available_funds = 0.0
-        self.excess_liquidity = 0.0
-        self.cushion = 0.0
-        self.day_trades_remaining = float('inf')
-        self.leverage = 0.0
-        self.net_leverage = 0.0
-        self.net_liquidation = 0.0
+        self_ = MutableView(self)
+        self_.settled_cash = 0.0
+        self_.accrued_interest = 0.0
+        self_.buying_power = float('inf')
+        self_.equity_with_loan = 0.0
+        self_.total_positions_value = 0.0
+        self_.total_positions_exposure = 0.0
+        self_.regt_equity = 0.0
+        self_.regt_margin = float('inf')
+        self_.initial_margin_requirement = 0.0
+        self_.maintenance_margin_requirement = 0.0
+        self_.available_funds = 0.0
+        self_.excess_liquidity = 0.0
+        self_.cushion = 0.0
+        self_.day_trades_remaining = float('inf')
+        self_.leverage = 0.0
+        self_.net_leverage = 0.0
+        self_.net_liquidation = 0.0
+
+    def __setattr__(self, attr, value):
+        raise AttributeError('cannot mutate Account objects')
 
     def __repr__(self):
         return "Account({0})".format(self.__dict__)
@@ -251,13 +298,16 @@ class Account(object):
 
 
 class Position(object):
-    @expect_types(asset=Asset)
-    def __init__(self, asset):
-        self.asset = asset
-        self.amount = 0
-        self.cost_basis = 0.0  # per share
-        self.last_sale_price = 0.0
-        self.last_sale_date = None
+    __slots__ = ('_underlying_position',)
+
+    def __init__(self, underlying_position):
+        object.__setattr__(self, '_underlying_position', underlying_position)
+
+    def __getattr__(self, attr):
+        return getattr(self._underlying_position, attr)
+
+    def __setattr__(self, attr, value):
+        raise AttributeError('cannot mutate Position objects')
 
     @property
     def sid(self):
@@ -265,7 +315,16 @@ class Position(object):
         return self.asset
 
     def __repr__(self):
-        return "Position({0})".format(self.__dict__)
+        return 'Position(%r)' % {
+            k: getattr(self, k)
+            for k in (
+                'asset',
+                'amount',
+                'cost_basis',
+                'last_sale_price',
+                'last_sale_date',
+            )
+        }
 
     # If you are adding new attributes, don't update this set. This method
     # is deprecated to normal attribute access so we don't want to encourage
@@ -312,7 +371,7 @@ class _DeprecatedSidLookupPosition(object):
 class Positions(dict):
     def __missing__(self, key):
         if isinstance(key, Asset):
-            return Position(key)
+            return Position(InnerPosition(key))
         elif isinstance(key, int):
             warn("Referencing positions by integer is deprecated."
                  " Use an asset instead.")

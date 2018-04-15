@@ -276,7 +276,7 @@ cdef _array_for_column_impl(object dtype,
     if column_type is object:
         # for object columns we need to maintain the unique values for the
         # categories
-        categories = set()
+        categories = {missing_value}
 
     cdef Py_ssize_t n
     for n in range(size if len(out_array) else 0):

@@ -23,7 +23,7 @@ from zipline.finance.order import Order
 from zipline.finance.slippage import (
     DEFAULT_FUTURE_VOLUME_SLIPPAGE_BAR_LIMIT,
     VolatilityVolumeShare,
-    VolumeShareSlippage,
+    FixedBasisPointsSlippage,
 )
 from zipline.finance.commission import (
     DEFAULT_PER_CONTRACT_COST,
@@ -55,7 +55,7 @@ class Blotter(object):
         self.max_shares = int(1e+11)
 
         self.slippage_models = {
-            Equity: equity_slippage or VolumeShareSlippage(),
+            Equity: equity_slippage or FixedBasisPointsSlippage(),
             Future: future_slippage or VolatilityVolumeShare(
                 volume_limit=DEFAULT_FUTURE_VOLUME_SLIPPAGE_BAR_LIMIT,
             ),

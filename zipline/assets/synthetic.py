@@ -171,7 +171,8 @@ def make_future_info(first_sid,
                      notice_date_func,
                      expiration_date_func,
                      start_date_func,
-                     month_codes=None):
+                     month_codes=None,
+                     multiplier=500):
     """
     Create a DataFrame representing futures for `root_symbols` during `year`.
 
@@ -201,6 +202,8 @@ def make_future_info(first_sid,
         Dictionary of month codes for which to create contracts.  Entries
         should be strings mapped to values from 1 (January) to 12 (December).
         Default is zipline.futures.CME_CODE_TO_MONTH
+    multiplier : int
+        The contract multiplier.
 
     Returns
     -------
@@ -233,7 +236,7 @@ def make_future_info(first_sid,
             'start_date': start_date_func(month_begin),
             'notice_date': notice_date_func(month_begin),
             'expiration_date': notice_date_func(month_begin),
-            'multiplier': 500,
+            'multiplier': multiplier,
             'exchange': "TEST",
             'exchange_full': 'TEST FULL',
         })
@@ -243,7 +246,8 @@ def make_future_info(first_sid,
 def make_commodity_future_info(first_sid,
                                root_symbols,
                                years,
-                               month_codes=None):
+                               month_codes=None,
+                               multiplier=500):
     """
     Make futures testing data that simulates the notice/expiration date
     behavior of physical commodities like oil.
@@ -251,9 +255,17 @@ def make_commodity_future_info(first_sid,
     Parameters
     ----------
     first_sid : int
+        The first sid to use for assigning sids to the created contracts.
     root_symbols : list[str]
-    years : list[int]
-    month_codes : dict[str -> int]
+        A list of root symbols for which to create futures.
+    years : list[int or str]
+        Years (e.g. 2014), for which to produce individual contracts.
+    month_codes : dict[str -> [1..12]], optional
+        Dictionary of month codes for which to create contracts.  Entries
+        should be strings mapped to values from 1 (January) to 12 (December).
+        Default is zipline.futures.CME_CODE_TO_MONTH
+    multiplier : int
+        The contract multiplier.
 
     Expiration dates are on the 20th of the month prior to the month code.
     Notice dates are are on the 20th two months prior to the month code.
@@ -273,4 +285,5 @@ def make_commodity_future_info(first_sid,
         expiration_date_func=lambda dt: dt - MonthBegin(1) + nineteen_days,
         start_date_func=lambda dt: dt - one_year,
         month_codes=month_codes,
+        multiplier=multiplier,
     )

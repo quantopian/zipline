@@ -10,13 +10,15 @@ try:
     from pygments.lexers import PythonLexer
     from pygments.formatters import TerminalFormatter
     PYGMENTS = True
-except:
+except ImportError:
     PYGMENTS = False
+import six
 from toolz import valfilter, concatv
 
 from zipline.algorithm import TradingAlgorithm
-from zipline.data.bundles.core import load
+from zipline.data import bundles
 from zipline.data.data_portal import DataPortal
+from zipline.finance import metrics
 from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders import USEquityPricingLoader
@@ -33,12 +35,16 @@ class _RunAlgoError(click.ClickException, ValueError):
     ----------
     pyfunc_msg : str
         The message that will be shown when called as a python function.
-    cmdline_msg : str
-        The message that will be shown on the command line.
+    cmdline_msg : str, optional
+        The message that will be shown on the command line. If not provided,
+        this will be the same as ``pyfunc_msg`
     """
     exit_code = 1
 
-    def __init__(self, pyfunc_msg, cmdline_msg):
+    def __init__(self, pyfunc_msg, cmdline_msg=None):
+        if cmdline_msg is None:
+            cmdline_msg = pyfunc_msg
+
         super(_RunAlgoError, self).__init__(cmdline_msg)
         self.pyfunc_msg = pyfunc_msg
 
@@ -63,6 +69,7 @@ def _run(handle_data,
          output,
          trading_calendar,
          print_algo,
+         metrics_set,
          local_namespace,
          environ):
     """Run a backtest for the given algorithm.
@@ -116,8 +123,16 @@ def _run(handle_data,
     if trading_calendar is None:
         trading_calendar = get_calendar('NYSE')
 
+    if trading_calendar.session_distance(start, end) < 1:
+        raise _RunAlgoError(
+            'There are no trading days between %s and %s' % (
+                start.date(),
+                end.date(),
+            ),
+        )
+
     if bundle is not None:
-        bundle_data = load(
+        bundle_data = bundles.load(
             bundle,
             environ,
             bundle_timestamp,
@@ -160,6 +175,12 @@ def _run(handle_data,
         env = TradingEnvironment(environ=environ)
         choose_loader = None
 
+    if isinstance(metrics_set, six.string_types):
+        try:
+            metrics_set = metrics.load(metrics_set)
+        except ValueError as e:
+            raise _RunAlgoError(str(e))
+
     perf = TradingAlgorithm(
         namespace=namespace,
         env=env,
@@ -172,6 +193,7 @@ def _run(handle_data,
             data_frequency=data_frequency,
             trading_calendar=trading_calendar,
         ),
+        metrics_set=metrics_set,
         **{
             'initialize': initialize,
             'handle_data': handle_data,
@@ -259,6 +281,7 @@ def run_algorithm(start,
                   bundle=None,
                   bundle_timestamp=None,
                   trading_calendar=None,
+                  metrics_set='default',
                   default_extension=True,
                   extensions=(),
                   strict_extensions=True,
@@ -305,6 +328,9 @@ def run_algorithm(start,
         This argument is mutually exclusive with ``data``.
     trading_calendar : TradingCalendar, optional
         The trading calendar to use for your backtest.
+    metrics_set : iterable[Metric] or str, optional
+        The set of metrics to compute in the simulation. If a string is passed,
+        resolve the set with :func:`zipline.finance.metrics.load`.
     default_extension : bool, optional
         Should the default zipline extension be loaded. This is found at
         ``$ZIPLINE_ROOT/extension.py``
@@ -367,6 +393,7 @@ def run_algorithm(start,
         output=os.devnull,
         trading_calendar=trading_calendar,
         print_algo=False,
+        metrics_set=metrics_set,
         local_namespace=False,
         environ=environ,
     )

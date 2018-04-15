@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from zipline import examples
-from zipline.data.bundles import clean, ingest
+from zipline.data.bundles import register
 from zipline.testing import test_resource_path, tmp_dir
 from zipline.utils.cache import dataframe_cache
 
@@ -103,11 +103,17 @@ def main(ctx, rebuild_input):
 
         if rebuild_input:
             raise NotImplementedError(
-                ("We cannot rebuild input for Yahoo because of "
-                 "changes Yahoo made to their API, so we cannot "
-                 "use Yahoo data bundles anymore. This will be fixed in "
-                 "a future release")
+                "We cannot rebuild input for Yahoo because of "
+                "changes Yahoo made to their API, so we cannot "
+                "use Yahoo data bundles anymore. This will be fixed in "
+                "a future release",
             )
+
+        # we need to register the bundle; it is already ingested and saved in
+        # the example_data.tar.gz file
+        @register('test')
+        def nop_ingest(*args, **kwargs):
+            raise NotImplementedError('we cannot rebuild the test buindle')
 
         new_perf_path = d.getpath(
             'example_data/new_perf/%s' % pd.__version__.replace('.', '-'),

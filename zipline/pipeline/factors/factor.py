@@ -5,7 +5,7 @@ from operator import attrgetter
 from numbers import Number
 from math import ceil
 
-from numpy import empty_like, inf, nan, where
+from numpy import empty_like, inf, isnan, nan, where
 from scipy.stats import rankdata
 
 from zipline.utils.compat import wraps
@@ -855,29 +855,32 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
                   mask=NotSpecified,
                   groupby=NotSpecified):
         """
-        Construct a Factor returns a winsorized row. Winsorizing changes values
-        ranked less than the minimum percentile to to value at the minimum
-        percentile. Similarly, values ranking above the maximum percentile will
-        be changed to the value at the maximum percentile. This is useful
-        when limiting the impact of extreme values.
+        Construct a new factor that winsorizes the result of this factor.
+
+        Winsorizing changes values ranked less than the minimum percentile to
+        the value at the minimum percentile. Similarly, values ranking above
+        the maximum percentile are changed to the value at the maximum
+        percentile.
+
+        Winsorizing is useful for limiting the impact of extreme data points
+        without completely removing those points.
 
         If ``mask`` is supplied, ignore values where ``mask`` returns False
-        when computing row means and standard deviations, and output NaN
-        anywhere the mask is False.
+        when computing percentile cutoffs, and output NaN anywhere the mask is
+        False.
 
-        If ``groupby`` is supplied, compute by partitioning each row based on
-        the values produced by ``groupby``, winsorizing the partitioned arrays,
-        and stitching the sub-results back together.
+        If ``groupby`` is supplied, winsorization is applied separately
+        separately to each group defined by ``groupby``.
 
         Parameters
         ----------
         min_percentile: float, int
             Entries with values at or below this percentile will be replaced
-            with the (len(inp) * min_percentile)th lowest value. If low values
-            should not be clipped, use 0.
+            with the (len(input) * min_percentile)th lowest value. If low
+            values should not be clipped, use 0.
         max_percentile: float, int
             Entries with values at or above this percentile will be replaced
-            with the (len(inp) * max_percentile)th lowest value. If high
+            with the (len(input) * max_percentile)th lowest value. If high
             values should not be clipped, use 1.
         mask : zipline.pipeline.Filter, optional
             A Filter defining values to ignore when winsorizing.
@@ -1663,16 +1666,26 @@ def winsorize(row, min_percentile, max_percentile):
     This implementation is based on scipy.stats.mstats.winsorize
     """
     a = row.copy()
-    num = a.size
+    nan_count = isnan(row).sum()
+    nonnan_count = a.size - nan_count
+
+    # NOTE: argsort() sorts nans to the end of the array.
     idx = a.argsort()
+
+    # Set values at indices below the min percentile to the value of the entry
+    # at the cutoff.
     if min_percentile > 0:
-        lowidx = int(min_percentile * num)
-        a[idx[:lowidx]] = a[idx[lowidx]]
+        lower_cutoff = int(min_percentile * nonnan_count)
+        a[idx[:lower_cutoff]] = a[idx[lower_cutoff]]
+
+    # Set values at indices above the max percentile to the value of the entry
+    # at the cutoff.
     if max_percentile < 1:
-        upidx = int(ceil(num * max_percentile))
-        # upidx could return as the length of the array, in this case
-        # no modification to the right tail is necessary.
-        if upidx < num:
-            a[idx[upidx:]] = a[idx[upidx - 1]]
+        upper_cutoff = int(ceil(nonnan_count * max_percentile))
+        # if max_percentile is close to 1, then upper_cutoff might not
+        # remove any values.
+        if upper_cutoff < nonnan_count:
+            start_of_nans = (-nan_count) if nan_count else None
+            a[idx[upper_cutoff:start_of_nans]] = a[idx[upper_cutoff - 1]]
 
     return a

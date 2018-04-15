@@ -79,7 +79,6 @@ from zipline.finance.execution import (
     StopLimitOrder,
     StopOrder,
 )
-from zipline.finance.performance import PerformanceTracker
 from zipline.finance.asset_restrictions import Restrictions
 from zipline.finance.cancel_policy import NeverCancel, CancelPolicy
 from zipline.finance.asset_restrictions import (
@@ -89,6 +88,7 @@ from zipline.finance.asset_restrictions import (
 )
 from zipline.assets import Asset, Equity, Future
 from zipline.gens.tradesimulation import AlgorithmSimulator
+from zipline.finance.metrics import MetricsTracker, load as load_metrics_set
 from zipline.pipeline import Pipeline
 from zipline.pipeline.engine import (
     ExplodingPipelineEngine,
@@ -209,6 +209,8 @@ class TradingAlgorithm(object):
         in the simulation with ``get_environment``. This allows algorithms
         to conditionally execute code based on platform it is running on.
         default: 'zipline'
+    adjustment_reader : AdjustmentReader
+        The interface to the adjustments.
     """
 
     def __init__(self, *args, **kwargs):
@@ -302,7 +304,12 @@ class TradingAlgorithm(object):
                 trading_calendar=self.trading_calendar,
             )
 
-        self.perf_tracker = None
+        self.metrics_tracker = None
+        self._last_sync_time = pd.NaT
+        self._metrics_set = kwargs.pop('metrics_set', None)
+        if self._metrics_set is None:
+            self._metrics_set = load_metrics_set('default')
+
         # Pull in the environment's new AssetFinder for quick reference
         self.asset_finder = self.trading_environment.asset_finder
 
@@ -328,12 +335,6 @@ class TradingAlgorithm(object):
         # The symbol lookup date specifies the date to use when resolving
         # symbols to sids, and can be set using set_symbol_lookup_date()
         self._symbol_lookup_date = None
-
-        self.portfolio_needs_update = True
-        self.account_needs_update = True
-        self.performance_needs_update = True
-        self._portfolio = None
-        self._account = None
 
         # If string is passed in, execute and get reference to
         # functions.
@@ -559,36 +560,44 @@ class TradingAlgorithm(object):
             benchmark_returns=benchmark_returns,
         )
 
+    def _create_metrics_tracker(self):
+        return MetricsTracker(
+            trading_calendar=self.trading_calendar,
+            first_session=self.sim_params.start_session,
+            last_session=self.sim_params.end_session,
+            capital_base=self.sim_params.capital_base,
+            emission_rate=self.sim_params.emission_rate,
+            data_frequency=self.sim_params.data_frequency,
+            asset_finder=self.asset_finder,
+            metrics=self._metrics_set,
+        )
+
     def _create_generator(self, sim_params):
         if sim_params is not None:
             self.sim_params = sim_params
 
-        if self.perf_tracker is None:
-            # HACK: When running with the `run` method, we set perf_tracker to
-            # None so that it will be overwritten here.
-            self.perf_tracker = PerformanceTracker(
-                sim_params=self.sim_params,
-                trading_calendar=self.trading_calendar,
-                asset_finder=self.asset_finder,
-            )
+        self.metrics_tracker = metrics_tracker = self._create_metrics_tracker()
 
-            # Set the dt initially to the period start by forcing it to change.
-            self.on_dt_changed(self.sim_params.start_session)
+        # Set the dt initially to the period start by forcing it to change.
+        self.on_dt_changed(self.sim_params.start_session)
 
         if not self.initialized:
             self.initialize(*self.initialize_args, **self.initialize_kwargs)
             self.initialized = True
+
+        benchmark_source = self._create_benchmark_source()
 
         self.trading_client = AlgorithmSimulator(
             self,
             sim_params,
             self.data_portal,
             self._create_clock(),
-            self._create_benchmark_source(),
+            benchmark_source,
             self.restrictions,
             universe_func=self._calculate_universe
         )
 
+        metrics_tracker.handle_start_of_simulation(benchmark_source)
         return self.trading_client.transform()
 
     def _calculate_universe(self):
@@ -710,9 +719,9 @@ class TradingAlgorithm(object):
                     **equity_readers
                 )
 
-        # Force a reset of the performance tracker, in case
+        # Force a reset of the metrics tracker, in case
         # this is a repeat run of the algorithm.
-        self.perf_tracker = None
+        self.metrics_tracker = None
 
         # Create zipline and loop through simulated_trading.
         # Each iteration returns a perf dictionary
@@ -727,6 +736,7 @@ class TradingAlgorithm(object):
             self.analyze(daily_stats)
         finally:
             self.data_portal = None
+            self.metrics_tracker = None
 
         return daily_stats
 
@@ -856,7 +866,6 @@ class TradingAlgorithm(object):
             [p['period_close'] for p in daily_perfs], tz='UTC'
         )
         daily_stats = pd.DataFrame(daily_perfs, index=daily_dts)
-
         return daily_stats
 
     def calculate_capital_changes(self, dt, emission_rate, is_interday,
@@ -876,29 +885,16 @@ class TradingAlgorithm(object):
         except KeyError:
             return
 
-        if emission_rate == 'daily':
-            # If we are running daily emission, prices won't
-            # necessarily be synced at the end of every minute, and we
-            # need the up-to-date prices for capital change
-            # calculations. We want to sync the prices as of the
-            # last market minute, and this is okay from a data portal
-            # perspective as we have technically not "advanced" to the
-            # current dt yet.
-            self.perf_tracker.position_tracker.sync_last_sale_prices(
-                self.trading_calendar.previous_minute(
-                    dt
-                ),
-                False,
-                self.data_portal
-            )
-        self.perf_tracker.prepare_capital_change(is_interday)
-
+        self._sync_last_sale_prices()
         if capital_change['type'] == 'target':
             target = capital_change['value']
-            capital_change_amount = target - \
-                (self.updated_portfolio().portfolio_value -
-                 portfolio_value_adjustment)
-            self.portfolio_needs_update = True
+            capital_change_amount = (
+                target -
+                (
+                    self.portfolio.portfolio_value -
+                    portfolio_value_adjustment
+                )
+            )
 
             log.info('Processing capital change to target %s at %s. Capital '
                      'change delta is %s' % (target, dt,
@@ -914,8 +910,7 @@ class TradingAlgorithm(object):
             return
 
         self.capital_change_deltas.update({dt: capital_change_amount})
-        self.perf_tracker.process_capital_change(capital_change_amount,
-                                                 is_interday)
+        self.metrics_tracker.capital_change(capital_change_amount)
 
         yield {
             'capital_change':
@@ -1064,7 +1059,7 @@ class TradingAlgorithm(object):
 
         return csv_data_source
 
-    def add_event(self, rule=None, callback=None):
+    def add_event(self, rule, callback):
         """Adds an event to the algorithm's EventManager.
 
         Parameters
@@ -1515,7 +1510,7 @@ class TradingAlgorithm(object):
         for control in self.trading_controls:
             control.validate(asset,
                              amount,
-                             self.updated_portfolio(),
+                             self.portfolio,
                              self.get_datetime(),
                              self.trading_client.current_data)
 
@@ -1599,34 +1594,39 @@ class TradingAlgorithm(object):
     def recorded_vars(self):
         return copy(self._recorded_vars)
 
+    def _sync_last_sale_prices(self, dt=None):
+        """Sync the last sale prices on the metrics tracker to a given
+        datetime.
+
+        Parameters
+        ----------
+        dt : datetime
+            The time to sync the prices to.
+
+        Notes
+        -----
+        This call is cached by the datetime. Repeated calls in the same bar
+        are cheap.
+        """
+        if dt is None:
+            dt = self.datetime
+
+        if dt != self._last_sync_time:
+            self.metrics_tracker.sync_last_sale_prices(
+                dt,
+                self.data_portal,
+            )
+            self._last_sync_time = dt
+
     @property
     def portfolio(self):
-        return self.updated_portfolio()
-
-    def updated_portfolio(self):
-        if self.portfolio_needs_update:
-            self.perf_tracker.position_tracker.sync_last_sale_prices(
-                self.datetime, self._in_before_trading_start, self.data_portal)
-            self._portfolio = \
-                self.perf_tracker.get_portfolio(self.performance_needs_update)
-            self.portfolio_needs_update = False
-            self.performance_needs_update = False
-        return self._portfolio
+        self._sync_last_sale_prices()
+        return self.metrics_tracker.portfolio
 
     @property
     def account(self):
-        return self.updated_account()
-
-    def updated_account(self):
-        if self.account_needs_update:
-            self.perf_tracker.position_tracker.sync_last_sale_prices(
-                self.datetime, self._in_before_trading_start, self.data_portal)
-            self._account = \
-                self.perf_tracker.get_account(self.performance_needs_update)
-
-            self.account_needs_update = False
-            self.performance_needs_update = False
-        return self._account
+        self._sync_last_sale_prices()
+        return self.metrics_tracker.account
 
     def set_logger(self, logger):
         self.logger = logger
@@ -1640,12 +1640,7 @@ class TradingAlgorithm(object):
         group should happen here.
         """
         self.datetime = dt
-        self.perf_tracker.set_date(dt)
         self.blotter.set_date(dt)
-
-        self.portfolio_needs_update = True
-        self.account_needs_update = True
-        self.performance_needs_update = True
 
     @api_method
     @preprocess(tz=coerce_string(pytz.timezone))
@@ -1809,7 +1804,7 @@ class TradingAlgorithm(object):
         asset : Asset
             The asset that this order is for.
         percent : float
-            The percentage of the porfolio value to allocate to ``asset``.
+            The percentage of the portfolio value to allocate to ``asset``.
             This is specified as a decimal, for example: 0.50 means 50%.
         limit_price : float, optional
             The limit price for the order.
@@ -2003,7 +1998,7 @@ class TradingAlgorithm(object):
         asset : Asset
             The asset that this order is for.
         target : float
-            The desired percentage of the porfolio value to allocate to
+            The desired percentage of the portfolio value to allocate to
             ``asset``. This is specified as a decimal, for example:
             0.50 means 50%.
         limit_price : float, optional
@@ -2217,8 +2212,8 @@ class TradingAlgorithm(object):
 
     def validate_account_controls(self):
         for control in self.account_controls:
-            control.validate(self.updated_portfolio(),
-                             self.updated_account(),
+            control.validate(self.portfolio,
+                             self.account,
                              self.get_datetime(),
                              self.trading_client.current_data)
 
@@ -2237,8 +2232,7 @@ class TradingAlgorithm(object):
 
     @api_method
     def set_min_leverage(self, min_leverage, grace_period):
-        """
-        Set a limit on the minimum leverage of the algorithm.
+        """Set a limit on the minimum leverage of the algorithm.
 
         Parameters
         ----------

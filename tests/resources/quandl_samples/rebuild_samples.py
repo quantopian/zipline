@@ -6,7 +6,7 @@ from __future__ import print_function
 import os
 import requests
 from io import BytesIO
-from zipfile import ZipFile
+from zipfile import ZipFile, ZIP_DEFLATED
 from six.moves.urllib.parse import urlencode
 from zipline.testing import test_resource_path, write_compressed
 from zipline.data.bundles.quandl import QUANDL_DATA_URL
@@ -52,7 +52,8 @@ def main():
     with ZipFile(archive_path, 'w') as zip_file:
         zip_file.writestr(
             'QUANDL_SAMPLE_TABLE.csv',
-            BytesIO(response.content).getvalue()
+            BytesIO(response.content).getvalue(),
+            ZIP_DEFLATED
         )
     print('Writing mock metadata')
     cols = (
