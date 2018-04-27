@@ -4,6 +4,7 @@ Tests for setting up an EventsLoader and a BlazeEventsLoader.
 from datetime import time
 import itertools
 from itertools import product
+from unittest import skipIf
 
 import blaze as bz
 from nose_parameterized import parameterized
@@ -36,6 +37,7 @@ from zipline.utils.numpy_utils import (
     float64_dtype,
     int64_dtype,
 )
+from zipline.utils.pandas_utils import new_pandas, skip_pipeline_new_pandas
 
 
 class EventDataSet(DataSet):
@@ -292,6 +294,7 @@ class EventsLoaderEmptyTestCase(WithAssetFinder,
                 frame[c.name] = frame[c.name].astype('category')
         return frame
 
+    @skipIf(new_pandas, skip_pipeline_new_pandas)
     def test_load_empty(self):
         """
         For the case where raw data is empty, make sure we have a result for
@@ -397,6 +400,7 @@ class EventsLoaderTestCase(WithAssetFinder,
         # This method exists to be overridden by BlazeEventsLoaderTestCase
         return EventsLoader(events, next_value_columns, previous_value_columns)
 
+    @skipIf(new_pandas, skip_pipeline_new_pandas)
     def test_load_with_trading_calendar(self):
         engine = SimplePipelineEngine(
             lambda x: self.loader,
@@ -426,6 +430,7 @@ class EventsLoaderTestCase(WithAssetFinder,
             else:
                 raise AssertionError("Unexpected column %s." % c)
 
+    @skipIf(new_pandas, skip_pipeline_new_pandas)
     def test_load_properly_forward_fills(self):
         engine = SimplePipelineEngine(
             lambda x: self.loader,
@@ -645,6 +650,7 @@ class EventLoaderUtilsTestCase(ZiplineTestCase):
     # Test with timezones on either side of the meridian
     @parameterized.expand([(expected_us, 'US/Eastern', us_dates),
                            (expected_russia, 'Europe/Moscow', moscow_dates)])
+    @skipIf(new_pandas, skip_pipeline_new_pandas)
     def test_normalize_to_query_time(self, expected, tz, dates):
         # Order matters in pandas 0.18.2. Prior to that, using tz_convert on
         # a DatetimeIndex with DST/EST timestamps mixed resulted in some of
