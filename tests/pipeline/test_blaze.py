@@ -6,6 +6,7 @@ from __future__ import division
 from collections import OrderedDict
 from datetime import timedelta, time
 from itertools import product, chain
+from unittest import skipIf
 import warnings
 
 import blaze as bz
@@ -44,8 +45,8 @@ from zipline.testing.predicates import (
     assert_isidentical,
 )
 from zipline.utils.numpy_utils import float64_dtype, int64_dtype
-from zipline.utils.pandas_utils import empty_dataframe
-
+from zipline.utils.pandas_utils import empty_dataframe, new_pandas, \
+    skip_pipeline_new_pandas
 
 nameof = op.attrgetter('name')
 dtypeof = op.attrgetter('dtype')
@@ -428,6 +429,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             NonPipelineField,
         )
 
+    @skipIf(new_pandas, skip_pipeline_new_pandas)
     def test_cols_with_all_missing_vals(self):
         """
         Tests that when there is no known data, we get output where the
@@ -558,6 +560,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
              'dt_value'),
         )
 
+    @skipIf(new_pandas, skip_pipeline_new_pandas)
     def test_cols_with_some_missing_vals(self):
         """
         Tests the following:

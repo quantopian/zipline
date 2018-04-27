@@ -1,13 +1,17 @@
 """
 Tests for zipline/utils/pandas_utils.py
 """
+from unittest import skipIf
+
 import pandas as pd
 
 from zipline.testing import parameter_space, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
 from zipline.utils.pandas_utils import (
     categorical_df_concat,
-    nearest_unequal_elements
+    nearest_unequal_elements,
+    new_pandas,
+    skip_pipeline_new_pandas,
 )
 
 
@@ -88,6 +92,7 @@ class TestNearestUnequalElements(ZiplineTestCase):
 
 class TestCatDFConcat(ZiplineTestCase):
 
+    @skipIf(new_pandas, skip_pipeline_new_pandas)
     def test_categorical_df_concat(self):
 
         inp = [
