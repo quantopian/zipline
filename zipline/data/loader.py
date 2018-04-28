@@ -295,9 +295,10 @@ def ensure_treasury_data(symbol, first_date, last_date, now, environ=None):
 def _load_cached_data(filename, first_date, last_date, now, resource_name,
                       environ=None):
     if resource_name == 'benchmark':
-        from_csv = pd.Series.from_csv
+        from_csv = lambda path: pd.read_csv(path, index_col=0, header=None, parse_dates=True,
+                                            squeeze=True)
     else:
-        from_csv = pd.DataFrame.from_csv
+        from_csv = lambda path: pd.read_csv(path, index_col=0, parse_dates=True)
 
     # Path for the cache.
     path = get_data_filepath(filename, environ)

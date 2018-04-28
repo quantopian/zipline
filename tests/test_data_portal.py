@@ -17,7 +17,6 @@ from collections import OrderedDict
 from numpy import array, append, nan, full
 from numpy.testing import assert_almost_equal
 import pandas as pd
-from pandas.tslib import Timedelta
 from six import iteritems
 
 from zipline.assets import Equity, Future
@@ -34,6 +33,7 @@ from zipline.testing.fixtures import (
     alias,
 )
 from zipline.testing.predicates import assert_equal
+from zipline.lib.tslib import Timedelta
 from zipline.utils.numpy_utils import float64_dtype
 
 

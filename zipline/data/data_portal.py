@@ -20,7 +20,6 @@ import numpy as np
 from numpy import float64, int64, nan
 import pandas as pd
 from pandas import isnull
-from pandas.tslib import normalize_date
 from six import iteritems
 from six.moves import reduce
 
@@ -59,6 +58,7 @@ from zipline.utils.math_utils import (
     nanmean,
     nanstd
 )
+from zipline.lib.tslib import normalize_date
 from zipline.utils.memoize import remember_last, weak_lru_cache
 from zipline.utils.pandas_utils import timedelta_to_integral_minutes
 from zipline.errors import HistoryWindowStartsBeforeData

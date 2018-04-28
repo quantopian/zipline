@@ -24,7 +24,6 @@ import numpy as np
 import pandas as pd
 from nose_parameterized import parameterized
 from pandas import read_csv
-from pandas.tslib import Timedelta
 from pandas.util.testing import assert_index_equal
 from pytz import timezone
 from toolz import concat
@@ -35,6 +34,7 @@ from zipline.errors import (
 )
 
 from zipline.testing.predicates import assert_equal
+from zipline.lib.tslib import Timedelta
 from zipline.utils.calendars import (
     deregister_calendar,
     get_calendar,

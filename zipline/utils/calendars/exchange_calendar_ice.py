@@ -7,9 +7,9 @@ from pandas.tseries.holiday import (
     USLaborDay,
     USThanksgivingDay
 )
-from pandas.tslib import Timestamp
 from pytz import timezone
 
+from zipline.lib.tslib import Timestamp
 from zipline.utils.calendars import TradingCalendar
 from zipline.utils.calendars.trading_calendar import HolidayCalendar
 from zipline.utils.calendars.us_holidays import (
