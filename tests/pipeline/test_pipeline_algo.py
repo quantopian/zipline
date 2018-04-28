@@ -27,7 +27,6 @@ from pandas import (
     Series,
     Timestamp,
 )
-from pandas.tseries.tools import normalize_date
 from six import iteritems, itervalues
 
 from zipline.algorithm import TradingAlgorithm
@@ -63,6 +62,7 @@ from zipline.testing.fixtures import (
     WithDataPortal,
     ZiplineTestCase,
 )
+from zipline.lib.tslib import normalize_date
 from zipline.utils.calendars import get_calendar
 
 TEST_RESOURCE_PATH = join(
