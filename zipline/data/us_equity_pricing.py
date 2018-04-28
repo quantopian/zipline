@@ -45,7 +45,6 @@ from pandas import (
     to_datetime,
     Timestamp,
 )
-from pandas.tslib import iNaT
 from six import (
     iteritems,
     string_types,
@@ -59,6 +58,7 @@ from zipline.data.bar_reader import (
     NoDataBeforeDate,
     NoDataOnDate,
 )
+from zipline.lib.tslib import iNaT
 from zipline.utils.calendars import get_calendar
 from zipline.utils.functional import apply
 from zipline.utils.preprocess import call

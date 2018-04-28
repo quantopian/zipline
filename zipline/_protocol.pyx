@@ -16,7 +16,6 @@ import warnings
 from contextlib import contextmanager
 from functools import wraps
 
-from pandas.tslib import normalize_date
 import pandas as pd
 import numpy as np
 
@@ -31,6 +30,7 @@ from zipline.assets import (
 from zipline.assets._assets cimport Asset, Future
 from zipline.assets.continuous_futures import ContinuousFuture
 from zipline.zipline_warnings import ZiplineDeprecationWarning
+from zipline.lib.tslib import normalize_date
 
 
 cdef bool _is_iterable(obj):

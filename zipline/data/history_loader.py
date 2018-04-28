@@ -21,13 +21,13 @@ from abc import (
 from numpy import concatenate
 from lru import LRU
 from pandas import isnull
-from pandas.tslib import normalize_date
 from toolz import sliding_window
 
 from six import with_metaclass
 
 from zipline.assets import Equity, Future
 from zipline.assets.continuous_futures import ContinuousFuture
+from zipline.lib.tslib import normalize_date
 from zipline.lib._int64window import AdjustedArrayWindow as Int64Window
 from zipline.lib._float64window import AdjustedArrayWindow as Float64Window
 from zipline.lib.adjustment import Float64Multiply, Float64Add

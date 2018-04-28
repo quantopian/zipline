@@ -511,12 +511,13 @@ class WithTradingEnvironment(WithAssetFinder,
             filename = get_benchmark_filename(symbol)
             source_path = os.path.join(cls.MARKET_DATA_DIR, filename)
             benchmark_returns = \
-                pd.Series.from_csv(source_path).tz_localize('UTC')
+                pd.read_csv(source_path, index_col=0, header=None, parse_dates=True,
+                            squeeze=True).tz_localize('UTC')
 
             filename = INDEX_MAPPING[symbol][1]
             source_path = os.path.join(cls.MARKET_DATA_DIR, filename)
             treasury_curves = \
-                pd.DataFrame.from_csv(source_path).tz_localize('UTC')
+                pd.read_csv(source_path, index_col=0, parse_dates=True).tz_localize('UTC')
 
             # The TradingEnvironment ordinarily uses cached benchmark returns
             # and treasury curves data, but when running the zipline tests this

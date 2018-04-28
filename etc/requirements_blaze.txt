@@ -5,7 +5,7 @@
 cytoolz==0.8.2
 
 # Transitive dependencies of blaze:
-dask[dataframe]==0.13.0
+dask[dataframe]>=0.13.0
 partd==0.3.7
 locket==0.2.0
 cloudpickle==0.2.1
@@ -17,4 +17,4 @@ MarkupSafe==0.23
 Werkzeug==0.10.4
 psutil==4.3.0
 
--e git://github.com/quantopian/blaze.git@310605323449e375e81a0cf04011c507cd126ef6#egg=blaze-dev
+blaze

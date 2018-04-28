@@ -27,6 +27,7 @@ from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.sources import SpecificEquityTrades
 from zipline.finance.trading import SimulationParameters
 from zipline.sources.test_source import create_trade
+from zipline.lib.tslib import normalize_date
 from zipline.utils.input_validation import expect_types
 from zipline.utils.calendars import get_calendar
 
@@ -113,9 +114,9 @@ def create_dividend(sid, payment, declared_date, ex_date, pay_date):
         'net_amount': payment,
         'payment_sid': None,
         'ratio': None,
-        'declared_date': pd.tslib.normalize_date(declared_date),
-        'ex_date': pd.tslib.normalize_date(ex_date),
-        'pay_date': pd.tslib.normalize_date(pay_date),
+        'declared_date': normalize_date(declared_date),
+        'ex_date': normalize_date(ex_date),
+        'pay_date': normalize_date(pay_date),
         'type': DATASOURCE_TYPE.DIVIDEND,
         'source_id': 'MockDividendSource'
     })
@@ -130,9 +131,9 @@ def create_stock_dividend(sid, payment_sid, ratio, declared_date,
         'ratio': ratio,
         'net_amount': None,
         'gross_amount': None,
-        'dt': pd.tslib.normalize_date(declared_date),
-        'ex_date': pd.tslib.normalize_date(ex_date),
-        'pay_date': pd.tslib.normalize_date(pay_date),
+        'dt': normalize_date(declared_date),
+        'ex_date': normalize_date(ex_date),
+        'pay_date': normalize_date(pay_date),
         'type': DATASOURCE_TYPE.DIVIDEND,
         'source_id': 'MockDividendSource'
     })

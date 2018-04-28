@@ -228,6 +228,8 @@ def run(ctx,
     if end is None:
         ctx.fail("must specify an end date with '-e' / '--end'")
 
+    if algotext == '':
+        algotext = None
     if (algotext is not None) == (algofile is not None):
         ctx.fail(
             "must specify exactly one of '-f' / '--algofile' or"
