@@ -21,7 +21,6 @@ import logbook
 import pytz
 import pandas as pd
 from contextlib2 import ExitStack
-from pandas.tseries.tools import normalize_date
 import numpy as np
 
 from itertools import chain, repeat
@@ -94,6 +93,7 @@ from zipline.pipeline.engine import (
     ExplodingPipelineEngine,
     SimplePipelineEngine,
 )
+from zipline.lib.tslib import normalize_date
 from zipline.utils.api_support import (
     api_method,
     require_initialized,
