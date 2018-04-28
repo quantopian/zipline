@@ -1,4 +1,4 @@
 try:
-    from pandas.tslib import iNaT, normalize_date, Timedelta
+    from pandas.tslib import iNaT, normalize_date, Timedelta, Timestamp
 except ImportError:
-    from pandas._libs.tslib import iNaT, normalize_date, Timedelta
+    from pandas._libs.tslib import iNaT, normalize_date, Timedelta, Timestamp
