@@ -77,6 +77,8 @@ class TradingEnvironment(object):
         bm_symbol='SPY',
         exchange_tz="US/Eastern",
         trading_calendar=None,
+        trading_day=None,
+        trading_days=None,
         asset_db_path=':memory:',
         future_chain_predicates=CHAIN_PREDICATES,
         environ=None,
@@ -86,12 +88,18 @@ class TradingEnvironment(object):
         if not load:
             load = partial(load_market_data, environ=environ)
 
-        if not trading_calendar:
-            trading_calendar = get_calendar("NYSE")
+        if trading_day is None:
+            if not trading_calendar:
+                trading_calendar = get_calendar("NYSE")
+            trading_day = trading_calendar.day
+        if trading_days is None:
+            if not trading_calendar:
+                trading_calendar = get_calendar("NYSE")
+            trading_days = trading_calendar.schedule.index
 
         self.benchmark_returns, self.treasury_curves = load(
-            trading_calendar.day,
-            trading_calendar.schedule.index,
+            trading_day,
+            trading_days,
             self.bm_symbol,
         )
 
