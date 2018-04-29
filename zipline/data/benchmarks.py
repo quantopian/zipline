@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import json
 import pandas as pd
 import requests
 
@@ -33,7 +32,7 @@ def get_benchmark_returns(symbol):
     r = requests.get(
         'https://api.iextrading.com/1.0/stock/{}/chart/5y'.format(symbol)
     )
-    data = json.loads(r.text)
+    data = r.json()
 
     df = pd.DataFrame(data)
 

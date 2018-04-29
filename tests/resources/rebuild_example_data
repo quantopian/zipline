@@ -86,7 +86,6 @@ def eof(*args, **kwargs):
     default=False,
     help="Should we rebuild the input data from Yahoo?",
 )
-
 @click.pass_context
 def main(ctx, rebuild_input):
     """Rebuild the perf data for test_examples
