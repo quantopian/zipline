@@ -2,10 +2,11 @@
 Tests for zipline.utils.memoize.
 """
 from collections import defaultdict
+from mock import Mock
 import gc
 from unittest import TestCase
 
-from zipline.utils.memoize import remember_last
+from zipline.utils.memoize import remember_last, lazyval, clear_cache_on_error
 
 
 class TestRememberLast(TestCase):
@@ -94,3 +95,24 @@ class TestRememberLast(TestCase):
 
         self.assertFalse([inst for inst in gc.get_objects()
                           if type(inst) == clz])
+
+    def test_clear_cache(self):
+
+        class MyClass(object):
+            return_vals = iter([
+                Mock(side_effect=[1, 2, KeyError()]),
+                Mock(side_effect=3)]
+            )
+
+            @lazyval
+            def cached_func(self):
+                return next(self.return_vals)
+
+            @clear_cache_on_error(KeyError, 'func1')
+            def myfunc(self):
+                return self.cached_func()()
+
+        obj = MyClass()
+        self.assertEqual(obj.myfunc(), 1)
+        self.assertEqual(obj.myfunc(), 2)
+        self.assertEqual(obj.myfunc(), 3)

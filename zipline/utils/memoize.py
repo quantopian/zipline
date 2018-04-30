@@ -90,6 +90,21 @@ class classlazyval(lazyval):
         return super(classlazyval, self).__get__(owner, owner)
 
 
+def clear_cache_on_error(error, key):
+    def wrap(f):
+        def wrapped_f(self, *args, **kwargs):
+            try:
+                return f(self, *args, **kwargs)
+            except error:
+                try:
+                    del getattr(type(self), key)[self]
+                except KeyError:
+                    pass
+                return f(self, *args, **kwargs)
+        return wrapped_f
+    return wrap
+
+
 def _weak_lru_cache(maxsize=100):
     """
     Users should only access the lru_cache through its public API:
