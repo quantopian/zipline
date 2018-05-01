@@ -45,8 +45,8 @@ from zipline.testing import (
     parameter_space,
 )
 from zipline.testing.fixtures import (
+    WithAssetFinder,
     WithSeededRandomPipelineEngine,
-    WithTradingEnvironment,
     ZiplineTestCase,
 )
 from zipline.testing.predicates import assert_equal
@@ -58,7 +58,7 @@ from zipline.utils.numpy_utils import (
 )
 
 
-class StatisticalBuiltInsTestCase(WithTradingEnvironment, ZiplineTestCase):
+class StatisticalBuiltInsTestCase(WithAssetFinder, ZiplineTestCase):
     sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
     START_DATE = Timestamp('2015-01-31', tz='UTC')
     END_DATE = Timestamp('2015-03-01', tz='UTC')

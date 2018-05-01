@@ -20,7 +20,7 @@ import numpy as np
 from zipline.utils import factory
 
 from zipline.finance.trading import SimulationParameters
-from zipline.testing.fixtures import WithTradingEnvironment, ZiplineTestCase
+from zipline.testing.fixtures import ZiplineTestCase
 
 from zipline.finance.metrics import _ClassicRiskMetrics as ClassicRiskMetrics
 
@@ -39,7 +39,7 @@ PERIODS = [
 ]
 
 
-class TestRisk(WithTradingEnvironment, ZiplineTestCase):
+class TestRisk(ZiplineTestCase):
 
     def init_instance_fixtures(self):
         super(TestRisk, self).init_instance_fixtures()

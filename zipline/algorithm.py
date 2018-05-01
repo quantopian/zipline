@@ -1,20 +1,5 @@
-#
-# Copyright 2015 Quantopian, Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from collections import Iterable
 from copy import copy
-import operator as op
 import warnings
 from datetime import tzinfo, time
 import logbook
@@ -25,21 +10,15 @@ from pandas.tseries.tools import normalize_date
 import numpy as np
 
 from itertools import chain, repeat
-from numbers import Integral
 
 from six import (
-    exec_,
     iteritems,
     itervalues,
     string_types,
-    viewkeys,
 )
 
+from zipline.protocol import BarData
 from zipline._protocol import handle_non_market_minutes
-from zipline.assets.synthetic import make_simple_equity_info
-from zipline.data.data_portal import DataPortal
-from zipline.data.resample import minute_panel_to_session_panel
-from zipline.data.us_equity_pricing import PanelBarReader
 from zipline.errors import (
     AttachPipelineAfterInitialize,
     CannotOrderDelistedAsset,
@@ -62,7 +41,6 @@ from zipline.errors import (
     UnsupportedDatetimeFormat,
     UnsupportedOrderParameters,
 )
-from zipline.finance.trading import TradingEnvironment
 from zipline.finance.blotter import Blotter
 from zipline.finance.controls import (
     LongOnly,
@@ -124,7 +102,6 @@ from zipline.utils.events import (
     AfterOpen,
     BeforeClose
 )
-from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.math_utils import (
     tolerant_equals,
     round_if_near_integer,
@@ -138,6 +115,8 @@ from zipline.sources.requests_csv import PandasRequestsCSV
 from zipline.gens.sim_engine import MinuteSimulationClock
 from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.zipline_warnings import ZiplineDeprecationWarning
+
+from ._horrors import _XXX_normalize_algorithm_namespace
 
 
 log = logbook.Logger("ZiplineLog")
@@ -172,29 +151,6 @@ class TradingAlgorithm(object):
     algo_filename : str, optional
         The filename for the algoscript. This will be used in exception
         tracebacks. default: '<string>'.
-    data_frequency : {'daily', 'minute'}, optional
-        The duration of the bars.
-    instant_fill : bool, optional
-        Whether to fill orders immediately or on next bar. default: False
-    equities_metadata : dict or DataFrame or file-like object, optional
-        If dict is provided, it must have the following structure:
-        * keys are the identifiers
-        * values are dicts containing the metadata, with the metadata
-          field name as the key
-        If pandas.DataFrame is provided, it must have the
-        following structure:
-        * column names must be the metadata fields
-        * index must be the different asset identifiers
-        * array contents should be the metadata value
-        If an object with a ``read`` method is provided, ``read`` must
-        return rows containing at least one of 'sid' or 'symbol' along
-        with the other metadata fields.
-    futures_metadata : dict or DataFrame or file-like object, optional
-        The same layout as ``equities_metadata`` except that it is used
-        for futures information.
-    identifiers : list, optional
-        Any asset identifiers that are not provided in the
-        equities_metadata, but will be traded by this TradingAlgorithm.
     get_pipeline_loader : callable[BoundColumn -> PipelineLoader], optional
         The function that maps pipeline columns to their loaders.
     create_event_context : callable[BarData -> context manager], optional
@@ -213,47 +169,35 @@ class TradingAlgorithm(object):
         The interface to the adjustments.
     """
 
-    def __init__(self, *args, **kwargs):
-        """Initialize sids and other state variables.
+    def __init__(self,
+                 data_portal,
+                 sim_params,
+                 # Algorithm API Functions
+                 namespace=None,
+                 script=None,
+                 algo_filename=None,
+                 initialize=None,
+                 handle_data=None,
+                 before_trading_start=None,
+                 analyze=None,
+                 # End Algorithm API Functions
+                 blotter=None,
+                 calendar=None,
+                 metrics_set=None,
+                 get_pipeline_loader=None,
+                 cancel_policy=None,
+                 create_event_context=None,
+                 benchmark_asset=None,
+                 capital_changes=None,
+                 benchmark_returns=None,
+                 platform='zipline',
+                 initialize_args=(),
+                 initialize_kwargs=None,
+                 restrictions=None):
 
-        :Arguments:
-        :Optional:
-            initialize : function
-                Function that is called with a single
-                argument at the begninning of the simulation.
-            handle_data : function
-                Function that is called with 2 arguments
-                (context and data) on every bar.
-            script : str
-                Algoscript that contains initialize and
-                handle_data function definition.
-            data_frequency : {'daily', 'minute'}
-               The duration of the bars.
-            capital_base : float <default: 1.0e5>
-               How much capital to start with.
-            asset_finder : An AssetFinder object
-                A new AssetFinder object to be used in this TradingEnvironment
-            equities_metadata : can be either:
-                            - dict
-                            - pandas.DataFrame
-                            - object with 'read' property
-                If dict is provided, it must have the following structure:
-                * keys are the identifiers
-                * values are dicts containing the metadata, with the metadata
-                  field name as the key
-                If pandas.DataFrame is provided, it must have the
-                following structure:
-                * column names must be the metadata fields
-                * index must be the different asset identifiers
-                * array contents should be the metadata value
-                If an object with a 'read' property is provided, 'read' must
-                return rows containing at least one of 'sid' or 'symbol' along
-                with the other metadata fields.
-            identifiers : List
-                Any asset identifiers that are not provided in the
-                equities_metadata, but will be traded by this TradingAlgorithm
-        """
-        self.sources = []
+        self.data_portal = data_portal
+        self.asset_finder = data_portal.asset_finder
+        self.sim_params = sim_params
 
         # List of trading controls to be used to validate orders.
         self.trading_controls = []
@@ -262,59 +206,22 @@ class TradingAlgorithm(object):
         self.account_controls = []
 
         self._recorded_vars = {}
-        self.namespace = kwargs.pop('namespace', {})
 
-        self._platform = kwargs.pop('platform', 'zipline')
-
+        self._platform = platform
         self.logger = None
 
-        self.data_portal = kwargs.pop('data_portal', None)
-
-        # If an env has been provided, pop it
-        self.trading_environment = kwargs.pop('env', None)
-
-        if self.trading_environment is None:
-            self.trading_environment = TradingEnvironment()
-
-        # Update the TradingEnvironment with the provided asset metadata
-        if 'equities_metadata' in kwargs or 'futures_metadata' in kwargs:
-            warnings.warn(
-                'passing metadata to TradingAlgorithm is deprecated; please'
-                ' write this data into the asset db before passing it to the'
-                ' trading environment',
-                DeprecationWarning,
-                stacklevel=1,
-            )
-            self.trading_environment.write_data(
-                equities=kwargs.pop('equities_metadata', None),
-                futures=kwargs.pop('futures_metadata', None),
-            )
-
-        # If a schedule has been provided, pop it. Otherwise, use NYSE.
-        self.trading_calendar = kwargs.pop(
-            'trading_calendar',
-            get_calendar('NYSE')
-        )
-
-        self.sim_params = kwargs.pop('sim_params', None)
-        if self.sim_params is None:
-            self.sim_params = create_simulation_parameters(
-                start=kwargs.pop('start', None),
-                end=kwargs.pop('end', None),
-                trading_calendar=self.trading_calendar,
-            )
+        # XXX: Support old code that wants to pass `data_portal` to `run`.
+        self.data_portal = data_portal
+        self.asset_finder = data_portal.asset_finder
+        self.trading_calendar = calendar or get_calendar('NYSE')
 
         self.metrics_tracker = None
         self._last_sync_time = pd.NaT
-        self._metrics_set = kwargs.pop('metrics_set', None)
-        if self._metrics_set is None:
-            self._metrics_set = load_metrics_set('default')
-
-        # Pull in the environment's new AssetFinder for quick reference
-        self.asset_finder = self.trading_environment.asset_finder
+        self._metrics_set = metrics_set or load_metrics_set('default')
 
         # Initialize Pipeline API data.
-        self.init_engine(kwargs.pop('get_pipeline_loader', None))
+        # XXX: We should just take a loader directly here.
+        self.init_engine(get_pipeline_loader)
         self._pipelines = {}
 
         # Create an already-expired cache so that we compute the first time
@@ -323,76 +230,38 @@ class TradingAlgorithm(object):
             cleanup=clear_dataframe_indexer_caches
         )
 
-        self.blotter = kwargs.pop('blotter', None)
-        self.cancel_policy = kwargs.pop('cancel_policy', NeverCancel())
+        # XXX: blotter should probably just be a required argument.
+        if blotter is not None and cancel_policy is not None:
+            raise ValueError("Can't pass both blotter and cancel_policy.")
+
+        self.blotter = blotter
         if not self.blotter:
             self.blotter = Blotter(
                 data_frequency=self.data_frequency,
-                # Default to NeverCancel in zipline
-                cancel_policy=self.cancel_policy,
+                cancel_policy=cancel_policy or NeverCancel(),
             )
 
         # The symbol lookup date specifies the date to use when resolving
         # symbols to sids, and can be set using set_symbol_lookup_date()
         self._symbol_lookup_date = None
 
-        # If string is passed in, execute and get reference to
-        # functions.
-        self.algoscript = kwargs.pop('script', None)
+        self.event_manager = EventManager(create_context=create_event_context)
 
-        self._initialize = None
-        self._before_trading_start = None
-        self._analyze = None
+        algo_funcs = _XXX_normalize_algorithm_namespace(
+            namespace=namespace,
+            algo_source=script,
+            algo_filename=algo_filename or '<string>',
+            initialize=initialize,
+            handle_data=handle_data,
+            before_trading_start=before_trading_start,
+            analyze=analyze,
+        )
+        self._initialize = algo_funcs['initialize']
+        self._handle_data = algo_funcs['handle_data']
+        self._before_trading_start = algo_funcs['before_trading_start']
+        self._analyze = algo_funcs['analyze']
 
         self._in_before_trading_start = False
-
-        self.event_manager = EventManager(
-            create_context=kwargs.pop('create_event_context', None),
-        )
-
-        self._handle_data = None
-
-        def noop(*args, **kwargs):
-            pass
-
-        if self.algoscript is not None:
-            api_methods = {
-                'initialize',
-                'handle_data',
-                'before_trading_start',
-                'analyze',
-            }
-            unexpected_api_methods = viewkeys(kwargs) & api_methods
-            if unexpected_api_methods:
-                raise ValueError(
-                    "TradingAlgorithm received a script and the following API"
-                    " methods as functions:\n{funcs}".format(
-                        funcs=unexpected_api_methods,
-                    )
-                )
-
-            filename = kwargs.pop('algo_filename', None)
-            if filename is None:
-                filename = '<string>'
-            code = compile(self.algoscript, filename, 'exec')
-            exec_(code, self.namespace)
-
-            self._initialize = self.namespace.get('initialize', noop)
-            self._handle_data = self.namespace.get('handle_data', noop)
-            self._before_trading_start = self.namespace.get(
-                'before_trading_start',
-            )
-            # Optional analyze function, gets called after run
-            self._analyze = self.namespace.get('analyze')
-
-        else:
-            self._initialize = kwargs.pop('initialize', noop)
-            self._handle_data = kwargs.pop('handle_data', noop)
-            self._before_trading_start = kwargs.pop(
-                'before_trading_start',
-                None,
-            )
-            self._analyze = kwargs.pop('analyze', None)
 
         self.event_manager.add_event(
             zipline.utils.events.Event(
@@ -404,26 +273,22 @@ class TradingAlgorithm(object):
             prepend=True,
         )
 
-        # Alternative way of setting data_frequency for backwards
-        # compatibility.
-        if 'data_frequency' in kwargs:
-            self.data_frequency = kwargs.pop('data_frequency')
+        self.benchmark_asset = benchmark_asset
+        self.benchmark_returns = benchmark_returns
 
         # Prepare the algo for initialization
         self.initialized = False
-        self.initialize_args = args
-        self.initialize_kwargs = kwargs
-
-        self.benchmark_sid = kwargs.pop('benchmark_sid', None)
+        self.initialize_args = initialize_args
+        self.initialize_kwargs = initialize_kwargs or {}
 
         # A dictionary of capital changes, keyed by timestamp, indicating the
         # target/delta of the capital changes, along with values
-        self.capital_changes = kwargs.pop('capital_changes', {})
+        self.capital_changes = capital_changes or {}
 
         # A dictionary of the actual capital change deltas, keyed by timestamp
         self.capital_change_deltas = {}
 
-        self.restrictions = NoRestrictions()
+        self.restrictions = restrictions or NoRestrictions()
 
     def init_engine(self, get_loader):
         """
@@ -542,22 +407,13 @@ class TradingAlgorithm(object):
         )
 
     def _create_benchmark_source(self):
-        if self.benchmark_sid is not None:
-            benchmark_asset = self.asset_finder.retrieve_asset(
-                self.benchmark_sid)
-            benchmark_returns = None
-        else:
-            benchmark_asset = None
-            # get benchmark info from trading environment, which defaults to
-            # downloading data from IEX Trading.
-            benchmark_returns = self.trading_environment.benchmark_returns
         return BenchmarkSource(
-            benchmark_asset=benchmark_asset,
+            benchmark_asset=self.benchmark_asset,
             trading_calendar=self.trading_calendar,
             sessions=self.sim_params.sessions,
             data_portal=self.data_portal,
             emission_rate=self.sim_params.emission_rate,
-            benchmark_returns=benchmark_returns,
+            benchmark_returns=self._benchmark_returns,
         )
 
     def _create_metrics_tracker(self):
@@ -572,11 +428,22 @@ class TradingAlgorithm(object):
             metrics=self._metrics_set,
         )
 
-    def _create_generator(self, sim_params):
-        if sim_params is not None:
-            self.sim_params = sim_params
+    def _create_bar_data(self):
+        return BarData(
+            data_portal=self.data_portal,
+            simulation_dt_func=self.get_simulation_dt,
+            data_frequency=self.sim_params.data_frequency,
+            trading_calendar=self.algo.trading_calendar,
+            restrictions=self.restrictions,
+            universe_func=self._calculate_universe,
+        )
 
+    def _create_generator(self, sim_params):
+        self.sim_params = sim_params
+        # XXX: These are stored on self because they're needed in various
+        # places during the simulation. They're reset in `run()`.
         self.metrics_tracker = metrics_tracker = self._create_metrics_tracker()
+        self.bar_data = bar_data = self._create_bar_data()
 
         # Set the dt initially to the period start by forcing it to change.
         self.on_dt_changed(self.sim_params.start_session)
@@ -585,19 +452,16 @@ class TradingAlgorithm(object):
             self.initialize(*self.initialize_args, **self.initialize_kwargs)
             self.initialized = True
 
-        benchmark_source = self._create_benchmark_source()
-
         self.trading_client = AlgorithmSimulator(
-            self,
-            sim_params,
-            self.data_portal,
-            self._create_clock(),
-            benchmark_source,
-            self.restrictions,
-            universe_func=self._calculate_universe
+            algo=self,
+            clock=self._create_clock(),
+            bar_data=bar_data,
+            data_portal=self._data_portal,
         )
 
+        benchmark_source = self._create_benchmark_source()
         metrics_tracker.handle_start_of_simulation(benchmark_source)
+
         return self.trading_client.transform()
 
     def _calculate_universe(self):
@@ -608,6 +472,9 @@ class TradingAlgorithm(object):
         # our universe is all the assets passed into `run`.
         return self._assets_from_source
 
+    def _assets_from_source(self):
+        return self._asset_finder.retrieve_all(self.asset_finder.sids)
+
     def get_generator(self):
         """
         Override this method to add new logic to the construction
@@ -616,112 +483,13 @@ class TradingAlgorithm(object):
         """
         return self._create_generator(self.sim_params)
 
-    def run(self, data=None, overwrite_sim_params=True):
+    def run(self):
         """Run the algorithm.
-
-        :Arguments:
-            source : DataPortal
-
-        :Returns:
-            daily_stats : pandas.DataFrame
-              Daily performance metrics such as returns, alpha etc.
-
         """
-        self._assets_from_source = []
-
-        if isinstance(data, DataPortal):
-            self.data_portal = data
-
-            # define the universe as all the assets in the assetfinder
-            # This is not great, because multiple runs can accumulate assets
-            # in the assetfinder, but it's better than spending time adding
-            # functionality in the dataportal to report all the assets it
-            # knows about.
-            self._assets_from_source = \
-                self.trading_environment.asset_finder.retrieve_all(
-                    self.trading_environment.asset_finder.sids
-                )
-
-        else:
-            if isinstance(data, pd.DataFrame):
-                # If a DataFrame is passed. Promote it to a Panel.
-                # The reader will fake volume values.
-                data = pd.Panel({'close': data.copy()})
-                data = data.swapaxes(0, 2)
-
-            if isinstance(data, pd.Panel):
-                # Guard against tz-naive index.
-                if data.major_axis.tz is None:
-                    data.major_axis = data.major_axis.tz_localize('UTC')
-
-                # For compatibility with existing examples allow start/end
-                # to be inferred.
-                if overwrite_sim_params:
-                    self.sim_params = self.sim_params.create_new(
-                        self.trading_calendar.minute_to_session_label(
-                            data.major_axis[0]
-                        ),
-                        self.trading_calendar.minute_to_session_label(
-                            data.major_axis[-1]
-                        ),
-                    )
-
-                    # Assume data is daily if timestamp times are
-                    # standardized, otherwise assume minute bars.
-                    times = data.major_axis.time
-                    if np.all(times == times[0]):
-                        self.sim_params.data_frequency = 'daily'
-                    else:
-                        self.sim_params.data_frequency = 'minute'
-
-                copy_panel = data.rename(
-                    # These were the old names for the close/open columns.  We
-                    # need to make a copy anyway, so swap these for backwards
-                    # compat while we're here.
-                    minor_axis={'close_price': 'close', 'open_price': 'open'},
-                    copy=True,
-                )
-                copy_panel.items = self._write_and_map_id_index_to_sids(
-                    copy_panel.items, copy_panel.major_axis[0],
-                )
-                self._assets_from_source = (
-                    self.asset_finder.retrieve_all(
-                        copy_panel.items
-                    )
-                )
-
-                equity_reader = PanelBarReader(
-                    self.trading_calendar,
-                    copy_panel,
-                    self.sim_params.data_frequency,
-                )
-                if self.sim_params.data_frequency == 'daily':
-                    equity_readers = {
-                        'equity_daily_reader': equity_reader,
-                    }
-                elif self.sim_params.data_frequency == 'minute':
-                    equity_readers = {
-                        'equity_minute_reader': equity_reader,
-                        'equity_daily_reader': PanelBarReader(
-                            self.trading_calendar,
-                            minute_panel_to_session_panel(
-                                copy_panel,
-                                self.trading_calendar,
-                            ),
-                            'daily',
-                        ),
-                    }
-
-                self.data_portal = DataPortal(
-                    self.asset_finder,
-                    self.trading_calendar,
-                    first_trading_day=equity_reader.first_trading_day,
-                    **equity_readers
-                )
-
         # Force a reset of the metrics tracker, in case
         # this is a repeat run of the algorithm.
         self.metrics_tracker = None
+        self.bar_data = None
 
         # Create zipline and loop through simulated_trading.
         # Each iteration returns a perf dictionary
@@ -735,115 +503,10 @@ class TradingAlgorithm(object):
 
             self.analyze(daily_stats)
         finally:
-            self.data_portal = None
             self.metrics_tracker = None
+            self.bar_data = None
 
         return daily_stats
-
-    def _write_and_map_id_index_to_sids(self, identifiers, as_of_date):
-        # Build new Assets for identifiers that can't be resolved as
-        # sids/Assets
-        def is_unknown(asset_or_sid):
-            sid = op.index(asset_or_sid)
-            return self.asset_finder.retrieve_asset(
-                sid=sid,
-                default_none=True
-            ) is None
-
-        new_assets = set()
-        new_sids = set()
-        new_symbols = set()
-        for identifier in identifiers:
-            if isinstance(identifier, Asset) and is_unknown(identifier):
-                new_assets.add(identifier)
-            elif isinstance(identifier, Integral) and is_unknown(identifier):
-                new_sids.add(identifier)
-            elif isinstance(identifier, (string_types)):
-                new_symbols.add(identifier)
-            else:
-                try:
-                    new_sids.add(op.index(identifier))
-                except TypeError:
-                    raise TypeError(
-                        "Can't convert %s to an asset." % identifier
-                    )
-
-        new_assets = tuple(new_assets)
-        new_sids = tuple(new_sids)
-        new_symbols = tuple(new_symbols)
-
-        number_of_kinds_of_new_things = (
-            sum((bool(new_assets), bool(new_sids), bool(new_symbols)))
-        )
-
-        # Nothing to insert, bail early.
-        if not number_of_kinds_of_new_things:
-            return self.asset_finder.map_identifier_index_to_sids(
-                identifiers, as_of_date,
-            )
-        elif number_of_kinds_of_new_things == 1:
-            warnings.warn(
-                'writing unknown identifiers into the assets db of the trading'
-                ' environment is deprecated; please write this information'
-                ' to the assets db before constructing the environment',
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            raise ValueError(
-                "Mixed types in DataFrame or Panel index.\n"
-                "Asset Count: %d, Sid Count: %d, Symbol Count: %d.\n"
-                "Choose one type and stick with it." % (
-                    len(new_assets),
-                    len(new_sids),
-                    len(new_symbols),
-                )
-            )
-
-        def map_getattr(iterable, attr):
-            return [getattr(i, attr) for i in iterable]
-
-        if new_assets:
-            frame_to_write = pd.DataFrame(
-                data=dict(
-                    symbol=map_getattr(new_assets, 'symbol'),
-                    start_date=map_getattr(new_assets, 'start_date'),
-                    end_date=map_getattr(new_assets, 'end_date'),
-                    exchange=map_getattr(new_assets, 'exchange'),
-                ),
-                index=map_getattr(new_assets, 'sid'),
-            )
-        elif new_sids:
-            frame_to_write = make_simple_equity_info(
-                new_sids,
-                start_date=self.sim_params.start_session,
-                end_date=self.sim_params.end_session,
-                symbols=map(str, new_sids),
-            )
-        elif new_symbols:
-            existing_sids = self.asset_finder.sids
-            first_sid = max(existing_sids) + 1 if existing_sids else 0
-            fake_sids = range(first_sid, first_sid + len(new_symbols))
-            frame_to_write = make_simple_equity_info(
-                sids=fake_sids,
-                start_date=as_of_date,
-                end_date=self.sim_params.end_session,
-                symbols=new_symbols,
-            )
-        else:
-            raise AssertionError("This should never happen.")
-
-        self.trading_environment.write_data(equities=frame_to_write)
-
-        # We need to clear out any cache misses that were stored while trying
-        # to do lookups.  The real fix for this problem is to not construct an
-        # AssetFinder until we `run()` when we actually have all the data we
-        # need to so.
-        self.asset_finder._reset_caches()
-
-        return self.asset_finder.map_identifier_index_to_sids(
-            identifiers, as_of_date,
-        )
 
     def _create_daily_stats(self, perfs):
         # create daily and cumulative stats dataframe
@@ -1181,7 +844,7 @@ class TradingAlgorithm(object):
         if self.initialized:
             raise SetBenchmarkOutsideInitialize()
 
-        self.benchmark_sid = benchmark
+        self.benchmark_asset = benchmark
 
     @api_method
     @preprocess(symbol_str=ensure_upper_case)
@@ -1347,7 +1010,7 @@ class TradingAlgorithm(object):
             )
         else:
             last_price = \
-                self.trading_client.current_data.current(asset, "price")
+                self._bar_data.current(asset, "price")
 
             if np.isnan(last_price):
                 raise CannotOrderDelistedAsset(
@@ -1512,7 +1175,7 @@ class TradingAlgorithm(object):
                              amount,
                              self.portfolio,
                              self.get_datetime(),
-                             self.trading_client.current_data)
+                             self._bar_data)
 
     @staticmethod
     def __convert_order_params_for_blotter(limit_price, stop_price, style):
@@ -2215,7 +1878,7 @@ class TradingAlgorithm(object):
             control.validate(self.portfolio,
                              self.account,
                              self.get_datetime(),
-                             self.trading_client.current_data)
+                             self.bar_data)
 
     @api_method
     def set_max_leverage(self, max_leverage):

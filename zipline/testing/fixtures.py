@@ -1827,8 +1827,8 @@ class WithMakeAlgo(WithSimParams,
             overrides,
         )
 
-    def make_algo(self, **overrides):
-        return TradingAlgorithm(**self.make_algo_kwargs(**overrides))
+    def make_algo(self, algo_class=TradingAlgorithm, **overrides):
+        return algo_class(**self.make_algo_kwargs(**overrides))
 
     def run_algorithm(self, **overrides):
         """

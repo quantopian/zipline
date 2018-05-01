@@ -1,4 +1,3 @@
-#
 # Copyright 2015 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +15,6 @@ from contextlib2 import ExitStack
 from copy import copy
 from logbook import Logger, Processor
 from zipline.finance.order import ORDER_STATUS
-from zipline.protocol import BarData
 from zipline.utils.api_support import ZiplineAPI
 from six import viewkeys
 
@@ -38,62 +36,18 @@ class AlgorithmSimulator(object):
         'daily': 'daily_perf'
     }
 
-    def __init__(self, algo, sim_params, data_portal, clock, benchmark_source,
-                 restrictions, universe_func):
-
-        # ==============
-        # Simulation
-        # Param Setup
-        # ==============
-        self.sim_params = sim_params
-        self.env = algo.trading_environment
-        self.data_portal = data_portal
-        self.restrictions = restrictions
-
-        # ==============
-        # Algo Setup
-        # ==============
+    def __init__(self, algo, clock, bar_data, data_portal):
         self.algo = algo
-
-        # ==============
-        # Snapshot Setup
-        # ==============
-
-        # This object is the way that user algorithms interact with OHLCV data,
-        # fetcher data, and some API methods like `data.can_trade`.
-        self.current_data = self._create_bar_data(universe_func)
-
-        # We don't have a datetime for the current snapshot until we
-        # receive a message.
-        self.simulation_dt = None
-
         self.clock = clock
-
-        self.benchmark_source = benchmark_source
-
-        # =============
-        # Logging Setup
-        # =============
+        self.bar_data = bar_data
+        self.data_portal = data_portal
 
         # Processor function for injecting the algo_dt into
         # user prints/logs.
         def inject_algo_dt(record):
             if 'algo_dt' not in record.extra:
-                record.extra['algo_dt'] = self.simulation_dt
+                record.extra['algo_dt'] = self.algo.get_datetime()
         self.processor = Processor(inject_algo_dt)
-
-    def get_simulation_dt(self):
-        return self.simulation_dt
-
-    def _create_bar_data(self, universe_func):
-        return BarData(
-            data_portal=self.data_portal,
-            simulation_dt_func=self.get_simulation_dt,
-            data_frequency=self.sim_params.data_frequency,
-            trading_calendar=self.algo.trading_calendar,
-            restrictions=self.restrictions,
-            universe_func=universe_func
-        )
 
     def transform(self):
         """
@@ -108,7 +62,6 @@ class AlgorithmSimulator(object):
             for capital_change in calculate_minute_capital_changes(dt_to_use):
                 yield capital_change
 
-            self.simulation_dt = dt_to_use
             # called every tick (minute or day).
             algo.on_dt_changed(dt_to_use)
 
@@ -152,7 +105,6 @@ class AlgorithmSimulator(object):
                 yield capital_change
 
             # set all the timestamps
-            self.simulation_dt = midnight_dt
             algo.on_dt_changed(midnight_dt)
 
             metrics_tracker.handle_market_open(
@@ -177,8 +129,7 @@ class AlgorithmSimulator(object):
             # Remove references to algo, data portal, et al to break cycles
             # and ensure deterministic cleanup of these objects when the
             # simulation finishes.
-            self.algo = None
-            self.benchmark_source = self.current_data = self.data_portal = None
+            self.__dict__.clear()
 
         with ExitStack() as stack:
             stack.callback(on_exit)
@@ -219,7 +170,6 @@ class AlgorithmSimulator(object):
 
                     yield self._get_daily_message(dt, algo, metrics_tracker)
                 elif action == BEFORE_TRADING_START_BAR:
-                    self.simulation_dt = dt
                     algo.on_dt_changed(dt)
                     algo.before_trading_start(self.current_data)
                 elif action == MINUTE_END:

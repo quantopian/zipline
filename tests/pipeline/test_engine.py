@@ -77,9 +77,9 @@ from zipline.testing import (
 )
 from zipline.testing.fixtures import (
     WithAdjustmentReader,
+    WithAssetFinder,
     WithEquityPricingPipelineEngine,
     WithSeededRandomPipelineEngine,
-    WithTradingEnvironment,
     ZiplineTestCase,
 )
 from zipline.testing.predicates import assert_equal
@@ -168,7 +168,7 @@ class RollingSumSum(CustomFactor):
         out[:] = sum(inputs).sum(axis=0)
 
 
-class WithConstantInputs(WithTradingEnvironment):
+class WithConstantInputs(WithAssetFinder):
     asset_ids = ASSET_FINDER_EQUITY_SIDS = 1, 2, 3, 4
     START_DATE = Timestamp('2014-01-01', tz='utc')
     END_DATE = Timestamp('2014-03-01', tz='utc')
@@ -815,7 +815,7 @@ class ConstantInputTestCase(WithConstantInputs, ZiplineTestCase):
                                                   Loader2DataSet.col2)})
 
 
-class FrameInputTestCase(WithTradingEnvironment, ZiplineTestCase):
+class FrameInputTestCase(WithAssetFinder, ZiplineTestCase):
     asset_ids = ASSET_FINDER_EQUITY_SIDS = 1, 2, 3
     start = START_DATE = Timestamp('2015-01-01', tz='utc')
     end = END_DATE = Timestamp('2015-01-31', tz='utc')
