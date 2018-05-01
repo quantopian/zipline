@@ -646,7 +646,10 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         """
         Negative bar counts leak future information.
         """
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegexp(
+                ValueError,
+                "bar_count must be >= 1, but got -1"
+        ):
             self.data_portal.get_history_window(
                 [self.ASSET1],
                 pd.Timestamp('2015-01-07 14:35', tz='UTC'),
