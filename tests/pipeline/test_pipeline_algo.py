@@ -647,7 +647,7 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
         # Do the same checks in before_trading_start
         before_trading_start = handle_data
 
-        algo = self.make_algo(
+        self.run_algorithm(
             initialize=initialize,
             handle_data=handle_data,
             before_trading_start=before_trading_start,
@@ -658,13 +658,6 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
                 emission_rate='daily',
                 trading_calendar=self.trading_calendar,
             )
-        )
-
-        algo.run(
-            FakeDataPortal(self.env),
-            # Yes, I really do want to use the start and end dates I passed to
-            # self.make_algo.
-            overwrite_sim_params=False,
         )
 
     def test_empty_pipeline(self):
