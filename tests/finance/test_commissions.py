@@ -4,7 +4,6 @@ from textwrap import dedent
 from nose_parameterized import parameterized
 from pandas import DataFrame
 
-from zipline import TradingAlgorithm
 from zipline.assets import Equity, Future
 from zipline.errors import IncompatibleCommissionModel
 from zipline.finance.commission import (
@@ -20,11 +19,7 @@ from zipline.finance.commission import (
 from zipline.finance.order import Order
 from zipline.finance.transaction import Transaction
 from zipline.testing import ZiplineTestCase, trades_by_sid_to_dfs
-from zipline.testing.fixtures import (
-    WithAssetFinder,
-    WithSimParams,
-    WithDataPortal
-)
+from zipline.testing.fixtures import WithAssetFinder, WithMakeAlgo
 from zipline.utils import factory
 
 
@@ -299,9 +294,10 @@ class CommissionUnitTests(WithAssetFinder, ZiplineTestCase):
         self.assertAlmostEqual(15.3, model.calculate(order, txns[2]))
 
 
-class CommissionAlgorithmTests(WithDataPortal, WithSimParams, ZiplineTestCase):
+class CommissionAlgorithmTests(WithMakeAlgo, ZiplineTestCase):
     # make sure order commissions are properly incremented
-
+    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    DATA_PORTAL_USE_MINUTE_DATA = False
     sidint, = ASSET_FINDER_EQUITY_SIDS = (133,)
 
     code = dedent(
@@ -363,13 +359,7 @@ class CommissionAlgorithmTests(WithDataPortal, WithSimParams, ZiplineTestCase):
         )
 
     def get_results(self, algo_code):
-        algo = TradingAlgorithm(
-            script=algo_code,
-            env=self.env,
-            sim_params=self.sim_params
-        )
-
-        return algo.run(self.data_portal)
+        return self.run_algorithm(script=algo_code)
 
     def test_per_trade(self):
         results = self.get_results(
