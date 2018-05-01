@@ -297,7 +297,9 @@ class CommissionUnitTests(WithAssetFinder, ZiplineTestCase):
 class CommissionAlgorithmTests(WithMakeAlgo, ZiplineTestCase):
     # make sure order commissions are properly incremented
     SIM_PARAMS_DATA_FREQUENCY = 'daily'
-    DATA_PORTAL_USE_MINUTE_DATA = False
+
+    # NOTE: This is required to use futures data with WithDataPortal right now.
+    DATA_PORTAL_USE_MINUTE_DATA = True
     sidint, = ASSET_FINDER_EQUITY_SIDS = (133,)
 
     code = dedent(
@@ -342,21 +344,20 @@ class CommissionAlgorithmTests(WithMakeAlgo, ZiplineTestCase):
 
     @classmethod
     def make_equity_daily_bar_data(cls):
-        num_days = len(cls.sim_params.sessions)
-
-        return trades_by_sid_to_dfs(
-            {
-                cls.sidint: factory.create_trade_history(
-                    cls.sidint,
-                    [10.0] * num_days,
-                    [100.0] * num_days,
-                    timedelta(days=1),
-                    cls.sim_params,
-                    trading_calendar=cls.trading_calendar,
-                ),
-            },
-            index=cls.sim_params.sessions,
+        sessions = cls.trading_calendar.sessions_in_range(
+            cls.START_DATE, cls.END_DATE,
         )
+        for sid in cls.ASSET_FINDER_EQUITY_SIDS:
+            yield sid, DataFrame(
+                index=sessions,
+                data={
+                    'open': 10.0,
+                    'high': 10.0,
+                    'low': 10.0,
+                    'close': 10.0,
+                    'volume': 100.0
+                }
+            )
 
     def get_results(self, algo_code):
         return self.run_algorithm(script=algo_code)
