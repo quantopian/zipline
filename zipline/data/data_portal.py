@@ -951,6 +951,11 @@ class DataPortal(object):
         if field not in OHLCVP_FIELDS and field != 'sid':
             raise ValueError("Invalid field: {0}".format(field))
 
+        if bar_count < 1:
+            raise ValueError(
+                "bar_count must be >= 1, but got {}".format(bar_count)
+            )
+
         if frequency == "1d":
             if field == "price":
                 df = self._get_history_daily_window(assets, end_dt, bar_count,

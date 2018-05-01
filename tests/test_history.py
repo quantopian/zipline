@@ -642,6 +642,20 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         with self.assertRaises(HistoryInInitialize):
             test_algo.initialize()
 
+    def test_negative_bar_count(self):
+        """
+        Negative bar counts leak future information.
+        """
+        with self.assertRaises(ValueError):
+            self.data_portal.get_history_window(
+                [self.ASSET1],
+                pd.Timestamp('2015-01-07 14:35', tz='UTC'),
+                -1,
+                '1d',
+                'close',
+                'minute',
+            )
+
     def test_daily_splits_and_mergers(self):
         # self.SPLIT_ASSET and self.MERGER_ASSET had splits/mergers
         # on 1/6 and 1/7
