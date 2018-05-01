@@ -1,4 +1,3 @@
-from datetime import timedelta
 from textwrap import dedent
 
 from nose_parameterized import parameterized
@@ -18,9 +17,8 @@ from zipline.finance.commission import (
 )
 from zipline.finance.order import Order
 from zipline.finance.transaction import Transaction
-from zipline.testing import ZiplineTestCase, trades_by_sid_to_dfs
+from zipline.testing import ZiplineTestCase
 from zipline.testing.fixtures import WithAssetFinder, WithMakeAlgo
-from zipline.utils import factory
 
 
 class CommissionUnitTests(WithAssetFinder, ZiplineTestCase):
