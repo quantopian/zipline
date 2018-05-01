@@ -53,10 +53,7 @@ from zipline.pipeline.loaders.equity_pricing_loader import (
 from zipline.testing import (
     str_to_seconds
 )
-from zipline.testing import (
-    create_empty_splits_mergers_frame,
-    FakeDataPortal,
-)
+from zipline.testing import create_empty_splits_mergers_frame
 from zipline.testing.fixtures import (
     WithMakeAlgo,
     WithAdjustmentReader,
