@@ -7,6 +7,8 @@ from six import (
     with_metaclass,
 )
 
+from toolz import first
+
 from zipline.pipeline.classifiers import Classifier, Latest as LatestClassifier
 from zipline.pipeline.factors import Factor, Latest as LatestFactor
 from zipline.pipeline.filters import Filter, Latest as LatestFilter
@@ -26,9 +28,15 @@ class Column(object):
     An abstract column of data, not yet associated with a dataset.
     """
     @preprocess(dtype=ensure_dtype)
-    def __init__(self, dtype, missing_value=NotSpecified):
+    def __init__(self,
+                 dtype,
+                 missing_value=NotSpecified,
+                 doc=None,
+                 metadata=None):
         self.dtype = dtype
         self.missing_value = missing_value
+        self.doc = doc
+        self.metadata = metadata.copy() if metadata is not None else {}
 
     def bind(self, name):
         """
@@ -38,6 +46,8 @@ class Column(object):
             dtype=self.dtype,
             missing_value=self.missing_value,
             name=name,
+            doc=self.doc,
+            metadata=self.metadata,
         )
 
 
@@ -49,7 +59,7 @@ class _BoundColumnDescr(object):
     This exists so that subclasses of DataSets don't share columns with their
     parent classes.
     """
-    def __init__(self, dtype, missing_value, name):
+    def __init__(self, dtype, missing_value, name, doc, metadata):
         # Validating and calculating default missing values here guarantees
         # that we fail quickly if the user passes an unsupporte dtype or fails
         # to provide a missing value for a dtype that requires one
@@ -71,6 +81,8 @@ class _BoundColumnDescr(object):
                 " dtype.".format(dtype=dtype, name=name)
             )
         self.name = name
+        self.doc = doc
+        self.metadata = metadata
 
     def __get__(self, instance, owner):
         """
@@ -84,6 +96,8 @@ class _BoundColumnDescr(object):
             missing_value=self.missing_value,
             dataset=owner,
             name=self.name,
+            doc=self.doc,
+            metadata=self.metadata,
         )
 
 
@@ -110,11 +124,13 @@ class BoundColumn(LoadableTerm):
         The dataset to which this column is bound.
     name : str
         The name of this column.
+    metadata : dict
+        Extra metadata associated with this column.
     """
     mask = AssetExists()
     window_safe = True
 
-    def __new__(cls, dtype, missing_value, dataset, name):
+    def __new__(cls, dtype, missing_value, dataset, name, doc, metadata):
         return super(BoundColumn, cls).__new__(
             cls,
             domain=dataset.domain,
@@ -123,19 +139,25 @@ class BoundColumn(LoadableTerm):
             dataset=dataset,
             name=name,
             ndim=dataset.ndim,
+            doc=doc,
+            metadata=metadata,
         )
 
-    def _init(self, dataset, name, *args, **kwargs):
+    def _init(self, dataset, name, doc, metadata, *args, **kwargs):
         self._dataset = dataset
         self._name = name
+        self.__doc__ = doc
+        self._metadata = metadata
         return super(BoundColumn, self)._init(*args, **kwargs)
 
     @classmethod
-    def _static_identity(cls, dataset, name, *args, **kwargs):
+    def _static_identity(cls, dataset, name, doc, metadata, *args, **kwargs):
         return (
             super(BoundColumn, cls)._static_identity(*args, **kwargs),
             dataset,
             name,
+            doc,
+            frozenset(sorted(metadata.items(), key=first)),
         )
 
     @property
@@ -151,6 +173,13 @@ class BoundColumn(LoadableTerm):
         The name of this column.
         """
         return self._name
+
+    @property
+    def metadata(self):
+        """
+        A copy of the metadata for this column.
+        """
+        return self._metadata.copy()
 
     @property
     def qualname(self):
@@ -186,6 +215,7 @@ class BoundColumn(LoadableTerm):
         )
 
     def short_repr(self):
+        """Short repr to use when rendering Pipeline graphs."""
         return self.qualname
 
 

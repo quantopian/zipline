@@ -28,10 +28,10 @@ from pandas import (
 )
 from pandas.tseries.offsets import CustomBusinessDay
 from zipline.utils.calendars._calendar_helpers import (
+    compute_all_minutes,
+    is_open,
     next_divider_idx,
     previous_divider_idx,
-    is_open,
-    minutes_to_session_labels,
 )
 from zipline.utils.input_validation import (
     attrgetter,
@@ -39,6 +39,8 @@ from zipline.utils.input_validation import (
     preprocess,
 )
 from zipline.utils.memoize import lazyval
+from zipline.utils.pandas_utils import days_at_time
+
 
 start_default = pd.Timestamp('1990-01-01', tz='UTC')
 end_base = pd.Timestamp('today', tz='UTC')
@@ -460,7 +462,43 @@ class TradingCalendar(with_metaclass(ABCMeta)):
         pd.DateTimeIndex
             All the minutes for the given session.
         """
-        return self.minutes_in_range(*self.schedule.loc[session_label])
+        return self.minutes_in_range(
+            start_minute=self.schedule.at[session_label, 'market_open'],
+            end_minute=self.schedule.at[session_label, 'market_close'],
+        )
+
+    def execution_minutes_for_session(self, session_label):
+        """
+        Given a session label, return the execution minutes for that session.
+
+        Parameters
+        ----------
+        session_label: pd.Timestamp (midnight UTC)
+            A session label whose session's minutes are desired.
+
+        Returns
+        -------
+        pd.DateTimeIndex
+            All the execution minutes for the given session.
+        """
+        return self.minutes_in_range(
+            start_minute=self.execution_time_from_open(
+                self.schedule.at[session_label, 'market_open'],
+            ),
+            end_minute=self.execution_time_from_close(
+                self.schedule.at[session_label, 'market_close'],
+            ),
+        )
+
+    def execution_minutes_for_sessions_in_range(self, start, stop):
+        minutes = self.execution_minutes_for_session
+        return pd.DatetimeIndex(
+            np.concatenate([
+                minutes(session)
+                for session in self.sessions_in_range(start, stop)
+            ]),
+            tz='UTC',
+        )
 
     def minutes_window(self, start_dt, count):
         start_dt_nanos = start_dt.value
@@ -536,32 +574,40 @@ class TradingCalendar(with_metaclass(ABCMeta)):
 
     def session_distance(self, start_session_label, end_session_label):
         """
-        Given a start and end session label, returns the distance between
-        them.  For example, for three consecutive sessions Mon., Tues., and
-        Wed, `session_distance(Mon, Wed)` would return 2.
+        Given a start and end session label, returns the distance between them.
+        For example, for three consecutive sessions Mon., Tues., and Wed,
+        ``session_distance(Mon, Wed)`` returns 3. If ``start_session`` is after
+        ``end_session``, the value will be negated.
 
         Parameters
         ----------
         start_session_label: pd.Timestamp
             The label of the start session.
-
         end_session_label: pd.Timestamp
-            The label of the ending session.
+            The label of the ending session inclusive.
 
         Returns
         -------
         int
             The distance between the two sessions.
         """
-        start_idx = self.all_sessions.searchsorted(
-            self.minute_to_session_label(start_session_label)
-        )
-
+        negate = end_session_label < start_session_label
+        if negate:
+            start_session_label, end_session_label = (
+                end_session_label,
+                start_session_label,
+            )
+        start_idx = self.all_sessions.searchsorted(start_session_label)
         end_idx = self.all_sessions.searchsorted(
-            self.minute_to_session_label(end_session_label)
+            end_session_label,
+            side='right',
         )
 
-        return abs(end_idx - start_idx)
+        out = end_idx - start_idx
+        if negate:
+            out = -out
+
+        return out
 
     def minutes_in_range(self, start_minute, end_minute):
         """
@@ -595,7 +641,8 @@ class TradingCalendar(with_metaclass(ABCMeta)):
 
         return self.all_minutes[start_idx:end_idx]
 
-    def minutes_for_sessions_in_range(self, start_session_label,
+    def minutes_for_sessions_in_range(self,
+                                      start_session_label,
                                       end_session_label):
         """
         Returns all the minutes for all the sessions from the given start
@@ -635,13 +682,39 @@ class TradingCalendar(with_metaclass(ABCMeta)):
         (Timestamp, Timestamp)
             The open and close for the given session.
         """
-        o_and_c = self.schedule.loc[session_label]
+        sched = self.schedule
 
         # `market_open` and `market_close` should be timezone aware, but pandas
         # 0.16.1 does not appear to support this:
         # http://pandas.pydata.org/pandas-docs/stable/whatsnew.html#datetime-with-tz  # noqa
-        return (o_and_c['market_open'].tz_localize('UTC'),
-                o_and_c['market_close'].tz_localize('UTC'))
+        return (
+            sched.at[session_label, 'market_open'].tz_localize('UTC'),
+            sched.at[session_label, 'market_close'].tz_localize('UTC'),
+        )
+
+    def session_open(self, session_label):
+        return self.schedule.at[
+            session_label,
+            'market_open'
+        ].tz_localize('UTC')
+
+    def session_close(self, session_label):
+        return self.schedule.at[
+            session_label,
+            'market_close'
+        ].tz_localize('UTC')
+
+    def session_opens_in_range(self, start_session_label, end_session_label):
+        return self.schedule.loc[
+            start_session_label:end_session_label,
+            'market_open',
+        ].dt.tz_localize('UTC')
+
+    def session_closes_in_range(self, start_session_label, end_session_label):
+        return self.schedule.loc[
+            start_session_label:end_session_label,
+            'market_close',
+        ].dt.tz_localize('UTC')
 
     @property
     def all_sessions(self):
@@ -655,43 +728,29 @@ class TradingCalendar(with_metaclass(ABCMeta)):
     def last_session(self):
         return self.all_sessions[-1]
 
+    def execution_time_from_open(self, open_dates):
+        return open_dates
+
+    def execution_time_from_close(self, close_dates):
+        return close_dates
+
     @lazyval
     def all_minutes(self):
         """
         Returns a DatetimeIndex representing all the minutes in this calendar.
         """
-        opens_in_ns = \
-            self._opens.values.astype('datetime64[ns]')
+        opens_in_ns = self._opens.values.astype(
+            'datetime64[ns]',
+        ).view('int64')
 
-        closes_in_ns = \
-            self._closes.values.astype('datetime64[ns]')
+        closes_in_ns = self._closes.values.astype(
+            'datetime64[ns]',
+        ).view('int64')
 
-        deltas = closes_in_ns - opens_in_ns
-
-        # + 1 because we want 390 days per standard day, not 389
-        daily_sizes = (deltas / NANOS_IN_MINUTE) + 1
-        num_minutes = np.sum(daily_sizes).astype(np.int64)
-
-        # One allocation for the entire thing. This assumes that each day
-        # represents a contiguous block of minutes.
-        all_minutes = np.empty(num_minutes, dtype='datetime64[ns]')
-
-        idx = 0
-        for day_idx, size in enumerate(daily_sizes):
-            # lots of small allocations, but it's fast enough for now.
-
-            # size is a np.timedelta64, so we need to int it
-            size_int = int(size)
-            all_minutes[idx:(idx + size_int)] = \
-                np.arange(
-                    opens_in_ns[day_idx],
-                    closes_in_ns[day_idx] + NANOS_IN_MINUTE,
-                    NANOS_IN_MINUTE
-                )
-
-            idx += size_int
-
-        return DatetimeIndex(all_minutes).tz_localize("UTC")
+        return DatetimeIndex(
+            compute_all_minutes(opens_in_ns, closes_in_ns),
+            tz='utc',
+        )
 
     @preprocess(dt=coerce(pd.Timestamp, attrgetter('value')))
     def minute_to_session_label(self, dt, direction="next"):
@@ -762,14 +821,7 @@ class TradingCalendar(with_metaclass(ABCMeta)):
         pd.DatetimeIndex (UTC)
             The list of session labels corresponding to the given minutes.
         """
-        def minute_to_session_label_nanos(dt_nanos):
-            return self.minute_to_session_label(dt_nanos).value
-
-        return DatetimeIndex(minutes_to_session_labels(
-            index.values.astype(np.int64),
-            minute_to_session_label_nanos,
-            self.market_closes_nanos,
-        ).astype('datetime64[ns]'), tz='UTC')
+        return pd.Index(map(self.minute_to_session_label, index))
 
     def _special_dates(self, calendars, ad_hoc_dates, start_date, end_date):
         """
@@ -807,58 +859,9 @@ class TradingCalendar(with_metaclass(ABCMeta)):
         )
 
 
-def days_at_time(days, t, tz, day_offset=0):
-    """
-    Create an index of days at time ``t``, interpreted in timezone ``tz``.
-
-    The returned index is localized to UTC.
-
-    Parameters
-    ----------
-    days : DatetimeIndex
-        An index of dates (represented as midnight).
-    t : datetime.time
-        The time to apply as an offset to each day in ``days``.
-    tz : pytz.timezone
-        The timezone to use to interpret ``t``.
-    day_offset : int
-        The number of days we want to offset @days by
-
-    Example
-    -------
-    In the example below, the times switch from 13:45 to 12:45 UTC because
-    March 13th is the daylight savings transition for US/Eastern.  All the
-    times are still 8:45 when interpreted in US/Eastern.
-
-    >>> import pandas as pd; import datetime; import pprint
-    >>> dts = pd.date_range('2016-03-12', '2016-03-14')
-    >>> dts_at_845 = days_at_time(dts, datetime.time(8, 45), 'US/Eastern')
-    >>> pprint.pprint([str(dt) for dt in dts_at_845])
-    ['2016-03-12 13:45:00+00:00',
-     '2016-03-13 12:45:00+00:00',
-     '2016-03-14 12:45:00+00:00']
-    """
-    if len(days) == 0:
-        return days
-
-    # Offset days without tz to avoid timezone issues.
-    days = DatetimeIndex(days).tz_localize(None)
-    delta = pd.Timedelta(
-        days=day_offset,
-        hours=t.hour,
-        minutes=t.minute,
-        seconds=t.second,
-    )
-    return (days + delta).tz_localize(tz).tz_convert('UTC')
-
-
 def holidays_at_time(calendar, start, end, time, tz):
     return days_at_time(
-        calendar.holidays(
-            # Workaround for https://github.com/pydata/pandas/issues/9825.
-            start.tz_localize(None),
-            end.tz_localize(None),
-        ),
+        calendar.holidays(start, end),
         time,
         tz=tz,
     )

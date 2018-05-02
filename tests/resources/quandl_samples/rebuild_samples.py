@@ -2,62 +2,76 @@
 Script for rebuilding the samples for the Quandl tests.
 """
 from __future__ import print_function
-from operator import methodcaller
 
-import pandas as pd
+import os
 import requests
-
-
-from zipline.data.quandl import format_wiki_url
+from io import BytesIO
+from zipfile import ZipFile, ZIP_DEFLATED
+from six.moves.urllib.parse import urlencode
 from zipline.testing import test_resource_path, write_compressed
+from zipline.data.bundles.quandl import QUANDL_DATA_URL
 
 
-def zipfile_path(symbol):
-    return test_resource_path('quandl_samples', symbol + '.csv.gz')
+def format_table_query(api_key,
+                       start_date,
+                       end_date,
+                       symbols):
+    query_params = [
+        ('api_key', api_key),
+        ('date.gte', start_date),
+        ('date.lte', end_date),
+        ('ticker', ','.join(symbols)),
+    ]
+    return (
+        QUANDL_DATA_URL + urlencode(query_params)
+    )
+
+
+def zipfile_path(file_name):
+    return test_resource_path('quandl_samples', file_name)
 
 
 def main():
-    start_date = pd.Timestamp('2014')
-    end_date = pd.Timestamp('2015')
-    symbols = 'AAPL', 'MSFT', 'BRK_A', 'ZEN'
-    names = (
-        'Apple Inc.',
-        'Microsoft Corporation',
-        'Berkshire Hathaway Inc. Class A',
-        'Zendesk Inc',
+    api_key = os.environ.get('QUANDL_API_KEY')
+    start_date = '2014-1-1'
+    end_date = '2015-1-1'
+    symbols = 'AAPL', 'BRK_A', 'MSFT', 'ZEN'
+
+    url = format_table_query(
+        api_key=api_key,
+        start_date=start_date,
+        end_date=end_date,
+        symbols=symbols
     )
-    print('Downloading equity data')
-    for sym in symbols:
-        url = format_wiki_url(
-            api_key=None,
-            symbol=sym,
-            start_date=start_date,
-            end_date=end_date,
+    print('Fetching equity data from %s' % url)
+    response = requests.get(url)
+    response.raise_for_status()
+
+    archive_path = zipfile_path('QUANDL_ARCHIVE.zip')
+    print('Writing compressed table to %s' % archive_path)
+    with ZipFile(archive_path, 'w') as zip_file:
+        zip_file.writestr(
+            'QUANDL_SAMPLE_TABLE.csv',
+            BytesIO(response.content).getvalue(),
+            ZIP_DEFLATED
         )
-        print('Fetching from %s' % url)
-        response = requests.get(url)
-        response.raise_for_status()
-
-        path = zipfile_path(sym)
-        print('Writing compressed data to %s' % path)
-        write_compressed(path, response.content)
-
     print('Writing mock metadata')
-    cols = b'dataset_code,name,oldest_available_date,newest_available_date\n'
-    metadata = cols + b'\n'.join(
-        b','.join(map(methodcaller('encode', 'ascii'), (
-            symbol,
-            name,
-            str(start_date.date()), str(end_date.date()))
-        ))
-        for symbol, name in zip(symbols, names)
+    cols = (
+        'file.link',
+        'file.status',
+        'file.data_snapshot_time',
+        'datatable.last_refreshed_time\n',
     )
-    path = zipfile_path('metadata-1')
-    print('Writing compressed data to %s' % path)
+    row = (
+        'https://file_url.mock.quandl',
+        'fresh',
+        '2017-10-17 23:48:25 UTC',
+        '2017-10-17 23:48:15 UTC\n',
+    )
+    metadata = ','.join(cols) + ','.join(row)
+    path = zipfile_path('metadata.csv.gz')
+    print('Writing compressed metadata to %s' % path)
     write_compressed(path, metadata)
-    path = zipfile_path('metadata-2')
-    print('Writing compressed data to %s' % path)
-    write_compressed(path, cols)
 
 
 if __name__ == '__main__':

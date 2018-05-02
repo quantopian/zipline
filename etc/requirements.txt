@@ -11,6 +11,9 @@ Logbook==0.12.5
 pytz==2016.4
 numpy==1.11.1
 
+# for pandas-datareader
+requests-file==1.4.1
+
 # scipy and pandas are required for statsmodels,
 # statsmodels in turn is required for some pandas packages
 scipy==0.17.1
@@ -26,7 +29,7 @@ six==1.10.0
 # For fetching remote data
 requests==2.9.1
 
-Cython==0.22.1
+Cython==0.25.2
 
 # faster OrderedDict
 cyordereddict==0.2.2
@@ -43,7 +46,7 @@ decorator==4.0.0
 networkx==1.9.1
 
 # NumericalExpression pipeline terms.
-numexpr==2.4.6
+numexpr==2.6.1
 
 # On disk storage format for pipeline data.
 bcolz==0.12.1
@@ -52,20 +55,25 @@ bcolz==0.12.1
 click==4.0.0
 
 # FUNctional programming utilities
-toolz==0.7.4
+toolz==0.8.2
 multipledispatch==0.4.8
 
+# for alembic
+MarkupSafe==0.23
+Mako==1.0.1
 # Asset writer and finder
 sqlalchemy==1.0.8
 # For asset db management
 alembic==0.7.7
 
-# for intervaltree
 sortedcontainers==1.4.4
+# for intervaltree
 intervaltree==2.1.0
 
 # for caching
 lru-dict==1.1.4
 
 # For financial risk calculations
-empyrical==0.2.1
+empyrical==0.4.2
+
+tables==3.3.0

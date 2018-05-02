@@ -22,7 +22,7 @@ def iter_stdout(cmd):
             raise subprocess.CalledProcessError(retcode, cmd[0])
 
 
-PKG_PATH_PATTERN = re.compile(".* anaconda upload (?P<pkg_path>.+)$")
+PKG_PATH_PATTERN = re.compile(".*anaconda upload (?P<pkg_path>.+)$")
 
 
 def main(env, do_upload):
@@ -31,8 +31,12 @@ def main(env, do_upload):
                "--python", env['CONDA_PY'],
                "--numpy", env['CONDA_NPY'],
                "--skip-existing",
-               "-c", "quantopian",
-               "-c", "https://conda.anaconda.org/quantopian/label/ci"]
+               "--old-build-string",
+               "-c", "quantopian/label/ci",
+               "-c", "quantopian"]
+
+        do_upload_msg = ' and uploading' if do_upload else ''
+        print('Building%s with cmd %r.' % (do_upload_msg, ' '.join(cmd)))
 
         output = None
 
@@ -44,12 +48,17 @@ def main(env, do_upload):
                 if match:
                     output = match.group('pkg_path')
 
-        if output and os.path.exists(output) and do_upload:
-            cmd = ["anaconda", "-t", env['ANACONDA_TOKEN'],
-                   "upload", output, "-u", "quantopian", "--label", "ci"]
+        if do_upload:
+            if output and os.path.exists(output):
+                cmd = ["anaconda", "-t", env['ANACONDA_TOKEN'],
+                       "upload", output, "-u", "quantopian", "--label", "ci"]
 
-            for line in iter_stdout(cmd):
-                print(line)
+                for line in iter_stdout(cmd):
+                    print(line)
+            elif output:
+                print('No package found at path %s.' % output)
+            else:
+                print('No package path for %s found.' % recipe)
 
 
 if __name__ == '__main__':

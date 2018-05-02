@@ -16,20 +16,21 @@ from numbers import Real
 
 from nose_parameterized import parameterized
 from numpy.testing import assert_almost_equal
-from numpy import nan, array, full
+from numpy import nan, array, full, isnan
 import pandas as pd
 from pandas import DataFrame
 from six import iteritems
 
-from zipline.data.bar_reader import NoDataOnDate
 from zipline.data.resample import (
     minute_frame_to_session_frame,
+    minute_panel_to_session_panel,
     DailyHistoryAggregator,
     MinuteResampleSessionBarReader,
     ReindexMinuteBarReader,
     ReindexSessionBarReader,
 )
 
+from zipline.testing import parameter_space
 from zipline.testing.fixtures import (
     WithEquityMinuteBarData,
     WithBcolzEquityMinuteBarReader,
@@ -143,6 +144,8 @@ _FUTURE_CASES = (
             ('none_missing', 'day_0_back'))),
     (1003, (('missing_last', 'day_0_back'),
             ('missing_first', 'day_1_front'))),
+    (1004, (('all_missing', 'day_0_back'),
+            ('none_missing', 'day_1_front'))),
 )
 
 FUTURE_CASES = OrderedDict()
@@ -207,13 +210,19 @@ EXPECTED_AGGREGATION = {
         'close': [nan, 103.3, 102.3, 101.3, 103.3, 102.3],
         'volume': [0, 1003, 2005, 3006, 4009, 5011],
     }, columns=OHLCV),
-    # Equity 3 straddles two days.
     1003: DataFrame({
         'open': [107.5, 107.5, 107.5, nan, 103.5, 103.5],
         'high': [107.9, 108.9, 108.9, nan, 103.9, 103.9],
         'low': [107.1, 107.1, 107.1, nan, 103.1, 102.1],
         'close': [107.3, 108.3, 108.3, nan, 103.3, 102.3],
         'volume': [1007, 2015, 2015, 0, 1003, 2005],
+    }, columns=OHLCV),
+    1004: DataFrame({
+        'open': [nan, nan, nan, 101.5, 101.5, 101.5],
+        'high': [nan, nan, nan, 101.9, 103.9, 103.9],
+        'low': [nan, nan, nan, 101.1, 101.1, 101.1],
+        'close': [nan, nan, nan, 101.3, 103.3, 102.3],
+        'volume': [0, 0, 0, 1001, 2004, 3006],
     }, columns=OHLCV),
 }
 
@@ -236,11 +245,16 @@ EXPECTED_SESSIONS = {
     1003: DataFrame(EXPECTED_AGGREGATION[1003].iloc[[2, 5]].values,
                     columns=OHLCV,
                     index=pd.to_datetime(['2016-03-16', '2016-03-17'],
-                                         utc=True))
+                                         utc=True)),
+    1004: DataFrame(EXPECTED_AGGREGATION[1004].iloc[[2, 5]].values,
+                    columns=OHLCV,
+                    index=pd.to_datetime(['2016-03-16', '2016-03-17'],
+                                         utc=True)),
 }
 
 
 class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
+                                       WithBcolzFutureMinuteBarReader,
                                        ZiplineTestCase):
 
     #    March 2016
@@ -257,7 +271,11 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
     TRADING_ENV_MAX_DATE = END_DATE = pd.Timestamp(
         '2016-03-31', tz='UTC',
     )
+
+    TRADING_CALENDAR_STRS = ('NYSE', 'us_futures')
+
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 3, 4, 5
+    ASSET_FINDER_FUTURE_SIDS = 1001, 1002, 1003, 1004
 
     @classmethod
     def make_equity_info(cls):
@@ -273,47 +291,87 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
             frame = EQUITY_CASES[sid]
             yield sid, frame
 
+    @classmethod
+    def make_futures_info(cls):
+        future_dict = {}
+
+        for future_sid in cls.ASSET_FINDER_FUTURE_SIDS:
+            future_dict[future_sid] = {
+                'multiplier': 1000,
+                'exchange': 'CME',
+                'root_symbol': "ABC"
+            }
+
+        return pd.DataFrame.from_dict(future_dict, orient='index')
+
+    @classmethod
+    def make_future_minute_bar_data(cls):
+        for sid in cls.ASSET_FINDER_FUTURE_SIDS:
+            frame = FUTURE_CASES[sid]
+            yield sid, frame
+
     def init_instance_fixtures(self):
         super(MinuteToDailyAggregationTestCase, self).init_instance_fixtures()
         # Set up a fresh data portal for each test, since order of calling
         # needs to be tested.
         self.equity_daily_aggregator = DailyHistoryAggregator(
-            self.trading_calendar.schedule.market_open,
+            self.nyse_calendar.schedule.market_open,
             self.bcolz_equity_minute_bar_reader,
-            self.trading_calendar
+            self.nyse_calendar,
         )
 
-    @parameterized.expand([
-        ('open_sid_1', 'open', 1),
-        ('high_1', 'high', 1),
-        ('low_1', 'low', 1),
-        ('close_1', 'close', 1),
-        ('volume_1', 'volume', 1),
-        ('open_2', 'open', 2),
-        ('high_2', 'high', 2),
-        ('low_2', 'low', 2),
-        ('close_2', 'close', 2),
-        ('volume_2', 'volume', 2),
-        ('open_3', 'open', 3),
-        ('high_3', 'high', 3),
-        ('low_3', 'low', 3),
-        ('close_3', 'close', 3),
-        ('volume_3', 'volume', 3),
-        ('open_4', 'open', 4),
-        ('high_4', 'high', 4),
-        ('low_4', 'low', 4),
-        ('close_4', 'close', 4),
-        ('volume_4', 'volume', 4),
-    ])
-    def test_contiguous_minutes_individual(self, name, field, sid):
+        self.future_daily_aggregator = DailyHistoryAggregator(
+            self.us_futures_calendar.schedule.market_open,
+            self.bcolz_future_minute_bar_reader,
+            self.us_futures_calendar
+        )
+
+    @parameter_space(
+        field=OHLCV,
+        sid=ASSET_FINDER_EQUITY_SIDS,
+        __fail_fast=True,
+    )
+    def test_equity_contiguous_minutes_individual(self, field, sid):
+        asset = self.asset_finder.retrieve_asset(sid)
+        minutes = EQUITY_CASES[asset].index
+
+        self._test_contiguous_minutes_individual(
+            field,
+            asset,
+            minutes,
+            self.equity_daily_aggregator,
+        )
+
+    @parameter_space(
+        field=OHLCV,
+        sid=ASSET_FINDER_FUTURE_SIDS,
+        __fail_fast=True,
+    )
+    def test_future_contiguous_minutes_individual(self, field, sid):
+        asset = self.asset_finder.retrieve_asset(sid)
+        minutes = FUTURE_CASES[asset].index
+
+        self._test_contiguous_minutes_individual(
+            field,
+            asset,
+            minutes,
+            self.future_daily_aggregator,
+        )
+
+    def _test_contiguous_minutes_individual(
+        self,
+        field,
+        asset,
+        minutes,
+        aggregator,
+    ):
         # First test each minute in order.
         method_name = field + 's'
         results = []
         repeat_results = []
-        asset = self.asset_finder.retrieve_asset(sid)
-        minutes = EQUITY_CASES[asset].index
+
         for minute in minutes:
-            value = getattr(self.equity_daily_aggregator, method_name)(
+            value = getattr(aggregator, method_name)(
                 [asset], minute)[0]
             # Prevent regression on building an array when scalar is intended.
             self.assertIsInstance(value, Real)
@@ -322,7 +380,7 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
             # Call a second time with the same dt, to prevent regression
             # against case where crossed start and end dts caused a crash
             # instead of the last value.
-            value = getattr(self.equity_daily_aggregator, method_name)(
+            value = getattr(aggregator, method_name)(
                 [asset], minute)[0]
             # Prevent regression on building an array when scalar is intended.
             self.assertIsInstance(value, Real)
@@ -506,6 +564,21 @@ class TestMinuteToSession(WithEquityMinuteBarData,
                                 result.values,
                                 err_msg='sid={0}'.format(sid))
 
+    def test_minute_panel_to_session_panel(self):
+        minute_panel = pd.Panel(
+            {sid: self.equity_frames[sid]
+             for sid in self.ASSET_FINDER_EQUITY_SIDS}
+        )
+        expected = pd.Panel(
+            {sid: EXPECTED_SESSIONS[sid]
+             for sid in self.ASSET_FINDER_EQUITY_SIDS}
+        )
+        result = minute_panel_to_session_panel(
+            minute_panel,
+            self.nyse_calendar
+        )
+        assert_almost_equal(expected.values, result.values)
+
 
 class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
                               ZiplineTestCase):
@@ -513,7 +586,7 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
     TRADING_CALENDAR_STRS = ('us_futures',)
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
-    ASSET_FINDER_FUTURE_SIDS = 1001, 1002, 1003
+    ASSET_FINDER_FUTURE_SIDS = 1001, 1002, 1003, 1004
 
     START_DATE = pd.Timestamp('2016-03-16', tz='UTC')
     END_DATE = pd.Timestamp('2016-03-17', tz='UTC')
@@ -805,11 +878,9 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
                             "first session should be 10.")
         tday = pd.Timestamp('2015-11-26', tz='UTC')
 
-        with self.assertRaises(NoDataOnDate):
-            self.reader.get_value(1, tday, 'close')
+        self.assertTrue(isnan(self.reader.get_value(1, tday, 'close')))
 
-        with self.assertRaises(NoDataOnDate):
-            self.reader.get_value(1, tday, 'volume')
+        self.assertEqual(self.reader.get_value(1, tday, 'volume'), 0)
 
     def test_last_availabe_dt(self):
         self.assertEqual(self.reader.last_available_dt, self.END_DATE)

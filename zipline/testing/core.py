@@ -1,6 +1,5 @@
 from abc import ABCMeta, abstractmethod, abstractproperty
 from contextlib import contextmanager
-from functools import wraps
 import gzip
 from inspect import getargspec
 from itertools import (
@@ -12,8 +11,9 @@ import operator
 import os
 from os.path import abspath, dirname, join, realpath
 import shutil
-from sys import _getframe
+import sys
 import tempfile
+from traceback import format_exception
 
 from logbook import TestHandler
 from mock import patch
@@ -28,7 +28,9 @@ from toolz import concat, curry
 
 from zipline.assets import AssetFinder, AssetDBWriter
 from zipline.assets.synthetic import make_simple_equity_info
+from zipline.utils.compat import wraps
 from zipline.data.data_portal import DataPortal
+from zipline.data.loader import get_benchmark_filename, INDEX_MAPPING
 from zipline.data.minute_bars import (
     BcolzMinuteBarReader,
     BcolzMinuteBarWriter,
@@ -39,6 +41,7 @@ from zipline.data.us_equity_pricing import (
     BcolzDailyBarWriter,
     SQLiteAdjustmentWriter,
 )
+from zipline.finance.blotter import Blotter
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.order import ORDER_STATUS
 from zipline.lib.labelarray import LabelArray
@@ -51,6 +54,7 @@ from zipline.utils.calendars import get_calendar
 from zipline.utils.input_validation import expect_dimensions
 from zipline.utils.numpy_utils import as_column, isnat
 from zipline.utils.pandas_utils import timedelta_to_integral_seconds
+from zipline.utils.paths import ensure_directory
 from zipline.utils.sentinel import sentinel
 
 import numpy as np
@@ -282,8 +286,8 @@ def chrange(start, stop):
     chars: iterable[str]
         Iterable of strings beginning with start and ending with stop.
 
-    Example
-    -------
+    Examples
+    --------
     >>> chrange('A', 'C')
     ['A', 'B', 'C']
     """
@@ -405,7 +409,7 @@ def check_arrays(x, y, err_msg='', verbose=True, check_dtypes=True):
         )
         # Fill NaTs with zero for comparison.
         x = np.where(x_isnat, np.zeros_like(x), x)
-        y = np.where(x_isnat, np.zeros_like(x), x)
+        y = np.where(y_isnat, np.zeros_like(y), y)
 
     return assert_array_equal(x, y, err_msg=err_msg, verbose=verbose)
 
@@ -694,11 +698,8 @@ def create_data_portal_from_trade_history(asset_finder, trading_calendar,
 
 
 class FakeDataPortal(DataPortal):
-    def __init__(self, env=None, trading_calendar=None,
+    def __init__(self, env, trading_calendar=None,
                  first_trading_day=None):
-        if env is None:
-            env = TradingEnvironment()
-
         if trading_calendar is None:
             trading_calendar = get_calendar("NYSE")
 
@@ -712,22 +713,35 @@ class FakeDataPortal(DataPortal):
         else:
             return 1.0
 
-    def get_history_window(self, assets, end_dt, bar_count, frequency, field,
-                           ffill=True):
-        if frequency == "1d":
-            end_idx = \
-                self.trading_calendar.all_sessions.searchsorted(end_dt)
-            days = self.trading_calendar.all_sessions[
-                (end_idx - bar_count + 1):(end_idx + 1)
-            ]
+    def get_scalar_asset_spot_value(self, asset, field, dt, data_frequency):
+        if field == "volume":
+            return 100
+        else:
+            return 1.0
 
-            df = pd.DataFrame(
-                np.full((bar_count, len(assets)), 100.0),
-                index=days,
-                columns=assets
+    def get_history_window(self, assets, end_dt, bar_count, frequency, field,
+                           data_frequency, ffill=True):
+        end_idx = self.trading_calendar.all_sessions.searchsorted(end_dt)
+        days = self.trading_calendar.all_sessions[
+            (end_idx - bar_count + 1):(end_idx + 1)
+        ]
+
+        df = pd.DataFrame(
+            np.full((bar_count, len(assets)), 100.0),
+            index=days,
+            columns=assets
+        )
+
+        if frequency == "1m" and not df.empty:
+            df = df.reindex(
+                self.trading_calendar.minutes_for_sessions_in_range(
+                    df.index[0],
+                    df.index[-1],
+                ),
+                method='ffill',
             )
 
-            return df
+        return df
 
 
 class FetcherDataPortal(DataPortal):
@@ -861,6 +875,8 @@ class tmp_trading_env(tmp_asset_finder):
 
     Parameters
     ----------
+    load : callable, optional
+        Function that returns benchmark returns and treasury curves.
     finder_cls : type, optional
         The type of asset finder to create from the assets db.
     **frames
@@ -871,8 +887,13 @@ class tmp_trading_env(tmp_asset_finder):
     empty_trading_env
     tmp_asset_finder
     """
+    def __init__(self, load=None, *args, **kwargs):
+        super(tmp_trading_env, self).__init__(*args, **kwargs)
+        self._load = load
+
     def __enter__(self):
         return TradingEnvironment(
+            load=self._load,
             asset_db_path=super(tmp_trading_env, self).__enter__().engine,
         )
 
@@ -885,12 +906,18 @@ class SubTestFailures(AssertionError):
     def __init__(self, *failures):
         self.failures = failures
 
+    @staticmethod
+    def _format_exc(exc_info):
+        # we need to do this weird join-split-join to ensure that the full
+        # message is indented by 4 spaces
+        return '\n    '.join(''.join(format_exception(*exc_info)).splitlines())
+
     def __str__(self):
         return 'failures:\n  %s' % '\n  '.join(
             '\n    '.join((
                 ', '.join('%s=%r' % item for item in scope.items()),
-                '%s: %s' % (type(exc).__name__, exc),
-            )) for scope, exc in self.failures,
+                self._format_exc(exc_info),
+            )) for scope, exc_info in self.failures,
         )
 
 
@@ -963,10 +990,11 @@ def subtest(iterator, *_names):
                 scope = tuple(scope)
                 try:
                     f(*args + scope, **kwargs)
-                except Exception as e:
+                except Exception:
+                    info = sys.exc_info()
                     if not names:
                         names = count()
-                    failures.append((dict(zip(names, scope)), e))
+                    failures.append((dict(zip(names, scope)), info))
             if failures:
                 raise SubTestFailures(*failures)
 
@@ -1083,7 +1111,9 @@ def temp_pipeline_engine(calendar, sids, random_seed, symbols=None):
     )
 
     loader = make_seeded_random_loader(random_seed, calendar, sids)
-    get_loader = lambda column: loader
+
+    def get_loader(column):
+        return loader
 
     with tmp_asset_finder(equities=equity_info) as finder:
         yield SimplePipelineEngine(get_loader, calendar, finder)
@@ -1097,8 +1127,8 @@ def parameter_space(__fail_fast=False, **params):
     The decorated test function will be called with the cross-product of all
     possible inputs
 
-    Usage
-    -----
+    Examples
+    --------
     >>> from unittest import TestCase
     >>> class SomeTestCase(TestCase):
     ...     @parameter_space(x=[1, 2], y=[2, 3])
@@ -1139,16 +1169,21 @@ def parameter_space(__fail_fast=False, **params):
                 "supplied to parameter_space()." % extra
             )
 
-        param_sets = product(*(params[name] for name in argnames))
+        def make_param_sets():
+            return product(*(params[name] for name in argnames))
 
         if __fail_fast:
             @wraps(f)
             def wrapped(self):
-                for args in param_sets:
+                for args in make_param_sets():
                     f(self, *args)
             return wrapped
         else:
-            return subtest(param_sets, *argnames)(f)
+            @wraps(f)
+            def wrapped(*args, **kwargs):
+                subtest(make_param_sets(), *argnames)(f)(*args, **kwargs)
+
+        return wrapped
 
     return decorator
 
@@ -1478,6 +1513,19 @@ def patch_read_csv(url_map, module=pd, strict=False):
         yield
 
 
+def copy_market_data(src_market_data_dir, dest_root_dir):
+    symbol = 'SPY'
+    filenames = (get_benchmark_filename(symbol), INDEX_MAPPING[symbol][1])
+
+    ensure_directory(os.path.join(dest_root_dir, 'data'))
+
+    for filename in filenames:
+        shutil.copyfile(
+            os.path.join(src_market_data_dir, filename),
+            os.path.join(dest_root_dir, 'data', filename)
+        )
+
+
 @curry
 def ensure_doctest(f, name=None):
     """Ensure that an object gets doctested. This is useful for instances
@@ -1496,15 +1544,23 @@ def ensure_doctest(f, name=None):
     f : any
        ``f`` unchanged.
     """
-    _getframe(2).f_globals.setdefault('__test__', {})[
+    sys._getframe(2).f_globals.setdefault('__test__', {})[
         f.__name__ if name is None else name
     ] = f
     return f
 
 
-####################################
-# Shared factors for pipeline tests.
-####################################
+class RecordBatchBlotter(Blotter):
+    """Blotter that tracks how its batch_order method was called.
+    """
+    def __init__(self, data_frequency):
+        super(RecordBatchBlotter, self).__init__(data_frequency)
+        self.order_batch_called = []
+
+    def batch_order(self, *args, **kwargs):
+        self.order_batch_called.append((args, kwargs))
+        return super(RecordBatchBlotter, self).batch_order(*args, **kwargs)
+
 
 class AssetID(CustomFactor):
     """
@@ -1534,3 +1590,123 @@ class OpenPrice(CustomFactor):
 
     def compute(self, today, assets, out, open):
         out[:] = open
+
+
+def prices_generating_returns(returns, starting_price):
+    """Construct the time series of prices that produce the given returns.
+
+    Parameters
+    ----------
+    returns : np.ndarray[float]
+        The returns that these prices generate.
+    starting_price : float
+        The value of the asset.
+
+    Returns
+    -------
+    prices : np.ndaray[float]
+        The prices that generate the given returns. This array will be one
+        element longer than ``returns`` and ``prices[0] == starting_price``.
+    """
+    raw_prices = starting_price * (1 + np.append([0], returns)).cumprod()
+    rounded_prices = raw_prices.round(3)
+
+    if not np.allclose(raw_prices, rounded_prices):
+        raise ValueError(
+            'Prices only have 3 decimal places of precision. There is no valid'
+            ' price series that generate these returns.',
+        )
+
+    return rounded_prices
+
+
+def simulate_minutes_for_day(open_,
+                             high,
+                             low,
+                             close,
+                             volume,
+                             trading_minutes=390,
+                             random_state=None):
+    """Generate a random walk of minute returns which meets the given OHLCV
+    profile for an asset. The volume will be evenly distributed through the
+    day.
+
+    Parameters
+    ----------
+    open_ : float
+        The day's open.
+    high : float
+        The day's high.
+    low : float
+        The day's low.
+    close : float
+        The day's close.
+    volume : float
+        The day's volume.
+    trading_minutes : int, optional
+        The number of minutes to simulate.
+    random_state : numpy.random.RandomState, optional
+        The random state to use. If not provided, the global numpy state is
+        used.
+    """
+    if random_state is None:
+        random_state = np.random
+
+    sub_periods = 5
+
+    values = (random_state.rand(trading_minutes * sub_periods) - 0.5).cumsum()
+    values *= (high - low) / (values.max() - values.min())
+    values += np.linspace(
+        open_ - values[0],
+        close - values[-1],
+        len(values),
+    )
+    assert np.allclose(open_, values[0])
+    assert np.allclose(close, values[-1])
+
+    max_ = max(close, open_)
+    where = values > max_
+    values[where] = (
+        (values[where] - max_) *
+        (high - max_) /
+        (values.max() - max_) +
+        max_
+    )
+
+    min_ = min(close, open_)
+    where = values < min_
+    values[where] = (
+        (values[where] - min_) *
+        (low - min_) /
+        (values.min() - min_) +
+        min_
+    )
+
+    if not (np.allclose(values.max(), high) and
+            np.allclose(values.min(), low)):
+        return simulate_minutes_for_day(
+            open_,
+            high,
+            low,
+            close,
+            volume,
+            trading_minutes,
+            random_state=random_state,
+        )
+
+    prices = pd.Series(values.round(3)).groupby(
+        np.arange(trading_minutes).repeat(sub_periods),
+    )
+
+    base_volume, remainder = divmod(volume, trading_minutes)
+    volume = np.full(trading_minutes, base_volume, dtype='int64')
+    volume[:remainder] += 1
+
+    # TODO: add in volume
+    return pd.DataFrame({
+        'open': prices.first(),
+        'close': prices.last(),
+        'high': prices.max(),
+        'low': prices.min(),
+        'volume': volume,
+    })

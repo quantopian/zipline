@@ -2,7 +2,7 @@ import sys
 import logbook
 import numpy as np
 
-from zipline.finance import commission
+from zipline.finance import commission, slippage
 
 zipline_logging = logbook.NestedSetup([
     logbook.NullHandler(),
@@ -30,7 +30,8 @@ def initialize(algo, eps=1, window_length=5):
     algo.days = 0
     algo.window_length = window_length
 
-    algo.set_commission(commission.PerShare(cost=0))
+    algo.set_commission(commission.PerShare(cost=0, min_trade_cost=1.0))
+    algo.set_slippage(slippage.VolumeShareSlippage())
 
 
 def handle_data(algo, data):

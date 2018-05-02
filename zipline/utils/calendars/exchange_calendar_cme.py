@@ -36,7 +36,8 @@ from .us_holidays import (
     USNationalDaysofMourning,
     USMartinLutherKingJrAfter1998,
     USMemorialDay,
-    USIndependenceDay)
+    USIndependenceDay
+)
 
 
 class CMEExchangeCalendar(TradingCalendar):

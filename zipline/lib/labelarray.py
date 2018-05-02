@@ -1,7 +1,7 @@
 """
 An ndarray subclass for working with arrays of strings.
 """
-from functools import partial
+from functools import partial, total_ordering
 from operator import eq, ne
 import re
 
@@ -11,6 +11,7 @@ import pandas as pd
 from toolz import compose
 
 from zipline.utils.compat import unicode
+from zipline.utils.functional import instance
 from zipline.utils.preprocess import preprocess
 from zipline.utils.sentinel import sentinel
 from zipline.utils.input_validation import (
@@ -21,14 +22,16 @@ from zipline.utils.input_validation import (
 )
 from zipline.utils.numpy_utils import (
     bool_dtype,
-    int_dtype_with_size_in_bytes,
+    unsigned_int_dtype_with_size_in_bytes,
     is_object,
+    object_dtype,
 )
 from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning
 
 from ._factorize import (
     factorize_strings,
     factorize_strings_known_categories,
+    smallest_uint_that_can_hold,
 )
 
 
@@ -80,6 +83,7 @@ class CategoryMismatch(ValueError):
                 right=right[mismatches],
             )
         )
+
 
 _NotPassed = sentinel('_NotPassed')
 
@@ -135,10 +139,14 @@ class LabelArray(ndarray):
     http://docs.scipy.org/doc/numpy-1.10.0/user/basics.subclassing.html
     """
     SUPPORTED_SCALAR_TYPES = (bytes, unicode, type(None))
+    SUPPORTED_NON_NONE_SCALAR_TYPES = (bytes, unicode)
 
     @preprocess(
         values=coerce(list, partial(np.asarray, dtype=object)),
-        categories=coerce(np.ndarray, list),
+        # Coerce ``list`` to ``list`` to make a copy. Code internally may call
+        # ``categories.insert(0, missing_value)`` which will mutate this list
+        # in place.
+        categories=coerce((list, np.ndarray, set), list),
     )
     @expect_types(
         values=np.ndarray,
@@ -175,7 +183,7 @@ class LabelArray(ndarray):
             )
         categories.setflags(write=False)
 
-        return cls._from_codes_and_metadata(
+        return cls.from_codes_and_metadata(
             codes=codes.reshape(values.shape),
             categories=categories,
             reverse_categories=reverse_categories,
@@ -183,13 +191,24 @@ class LabelArray(ndarray):
         )
 
     @classmethod
-    def _from_codes_and_metadata(cls,
-                                 codes,
-                                 categories,
-                                 reverse_categories,
-                                 missing_value):
+    def from_codes_and_metadata(cls,
+                                codes,
+                                categories,
+                                reverse_categories,
+                                missing_value):
         """
-        View codes as a LabelArray and set LabelArray metadata on the result.
+        Rehydrate a LabelArray from the codes and metadata.
+
+        Parameters
+        ----------
+        codes : np.ndarray[integral]
+            The codes for the label array.
+        categories : np.ndarray[object]
+            The unique string categories.
+        reverse_categories : dict[str, int]
+            The mapping from category to its code-index.
+        missing_value : any
+            The value used to represent missing data.
         """
         ret = codes.view(type=cls, dtype=np.void)
         ret._categories = categories
@@ -289,7 +308,7 @@ class LabelArray(ndarray):
         """
         return self.view(
             type=ndarray,
-            dtype=int_dtype_with_size_in_bytes(self.itemsize),
+            dtype=unsigned_int_dtype_with_size_in_bytes(self.itemsize),
         )
 
     def as_string_array(self):
@@ -347,18 +366,17 @@ class LabelArray(ndarray):
     def __setitem__(self, indexer, value):
         self_categories = self.categories
 
-        if isinstance(value, LabelArray):
+        if isinstance(value, self.SUPPORTED_SCALAR_TYPES):
+            value_code = self.reverse_categories.get(value, None)
+            if value_code is None:
+                raise ValueError("%r is not in LabelArray categories." % value)
+            self.as_int_array()[indexer] = value_code
+        elif isinstance(value, LabelArray):
             value_categories = value.categories
             if compare_arrays(self_categories, value_categories):
                 return super(LabelArray, self).__setitem__(indexer, value)
             else:
                 raise CategoryMismatch(self_categories, value_categories)
-
-        elif isinstance(value, self.SUPPORTED_SCALAR_TYPES):
-            value_code = self.reverse_categories.get(value, -1)
-            if value_code < 0:
-                raise ValueError("%r is not in LabelArray categories." % value)
-            self.as_int_array()[indexer] = value_code
         else:
             raise NotImplementedError(
                 "Setting into a LabelArray with a value of "
@@ -366,6 +384,30 @@ class LabelArray(ndarray):
                     type=type(value).__name__,
                 ),
             )
+
+    def set_scalar(self, indexer, value):
+        """
+        Set scalar value into the array.
+
+        Parameters
+        ----------
+        indexer : any
+            The indexer to set the value at.
+        value : str
+            The value to assign at the given locations.
+
+        Raises
+        ------
+        ValueError
+            Raised when ``value`` is not a value element of this this label
+            array.
+        """
+        try:
+            value_code = self.reverse_categories[value]
+        except KeyError:
+            raise ValueError("%r is not in LabelArray categories." % value)
+
+        self.as_int_array()[indexer] = value_code
 
     def __setslice__(self, i, j, sequence):
         """
@@ -384,7 +426,9 @@ class LabelArray(ndarray):
 
         # Result is a scalar value, which will be an instance of np.void.
         # Map it back to one of our category entries.
-        index = result.view(int_dtype_with_size_in_bytes(self.itemsize))
+        index = result.view(
+            unsigned_int_dtype_with_size_in_bytes(self.itemsize),
+        )
         return self.categories[index]
 
     def is_missing(self):
@@ -458,9 +502,46 @@ class LabelArray(ndarray):
             kwargs['type'] = type
         return super(LabelArray, self).view(**kwargs)
 
+    def astype(self,
+               dtype,
+               order='K',
+               casting='unsafe',
+               subok=True,
+               copy=True):
+        if dtype == self.dtype:
+            if not subok:
+                array = self.view(type=np.ndarray)
+            else:
+                array = self
+
+            if copy:
+                return array.copy()
+            return array
+
+        if dtype == object_dtype:
+            return self.as_string_array()
+
+        if dtype.kind == 'S':
+            return self.as_string_array().astype(
+                dtype,
+                order=order,
+                casting=casting,
+                subok=subok,
+                copy=copy,
+            )
+
+        raise TypeError(
+            '%s can only be converted into object, string, or void,'
+            ' got: %r' % (
+                type(self).__name__,
+                dtype,
+            ),
+        )
+
     # In general, we support resizing, slicing, and reshaping methods, but not
     # numeric methods.
     SUPPORTED_NDARRAY_METHODS = frozenset([
+        'astype',
         'base',
         'compress',
         'copy',
@@ -514,11 +595,11 @@ class LabelArray(ndarray):
         Make an empty LabelArray with the same categories as ``self``, filled
         with ``self.missing_value``.
         """
-        return type(self)._from_codes_and_metadata(
+        return type(self).from_codes_and_metadata(
             codes=np.full(
                 shape,
                 self.reverse_categories[self.missing_value],
-                dtype=int_dtype_with_size_in_bytes(self.itemsize),
+                dtype=unsigned_int_dtype_with_size_in_bytes(self.itemsize),
             ),
             categories=self.categories,
             reverse_categories=self.reverse_categories,
@@ -536,7 +617,8 @@ class LabelArray(ndarray):
         # them on None, which is the only non-str value we ever store in
         # categories.
         if self.missing_value is None:
-            f_to_use = lambda x: False if x is None else f(x)
+            def f_to_use(x):
+                return False if x is None else f(x)
         else:
             f_to_use = f
 
@@ -549,6 +631,83 @@ class LabelArray(ndarray):
         # unpack the results form each unique value into their corresponding
         # locations in our indices.
         return results[self.as_int_array()]
+
+    def map(self, f):
+        """
+        Map a function from str -> str element-wise over ``self``.
+
+        ``f`` will be applied exactly once to each non-missing unique value in
+        ``self``. Missing values will always map to ``self.missing_value``.
+        """
+        # f() should only return None if None is our missing value.
+        if self.missing_value is None:
+            allowed_outtypes = self.SUPPORTED_SCALAR_TYPES
+        else:
+            allowed_outtypes = self.SUPPORTED_NON_NONE_SCALAR_TYPES
+
+        def f_to_use(x,
+                     missing_value=self.missing_value,
+                     otypes=allowed_outtypes):
+
+            # Don't call f on the missing value; those locations don't exist
+            # semantically. We return _sortable_sentinel rather than None
+            # because the np.unique call below sorts the categories array,
+            # which raises an error on Python 3 because None and str aren't
+            # comparable.
+            if x == missing_value:
+                return _sortable_sentinel
+
+            ret = f(x)
+
+            if not isinstance(ret, otypes):
+                raise TypeError(
+                    "LabelArray.map expected function {f} to return a string"
+                    " or None, but got {type} instead.\n"
+                    "Value was {value}.".format(
+                        f=f.__name__,
+                        type=type(ret).__name__,
+                        value=ret,
+                    )
+                )
+
+            if ret == missing_value:
+                return _sortable_sentinel
+
+            return ret
+
+        new_categories_with_duplicates = (
+            np.vectorize(f_to_use, otypes=[object])(self.categories)
+        )
+
+        # If f() maps multiple inputs to the same output, then we can end up
+        # with the same code duplicated multiple times. Compress the categories
+        # by running them through np.unique, and then use the reverse lookup
+        # table to compress codes as well.
+        new_categories, bloated_inverse_index = np.unique(
+            new_categories_with_duplicates,
+            return_inverse=True
+        )
+
+        if new_categories[0] is _sortable_sentinel:
+            # f_to_use return _sortable_sentinel for locations that should be
+            # missing values in our output. Since np.unique returns the uniques
+            # in sorted order, and since _sortable_sentinel sorts before any
+            # string, we only need to check the first array entry.
+            new_categories[0] = self.missing_value
+
+        # `reverse_index` will always be a 64 bit integer even if we can hold a
+        # smaller array.
+        reverse_index = bloated_inverse_index.astype(
+            smallest_uint_that_can_hold(len(new_categories))
+        )
+        new_codes = np.take(reverse_index, self.as_int_array())
+
+        return self.from_codes_and_metadata(
+            new_codes,
+            new_categories,
+            dict(zip(new_categories, range(len(new_categories)))),
+            missing_value=self.missing_value,
+        )
 
     def startswith(self, prefix):
         """
@@ -635,3 +794,15 @@ class LabelArray(ndarray):
             element of self was an element of ``container``.
         """
         return self.map_predicate(container.__contains__)
+
+
+@instance  # This makes _sortable_sentinel a singleton instance.
+@total_ordering
+class _sortable_sentinel(object):
+    """Dummy object that sorts before any other python object.
+    """
+    def __eq__(self, other):
+        return self is other
+
+    def __lt__(self, other):
+        return True

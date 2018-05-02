@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from datetime import timedelta
+from datetime import timedelta, time
 from itertools import chain
 
 from nose_parameterized import parameterized
@@ -20,6 +20,7 @@ import numpy as np
 from numpy import nan
 from numpy.testing import assert_almost_equal
 import pandas as pd
+from toolz import concat
 
 from zipline._protocol import handle_non_market_minutes
 
@@ -40,6 +41,7 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
 )
 from zipline.utils.calendars import get_calendar
+from zipline.utils.calendars.trading_calendar import days_at_time
 
 OHLC = ["open", "high", "low", "close"]
 OHLCP = OHLC + ["price"]
@@ -53,7 +55,9 @@ field_info = {
     "close": 0
 }
 
-str_to_ts = lambda dt_str: pd.Timestamp(dt_str, tz='UTC')
+
+def str_to_ts(dt_str):
+    return pd.Timestamp(dt_str, tz='UTC')
 
 
 class WithBarDataChecks(object):
@@ -201,6 +205,46 @@ class TestMinuteBarData(WithCreateBarData,
         )
 
         cls.ASSETS = [cls.ASSET1, cls.ASSET2]
+
+    def test_current_session(self):
+        regular_minutes = self.trading_calendar.minutes_for_sessions_in_range(
+            self.equity_minute_bar_days[0],
+            self.equity_minute_bar_days[-1]
+        )
+
+        bts_minutes = days_at_time(
+            self.equity_minute_bar_days,
+            time(8, 45),
+            "US/Eastern"
+        )
+
+        # some other non-market-minute
+        three_oh_six_am_minutes = days_at_time(
+            self.equity_minute_bar_days,
+            time(3, 6),
+            "US/Eastern"
+        )
+
+        all_minutes = [regular_minutes, bts_minutes, three_oh_six_am_minutes]
+        for minute in list(concat(all_minutes)):
+            bar_data = self.create_bardata(lambda: minute)
+
+            self.assertEqual(
+                self.trading_calendar.minute_to_session_label(minute),
+                bar_data.current_session
+            )
+
+    def test_current_session_minutes(self):
+        first_day_minutes = self.trading_calendar.minutes_for_session(
+            self.equity_minute_bar_days[0]
+        )
+
+        for minute in first_day_minutes:
+            bar_data = self.create_bardata(lambda: minute)
+            np.testing.assert_array_equal(
+                first_day_minutes,
+                bar_data.current_session_minutes
+            )
 
     def test_minute_before_assets_trading(self):
         # grab minutes that include the day before the asset start
@@ -684,9 +728,9 @@ class TestMinuteBarData(WithCreateBarData,
             self.assertEqual(bar_data.can_trade(self.ASSET1), info[1])
 
 
-class TestMinuteBarDataMultipleExchanges(WithCreateBarData,
-                                         WithBarDataChecks,
-                                         ZiplineTestCase):
+class TestMinuteBarDataFuturesCalendar(WithCreateBarData,
+                                       WithBarDataChecks,
+                                       ZiplineTestCase):
 
     START_DATE = pd.Timestamp('2016-01-05', tz='UTC')
     END_DATE = ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp(
@@ -710,12 +754,21 @@ class TestMinuteBarDataMultipleExchanges(WithCreateBarData,
         return pd.DataFrame.from_dict(
             {
                 6: {
-                    'symbol': 'CLG06',
+                    'symbol': 'CLH16',
                     'root_symbol': 'CL',
-                    'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
-                    'notice_date': pd.Timestamp('2005-12-20', tz='UTC'),
-                    'expiration_date': pd.Timestamp('2006-01-20', tz='UTC'),
+                    'start_date': pd.Timestamp('2016-01-04', tz='UTC'),
+                    'notice_date': pd.Timestamp('2016-01-19', tz='UTC'),
+                    'expiration_date': pd.Timestamp('2016-02-19', tz='UTC'),
                     'exchange': 'ICEUS',
+                },
+                7: {
+                    'symbol': 'FVH16',
+                    'root_symbol': 'FV',
+                    'start_date': pd.Timestamp('2016-01-04', tz='UTC'),
+                    'notice_date': pd.Timestamp('2016-01-22', tz='UTC'),
+                    'expiration_date': pd.Timestamp('2016-02-22', tz='UTC'),
+                    'auto_close_date': pd.Timestamp('2016-01-20', tz='UTC'),
+                    'exchange': 'CME',
                 },
             },
             orient='index',
@@ -723,7 +776,7 @@ class TestMinuteBarDataMultipleExchanges(WithCreateBarData,
 
     @classmethod
     def init_class_fixtures(cls):
-        super(TestMinuteBarDataMultipleExchanges, cls).init_class_fixtures()
+        super(TestMinuteBarDataFuturesCalendar, cls).init_class_fixtures()
         cls.trading_calendar = get_calendar('CME')
 
     def test_can_trade_multiple_exchange_closed(self):
@@ -775,6 +828,30 @@ class TestMinuteBarDataMultipleExchanges(WithCreateBarData,
 
             self.assertEqual(info[1], series.loc[nyse_asset])
             self.assertEqual(info[2], series.loc[ice_asset])
+
+    def test_can_trade_delisted(self):
+        """
+        Test that can_trade returns False for an asset after its auto close
+        date.
+        """
+        auto_closing_asset = self.asset_finder.retrieve_asset(7)
+
+        # Our asset's auto close date is 2016-01-20, which means that as of the
+        # market open for the 2016-01-21 session, `can_trade` should return
+        # False.
+        minutes_to_check = [
+            (pd.Timestamp('2016-01-20 00:00:00', tz='UTC'), True),
+            (pd.Timestamp('2016-01-20 23:00:00', tz='UTC'), True),
+            (pd.Timestamp('2016-01-20 23:01:00', tz='UTC'), False),
+            (pd.Timestamp('2016-01-20 23:59:00', tz='UTC'), False),
+            (pd.Timestamp('2016-01-21 00:00:00', tz='UTC'), False),
+            (pd.Timestamp('2016-01-21 00:01:00', tz='UTC'), False),
+            (pd.Timestamp('2016-01-22 00:00:00', tz='UTC'), False),
+        ]
+
+        for info in minutes_to_check:
+            bar_data = self.create_bardata(simulation_dt_func=lambda: info[0])
+            self.assertEqual(bar_data.can_trade(auto_closing_asset), info[1])
 
 
 class TestDailyBarData(WithCreateBarData,
@@ -916,6 +993,19 @@ class TestDailyBarData(WithCreateBarData,
         return self.trading_calendar.open_and_close_for_session(
             session_label
         )[1]
+
+    def test_current_session(self):
+        for session in self.trading_calendar.sessions_in_range(
+            self.equity_daily_bar_days[0],
+            self.equity_daily_bar_days[-1]
+        ):
+            bar_data = self.create_bardata(
+                simulation_dt_func=lambda: self.get_last_minute_of_session(
+                    session
+                )
+            )
+
+            self.assertEqual(session, bar_data.current_session)
 
     def test_day_before_assets_trading(self):
         # use the day before self.bcolz_daily_bar_days[0]

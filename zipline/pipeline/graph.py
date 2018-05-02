@@ -109,9 +109,7 @@ class TermGraph(object):
 
     @lazyval
     def loadable_terms(self):
-        return tuple(
-            term for term in self.graph if isinstance(term, LoadableTerm)
-        )
+        return {term for term in self.graph if isinstance(term, LoadableTerm)}
 
     @lazyval
     def jpeg(self):
@@ -370,8 +368,8 @@ class ExecutionPlan(TermGraph):
         which describes how many additional rows of `term`'s inputs we need to
         load, and which is determined entirely by `Term` itself.
 
-        Example
-        -------
+        Examples
+        --------
         Our graph contains the following terms:
 
             A = SimpleMovingAverage([USEquityPricing.high], window_length=5)

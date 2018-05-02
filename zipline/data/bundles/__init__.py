@@ -1,5 +1,7 @@
 # These imports are necessary to force module-scope register calls to happen.
 from . import quandl  # noqa
+from . import csvdir  # noqa
+
 from .core import (
     UnknownBundle,
     bundles,
@@ -12,7 +14,6 @@ from .core import (
     to_bundle_ingest_dirname,
     unregister,
 )
-from .yahoo import yahoo_equities
 
 
 __all__ = [
@@ -26,5 +27,4 @@ __all__ = [
     'register',
     'to_bundle_ingest_dirname',
     'unregister',
-    'yahoo_equities',
 ]

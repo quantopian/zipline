@@ -348,6 +348,10 @@ class Term(with_metaclass(ABCMeta, object)):
         """
         raise NotImplementedError('dependencies')
 
+    def short_repr(self):
+        # Default short_repr is just the full repr.
+        return repr(self)
+
 
 class AssetExists(Term):
     """
@@ -731,6 +735,12 @@ class Slice(ComputableTerm):
         # Return a 2D array with one column rather than a 1D array of the
         # column.
         return windows[0][:, [asset_column]]
+
+    @property
+    def asset(self):
+        """Get the asset whose data is selected by this slice.
+        """
+        return self._asset
 
     @property
     def _downsampled_type(self):

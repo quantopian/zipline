@@ -13,7 +13,6 @@ from numpy import (
     asarray,
     dtype,
     full,
-    where,
 )
 from six.moves import zip_longest
 from toolz import curry
@@ -25,11 +24,12 @@ from zipline.lib.adjustment import (
     Float64Multiply,
     Float64Overwrite,
     Float641DArrayOverwrite,
+    Int64Overwrite,
     ObjectOverwrite,
 )
-from zipline.lib.adjusted_array import AdjustedArray, NOMASK
+from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.labelarray import LabelArray
-from zipline.testing import check_arrays, parameter_space
+from zipline.testing import check_arrays
 from zipline.utils.compat import unicode
 from zipline.utils.numpy_utils import (
     coerce_to_dtype,
@@ -235,6 +235,7 @@ def _gen_overwrite_adjustment_cases(dtype):
     adjustment_type = {
         float64_dtype: Float64Overwrite,
         datetime64ns_dtype: Datetime64Overwrite,
+        int64_dtype: Int64Overwrite,
         bytes_dtype: ObjectOverwrite,
         unicode_dtype: ObjectOverwrite,
         object_dtype: ObjectOverwrite,
@@ -558,7 +559,7 @@ class AdjustedArrayTestCase(TestCase):
                             perspective_offset,
                             expected_output):
 
-        array = AdjustedArray(data, NOMASK, adjustments, missing_value)
+        array = AdjustedArray(data, adjustments, missing_value)
         for _ in range(2):  # Iterate 2x ensure adjusted_arrays are re-usable.
             in_out = zip(array.traverse(lookback), expected_output)
             for yielded, expected_yield in in_out:
@@ -574,7 +575,7 @@ class AdjustedArrayTestCase(TestCase):
                                         perspective_offset,
                                         expected):
 
-        array = AdjustedArray(data, NOMASK, adjustments, missing_value)
+        array = AdjustedArray(data, adjustments, missing_value)
         for _ in range(2):  # Iterate 2x ensure adjusted_arrays are re-usable.
             window_iter = array.traverse(
                 lookback,
@@ -585,6 +586,7 @@ class AdjustedArrayTestCase(TestCase):
 
     @parameterized.expand(
         chain(
+            _gen_overwrite_adjustment_cases(int64_dtype),
             _gen_overwrite_adjustment_cases(float64_dtype),
             _gen_overwrite_adjustment_cases(datetime64ns_dtype),
             _gen_overwrite_1d_array_adjustment_case(float64_dtype),
@@ -646,7 +648,7 @@ class AdjustedArrayTestCase(TestCase):
                                         missing_value,
                                         perspective_offset,
                                         expected):
-        array = AdjustedArray(baseline, NOMASK, adjustments, missing_value)
+        array = AdjustedArray(baseline, adjustments, missing_value)
 
         for _ in range(2):  # Iterate 2x ensure adjusted_arrays are re-usable.
             window_iter = array.traverse(
@@ -656,70 +658,10 @@ class AdjustedArrayTestCase(TestCase):
             for yielded, expected_yield in zip_longest(window_iter, expected):
                 check_arrays(yielded, expected_yield)
 
-    @parameter_space(
-        __fail_fast=True,
-        dtype=[
-            float64_dtype,
-            int64_dtype,
-            datetime64ns_dtype,
-        ],
-        missing_value=[0, 10000],
-        window_length=[2, 3],
-    )
-    def test_masking(self, dtype, missing_value, window_length):
-        missing_value = coerce_to_dtype(dtype, missing_value)
-        baseline_ints = arange(15).reshape(5, 3)
-        baseline = baseline_ints.astype(dtype)
-        mask = (baseline_ints % 2).astype(bool)
-        masked_baseline = where(mask, baseline, missing_value)
-
-        array = AdjustedArray(
-            baseline,
-            mask,
-            adjustments={},
-            missing_value=missing_value,
-        )
-
-        gen_expected = moving_window(masked_baseline, window_length)
-        gen_actual = array.traverse(window_length)
-        for expected, actual in zip(gen_expected, gen_actual):
-            check_arrays(expected, actual)
-
-    @parameter_space(
-        __fail_fast=True,
-        dtype=[bytes_dtype, unicode_dtype, object_dtype],
-        missing_value=["0", "-1", ""],
-        window_length=[2, 3],
-    )
-    def test_masking_with_strings(self, dtype, missing_value, window_length):
-        missing_value = coerce_to_dtype(dtype, missing_value)
-        baseline_ints = arange(15).reshape(5, 3)
-
-        # Coerce to string first so that coercion to object gets us an array of
-        # string objects.
-        baseline = baseline_ints.astype(str).astype(dtype)
-        mask = (baseline_ints % 2).astype(bool)
-
-        masked_baseline = LabelArray(baseline, missing_value=missing_value)
-        masked_baseline[~mask] = missing_value
-
-        array = AdjustedArray(
-            baseline,
-            mask,
-            adjustments={},
-            missing_value=missing_value,
-        )
-
-        gen_expected = moving_window(masked_baseline, window_length)
-        gen_actual = array.traverse(window_length=window_length)
-
-        for expected, actual in zip(gen_expected, gen_actual):
-            check_arrays(expected, actual)
-
     def test_invalid_lookback(self):
 
         data = arange(30, dtype=float).reshape(6, 5)
-        adj_array = AdjustedArray(data, NOMASK, {}, float('nan'))
+        adj_array = AdjustedArray(data, {}, float('nan'))
 
         with self.assertRaises(WindowLengthTooLong):
             adj_array.traverse(7)
@@ -733,25 +675,16 @@ class AdjustedArrayTestCase(TestCase):
     def test_array_views_arent_writable(self):
 
         data = arange(30, dtype=float).reshape(6, 5)
-        adj_array = AdjustedArray(data, NOMASK, {}, float('nan'))
+        adj_array = AdjustedArray(data, {}, float('nan'))
 
         for frame in adj_array.traverse(3):
             with self.assertRaises(ValueError):
                 frame[0, 0] = 5.0
 
-    def test_bad_input(self):
-        msg = "Mask shape \(2L?, 3L?\) != data shape \(5L?, 5L?\)"
-        data = arange(25).reshape(5, 5)
-        bad_mask = array([[0, 1, 1], [0, 0, 1]], dtype=bool)
-
-        with self.assertRaisesRegexp(ValueError, msg):
-            AdjustedArray(data, bad_mask, {}, missing_value=-1)
-
     def test_inspect(self):
         data = arange(15, dtype=float).reshape(5, 3)
         adj_array = AdjustedArray(
             data,
-            NOMASK,
             {4: [Float64Multiply(2, 3, 0, 0, 4.0)]},
             float('nan'),
         )

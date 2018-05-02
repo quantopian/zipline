@@ -1,6 +1,6 @@
 from datetime import time
 
-from pandas import Timestamp
+from pandas import Timedelta, Timestamp
 from pandas.tseries.holiday import GoodFriday
 from pytz import timezone
 
@@ -12,6 +12,12 @@ from zipline.utils.calendars.us_holidays import (
     USNewYearsDay,
     Christmas
 )
+
+# Number of hours of offset between the open and close times dictated by this
+# calendar versus the 6:31am to 5:00pm times over which we want to simulate
+# futures algos.
+FUTURES_OPEN_TIME_OFFSET = 12.5
+FUTURES_CLOSE_TIME_OFFSET = -1
 
 
 class QuantopianUSFuturesCalendar(TradingCalendar):
@@ -62,6 +68,12 @@ class QuantopianUSFuturesCalendar(TradingCalendar):
     @property
     def open_offset(self):
         return -1
+
+    def execution_time_from_open(self, open_dates):
+        return open_dates + Timedelta(hours=FUTURES_OPEN_TIME_OFFSET)
+
+    def execution_time_from_close(self, close_dates):
+        return close_dates + Timedelta(hours=FUTURES_CLOSE_TIME_OFFSET)
 
     @property
     def regular_holidays(self):

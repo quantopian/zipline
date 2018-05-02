@@ -33,6 +33,7 @@ _default_calendar_aliases = {
     'ICEUS': 'ICE',
     'NYFE': 'ICE',
 }
+default_calendar_names = sorted(_default_calendar_factories.keys())
 
 
 class TradingCalendarDispatcher(object):
@@ -67,7 +68,7 @@ class TradingCalendarDispatcher(object):
 
         Returns
         -------
-        TradingCalendar
+        calendar : zipline.utils.calendars.TradingCalendar
             The desired calendar.
         """
         canonical_name = self.resolve_alias(name)

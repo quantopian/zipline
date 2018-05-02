@@ -24,8 +24,8 @@ def naive_grouped_rowwise_apply(data,
         Array into which to write output.  If not supplied, a new array of the
         same shape as ``data`` is allocated and returned.
 
-    Example
-    -------
+    Examples
+    --------
     >>> data = np.array([[1., 2., 3.],
     ...                  [2., 3., 4.],
     ...                  [5., 6., 7.]])

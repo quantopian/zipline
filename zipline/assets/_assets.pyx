@@ -44,22 +44,6 @@ CACHE_FILE_TEMPLATE = '/tmp/.%s-%s.v7.cache'
 
 
 cdef class Asset:
-
-    cdef readonly int sid
-    # Cached hash of self.sid
-    cdef int sid_hash
-
-    cdef readonly object symbol
-    cdef readonly object asset_name
-
-    cdef readonly object start_date
-    cdef readonly object end_date
-    cdef public object first_traded
-    cdef readonly object auto_close_date
-
-    cdef readonly object exchange
-    cdef readonly object exchange_full
-
     _kwargnames = frozenset({
         'sid',
         'symbol',
@@ -73,7 +57,7 @@ cdef class Asset:
     })
 
     def __init__(self,
-                 int sid, # sid is required
+                 int64_t sid, # sid is required
                  object exchange, # exchange is required
                  object symbol="",
                  object asset_name="",
@@ -84,7 +68,6 @@ cdef class Asset:
                  object exchange_full=None):
 
         self.sid = sid
-        self.sid_hash = hash(sid)
         self.symbol = symbol
         self.asset_name = asset_name
         self.exchange = exchange
@@ -102,14 +85,14 @@ cdef class Asset:
         return self.sid
 
     def __hash__(self):
-        return self.sid_hash
+        return self.sid
 
     def __richcmp__(x, y, int op):
         """
         Cython rich comparison method.  This is used in place of various
         equality checkers in pure python.
         """
-        cdef int x_as_int, y_as_int
+        cdef int64_t x_as_int, y_as_int
 
         try:
             x_as_int = PyNumber_Index(x)
@@ -140,20 +123,11 @@ cdef class Asset:
         else:
             raise AssertionError('%d is not an operator' % op)
 
-    def __str__(self):
+    def __repr__(self):
         if self.symbol:
             return '%s(%d [%s])' % (type(self).__name__, self.sid, self.symbol)
         else:
             return '%s(%d)' % (type(self).__name__, self.sid)
-
-    def __repr__(self):
-        attrs = ('symbol', 'asset_name', 'exchange',
-                 'start_date', 'end_date', 'first_traded', 'auto_close_date')
-        tuples = ((attr, repr(getattr(self, attr, None)))
-                  for attr in attrs)
-        strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
-        params = ', '.join(strings)
-        return 'Asset(%d, %s)' % (self.sid, params)
 
     cpdef __reduce__(self):
         """
@@ -233,16 +207,6 @@ cdef class Asset:
 
 cdef class Equity(Asset):
 
-    def __repr__(self):
-        attrs = ('symbol', 'asset_name', 'exchange',
-                 'start_date', 'end_date', 'first_traded', 'auto_close_date',
-                 'exchange_full')
-        tuples = ((attr, repr(getattr(self, attr, None)))
-                  for attr in attrs)
-        strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
-        params = ', '.join(strings)
-        return 'Equity(%d, %s)' % (self.sid, params)
-
     property security_start_date:
         """
         DEPRECATION: This property should be deprecated and is only present for
@@ -278,13 +242,6 @@ cdef class Equity(Asset):
 
 
 cdef class Future(Asset):
-
-    cdef readonly object root_symbol
-    cdef readonly object notice_date
-    cdef readonly object expiration_date
-    cdef readonly object tick_size
-    cdef readonly float multiplier
-
     _kwargnames = frozenset({
         'sid',
         'symbol',
@@ -303,7 +260,7 @@ cdef class Future(Asset):
     })
 
     def __init__(self,
-                 int sid, # sid is required
+                 int64_t sid, # sid is required
                  object exchange, # exchange is required
                  object symbol="",
                  object root_symbol="",
@@ -342,17 +299,6 @@ cdef class Future(Asset):
                 self.auto_close_date = notice_date
             else:
                 self.auto_close_date = min(notice_date, expiration_date)
-
-    def __repr__(self):
-        attrs = ('symbol', 'root_symbol', 'asset_name', 'exchange',
-                 'start_date', 'end_date', 'first_traded', 'notice_date',
-                 'expiration_date', 'auto_close_date', 'tick_size',
-                 'multiplier', 'exchange_full')
-        tuples = ((attr, repr(getattr(self, attr, None)))
-                  for attr in attrs)
-        strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
-        params = ', '.join(strings)
-        return 'Future(%d, %s)' % (self.sid, params)
 
     cpdef __reduce__(self):
         """

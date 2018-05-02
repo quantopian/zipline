@@ -19,6 +19,7 @@ Tests for the zipline.assets package
 from contextlib import contextmanager
 from datetime import timedelta
 from functools import partial
+import os
 import pickle
 import sys
 from types import GetSetDescriptorType
@@ -30,7 +31,7 @@ from nose_parameterized import parameterized
 from numpy import full, int32, int64
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
-from six import PY2, viewkeys
+from six import viewkeys
 import sqlalchemy as sa
 
 from zipline.assets import (
@@ -62,14 +63,19 @@ from zipline.errors import (
     EquitiesNotFound,
     FutureContractsNotFound,
     MultipleSymbolsFound,
+    MultipleValuesFoundForField,
+    MultipleValuesFoundForSid,
+    NoValueForSid,
     AssetDBVersionError,
     SidsNotFound,
     SymbolNotFound,
     AssetDBImpossibleDowngrade,
+    ValueNotFoundForField,
 )
 from zipline.testing import (
     all_subindices,
     empty_assets_db,
+    parameter_space,
     tmp_assets_db,
 )
 from zipline.testing.predicates import assert_equal
@@ -77,6 +83,7 @@ from zipline.testing.fixtures import (
     WithAssetFinder,
     ZiplineTestCase,
     WithTradingCalendars,
+    WithTmpDir,
 )
 from zipline.utils.range import range
 
@@ -97,7 +104,7 @@ def build_lookup_generic_cases(asset_finder_type):
     dupe_1_start = pd.Timestamp('2013-01-03', tz='UTC')
     dupe_1_end = dupe_1_start + timedelta(days=1)
 
-    frame = pd.DataFrame.from_records(
+    equities = pd.DataFrame.from_records(
         [
             {
                 'sid': 0,
@@ -121,13 +128,47 @@ def build_lookup_generic_cases(asset_finder_type):
                 'exchange': 'TEST',
             },
         ],
-        index='sid')
-    with tmp_assets_db(equities=frame) as assets_db:
+        index='sid'
+    )
+
+    fof14_sid = 10000
+
+    futures = pd.DataFrame.from_records(
+        [
+            {
+                'sid': fof14_sid,
+                'symbol': 'FOF14',
+                'root_symbol': 'FO',
+                'start_date': unique_start.value,
+                'end_date': unique_end.value,
+                'auto_close_date': unique_end.value,
+                'exchange': 'FUT',
+            },
+        ],
+        index='sid'
+    )
+
+    root_symbols = pd.DataFrame({
+        'root_symbol': ['FO'],
+        'root_symbol_id': [1],
+        'exchange': ['CME'],
+    })
+
+    with tmp_assets_db(
+            equities=equities, futures=futures, root_symbols=root_symbols) \
+            as assets_db:
         finder = asset_finder_type(assets_db)
         dupe_0, dupe_1, unique = assets = [
             finder.retrieve_asset(i)
             for i in range(3)
         ]
+        fof14 = finder.retrieve_asset(fof14_sid)
+        cf = finder.create_continuous_future(
+            root_symbol=fof14.root_symbol,
+            offset=0,
+            roll_style='volume',
+            adjustment=None,
+        )
 
         dupe_0_start = dupe_0.start_date
         dupe_1_start = dupe_1.start_date
@@ -150,6 +191,21 @@ def build_lookup_generic_cases(asset_finder_type):
             (finder, 'UNIQUE', unique_start, unique),
             (finder, 'UNIQUE', None, unique),
 
+            # Futures
+            (finder, 'FOF14', None, fof14),
+            # Future symbols should be unique, but including as_of date
+            # make sure that code path is exercised.
+            (finder, 'FOF14', unique_start, fof14),
+
+            # Futures int
+            (finder, fof14_sid, None, fof14),
+            # Future symbols should be unique, but including as_of date
+            # make sure that code path is exercised.
+            (finder, fof14_sid, unique_start, fof14),
+
+            # ContinuousFuture
+            (finder, cf, None, cf),
+
             ##
             # Iterables
 
@@ -167,6 +223,12 @@ def build_lookup_generic_cases(asset_finder_type):
              ('DUPLICATED', 2, 'UNIQUE', 1, dupe_1),
              dupe_0_start,
              [dupe_0, assets[2], unique, assets[1], dupe_1]),
+
+            # Futures and Equities
+            (finder, ['FOF14', 0], None, [fof14, assets[0]]),
+
+            # ContinuousFuture and Equity
+            (finder, [cf, 0], None, [cf, assets[0]]),
         )
 
 
@@ -319,30 +381,9 @@ class TestFuture(WithAssetFinder, ZiplineTestCase):
         cls.future = cls.asset_finder.lookup_future_symbol('OMH15')
         cls.future2 = cls.asset_finder.lookup_future_symbol('CLG06')
 
-    def test_str(self):
-        strd = str(self.future)
-        self.assertEqual("Future(2468 [OMH15])", strd)
-
     def test_repr(self):
         reprd = repr(self.future)
-        self.assertIn("Future", reprd)
-        self.assertIn("2468", reprd)
-        self.assertIn("OMH15", reprd)
-        self.assertIn("root_symbol=%s'OM'" % ('u' if PY2 else ''), reprd)
-        self.assertIn(
-            "notice_date=Timestamp('2014-01-20 00:00:00+0000', tz='UTC')",
-            reprd,
-        )
-        self.assertIn(
-            "expiration_date=Timestamp('2014-02-20 00:00:00+0000'",
-            reprd,
-        )
-        self.assertIn(
-            "auto_close_date=Timestamp('2014-01-18 00:00:00+0000'",
-            reprd,
-        )
-        self.assertIn("tick_size=0.01", reprd)
-        self.assertIn("multiplier=500", reprd)
+        self.assertEqual("Future(2468 [OMH15])", reprd)
 
     def test_reduce(self):
         assert_equal(
@@ -891,7 +932,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         post_map = finder.map_identifier_index_to_sids(pre_map, dt)
         self.assertListEqual([1, 2, 200, 201], post_map)
         for sid in post_map:
-            self.assertIsInstance(sid, int)
+            self.assertIsInstance(sid, integer_types)
 
         # Change order and check mapping again
         pre_map = [asset201, asset2, asset200, asset1]
@@ -965,6 +1006,217 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
             pd.Timestamp('2014-01-02'),
         ))
         self.assertEqual({0, 1, 2}, set(self.asset_finder.sids))
+
+    def test_lookup_by_supplementary_field(self):
+        equities = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': 0,
+                    'symbol': 'A',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange': 'TEST',
+                },
+                {
+                    'sid': 1,
+                    'symbol': 'B',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange': 'TEST',
+                },
+                {
+                    'sid': 2,
+                    'symbol': 'C',
+                    'start_date': pd.Timestamp('2013-7-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange': 'TEST',
+                },
+            ]
+        )
+
+        equity_supplementary_mappings = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': 0,
+                    'field': 'ALT_ID',
+                    'value': '100000000',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2013-6-28', tz='UTC'),
+                },
+                {
+                    'sid': 1,
+                    'field': 'ALT_ID',
+                    'value': '100000001',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                },
+                {
+                    'sid': 0,
+                    'field': 'ALT_ID',
+                    'value': '100000002',
+                    'start_date': pd.Timestamp('2013-7-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                },
+                {
+                    'sid': 2,
+                    'field': 'ALT_ID',
+                    'value': '100000000',
+                    'start_date': pd.Timestamp('2013-7-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                },
+            ]
+        )
+
+        self.write_assets(
+            equities=equities,
+            equity_supplementary_mappings=equity_supplementary_mappings,
+        )
+
+        af = self.asset_finder
+
+        # Before sid 0 has changed ALT_ID.
+        dt = pd.Timestamp('2013-6-28', tz='UTC')
+
+        asset_0 = af.lookup_by_supplementary_field('ALT_ID', '100000000', dt)
+        self.assertEqual(asset_0.sid, 0)
+
+        asset_1 = af.lookup_by_supplementary_field('ALT_ID', '100000001', dt)
+        self.assertEqual(asset_1.sid, 1)
+
+        # We don't know about this ALT_ID yet.
+        with self.assertRaisesRegexp(
+            ValueNotFoundForField,
+            "Value '{}' was not found for field '{}'.".format(
+                '100000002',
+                'ALT_ID',
+            )
+        ):
+            af.lookup_by_supplementary_field('ALT_ID', '100000002', dt)
+
+        # After all assets have ended.
+        dt = pd.Timestamp('2014-01-02', tz='UTC')
+
+        asset_2 = af.lookup_by_supplementary_field('ALT_ID', '100000000', dt)
+        self.assertEqual(asset_2.sid, 2)
+
+        asset_1 = af.lookup_by_supplementary_field('ALT_ID', '100000001', dt)
+        self.assertEqual(asset_1.sid, 1)
+
+        asset_0 = af.lookup_by_supplementary_field('ALT_ID', '100000002', dt)
+        self.assertEqual(asset_0.sid, 0)
+
+        # At this point both sids 0 and 2 have held this value, so an
+        # as_of_date is required.
+        expected_in_repr = (
+            "Multiple occurrences of the value '{}' found for field '{}'."
+        ).format('100000000', 'ALT_ID')
+
+        with self.assertRaisesRegexp(
+            MultipleValuesFoundForField,
+            expected_in_repr,
+        ):
+            af.lookup_by_supplementary_field('ALT_ID', '100000000', None)
+
+    def test_get_supplementary_field(self):
+        equities = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': 0,
+                    'symbol': 'A',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange': 'TEST',
+                },
+                {
+                    'sid': 1,
+                    'symbol': 'B',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange': 'TEST',
+                },
+                {
+                    'sid': 2,
+                    'symbol': 'C',
+                    'start_date': pd.Timestamp('2013-7-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange': 'TEST',
+                },
+            ]
+        )
+
+        equity_supplementary_mappings = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': 0,
+                    'field': 'ALT_ID',
+                    'value': '100000000',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2013-6-28', tz='UTC'),
+                },
+                {
+                    'sid': 1,
+                    'field': 'ALT_ID',
+                    'value': '100000001',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                },
+                {
+                    'sid': 0,
+                    'field': 'ALT_ID',
+                    'value': '100000002',
+                    'start_date': pd.Timestamp('2013-7-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                },
+                {
+                    'sid': 2,
+                    'field': 'ALT_ID',
+                    'value': '100000000',
+                    'start_date': pd.Timestamp('2013-7-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                },
+            ]
+        )
+
+        self.write_assets(
+            equities=equities,
+            equity_supplementary_mappings=equity_supplementary_mappings,
+        )
+        finder = self.asset_finder
+
+        # Before sid 0 has changed ALT_ID and sid 2 has started.
+        dt = pd.Timestamp('2013-6-28', tz='UTC')
+
+        for sid, expected in [(0, '100000000'), (1, '100000001')]:
+            self.assertEqual(
+                finder.get_supplementary_field(sid, 'ALT_ID', dt),
+                expected,
+            )
+
+        # Since sid 2 has not yet started, we don't know about its
+        # ALT_ID.
+        with self.assertRaisesRegexp(
+            NoValueForSid,
+            "No '{}' value found for sid '{}'.".format('ALT_ID', 2),
+        ):
+            finder.get_supplementary_field(2, 'ALT_ID', dt),
+
+        # After all assets have ended.
+        dt = pd.Timestamp('2014-01-02', tz='UTC')
+
+        for sid, expected in [
+            (0, '100000002'), (1, '100000001'), (2, '100000000'),
+        ]:
+            self.assertEqual(
+                finder.get_supplementary_field(sid, 'ALT_ID', dt),
+                expected,
+            )
+
+        # Sid 0 has historically held two values for ALT_ID by this dt.
+        with self.assertRaisesRegexp(
+            MultipleValuesFoundForSid,
+            "Multiple '{}' values found for sid '{}'.".format('ALT_ID', 0),
+        ):
+            finder.get_supplementary_field(0, 'ALT_ID', None),
 
     def test_group_by_type(self):
         equities = make_simple_equity_info(
@@ -1260,3 +1512,93 @@ class TestAssetDBVersioning(ZiplineTestCase):
         ))
 
         assert_equal(expected_data, actual_data)
+
+
+class TestVectorizedSymbolLookup(WithAssetFinder, ZiplineTestCase):
+
+    @classmethod
+    def make_equity_info(cls):
+        T = partial(pd.Timestamp, tz='UTC')
+
+        def asset(sid, symbol, start_date, end_date):
+            return dict(
+                sid=sid,
+                symbol=symbol,
+                start_date=T(start_date),
+                end_date=T(end_date),
+                exchange='NYSE',
+                exchange_full='NYSE',
+            )
+
+        records = [
+            asset(1, 'A', '2014-01-02', '2014-01-31'),
+            asset(2, 'A', '2014-02-03', '2015-01-02'),
+            asset(3, 'B', '2014-01-02', '2014-01-15'),
+            asset(4, 'B', '2014-01-17', '2015-01-02'),
+            asset(5, 'C', '2001-01-02', '2015-01-02'),
+            asset(6, 'D', '2001-01-02', '2015-01-02'),
+            asset(7, 'FUZZY', '2001-01-02', '2015-01-02'),
+        ]
+        return pd.DataFrame.from_records(records)
+
+    @parameter_space(
+        as_of=pd.to_datetime([
+            '2014-01-02',
+            '2014-01-15',
+            '2014-01-17',
+            '2015-01-02',
+        ], utc=True),
+        symbols=[
+            [],
+            ['A'], ['B'], ['C'], ['D'],
+            list('ABCD'),
+            list('ABCDDCBA'),
+            list('AABBAABBACABD'),
+        ],
+    )
+    def test_lookup_symbols(self, as_of, symbols):
+        af = self.asset_finder
+        expected = [
+            af.lookup_symbol(symbol, as_of) for symbol in symbols
+        ]
+        result = af.lookup_symbols(symbols, as_of)
+        assert_equal(result, expected)
+
+    def test_fuzzy(self):
+        af = self.asset_finder
+
+        # FUZZ.Y shouldn't resolve unless fuzzy=True.
+        syms = ['A', 'B', 'FUZZ.Y']
+        dt = pd.Timestamp('2014-01-15', tz='UTC')
+
+        with self.assertRaises(SymbolNotFound):
+            af.lookup_symbols(syms, pd.Timestamp('2014-01-15', tz='UTC'))
+
+        with self.assertRaises(SymbolNotFound):
+            af.lookup_symbols(
+                syms,
+                pd.Timestamp('2014-01-15', tz='UTC'),
+                fuzzy=False,
+            )
+
+        results = af.lookup_symbols(syms, dt, fuzzy=True)
+        assert_equal(results, af.retrieve_all([1, 3, 7]))
+        assert_equal(
+            results,
+            [af.lookup_symbol(sym, dt, fuzzy=True) for sym in syms],
+        )
+
+
+class TestAssetFinderPreprocessors(WithTmpDir, ZiplineTestCase):
+
+    def test_asset_finder_doesnt_silently_create_useless_empty_files(self):
+        nonexistent_path = self.tmpdir.getpath(self.id() + '__nothing_here')
+
+        with self.assertRaises(ValueError) as e:
+            AssetFinder(nonexistent_path)
+        expected = "SQLite file {!r} doesn't exist.".format(nonexistent_path)
+        self.assertEqual(str(e.exception), expected)
+
+        # sqlite3.connect will create an empty file if you connect somewhere
+        # nonexistent. Test that we don't do that.
+        self.assertFalse(os.path.exists(nonexistent_path))

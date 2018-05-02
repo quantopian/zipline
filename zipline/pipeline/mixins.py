@@ -16,7 +16,7 @@ from zipline.errors import (
     UnsupportedDataType,
     NoFurtherDataError,
 )
-from zipline.utils.control_flow import nullctx
+from zipline.utils.context_tricks import nop_context
 from zipline.utils.input_validation import expect_types
 from zipline.utils.sharedoc import (
     format_docstring,
@@ -106,7 +106,7 @@ class CustomTermMixin(object):
 
     Used by CustomFactor, CustomFilter, CustomClassifier, etc.
     """
-    ctx = nullctx()
+    ctx = nop_context
 
     def __new__(cls,
                 inputs=NotSpecified,
@@ -216,6 +216,7 @@ class CustomTermMixin(object):
         return out
 
     def short_repr(self):
+        """Short repr to use when rendering Pipeline graphs."""
         return type(self).__name__ + '(%d)' % self.window_length
 
 
@@ -239,6 +240,9 @@ class LatestMixin(SingleInputMixin):
                     actual=self.inputs[0].dtype,
                 )
             )
+
+    def short_repr(self):
+        return "{}.latest".format(self.inputs[0].short_repr())
 
 
 class AliasedMixin(SingleInputMixin):
@@ -280,6 +284,7 @@ class AliasedMixin(SingleInputMixin):
         )
 
     def short_repr(self):
+        """Short repr to use when rendering Pipeline graphs."""
         return self.name
 
     @classmethod
@@ -386,7 +391,7 @@ class DownsampledMixin(StandardOutputs):
         try:
             current_start_pos = all_dates.get_loc(start_date) - min_extra_rows
             if current_start_pos < 0:
-                raise NoFurtherDataError(
+                raise NoFurtherDataError.from_lookback_window(
                     initial_message="Insufficient data to compute Pipeline:",
                     first_date=all_dates[0],
                     lookback_start=start_date,

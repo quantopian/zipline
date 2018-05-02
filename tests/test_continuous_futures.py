@@ -33,12 +33,18 @@ from zipline.assets.continuous_futures import (
     OrderedContracts,
     delivery_predicate
 )
+from zipline.assets.roll_finder import (
+    ROLL_DAYS_FOR_CURRENT_CONTRACT,
+    VolumeRollFinder,
+)
 from zipline.data.minute_bars import FUTURES_MINUTES_PER_DAY
+from zipline.errors import SymbolNotFound
 from zipline.testing.fixtures import (
     WithAssetFinder,
+    WithBcolzFutureDailyBarReader,
+    WithBcolzFutureMinuteBarReader,
     WithCreateBarData,
     WithDataPortal,
-    WithBcolzFutureMinuteBarReader,
     WithSimParams,
     ZiplineTestCase,
 )
@@ -66,7 +72,7 @@ class ContinuousFuturesTestCase(WithCreateBarData,
     @classmethod
     def make_root_symbols_info(self):
         return pd.DataFrame({
-            'root_symbol': ['FO', 'BA', 'BZ', 'MA'],
+            'root_symbol': ['FO', 'BZ', 'MA', 'DF'],
             'root_symbol_id': [1, 2, 3, 4],
             'exchange': ['CME', 'CME', 'CME', 'CME']})
 
@@ -124,34 +130,6 @@ class ContinuousFuturesTestCase(WithCreateBarData,
             'exchange': ['CME'] * 7,
         })
 
-        # BA is set up to test a quarterly roll, to test Eurodollar-like
-        # behavior
-        # The roll should go from BAH16 -> BAM16
-        ba_frame = DataFrame({
-            'symbol': ['BAH16', 'BAK16', 'BAM16'],
-            'root_symbol': ['BA'] * 3,
-            'asset_name': ['Bar'] * 3,
-            'sid': range(7, 10),
-            'start_date': [Timestamp('2005-04-01', tz='UTC'),
-                           Timestamp('2016-04-21', tz='UTC'),
-                           Timestamp('2005-06-21', tz='UTC')],
-            'end_date': [Timestamp('2016-08-19', tz='UTC'),
-                         Timestamp('2016-04-21', tz='UTC'),
-                         Timestamp('2016-10-19', tz='UTC')],
-            'notice_date': [Timestamp('2016-03-11', tz='UTC'),
-                            Timestamp('2016-05-13', tz='UTC'),
-                            Timestamp('2016-06-10', tz='UTC')],
-            'expiration_date': [Timestamp('2016-03-11', tz='UTC'),
-                                Timestamp('2016-05-13', tz='UTC'),
-                                Timestamp('2016-06-10', tz='UTC')],
-            'auto_close_date': [Timestamp('2016-03-11', tz='UTC'),
-                                Timestamp('2016-05-13', tz='UTC'),
-                                Timestamp('2016-06-10', tz='UTC')],
-            'tick_size': [0.001] * 3,
-            'multiplier': [1000.0] * 3,
-            'exchange': ['CME'] * 3,
-        })
-
         # BZ is set up to test chain predicates, for futures such as PL which
         # only use a subset of contracts for the roll chain.
         bz_frame = DataFrame({
@@ -205,7 +183,35 @@ class ContinuousFuturesTestCase(WithCreateBarData,
             'exchange': ['CME'] * 3,
         })
 
-        return pd.concat([fo_frame, ba_frame, bz_frame, ma_frame])
+        # DF is set up to have a double volume flip between the 'F' and 'G'
+        # contracts, and then a really early temporary volume flip between the
+        # 'G' and 'H' contracts.
+        df_frame = DataFrame({
+            'symbol': ['DFF16', 'DFG16', 'DFH16'],
+            'root_symbol': ['DF'] * 3,
+            'asset_name': ['Double Flip'] * 3,
+            'sid': range(17, 20),
+            'start_date': [Timestamp('2005-01-01', tz='UTC'),
+                           Timestamp('2005-02-01', tz='UTC'),
+                           Timestamp('2005-03-01', tz='UTC')],
+            'end_date': [Timestamp('2016-08-19', tz='UTC'),
+                         Timestamp('2016-09-19', tz='UTC'),
+                         Timestamp('2016-10-19', tz='UTC')],
+            'notice_date': [Timestamp('2016-02-19', tz='UTC'),
+                            Timestamp('2016-03-18', tz='UTC'),
+                            Timestamp('2016-04-22', tz='UTC')],
+            'expiration_date': [Timestamp('2016-02-19', tz='UTC'),
+                                Timestamp('2016-03-18', tz='UTC'),
+                                Timestamp('2016-04-22', tz='UTC')],
+            'auto_close_date': [Timestamp('2016-02-17', tz='UTC'),
+                                Timestamp('2016-03-16', tz='UTC'),
+                                Timestamp('2016-04-20', tz='UTC')],
+            'tick_size': [0.001] * 3,
+            'multiplier': [1000.0] * 3,
+            'exchange': ['CME'] * 3,
+        })
+
+        return pd.concat([fo_frame, bz_frame, ma_frame, df_frame])
 
     @classmethod
     def make_future_minute_bar_data(cls):
@@ -265,7 +271,7 @@ class ContinuousFuturesTestCase(WithCreateBarData,
             3: Timestamp('2016-04-20', tz='UTC'),
             6: Timestamp('2016-01-27', tz='UTC'),
         }
-        for i in range(17):
+        for i in range(20):
             df = base_df.copy()
             df += i * 10000
             if i in sid_to_vol_stop_session:
@@ -288,11 +294,77 @@ class ContinuousFuturesTestCase(WithCreateBarData,
                     df.volume.values[:loc + 1] = 10
             if i == 15:  # No volume for MAH16
                 df.volume.values[:] = 0
+            if i == 17:
+                end_loc = dts.searchsorted('2016-02-16 23:00:00+00:00')
+                df.volume.values[:end_loc] = 10
+                df.volume.values[end_loc:] = 0
+            if i == 18:
+                cross_loc_1 = dts.searchsorted('2016-02-09 23:01:00+00:00')
+                cross_loc_2 = dts.searchsorted('2016-02-11 23:01:00+00:00')
+                cross_loc_3 = dts.searchsorted('2016-02-15 23:01:00+00:00')
+                end_loc = dts.searchsorted('2016-03-16 23:01:00+00:00')
+                df.volume.values[:cross_loc_1] = 5
+                df.volume.values[cross_loc_1:cross_loc_2] = 15
+                df.volume.values[cross_loc_2:cross_loc_3] = 5
+                df.volume.values[cross_loc_3:end_loc] = 15
+                df.volume.values[end_loc:] = 0
+            if i == 19:
+                early_cross_1 = dts.searchsorted('2016-03-01 23:01:00+00:00')
+                early_cross_2 = dts.searchsorted('2016-03-03 23:01:00+00:00')
+                end_loc = dts.searchsorted('2016-04-19 23:01:00+00:00')
+                df.volume.values[:early_cross_1] = 1
+                df.volume.values[early_cross_1:early_cross_2] = 20
+                df.volume.values[early_cross_2:end_loc] = 10
+                df.volume.values[end_loc:] = 0
             yield i, df
+
+    def test_double_volume_switch(self):
+        """
+        Test that when a double volume switch occurs we treat the first switch
+        as the roll, assuming it is within a certain distance of the next auto
+        close date. See `VolumeRollFinder._active_contract` for a full
+        explanation and example.
+        """
+        cf = self.asset_finder.create_continuous_future(
+            'DF', 0, 'volume', None,
+        )
+
+        sessions = self.trading_calendar.sessions_in_range(
+            '2016-02-09', '2016-02-17',
+        )
+        for session in sessions:
+            bar_data = self.create_bardata(lambda: session)
+            contract = bar_data.current(cf, 'contract')
+
+            # The 'G' contract surpasses the 'F' contract in volume on
+            # 2016-02-10, which means that the 'G' contract should become the
+            # front contract starting on 2016-02-11.
+            if session < pd.Timestamp('2016-02-11', tz='UTC'):
+                self.assertEqual(contract.symbol, 'DFF16')
+            else:
+                self.assertEqual(contract.symbol, 'DFG16')
+
+        # This test asserts behavior about a back contract briefly spiking in
+        # volume, but more than a week before the front contract's auto close
+        # date, meaning it does not fall in the 'grace' period used by
+        # `VolumeRollFinder._active_contract`. Therefore we should not roll to
+        # the back contract and the front contract should remain current until
+        # its auto close date.
+        sessions = self.trading_calendar.sessions_in_range(
+            '2016-03-01', '2016-03-21',
+        )
+        for session in sessions:
+            bar_data = self.create_bardata(lambda: session)
+            contract = bar_data.current(cf, 'contract')
+
+            if session < pd.Timestamp('2016-03-17', tz='UTC'):
+                self.assertEqual(contract.symbol, 'DFG16')
+            else:
+                self.assertEqual(contract.symbol, 'DFH16')
 
     def test_create_continuous_future(self):
         cf_primary = self.asset_finder.create_continuous_future(
-            'FO', 0, 'calendar')
+            'FO', 0, 'calendar', None)
 
         self.assertEqual(cf_primary.root_symbol, 'FO')
         self.assertEqual(cf_primary.offset, 0)
@@ -300,7 +372,7 @@ class ContinuousFuturesTestCase(WithCreateBarData,
         self.assertEqual(cf_primary.start_date,
                          Timestamp('2015-01-05', tz='UTC'))
         self.assertEqual(cf_primary.end_date,
-                         Timestamp('2022-08-19', tz='UTC'))
+                         Timestamp('2022-09-19', tz='UTC'))
 
         retrieved_primary = self.asset_finder.retrieve_asset(
             cf_primary.sid)
@@ -308,7 +380,7 @@ class ContinuousFuturesTestCase(WithCreateBarData,
         self.assertEqual(retrieved_primary, cf_primary)
 
         cf_secondary = self.asset_finder.create_continuous_future(
-            'FO', 1, 'calendar')
+            'FO', 1, 'calendar', None)
 
         self.assertEqual(cf_secondary.root_symbol, 'FO')
         self.assertEqual(cf_secondary.offset, 1)
@@ -316,7 +388,7 @@ class ContinuousFuturesTestCase(WithCreateBarData,
         self.assertEqual(cf_primary.start_date,
                          Timestamp('2015-01-05', tz='UTC'))
         self.assertEqual(cf_primary.end_date,
-                         Timestamp('2022-08-19', tz='UTC'))
+                         Timestamp('2022-09-19', tz='UTC'))
 
         retrieved = self.asset_finder.retrieve_asset(
             cf_secondary.sid)
@@ -325,9 +397,15 @@ class ContinuousFuturesTestCase(WithCreateBarData,
 
         self.assertNotEqual(cf_primary, cf_secondary)
 
+        # Assert that the proper exception is raised if the given root symbol
+        # does not exist.
+        with self.assertRaises(SymbolNotFound):
+            self.asset_finder.create_continuous_future(
+                'NO', 0, 'calendar', None)
+
     def test_current_contract(self):
         cf_primary = self.asset_finder.create_continuous_future(
-            'FO', 0, 'calendar')
+            'FO', 0, 'calendar', None)
         bar_data = self.create_bardata(
             lambda: pd.Timestamp('2016-01-26', tz='UTC'))
         contract = bar_data.current(cf_primary, 'contract')
@@ -344,7 +422,7 @@ class ContinuousFuturesTestCase(WithCreateBarData,
 
     def test_get_value_contract_daily(self):
         cf_primary = self.asset_finder.create_continuous_future(
-            'FO', 0, 'calendar')
+            'FO', 0, 'calendar', None)
 
         contract = self.data_portal.get_spot_value(
             cf_primary,
@@ -366,9 +444,19 @@ class ContinuousFuturesTestCase(WithCreateBarData,
                          'Auto close at beginning of session so FOG16 is now '
                          'the current contract.')
 
+        # Test that the current contract outside of the continuous future's
+        # start and end dates is None.
+        contract = self.data_portal.get_spot_value(
+            cf_primary,
+            'contract',
+            self.START_DATE - self.trading_calendar.day,
+            'daily',
+        )
+        self.assertIsNone(contract)
+
     def test_get_value_close_daily(self):
         cf_primary = self.asset_finder.create_continuous_future(
-            'FO', 0, 'calendar')
+            'FO', 0, 'calendar', None)
 
         value = self.data_portal.get_spot_value(
             cf_primary,
@@ -406,7 +494,7 @@ class ContinuousFuturesTestCase(WithCreateBarData,
 
     def test_current_contract_volume_roll(self):
         cf_primary = self.asset_finder.create_continuous_future(
-            'FO', 0, 'volume')
+            'FO', 0, 'volume', None)
         bar_data = self.create_bardata(
             lambda: pd.Timestamp('2016-01-26', tz='UTC'))
         contract = bar_data.current(cf_primary, 'contract')
@@ -422,7 +510,7 @@ class ContinuousFuturesTestCase(WithCreateBarData,
                          'the current contract.')
 
         bar_data = self.create_bardata(
-            lambda: pd.Timestamp('2016-02-26', tz='UTC'))
+            lambda: pd.Timestamp('2016-02-29', tz='UTC'))
         contract = bar_data.current(cf_primary, 'contract')
         self.assertEqual(contract.symbol, 'FOH16',
                          'Volume switch to FOH16, should have triggered roll.')
@@ -437,8 +525,8 @@ from zipline.api import (
 )
 
 def initialize(algo):
-    algo.primary_cl = continuous_future('FO', 0, 'calendar')
-    algo.secondary_cl = continuous_future('FO', 1, 'calendar')
+    algo.primary_cl = continuous_future('FO', 0, 'calendar', None)
+    algo.secondary_cl = continuous_future('FO', 1, 'calendar', None)
     schedule_function(record_current_contract)
 
 def record_current_contract(algo, data):
@@ -490,8 +578,8 @@ from zipline.api import (
 )
 
 def initialize(algo):
-    algo.primary_cl = continuous_future('FO', 0, 'calendar')
-    algo.secondary_cl = continuous_future('FO', 1, 'calendar')
+    algo.primary_cl = continuous_future('FO', 0, 'calendar', None)
+    algo.secondary_cl = continuous_future('FO', 1, 'calendar', None)
     schedule_function(record_current_contract)
 
 def record_current_contract(algo, data):
@@ -583,11 +671,11 @@ def record_current_contract(algo, data):
 
     def test_history_sid_session(self):
         cf = self.data_portal.asset_finder.create_continuous_future(
-            'FO', 0, 'calendar')
+            'FO', 0, 'calendar', None)
         window = self.data_portal.get_history_window(
             [cf],
             Timestamp('2016-03-04 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1d', 'sid')
+            30, '1d', 'sid', 'minute')
 
         self.assertEqual(window.loc['2016-01-26', cf],
                          0,
@@ -613,7 +701,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf],
             Timestamp('2016-04-06 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1d', 'sid')
+            30, '1d', 'sid', 'minute')
 
         self.assertEqual(window.loc['2016-02-25', cf],
                          1,
@@ -635,34 +723,13 @@ def record_current_contract(algo, data):
                          3,
                          "Should be FOJ16 on session after roll.")
 
-    def test_history_sid_session_quarter_rolls(self):
-        cf = self.data_portal.asset_finder.create_continuous_future(
-            'BA', 0, 'calendar')
-        window = self.data_portal.get_history_window(
-            [cf],
-            Timestamp('2016-03-13 18:01', tz='US/Eastern').tz_convert('UTC'),
-            3, '1d', 'sid')
-
-        self.assertEqual(window.loc['2016-03-10', cf],
-                         7,
-                         "Should be BAH16 at beginning of window.")
-
-        self.assertEqual(window.loc['2016-03-11', cf],
-                         9,
-                         "Should be BAM16 after first roll, having skipped "
-                         "over BAK16.")
-
-        self.assertEqual(window.loc['2016-03-14', cf],
-                         9,
-                         "Should have remained BAM16")
-
     def test_history_sid_session_delivery_predicate(self):
         cf = self.data_portal.asset_finder.create_continuous_future(
-            'BZ', 0, 'calendar')
+            'BZ', 0, 'calendar', None)
         window = self.data_portal.get_history_window(
             [cf],
             Timestamp('2016-01-11 18:01', tz='US/Eastern').tz_convert('UTC'),
-            3, '1d', 'sid')
+            3, '1d', 'sid', 'minute')
 
         self.assertEqual(window.loc['2016-01-08', cf],
                          10,
@@ -679,11 +746,11 @@ def record_current_contract(algo, data):
 
     def test_history_sid_session_secondary(self):
         cf = self.data_portal.asset_finder.create_continuous_future(
-            'FO', 1, 'calendar')
+            'FO', 1, 'calendar', None)
         window = self.data_portal.get_history_window(
             [cf],
             Timestamp('2016-03-04 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1d', 'sid')
+            30, '1d', 'sid', 'minute')
 
         self.assertEqual(window.loc['2016-01-26', cf],
                          1,
@@ -709,7 +776,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf],
             Timestamp('2016-04-06 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1d', 'sid')
+            30, '1d', 'sid', 'minute')
 
         self.assertEqual(window.loc['2016-02-25', cf],
                          2,
@@ -733,11 +800,11 @@ def record_current_contract(algo, data):
 
     def test_history_sid_session_volume_roll(self):
         cf = self.data_portal.asset_finder.create_continuous_future(
-            'FO', 0, 'volume')
+            'FO', 0, 'volume', None)
         window = self.data_portal.get_history_window(
             [cf],
             Timestamp('2016-03-04 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1d', 'sid')
+            30, '1d', 'sid', 'minute')
 
         # Volume cuts out for FOF16 on 2016-01-25
         self.assertEqual(window.loc['2016-01-26', cf],
@@ -748,15 +815,15 @@ def record_current_contract(algo, data):
                          1,
                          "Should have rolled to FOG16.")
 
-        self.assertEqual(window.loc['2016-02-25', cf],
+        self.assertEqual(window.loc['2016-02-26', cf],
                          1,
                          "Should be FOG16 on session before roll.")
 
-        self.assertEqual(window.loc['2016-02-26', cf],
+        self.assertEqual(window.loc['2016-02-29', cf],
                          2,
                          "Should be FOH16 on session with roll.")
 
-        self.assertEqual(window.loc['2016-02-29', cf],
+        self.assertEqual(window.loc['2016-03-01', cf],
                          2,
                          "Should be FOH16 on session after roll.")
 
@@ -764,17 +831,17 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf],
             Timestamp('2016-04-06 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1d', 'sid')
+            30, '1d', 'sid', 'minute')
 
-        self.assertEqual(window.loc['2016-02-25', cf],
+        self.assertEqual(window.loc['2016-02-26', cf],
                          1,
                          "Should be FOG16 at beginning of window.")
 
-        self.assertEqual(window.loc['2016-02-26', cf],
+        self.assertEqual(window.loc['2016-02-29', cf],
                          2,
                          "Should be FOH16 on roll session.")
 
-        self.assertEqual(window.loc['2016-02-29', cf],
+        self.assertEqual(window.loc['2016-03-01', cf],
                          2,
                          "Should remain FOH16.")
 
@@ -797,11 +864,11 @@ def record_current_contract(algo, data):
 
     def test_history_sid_minute(self):
         cf = self.data_portal.asset_finder.create_continuous_future(
-            'FO', 0, 'calendar')
+            'FO', 0, 'calendar', None)
         window = self.data_portal.get_history_window(
             [cf.sid],
             Timestamp('2016-01-26 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1m', 'sid')
+            30, '1m', 'sid', 'minute')
 
         self.assertEqual(window.loc['2016-01-26 22:32', cf],
                          0,
@@ -820,7 +887,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf],
             Timestamp('2016-01-27 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1m', 'sid')
+            30, '1m', 'sid', 'minute')
 
         self.assertEqual(window.loc['2016-01-27 22:32', cf],
                          1,
@@ -832,9 +899,11 @@ def record_current_contract(algo, data):
 
     def test_history_close_session(self):
         cf = self.data_portal.asset_finder.create_continuous_future(
-            'FO', 0, 'calendar')
+            'FO', 0, 'calendar', None)
         window = self.data_portal.get_history_window(
-            [cf.sid], Timestamp('2016-03-06', tz='UTC'), 30, '1d', 'close')
+            [cf.sid],
+            Timestamp('2016-03-06', tz='UTC'),
+            30, '1d', 'close', 'daily')
 
         assert_almost_equal(
             window.loc['2016-01-26', cf],
@@ -853,7 +922,9 @@ def record_current_contract(algo, data):
 
         # Advance the window a month.
         window = self.data_portal.get_history_window(
-            [cf.sid], Timestamp('2016-04-06', tz='UTC'), 30, '1d', 'close')
+            [cf.sid],
+            Timestamp('2016-04-06', tz='UTC'),
+            30, '1d', 'close', 'daily')
 
         assert_almost_equal(
             window.loc['2016-02-24', cf],
@@ -882,9 +953,11 @@ def record_current_contract(algo, data):
 
     def test_history_close_session_skip_volume(self):
         cf = self.data_portal.asset_finder.create_continuous_future(
-            'MA', 0, 'volume')
+            'MA', 0, 'volume', None)
         window = self.data_portal.get_history_window(
-            [cf.sid], Timestamp('2016-03-06', tz='UTC'), 30, '1d', 'close')
+            [cf.sid],
+            Timestamp('2016-03-06', tz='UTC'),
+            30, '1d', 'close', 'daily')
 
         assert_almost_equal(
             window.loc['2016-01-26', cf],
@@ -903,7 +976,9 @@ def record_current_contract(algo, data):
 
         # Advance the window a month.
         window = self.data_portal.get_history_window(
-            [cf.sid], Timestamp('2016-04-06', tz='UTC'), 30, '1d', 'close')
+            [cf.sid],
+            Timestamp('2016-04-06', tz='UTC'),
+            30, '1d', 'close', 'daily')
 
         assert_almost_equal(
             window.loc['2016-02-24', cf],
@@ -922,14 +997,15 @@ def record_current_contract(algo, data):
 
     def test_history_close_session_adjusted(self):
         cf = self.data_portal.asset_finder.create_continuous_future(
-            'FO', 0, 'calendar')
+            'FO', 0, 'calendar', None)
         cf_mul = self.data_portal.asset_finder.create_continuous_future(
-            'FO', 0, 'calendar').adj('mul')
+            'FO', 0, 'calendar', 'mul')
         cf_add = self.data_portal.asset_finder.create_continuous_future(
-            'FO', 0, 'calendar').adj('add')
+            'FO', 0, 'calendar', 'add')
         window = self.data_portal.get_history_window(
             [cf, cf_mul, cf_add],
-            Timestamp('2016-03-06', tz='UTC'), 30, '1d', 'close')
+            Timestamp('2016-03-06', tz='UTC'),
+            30, '1d', 'close', 'daily')
 
         # Unadjusted value is: 115011.44
         # Adjustment is based on hop from 115231.44 to 125231.44
@@ -972,7 +1048,8 @@ def record_current_contract(algo, data):
         # Advance the window a month.
         window = self.data_portal.get_history_window(
             [cf, cf_mul, cf_add],
-            Timestamp('2016-04-06', tz='UTC'), 30, '1d', 'close')
+            Timestamp('2016-04-06', tz='UTC'),
+            30, '1d', 'close', 'daily')
 
         # Unadjusted value: 115221.44
         # Adjustments based on hops:
@@ -1050,11 +1127,11 @@ def record_current_contract(algo, data):
 
     def test_history_close_minute(self):
         cf = self.data_portal.asset_finder.create_continuous_future(
-            'FO', 0, 'calendar')
+            'FO', 0, 'calendar', None)
         window = self.data_portal.get_history_window(
             [cf.sid],
             Timestamp('2016-02-25 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1m', 'close')
+            30, '1m', 'close', 'minute')
 
         self.assertEqual(window.loc['2016-02-25 22:32', cf],
                          115231.412,
@@ -1073,7 +1150,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf],
             Timestamp('2016-02-28 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1m', 'close')
+            30, '1m', 'close', 'minute')
 
         self.assertEqual(window.loc['2016-02-26 22:32', cf],
                          125241.412,
@@ -1085,15 +1162,15 @@ def record_current_contract(algo, data):
 
     def test_history_close_minute_adjusted(self):
         cf = self.data_portal.asset_finder.create_continuous_future(
-            'FO', 0, 'calendar')
+            'FO', 0, 'calendar', None)
         cf_mul = self.data_portal.asset_finder.create_continuous_future(
-            'FO', 0, 'calendar').adj('mul')
+            'FO', 0, 'calendar', 'mul')
         cf_add = self.data_portal.asset_finder.create_continuous_future(
-            'FO', 0, 'calendar').adj('add')
+            'FO', 0, 'calendar', 'add')
         window = self.data_portal.get_history_window(
             [cf, cf_mul, cf_add],
             Timestamp('2016-02-25 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1m', 'close')
+            30, '1m', 'close', 'minute')
 
         # Unadjusted: 115231.412
         # Adjustment based on roll:
@@ -1136,7 +1213,7 @@ def record_current_contract(algo, data):
         window = self.data_portal.get_history_window(
             [cf, cf_mul, cf_add],
             Timestamp('2016-02-28 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1m', 'close')
+            30, '1m', 'close', 'minute')
 
         # No adjustments in this window.
         self.assertEqual(window.loc['2016-02-26 22:32', cf_mul],
@@ -1149,67 +1226,420 @@ def record_current_contract(algo, data):
 
     def test_history_close_minute_adjusted_volume_roll(self):
         cf = self.data_portal.asset_finder.create_continuous_future(
-            'FO', 0, 'volume')
+            'FO', 0, 'volume', None)
         cf_mul = self.data_portal.asset_finder.create_continuous_future(
-            'FO', 0, 'volume').adj('mul')
+            'FO', 0, 'volume', 'mul')
         cf_add = self.data_portal.asset_finder.create_continuous_future(
-            'FO', 0, 'volume').adj('add')
+            'FO', 0, 'volume', 'add')
         window = self.data_portal.get_history_window(
             [cf, cf_mul, cf_add],
-            Timestamp('2016-02-25 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1m', 'close')
+            Timestamp('2016-02-28 18:01', tz='US/Eastern').tz_convert('UTC'),
+            30, '1m', 'close', 'minute')
 
-        # Unadjusted: 115231.412
+        # Unadjusted: 115241.412
         # Adjustment based on roll:
         # 2016-02-25 23:00:00+00:00
-        # front: 115231.440
-        # back:  125231.440
+        # front: 115241.440 (FOG16)
+        # back:  125241.440 (FOH16)
         # Ratio: ~0.920
         # Difference: 10000.00
-        self.assertEqual(window.loc['2016-02-25 22:32', cf_mul],
-                         125231.41,
+        self.assertEqual(window.loc['2016-02-26 22:32', cf_mul],
+                         125242.973,
                          "Should be FOG16 at beginning of window. A minute "
                          "which is in the 02-25 session, before the roll.")
 
-        self.assertEqual(window.loc['2016-02-25 22:32', cf_add],
-                         125231.412,
+        self.assertEqual(window.loc['2016-02-26 22:32', cf_add],
+                         125242.851,
                          "Should be FOG16 at beginning of window. A minute "
                          "which is in the 02-25 session, before the roll.")
 
         # Unadjusted: 115231.44
         # Should use same ratios as above.
-        self.assertEqual(window.loc['2016-02-25 23:00', cf_mul],
-                         125231.44,
-                         "Should be FOG16 on on minute before roll minute, "
+        self.assertEqual(window.loc['2016-02-26 23:00', cf_mul],
+                         125243.004,
+                         "Should be FOG16 on minute before roll minute, "
                          "adjusted.")
 
-        self.assertEqual(window.loc['2016-02-25 23:00', cf_add],
-                         125231.44,
-                         "Should be FOG16 on on minute before roll minute, "
+        self.assertEqual(window.loc['2016-02-26 23:00', cf_add],
+                         125242.879,
+                         "Should be FOG16 on minute before roll minute, "
                          "adjusted.")
 
-        self.assertEqual(window.loc['2016-02-25 23:01', cf_mul],
-                         125240.001,
+        self.assertEqual(window.loc['2016-02-28 23:01', cf_mul],
+                         125250.001,
                          "Should be FOH16 on minute after roll, unadjusted.")
 
-        self.assertEqual(window.loc['2016-02-25 23:01', cf_add],
-                         125240.001,
+        self.assertEqual(window.loc['2016-02-28 23:01', cf_add],
+                         125250.001,
                          "Should be FOH16 on minute after roll, unadjusted.")
 
         # Advance the window a session.
         window = self.data_portal.get_history_window(
             [cf, cf_mul, cf_add],
-            Timestamp('2016-02-28 18:01', tz='US/Eastern').tz_convert('UTC'),
-            30, '1m', 'close')
+            Timestamp('2016-02-29 18:01', tz='US/Eastern').tz_convert('UTC'),
+            30, '1m', 'close', 'minute')
 
         # No adjustments in this window.
-        self.assertEqual(window.loc['2016-02-26 22:32', cf_mul],
-                         125241.412,
+        self.assertEqual(window.loc['2016-02-29 22:32', cf_mul],
+                         125251.412,
                          "Should be FOH16 at beginning of window.")
 
-        self.assertEqual(window.loc['2016-02-28 23:01', cf_mul],
-                         125250.001,
+        self.assertEqual(window.loc['2016-02-29 23:01', cf_mul],
+                         125260.001,
                          "Should remain FOH16 on next session.")
+
+
+class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
+
+    START_DATE = pd.Timestamp('2017-01-03', tz='UTC')
+    END_DATE = pd.Timestamp('2017-05-23', tz='UTC')
+
+    TRADING_CALENDAR_STRS = ('us_futures',)
+    TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(RollFinderTestCase, cls).init_class_fixtures()
+
+        cls.volume_roll_finder = VolumeRollFinder(
+            cls.trading_calendar,
+            cls.asset_finder,
+            cls.bcolz_future_daily_bar_reader,
+        )
+
+    @classmethod
+    def make_futures_info(cls):
+        day = cls.trading_calendar.day
+        two_days = 2 * day
+        end_buffer_days = ROLL_DAYS_FOR_CURRENT_CONTRACT * day
+
+        cls.first_end_date = pd.Timestamp('2017-01-20', tz='UTC')
+        cls.second_end_date = pd.Timestamp('2017-02-17', tz='UTC')
+        cls.third_end_date = pd.Timestamp('2017-03-17', tz='UTC')
+        cls.third_auto_close_date = cls.third_end_date - two_days
+        cls.fourth_start_date = cls.third_auto_close_date - two_days
+        cls.fourth_end_date = pd.Timestamp('2017-04-17', tz='UTC')
+        cls.fourth_auto_close_date = cls.fourth_end_date + two_days
+        cls.fifth_start_date = pd.Timestamp('2017-03-15', tz='UTC')
+        cls.fifth_end_date = cls.END_DATE
+        cls.fifth_auto_close_date = cls.fifth_end_date - two_days
+        cls.last_start_date = cls.fourth_end_date
+
+        return pd.DataFrame.from_dict(
+            {
+                1000: {
+                    'symbol': 'CLF17',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': cls.first_end_date,
+                    'auto_close_date': cls.first_end_date - two_days,
+                    'exchange': 'CME',
+                },
+                1001: {
+                    'symbol': 'CLG17',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': cls.second_end_date,
+                    'auto_close_date': cls.second_end_date - two_days,
+                    'exchange': 'CME',
+                },
+                1002: {
+                    'symbol': 'CLH17',
+                    'root_symbol': 'CL',
+                    'start_date': cls.START_DATE,
+                    'end_date': cls.third_end_date,
+                    'auto_close_date': cls.third_auto_close_date,
+                    'exchange': 'CME',
+                },
+                1003: {
+                    'symbol': 'CLJ17',
+                    'root_symbol': 'CL',
+                    'start_date': cls.fourth_start_date,
+                    'end_date': cls.fourth_end_date,
+                    'auto_close_date': cls.fourth_auto_close_date,
+                    'exchange': 'CME',
+                },
+                1004: {
+                    'symbol': 'CLK17',
+                    'root_symbol': 'CL',
+                    'start_date': cls.fifth_start_date,
+                    'end_date': cls.fifth_end_date,
+                    'auto_close_date': cls.fifth_auto_close_date,
+                    'exchange': 'CME',
+                },
+                1005: {
+                    'symbol': 'CLM17',
+                    'root_symbol': 'CL',
+                    'start_date': cls.last_start_date,
+                    'end_date': cls.END_DATE,
+                    'auto_close_date': cls.END_DATE + two_days,
+                    'exchange': 'CME',
+                },
+                1006: {
+                    'symbol': 'CLN17',
+                    'root_symbol': 'CL',
+                    'start_date': cls.last_start_date,
+                    'end_date': cls.END_DATE,
+                    'auto_close_date': cls.END_DATE + two_days,
+                    'exchange': 'CME',
+                },
+                2000: {
+                    # Using a placeholder month of 'A' to mean this is the
+                    # first contract in the chain.
+                    'symbol': 'FVA17',
+                    'root_symbol': 'FV',
+                    'start_date': cls.START_DATE,
+                    'end_date': cls.END_DATE + end_buffer_days,
+                    'auto_close_date': cls.END_DATE + two_days,
+                    'exchange': 'CME',
+                },
+                2001: {
+                    # Using a placeholder month of 'B' to mean this is the
+                    # second contract in the chain.
+                    'symbol': 'FVB17',
+                    'root_symbol': 'FV',
+                    'start_date': cls.START_DATE,
+                    'end_date': cls.END_DATE + end_buffer_days,
+                    'auto_close_date': cls.END_DATE + end_buffer_days,
+                    'exchange': 'CME',
+                },
+            },
+            orient='index',
+        )
+
+    @classmethod
+    def make_future_daily_bar_data(cls):
+        """
+        Volume data should look like this:
+
+                     CLF17    CLG17    CLH17    CLJ17    CLK17    CLM17   CLN17
+       2017-01-03     2000     1000        5        0        0        0       0
+       2017-01-04     2000     1000        5        0        0        0       0
+           ...
+       2017-01-16     2000     1000        5        0        0        0       0
+       2017-01-17     2000     1000        5        0        0        0       0
+ACD -> 2017-01-18     2000_    1000        5        0        0        0       0
+       2017-01-19     2000 `-> 1000        5        0        0        0       0
+       2017-01-20     2000     1000        5        0        0        0       0
+       2017-01-23        0     1000        5        0        0        0       0
+           ...
+       2017-02-09        0     1000        5        0        0        0       0
+       2017-02-10        0     1000_    5000        0        0        0       0
+       2017-02-13        0     1000 `-> 5000        0        0        0       0
+       2017-02-14        0     1000     5000        0        0        0       0
+ACD -> 2017-02-15        0     1000     5000        0        0        0       0
+       2017-02-16        0     1000     5000        0        0        0       0
+       2017-02-17        0     1000     5000        0        0        0       0
+       2017-02-20        0        0     5000        0        0        0       0
+           ...
+       2017-03-10        0        0     5000        0        0        0       0
+       2017-03-13        0        0     5000     4000        0        0       0
+       2017-03-14        0        0     5000     4000        0        0       0
+ACD -> 2017-03-15        0        0     5000_    4000     3000        0       0
+       2017-03-16        0        0     5000 `-> 4000     3000        0       0
+       2017-03-17        0        0     5000     4000     3000        0       0
+       2017-03-20        0        0        0     4000     3000        0       0
+           ...
+       2017-04-14        0        0        0     4000     3000        0       0
+       2017-04-17        0        0        0     4000_    3000        0       0
+       2017-04-18        0        0        0        0 `-> 3000        0       0
+ACD -> 2017-04-19        0        0        0        0     3000     1000    2000
+       2017-04-20        0        0        0        0     3000     1000    2000
+       2017-04-21        0        0        0        0     3000     1000    2000
+           ...
+       2017-05-16        0        0        0        0     3000     1000    2000
+       2017-05-17        0        0        0        0     3000     1000    2000
+       2017-05-18        0        0        0        0     3000_    1000    2000
+ACD -> 2017-05-19        0        0        0        0     3000 `---1000--> 2000
+       2017-05-22        0        0        0        0     3000     1000    2000
+       2017-05-23        0        0        0        0     3000     1000    2000
+
+        The first roll occurs because we reach the auto close date of CLF17.
+        The second roll occurs because the volume of CLH17 overtakes CLG17.
+        The third roll is testing the fact that CLJ17 has no data in the grace
+        period before CLH17's auto close date.
+        The fourth roll is testing that we properly handle the case where a
+        contract's auto close date is *after* its end date.
+        The fifth roll occurs on the auto close date of CLK17, but we skip over
+        CLM17 because of it's low volume, and roll directly to CLN17. This is
+        used to cover an edge case where the window passed to get_rolls end on
+        the auto close date of CLK17.
+
+        A volume of zero here is used to represent the fact that a contract no
+        longer exists.
+        """
+        date_index = cls.trading_calendar.sessions_in_range(
+            cls.START_DATE, cls.END_DATE,
+        )
+
+        def create_contract_data(volume):
+            # The prices used here are arbitrary as they are irrelevant for the
+            # purpose of testing roll behavior.
+            return DataFrame(
+                {'open': 5, 'high': 6, 'low': 4, 'close': 5, 'volume': volume},
+                index=date_index,
+            )
+
+        # Make a copy because we are taking a slice of a data frame.
+        first_contract_data = create_contract_data(2000)
+        yield 1000, first_contract_data.copy().loc[:cls.first_end_date]
+
+        # Make a copy because we are taking a slice of a data frame.
+        second_contract_data = create_contract_data(1000)
+        yield 1001, second_contract_data.copy().loc[:cls.second_end_date]
+
+        third_contract_data = create_contract_data(5)
+        volume_flip_date = pd.Timestamp('2017-02-10', tz='UTC')
+        third_contract_data.loc[volume_flip_date:, 'volume'] = 5000
+        yield 1002, third_contract_data
+
+        # Make a copy because we are taking a slice of a data frame.
+        fourth_contract_data = create_contract_data(4000)
+        yield (
+            1003,
+            fourth_contract_data.copy().loc[
+                cls.fourth_start_date:cls.fourth_end_date
+            ]
+        )
+
+        # Make a copy because we are taking a slice of a data frame.
+        fifth_contract_data = create_contract_data(3000)
+        yield 1004, fifth_contract_data.copy().loc[cls.fifth_start_date:]
+
+        sixth_contract_data = create_contract_data(1000)
+        yield 1005, sixth_contract_data.copy().loc[cls.last_start_date:]
+
+        seventh_contract_data = create_contract_data(2000)
+        yield 1006, seventh_contract_data.copy().loc[cls.last_start_date:]
+
+        # The data for FV does not really matter except that contract 2000 has
+        # higher volume than contract 2001.
+        yield 2000, create_contract_data(200)
+        yield 2001, create_contract_data(100)
+
+    def test_volume_roll(self):
+        """
+        Test normally behaving rolls.
+        """
+        rolls = self.volume_roll_finder.get_rolls(
+            root_symbol='CL',
+            start=self.START_DATE + self.trading_calendar.day,
+            end=self.second_end_date,
+            offset=0,
+        )
+        self.assertEqual(
+            rolls,
+            [
+                (1000, pd.Timestamp('2017-01-19', tz='UTC')),
+                (1001, pd.Timestamp('2017-02-13', tz='UTC')),
+                (1002, None),
+            ],
+        )
+
+    def test_no_roll(self):
+        # If we call 'get_rolls' with start and end dates that do not have any
+        # rolls between them, we should still expect the last roll date to be
+        # computed successfully.
+        date_not_near_roll = pd.Timestamp('2017-02-01', tz='UTC')
+        rolls = self.volume_roll_finder.get_rolls(
+            root_symbol='CL',
+            start=date_not_near_roll,
+            end=date_not_near_roll + self.trading_calendar.day,
+            offset=0,
+        )
+        self.assertEqual(rolls, [(1001, None)])
+
+    def test_roll_in_grace_period(self):
+        """
+        The volume roll finder can look for data up to a week before the given
+        date. This test asserts that we not only return the correct active
+        contract during that previous week (grace period), but also that we do
+        not go into exception if one of the contracts does not exist.
+        """
+        rolls = self.volume_roll_finder.get_rolls(
+            root_symbol='CL',
+            start=self.second_end_date,
+            end=self.third_end_date,
+            offset=0,
+        )
+        self.assertEqual(
+            rolls,
+            [
+                (1002, pd.Timestamp('2017-03-16', tz='UTC')),
+                (1003, None),
+            ],
+        )
+
+    def test_end_before_auto_close(self):
+        # Test that we correctly roll from CLJ17 (1003) to CLK17 (1004) even
+        # though CLJ17 has an auto close date after its end date.
+        rolls = self.volume_roll_finder.get_rolls(
+            root_symbol='CL',
+            start=self.fourth_start_date,
+            end=self.fourth_auto_close_date,
+            offset=0,
+        )
+        self.assertEqual(
+            rolls,
+            [
+                (1002, pd.Timestamp('2017-03-16', tz='UTC')),
+                (1003, pd.Timestamp('2017-04-18', tz='UTC')),
+                (1004, None),
+            ],
+        )
+
+    def test_roll_window_ends_on_auto_close(self):
+        """
+        Test that when skipping over a low volume contract (CLM17), we use the
+        correct roll date for the previous contract (CLK17) when that
+        contract's auto close date falls on the end date of the roll window.
+        """
+        rolls = self.volume_roll_finder.get_rolls(
+            root_symbol='CL',
+            start=self.last_start_date,
+            end=self.fifth_auto_close_date,
+            offset=0,
+        )
+        self.assertEqual(
+            rolls,
+            [
+                (1003, pd.Timestamp('2017-04-18', tz='UTC')),
+                (1004, pd.Timestamp('2017-05-19', tz='UTC')),
+                (1006, None),
+            ],
+        )
+
+    def test_get_contract_center(self):
+        asset_finder = self.asset_finder
+        get_contract_center = partial(
+            self.volume_roll_finder.get_contract_center, offset=0,
+        )
+
+        # Test that the current contract adheres to the rolls.
+        self.assertEqual(
+            get_contract_center('CL', dt=pd.Timestamp('2017-01-18', tz='UTC')),
+            asset_finder.retrieve_asset(1000),
+        )
+        self.assertEqual(
+            get_contract_center('CL', dt=pd.Timestamp('2017-01-19', tz='UTC')),
+            asset_finder.retrieve_asset(1001),
+        )
+
+        # Test that we still get the correct current contract close to or at
+        # the max day boundary. Contracts 2000 and 2001 both have auto close
+        # dates after `self.END_DATE` so 2000 should always be the current
+        # contract. However, they do not have any volume data after this point
+        # so this test ensures that we do not fail to calculate the forward
+        # looking rolls required for `VolumeRollFinder.get_contract_center`.
+        near_end = self.END_DATE - self.trading_calendar.day
+        self.assertEqual(
+            get_contract_center('FV', dt=near_end),
+            asset_finder.retrieve_asset(2000),
+        )
+        self.assertEqual(
+            get_contract_center('FV', dt=self.END_DATE),
+            asset_finder.retrieve_asset(2000),
+        )
 
 
 class OrderedContractsTestCase(WithAssetFinder,
@@ -1218,9 +1648,9 @@ class OrderedContractsTestCase(WithAssetFinder,
     @classmethod
     def make_root_symbols_info(self):
         return pd.DataFrame({
-            'root_symbol': ['FO', 'BA'],
-            'root_symbol_id': [1, 2],
-            'exchange': ['CME', 'CME']})
+            'root_symbol': ['FO', 'BA', 'BZ'],
+            'root_symbol_id': [1, 2, 3],
+            'exchange': ['CME', 'CME', 'CME']})
 
     @classmethod
     def make_futures_info(self):
@@ -1232,8 +1662,6 @@ class OrderedContractsTestCase(WithAssetFinder,
             'start_date': pd.date_range('2015-01-01', periods=4, tz="UTC"),
             'end_date': pd.date_range('2016-01-01', periods=4, tz="UTC"),
             'notice_date': pd.date_range('2016-01-01', periods=4, tz="UTC"),
-            'expiration_date': pd.date_range(
-                '2016-01-01', periods=4, tz="UTC"),
             'expiration_date': pd.date_range(
                 '2016-01-01', periods=4, tz="UTC"),
             'auto_close_date': pd.date_range(
@@ -1255,16 +1683,51 @@ class OrderedContractsTestCase(WithAssetFinder,
             'notice_date': pd.date_range('2016-01-01', periods=3, tz="UTC"),
             'expiration_date': pd.date_range(
                 '2016-01-01', periods=3, tz="UTC"),
-            'expiration_date': pd.date_range(
-                '2016-01-01', periods=3, tz="UTC"),
             'auto_close_date': pd.date_range(
                 '2016-01-01', periods=3, tz="UTC"),
             'tick_size': [0.001] * 3,
             'multiplier': [1000.0] * 3,
             'exchange': ['CME'] * 3,
         })
+        # BZ is set up to test the case where the first contract in a chain has
+        # an auto close date before its start date. It also tests the case
+        # where a contract in the chain has a start date after the auto close
+        # date of the previous contract, leaving a gap with no active contract.
+        bz_frame = DataFrame({
+            'root_symbol': ['BZ'] * 4,
+            'asset_name': ['Baz'] * 4,
+            'symbol': ['BZF15', 'BZG15', 'BZH15', 'BZJ16'],
+            'sid': range(8, 12),
+            'start_date': [
+                pd.Timestamp('2015-01-02', tz='UTC'),
+                pd.Timestamp('2015-01-03', tz='UTC'),
+                pd.Timestamp('2015-02-23', tz='UTC'),
+                pd.Timestamp('2015-02-24', tz='UTC'),
+            ],
+            'end_date': pd.date_range(
+                '2015-02-01', periods=4, freq='MS', tz='UTC',
+            ),
+            'notice_date': [
+                pd.Timestamp('2014-12-31', tz='UTC'),
+                pd.Timestamp('2015-02-18', tz='UTC'),
+                pd.Timestamp('2015-03-18', tz='UTC'),
+                pd.Timestamp('2015-04-17', tz='UTC'),
+            ],
+            'expiration_date': pd.date_range(
+                '2015-02-01', periods=4, freq='MS', tz='UTC',
+            ),
+            'auto_close_date': [
+                pd.Timestamp('2014-12-29', tz='UTC'),
+                pd.Timestamp('2015-02-16', tz='UTC'),
+                pd.Timestamp('2015-03-16', tz='UTC'),
+                pd.Timestamp('2015-04-15', tz='UTC'),
+            ],
+            'tick_size': [0.001] * 4,
+            'multiplier': [1000.0] * 4,
+            'exchange': ['CME'] * 4,
+        })
 
-        return pd.concat([fo_frame, ba_frame])
+        return pd.concat([fo_frame, ba_frame, bz_frame])
 
     def test_contract_at_offset(self):
         contract_sids = array([1, 2, 3, 4], dtype=int64)
@@ -1361,6 +1824,29 @@ class OrderedContractsTestCase(WithAssetFinder,
             [5, 7], list(chain),
             "Contract BAG16 (sid=6) should be ommitted from chain, since "
             "it does not satisfy the roll predicate.")
+
+    def test_auto_close_before_start(self):
+        contract_sids = array([8, 9, 10, 11], dtype=int64)
+        contracts = self.asset_finder.retrieve_all(contract_sids)
+        oc = OrderedContracts('BZ', deque(contracts))
+
+        # The OrderedContracts chain should omit BZF16 and start with BZG16.
+        self.assertEqual(oc.start_date, contracts[1].start_date)
+        self.assertEqual(oc.end_date, contracts[-1].end_date)
+        self.assertEqual(oc.contract_before_auto_close(oc.start_date.value), 9)
+
+        # The OrderedContracts chain should end on the last contract even
+        # though there is a gap between the auto close date of BZG16 and the
+        # start date of BZH16. During this period, BZH16 should be considered
+        # the center contract, as a placeholder of sorts.
+        self.assertEqual(
+            oc.contract_before_auto_close(contracts[1].notice_date.value),
+            10,
+        )
+        self.assertEqual(
+            oc.contract_before_auto_close(contracts[2].start_date.value),
+            10,
+        )
 
 
 class NoPrefetchContinuousFuturesTestCase(ContinuousFuturesTestCase):

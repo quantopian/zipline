@@ -29,10 +29,12 @@ from .finance.cancel_policy import (
 )
 from .finance.slippage import (
     FixedSlippage,
+    FixedBasisPointsSlippage,
     VolumeShareSlippage,
 )
 from .utils import math_utils, events
 from .utils.events import (
+    calendars,
     date_rules,
     time_rules
 )
@@ -40,6 +42,7 @@ from .utils.events import (
 __all__ = [
     'EODCancel',
     'FixedSlippage',
+    'FixedBasisPointsSlippage',
     'NeverCancel',
     'VolumeShareSlippage',
     'Restriction',
@@ -53,5 +56,6 @@ __all__ = [
     'execution',
     'math_utils',
     'slippage',
-    'time_rules'
+    'time_rules',
+    'calendars',
 ]

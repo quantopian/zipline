@@ -1,5 +1,5 @@
-Zipline Release Process
------------------------
+Release Process
+---------------
 
 .. include:: dev-doc-message.txt
 
@@ -26,6 +26,14 @@ update the underline of the title to match the title's width.
 
 If you are renaming the release at this point, you'll need to git mv the file
 and also update releases.rst to reference the renamed file.
+
+To build and view the docs locally, run:
+
+.. code-block:: bash
+
+   $ cd docs
+   $ make html
+   $ {BROWSER} build/html/index.html
 
 Updating the Python stub files
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

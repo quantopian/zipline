@@ -36,19 +36,22 @@ from numpy import (
     uint32,
 )
 from pandas import (
-    isnull,
     DataFrame,
-    read_csv,
-    Timestamp,
+    DatetimeIndex,
+    isnull,
     NaT,
-    DatetimeIndex
+    read_csv,
+    read_sql,
+    to_datetime,
+    Timestamp,
 )
 from pandas.tslib import iNaT
 from six import (
     iteritems,
-    viewkeys,
     string_types,
+    viewkeys,
 )
+from toolz import compose
 
 from zipline.data.session_bars import SessionBarReader
 from zipline.data.bar_reader import (
@@ -60,8 +63,8 @@ from zipline.utils.calendars import get_calendar
 from zipline.utils.functional import apply
 from zipline.utils.preprocess import call
 from zipline.utils.input_validation import (
-    preprocess,
     expect_element,
+    preprocess,
     verify_indices_all_unique,
 )
 from zipline.utils.sqlite_utils import group_into_chunks, coerce_string_to_conn
@@ -161,21 +164,6 @@ def winsorise_uint32(df, invalid_data_behavior, column, *columns):
     return df
 
 
-@expect_element(invalid_data_behavior={'warn', 'raise', 'ignore'})
-def to_ctable(raw_data, invalid_data_behavior):
-    if isinstance(raw_data, ctable):
-        # we already have a ctable so do nothing
-        return raw_data
-
-    winsorise_uint32(raw_data, invalid_data_behavior, 'volume', *OHLC)
-    processed = (raw_data[list(OHLC)] * 1000).astype('uint32')
-    dates = raw_data.index.values.astype('datetime64[s]')
-    check_uint32_safe(dates.max().view(np.int64), 'day')
-    processed['day'] = dates.astype('uint32')
-    processed['volume'] = raw_data.volume.astype('uint32')
-    return ctable.fromdataframe(processed)
-
-
 class BcolzDailyBarWriter(object):
     """
     Class capable of writing daily OHLCV data to disk in a format that can
@@ -256,7 +244,10 @@ class BcolzDailyBarWriter(object):
             The newly-written table.
         """
         ctx = maybe_show_progress(
-            ((sid, to_ctable(df, invalid_data_behavior)) for sid, df in data),
+            (
+                (sid, self.to_ctable(df, invalid_data_behavior))
+                for sid, df in data
+            ),
             show_progress=show_progress,
             item_show_func=self.progress_bar_item_show_func,
             label=self.progress_bar_message,
@@ -354,15 +345,44 @@ class BcolzDailyBarWriter(object):
             last_row[asset_key] = total_rows + nrows - 1
             total_rows += nrows
 
+            table_day_to_session = compose(
+                self._calendar.minute_to_session_label,
+                partial(Timestamp, unit='s', tz='UTC'),
+            )
+            asset_first_day = table_day_to_session(table['day'][0])
+            asset_last_day = table_day_to_session(table['day'][-1])
+
+            asset_sessions = sessions[
+                sessions.slice_indexer(asset_first_day, asset_last_day)
+            ]
+            assert len(table) == len(asset_sessions), (
+                'Got {} rows for daily bars table with first day={}, last '
+                'day={}, expected {} rows.\n'
+                'Missing sessions: {}\n'
+                'Extra sessions: {}'.format(
+                    len(table),
+                    asset_first_day.date(),
+                    asset_last_day.date(),
+                    len(asset_sessions),
+                    asset_sessions.difference(
+                        to_datetime(
+                            np.array(table['day']),
+                            unit='s',
+                            utc=True,
+                        )
+                    ).tolist(),
+                    to_datetime(
+                        np.array(table['day']),
+                        unit='s',
+                        utc=True,
+                    ).difference(asset_sessions).tolist(),
+                )
+            )
+
             # Calculate the number of trading days between the first date
             # in the stored data and the first date of **this** asset. This
             # offset used for output alignment by the reader.
-            asset_first_day = table['day'][0]
-            calendar_offset[asset_key] = sessions.get_loc(
-                self._calendar.minute_to_session_label(
-                    Timestamp(asset_first_day, unit='s', tz='UTC')
-                )
-            )
+            calendar_offset[asset_key] = sessions.get_loc(asset_first_day)
 
         # This writes the table to disk.
         full_table = ctable(
@@ -387,6 +407,20 @@ class BcolzDailyBarWriter(object):
         full_table.attrs['end_session_ns'] = self._end_session.value
         full_table.flush()
         return full_table
+
+    @expect_element(invalid_data_behavior={'warn', 'raise', 'ignore'})
+    def to_ctable(self, raw_data, invalid_data_behavior):
+        if isinstance(raw_data, ctable):
+            # we already have a ctable so do nothing
+            return raw_data
+
+        winsorise_uint32(raw_data, invalid_data_behavior, 'volume', *OHLC)
+        processed = (raw_data[list(OHLC)] * 1000).astype('uint32')
+        dates = raw_data.index.values.astype('datetime64[s]')
+        check_uint32_safe(dates.max().view(np.int64), 'day')
+        processed['day'] = dates.astype('uint32')
+        processed['volume'] = raw_data.volume.astype('uint32')
+        return ctable.fromdataframe(processed)
 
 
 class BcolzDailyBarReader(SessionBarReader):
@@ -881,7 +915,7 @@ class SQLiteAdjustmentWriter(object):
                 np.array([], dtype=list(expected_dtypes.items())),
             )
         else:
-            if frozenset(frame.columns) != viewkeys(expected_dtypes):
+            if frozenset(frame.columns) != frozenset(expected_dtypes):
                 raise ValueError(
                     "Unexpected frame columns:\n"
                     "Expected Columns: %s\n"
@@ -1039,11 +1073,11 @@ class SQLiteAdjustmentWriter(object):
             dividend_payouts['ex_date'] = dividend_payouts['ex_date'].values.\
                 astype('datetime64[s]').astype(integer)
             dividend_payouts['record_date'] = \
-                dividend_payouts['record_date'].values.astype('datetime64[s]').\
-                astype(integer)
+                dividend_payouts['record_date'].values.\
+                astype('datetime64[s]').astype(integer)
             dividend_payouts['declared_date'] = \
-                dividend_payouts['declared_date'].values.astype('datetime64[s]').\
-                astype(integer)
+                dividend_payouts['declared_date'].values.\
+                astype('datetime64[s]').astype(integer)
             dividend_payouts['pay_date'] = \
                 dividend_payouts['pay_date'].values.astype('datetime64[s]').\
                 astype(integer)
@@ -1246,9 +1280,21 @@ class SQLiteAdjustmentReader(object):
     :class:`zipline.data.us_equity_pricing.SQLiteAdjustmentWriter`
     """
 
-    @preprocess(conn=coerce_string_to_conn)
+    @preprocess(conn=coerce_string_to_conn(require_exists=True))
     def __init__(self, conn):
         self.conn = conn
+
+        # Given the tables in the adjustments.db file, dict which knows which
+        # col names contain dates that have been coerced into ints.
+        self._datetime_int_cols = {
+            'dividend_payouts': ('declared_date', 'ex_date', 'pay_date',
+                                 'record_date'),
+            'dividends': ('effective_date',),
+            'mergers': ('effective_date',),
+            'splits': ('effective_date',),
+            'stock_dividend_payouts': ('declared_date', 'ex_date', 'pay_date',
+                                       'record_date')
+        }
 
     def load_adjustments(self, columns, dates, assets):
         return load_adjustments_from_sqlite(
@@ -1316,3 +1362,49 @@ class SQLiteAdjustmentReader(object):
         c.close()
 
         return stock_divs
+
+    def unpack_db_to_component_dfs(self, convert_dates=False):
+        """Returns the set of known tables in the adjustments file in DataFrame
+        form.
+
+        Parameters
+        ----------
+        convert_dates : bool, optional
+            By default, dates are returned in seconds since EPOCH. If
+            convert_dates is True, all ints in date columns will be converted
+            to datetimes.
+
+        Returns
+        -------
+        dfs : dict{str->DataFrame}
+            Dictionary which maps table name to the corresponding DataFrame
+            version of the table, where all date columns have been coerced back
+            from int to datetime.
+        """
+
+        def _get_df_from_table(table_name, date_cols):
+
+            # Dates are stored in second resolution as ints in adj.db tables.
+            # Need to specifically convert them as UTC, not local time.
+            kwargs = (
+                {'parse_dates': {col: {'unit': 's', 'utc': True}
+                                 for col in date_cols}
+                 }
+                if convert_dates
+                else {}
+            )
+
+            return read_sql(
+                'select * from "{}"'.format(table_name),
+                self.conn,
+                index_col='index',
+                **kwargs
+            ).rename_axis(None)
+
+        return {
+            t_name: _get_df_from_table(
+                t_name,
+                date_cols
+            )
+            for t_name, date_cols in self._datetime_int_cols.items()
+        }

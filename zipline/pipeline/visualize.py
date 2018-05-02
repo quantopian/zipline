@@ -219,8 +219,8 @@ def format_attrs(attrs):
     """
     Format key, value pairs from attrs into graphviz attrs format
 
-    Example
-    -------
+    Examples
+    --------
     >>> format_attrs({'key1': 'value1', 'key2': 'value2'})  # doctest: +SKIP
     '[key1=value1, key2=value2]'
     """

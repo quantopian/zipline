@@ -1,12 +1,15 @@
+import collections
 from zipline.assets import Asset, Equity, Future
 from zipline.assets.futures import FutureChain
+from zipline.finance.asset_restrictions import Restrictions
 from zipline.finance.cancel_policy import CancelPolicy
 from zipline.pipeline import Pipeline
 from zipline.protocol import Order
 from zipline.utils.events import EventRule
+from zipline.utils.security_list import SecurityList
 
 
-def attach_pipeline(pipeline, name, chunksize=None):
+def attach_pipeline(pipeline, name, chunks=None):
     """Register a pipeline to be computed at the start of each day.
 
     Parameters
@@ -15,10 +18,11 @@ def attach_pipeline(pipeline, name, chunksize=None):
         The pipeline to have computed.
     name : str
         The name of the pipeline.
-    chunksize : int, optional
+    chunks : int or iterator, optional
         The number of days to compute pipeline results for. Increasing
         this number will make it longer to get the first results but
-        may improve the total runtime of the simulation.
+        may improve the total runtime of the simulation. If an iterator
+        is passed, we will run in chunks based on values of the itereator.
 
     Returns
     -------
@@ -30,6 +34,20 @@ def attach_pipeline(pipeline, name, chunksize=None):
     :func:`zipline.api.pipeline_output`
     """
 
+def batch_market_order(share_counts):
+    """Place a batch market order for multiple assets.
+
+    Parameters
+    ----------
+    share_counts : pd.Series[Asset -> int]
+        Map from asset to number of shares to order for that asset.
+
+    Returns
+    -------
+    order_ids : pd.Index[str]
+        Index of ids for newly-created orders.
+    """
+
 def cancel_order(order_param):
     """Cancel an open order.
 
@@ -37,6 +55,30 @@ def cancel_order(order_param):
     ----------
     order_param : str or Order
         The order_id or order object to cancel.
+    """
+
+def continuous_future(root_symbol_str, offset=0, roll='volume', adjustment='mul'):
+    """Create a specifier for a continuous contract.
+
+    Parameters
+    ----------
+    root_symbol_str : str
+        The root symbol for the future chain.
+
+    offset : int, optional
+        The distance from the primary contract. Default is 0.
+
+    roll_style : str, optional
+        How rolls are determined. Default is 'volume'.
+
+    adjustment : str, optional
+        Method for adjusting lookback prices between rolls. Options are
+        'mul', 'add', and None. Default is 'mul'.
+
+    Returns
+    -------
+    continuous_future : ContinuousFuture
+        The continuous future specifier.
     """
 
 def fetch_csv(url, pre_func=None, post_func=None, date_column='date', date_format=None, timezone='UTC', symbol=None, mask=True, symbol_column=None, special_params_checker=None, **kwargs):
@@ -81,32 +123,6 @@ def fetch_csv(url, pre_func=None, post_func=None, date_column='date', date_forma
     -------
     csv_data_source : zipline.sources.requests_csv.PandasRequestsCSV
         A requests source that will pull data from the url specified.
-    """
-
-def future_chain(root_symbol, as_of_date=None, offset=0):
-    """
-Look up a future chain.
-
-Parameters
-----------
-root_symbol : str
-    The root symbol of a future chain.
-as_of_date : datetime.datetime or pandas.Timestamp or str, optional
-    Date at which the chain determination is rooted. If this date is
-    not passed in, the current simulation session (not minute) is used.
-offset: int
-    Number of sessions to shift `as_of_date`.  Positive values shift
-     forward in time.  Negative values shift backward in time.
-
-Returns
--------
-chain : FutureChain
-    The future chain matching the specified parameters.
-
-Raises
-------
-RootSymbolNotFound
-    If a future chain could not be found for the given root symbol.
     """
 
 def future_symbol(symbol):
@@ -182,6 +198,24 @@ def get_environment(field='platform'):
         Raised when ``field`` is not a valid option.
     """
 
+def get_open_orders(asset=None):
+    """Retrieve all of the current open orders.
+
+    Parameters
+    ----------
+    asset : Asset
+        If passed and not None, return only the open orders for the given
+        asset instead of all open orders.
+
+    Returns
+    -------
+    open_orders : dict[list[Order]] or list[Order]
+        If no asset is passed this will return a dict mapping Assets
+        to a list containing all the open orders for the asset.
+        If an asset is passed then this will return a list of the open
+        orders for this asset.
+    """
+
 def get_order(order_id):
     """Lookup an order based on the order id returned from one of the
     order functions.
@@ -221,8 +255,9 @@ def order(asset, amount, limit_price=None, stop_price=None, style=None):
 
     Returns
     -------
-    order_id : str
-        The unique identifier for this order.
+    order_id : str or None
+        The unique identifier for this order, or None if no order was
+        placed.
 
     Notes
     -----
@@ -250,7 +285,7 @@ def order_percent(asset, percent, limit_price=None, stop_price=None, style=None)
     asset : Asset
         The asset that this order is for.
     percent : float
-        The percentage of the porfolio value to allocate to ``asset``.
+        The percentage of the portfolio value to allocate to ``asset``.
         This is specified as a decimal, for example: 0.50 means 50%.
     limit_price : float, optional
         The limit price for the order.
@@ -338,8 +373,8 @@ def order_target_percent(asset, target, limit_price=None, stop_price=None, style
     ----------
     asset : Asset
         The asset that this order is for.
-    percent : float
-        The desired percentage of the porfolio value to allocate to
+    target : float
+        The desired percentage of the portfolio value to allocate to
         ``asset``. This is specified as a decimal, for example:
         0.50 means 50%.
     limit_price : float, optional
@@ -525,11 +560,26 @@ def schedule_function(func, date_rule=None, time_rule=None, half_days=True, cale
         The rule for the times to execute this function.
     half_days : bool, optional
         Should this rule fire on half days?
+    calendar : Sentinel, optional
+        Calendar used to reconcile date and time rules.
 
     See Also
     --------
     :class:`zipline.api.date_rules`
     :class:`zipline.api.time_rules`
+    """
+
+def set_asset_restrictions(restrictions, on_error='fail'):
+    """Set a restriction on which assets can be ordered.
+
+    Parameters
+    ----------
+    restricted_list : Restrictions
+        An object providing information about restricted assets.
+
+    See Also
+    --------
+    zipline.finance.asset_restrictions.Restrictions
     """
 
 def set_benchmark(benchmark):
@@ -560,13 +610,15 @@ def set_cancel_policy(cancel_policy):
     :class:`zipline.api.NeverCancel`
     """
 
-def set_commission(commission):
-    """Sets the commission model for the simulation.
+def set_commission(us_equities=None, us_futures=None):
+    """Sets the commission models for the simulation.
 
     Parameters
     ----------
-    commission : CommissionModel
-        The commission model to use.
+    us_equities : EquityCommissionModel
+        The commission model to use for trading US equities.
+    us_futures : FutureCommissionModel
+        The commission model to use for trading US futures.
 
     See Also
     --------
@@ -575,16 +627,16 @@ def set_commission(commission):
     :class:`zipline.finance.commission.PerDollar`
     """
 
-def set_do_not_order_list(restricted_list):
+def set_do_not_order_list(restricted_list, on_error='fail'):
     """Set a restriction on which assets can be ordered.
 
     Parameters
     ----------
-    restricted_list : container[Asset]
+    restricted_list : container[Asset], SecurityList
         The assets that cannot be ordered.
     """
 
-def set_long_only():
+def set_long_only(on_error='fail'):
     """Set a rule specifying that this algorithm cannot take short
     positions.
     """
@@ -599,7 +651,7 @@ def set_max_leverage(max_leverage):
         be no maximum.
     """
 
-def set_max_order_count(max_count):
+def set_max_order_count(max_count, on_error='fail'):
     """Set a limit on the number of orders that can be placed in a single
     day.
 
@@ -609,7 +661,7 @@ def set_max_order_count(max_count):
         The maximum number of orders that can be placed on any single day.
     """
 
-def set_max_order_size(asset=None, max_shares=None, max_notional=None):
+def set_max_order_size(asset=None, max_shares=None, max_notional=None, on_error='fail'):
     """Set a limit on the number of shares and/or dollar value of any single
     order placed for sid.  Limits are treated as absolute values and are
     enforced at the time that the algo attempts to place an order for sid.
@@ -628,7 +680,7 @@ def set_max_order_size(asset=None, max_shares=None, max_notional=None):
         The maximum value that can be ordered at one time.
     """
 
-def set_max_position_size(asset=None, max_shares=None, max_notional=None):
+def set_max_position_size(asset=None, max_shares=None, max_notional=None, on_error='fail'):
     """Set a limit on the number of shares and/or dollar value held for the
     given sid. Limits are treated as absolute values and are enforced at
     the time that the algo attempts to place an order for sid. This means
@@ -651,13 +703,26 @@ def set_max_position_size(asset=None, max_shares=None, max_notional=None):
         The maximum value to hold for an asset.
     """
 
-def set_slippage(slippage):
-    """Set the slippage model for the simulation.
+def set_min_leverage(min_leverage, grace_period):
+    """Set a limit on the minimum leverage of the algorithm.
 
     Parameters
     ----------
-    slippage : SlippageModel
-        The slippage model to use.
+    min_leverage : float
+        The minimum leverage for the algorithm.
+    grace_period : pd.Timedelta
+        The offset from the start date used to enforce a minimum leverage.
+    """
+
+def set_slippage(us_equities=None, us_futures=None):
+    """Set the slippage models for the simulation.
+
+    Parameters
+    ----------
+    us_equities : EquitySlippageModel
+        The slippage model to use for trading US equities.
+    us_futures : FutureSlippageModel
+        The slippage model to use for trading US futures.
 
     See Also
     --------

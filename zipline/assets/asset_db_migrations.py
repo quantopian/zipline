@@ -1,17 +1,16 @@
-from functools import wraps
-
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
 import sqlalchemy as sa
 from toolz.curried import do, operator as op
 
 from zipline.assets.asset_writer import write_version_info
+from zipline.utils.compat import wraps
 from zipline.errors import AssetDBImpossibleDowngrade
 from zipline.utils.preprocess import preprocess
 from zipline.utils.sqlite_utils import coerce_string_to_eng
 
 
-@preprocess(engine=coerce_string_to_eng)
+@preprocess(engine=coerce_string_to_eng(require_exists=True))
 def downgrade(engine, desired_version):
     """Downgrades the assets db at the given engine to the desired version.
 
@@ -309,3 +308,8 @@ def _downgrade_v5(op):
         'equities',
         ['fuzzy_symbol'],
     )
+
+
+@downgrades(6)
+def _downgrade_v6(op):
+    op.drop_table('equity_supplementary_mappings')

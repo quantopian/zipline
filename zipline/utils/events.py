@@ -25,6 +25,7 @@ from toolz import curry
 
 from zipline.utils.input_validation import preprocess
 from zipline.utils.memoize import lazyval
+from zipline.utils.sentinel import sentinel
 
 from .context_tricks import nop_context
 
@@ -50,6 +51,7 @@ __all__ = [
     # Factory API
     'date_rules',
     'time_rules',
+    'calendars',
     'make_eventrule',
 ]
 
@@ -221,7 +223,7 @@ class Event(namedtuple('Event', ['rule', 'callback'])):
     with the current algorithm context, data, and datetime only when the rule
     is triggered.
     """
-    def __new__(cls, rule=None, callback=None):
+    def __new__(cls, rule, callback=None):
         callback = callback or (lambda *args, **kwargs: None)
         return super(cls, cls).__new__(cls, rule=rule, callback=callback)
 
@@ -234,6 +236,18 @@ class Event(namedtuple('Event', ['rule', 'callback'])):
 
 
 class EventRule(six.with_metaclass(ABCMeta)):
+    # Instances of EventRule are assigned a calendar instance when scheduling
+    # a function.
+    _cal = None
+
+    @property
+    def cal(self):
+        return self._cal
+
+    @cal.setter
+    def cal(self, value):
+        self._cal = value
+
     @abstractmethod
     def should_trigger(self, dt):
         """
@@ -299,6 +313,15 @@ class ComposedRule(StatelessRule):
         """
         return first_should_trigger(dt) and second_should_trigger(dt)
 
+    @property
+    def cal(self):
+        return self.first.cal
+
+    @cal.setter
+    def cal(self, value):
+        # Thread the calendar through to the underlying rules.
+        self.first.cal = self.second.cal = value
+
 
 class Always(StatelessRule):
     """
@@ -348,11 +371,19 @@ class AfterOpen(StatelessRule):
         self._one_minute = datetime.timedelta(minutes=1)
 
     def calculate_dates(self, dt):
-        # given a dt, find that day's open and period end (open + offset)
-        self._period_start, self._period_close = \
-            self.cal.open_and_close_for_session(
-                self.cal.minute_to_session_label(dt)
-            )
+        """
+        Given a date, find that day's open and period end (open + offset).
+        """
+        period_start, period_close = self.cal.open_and_close_for_session(
+            self.cal.minute_to_session_label(dt),
+        )
+
+        # Align the market open and close times here with the execution times
+        # used by the simulation clock. This ensures that scheduled functions
+        # trigger at the correct times.
+        self._period_start = self.cal.execution_time_from_open(period_start)
+        self._period_close = self.cal.execution_time_from_close(period_close)
+
         self._period_end = self._period_start + self.offset - self._one_minute
 
     def should_trigger(self, dt):
@@ -396,11 +427,17 @@ class BeforeClose(StatelessRule):
         self._one_minute = datetime.timedelta(minutes=1)
 
     def calculate_dates(self, dt):
-        # given a dt, find that day's close and period start (close - offset)
-        self._period_end = \
-            self.cal.open_and_close_for_session(
-                self.cal.minute_to_session_label(dt)
-            )[1]
+        """
+        Given a dt, find that day's close and period start (close - offset).
+        """
+        period_end = self.cal.open_and_close_for_session(
+            self.cal.minute_to_session_label(dt),
+        )[1]
+
+        # Align the market close time here with the execution time used by the
+        # simulation clock. This ensures that scheduled functions trigger at
+        # the correct times.
+        self._period_end = self.cal.execution_time_from_close(period_end)
 
         self._period_start = self._period_end - self.offset
         self._period_close = self._period_end
@@ -530,11 +567,14 @@ class StatefulRule(EventRule):
     def __init__(self, rule=None):
         self.rule = rule or Always()
 
-    def new_should_trigger(self, callable_):
-        """
-        Replace the should trigger implementation for the current rule.
-        """
-        self.should_trigger = callable_
+    @property
+    def cal(self):
+        return self.rule.cal
+
+    @cal.setter
+    def cal(self, value):
+        # Thread the calendar through to the underlying rule.
+        self.rule.cal = value
 
 
 class OncePerDay(StatefulRule):
@@ -589,20 +629,21 @@ class time_rules(object):
     every_minute = Always
 
 
+class calendars(object):
+    US_EQUITIES = sentinel('US_EQUITIES')
+    US_FUTURES = sentinel('US_FUTURES')
+
+
 def make_eventrule(date_rule, time_rule, cal, half_days=True):
     """
     Constructs an event rule from the factory api.
     """
-
-    # Insert the calendar in to the individual rules
-    date_rule.cal = cal
-    time_rule.cal = cal
-
     if half_days:
         inner_rule = date_rule & time_rule
     else:
-        nhd_rule = NotHalfDay()
-        nhd_rule.cal = cal
-        inner_rule = date_rule & time_rule & nhd_rule
+        inner_rule = date_rule & time_rule & NotHalfDay()
 
-    return OncePerDay(rule=inner_rule)
+    opd = OncePerDay(rule=inner_rule)
+    # This is where a scheduled function's rule is associated with a calendar.
+    opd.cal = cal
+    return opd

@@ -164,12 +164,16 @@ class DataFrameLoader(PipelineLoader):
         good_dates = (date_indexer != -1)
         good_assets = (assets_indexer != -1)
 
+        data = self.baseline[ix_(date_indexer, assets_indexer)]
+        mask = (good_assets & as_column(good_dates)) & mask
+
+        # Mask out requested columns/rows that didn't match.
+        data[~mask] = column.missing_value
+
         return {
             column: AdjustedArray(
                 # Pull out requested columns/rows from our baseline data.
-                data=self.baseline[ix_(date_indexer, assets_indexer)],
-                # Mask out requested columns/rows that didnt match.
-                mask=(good_assets & as_column(good_dates)) & mask,
+                data=data,
                 adjustments=self.format_adjustments(dates, assets),
                 missing_value=column.missing_value,
             ),

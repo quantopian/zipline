@@ -18,7 +18,7 @@ from zipline.pipeline.term import Term, ComputableTerm
 _VARIABLE_NAME_RE = re.compile("^(x_)([0-9]+)$")
 
 # Map from op symbol to equivalent Python magic method name.
-_ops_to_methods = {
+ops_to_methods = {
     '+': '__add__',
     '-': '__sub__',
     '*': '__mul__',
@@ -35,9 +35,12 @@ _ops_to_methods = {
     '>=': '__ge__',
     '>': '__gt__',
 }
+# Map from method name to op symbol.
+methods_to_ops = {v: k for k, v in ops_to_methods.items()}
+
 # Map from op symbol to equivalent Python magic method name after flipping
 # arguments.
-_ops_to_commuted_methods = {
+ops_to_commuted_methods = {
     '+': '__radd__',
     '-': '__rsub__',
     '*': '__rmul__',
@@ -54,7 +57,7 @@ _ops_to_commuted_methods = {
     '>=': '__le__',
     '>': '__lt__',
 }
-_unary_ops_to_methods = {
+unary_ops_to_methods = {
     '-': '__neg__',
     '~': '__invert__',
 }
@@ -152,12 +155,12 @@ def method_name_for_op(op, commute=False):
     '__lt__'
     """
     if commute:
-        return _ops_to_commuted_methods[op]
-    return _ops_to_methods[op]
+        return ops_to_commuted_methods[op]
+    return ops_to_methods[op]
 
 
 def unary_op_name(op):
-    return _unary_ops_to_methods[op]
+    return unary_ops_to_methods[op]
 
 
 def is_comparison(op):
@@ -316,6 +319,7 @@ class NumericalExpression(ComputableTerm):
         )
 
     def short_repr(self):
+        """Short repr to use when rendering Pipeline graphs."""
         return "Expression: {expr}".format(
             typename=type(self).__name__,
             expr=self._expr,

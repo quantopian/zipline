@@ -1,0 +1,117 @@
+Release 1.1.1
+-------------
+
+:Release: 1.1.1
+:Date: July 5, 2017
+
+
+Highlights
+~~~~~~~~~~
+
+Zipline now has broad support for futures, in addition to equities. It's also being tested and packaged for Python 3.5.
+
+We also saw breaking changes occur from Yahoo changing their API endpoint, thus preventing users from downloading benchmark data needed for backtests. Since that change, we have swapped out Yahoo-related benchmarking code with references to Google Finance and have removed all deprecated Yahoo code, including the usage of custom Yahoo bundles.
+
+Enhancements
+~~~~~~~~~~~~
+
+- Adds a property for BarData to know about current session's minutes (:issue:`1713`)
+
+- Adds a better error message for non-existent root symbols (:issue:`1715:`)
+
+- Adds ``StaticSids`` Pipeline Filter (:issue:`1717`)
+
+- Allows ``zipline.data.data_portal.DataPortal.get_spot_value`` to accept multiple assets (:issue:`1719`)
+
+- Adds ``ContinuousFuture`` to ``lookup_generic`` (:issue:`1718`)
+
+- Adds CFE Adhoc Holidays to ``exchange_calendar_cfe`` (:issue:`1698`)
+
+- Allows overriding of order amount rounding (:issue:`1722`)
+
+- Makes continuous future adjustment style an argument (:issue:`1726`)
+
+- Adds preliminary support for Futures slippage and commission models (:issue:`1738`)
+
+- Fix a bug in cost basis calculation and change all mentions of ``sid`` to ``asset`` (:issue:`1757`)
+
+- Add slippage and commission models for futures (:issue:`1748`)
+
+- Use Python 3.5 in our Dockerfile (:issue:`1806`)
+
+- Allow pipelines to be run in chunks (:issue:`1811`)
+
+- Adds `get_range` to `BenchmarkSource` (:issue:`1815`)
+
+- Adds support for relabeling classifiers in Pipeline (:issue:`1833`)
+
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   Experimental features are subject to change.
+
+None
+
+Bug Fixes
+~~~~~~~~~
+
+- Fixes a floating point division issue in ``zipline.data.minute_bars`` by using integer divison instead (:issue:`1683`)
+
+- Sorts data in ``zipline.pipeline.loaders.blaze.core`` on ``asof_date`` to resolve timestamp conflicts (:issue:`1710`)
+
+- Swapped out Yahoo for Google Finance benchmark data (:issue:`1812`)
+
+- Gold and silver futures contracts only traded during certain months (:issue:`1779`)
+
+- Fixes bug in TradingCalendar initialization when we use tzaware datetimes (:issue:`1802`)
+
+- Fixes precision issues on futures prices when rounding (:issue:`1788`)
+
+Performance
+~~~~~~~~~~~
+
+- Avoid repeated recursive calls when getting forward-filled close price (:issue:`1735`)
+
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Adds linter recommendations to adjustments module (:issue:`1712`)
+
+- Clears up naming and logic in resample close (:issue:`1728`)
+
+- Use March quarterly cycle for several continuous futures (:issue:`1762`)
+
+- Use better repr for Transaction objects (:issue:`1746`)
+
+- Shorten repr for Asset objects (:issue:`1786`)
+
+- Removes usage of empyrical's information ratio (:issue:`1854`)
+
+
+Build
+~~~~~
+
+- Adds Python 3.5 packages (:issue:`1701`)
+
+- Swap conda-build arguments so we don't build packages on every CI build (:issue:`1813`)
+
+Documentation
+~~~~~~~~~~~~~
+
+- Adds Zipline Development Guidelines, for people to read about how to contribute to zipline (:issue:`1820`)
+
+- Show exchange as required for equities (:issue:`1731`)
+
+- Updates the Zipline Beginner Tutorial notebook (:issue:`1707`)
+
+- Includes PipelineEngine, pipeline Term, Factors, and other pipeline things to docs (:issue:`1826`)
+
+Miscellaneous
+~~~~~~~~~~~~~
+
+- Use csv market data with ``run_algorithm`` so we don't try to download data for tests (:issue:`1793`)
+
+- Updates Dockerfile to use Python 3.5

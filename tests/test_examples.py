@@ -25,6 +25,8 @@ from zipline.testing import test_resource_path
 from zipline.testing.fixtures import WithTmpDir, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
 from zipline.utils.cache import dataframe_cache
+from zipline.utils.paths import update_modified_time
+
 
 # Otherwise the next line sometimes complains about being run too late.
 _multiprocess_can_split_ = False
@@ -53,7 +55,15 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             serialization='pickle',
         )
 
-    @parameterized.expand(examples.EXAMPLE_MODULES)
+        market_data = ('SPY_benchmark.csv', 'treasury_curves.csv')
+        for data in market_data:
+            update_modified_time(
+                cls.tmpdir.getpath(
+                    'example_data/root/data/' + data
+                )
+            )
+
+    @parameterized.expand(sorted(examples.EXAMPLE_MODULES))
     def test_example(self, example_name):
         actual_perf = examples.run_example(
             example_name,
@@ -63,9 +73,10 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
                 'ZIPLINE_ROOT': self.tmpdir.getpath('example_data/root'),
             },
         )
+        expected_perf = self.expected_perf[example_name]
         assert_equal(
             actual_perf[examples._cols_to_check],
-            self.expected_perf[example_name][examples._cols_to_check],
+            expected_perf[examples._cols_to_check],
             # There is a difference in the datetime columns in pandas
             # 0.16 and 0.17 because in 16 they are object and in 17 they are
             # datetime[ns, UTC]. We will just ignore the dtypes for now.

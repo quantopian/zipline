@@ -267,6 +267,88 @@ class EventIndexerTestCase(ZiplineTestCase):
                 self.assertEqual(computed_index, -1)
 
 
+class EventsLoaderEmptyTestCase(WithAssetFinder,
+                                WithTradingSessions,
+                                ZiplineTestCase):
+    START_DATE = pd.Timestamp('2014-01-01')
+    END_DATE = pd.Timestamp('2014-01-30')
+
+    @classmethod
+    def init_class_fixtures(cls):
+        cls.ASSET_FINDER_EQUITY_SIDS = [0, 1]
+        cls.ASSET_FINDER_EQUITY_SYMBOLS = ['A', 'B']
+        super(EventsLoaderEmptyTestCase, cls).init_class_fixtures()
+
+    def frame_containing_all_missing_values(self, index, columns):
+        frame = pd.DataFrame(
+            index=index,
+            data={c.name: c.missing_value for c in EventDataSet.columns},
+        )
+        for c in columns:
+            # The construction above produces columns of dtype `object` when
+            # the missing value is string, but we expect categoricals in the
+            # final result.
+            if c.dtype == categorical_dtype:
+                frame[c.name] = frame[c.name].astype('category')
+        return frame
+
+    def test_load_empty(self):
+        """
+        For the case where raw data is empty, make sure we have a result for
+        all sids, that the dimensions are correct, and that we have the
+        correct missing value.
+        """
+        raw_events = pd.DataFrame(
+            columns=["sid",
+                     "timestamp",
+                     "event_date",
+                     "float",
+                     "int",
+                     "datetime",
+                     "string"]
+        )
+        next_value_columns = {
+            EventDataSet.next_datetime: 'datetime',
+            EventDataSet.next_event_date: 'event_date',
+            EventDataSet.next_float: 'float',
+            EventDataSet.next_int: 'int',
+            EventDataSet.next_string: 'string',
+            EventDataSet.next_string_custom_missing: 'string'
+        }
+        previous_value_columns = {
+            EventDataSet.previous_datetime: 'datetime',
+            EventDataSet.previous_event_date: 'event_date',
+            EventDataSet.previous_float: 'float',
+            EventDataSet.previous_int: 'int',
+            EventDataSet.previous_string: 'string',
+            EventDataSet.previous_string_custom_missing: 'string'
+        }
+        loader = EventsLoader(
+            raw_events, next_value_columns, previous_value_columns
+        )
+        engine = SimplePipelineEngine(
+            lambda x: loader,
+            self.trading_days,
+            self.asset_finder,
+        )
+
+        results = engine.run_pipeline(
+            Pipeline({c.name: c.latest for c in EventDataSet.columns}),
+            start_date=self.trading_days[0],
+            end_date=self.trading_days[-1],
+        )
+
+        assets = self.asset_finder.retrieve_all(self.ASSET_FINDER_EQUITY_SIDS)
+        dates = self.trading_days
+
+        expected = self.frame_containing_all_missing_values(
+            index=pd.MultiIndex.from_product([dates, assets]),
+            columns=EventDataSet.columns,
+        )
+
+        assert_equal(results, expected)
+
+
 class EventsLoaderTestCase(WithAssetFinder,
                            WithTradingSessions,
                            ZiplineTestCase):
@@ -355,7 +437,7 @@ class EventsLoaderTestCase(WithAssetFinder,
         # is not in our window. The results should be computed the same as if
         # we had computed across the entire window and then sliced after the
         # computation.
-        dates = self.trading_days[len(self.trading_days) / 2:]
+        dates = self.trading_days[len(self.trading_days) // 2:]
         results = engine.run_pipeline(
             Pipeline({c.name: c.latest for c in EventDataSet.columns}),
             start_date=dates[0],
@@ -516,10 +598,12 @@ class EventLoaderUtilsTestCase(ZiplineTestCase):
                          boundary_dates]
     moscow_boundary_dates = [date.tz_localize('Europe/Moscow') for date in
                              boundary_dates]
-    mixed_tz_dates = [pd.Timestamp('2013-01-24'),
+    mixed_tz_dates = [pd.Timestamp('2013-12-30'),
+                      pd.Timestamp('2013-01-24'),
                       pd.Timestamp('2013-01-31 20:00:00'),
                       pd.Timestamp('2013-04-04'),
-                      pd.Timestamp('2013-04-21')]
+                      pd.Timestamp('2013-04-21'),
+                      pd.Timestamp('2013-06-01')]
     us_dates = pd.to_datetime(us_boundary_dates + mixed_tz_dates,
                               utc=True).tz_localize(None)
     moscow_dates = pd.to_datetime(moscow_boundary_dates + mixed_tz_dates,
@@ -537,10 +621,12 @@ class EventLoaderUtilsTestCase(ZiplineTestCase):
         [pd.Timestamp('2013-01-04'),
          pd.Timestamp('2013-01-05'),
          pd.Timestamp('2013-01-05'),
+         pd.Timestamp('2013-12-30'),
          pd.Timestamp('2013-01-24'),
          pd.Timestamp('2013-02-01'),
          pd.Timestamp('2013-04-04'),
-         pd.Timestamp('2013-04-21')]
+         pd.Timestamp('2013-04-21'),
+         pd.Timestamp('2013-06-01')]
     ).values
 
     # Russia's TZ offset is +4
@@ -548,10 +634,12 @@ class EventLoaderUtilsTestCase(ZiplineTestCase):
         [pd.Timestamp('2013-01-04'),
          pd.Timestamp('2013-01-05'),
          pd.Timestamp('2013-01-05'),
+         pd.Timestamp('2013-12-30'),
          pd.Timestamp('2013-01-24'),
          pd.Timestamp('2013-01-31'),
          pd.Timestamp('2013-04-04'),
-         pd.Timestamp('2013-04-21')]
+         pd.Timestamp('2013-04-21'),
+         pd.Timestamp('2013-06-01')]
     ).values
 
     # Test with timezones on either side of the meridian
@@ -570,7 +658,4 @@ class EventLoaderUtilsTestCase(ZiplineTestCase):
                                                        ts_field='timestamp')
 
             timestamps = result['timestamp'].values
-            check_arrays(
-                timestamps,
-                expected[scrambler]
-            )
+            check_arrays(np.sort(timestamps), np.sort(expected[scrambler]))

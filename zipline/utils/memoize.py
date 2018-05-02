@@ -2,12 +2,13 @@
 Tools for memoization of function results.
 """
 from collections import OrderedDict, Sequence
-from functools import wraps
 from itertools import compress
 from weakref import WeakKeyDictionary, ref
 
 from six.moves._thread import allocate_lock as Lock
 from toolz.sandbox import unzip
+
+from zipline.utils.compat import wraps
 
 
 class lazyval(object):

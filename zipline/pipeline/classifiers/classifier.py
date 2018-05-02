@@ -1,6 +1,7 @@
 """
 classifier.py
 """
+from functools import partial
 from numbers import Number
 import operator
 import re
@@ -8,13 +9,19 @@ import re
 from numpy import where, isnan, nan, zeros
 import pandas as pd
 
+from zipline.errors import UnsupportedDataType
 from zipline.lib.labelarray import LabelArray
 from zipline.lib.quantiles import quantiles
 from zipline.pipeline.api_utils import restrict_to_dtype
+from zipline.pipeline.dtypes import (
+    CLASSIFIER_DTYPES,
+    FACTOR_DTYPES,
+    FILTER_DTYPES,
+)
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import ComputableTerm
 from zipline.utils.compat import unicode
-from zipline.utils.input_validation import expect_types
+from zipline.utils.input_validation import expect_types, expect_dtypes
 from zipline.utils.memoize import classlazyval
 from zipline.utils.numpy_utils import (
     categorical_dtype,
@@ -39,7 +46,7 @@ string_classifiers_only = restrict_to_dtype(
     dtype=categorical_dtype,
     message_template=(
         "{method_name}() is only defined on Classifiers producing strings"
-        " but it was called on a Factor of dtype {received_dtype}."
+        " but it was called on a Classifier of dtype {received_dtype}."
     )
 )
 
@@ -55,7 +62,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
     which the classifier produced the same label.
     """
     # Used by RestrictedDTypeMixin
-    ALLOWED_DTYPES = (int64_dtype, categorical_dtype)
+    ALLOWED_DTYPES = CLASSIFIER_DTYPES
     categories = NotSpecified
 
     def isnull(self):
@@ -76,7 +83,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
     def eq(self, other):
         """
         Construct a Filter returning True for asset/date pairs where the output
-        of ``self`` matches ``other.
+        of ``self`` matches ``other``.
         """
         # We treat this as an error because missing_values have NaN semantics,
         # which means this would return an array of all False, which is almost
@@ -127,6 +134,16 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         else:
             # Numexpr doesn't know how to use LabelArrays.
             return ArrayPredicate(term=self, op=operator.ne, opargs=(other,))
+
+    def bad_compare(opname, other):
+        raise TypeError('cannot compare classifiers with %s' % opname)
+
+    __gt__ = partial(bad_compare, '>')
+    __ge__ = partial(bad_compare, '>=')
+    __le__ = partial(bad_compare, '<=')
+    __lt__ = partial(bad_compare, '<')
+
+    del bad_compare
 
     @string_classifiers_only
     @expect_types(prefix=(bytes, unicode))
@@ -223,6 +240,26 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             op=LabelArray.matches,
             opargs=(pattern,),
         )
+
+    # TODO: Support relabeling for integer dtypes.
+    @string_classifiers_only
+    def relabel(self, relabeler):
+        """
+        Convert ``self`` into a new classifier by mapping a function over each
+        element produced by ``self``.
+
+        Parameters
+        ----------
+        relabeler : function[str -> str or None]
+            A function to apply to each unique value produced by ``self``.
+
+        Returns
+        -------
+        relabeled : Classifier
+            A classifier produced by applying ``relabeler`` to each unique
+            value produced by ``self``.
+        """
+        return Relabel(term=self, relabeler=relabeler)
 
     def element_of(self, choices):
         """
@@ -341,6 +378,26 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
     def _aliased_type(self):
         return AliasedMixin.make_aliased_type(Classifier)
 
+    def _to_integral(self, output_array):
+        """
+        Convert an array produced by this classifier into an array of integer
+        labels and a missing value label.
+        """
+        if self.dtype == int64_dtype:
+            group_labels = output_array
+            null_label = self.missing_value
+        elif self.dtype == categorical_dtype:
+            # Coerce LabelArray into an isomorphic array of ints.  This is
+            # necessary because np.where doesn't know about LabelArrays or the
+            # void dtype.
+            group_labels = output_array.as_int_array()
+            null_label = output_array.missing_value_code
+        else:
+            raise AssertionError(
+                "Unexpected Classifier dtype: %s." % self.dtype
+            )
+        return group_labels, null_label
+
 
 class Everything(Classifier):
     """
@@ -379,7 +436,50 @@ class Quantiles(SingleInputMixin, Classifier):
         return result.astype(int64_dtype)
 
     def short_repr(self):
+        """Short repr to use when rendering Pipeline graphs."""
         return type(self).__name__ + '(%d)' % self.params['bins']
+
+
+class Relabel(SingleInputMixin, Classifier):
+    """
+    A classifier applying a relabeling function on the result of another
+    classifier.
+
+    Parameters
+    ----------
+    arg : zipline.pipeline.Classifier
+        Term produceing the input to be relabeled.
+    relabel_func : function(LabelArray) -> LabelArray
+        Function to apply to the result of `term`.
+    """
+    window_length = 0
+    params = ('relabeler',)
+
+    # TODO: Support relabeling for integer dtypes.
+    @expect_dtypes(term=categorical_dtype)
+    @expect_types(term=Classifier)
+    def __new__(cls, term, relabeler):
+        return super(Relabel, cls).__new__(
+            cls,
+            inputs=(term,),
+            dtype=term.dtype,
+            mask=term.mask,
+            relabeler=relabeler,
+        )
+
+    def _compute(self, arrays, dates, assets, mask):
+        relabeler = self.params['relabeler']
+        data = arrays[0]
+
+        if isinstance(data, LabelArray):
+            result = data.map(relabeler)
+            result[~mask] = data.missing_value
+        else:
+            raise NotImplementedError(
+                "Relabeling is not currently supported for "
+                "int-dtype classifiers."
+            )
+        return result
 
 
 class CustomClassifier(PositiveWindowLengthMixin,
@@ -396,6 +496,24 @@ class CustomClassifier(PositiveWindowLengthMixin,
     zipline.pipeline.CustomFactor
     zipline.pipeline.CustomFilter
     """
+    def _validate(self):
+        try:
+            super(CustomClassifier, self)._validate()
+        except UnsupportedDataType:
+            if self.dtype in FACTOR_DTYPES:
+                raise UnsupportedDataType(
+                    typename=type(self).__name__,
+                    dtype=self.dtype,
+                    hint='Did you mean to create a CustomFactor?',
+                )
+            elif self.dtype in FILTER_DTYPES:
+                raise UnsupportedDataType(
+                    typename=type(self).__name__,
+                    dtype=self.dtype,
+                    hint='Did you mean to create a CustomFilter?',
+                )
+            raise
+
     def _allocate_output(self, windows, shape):
         """
         Override the default array allocation to produce a LabelArray when we

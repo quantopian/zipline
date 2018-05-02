@@ -1,0 +1,149 @@
+Release 1.1.0
+-------------
+
+:Release: 1.1.0
+:Date: March 10, 2017
+
+This release is meant to provide zipline support for pandas 0.18, as well as several bug fixes, API changes, and many
+performance changes.
+
+Enhancements
+~~~~~~~~~~~~
+
+- Makes the minute bar read catch NoDataOnDate exceptions if dates are not in the calendar.
+  Before, the minute bar reader was forward filling, but now it returns nan for OHLC and 0 for V. (:issue:`1488`)
+
+- Adds ``truncate`` method to :class:`~zipline.path.to.BcolzMinuteBarWriter` (:issue:`1499`)
+
+- Bumps up to pandas 0.18.1 and numpy 1.11.1 (:issue:`1339`)
+
+- Adds an earnings estimates quarter loader for Pipeline (:issue:`1396`)
+
+- Creates a restricted list manager that takes in information about restricted sids
+  and stores in memory upon instantiation (:issue:`1487`)
+
+- Adds ``last_available{session, minute}`` args to ``DataPortal`` (:issue:`1528`)
+
+- Adds ``SpecificAssets`` filter (:issue:`1530`)
+
+- Adds the ability for an algorithm to request the current contract for a future chain (:issue:`1529`)
+
+- Adds ``chain`` field to current and supporting methods
+  in :class:`DataPortal` and :class:`OrderedContracts` (:issue:`1538`)
+
+- Adds history for continuous futures (:issue:`1539`)
+
+- Adds adjusted history for continuous future (:issue:`1548`)
+
+- Adds roll style which takes the volume of a future contract into account,
+  specifically for continuous futures (:issue:`1556`)
+
+- Adds better error message when calling Zipline API functions outside of a running simulation (:issue:`1593`)
+
+- Adds
+  :meth:`~zipline.pipeline.factors.technical.MACDSignal`,
+  :meth:`~zipline.pipeline.factors.technical.MovingAverageConvergenceDivergenceSignal`, and
+  :meth:`~zipline.pipeline.factors.technical.AnnualizedVolatility` as built-in factors.
+  (:issue:`1588`)
+
+- Allows running pipelines with custom date chunks in ``attach_pipeline`` (:issue:`1617`)
+
+- Adds ``order_batch`` to the trade blotter (:issue:`1596`)
+
+- Adds vectorized lookup_symbol (:issue:`1627`)
+
+- Solidifies equality comparisons for SlippageModel classes (:issue:`1657`)
+
+- Adds a factor for winsorized results (:issue:`1696`)
+
+Bug Fixes
+~~~~~~~~~
+
+- Changes str to string_types to avoid errors when type checking unicode and not str type. (:issue:`1315`)
+
+- Algorithms default to quantopian-quandl bundle when no data source is specified (:issue:`1479`) (:issue:`1374`)
+
+- Catches all missing data exceptions when computing dividend ratios (:issue:`1507`)
+
+- Creates adjustments based on ordered assets instead of a set. Before, adjustments were created for estimates
+  based on where assets happened to fall in a set rather than using ordered assets (:issue:`1547`)
+
+- Fixes blaze pipeline queries for when users query for the ``asof_date`` column (:issue:`1608`)
+
+- Datetimes should be converted in utc. DataFrames being returned were creating US/Eastern timestamps out of the ints,
+  potentially changing the date returned to be the date before (:issue:`1635`)
+
+- Fixes default inputs for :class:`~zipline.pipeline.factors.technical.IchimokuKinkoHyo` factor (:issue:`1638`)
+
+
+Performance
+~~~~~~~~~~~
+
+- Removes invocations of ``get_calendar('NYSE')`` which cuts down zipline import time
+  and makes the CLI more responsive and use less memory. (:issue:`1471`)
+
+- Refcounts and releases pipeline terms when they are no longer needed (:issue:`1484`)
+
+- Saves up to 75% of calls to minute_to_session_label (:issue:`1492`)
+
+- Speeds up counting of number of minutes across contiguous session (:issue:`1497`)
+
+- Removes/defers calls to get_loc on large indices (:issue:`1504`) (:issue:`1503`)
+
+- Replaces ``get_loc`` calls in ``calc_dividend_ratios`` with ``get_indexer`` (:issue:`1510`)
+
+- Speeds up minute to session sampling (:issue:`1549`)
+
+- Adds some micro optimizations in ``data.current`` (:issue:`1561`)
+
+- Adds optimization for initial workspace for pipelines (:issue:`1521`)
+
+- More memory savings (:issue:`1599`)
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Updates leveraged ETF list (:issue:`747`) (:issue:`1434`)
+
+- Adds additional fields to ``__getitem__`` for Order class (:issue:`1483`)
+
+- Adds ``BarReader`` base class for minute and session readers (:issue:`1486`)
+
+- Removes ``future_chain`` API method, to be replaced by ``data.current_chain`` (:issue:`1502`)
+
+- Puts zipline back on blaze master (:issue:`1505`)
+
+- Adds Tini and sets version range for numpy, pandas, and scipy in Dockerfile (:issue:`1514`)
+
+- Deprecates ``set_do_not_order_list`` (:issue:`1487`)
+
+- Uses ``Timedelta`` instead of ``DateOffset`` (:issue:`1487`)
+
+- Update and pin more dev requirements (:issue:`1642`)
+
+Build
+~~~~~
+
+- Adds binary dependency on numpy for empyrical
+
+- Removes old numpy/pandas versions from Travis (:issue:`1339`)
+
+- Updates appveyor.yml for new numpy and pandas (:issue:`1339`)
+
+- Downgrades to scipy 0.17 (:issue:`1339`)
+
+- Bumps empyrical to 0.2.2
+
+Documentation
+~~~~~~~~~~~~~
+
+- Updated example notebook for latest zipline cell magic
+
+- Adds ANACONDA_TOKEN directions (:issue:`1589`)
+
+Miscellaneous
+~~~~~~~~~~~~~
+
+- Changed the short-opt for ``--before`` in the ``zipline clean``
+  entrypoint. The new argument is ``-e``. The old argument, ``-b``, conflicted
+  with the ``--bundle`` short-opt (:issue:`1625`).

@@ -19,8 +19,9 @@ from zipline.pipeline.factors import (
     TrueRange,
     MovingAverageConvergenceDivergenceSignal,
     AnnualizedVolatility,
+    RSI,
 )
-from zipline.testing import parameter_space
+from zipline.testing import check_allclose, parameter_space
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import assert_equal
 from .base import BasePipelineTestCase
@@ -99,7 +100,6 @@ class BollingerBandsTestCase(BasePipelineTestCase):
             initial_workspace={
                 USEquityPricing.close: AdjustedArray(
                     data=closes,
-                    mask=mask,
                     adjustments={},
                     missing_value=np.nan,
                 ),
@@ -530,6 +530,87 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
             expected_signal,
             decimal=8
         )
+
+
+class RSITestCase(ZiplineTestCase):
+    @parameterized.expand([
+        # Test cases computed by doing:
+        # from numpy.random import seed, randn
+        # from talib import RSI
+        # seed(seed_value)
+        # data = abs(randn(15, 3))
+        # expected = [RSI(data[:, i])[-1] for i in range(3)]
+        (100, np.array([41.032913785966, 51.553585468393, 51.022005016446])),
+        (101, np.array([43.506969935466, 46.145367530182, 50.57407044197])),
+        (102, np.array([46.610102205934, 47.646892444315, 52.13182788538])),
+    ])
+    def test_rsi(self, seed_value, expected):
+
+        rsi = RSI()
+
+        today = np.datetime64(1, 'ns')
+        assets = np.arange(3)
+        out = np.empty((3,), dtype=float)
+
+        np.random.seed(seed_value)  # Seed so we get deterministic results.
+        test_data = np.abs(np.random.randn(15, 3))
+
+        out = np.empty((3,), dtype=float)
+        rsi.compute(today, assets, out, test_data)
+
+        check_allclose(expected, out)
+
+    def test_rsi_all_positive_returns(self):
+        """
+        RSI indicator should be 100 in the case of 14 days of positive returns.
+        """
+
+        rsi = RSI()
+
+        today = np.datetime64(1, 'ns')
+        assets = np.arange(1)
+        out = np.empty((1,), dtype=float)
+
+        closes = np.linspace(46, 60, num=15)
+        closes.shape = (15, 1)
+        rsi.compute(today, assets, out, closes)
+        self.assertEqual(out[0], 100.0)
+
+    def test_rsi_all_negative_returns(self):
+        """
+        RSI indicator should be 0 in the case of 14 days of negative returns.
+        """
+        rsi = RSI()
+
+        today = np.datetime64(1, 'ns')
+        assets = np.arange(1)
+        out = np.empty((1,), dtype=float)
+
+        closes = np.linspace(46, 32, num=15)
+        closes.shape = (15, 1)
+
+        rsi.compute(today, assets, out, closes)
+        self.assertEqual(out[0], 0.0)
+
+    def test_rsi_same_returns(self):
+        """
+        RSI indicator should be the same for two price series with the same
+        returns, even if the prices are different.
+        """
+        rsi = RSI()
+
+        today = np.datetime64(1, 'ns')
+        assets = np.arange(2)
+        out = np.empty((2,), dtype=float)
+
+        example_case = np.array([46.125, 47.125, 46.4375, 46.9375, 44.9375,
+                                 44.25, 44.625, 45.75, 47.8125, 47.5625, 47.,
+                                 44.5625, 46.3125, 47.6875, 46.6875])
+        double = example_case * 2
+
+        closes = np.vstack((example_case, double)).T
+        rsi.compute(today, assets, out, closes)
+        self.assertAlmostEqual(out[0], out[1])
 
 
 class AnnualizedVolatilityTestCase(ZiplineTestCase):

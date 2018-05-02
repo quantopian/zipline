@@ -1,4 +1,4 @@
-Zipline beginner tutorial
+Zipline Beginner Tutorial
 -------------------------
 
 Basics
@@ -48,7 +48,7 @@ containing the current trading bar with open, high, low, and close
 more information on these functions, see the `relevant part of the
 Quantopian docs <https://www.quantopian.com/help#api-toplevel>`__.
 
-My first algorithm
+My First Algorithm
 ~~~~~~~~~~~~~~~~~~
 
 Lets take a look at a very simple algorithm from the ``examples``
@@ -90,9 +90,9 @@ finished running you will have access to each variable value you tracked
 with :func:`~zipline.api.record` under the name you provided (we will see this
 further below). You also see how we can access the current price data of the
 AAPL stock in the ``data`` event frame (for more information see
-`here <https://www.quantopian.com/help#api-event-properties>`__.
+`here <https://www.quantopian.com/help#api-event-properties>`__).
 
-Running the algorithm
+Running the Algorithm
 ~~~~~~~~~~~~~~~~~~~~~
 
 To now test this algorithm on financial data, ``zipline`` provides three
@@ -101,19 +101,20 @@ interfaces: A command-line interface, ``IPython Notebook`` magic, and
 
 Ingesting Data
 ^^^^^^^^^^^^^^
-If you haven't ingested the data, run:
+If you haven't ingested the data, you'll need a `Quandl <https://docs.quandl.com/docs#section-authentication>`__ API key to
+ingest the default bundle. Then run:
 
 .. code-block:: bash
 
-   $ zipline ingest [-b <bundle>]
+   $ QUANDL_API_KEY=<yourkey> zipline ingest [-b <bundle>]
 
 where ``<bundle>`` is the name of the bundle to ingest, defaulting to
-:ref:`quantopian-quandl <quantopian-quandl-mirror>`.
+``quandl``.
 
 you can check out the :ref:`ingesting data <ingesting-data>` section for
 more detail.
 
-Command line interface
+Command Line Interface
 ^^^^^^^^^^^^^^^^^^^^^^
 
 After you installed zipline you should be able to execute the following
@@ -126,38 +127,41 @@ on OSX):
 
 .. parsed-literal::
 
-   Usage: zipline run [OPTIONS]
+  Usage: zipline run [OPTIONS]
 
-     Run a backtest for the given algorithm.
+  Run a backtest for the given algorithm.
 
-   Options:
-     -f, --algofile FILENAME         The file that contains the algorithm to run.
-     -t, --algotext TEXT             The algorithm script to run.
-     -D, --define TEXT               Define a name to be bound in the namespace
-                                     before executing the algotext. For example
-                                     '-Dname=value'. The value may be any python
-                                     expression. These are evaluated in order so
-                                     they may refer to previously defined names.
-     --data-frequency [minute|daily]
-                                     The data frequency of the simulation.
-                                     [default: daily]
-     --capital-base FLOAT            The starting capital for the simulation.
-                                     [default: 10000000.0]
-     -b, --bundle BUNDLE-NAME        The data bundle to use for the simulation.
-                                     [default: quantopian-quandl]
-     --bundle-timestamp TIMESTAMP    The date to lookup data on or before.
-                                     [default: <current-time>]
-     -s, --start DATE                The start date of the simulation.
-     -e, --end DATE                  The end date of the simulation.
-     -o, --output FILENAME           The location to write the perf data. If this
-                                     is '-' the perf will be written to stdout.
-                                     [default: -]
-     --print-algo / --no-print-algo  Print the algorithm to stdout.
-     --help                          Show this message and exit.
+  Options:
+   -f, --algofile FILENAME         The file that contains the algorithm to run.
+   -t, --algotext TEXT             The algorithm script to run.
+   -D, --define TEXT               Define a name to be bound in the namespace
+                                   before executing the algotext. For example
+                                   '-Dname=value'. The value may be any python
+                                   expression. These are evaluated in order so
+                                   they may refer to previously defined names.
+   --data-frequency [daily|minute]
+                                   The data frequency of the simulation.
+                                   [default: daily]
+   --capital-base FLOAT            The starting capital for the simulation.
+                                   [default: 10000000.0]
+   -b, --bundle BUNDLE-NAME        The data bundle to use for the simulation.
+                                   [default: quandl]
+   --bundle-timestamp TIMESTAMP    The date to lookup data on or before.
+                                   [default: <current-time>]
+   -s, --start DATE                The start date of the simulation.
+   -e, --end DATE                  The end date of the simulation.
+   -o, --output FILENAME           The location to write the perf data. If this
+                                   is '-' the perf will be written to stdout.
+                                   [default: -]
+   --trading-calendar TRADING-CALENDAR
+                                   The calendar you want to use e.g. LSE. NYSE
+                                   is the default.
+   --print-algo / --no-print-algo  Print the algorithm to stdout.
+   --help                          Show this message and exit.
 
 As you can see there are a couple of flags that specify where to find your
 algorithm (``-f``) as well as parameters specifying which data to use,
-defaulting to the :ref:`quantopian-quandl-mirror`. There are also arguments for
+defaulting to ``quandl``. There are also arguments for
 the date range to run the algorithm over (``--start`` and ``--end``). Finally,
 you'll want to save the performance metrics of your algorithm so that you can
 analyze how it performed. This is done via the ``--output`` flag and will cause
@@ -172,15 +176,17 @@ Thus, to execute our algorithm from above and save the results to
 
 .. code-block:: python
 
-    zipline run -f ../../zipline/examples/buyapple.py --start 2000-1-1 --end 2014-1-1 -o buyapple_out.pickle
+    zipline run -f ../../zipline/examples/buyapple.py --start 2016-1-1 --end 2018-1-1 -o buyapple_out.pickle
 
 
 .. parsed-literal::
 
     AAPL
-    [2015-11-04 22:45:32.820166] INFO: Performance: Simulated 3521 trading days out of 3521.
-    [2015-11-04 22:45:32.820314] INFO: Performance: first open: 2000-01-03 14:31:00+00:00
-    [2015-11-04 22:45:32.820401] INFO: Performance: last close: 2013-12-31 21:00:00+00:00
+    [2018-01-03 04:30:50.150039] WARNING: Loader: Refusing to download new benchmark data because a download succeeded at 2018-01-03 04:01:34+00:00.
+    [2018-01-03 04:30:50.191479] WARNING: Loader: Refusing to download new treasury data because a download succeeded at 2018-01-03 04:01:35+00:00.
+    [2018-01-03 04:30:51.843465] INFO: Performance: Simulated 503 trading days out of 503.
+    [2018-01-03 04:30:51.843598] INFO: Performance: first open: 2016-01-04 14:31:00+00:00
+    [2018-01-03 04:30:51.843672] INFO: Performance: last close: 2017-12-29 21:00:00+00:00
 
 
 ``run`` first calls the ``initialize()`` function, and then
@@ -212,164 +218,263 @@ it.
 
 .. raw:: html
 
-    <div style="max-height:1000px;max-width:1500px;overflow:auto;">
+    <div style="max-height: 1000px; max-width: 1500px; overflow: auto;">
     <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>AAPL</th>
-          <th>algo_volatility</th>
-          <th>algorithm_period_return</th>
-          <th>alpha</th>
-          <th>benchmark_period_return</th>
-          <th>benchmark_volatility</th>
-          <th>beta</th>
-          <th>capital_used</th>
-          <th>ending_cash</th>
-          <th>ending_exposure</th>
-          <th>...</th>
-          <th>short_exposure</th>
-          <th>short_value</th>
-          <th>shorts_count</th>
-          <th>sortino</th>
-          <th>starting_cash</th>
-          <th>starting_exposure</th>
-          <th>starting_value</th>
-          <th>trading_days</th>
-          <th>transactions</th>
-          <th>treasury_period_return</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>2000-01-03 21:00:00</th>
-          <td>3.738314</td>
-          <td>0.000000e+00</td>
-          <td>0.000000e+00</td>
-          <td>-0.065800</td>
-          <td>-0.009549</td>
-          <td>0.000000</td>
-          <td>0.000000</td>
-          <td>0.00000</td>
-          <td>10000000.00000</td>
-          <td>0.00000</td>
-          <td>...</td>
-          <td>0</td>
-          <td>0</td>
-          <td>0</td>
-          <td>0.000000</td>
-          <td>10000000.00000</td>
-          <td>0.00000</td>
-          <td>0.00000</td>
-          <td>1</td>
-          <td>[]</td>
-          <td>0.0658</td>
-        </tr>
-        <tr>
-          <th>2000-01-04 21:00:00</th>
-          <td>3.423135</td>
-          <td>3.367492e-07</td>
-          <td>-3.000000e-08</td>
-          <td>-0.064897</td>
-          <td>-0.047528</td>
-          <td>0.323229</td>
-          <td>0.000001</td>
-          <td>-34.53135</td>
-          <td>9999965.46865</td>
-          <td>34.23135</td>
-          <td>...</td>
-          <td>0</td>
-          <td>0</td>
-          <td>0</td>
-          <td>0.000000</td>
-          <td>10000000.00000</td>
-          <td>0.00000</td>
-          <td>0.00000</td>
-          <td>2</td>
-          <td>[{u'order_id': u'513357725cb64a539e3dd02b47da7...</td>
-          <td>0.0649</td>
-        </tr>
-        <tr>
-          <th>2000-01-05 21:00:00</th>
-          <td>3.473229</td>
-          <td>4.001918e-07</td>
-          <td>-9.906000e-09</td>
-          <td>-0.066196</td>
-          <td>-0.045697</td>
-          <td>0.329321</td>
-          <td>0.000001</td>
-          <td>-35.03229</td>
-          <td>9999930.43636</td>
-          <td>69.46458</td>
-          <td>...</td>
-          <td>0</td>
-          <td>0</td>
-          <td>0</td>
-          <td>0.000000</td>
-          <td>9999965.46865</td>
-          <td>34.23135</td>
-          <td>34.23135</td>
-          <td>3</td>
-          <td>[{u'order_id': u'd7d4ad03cfec4d578c0d817dc3829...</td>
-          <td>0.0662</td>
-        </tr>
-        <tr>
-          <th>2000-01-06 21:00:00</th>
-          <td>3.172661</td>
-          <td>4.993979e-06</td>
-          <td>-6.410420e-07</td>
-          <td>-0.065758</td>
-          <td>-0.044785</td>
-          <td>0.298325</td>
-          <td>-0.000006</td>
-          <td>-32.02661</td>
-          <td>9999898.40975</td>
-          <td>95.17983</td>
-          <td>...</td>
-          <td>0</td>
-          <td>0</td>
-          <td>0</td>
-          <td>-12731.780516</td>
-          <td>9999930.43636</td>
-          <td>69.46458</td>
-          <td>69.46458</td>
-          <td>4</td>
-          <td>[{u'order_id': u'1fbf5e9bfd7c4d9cb2e8383e1085e...</td>
-          <td>0.0657</td>
-        </tr>
-        <tr>
-          <th>2000-01-07 21:00:00</th>
-          <td>3.322945</td>
-          <td>5.977002e-06</td>
-          <td>-2.201900e-07</td>
-          <td>-0.065206</td>
-          <td>-0.018908</td>
-          <td>0.375301</td>
-          <td>0.000005</td>
-          <td>-33.52945</td>
-          <td>9999864.88030</td>
-          <td>132.91780</td>
-          <td>...</td>
-          <td>0</td>
-          <td>0</td>
-          <td>0</td>
-          <td>-12629.274583</td>
-          <td>9999898.40975</td>
-          <td>95.17983</td>
-          <td>95.17983</td>
-          <td>5</td>
-          <td>[{u'order_id': u'9ea6b142ff09466b9113331a37437...</td>
-          <td>0.0652</td>
-        </tr>
-      </tbody>
+    <thead>
+      <tr style="text-align: right;">
+        <th></th>
+        <th>AAPL</th>
+        <th>algo_volatility</th>
+        <th>algorithm_period_return</th>
+        <th>alpha</th>
+        <th>benchmark_period_return</th>
+        <th>benchmark_volatility</th>
+        <th>beta</th>
+        <th>capital_used</th>
+        <th>ending_cash</th>
+        <th>ending_exposure</th>
+        <th>ending_value</th>
+        <th>excess_return</th>
+        <th>gross_leverage</th>
+        <th>long_exposure</th>
+        <th>long_value</th>
+        <th>longs_count</th>
+        <th>max_drawdown</th>
+        <th>max_leverage</th>
+        <th>net_leverage</th>
+        <th>orders</th>
+        <th>period_close</th>
+        <th>period_label</th>
+        <th>period_open</th>
+        <th>pnl</th>
+        <th>portfolio_value</th>
+        <th>positions</th>
+        <th>returns</th>
+        <th>sharpe</th>
+        <th>short_exposure</th>
+        <th>short_value</th>
+        <th>shorts_count</th>
+        <th>sortino</th>
+        <th>starting_cash</th>
+        <th>starting_exposure</th>
+        <th>starting_value</th>
+        <th>trading_days</th>
+        <th>transactions</th>
+        <th>treasury_period_return</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>2016-01-04 21:00:00+00:00</th>
+        <td>105.35</td>
+        <td>NaN</td>
+        <td>0.000000e+00</td>
+        <td>NaN</td>
+        <td>-0.013983</td>
+        <td>NaN</td>
+        <td>NaN</td>
+        <td>0.0</td>
+        <td>10000000.0</td>
+        <td>0.0</td>
+        <td>0.0</td>
+        <td>0.0</td>
+        <td>0.000000</td>
+        <td>0.0</td>
+        <td>0.0</td>
+        <td>0</td>
+        <td>0.000000e+00</td>
+        <td>0.0</td>
+        <td>0.000000</td>
+        <td>[{\'dt\': 2016-01-04 21:00:00+00:00, \'reason\': N...</td>
+        <td>2016-01-04 21:00:00+00:00</td>
+        <td>2016-01</td>
+        <td>2016-01-04 14:31:00+00:00</td>
+        <td>0.0</td>
+        <td>10000000.0</td>
+        <td>[]</td>
+        <td>0.000000e+00</td>
+        <td>NaN</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>NaN</td>
+        <td>10000000.0</td>
+        <td>0.0</td>
+        <td>0.0</td>
+        <td>1</td>
+        <td>[]</td>
+        <td>0.0</td>
+      </tr>
+      <tr>
+        <th>2016-01-05 21:00:00+00:00</th>
+        <td>102.71</td>
+        <td>0.000001</td>
+        <td>-1.000000e-07</td>
+        <td>-0.000022</td>
+        <td>-0.012312</td>
+        <td>0.175994</td>
+        <td>-0.000006</td>
+        <td>-1028.1</td>
+        <td>9998971.9</td>
+        <td>1027.1</td>
+        <td>1027.1</td>
+        <td>0.0</td>
+        <td>0.000103</td>
+        <td>1027.1</td>
+        <td>1027.1</td>
+        <td>1</td>
+        <td>-1.000000e-07</td>
+        <td>0.0</td>
+        <td>0.000103</td>
+        <td>[{\'dt\': 2016-01-05 21:00:00+00:00, \'reason\': N...</td>
+        <td>2016-01-05 21:00:00+00:00</td>
+        <td>2016-01</td>
+        <td>2016-01-05 14:31:00+00:00</td>
+        <td>-1.0</td>
+        <td>9999999.0</td>
+        <td>[{\'sid\': Equity(8 [AAPL]), \'last_sale_price\': ...</td>
+        <td>-1.000000e-07</td>
+        <td>-11.224972</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>-11.224972</td>
+        <td>10000000.0</td>
+        <td>0.0</td>
+        <td>0.0</td>
+        <td>2</td>
+        <td>[{\'order_id\': \'4011063b5c094e82a5391527044098b...</td>
+        <td>0.0</td>
+      </tr>
+      <tr>
+        <th>2016-01-06 21:00:00+00:00</th>
+        <td>100.70</td>
+        <td>0.000019</td>
+        <td>-2.210000e-06</td>
+        <td>-0.000073</td>
+        <td>-0.024771</td>
+        <td>0.137853</td>
+        <td>0.000054</td>
+        <td>-1008.0</td>
+        <td>9997963.9</td>
+        <td>2014.0</td>
+        <td>2014.0</td>
+        <td>0.0</td>
+        <td>0.000201</td>
+        <td>2014.0</td>
+        <td>2014.0</td>
+        <td>1</td>
+        <td>-2.210000e-06</td>
+        <td>0.0</td>
+        <td>0.000201</td>
+        <td>[{\'dt\': 2016-01-06 21:00:00+00:00, \'reason\': N...</td>
+        <td>2016-01-06 21:00:00+00:00</td>
+        <td>2016-01</td>
+        <td>2016-01-06 14:31:00+00:00</td>
+        <td>-21.1</td>
+        <td>9999977.9</td>
+        <td>[{\'sid\': Equity(8 [AAPL]), \'last_sale_price\': ...</td>
+        <td>-2.110000e-06</td>
+        <td>-9.823839</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>-9.588756</td>
+        <td>9998971.9</td>
+        <td>1027.1</td>
+        <td>1027.1</td>
+        <td>3</td>
+        <td>[{\'order_id\': \'3bf9fe20cc46468d99f741474226c03...</td>
+        <td>0.0</td>
+      </tr>
+      <tr>
+        <th>2016-01-07 21:00:00+00:00</th>
+        <td>96.45</td>
+        <td>0.000064</td>
+        <td>-1.081000e-05</td>
+        <td>0.000243</td>
+        <td>-0.048168</td>
+        <td>0.167868</td>
+        <td>0.000300</td>
+        <td>-965.5</td>
+        <td>9996998.4</td>
+        <td>2893.5</td>
+        <td>2893.5</td>
+        <td>0.0</td>
+        <td>0.000289</td>
+        <td>2893.5</td>
+        <td>2893.5</td>
+        <td>1</td>
+        <td>-1.081000e-05</td>
+        <td>0.0</td>
+        <td>0.000289</td>
+        <td>[{\'dt\': 2016-01-07 21:00:00+00:00, \'reason\': N...</td>
+        <td>2016-01-07 21:00:00+00:00</td>
+        <td>2016-01</td>
+        <td>2016-01-07 14:31:00+00:00</td>
+        <td>-86.0</td>
+        <td>9999891.9</td>
+        <td>[{\'sid\': Equity(8 [AAPL]), \'last_sale_price\': ...</td>
+        <td>-8.600019e-06</td>
+        <td>-10.592737</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>-9.688947</td>
+        <td>9997963.9</td>
+        <td>2014.0</td>
+        <td>2014.0</td>
+        <td>4</td>
+        <td>[{\'order_id\': \'6af6aed9fbb44a6bba17e802051b94d...</td>
+        <td>0.0</td>
+      </tr>
+      <tr>
+        <th>2016-01-08 21:00:00+00:00</th>
+        <td>96.96</td>
+        <td>0.000063</td>
+        <td>-9.380000e-06</td>
+        <td>0.000466</td>
+        <td>-0.058601</td>
+        <td>0.145654</td>
+        <td>0.000311</td>
+        <td>-970.6</td>
+        <td>9996027.8</td>
+        <td>3878.4</td>
+        <td>3878.4</td>
+        <td>0.0</td>
+        <td>0.000388</td>
+        <td>3878.4</td>
+        <td>3878.4</td>
+        <td>1</td>
+        <td>-1.081000e-05</td>
+        <td>0.0</td>
+        <td>0.000388</td>
+        <td>[{\'dt\': 2016-01-08 21:00:00+00:00, \'reason\': N...</td>
+        <td>2016-01-08 21:00:00+00:00</td>
+        <td>2016-01</td>
+        <td>2016-01-08 14:31:00+00:00</td>
+        <td>14.3</td>
+        <td>9999906.2</td>
+        <td>[{\'sid\': Equity(8 [AAPL]), \'last_sale_price\': ...</td>
+        <td>1.430015e-06</td>
+        <td>-7.511729</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>-7.519659</td>
+        <td>9996998.4</td>
+        <td>2893.5</td>
+        <td>2893.5</td>
+        <td>5</td>
+        <td>[{\'order_id\': \'18f64975732449a18fca06e9c69bf5c...</td>
+        <td>0.0</td>
+      </tr>
+    </tbody>
     </table>
-    <p>5 rows × 39 columns</p>
     </div>
 
-
-
 As you can see, there is a row for each trading day, starting on the
-first business day of 2000. In the columns you can find various
+first business day of 2016. In the columns you can find various
 information about the state of your algorithm. The very first column
 ``AAPL`` was placed there by the ``record()`` function mentioned earlier
 and allows us to plot the price of apple. For example, we could easily
@@ -384,10 +489,10 @@ AAPL stock price.
 
     ax1 = plt.subplot(211)
     perf.portfolio_value.plot(ax=ax1)
-    ax1.set_ylabel('portfolio value')
+    ax1.set_ylabel('Portfolio Value')
     ax2 = plt.subplot(212, sharex=ax1)
     perf.AAPL.plot(ax=ax2)
-    ax2.set_ylabel('AAPL stock price')
+    ax2.set_ylabel('AAPL Stock Price')
 
 .. parsed-literal::
 
@@ -395,7 +500,7 @@ AAPL stock price.
 
 .. parsed-literal::
 
-    <matplotlib.text.Text at 0x7ff5c6147f90>
+    <matplotlib.text.Text at 0x10c48c198>
 
 .. image:: tutorial_files/tutorial_11_2.png
 
@@ -428,7 +533,7 @@ magic.
 
 .. code-block:: python
 
-   %%zipline --start 2000-1-1 --end 2014-1-1
+   %%zipline --start 2016-1-1 --end 2018-1-1
    from zipline.api import symbol, order, record
 
    def initialize(context):
@@ -450,162 +555,262 @@ space and contain the performance ``DataFrame`` we looked at above.
 
 .. raw:: html
 
-    <div style="max-height:1000px;max-width:1500px;overflow:auto;">
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>AAPL</th>
-          <th>algo_volatility</th>
-          <th>algorithm_period_return</th>
-          <th>alpha</th>
-          <th>benchmark_period_return</th>
-          <th>benchmark_volatility</th>
-          <th>beta</th>
-          <th>capital_used</th>
-          <th>ending_cash</th>
-          <th>ending_exposure</th>
-          <th>...</th>
-          <th>short_exposure</th>
-          <th>short_value</th>
-          <th>shorts_count</th>
-          <th>sortino</th>
-          <th>starting_cash</th>
-          <th>starting_exposure</th>
-          <th>starting_value</th>
-          <th>trading_days</th>
-          <th>transactions</th>
-          <th>treasury_period_return</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>2000-01-03 21:00:00</th>
-          <td>3.738314</td>
-          <td>0.000000e+00</td>
-          <td>0.000000e+00</td>
-          <td>-0.065800</td>
-          <td>-0.009549</td>
-          <td>0.000000</td>
-          <td>0.000000</td>
-          <td>0.00000</td>
-          <td>10000000.00000</td>
-          <td>0.00000</td>
-          <td>...</td>
-          <td>0</td>
-          <td>0</td>
-          <td>0</td>
-          <td>0.000000</td>
-          <td>10000000.00000</td>
-          <td>0.00000</td>
-          <td>0.00000</td>
-          <td>1</td>
-          <td>[]</td>
-          <td>0.0658</td>
-        </tr>
-        <tr>
-          <th>2000-01-04 21:00:00</th>
-          <td>3.423135</td>
-          <td>3.367492e-07</td>
-          <td>-3.000000e-08</td>
-          <td>-0.064897</td>
-          <td>-0.047528</td>
-          <td>0.323229</td>
-          <td>0.000001</td>
-          <td>-34.53135</td>
-          <td>9999965.46865</td>
-          <td>34.23135</td>
-          <td>...</td>
-          <td>0</td>
-          <td>0</td>
-          <td>0</td>
-          <td>0.000000</td>
-          <td>10000000.00000</td>
-          <td>0.00000</td>
-          <td>0.00000</td>
-          <td>2</td>
-          <td>[{u'commission': 0.3, u'amount': 10, u'sid': 0...</td>
-          <td>0.0649</td>
-        </tr>
-        <tr>
-          <th>2000-01-05 21:00:00</th>
-          <td>3.473229</td>
-          <td>4.001918e-07</td>
-          <td>-9.906000e-09</td>
-          <td>-0.066196</td>
-          <td>-0.045697</td>
-          <td>0.329321</td>
-          <td>0.000001</td>
-          <td>-35.03229</td>
-          <td>9999930.43636</td>
-          <td>69.46458</td>
-          <td>...</td>
-          <td>0</td>
-          <td>0</td>
-          <td>0</td>
-          <td>0.000000</td>
-          <td>9999965.46865</td>
-          <td>34.23135</td>
-          <td>34.23135</td>
-          <td>3</td>
-          <td>[{u'commission': 0.3, u'amount': 10, u'sid': 0...</td>
-          <td>0.0662</td>
-        </tr>
-        <tr>
-          <th>2000-01-06 21:00:00</th>
-          <td>3.172661</td>
-          <td>4.993979e-06</td>
-          <td>-6.410420e-07</td>
-          <td>-0.065758</td>
-          <td>-0.044785</td>
-          <td>0.298325</td>
-          <td>-0.000006</td>
-          <td>-32.02661</td>
-          <td>9999898.40975</td>
-          <td>95.17983</td>
-          <td>...</td>
-          <td>0</td>
-          <td>0</td>
-          <td>0</td>
-          <td>-12731.780516</td>
-          <td>9999930.43636</td>
-          <td>69.46458</td>
-          <td>69.46458</td>
-          <td>4</td>
-          <td>[{u'commission': 0.3, u'amount': 10, u'sid': 0...</td>
-          <td>0.0657</td>
-        </tr>
-        <tr>
-          <th>2000-01-07 21:00:00</th>
-          <td>3.322945</td>
-          <td>5.977002e-06</td>
-          <td>-2.201900e-07</td>
-          <td>-0.065206</td>
-          <td>-0.018908</td>
-          <td>0.375301</td>
-          <td>0.000005</td>
-          <td>-33.52945</td>
-          <td>9999864.88030</td>
-          <td>132.91780</td>
-          <td>...</td>
-          <td>0</td>
-          <td>0</td>
-          <td>0</td>
-          <td>-12629.274583</td>
-          <td>9999898.40975</td>
-          <td>95.17983</td>
-          <td>95.17983</td>
-          <td>5</td>
-          <td>[{u'commission': 0.3, u'amount': 10, u'sid': 0...</td>
-          <td>0.0652</td>
-        </tr>
-      </tbody>
-    </table>
-    <p>5 rows × 39 columns</p>
-    </div>
+   <div style="max-height: 1000px; max-width: 1500px; overflow: auto;">
+   <table border="1" class="dataframe">
+    <thead>
+      <tr style="text-align: right;">
+        <th></th>
+        <th>AAPL</th>
+        <th>algo_volatility</th>
+        <th>algorithm_period_return</th>
+        <th>alpha</th>
+        <th>benchmark_period_return</th>
+        <th>benchmark_volatility</th>
+        <th>beta</th>
+        <th>capital_used</th>
+        <th>ending_cash</th>
+        <th>ending_exposure</th>
+        <th>ending_value</th>
+        <th>excess_return</th>
+        <th>gross_leverage</th>
+        <th>long_exposure</th>
+        <th>long_value</th>
+        <th>longs_count</th>
+        <th>max_drawdown</th>
+        <th>max_leverage</th>
+        <th>net_leverage</th>
+        <th>orders</th>
+        <th>period_close</th>
+        <th>period_label</th>
+        <th>period_open</th>
+        <th>pnl</th>
+        <th>portfolio_value</th>
+        <th>positions</th>
+        <th>returns</th>
+        <th>sharpe</th>
+        <th>short_exposure</th>
+        <th>short_value</th>
+        <th>shorts_count</th>
+        <th>sortino</th>
+        <th>starting_cash</th>
+        <th>starting_exposure</th>
+        <th>starting_value</th>
+        <th>trading_days</th>
+        <th>transactions</th>
+        <th>treasury_period_return</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>2016-01-04 21:00:00+00:00</th>
+        <td>105.35</td>
+        <td>NaN</td>
+        <td>0.000000e+00</td>
+        <td>NaN</td>
+        <td>-0.013983</td>
+        <td>NaN</td>
+        <td>NaN</td>
+        <td>0.00</td>
+        <td>10000000.00</td>
+        <td>0.0</td>
+        <td>0.0</td>
+        <td>0.0</td>
+        <td>0.000000</td>
+        <td>0.0</td>
+        <td>0.0</td>
+        <td>0</td>
+        <td>0.000000e+00</td>
+        <td>0.0</td>
+        <td>0.000000</td>
+        <td>[{\'created\': 2016-01-04 21:00:00+00:00, \'reaso...</td>
+        <td>2016-01-04 21:00:00+00:00</td>
+        <td>2016-01</td>
+        <td>2016-01-04 14:31:00+00:00</td>
+        <td>0.00</td>
+        <td>10000000.00</td>
+        <td>[]</td>
+        <td>0.000000e+00</td>
+        <td>NaN</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>NaN</td>
+        <td>10000000.00</td>
+        <td>0.0</td>
+        <td>0.0</td>
+        <td>1</td>
+        <td>[]</td>
+        <td>0.0</td>
+      </tr>
+      <tr>
+        <th>2016-01-05 21:00:00+00:00</th>
+        <td>102.71</td>
+        <td>1.122497e-08</td>
+        <td>-1.000000e-09</td>
+        <td>-2.247510e-07</td>
+        <td>-0.012312</td>
+        <td>0.175994</td>
+        <td>-6.378047e-08</td>
+        <td>-1027.11</td>
+        <td>9998972.89</td>
+        <td>1027.1</td>
+        <td>1027.1</td>
+        <td>0.0</td>
+        <td>0.000103</td>
+        <td>1027.1</td>
+        <td>1027.1</td>
+        <td>1</td>
+        <td>-9.999999e-10</td>
+        <td>0.0</td>
+        <td>0.000103</td>
+        <td>[{\'created\': 2016-01-04 21:00:00+00:00, \'reaso...</td>
+        <td>2016-01-05 21:00:00+00:00</td>
+        <td>2016-01</td>
+        <td>2016-01-05 14:31:00+00:00</td>
+        <td>-0.01</td>
+        <td>9999999.99</td>
+        <td>[{\'amount\': 10, \'cost_basis\': 102.711000000000...</td>
+        <td>-1.000000e-09</td>
+        <td>-11.224972</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>-11.224972</td>
+        <td>10000000.00</td>
+        <td>0.0</td>
+        <td>0.0</td>
+        <td>2</td>
+        <td>[{\'dt\': 2016-01-05 21:00:00+00:00, \'order_id\':...</td>
+        <td>0.0</td>
+      </tr>
+      <tr>
+        <th>2016-01-06 21:00:00+00:00</th>
+        <td>100.70</td>
+        <td>1.842654e-05</td>
+        <td>-2.012000e-06</td>
+        <td>-4.883861e-05</td>
+        <td>-0.024771</td>
+        <td>0.137853</td>
+        <td>5.744807e-05</td>
+        <td>-1007.01</td>
+        <td>9997965.88</td>
+        <td>2014.0</td>
+        <td>2014.0</td>
+        <td>0.0</td>
+        <td>0.000201</td>
+        <td>2014.0</td>
+        <td>2014.0</td>
+        <td>1</td>
+        <td>-2.012000e-06</td>
+        <td>0.0</td>
+        <td>0.000201</td>
+        <td>[{\'created\': 2016-01-05 21:00:00+00:00, \'reaso...</td>
+        <td>2016-01-06 21:00:00+00:00</td>
+        <td>2016-01</td>
+        <td>2016-01-06 14:31:00+00:00</td>
+        <td>-20.11</td>
+        <td>9999979.88</td>
+        <td>[{\'amount\': 20, \'cost_basis\': 101.706000000000...</td>
+        <td>-2.011000e-06</td>
+        <td>-9.171989</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>-9.169708</td>
+        <td>9998972.89</td>
+        <td>1027.1</td>
+        <td>1027.1</td>
+        <td>3</td>
+        <td>[{\'dt\': 2016-01-06 21:00:00+00:00, \'order_id\':...</td>
+        <td>0.0</td>
+      </tr>
+      <tr>
+        <th>2016-01-07 21:00:00+00:00</th>
+        <td>96.45</td>
+        <td>6.394658e-05</td>
+        <td>-1.051300e-05</td>
+        <td>2.633450e-04</td>
+        <td>-0.048168</td>
+        <td>0.167868</td>
+        <td>3.005102e-04</td>
+        <td>-964.51</td>
+        <td>9997001.37</td>
+        <td>2893.5</td>
+        <td>2893.5</td>
+        <td>0.0</td>
+        <td>0.000289</td>
+        <td>2893.5</td>
+        <td>2893.5</td>
+        <td>1</td>
+        <td>-1.051300e-05</td>
+        <td>0.0</td>
+        <td>0.000289</td>
+        <td>[{\'created\': 2016-01-06 21:00:00+00:00, \'reaso...</td>
+        <td>2016-01-07 21:00:00+00:00</td>
+        <td>2016-01</td>
+        <td>2016-01-07 14:31:00+00:00</td>
+        <td>-85.01</td>
+        <td>9999894.87</td>
+        <td>[{\'amount\': 30, \'cost_basis\': 99.9543333333335...</td>
+        <td>-8.501017e-06</td>
+        <td>-10.357397</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>-9.552189</td>
+        <td>9997965.88</td>
+        <td>2014.0</td>
+        <td>2014.0</td>
+        <td>4</td>
+        <td>[{\'dt\': 2016-01-07 21:00:00+00:00, \'order_id\':...</td>
+        <td>0.0</td>
+      </tr>
+      <tr>
+        <th>2016-01-08 21:00:00+00:00</th>
+        <td>96.96</td>
+        <td>6.275294e-05</td>
+        <td>-8.984000e-06</td>
+        <td>4.879306e-04</td>
+        <td>-0.058601</td>
+        <td>0.145654</td>
+        <td>3.118401e-04</td>
+        <td>-969.61</td>
+        <td>9996031.76</td>
+        <td>3878.4</td>
+        <td>3878.4</td>
+        <td>0.0</td>
+        <td>0.000388</td>
+        <td>3878.4</td>
+        <td>3878.4</td>
+        <td>1</td>
+        <td>-1.051300e-05</td>
+        <td>0.0</td>
+        <td>0.000388</td>
+        <td>[{\'created\': 2016-01-07 21:00:00+00:00, \'reaso...</td>
+        <td>2016-01-08 21:00:00+00:00</td>
+        <td>2016-01</td>
+        <td>2016-01-08 14:31:00+00:00</td>
+        <td>15.29</td>
+        <td>9999910.16</td>
+        <td>[{\'amount\': 40, \'cost_basis\': 99.2060000000002...</td>
+        <td>1.529016e-06</td>
+        <td>-7.215497</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>-7.301134</td>
+        <td>9997001.37</td>
+        <td>2893.5</td>
+        <td>2893.5</td>
+        <td>5</td>
+        <td>[{\'dt\': 2016-01-08 21:00:00+00:00, \'order_id\':...</td>
+        <td>0.0</td>
+      </tr>
+    </tbody>
+   </table>
+   </div>
 
-
-Access to previous prices using ``history``
+Access to Previous Prices Using ``history``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Working example: Dual Moving Average Cross-Over
@@ -624,24 +829,25 @@ the stock to go down further.
 As we need to have access to previous prices to implement this strategy
 we need a new concept: History
 
-``history()`` is a convenience function that keeps a rolling window of
+``data.history()`` is a convenience function that keeps a rolling window of
 data for you. The first argument is the number of bars you want to
-collect, the second argument is the unit (either ``'1d'`` for ``'1m'``
+collect, the second argument is the unit (either ``'1d'`` or ``'1m'``,
 but note that you need to have minute-level data for using ``1m``). For
-a more detailed description ``history()``'s features, see the
+a more detailed description of ``history()``'s features, see the
 `Quantopian docs <https://www.quantopian.com/help#ide-history>`__.
 Let's look at the strategy which should make this clear:
 
 .. code-block:: python
 
-   %%zipline --start 2000-1-1 --end 2014-1-1 -o perf_dma
+   %%zipline --start 2014-1-1 --end 2018-1-1 -o dma.pickle
 
 
-   from zipline.api import order_target, record, symbol, history
-   import numpy as np
+   from zipline.api import order_target, record, symbol
+   import matplotlib.pyplot as plt
 
    def initialize(context):
        context.i = 0
+       context.asset = symbol('AAPL')
 
 
    def handle_data(context, data):
@@ -651,23 +857,23 @@ Let's look at the strategy which should make this clear:
            return
 
        # Compute averages
-       # history() has to be called with the same params
+       # data.history() has to be called with the same params
        # from above and returns a pandas dataframe.
-       short_mavg = history(100, '1d', 'price').mean()
-       long_mavg = history(300, '1d', 'price').mean()
+       short_mavg = data.history(context.asset, 'price', bar_count=100, frequency="1d").mean()
+       long_mavg = data.history(context.asset, 'price', bar_count=300, frequency="1d").mean()
 
        # Trading logic
-       if short_mavg[0] > long_mavg[0]:
+       if short_mavg > long_mavg:
            # order_target orders as many shares as needed to
            # achieve the desired number of shares.
-           order_target(symbol('AAPL'), 100)
-       elif short_mavg[0] < long_mavg[0]:
-           order_target(symbol('AAPL'), 0)
+           order_target(context.asset, 100)
+       elif short_mavg < long_mavg:
+           order_target(context.asset, 0)
 
        # Save values for later inspection
-       record(AAPL=data[symbol('AAPL')].price,
-              short_mavg=short_mavg[0],
-              long_mavg=long_mavg[0])
+       record(AAPL=data.current(context.asset, 'price'),
+              short_mavg=short_mavg,
+              long_mavg=long_mavg)
 
 
    def analyze(context, perf):
@@ -711,7 +917,7 @@ the ``scikit-learn`` functions require ``numpy.ndarray``\ s rather than
 We also used the ``order_target()`` function above. This and other
 functions like it can make order management and portfolio rebalancing
 much easier. See the `Quantopian documentation on order
-functions <https://www.quantopian.com/help#api-order-methods>`__ fore
+functions <https://www.quantopian.com/help#api-order-methods>`__ for
 more details.
 
 Conclusions

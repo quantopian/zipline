@@ -9,6 +9,7 @@ build:
   string: np{{ NPY_VER|replace('.', '') }}py{{ PY_VER|replace('.', '') }}_{{ (
     GIT_BUILD_STR if GIT_DESCRIBE_NUMBER|int != 0 else '0'
   ) }}
+  script: python setup.py install --single-version-externally-managed --record=record.txt
 
 source:
   git_url: ../../

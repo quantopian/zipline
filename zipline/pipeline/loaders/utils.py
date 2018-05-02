@@ -2,6 +2,7 @@ import datetime
 
 import numpy as np
 import pandas as pd
+from zipline.errors import NoFurtherDataError
 from zipline.pipeline.common import TS_FIELD_NAME, SID_FIELD_NAME
 from zipline.utils.numpy_utils import categorical_dtype
 from zipline.utils.pandas_utils import mask_between_time
@@ -231,6 +232,12 @@ def normalize_timestamp_to_query_time(df,
         # don't mutate the dataframe in place
         df = df.copy()
 
+    # There is a pandas bug (0.18.1) where if the timestamps in a
+    # normalized DatetimeIndex are not sorted and one calls `tz_localize(None)`
+    #  on tha DatetimeIndex, some of the dates will be shifted by an hour
+    # (similarly to the previously mentioned bug). Therefore, we must sort
+    # the df here to ensure that we get the normalize correctly.
+    df.sort_values(ts_field, inplace=True)
     dtidx = pd.DatetimeIndex(df.loc[:, ts_field], tz='utc')
     dtidx_local_time = dtidx.tz_convert(tz)
     to_roll_forward = mask_between_time(
@@ -281,15 +288,17 @@ def last_in_date_group(df,
                        assets,
                        reindex=True,
                        have_sids=True,
-                       extra_groupers=[]):
+                       extra_groupers=None):
     """
     Determine the last piece of information known on each date in the date
-    index for each group.
+    index for each group. Input df MUST be sorted such that the correct last
+    item is chosen from each group.
 
     Parameters
     ----------
     df : pd.DataFrame
-        The DataFrame containing the data to be grouped.
+        The DataFrame containing the data to be grouped. Must be sorted so that
+        the correct last item is chosen from each group.
     dates : pd.DatetimeIndex
         The dates to use for grouping and reindexing.
     assets : pd.Int64Index
@@ -316,6 +325,8 @@ def last_in_date_group(df,
     )]]
     if have_sids:
         idx += [SID_FIELD_NAME]
+    if extra_groupers is None:
+        extra_groupers = []
     idx += extra_groupers
 
     last_in_group = df.drop(TS_FIELD_NAME, axis=1).groupby(
@@ -395,3 +406,69 @@ def ffill_across_cols(df, columns, name_map):
             df[column_name] = df[
                 column_name
             ].fillna(column.missing_value).astype(column.dtype)
+
+
+def shift_dates(dates, start_date, end_date, shift):
+    """
+    Shift dates of a pipeline query back by `shift` days.
+
+    load_adjusted_array is called with dates on which the user's algo
+    will be shown data, which means we need to return the data that would
+    be known at the start of each date.  This is often labeled with a
+    previous date in the underlying data (e.g. at the start of today, we
+    have the data as of yesterday). In this case, we can shift the query
+    dates back to query the appropriate values.
+
+    Parameters
+    ----------
+    dates : DatetimeIndex
+        All known dates.
+    start_date : pd.Timestamp
+        Start date of the pipeline query.
+    end_date : pd.Timestamp
+        End date of the pipeline query.
+    shift : int
+        The number of days to shift back the query dates.
+    """
+    try:
+        start = dates.get_loc(start_date)
+    except KeyError:
+        if start_date < dates[0]:
+            raise NoFurtherDataError(
+                msg=(
+                    "Pipeline Query requested data starting on {query_start}, "
+                    "but first known date is {calendar_start}"
+                ).format(
+                    query_start=str(start_date),
+                    calendar_start=str(dates[0]),
+                )
+            )
+        else:
+            raise ValueError("Query start %s not in calendar" % start_date)
+
+    # Make sure that shifting doesn't push us out of the calendar.
+    if start < shift:
+        raise NoFurtherDataError(
+            msg=(
+                "Pipeline Query requested data from {shift}"
+                " days before {query_start}, but first known date is only "
+                "{start} days earlier."
+            ).format(shift=shift, query_start=start_date, start=start),
+        )
+
+    try:
+        end = dates.get_loc(end_date)
+    except KeyError:
+        if end_date > dates[-1]:
+            raise NoFurtherDataError(
+                msg=(
+                    "Pipeline Query requesting data up to {query_end}, "
+                    "but last known date is {calendar_end}"
+                ).format(
+                    query_end=end_date,
+                    calendar_end=dates[-1],
+                )
+            )
+        else:
+            raise ValueError("Query end %s not in calendar" % end_date)
+    return dates[start - shift], dates[end - shift]

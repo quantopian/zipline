@@ -102,6 +102,10 @@ ext_modules = [
     Extension('zipline.data._equities', ['zipline/data/_equities.pyx']),
     Extension('zipline.data._adjustments', ['zipline/data/_adjustments.pyx']),
     Extension('zipline._protocol', ['zipline/_protocol.pyx']),
+    Extension(
+        'zipline.finance._finance_ext',
+        ['zipline/finance/_finance_ext.pyx'],
+    ),
     Extension('zipline.gens.sim_engine', ['zipline/gens/sim_engine.pyx']),
     Extension(
         'zipline.data._minute_bar_internal',
@@ -114,6 +118,11 @@ ext_modules = [
     Extension(
         'zipline.data._resample',
         ['zipline/data/_resample.pyx']
+    ),
+    Extension(
+        'zipline.pipeline.loaders.blaze._core',
+        ['zipline/pipeline/loaders/blaze/_core.pyx'],
+        depends=['zipline/lib/adjustment.pxd'],
     ),
 ]
 
@@ -163,6 +172,8 @@ def _filter_requirements(lines_iter, filter_names=None,
 REQ_UPPER_BOUNDS = {
     'bcolz': '<1',
     'pandas': '<0.19',
+    'pandas-datareader': '<0.6',  # 0.6.0 requires pandas >=0.19.2
+    'networkx': '<2.0',
 }
 
 
@@ -189,6 +200,8 @@ def _conda_format(req):
         name = m.group('name').lower()
         if name == 'numpy':
             return 'numpy x.x'
+        if name == 'tables':
+            name = 'pytables'
 
         formatted = '%s %s%s' % ((name,) + m.group('comp', 'spec'))
         pycomp, pyspec = m.group('pycomp', 'pyspec')
@@ -261,6 +274,7 @@ def setup_requirements(requirements_path, module_names, strict_bounds,
         )
     return module_lines
 
+
 conda_build = os.path.basename(sys.argv[0]) in ('conda-build',  # unix
                                                 'conda-build-script.py')  # win
 
@@ -302,7 +316,7 @@ setup(
         'Natural Language :: English',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
         'Operating System :: OS Independent',
         'Intended Audience :: Science/Research',
         'Topic :: Office/Business :: Financial',

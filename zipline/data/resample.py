@@ -25,6 +25,7 @@ from zipline.data._resample import (
     _minute_to_session_close,
     _minute_to_session_volume,
 )
+from zipline.data.bar_reader import NoDataOnDate
 from zipline.data.minute_bars import MinuteBarReader
 from zipline.data.session_bars import SessionBarReader
 from zipline.utils.memoize import lazyval
@@ -62,6 +63,59 @@ def minute_frame_to_session_frame(minute_frame, calendar):
     how = OrderedDict((c, _MINUTE_TO_SESSION_OHCLV_HOW[c])
                       for c in minute_frame.columns)
     return minute_frame.groupby(calendar.minute_to_session_label).agg(how)
+
+
+def minute_panel_to_session_panel(minute_panel, calendar):
+    """
+    Resample a Panel with minute data into a daily data Panel accepted by
+    PanelBarReader.
+
+    Parameters
+    ----------
+    minute_panel : pd.Panel
+        A pricing data Panel with axes:
+          * items: assets
+          * major_axis: minute pd.DatetimeIndex
+          * minor_axis: labels ['open', 'high', 'low', 'close', 'volume']
+    calendar : zipline.utils.calendars.trading_calendar.TradingCalendar
+        A TradingCalendar on which session labels to resample from minute
+        to session.
+    """
+    def get_first_valid(df):
+        """
+        Return a Series with the first non-nan value in each column.
+
+        On an all-nan column, this function gives nan.
+        """
+        # Indices of first non-nan values
+        idxs = pd.notnull(df).idxmax()
+
+        # Expand indices to one-hot boolean columns
+        indexer = pd.get_dummies(idxs).T.astype(bool)
+
+        # Preserve all indices' values, while others are masked to nan.
+        # Then `.max()` selects the non-nan value in each column.
+        return df.loc[indexer.index][indexer].max()
+
+    def sum_or_nan(df):
+        """
+        Return `df.sum()`, but nan where the whole column is nan.
+        """
+        return df.sum().mask(pd.isnull(df).all(axis=0))
+
+    def aggregator(session_panel):
+        return pd.DataFrame({
+            'open': get_first_valid(session_panel.loc[:, :, 'open']),
+            'close': get_first_valid(session_panel.loc[:, ::-1, 'close']),
+            'high': session_panel.loc[:, :, 'high'].max(),
+            'low': session_panel.loc[:, :, 'low'].min(),
+            'volume': sum_or_nan(session_panel.loc[:, :, 'volume']),
+        }).T
+
+    session_index = calendar.minute_index_to_session_labels(
+        minute_panel.major_axis
+    )
+    return minute_panel.groupby(session_index).agg(aggregator)
 
 
 def minute_to_session(column, close_locs, data, out):
@@ -384,6 +438,23 @@ class DailyHistoryAggregator(object):
         closes = []
         session_label = self._trading_calendar.minute_to_session_label(dt)
 
+        def _get_filled_close(asset):
+            """
+            Returns the most recent non-nan close for the asset in this
+            session. If there has been no data in this session on or before the
+            `dt`, returns `nan`
+            """
+            window = self._minute_reader.load_raw_arrays(
+                ['close'],
+                market_open,
+                dt,
+                [asset],
+            )[0]
+            try:
+                return window[~np.isnan(window)][-1]
+            except IndexError:
+                return np.NaN
+
         for asset in assets:
             if not asset.is_alive_for_session(session_label):
                 closes.append(np.NaN)
@@ -412,9 +483,7 @@ class DailyHistoryAggregator(object):
                         val = self._minute_reader.get_value(
                             asset, dt, 'close')
                         if pd.isnull(val):
-                            val = self.closes(
-                                [asset],
-                                pd.Timestamp(prev_dt, tz='UTC'))[0]
+                            val = _get_filled_close(asset)
                         entries[asset] = (dt_value, val)
                         closes.append(val)
                         continue
@@ -422,8 +491,7 @@ class DailyHistoryAggregator(object):
                     val = self._minute_reader.get_value(
                         asset, dt, 'close')
                     if pd.isnull(val):
-                        val = self.closes([asset],
-                                          pd.Timestamp(prev_dt, tz='UTC'))[0]
+                        val = _get_filled_close(asset)
                     entries[asset] = (dt_value, val)
                     closes.append(val)
                     continue
@@ -500,28 +568,49 @@ class MinuteResampleSessionBarReader(SessionBarReader):
         self._calendar = calendar
         self._minute_bar_reader = minute_bar_reader
 
-    def _get_resampled(self, columns, start_dt, end_dt, assets):
+    def _get_resampled(self, columns, start_session, end_session, assets):
+        range_open = self._calendar.session_open(start_session)
+        range_close = self._calendar.session_close(end_session)
+
         minute_data = self._minute_bar_reader.load_raw_arrays(
-            columns, start_dt, end_dt, assets)
-        dts = self._calendar.minutes_in_range(start_dt, end_dt).values
-        sessions = self._calendar.sessions_in_range(start_dt, end_dt)
-        m_closes = np.zeros(len(sessions), dtype=np.dtype('datetime64[ns]'))
-        for i, s in enumerate(sessions):
-            close = self._calendar.open_and_close_for_session(s)[1]
-            m_closes[i] = close.value
-        m_locs = np.searchsorted(dts, m_closes)
+            columns,
+            range_open,
+            range_close,
+            assets,
+        )
+
+        # Get the index of the close minute for each session in the range.
+        # If the range contains only one session, the only close in the range
+        # is the last minute in the data. Otherwise, we need to get all the
+        # session closes and find their indices in the range of minutes.
+        if start_session == end_session:
+            close_ilocs = np.array([len(minute_data[0]) - 1], dtype=np.int64)
+        else:
+            minutes = self._calendar.minutes_in_range(
+                range_open,
+                range_close,
+            )
+            session_closes = self._calendar.session_closes_in_range(
+                start_session,
+                end_session,
+            )
+            close_ilocs = minutes.searchsorted(session_closes.values)
+
         results = []
-        shape = (len(sessions), len(assets))
+        shape = (len(close_ilocs), len(assets))
+
         for col in columns:
             if col != 'volume':
                 out = np.full(shape, np.nan)
             else:
                 out = np.zeros(shape, dtype=np.uint32)
             results.append(out)
+
         for i in range(len(assets)):
             for j, column in enumerate(columns):
                 data = minute_data[j][:, i]
-                minute_to_session(column, m_locs, data, results[j][:, i])
+                minute_to_session(column, close_ilocs, data, results[j][:, i])
+
         return results
 
     @property
@@ -529,19 +618,14 @@ class MinuteResampleSessionBarReader(SessionBarReader):
         return self._calendar
 
     def load_raw_arrays(self, columns, start_dt, end_dt, sids):
-        range_open, _ = self._calendar.open_and_close_for_session(
-            start_dt)
-        _, range_close = self._calendar.open_and_close_for_session(
-            end_dt)
-        return self._get_resampled(columns, range_open, range_close, sids)
+        return self._get_resampled(columns, start_dt, end_dt, sids)
 
     def get_value(self, sid, session, colname):
         # WARNING: This will need caching or other optimization if used in a
         # tight loop.
         # This was developed to complete interface, but has not been tuned
         # for real world use.
-        start, end = self._calendar.open_and_close_for_session(session)
-        return self._get_resampled([colname], start, end, [sid])[0][0][0]
+        return self._get_resampled([colname], session, session, [sid])[0][0][0]
 
     @lazyval
     def sessions(self):
@@ -575,10 +659,6 @@ class ReindexBarReader(with_metaclass(ABCMeta)):
 
     Currently only supports a ``trading_calendar`` which is a superset of the
     ``reader``'s calendar.
-
-    Also, the currenty implementation only reindexes the results from
-    ``load_raw_arrays``, but in the future, `get_value` may also be made to
-    provide an empty result instead of raising on error.
 
     Parameters
     ----------
@@ -622,7 +702,14 @@ class ReindexBarReader(with_metaclass(ABCMeta)):
         return self._reader.first_trading_day
 
     def get_value(self, sid, dt, field):
-        return self._reader.get_value(sid, dt, field)
+        # Give an empty result if no data is present.
+        try:
+            return self._reader.get_value(sid, dt, field)
+        except NoDataOnDate:
+            if field == 'volume':
+                return 0
+            else:
+                return np.nan
 
     @abstractmethod
     def _outer_dts(self, start_dt, end_dt):

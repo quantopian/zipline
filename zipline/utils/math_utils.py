@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from decimal import Decimal
 import math
 
 from numpy import isnan
@@ -77,3 +78,20 @@ def round_if_near_integer(a, epsilon=1e-4):
         return round(a)
     else:
         return a
+
+
+def number_of_decimal_places(n):
+    """
+    Compute the number of decimal places in a number.
+
+    Examples
+    --------
+    >>> number_of_decimal_places(1)
+    0
+    >>> number_of_decimal_places(3.14)
+    2
+    >>> number_of_decimal_places('3.14')
+    2
+    """
+    decimal = Decimal(str(n))
+    return -decimal.as_tuple().exponent

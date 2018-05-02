@@ -192,12 +192,31 @@ class EventsLoader(PipelineLoader):
         def to_frame(array):
             return pd.DataFrame(array, index=dates, columns=sids)
 
+        assert indexer.shape == (len(dates), len(sids))
+
         out = {}
         for c in columns:
-            raw = self.events[name_map[c]][indexer]
-            # indexer will be -1 for locations where we don't have a known
-            # value.
-            raw[indexer < 0] = c.missing_value
+            # Array holding the value for column `c` for every event we have.
+            col_array = self.events[name_map[c]]
+
+            if not len(col_array):
+                # We don't have **any** events, so return col.missing_value
+                # every day for every sid. We have to special case empty events
+                # because in normal branch we depend on being able to index
+                # with -1 for missing values, which fails if there are no
+                # events at all.
+                raw = np.full(
+                    (len(dates), len(sids)), c.missing_value, dtype=c.dtype
+                )
+            else:
+                # Slot event values into sid/date locations using `indexer`.
+                # This produces a 2D array of the same shape as `indexer`,
+                # which must be (len(dates), len(sids))`.
+                raw = col_array[indexer]
+
+                # indexer will be -1 for locations where we don't have a known
+                # value. Overwrite those locations with c.missing_value.
+                raw[indexer < 0] = c.missing_value
 
             # Delegate the actual array formatting logic to a DataFrameLoader.
             loader = DataFrameLoader(c, to_frame(raw), adjustments=None)

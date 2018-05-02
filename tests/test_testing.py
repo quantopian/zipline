@@ -6,12 +6,23 @@ from unittest import TestCase
 
 from numpy import array, empty
 
+from zipline._protocol import BarData
+from zipline.finance.asset_restrictions import NoRestrictions
+from zipline.finance.order import Order
+
 from zipline.testing import (
     check_arrays,
     make_alternating_boolean_array,
     make_cascading_boolean_array,
     parameter_space,
 )
+from zipline.testing.fixtures import (
+    WithConstantEquityMinuteBarData,
+    WithDataPortal,
+    ZiplineTestCase,
+)
+from zipline.testing.slippage import TestingSlippage
+from zipline.testing.predicates import wildcard, instance_of
 from zipline.utils.numpy_utils import bool_dtype
 
 
@@ -109,3 +120,83 @@ class TestMakeBooleanArray(TestCase):
             make_cascading_boolean_array((3, 0)),
             empty((3, 0), dtype=bool_dtype),
         )
+
+
+class TestTestingSlippage(WithConstantEquityMinuteBarData,
+                          WithDataPortal,
+                          ZiplineTestCase):
+    ASSET_FINDER_EQUITY_SYMBOLS = ('A',)
+    ASSET_FINDER_EQUITY_SIDS = (1,)
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(TestTestingSlippage, cls).init_class_fixtures()
+        cls.asset = cls.asset_finder.retrieve_asset(1)
+        cls.minute, _ = (
+            cls.trading_calendar.open_and_close_for_session(cls.START_DATE)
+        )
+
+    def init_instance_fixtures(self):
+        super(TestTestingSlippage, self).init_instance_fixtures()
+        self.bar_data = BarData(
+            self.data_portal,
+            lambda: self.minute,
+            "minute",
+            self.trading_calendar,
+            NoRestrictions()
+        )
+
+    def make_order(self, amount):
+        return Order(
+            self.minute,
+            self.asset,
+            amount,
+        )
+
+    def test_constant_filled_per_tick(self):
+        filled_per_tick = 1
+        model = TestingSlippage(filled_per_tick)
+        order = self.make_order(100)
+
+        price, volume = model.process_order(self.bar_data, order)
+
+        self.assertEqual(price, self.EQUITY_MINUTE_CONSTANT_CLOSE)
+        self.assertEqual(volume, filled_per_tick)
+
+    def test_fill_all(self):
+        filled_per_tick = TestingSlippage.ALL
+        order_amount = 100
+
+        model = TestingSlippage(filled_per_tick)
+        order = self.make_order(order_amount)
+
+        price, volume = model.process_order(self.bar_data, order)
+
+        self.assertEqual(price, self.EQUITY_MINUTE_CONSTANT_CLOSE)
+        self.assertEqual(volume, order_amount)
+
+
+class TestPredicates(ZiplineTestCase):
+
+    def test_wildcard(self):
+        for obj in 1, object(), "foo", {}:
+            self.assertEqual(obj, wildcard)
+            self.assertEqual([obj], [wildcard])
+            self.assertEqual({'foo': wildcard}, {'foo': wildcard})
+
+    def test_instance_of(self):
+        self.assertEqual(1, instance_of(int))
+        self.assertNotEqual(1, instance_of(str))
+        self.assertEqual(1, instance_of((str, int)))
+        self.assertEqual("foo", instance_of((str, int)))
+
+    def test_instance_of_exact(self):
+
+        class Foo(object):
+            pass
+
+        class Bar(Foo):
+            pass
+
+        self.assertEqual(Bar(), instance_of(Foo))
+        self.assertNotEqual(Bar(), instance_of(Foo, exact=True))

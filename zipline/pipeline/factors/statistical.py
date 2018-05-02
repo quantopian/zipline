@@ -1,4 +1,4 @@
-
+import numpy as np
 from numpy import broadcast_arrays
 from scipy.stats import (
     linregress,
@@ -6,16 +6,26 @@ from scipy.stats import (
     spearmanr,
 )
 
+from zipline.assets import Asset
 from zipline.errors import IncompatibleTerms
 from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.filters import SingleAsset
-from zipline.pipeline.mixins import SingleInputMixin
+from zipline.pipeline.mixins import SingleInputMixin, StandardOutputs
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import AssetExists
-from zipline.utils.input_validation import expect_bounded, expect_dtypes
-from zipline.utils.numpy_utils import float64_dtype, int64_dtype
+from zipline.utils.input_validation import (
+    expect_bounded,
+    expect_dtypes,
+    expect_types,
+)
+from zipline.utils.math_utils import nanmean
+from zipline.utils.numpy_utils import (
+    float64_dtype,
+    int64_dtype,
+)
 
-from .technical import Returns
+
+from .basic import Returns
 
 
 ALLOWED_DTYPES = (float64_dtype, int64_dtype)
@@ -148,11 +158,6 @@ class RollingLinearRegression(CustomFactor, SingleInputMixin):
         The factor/slice whose columns are the predictor/independent variable
         of each regression with `dependent`. If `independent` is a Factor,
         regressions are computed asset-wise.
-    independent : zipline.pipeline.Term with a numeric dtype
-        The term to use as the predictor/independent variable in each
-        regression with `dependent`. This term may be a Factor, a BoundColumn
-        or a Slice. If `independent` is two-dimensional, regressions are
-        computed asset-wise.
     regression_length : int
         Length of the lookback window over which to compute each regression.
     mask : zipline.pipeline.Filter, optional
@@ -237,14 +242,14 @@ class RollingPearsonOfReturns(RollingPearson):
         A Filter describing which assets should have their correlation with the
         target asset computed each day.
 
-    Note
-    ----
+    Notes
+    -----
     Computing this factor over many assets can be time consuming. It is
     recommended that a mask be used in order to limit the number of assets over
     which correlations are computed.
 
-    Example
-    -------
+    Examples
+    --------
     Let the following be example 10-day returns for three different assets::
 
                        SPY    MSFT     FB
@@ -327,8 +332,8 @@ class RollingSpearmanOfReturns(RollingSpearman):
         A Filter describing which assets should have their correlation with the
         target asset computed each day.
 
-    Note
-    ----
+    Notes
+    -----
     Computing this factor over many assets can be time consuming. It is
     recommended that a mask be used in order to limit the number of assets over
     which correlations are computed.
@@ -397,8 +402,8 @@ class RollingLinearRegressionOfReturns(RollingLinearRegression):
     For more help on factors with multiple outputs, see
     :class:`zipline.pipeline.factors.CustomFactor`.
 
-    Example
-    -------
+    Examples
+    --------
     Let the following be example 10-day returns for three different assets::
 
                        SPY    MSFT     FB
@@ -455,6 +460,8 @@ class RollingLinearRegressionOfReturns(RollingLinearRegression):
     :class:`zipline.pipeline.factors.RollingPearsonOfReturns`
     :class:`zipline.pipeline.factors.RollingSpearmanOfReturns`
     """
+    window_safe = True
+
     def __new__(cls,
                 target,
                 returns_length,
@@ -473,3 +480,186 @@ class RollingLinearRegressionOfReturns(RollingLinearRegression):
             regression_length=regression_length,
             mask=mask,
         )
+
+
+class SimpleBeta(CustomFactor, StandardOutputs):
+    """
+    Factor producing the slope of a regression line between each asset's daily
+    returns to the daily returns of a single "target" asset.
+
+    Parameters
+    ----------
+    target : zipline.Asset
+        Asset against which other assets should be regressed.
+    regression_length : int
+        Number of days of daily returns to use for the regression.
+    allowed_missing_percentage : float, optional
+        Percentage of returns observations (between 0 and 1) that are allowed
+        to be missing when calculating betas. Assets with more than this
+        percentage of returns observations missing will produce values of
+        NaN. Default behavior is that 25% of inputs can be missing.
+    """
+    window_safe = True
+    dtype = float64_dtype
+    params = ('allowed_missing_count',)
+
+    @expect_types(
+        target=Asset,
+        regression_length=int,
+        allowed_missing_percentage=(int, float),
+        __funcname='SimpleBeta',
+    )
+    @expect_bounded(
+        regression_length=(3, None),
+        allowed_missing_percentage=(0.0, 1.0),
+        __funcname='SimpleBeta',
+    )
+    def __new__(cls,
+                target,
+                regression_length,
+                allowed_missing_percentage=0.25):
+        daily_returns = Returns(
+            window_length=2,
+            mask=(AssetExists() | SingleAsset(asset=target)),
+        )
+        allowed_missing_count = int(
+            allowed_missing_percentage * regression_length
+        )
+        return super(SimpleBeta, cls).__new__(
+            cls,
+            inputs=[daily_returns, daily_returns[target]],
+            window_length=regression_length,
+            allowed_missing_count=allowed_missing_count,
+        )
+
+    def compute(self,
+                today,
+                assets,
+                out,
+                all_returns,
+                target_returns,
+                allowed_missing_count):
+        vectorized_beta(
+            dependents=all_returns,
+            independent=target_returns,
+            allowed_missing=allowed_missing_count,
+            out=out,
+        )
+
+    def short_repr(self):
+        return "{}({!r}, {}, {})".format(
+            type(self).__name__,
+            str(self.target.symbol),  # coerce from unicode to str in py2.
+            self.window_length,
+            self.params['allowed_missing_count'],
+        )
+
+    @property
+    def target(self):
+        """Get the target of the beta calculation.
+        """
+        return self.inputs[1].asset
+
+    def __repr__(self):
+        return "{}({}, length={}, allowed_missing={})".format(
+            type(self).__name__,
+            self.target,
+            self.window_length,
+            self.params['allowed_missing_count'],
+        )
+
+
+def vectorized_beta(dependents, independent, allowed_missing, out=None):
+    """
+    Compute slopes of linear regressions between columns of ``dependents`` and
+    ``independent``.
+
+    Parameters
+    ----------
+    dependents : np.array[N, M]
+        Array with columns of data to be regressed against ``independent``.
+    independent : np.array[N, 1]
+        Independent variable of the regression
+    allowed_missing : int
+        Number of allowed missing (NaN) observations per column. Columns with
+        more than this many non-nan observations in both ``dependents`` and
+        ``independents`` will output NaN as the regression coefficient.
+
+    Returns
+    -------
+    slopes : np.array[M]
+        Linear regression coefficients for each column of ``dependents``.
+    """
+    # Cache these as locals since we're going to call them multiple times.
+    nan = np.nan
+    isnan = np.isnan
+    N, M = dependents.shape
+
+    if out is None:
+        out = np.full(M, nan)
+
+    # Copy N times as a column vector and fill with nans to have the same
+    # missing value pattern as the dependent variable.
+    #
+    # PERF_TODO: We could probably avoid the space blowup by doing this in
+    # Cython.
+
+    # shape: (N, M)
+    independent = np.where(
+        isnan(dependents),
+        nan,
+        independent,
+    )
+
+    # Calculate beta as Cov(X, Y) / Cov(X, X).
+    # https://en.wikipedia.org/wiki/Simple_linear_regression#Fitting_the_regression_line  # noqa
+    #
+    # NOTE: The usual formula for covariance is::
+    #
+    #    mean((X - mean(X)) * (Y - mean(Y)))
+    #
+    # However, we don't actually need to take the mean of both sides of the
+    # product, because of the folllowing equivalence::
+    #
+    # Let X_res = (X - mean(X)).
+    # We have:
+    #
+    #     mean(X_res * (Y - mean(Y))) = mean(X_res * (Y - mean(Y)))
+    #                             (1) = mean((X_res * Y) - (X_res * mean(Y)))
+    #                             (2) = mean(X_res * Y) - mean(X_res * mean(Y))
+    #                             (3) = mean(X_res * Y) - mean(X_res) * mean(Y)
+    #                             (4) = mean(X_res * Y) - 0 * mean(Y)
+    #                             (5) = mean(X_res * Y)
+    #
+    #
+    # The tricky step in the above derivation is step (4). We know that
+    # mean(X_res) is zero because, for any X:
+    #
+    #     mean(X - mean(X)) = mean(X) - mean(X) = 0.
+    #
+    # The upshot of this is that we only have to center one of `independent`
+    # and `dependent` when calculating covariances. Since we need the centered
+    # `independent` to calculate its variance in the next step, we choose to
+    # center `independent`.
+
+    # shape: (N, M)
+    ind_residual = independent - nanmean(independent, axis=0)
+
+    # shape: (M,)
+    covariances = nanmean(ind_residual * dependents, axis=0)
+
+    # We end up with different variances in each column here because each
+    # column may have a different subset of the data dropped due to missing
+    # data in the corresponding dependent column.
+    # shape: (M,)
+    independent_variances = nanmean(ind_residual ** 2, axis=0)
+
+    # shape: (M,)
+    np.divide(covariances, independent_variances, out=out)
+
+    # Write nans back to locations where we have more then allowed number of
+    # missing entries.
+    nanlocs = isnan(independent).sum(axis=0) > allowed_missing
+    out[nanlocs] = nan
+
+    return out

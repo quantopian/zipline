@@ -25,6 +25,7 @@ momentum).
 """
 
 from zipline.api import order, record, symbol
+from zipline.finance import commission, slippage
 # Import exponential moving average from talib wrapper
 from talib import EMA
 
@@ -34,6 +35,13 @@ def initialize(context):
 
     # To keep track of whether we invested in the stock or not
     context.invested = False
+
+    # Explicitly set the commission/slippage to the "old" value until we can
+    # rebuild example data.
+    # github.com/quantopian/zipline/blob/master/tests/resources/
+    # rebuild_example_data#L105
+    context.set_commission(commission.PerShare(cost=.0075, min_trade_cost=1.0))
+    context.set_slippage(slippage.VolumeShareSlippage())
 
 
 def handle_data(context, data):
@@ -83,11 +91,20 @@ def analyze(context=None, results=None):
     if 'AAPL' in results and 'short_ema' in results and 'long_ema' in results:
         results[['AAPL', 'short_ema', 'long_ema']].plot(ax=ax2)
 
-        ax2.plot(results.ix[results.buy].index, results.short_ema[results.buy],
-                 '^', markersize=10, color='m')
-        ax2.plot(results.ix[results.sell].index,
-                 results.short_ema[results.sell],
-                 'v', markersize=10, color='k')
+        ax2.plot(
+            results.index[results.buy],
+            results.loc[results.buy, 'long_ema'],
+            '^',
+            markersize=10,
+            color='m',
+        )
+        ax2.plot(
+            results.index[results.sell],
+            results.loc[results.sell, 'short_ema'],
+            'v',
+            markersize=10,
+            color='k',
+        )
         plt.legend(loc=0)
         plt.gcf().set_size_inches(18, 8)
     else:

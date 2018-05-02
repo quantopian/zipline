@@ -240,5 +240,4 @@ class DataFrameLoaderTestCase(TestCase):
 
         args, kwargs = m.call_args
         assert_array_equal(kwargs['data'], expected_baseline.values)
-        assert_array_equal(kwargs['mask'], mask)
         self.assertEqual(kwargs['adjustments'], expected_formatted_adjustments)

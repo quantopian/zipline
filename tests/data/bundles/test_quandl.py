@@ -2,14 +2,13 @@ from __future__ import division
 
 import numpy as np
 import pandas as pd
-from toolz import merge
 import toolz.curried.operator as op
 
 from zipline import get_calendar
 from zipline.data.bundles import ingest, load, bundles
 from zipline.data.bundles.quandl import (
-    format_wiki_url,
     format_metadata_url,
+    load_data_table
 )
 from zipline.lib.adjustment import Float64Multiply
 from zipline.testing import (
@@ -17,63 +16,46 @@ from zipline.testing import (
     tmp_dir,
     patch_read_csv,
 )
-from zipline.testing.fixtures import ZiplineTestCase
+from zipline.testing.fixtures import (
+    ZiplineTestCase,
+    WithResponses,
+)
 from zipline.testing.predicates import (
     assert_equal,
 )
 from zipline.utils.functional import apply
 
 
-class QuandlBundleTestCase(ZiplineTestCase):
+class QuandlBundleTestCase(WithResponses,
+                           ZiplineTestCase):
     symbols = 'AAPL', 'BRK_A', 'MSFT', 'ZEN'
-    asset_start = pd.Timestamp('2014-01', tz='utc')
-    asset_end = pd.Timestamp('2015-01', tz='utc')
+    start_date = pd.Timestamp('2014-01', tz='utc')
+    end_date = pd.Timestamp('2015-01', tz='utc')
     bundle = bundles['quandl']
     calendar = get_calendar(bundle.calendar_name)
-    start_date = calendar.first_session
-    end_date = calendar.last_session
-    api_key = 'ayylmao'
+    api_key = 'IamNotaQuandlAPIkey'
     columns = 'open', 'high', 'low', 'close', 'volume'
 
     def _expected_data(self, asset_finder):
         sids = {
             symbol: asset_finder.lookup_symbol(
                 symbol,
-                self.asset_start,
+                None,
             ).sid
             for symbol in self.symbols
         }
 
-        def per_symbol(symbol):
-            df = pd.read_csv(
-                test_resource_path('quandl_samples', symbol + '.csv.gz'),
-                parse_dates=['Date'],
-                index_col='Date',
-                usecols=[
-                    'Open',
-                    'High',
-                    'Low',
-                    'Close',
-                    'Volume',
-                    'Date',
-                    'Ex-Dividend',
-                    'Split Ratio',
-                ],
-                na_values=['NA'],
-            ).rename(columns={
-                'Open': 'open',
-                'High': 'high',
-                'Low': 'low',
-                'Close': 'close',
-                'Volume': 'volume',
-                'Date': 'date',
-                'Ex-Dividend': 'ex_dividend',
-                'Split Ratio': 'split_ratio',
-            })
-            df['sid'] = sids[symbol]
-            return df
+        # Load raw data from quandl test resources.
+        data = load_data_table(
+            file=test_resource_path(
+                'quandl_samples',
+                'QUANDL_ARCHIVE.zip'
+            ),
+            index_col='date'
+        )
+        data['sid'] = pd.factorize(data.symbol)[0]
 
-        all_ = pd.concat(map(per_symbol, self.symbols)).set_index(
+        all_ = data.set_index(
             'sid',
             append=True,
         ).unstack()
@@ -90,7 +72,7 @@ class QuandlBundleTestCase(ZiplineTestCase):
 
         # the first index our written data will appear in the files on disk
         start_idx = (
-            self.calendar.all_sessions.get_loc(self.asset_start, 'ffill') + 1
+            self.calendar.all_sessions.get_loc(self.start_date, 'ffill') + 1
         )
 
         # convert an index into the raw dataframe into an index into the
@@ -152,6 +134,13 @@ class QuandlBundleTestCase(ZiplineTestCase):
                     last_col=sids['MSFT'],
                     value=expected_dividend_adjustment(90, 'MSFT'),
                 )],
+                i(158): [Float64Multiply(
+                    first_row=0,
+                    last_row=i(158),
+                    first_col=sids['MSFT'],
+                    last_col=sids['MSFT'],
+                    value=expected_dividend_adjustment(158, 'MSFT'),
+                )],
                 i(222): [Float64Multiply(
                     first_row=0,
                     last_row=i(222),
@@ -184,46 +173,43 @@ class QuandlBundleTestCase(ZiplineTestCase):
         return pricing, adjustments
 
     def test_bundle(self):
-        url_map = merge(
-            {
-                format_wiki_url(
-                    self.api_key,
-                    symbol,
-                    self.start_date,
-                    self.end_date,
-                ): test_resource_path('quandl_samples', symbol + '.csv.gz')
-                for symbol in self.symbols
-            },
-            {
-                format_metadata_url(self.api_key, n): test_resource_path(
+        with open(test_resource_path(
                     'quandl_samples',
-                    'metadata-%d.csv.gz' % n,
-                )
-                for n in (1, 2)
-            },
-        )
+                    'QUANDL_ARCHIVE.zip'), 'rb') as quandl_response:
+
+            self.responses.add(
+                self.responses.GET,
+                'https://file_url.mock.quandl',
+                body=quandl_response.read(),
+                content_type='application/zip',
+                status=200,
+            )
+
+        url_map = {
+            format_metadata_url(self.api_key): test_resource_path(
+                'quandl_samples',
+                'metadata.csv.gz',
+            )
+        }
+
         zipline_root = self.enter_instance_context(tmp_dir()).path
         environ = {
             'ZIPLINE_ROOT': zipline_root,
             'QUANDL_API_KEY': self.api_key,
         }
 
-        with patch_read_csv(url_map, strict=True):
+        with patch_read_csv(url_map):
             ingest('quandl', environ=environ)
 
         bundle = load('quandl', environ=environ)
         sids = 0, 1, 2, 3
         assert_equal(set(bundle.asset_finder.sids), set(sids))
 
-        for equity in bundle.asset_finder.retrieve_all(sids):
-            assert_equal(equity.start_date, self.asset_start, msg=equity)
-            assert_equal(equity.end_date, self.asset_end, msg=equity)
-
         sessions = self.calendar.all_sessions
         actual = bundle.equity_daily_bar_reader.load_raw_arrays(
             self.columns,
-            sessions[sessions.get_loc(self.asset_start, 'bfill')],
-            sessions[sessions.get_loc(self.asset_end, 'ffill')],
+            sessions[sessions.get_loc(self.start_date, 'bfill')],
+            sessions[sessions.get_loc(self.end_date, 'ffill')],
             sids,
         )
         expected_pricing, expected_adjustments = self._expected_data(

@@ -47,11 +47,33 @@ def delivery_predicate(codes, contract):
     delivery_code = contract.symbol[-3]
     return delivery_code in codes
 
+march_cycle_delivery_predicate = partial(delivery_predicate,
+                                         set(['H', 'M', 'U', 'Z']))
+
 CHAIN_PREDICATES = {
-    'ME': partial(delivery_predicate, set(['H', 'M', 'U', 'Z'])),
+    'EL': march_cycle_delivery_predicate,
+    'ME': march_cycle_delivery_predicate,
     'PL': partial(delivery_predicate, set(['F', 'J', 'N', 'V'])),
-    'PA': partial(delivery_predicate, set(['H', 'M', 'U', 'Z']))
+    'PA': march_cycle_delivery_predicate,
+
+    # The majority of trading in these currency futures is done on a
+    # March quarterly cycle (Mar, Jun, Sep, Dec) but contracts are
+    # listed for the first 3 consecutive months from the present day. We
+    # want the continuous futures to be composed of just the quarterly
+    # contracts.
+    'JY': march_cycle_delivery_predicate,
+    'CD': march_cycle_delivery_predicate,
+    'AD': march_cycle_delivery_predicate,
+    'BP': march_cycle_delivery_predicate,
+
+    # Gold and silver contracts trade on an unusual specific set of months.
+    'GC': partial(delivery_predicate, set(['G', 'J', 'M', 'Q', 'V', 'Z'])),
+    'XG': partial(delivery_predicate, set(['G', 'J', 'M', 'Q', 'V', 'Z'])),
+    'SV': partial(delivery_predicate, set(['H', 'K', 'N', 'U', 'Z'])),
+    'YS': partial(delivery_predicate, set(['H', 'K', 'N', 'U', 'Z'])),
 }
+
+ADJUSTMENT_STYLES = {'add', 'mul', None}
 
 
 cdef class ContinuousFuture:
@@ -84,7 +106,6 @@ cdef class ContinuousFuture:
     cdef readonly object exchange
 
     cdef readonly object adjustment
-    cdef readonly object _adjustment_children
 
     _kwargnames = frozenset({
         'sid',
@@ -103,8 +124,7 @@ cdef class ContinuousFuture:
                  object start_date,
                  object end_date,
                  object exchange,
-                 object adjustment=None,
-                 dict adjustment_children=None):
+                 object adjustment=None):
 
         self.sid = sid
         self.sid_hash = hash(sid)
@@ -115,7 +135,6 @@ cdef class ContinuousFuture:
         self.start_date = start_date
         self.end_date = end_date
         self.adjustment = adjustment
-        self._adjustment_children = adjustment_children
 
 
     def __int__(self):
@@ -253,11 +272,6 @@ cdef class ContinuousFuture:
         calendar = get_calendar(self.exchange)
         return calendar.is_open_on_minute(dt_minute)
 
-    def adj(self, style):
-        try:
-            return self._adjustment_children[style]
-        except KeyError:
-            return None
 
 cdef class ContractNode(object):
 
@@ -339,11 +353,10 @@ cdef class OrderedContracts(object):
         while contracts:
             contract = contracts.popleft()
 
-            # Prevent contract chains with gaps between auto close and start of
-            # next contract.
-            # This is in lieu of more explicit support for
-            # contracts with quarterly rolls. e.g. Eurodollar
-            if prev is not None and contract.start_date > prev.contract.auto_close_date:
+            # It is possible that the first contract in our list has a start
+            # date on or after its auto close date. In that case the contract
+            # is not tradable, so do not include it in the chain.
+            if prev is None and contract.start_date >= contract.auto_close_date:
                 continue
 
             if not chain_predicate(contract):
@@ -351,7 +364,7 @@ cdef class OrderedContracts(object):
 
             self._start_date = min(contract.start_date.value, self._start_date)
             self._end_date = max(contract.end_date.value, self._end_date)
-            
+
             curr = ContractNode(contract)
             self.sid_to_contract[contract.sid] = curr
             if self._head_contract is None:
@@ -361,7 +374,7 @@ cdef class OrderedContracts(object):
             curr.prev = prev
             prev.next = curr
             prev = curr
-    
+
     cpdef long_t contract_before_auto_close(self, long_t dt_value):
         """
         Get the contract with next upcoming auto close date.
@@ -399,7 +412,7 @@ cdef class OrderedContracts(object):
             if curr.contract.start_date.value <= dt_value:
                 contracts.append(curr.contract.sid)
             curr = curr.next
-            
+
         return array(contracts, dtype='int64')
 
     property start_date:
