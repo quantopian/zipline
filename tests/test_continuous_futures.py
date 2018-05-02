@@ -28,7 +28,6 @@ from numpy.testing import assert_almost_equal
 import pandas as pd
 from pandas import Timestamp, DataFrame
 
-from zipline import TradingAlgorithm
 from zipline.assets.continuous_futures import (
     OrderedContracts,
     delivery_predicate
@@ -39,22 +38,12 @@ from zipline.assets.roll_finder import (
 )
 from zipline.data.minute_bars import FUTURES_MINUTES_PER_DAY
 from zipline.errors import SymbolNotFound
-from zipline.testing.fixtures import (
-    WithAssetFinder,
-    WithBcolzFutureDailyBarReader,
-    WithBcolzFutureMinuteBarReader,
-    WithCreateBarData,
-    WithDataPortal,
-    WithSimParams,
-    ZiplineTestCase,
-)
+import zipline.testing.fixtures as zf
 
 
-class ContinuousFuturesTestCase(WithCreateBarData,
-                                WithDataPortal,
-                                WithSimParams,
-                                WithBcolzFutureMinuteBarReader,
-                                ZiplineTestCase):
+class ContinuousFuturesTestCase(zf.WithCreateBarData,
+                                zf.WithMakeAlgo,
+                                zf.ZiplineTestCase):
 
     START_DATE = pd.Timestamp('2015-01-05', tz='UTC')
     END_DATE = pd.Timestamp('2016-10-19', tz='UTC')
@@ -534,11 +523,7 @@ def record_current_contract(algo, data):
     record(primary=data.current(algo.primary_cl, 'contract'))
     record(secondary=data.current(algo.secondary_cl, 'contract'))
 """)
-        algo = TradingAlgorithm(script=code,
-                                sim_params=self.sim_params,
-                                trading_calendar=self.trading_calendar,
-                                env=self.env)
-        results = algo.run(self.data_portal)
+        results = self.run_algorithm(script=code)
         result = results.iloc[0]
 
         self.assertEqual(result.primary.symbol,
@@ -593,11 +578,7 @@ def record_current_contract(algo, data):
     record(secondary_first=secondary_chain[0].symbol)
     record(secondary_last=secondary_chain[-1].symbol)
 """)
-        algo = TradingAlgorithm(script=code,
-                                sim_params=self.sim_params,
-                                trading_calendar=self.trading_calendar,
-                                env=self.env)
-        results = algo.run(self.data_portal)
+        results = self.run_algorithm(script=code)
         result = results.iloc[0]
 
         self.assertEqual(result.primary_len,
@@ -1289,7 +1270,8 @@ def record_current_contract(algo, data):
                          "Should remain FOH16 on next session.")
 
 
-class RollFinderTestCase(WithBcolzFutureDailyBarReader, ZiplineTestCase):
+class RollFinderTestCase(zf.WithBcolzFutureDailyBarReader,
+                         zf.ZiplineTestCase):
 
     START_DATE = pd.Timestamp('2017-01-03', tz='UTC')
     END_DATE = pd.Timestamp('2017-05-23', tz='UTC')
@@ -1642,8 +1624,7 @@ ACD -> 2017-05-19        0        0        0        0     3000 `---1000--> 2000
         )
 
 
-class OrderedContractsTestCase(WithAssetFinder,
-                               ZiplineTestCase):
+class OrderedContractsTestCase(zf.WithAssetFinder, zf.ZiplineTestCase):
 
     @classmethod
     def make_root_symbols_info(self):
