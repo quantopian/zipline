@@ -1,5 +1,5 @@
 {% set name = "empyrical" %}
-{% set version = "0.4.2" %}
+{% set version = "0.4.3" %}
 {% set file_ext = "tar.gz" %}
 {% set hash_type = "sha256" %}
 {% set hash_value = "3f6996f7670e4a5a81035deafb7b7d3cf436f95b5e108e9e606e0b7f7fdbdf5b" %}
