@@ -1806,6 +1806,7 @@ class WithMakeAlgo(WithSimParams,
     START_DATE = pd.Timestamp('2014-12-29', tz='UTC')
     END_DATE = pd.Timestamp('2015-1-05', tz='UTC')
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
+    DEFAULT_ALGORITHM_CLASS = TradingAlgorithm
 
     @classproperty
     def BENCHMARK_SID(cls):
@@ -1827,8 +1828,10 @@ class WithMakeAlgo(WithSimParams,
             overrides,
         )
 
-    def make_algo(self, **overrides):
-        return TradingAlgorithm(**self.make_algo_kwargs(**overrides))
+    def make_algo(self, algo_class=None, **overrides):
+        if algo_class is None:
+            algo_class = self.DEFAULT_ALGORITHM_CLASS
+        return algo_class(**self.make_algo_kwargs(**overrides))
 
     def run_algorithm(self, **overrides):
         """

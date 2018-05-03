@@ -36,7 +36,6 @@ from pandas.core.common import PerformanceWarning
 
 import zipline.api
 from zipline import run_algorithm
-from zipline import TradingAlgorithm
 from zipline.api import FixedSlippage
 from zipline.assets import Equity, Future, Asset
 from zipline.assets.continuous_futures import ContinuousFuture
@@ -105,21 +104,13 @@ from zipline.testing import (
     tmp_dir,
 )
 from zipline.testing import RecordBatchBlotter
-from zipline.testing.fixtures import (
-    WithDataPortal,
-    WithLogger,
-    WithSimParams,
-    WithTradingEnvironment,
-    WithTmpDir,
-    ZiplineTestCase,
-)
+import zipline.testing.fixtures as zf
 from zipline.test_algorithms import (
     access_account_in_init,
     access_portfolio_in_init,
     AmbitiousStopLimitAlgorithm,
     EmptyPositionsAlgorithm,
     InvalidOrderAlgorithm,
-    RecordAlgorithm,
     FutureFlipAlgo,
     TestOrderAlgorithm,
     TestOrderPercentAlgorithm,
@@ -197,12 +188,27 @@ import zipline.utils.factory as factory
 _multiprocess_can_split_ = False
 
 
-class TestRecordAlgorithm(WithSimParams, WithDataPortal, ZiplineTestCase):
-    ASSET_FINDER_EQUITY_SIDS = 133,
+class TestRecord(zf.WithMakeAlgo, zf.ZiplineTestCase):
+    ASSET_FINDER_EQUITY_SIDS = (133,)
+    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    DATA_PORTAL_USE_MINUTE_DATA = False
 
     def test_record_incr(self):
-        algo = RecordAlgorithm(sim_params=self.sim_params, env=self.env)
-        output = algo.run(self.data_portal)
+
+        def initialize(self):
+            self.incr = 0
+
+        def handle_data(self, data):
+            self.incr += 1
+            self.record(incr=self.incr)
+            name = 'name'
+            self.record(name, self.incr)
+            zipline.api.record(name, self.incr, 'name2', 2, name3=self.incr)
+
+        output = self.run_algorithm(
+            initialize=initialize,
+            handle_data=handle_data,
+        )
 
         np.testing.assert_array_equal(output['incr'].values,
                                       range(1, len(output) + 1))
