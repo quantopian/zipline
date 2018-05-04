@@ -2549,15 +2549,15 @@ def order_stuff(context, data):
             )
 
 
-class TestGetDatetime(WithLogger,
-                      WithSimParams,
-                      WithDataPortal,
-                      ZiplineTestCase):
+class TestGetDatetime(zf.WithMakeAlgo, zf.ZiplineTestCase):
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
     START_DATE = to_utc('2014-01-02 9:31')
     END_DATE = to_utc('2014-01-03 9:31')
 
     ASSET_FINDER_EQUITY_SIDS = 0, 1
+
+    # FIXME: Pass a benchmark source explicitly here.
+    BENCHMARK_SID = None
 
     @parameterized.expand(
         [
@@ -2591,12 +2591,8 @@ class TestGetDatetime(WithLogger,
             """.format(tz=repr(tz))
         )
 
-        algo = TradingAlgorithm(
-            script=algo,
-            sim_params=self.sim_params,
-            env=self.env,
-        )
-        algo.run(self.data_portal)
+        algo = self.make_algo(script=algo)
+        algo.run()
         self.assertFalse(algo.first_bar)
 
 
