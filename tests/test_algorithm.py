@@ -4324,11 +4324,14 @@ class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
         )
 
 
-class TestOrderAfterDelist(WithTradingEnvironment, ZiplineTestCase):
+class TestOrderAfterDelist(zf.WithMakeAlgo, zf.ZiplineTestCase):
     start = pd.Timestamp('2016-01-05', tz='utc')
     day_1 = pd.Timestamp('2016-01-06', tz='utc')
     day_4 = pd.Timestamp('2016-01-11', tz='utc')
     end = pd.Timestamp('2016-01-15', tz='utc')
+
+    # FIXME: Pass a benchmark source here.
+    BENCHMARK_SID = None
 
     @classmethod
     def make_equity_info(cls):
@@ -4354,10 +4357,11 @@ class TestOrderAfterDelist(WithTradingEnvironment, ZiplineTestCase):
             orient='index',
         )
 
-    @classmethod
-    def init_class_fixtures(cls):
-        super(TestOrderAfterDelist, cls).init_class_fixtures()
-        cls.data_portal = FakeDataPortal(cls.env)
+    # XXX: This suite doesn't use the data in its DataPortal; it uses a
+    # FakeDataPortal with different mock data.
+    def init_instance_fixtures(self):
+        super(TestOrderAfterDelist, self).init_instance_fixtures()
+        self.data_portal = FakeDataPortal(self.env)
 
     @parameterized.expand([
         ('auto_close_after_end_date', 1),
@@ -4390,9 +4394,8 @@ class TestOrderAfterDelist(WithTradingEnvironment, ZiplineTestCase):
         """).format(sid=sid)
 
         # run algo from 1/6 to 1/7
-        algo = TradingAlgorithm(
+        algo = self.make_algo(
             script=algo_code,
-            env=self.env,
             sim_params=SimulationParameters(
                 start_session=pd.Timestamp("2016-01-06", tz='UTC'),
                 end_session=pd.Timestamp("2016-01-07", tz='UTC'),
@@ -4400,9 +4403,8 @@ class TestOrderAfterDelist(WithTradingEnvironment, ZiplineTestCase):
                 data_frequency="minute"
             )
         )
-
         with make_test_handler(self) as log_catcher:
-            algo.run(self.data_portal)
+            algo.run()
 
             warnings = [r for r in log_catcher.records
                         if r.level == logbook.WARNING]
