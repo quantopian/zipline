@@ -316,6 +316,17 @@ class TestOrderMethodsDailyFrequency(zf.WithMakeAlgo,
             sids=[1],
         )
 
+    def test_cant_order_in_initialize(self):
+        algotext = """
+from zipline.api import (sid, order)
+
+def initialize(context):
+    order(sid(1), 10)"""
+
+        algo = self.make_algo(script=algotext)
+        with self.assertRaises(ze.OrderDuringInitialize):
+            algo.run()
+
 
 class TestOrderRounding(zf.ZiplineTestCase):
 
