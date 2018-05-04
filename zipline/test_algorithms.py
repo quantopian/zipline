@@ -213,31 +213,6 @@ class DivByZeroAlgorithm(TradingAlgorithm):
         pass
 
 
-class TooMuchProcessingAlgorithm(TradingAlgorithm):
-
-    def initialize(self, sid):
-        self.asset = self.sid(sid)
-
-    def handle_data(self, data):
-        # Unless we're running on some sort of
-        # supercomputer this will hit timeout.
-        for i in range(1000000000):
-            self.foo = i
-
-
-class TimeoutAlgorithm(TradingAlgorithm):
-
-    def initialize(self, sid):
-        self.asset = self.sid(sid)
-        self.incr = 0
-
-    def handle_data(self, data):
-        if self.incr > 4:
-            import time
-            time.sleep(100)
-        pass
-
-
 class FutureFlipAlgo(TestAlgorithm):
     def handle_data(self, data):
         if len(self.portfolio.positions) > 0:
