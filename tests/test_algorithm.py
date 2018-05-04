@@ -58,7 +58,6 @@ from zipline.errors import (
     CannotOrderDelistedAsset,
     IncompatibleSlippageModel,
     OrderDuringInitialize,
-    OrderInBeforeTradingStart,
     RegisterTradingControlPostInit,
     ScheduleFunctionInvalidCalendar,
     SetCancelPolicyPostInit,
@@ -66,14 +65,6 @@ from zipline.errors import (
     TradingControlViolation,
     UnsupportedCancelPolicy,
     UnsupportedDatetimeFormat,
-)
-from zipline.api import (
-    order,
-    order_value,
-    order_percent,
-    order_target,
-    order_target_value,
-    order_target_percent
 )
 
 from zipline.finance.commission import PerShare
@@ -109,18 +100,8 @@ from zipline.test_algorithms import (
     access_account_in_init,
     access_portfolio_in_init,
     AmbitiousStopLimitAlgorithm,
-    EmptyPositionsAlgorithm,
-    InvalidOrderAlgorithm,
     FutureFlipAlgo,
-    TestOrderAlgorithm,
-    TestOrderPercentAlgorithm,
-    TestOrderStyleForwardingAlgorithm,
-    TestOrderValueAlgorithm,
     TestPositionWeightsAlgorithm,
-    TestRegisterTransformAlgorithm,
-    TestTargetAlgorithm,
-    TestTargetPercentAlgorithm,
-    TestTargetValueAlgorithm,
     SetLongOnlyAlgorithm,
     SetAssetDateBoundsAlgorithm,
     SetMaxPositionSizeAlgorithm,
@@ -168,6 +149,7 @@ from zipline.test_algorithms import (
     empty_positions,
     no_handle_data,
 )
+import zipline.test_algorithms as zta
 from zipline.testing.predicates import assert_equal
 from zipline.utils.api_support import ZiplineAPI, set_algo_instance
 from zipline.utils.calendars import get_calendar, register_calendar
@@ -821,101 +803,34 @@ class TestSetSymbolLookupDate(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         self.run_algorithm(initialize=initialize)
 
-class TestTransformAlgorithm(WithLogger,
-                             WithDataPortal,
-                             WithSimParams,
-                             ZiplineTestCase):
+
+class TestRunTwice(zf.WithMakeAlgo, zf.ZiplineTestCase):
+    #     January 2006
+    # Su Mo Tu We Th Fr Sa
+    #  1  2  3  4  5  6  7
+    #  8  9 10 11 12 13 14
+    # 15 16 17 18 19 20 21
+    # 22 23 24 25 26 27 28
+    # 29 30 31
     START_DATE = pd.Timestamp('2006-01-03', tz='utc')
     END_DATE = pd.Timestamp('2006-01-06', tz='utc')
 
-    sids = ASSET_FINDER_EQUITY_SIDS = [0, 1, 133]
+    ASSET_FINDER_EQUITY_SIDS = [0, 1, 133]
+    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    DATA_PORTAL_USE_MINUTE_DATA = False
 
-    @classmethod
-    def make_futures_info(cls):
-        return pd.DataFrame.from_dict({
-            3: {
-                'multiplier': 10,
-                'symbol': 'F',
-                'exchange': 'TEST'
-            }
-        }, orient='index')
-
-    @classmethod
-    def make_equity_daily_bar_data(cls):
-        return trades_by_sid_to_dfs(
-            {
-                sid: factory.create_trade_history(
-                    sid,
-                    [10.0, 10.0, 11.0, 11.0],
-                    [100, 100, 100, 300],
-                    timedelta(days=1),
-                    cls.sim_params,
-                    cls.trading_calendar,
-                ) for sid in cls.sids
-            },
-            index=cls.sim_params.sessions,
-        )
-
-    @classmethod
-    def init_class_fixtures(cls):
-        super(TestTransformAlgorithm, cls).init_class_fixtures()
-        cls.futures_env = cls.enter_class_context(
-            tmp_trading_env(futures=cls.make_futures_info(),
-                            load=cls.make_load_function()),
-        )
-
-    def test_invalid_order_parameters(self):
-        algo = InvalidOrderAlgorithm(
-            sids=[133],
-            sim_params=self.sim_params,
-            env=self.env,
-        )
-        algo.run(self.data_portal)
-
-    @parameterized.expand([
-        (order, 1),
-        (order_value, 1000),
-        (order_target, 1),
-        (order_target_value, 1000),
-        (order_percent, 1),
-        (order_target_percent, 1),
-    ])
-    def test_cannot_order_in_before_trading_start(self, order_method, amount):
-        algotext = """
-from zipline.api import sid
-from zipline.api import {order_func}
-
-def initialize(context):
-     context.asset = sid(133)
-
-def before_trading_start(context, data):
-     {order_func}(context.asset, {arg})
-     """.format(order_func=order_method.__name__, arg=amount)
-
-        algo = TradingAlgorithm(script=algotext, sim_params=self.sim_params,
-                                data_frequency='daily', env=self.env)
-
-        with self.assertRaises(OrderInBeforeTradingStart):
-            algo.run(self.data_portal)
+    # FIXME: Pass a benchmark source explicitly here.
+    BENCHMARK_SID = None
 
     def test_run_twice(self):
-        algo1 = TestRegisterTransformAlgorithm(
-            sim_params=self.sim_params,
-            sids=[0, 1],
-            env=self.env,
-        )
+        algo = self.make_algo(script=zta.noop_algo)
 
-        res1 = algo1.run(self.data_portal)
-
-        # Create a new trading algorithm, which will
-        # use the newly instantiated environment.
-        algo2 = TestRegisterTransformAlgorithm(
-            sim_params=self.sim_params,
-            sids=[0, 1],
-            env=self.env,
-        )
-
-        res2 = algo2.run(self.data_portal)
+        res1 = algo.run()
+        # XXX: Calling run() twice only works if you pass a data portal
+        # explicitly on the second call, because we `del self.data_portal` at
+        # the end of an algorithm execution. Do we actually still care about
+        # the ability to double-run an algo?
+        res2 = algo.run(self.data_portal)
 
         # There are some np.NaN values in the first row because there is not
         # enough data to calculate the metric, e.g. beta.
@@ -924,185 +839,15 @@ def before_trading_start(context, data):
 
         np.testing.assert_array_equal(res1, res2)
 
-    def test_data_frequency_setting(self):
-        self.sim_params.data_frequency = 'daily'
 
-        sim_params = factory.create_simulation_parameters(
-            num_days=4, data_frequency='daily')
-
-        algo = TestRegisterTransformAlgorithm(
-            sim_params=sim_params,
-            env=self.env,
-        )
-        self.assertEqual(algo.sim_params.data_frequency, 'daily')
-
-        sim_params = factory.create_simulation_parameters(
-            num_days=4, data_frequency='minute')
-
-        algo = TestRegisterTransformAlgorithm(
-            sim_params=sim_params,
-            env=self.env,
-        )
-        self.assertEqual(algo.sim_params.data_frequency, 'minute')
-
-    def test_order_rounding(self):
-        answer_key = [
-            (0, 0),
-            (10, 10),
-            (1.1, 1),
-            (1.5, 1),
-            (1.9998, 1),
-            (1.99991, 2),
-        ]
-
-        for input, answer in answer_key:
-            self.assertEqual(
-                answer,
-                TradingAlgorithm.round_order(input)
-            )
-
-            self.assertEqual(
-                -1 * answer,
-                TradingAlgorithm.round_order(-1 * input)
-            )
-
-    @parameterized.expand([
-        ('order', TestOrderAlgorithm,),
-        ('order_value', TestOrderValueAlgorithm,),
-        ('order_target', TestTargetAlgorithm,),
-        ('order_percent', TestOrderPercentAlgorithm,),
-        ('order_target_percent', TestTargetPercentAlgorithm,),
-        ('order_target_value', TestTargetValueAlgorithm,),
-    ])
-    def test_order_methods(self, test_name, algo_class):
-        algo = algo_class(
-            sim_params=self.sim_params,
-            env=self.env,
-        )
-        # Ensure that the environment's asset 0 is an Equity
-        asset_to_test = algo.sid(0)
-        self.assertIsInstance(asset_to_test, Equity)
-
-        algo.run(self.data_portal)
-
-    @parameterized.expand([
-        (TestOrderAlgorithm,),
-        (TestOrderValueAlgorithm,),
-        (TestTargetAlgorithm,),
-        (TestOrderPercentAlgorithm,),
-        (TestTargetValueAlgorithm,),
-    ])
-    def test_order_methods_for_future(self, algo_class):
-        algo = algo_class(
-            sim_params=self.sim_params,
-            env=self.env,
-        )
-        # Ensure that the environment's asset 3 is a Future
-        asset_to_test = algo.sid(3)
-        self.assertIsInstance(asset_to_test, Future)
-
-        algo.run(self.data_portal)
-
-    @parameterized.expand([
-        ("order",),
-        ("order_value",),
-        ("order_percent",),
-        ("order_target",),
-        ("order_target_percent",),
-        ("order_target_value",),
-    ])
-    def test_order_method_style_forwarding(self, order_style):
-        algo = TestOrderStyleForwardingAlgorithm(
-            sim_params=self.sim_params,
-            method_name=order_style,
-            env=self.env
-        )
-        algo.run(self.data_portal)
-
-    def test_order_on_each_day_of_asset_lifetime(self):
-        algo_code = dedent("""
-        from zipline.api import sid, schedule_function, date_rules, order
-        def initialize(context):
-            schedule_function(order_it, date_rule=date_rules.every_day())
-
-        def order_it(context, data):
-            order(sid(133), 1)
-
-        def handle_data(context, data):
-            pass
-        """)
-
-        asset133 = self.env.asset_finder.retrieve_asset(133)
-
-        sim_params = SimulationParameters(
-            start_session=asset133.start_date,
-            end_session=asset133.end_date,
-            data_frequency="minute",
-            trading_calendar=self.trading_calendar
-        )
-
-        algo = TradingAlgorithm(
-            script=algo_code,
-            sim_params=sim_params,
-            env=self.env
-        )
-
-        results = algo.run(FakeDataPortal(self.env))
-
-        for orders_for_day in results.orders:
-            self.assertEqual(1, len(orders_for_day))
-            self.assertEqual(orders_for_day[0]["status"], ORDER_STATUS.FILLED)
-
-        for txns_for_day in results.transactions:
-            self.assertEqual(1, len(txns_for_day))
-            self.assertEqual(1, txns_for_day[0]["amount"])
-
-    @parameterized.expand([
-        (TestOrderAlgorithm,),
-        (TestOrderValueAlgorithm,),
-        (TestTargetAlgorithm,),
-        (TestOrderPercentAlgorithm,)
-    ])
-    def test_minute_data(self, algo_class):
-        start_session = pd.Timestamp('2002-1-2', tz='UTC')
-        period_end = pd.Timestamp('2002-1-4', tz='UTC')
-        equities = pd.DataFrame([{
-            'start_date': start_session,
-            'end_date': period_end + timedelta(days=1),
-            'exchange': "TEST",
-        }] * 2)
-        equities['symbol'] = ['A', 'B']
-        with TempDirectory() as tempdir, \
-                tmp_trading_env(equities=equities,
-                                load=self.make_load_function()) as env:
-            sim_params = SimulationParameters(
-                start_session=start_session,
-                end_session=period_end,
-                capital_base=1.0e5,
-                data_frequency='minute',
-                trading_calendar=self.trading_calendar,
-            )
-
-            data_portal = create_data_portal(
-                env.asset_finder,
-                tempdir,
-                sim_params,
-                equities.index,
-                self.trading_calendar,
-            )
-            algo = algo_class(sim_params=sim_params, env=env)
-            algo.run(data_portal)
-
-
-class TestPositions(WithLogger,
-                    WithDataPortal,
-                    WithSimParams,
-                    ZiplineTestCase):
+class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
     START_DATE = pd.Timestamp('2006-01-03', tz='utc')
     END_DATE = pd.Timestamp('2006-01-06', tz='utc')
     SIM_PARAMS_CAPITAL_BASE = 1000
 
     ASSET_FINDER_EQUITY_SIDS = (1, 133)
+
+    SIM_PARAMS_DATA_FREQUENCY = 'daily'
 
     @classmethod
     def make_equity_daily_bar_data(cls):
@@ -1156,11 +901,42 @@ class TestPositions(WithLogger,
         )
         return ((sid, frame) for sid in sids)
 
-    def test_empty_portfolio(self):
-        algo = EmptyPositionsAlgorithm(self.asset_finder.equities_sids,
-                                       sim_params=self.sim_params,
-                                       env=self.env)
-        daily_stats = algo.run(self.data_portal)
+    def test_portfolio_exited_position(self):
+        # This test ensures ensures that 'phantom' positions do not appear in
+        # context.portfolio.positions in the case that a position has been
+        # entered and fully exited.
+
+        def initialize(context, sids):
+            context.ordered = False
+            context.exited = False
+            context.sids = sids
+
+        def handle_data(context, data):
+            if not context.ordered:
+                for s in context.sids:
+                    context.order(context.sid(s), 1)
+                context.ordered = True
+
+            if not context.exited:
+                amounts = [pos.amount for pos
+                           in itervalues(context.portfolio.positions)]
+
+                if (
+                    len(amounts) > 0 and
+                    all([(amount == 1) for amount in amounts])
+                ):
+                    for stock in context.portfolio.positions:
+                        context.order(context.sid(stock), -1)
+                    context.exited = True
+
+            # Should be 0 when all positions are exited.
+            context.record(num_positions=len(context.portfolio.positions))
+
+        result = self.run_algorithm(
+            initialize=initialize,
+            handle_data=handle_data,
+            sids=self.ASSET_FINDER_EQUITY_SIDS,
+        )
 
         expected_position_count = [
             0,  # Before entering the first position
@@ -1168,10 +944,8 @@ class TestPositions(WithLogger,
             0,  # After exiting
             0,
         ]
-
         for i, expected in enumerate(expected_position_count):
-            self.assertEqual(daily_stats.ix[i]['num_positions'],
-                             expected)
+            self.assertEqual(result.ix[i]['num_positions'], expected)
 
     def test_noop_orders(self):
         algo = AmbitiousStopLimitAlgorithm(sid=1,
