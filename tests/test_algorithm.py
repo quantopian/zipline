@@ -33,8 +33,8 @@ import pandas as pd
 import pytz
 from pandas.core.common import PerformanceWarning
 
+from zipline.algorithm import TradingAlgorithm
 import zipline.api
-from zipline import run_algorithm
 from zipline.api import FixedSlippage
 from zipline.assets import Equity, Future, Asset
 from zipline.assets.continuous_futures import ContinuousFuture
@@ -77,7 +77,6 @@ from zipline.finance.asset_restrictions import (
 )
 from zipline.testing import (
     FakeDataPortal,
-    copy_market_data,
     create_daily_df_for_asset,
     create_data_portal,
     create_data_portal_from_trade_history,
@@ -89,7 +88,6 @@ from zipline.testing import (
     tmp_trading_env,
     to_utc,
     trades_by_sid_to_dfs,
-    tmp_dir,
 )
 from zipline.testing import RecordBatchBlotter
 import zipline.testing.fixtures as zf
@@ -2596,7 +2594,9 @@ class TestGetDatetime(zf.WithMakeAlgo, zf.ZiplineTestCase):
         self.assertFalse(algo.first_bar)
 
 
-class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
+class TestTradingControls(zf.WithSimParams,
+                          zf.WithDataPortal,
+                          zf.ZiplineTestCase):
     START_DATE = pd.Timestamp('2006-01-03', tz='utc')
     END_DATE = pd.Timestamp('2006-01-06', tz='utc')
 
@@ -3070,7 +3070,9 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
                 algo.run(data_portal)
 
 
-class TestAccountControls(WithDataPortal, WithSimParams, ZiplineTestCase):
+class TestAccountControls(zf.WithDataPortal,
+                          zf.WithSimParams,
+                          zf.ZiplineTestCase):
     START_DATE = pd.Timestamp('2006-01-03', tz='utc')
     END_DATE = pd.Timestamp('2006-01-06', tz='utc')
 
@@ -3263,7 +3265,9 @@ class TestAccountControls(WithDataPortal, WithSimParams, ZiplineTestCase):
 #                 format(i, actual_position, expected_positions[i]))
 
 
-class TestFutureFlip(WithDataPortal, WithSimParams, ZiplineTestCase):
+class TestFutureFlip(zf.WithDataPortal,
+                     zf.WithSimParams,
+                     zf.ZiplineTestCase):
     START_DATE = pd.Timestamp('2006-01-09', tz='utc')
     END_DATE = pd.Timestamp('2006-01-10', tz='utc')
     sid, = ASSET_FINDER_EQUITY_SIDS = (1,)
@@ -3324,7 +3328,9 @@ class TestFutureFlip(WithDataPortal, WithSimParams, ZiplineTestCase):
                 format(i, actual_position, expected_positions[i]))
 
 
-class TestFuturesAlgo(WithDataPortal, WithSimParams, ZiplineTestCase):
+class TestFuturesAlgo(zf.WithDataPortal,
+                      zf.WithSimParams,
+                      zf.ZiplineTestCase):
     START_DATE = pd.Timestamp('2016-01-06', tz='utc')
     END_DATE = pd.Timestamp('2016-01-07', tz='utc')
     FUTURE_MINUTE_BAR_START_DATE = pd.Timestamp('2016-01-05', tz='UTC')
@@ -3523,7 +3529,8 @@ class TestFuturesAlgo(WithDataPortal, WithSimParams, ZiplineTestCase):
             self.assertEqual(txn['price'], expected_price)
 
 
-class TestTradingAlgorithm(WithTradingEnvironment, ZiplineTestCase):
+class TestTradingAlgorithm(zf.WithTradingEnvironment,
+                           zf.ZiplineTestCase):
     def test_analyze_called(self):
         self.perf_ref = None
 
@@ -3549,9 +3556,9 @@ class TestTradingAlgorithm(WithTradingEnvironment, ZiplineTestCase):
         self.assertIs(results, self.perf_ref)
 
 
-class TestOrderCancelation(WithDataPortal,
-                           WithSimParams,
-                           ZiplineTestCase):
+class TestOrderCancelation(zf.WithDataPortal,
+                           zf.WithSimParams,
+                           zf.ZiplineTestCase):
 
     START_DATE = pd.Timestamp('2016-01-05', tz='utc')
     END_DATE = pd.Timestamp('2016-01-07', tz='utc')
@@ -3744,7 +3751,9 @@ class TestOrderCancelation(WithDataPortal,
             self.assertFalse(log_catcher.has_warnings)
 
 
-class TestEquityAutoClose(WithTradingEnvironment, WithTmpDir, ZiplineTestCase):
+class TestEquityAutoClose(zf.WithTradingEnvironment,
+                          zf.WithTmpDir,
+                          zf.ZiplineTestCase):
     """
     Tests if delisted equities are properly removed from a portfolio holding
     positions in said equities.
@@ -4421,7 +4430,8 @@ class TestOrderAfterDelist(zf.WithMakeAlgo, zf.ZiplineTestCase):
                 self.assertEqual(expected_message, w.message)
 
 
-class AlgoInputValidationTestCase(WithTradingEnvironment, ZiplineTestCase):
+class AlgoInputValidationTestCase(zf.WithTradingEnvironment,
+                                  zf.ZiplineTestCase):
 
     def test_reject_passing_both_api_methods_and_script(self):
         script = dedent(
