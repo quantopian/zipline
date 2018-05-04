@@ -1922,69 +1922,73 @@ def handle_data(context, data):
         )
 
 
-class TestCapitalChanges(WithLogger,
-                         WithDataPortal,
-                         WithSimParams,
-                         ZiplineTestCase):
+class TestCapitalChanges(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
-    sids = 0, 1
+    START_DATE = pd.Timestamp('2006-01-03', tz='UTC')
+    END_DATE = pd.Timestamp('2006-01-09', tz='UTC')
 
-    @classmethod
-    def make_equity_info(cls):
-        data = make_simple_equity_info(
-            cls.sids,
-            pd.Timestamp('2006-01-03', tz='UTC'),
-            pd.Timestamp('2006-01-09', tz='UTC'),
-        )
-        return data
+    # XXX: This suite only has daily data for sid 0 and only has minutely data
+    #      for sid 1.
+    sids = ASSET_FINDER_EQUITY_SIDS = (0, 1)
+    DAILY_SID = 0
+    MINUTELY_SID = 1
+
+    # FIXME: Pass a benchmark source explicitly here.
+    BENCHMARK_SID = None
 
     @classmethod
     def make_equity_minute_bar_data(cls):
         minutes = cls.trading_calendar.minutes_in_range(
-            pd.Timestamp('2006-01-03', tz='UTC'),
-            pd.Timestamp('2006-01-09', tz='UTC')
+            cls.START_DATE,
+            cls.END_DATE,
         )
-        return trades_by_sid_to_dfs(
-            {
-                1: factory.create_trade_history(
-                    1,
-                    np.arange(100.0, 100.0 + len(minutes), 1),
-                    [10000] * len(minutes),
-                    timedelta(minutes=1),
-                    cls.sim_params,
-                    cls.trading_calendar),
+        closes = np.arange(100, 100 + len(minutes), 1)
+        opens = closes
+        highs = closes + 5
+        lows = closes - 5
+
+        frame = pd.DataFrame(
+            index=minutes,
+            data={
+                'open': opens,
+                'high': highs,
+                'low': lows,
+                'close': closes,
+                'volume': 10000,
             },
-            index=pd.DatetimeIndex(minutes),
         )
+
+        yield cls.MINUTELY_SID, frame
 
     @classmethod
     def make_equity_daily_bar_data(cls):
         days = cls.trading_calendar.sessions_in_range(
-            pd.Timestamp('2006-01-03', tz='UTC'),
-            pd.Timestamp('2006-01-09', tz='UTC')
+            cls.START_DATE,
+            cls.END_DATE,
         )
-        return trades_by_sid_to_dfs(
-            {
-                0: factory.create_trade_history(
-                    0,
-                    np.arange(10.0, 10.0 + len(days), 1.0),
-                    [10000] * len(days),
-                    timedelta(days=1),
-                    cls.sim_params,
-                    cls.trading_calendar),
+
+        closes = np.arange(10.0, 10.0 + len(days), 1.0)
+        opens = closes
+        highs = closes + 0.5
+        lows = closes - 0.5
+
+        frame = pd.DataFrame(
+            index=days,
+            data={
+                'open': opens,
+                'high': highs,
+                'low': lows,
+                'close': closes,
+                'volume': 10000,
             },
-            index=pd.DatetimeIndex(days),
         )
+
+        yield cls.DAILY_SID, frame
 
     @parameterized.expand([
         ('target', 151000.0), ('delta', 50000.0)
     ])
     def test_capital_changes_daily_mode(self, change_type, value):
-        sim_params = factory.create_simulation_parameters(
-            start=pd.Timestamp('2006-01-03', tz='UTC'),
-            end=pd.Timestamp('2006-01-09', tz='UTC')
-        )
-
         capital_changes = {
             pd.Timestamp('2006-01-06', tz='UTC'):
                 {'type': change_type, 'value': value}
@@ -2002,15 +2006,18 @@ def initialize(context):
 def order_stuff(context, data):
     order(sid(0), 1000)
 """
-
-        algo = TradingAlgorithm(
+        algo = self.make_algo(
             script=algocode,
-            sim_params=sim_params,
-            env=self.env,
-            data_portal=self.data_portal,
             capital_changes=capital_changes,
+            sim_params=SimulationParameters(
+                start_session=self.START_DATE,
+                end_session=self.END_DATE,
+                trading_calendar=self.nyse_calendar,
+            )
         )
 
+        # We call get_generator rather than `run()` here because we care about
+        # the raw capital change packets.
         gen = algo.get_generator()
         results = list(gen)
 
@@ -2142,11 +2149,12 @@ def order_stuff(context, data):
     def test_capital_changes_minute_mode_daily_emission(self, change, values):
         change_loc, change_type = change.split('_')
 
-        sim_params = factory.create_simulation_parameters(
-            start=pd.Timestamp('2006-01-03', tz='UTC'),
-            end=pd.Timestamp('2006-01-05', tz='UTC'),
+        sim_params = SimulationParameters(
+            start_session=pd.Timestamp('2006-01-03', tz='UTC'),
+            end_session=pd.Timestamp('2006-01-05', tz='UTC'),
             data_frequency='minute',
-            capital_base=1000.0
+            capital_base=1000.0,
+            trading_calendar=self.nyse_calendar,
         )
 
         capital_changes = {
@@ -2170,11 +2178,9 @@ def order_stuff(context, data):
     order(sid(1), 1)
 """
 
-        algo = TradingAlgorithm(
+        algo = self.make_algo(
             script=algocode,
             sim_params=sim_params,
-            env=self.env,
-            data_portal=self.data_portal,
             capital_changes=capital_changes
         )
 
@@ -2313,12 +2319,13 @@ def order_stuff(context, data):
     def test_capital_changes_minute_mode_minute_emission(self, change, values):
         change_loc, change_type = change.split('_')
 
-        sim_params = factory.create_simulation_parameters(
-            start=pd.Timestamp('2006-01-03', tz='UTC'),
-            end=pd.Timestamp('2006-01-05', tz='UTC'),
+        sim_params = SimulationParameters(
+            start_session=pd.Timestamp('2006-01-03', tz='UTC'),
+            end_session=pd.Timestamp('2006-01-05', tz='UTC'),
             data_frequency='minute',
             emission_rate='minute',
-            capital_base=1000.0
+            capital_base=1000.0,
+            trading_calendar=self.nyse_calendar,
         )
 
         capital_changes = {pd.Timestamp(val[0], tz='UTC'): {
@@ -2337,11 +2344,9 @@ def order_stuff(context, data):
     order(sid(1), 1)
 """
 
-        algo = TradingAlgorithm(
+        algo = self.make_algo(
             script=algocode,
             sim_params=sim_params,
-            env=self.env,
-            data_portal=self.data_portal,
             capital_changes=capital_changes
         )
 
