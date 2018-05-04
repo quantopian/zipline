@@ -23,7 +23,6 @@ from copy import deepcopy
 import logbook
 import toolz
 from logbook import TestHandler, WARNING
-from mock import MagicMock
 from nose_parameterized import parameterized
 from six import iteritems, itervalues, string_types
 from six.moves import range
@@ -57,7 +56,6 @@ from zipline.errors import (
     AccountControlViolation,
     CannotOrderDelistedAsset,
     IncompatibleSlippageModel,
-    OrderDuringInitialize,
     RegisterTradingControlPostInit,
     ScheduleFunctionInvalidCalendar,
     SetCancelPolicyPostInit,
@@ -77,7 +75,6 @@ from zipline.finance.asset_restrictions import (
     StaticRestrictions,
     RESTRICTION_STATES,
 )
-from zipline.finance.slippage import VolumeShareSlippage
 from zipline.testing import (
     FakeDataPortal,
     copy_market_data,
@@ -115,8 +112,6 @@ from zipline.test_algorithms import (
     api_algo,
     api_get_environment_algo,
     api_symbol_algo,
-    call_all_order_methods,
-    call_order_in_init,
     handle_data_api,
     handle_data_noop,
     initialize_api,
@@ -151,7 +146,7 @@ from zipline.test_algorithms import (
 )
 import zipline.test_algorithms as zta
 from zipline.testing.predicates import assert_equal
-from zipline.utils.api_support import ZiplineAPI, set_algo_instance
+from zipline.utils.api_support import ZiplineAPI
 from zipline.utils.calendars import get_calendar, register_calendar
 from zipline.utils.context_tricks import CallbackManager, nop_context
 from zipline.utils.events import (
@@ -1326,12 +1321,10 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
                                10000 + 780 - 392 - 0, places=2)
 
 
-class TestAlgoScript(WithLogger,
-                     WithDataPortal,
-                     WithSimParams,
-                     ZiplineTestCase):
+class TestAlgoScript(zf.WithMakeAlgo, zf.ZiplineTestCase):
     START_DATE = pd.Timestamp('2006-01-03', tz='utc')
     END_DATE = pd.Timestamp('2006-12-31', tz='utc')
+    SIM_PARAMS_DATA_FREQUENCY = 'daily'
     DATA_PORTAL_USE_MINUTE_DATA = False
     EQUITY_DAILY_BAR_LOOKBACK_DAYS = 5  # max history window length
 
@@ -1387,6 +1380,9 @@ class TestAlgoScript(WithLogger,
 
     sids = 0, 1, 3, 133
 
+    # FIXME: Pass a benchmark explicitly here.
+    BENCHMARK_SID = None
+
     @classmethod
     def make_equity_info(cls):
         register_calendar("TEST", get_calendar("NYSE"), force=True)
@@ -1401,69 +1397,52 @@ class TestAlgoScript(WithLogger,
 
     @classmethod
     def make_equity_daily_bar_data(cls):
-        days = len(cls.equity_daily_bar_days)
-        return trades_by_sid_to_dfs(
-            {
-                0: factory.create_trade_history(
-                    0,
-                    [10.0] * days,
-                    [100] * days,
-                    timedelta(days=1),
-                    cls.sim_params,
-                    cls.trading_calendar),
-                3: factory.create_trade_history(
-                    3,
-                    [10.0] * days,
-                    [100] * days,
-                    timedelta(days=1),
-                    cls.sim_params,
-                    cls.trading_calendar)
-            },
-            index=cls.equity_daily_bar_days,
-        )
+        cal = cls.trading_calendars[Equity]
+        sessions = cal.sessions_in_range(cls.START_DATE, cls.END_DATE)
+        frame = pd.DataFrame({
+            'close': 10., 'high': 10.5, 'low': 9.5, 'open': 10., 'volume': 100,
+        }, index=sessions)
+
+        for sid in cls.sids:
+            yield sid, frame
 
     def test_noop(self):
-        algo = TradingAlgorithm(initialize=initialize_noop,
-                                handle_data=handle_data_noop,
-                                env=self.env)
-        algo.run(self.data_portal)
+        self.run_algorithm(
+            initialize=initialize_noop,
+            handle_data=handle_data_noop,
+        )
 
     def test_noop_string(self):
-        algo = TradingAlgorithm(script=noop_algo, env=self.env)
-        algo.run(self.data_portal)
+        self.run_algorithm(script=noop_algo)
 
     def test_no_handle_data(self):
-        algo = TradingAlgorithm(script=no_handle_data, env=self.env)
-        algo.run(self.data_portal)
+        self.run_algorithm(script=no_handle_data)
 
     def test_api_calls(self):
-        algo = TradingAlgorithm(initialize=initialize_api,
-                                handle_data=handle_data_api,
-                                env=self.env)
-        algo.run(self.data_portal)
+        self.run_algorithm(
+            initialize=initialize_api,
+            handle_data=handle_data_api,
+        )
 
     def test_api_calls_string(self):
-        algo = TradingAlgorithm(script=api_algo, env=self.env)
-        algo.run(self.data_portal)
+        self.run_algorithm(script=api_algo)
 
     def test_api_get_environment(self):
         platform = 'zipline'
-        algo = TradingAlgorithm(script=api_get_environment_algo,
-                                platform=platform,
-                                env=self.env)
-        algo.run(self.data_portal)
+        algo = self.make_algo(
+            script=api_get_environment_algo,
+            platform=platform,
+        )
+        algo.run()
         self.assertEqual(algo.environment, platform)
 
     def test_api_symbol(self):
-        algo = TradingAlgorithm(script=api_symbol_algo,
-                                env=self.env,
-                                sim_params=self.sim_params)
-        algo.run(self.data_portal)
+        self.run_algorithm(script=api_symbol_algo)
 
     def test_fixed_slippage(self):
         # verify order -> transaction -> portfolio position.
         # --------------
-        test_algo = TradingAlgorithm(
+        test_algo = self.make_algo(
             script="""
 from zipline.api import (slippage,
                          commission,
@@ -1486,10 +1465,8 @@ def handle_data(context, data):
     record(price=data.current(sid(0), "price"))
 
     context.incr += 1""",
-            sim_params=self.sim_params,
-            env=self.env,
         )
-        results = test_algo.run(self.data_portal)
+        results = test_algo.run()
 
         # flatten the list of txns
         all_txns = [val for sublist in results["transactions"].tolist()
@@ -1529,7 +1506,7 @@ def handle_data(context, data):
 
             # verify order -> transaction -> portfolio position.
             # --------------
-            test_algo = TradingAlgorithm(
+            test_algo = self.make_algo(
                 script="""
 from zipline.api import *
 
@@ -1554,8 +1531,6 @@ def handle_data(context, data):
     record(incr=context.incr)
     context.incr += 1
     """.format(commission_line),
-                sim_params=self.sim_params,
-                env=self.env,
             )
             trades = factory.create_daily_trade_source(
                 [0], self.sim_params, self.env, self.trading_calendar)
@@ -1607,69 +1582,30 @@ def handle_data(context, data):
                 set_slippage(MySlippage())
             """
         )
-        test_algo = TradingAlgorithm(
-            script=code, sim_params=self.sim_params, env=self.env,
-        )
+        test_algo = self.make_algo(script=code)
         with self.assertRaises(IncompatibleSlippageModel):
             # Passing a futures slippage model as the first argument, which is
             # for setting equity models, should fail.
-            test_algo.run(self.data_portal)
+            test_algo.run()
 
     def test_algo_record_vars(self):
-        test_algo = TradingAlgorithm(
-            script=record_variables,
-            sim_params=self.sim_params,
-            env=self.env,
-        )
+        test_algo = self.make_algo(script=record_variables)
         results = test_algo.run(self.data_portal)
 
         for i in range(1, 252):
             self.assertEqual(results.iloc[i-1]["incr"], i)
 
-    def test_algo_record_allow_mock(self):
-        """
-        Test that values from "MagicMock"ed methods can be passed to record.
-
-        Relevant for our basic/validation and methods like history, which
-        will end up returning a MagicMock instead of a DataFrame.
-        """
-        test_algo = TradingAlgorithm(
-            script=record_variables,
-            sim_params=self.sim_params,
-            env=self.env,
-        )
-        set_algo_instance(test_algo)
-
-        test_algo.record(foo=MagicMock())
-
     def test_algo_record_nan(self):
-        test_algo = TradingAlgorithm(
-            script=record_float_magic % 'nan',
-            sim_params=self.sim_params,
-            env=self.env,
-        )
-        results = test_algo.run(self.data_portal)
-
+        test_algo = self.make_algo(script=record_float_magic % 'nan')
+        results = test_algo.run()
         for i in range(1, 252):
             self.assertTrue(np.isnan(results.iloc[i-1]["data"]))
-
-    def test_order_methods(self):
-        """
-        Only test that order methods can be called without error.
-        Correct filling of orders is tested in zipline.
-        """
-        test_algo = TradingAlgorithm(
-            script=call_all_order_methods,
-            sim_params=self.sim_params,
-            env=self.env,
-        )
-        test_algo.run(self.data_portal)
 
     def test_batch_market_order_matches_multiple_manual_orders(self):
         share_counts = pd.Series([50, 100])
 
         multi_blotter = RecordBatchBlotter(self.SIM_PARAMS_DATA_FREQUENCY)
-        multi_test_algo = TradingAlgorithm(
+        multi_test_algo = self.make_algo(
             script=dedent("""\
                 from collections import OrderedDict
                 from six import iteritems
@@ -1691,13 +1627,12 @@ def handle_data(context, data):
 
             """).format(share_counts=list(share_counts)),
             blotter=multi_blotter,
-            env=self.env,
         )
         multi_stats = multi_test_algo.run(self.data_portal)
         self.assertFalse(multi_blotter.order_batch_called)
 
         batch_blotter = RecordBatchBlotter(self.SIM_PARAMS_DATA_FREQUENCY)
-        batch_test_algo = TradingAlgorithm(
+        batch_test_algo = self.make_algo(
             script=dedent("""\
                 import pandas as pd
 
@@ -1722,9 +1657,8 @@ def handle_data(context, data):
 
             """).format(share_counts=list(share_counts)),
             blotter=batch_blotter,
-            env=self.env,
         )
-        batch_stats = batch_test_algo.run(self.data_portal)
+        batch_stats = batch_test_algo.run()
         self.assertTrue(batch_blotter.order_batch_called)
 
         for stats in (multi_stats, batch_stats):
@@ -1740,7 +1674,7 @@ def handle_data(context, data):
         share_counts = [50, 0]
 
         batch_blotter = RecordBatchBlotter(self.SIM_PARAMS_DATA_FREQUENCY)
-        batch_test_algo = TradingAlgorithm(
+        batch_test_algo = self.make_algo(
             script=dedent("""\
                 import pandas as pd
 
@@ -1764,9 +1698,8 @@ def handle_data(context, data):
 
             """).format(share_counts=share_counts),
             blotter=batch_blotter,
-            env=self.env,
         )
-        batch_test_algo.run(self.data_portal)
+        batch_test_algo.run()
         self.assertTrue(batch_blotter.order_batch_called)
 
     def test_order_dead_asset(self):
@@ -1778,7 +1711,7 @@ def handle_data(context, data):
         )
 
         # order method shouldn't blow up
-        test_algo = TradingAlgorithm(
+        self.run_algorithm(
             script="""
 from zipline.api import order, sid
 
@@ -1788,15 +1721,11 @@ def initialize(context):
 def handle_data(context, data):
     order(sid(0), 10)
         """,
-            sim_params=params,
-            env=self.env
         )
-
-        test_algo.run(self.data_portal)
 
         # order_value and order_percent should blow up
         for order_str in ["order_value", "order_percent"]:
-            test_algo = TradingAlgorithm(
+            test_algo = self.make_algo(
                 script="""
 from zipline.api import order_percent, order_value, sid
 
@@ -1807,65 +1736,34 @@ def handle_data(context, data):
     {0}(sid(0), 10)
         """.format(order_str),
                 sim_params=params,
-                env=self.env
             )
 
         with self.assertRaises(CannotOrderDelistedAsset):
-            test_algo.run(self.data_portal)
-
-    def test_order_in_init(self):
-        """
-        Test that calling order in initialize
-        will raise an error.
-        """
-        with self.assertRaises(OrderDuringInitialize):
-            test_algo = TradingAlgorithm(
-                script=call_order_in_init,
-                sim_params=self.sim_params,
-                env=self.env,
-            )
-            test_algo.run(self.data_portal)
+            test_algo.run()
 
     def test_portfolio_in_init(self):
         """
         Test that accessing portfolio in init doesn't break.
         """
-        test_algo = TradingAlgorithm(
-            script=access_portfolio_in_init,
-            sim_params=self.sim_params,
-            env=self.env,
-        )
-        test_algo.run(self.data_portal)
+        self.run_algorithm(script=access_portfolio_in_init)
 
     def test_account_in_init(self):
         """
         Test that accessing account in init doesn't break.
         """
-        test_algo = TradingAlgorithm(
-            script=access_account_in_init,
-            sim_params=self.sim_params,
-            env=self.env,
-        )
-        test_algo.run(self.data_portal)
+        self.run_algorithm(script=access_account_in_init)
 
     def test_without_kwargs(self):
         """
         Test that api methods on the data object can be called with positional
         arguments.
         """
-
         params = SimulationParameters(
             start_session=pd.Timestamp("2006-01-10", tz='UTC'),
             end_session=pd.Timestamp("2006-01-11", tz='UTC'),
             trading_calendar=self.trading_calendar,
         )
-
-        test_algo = TradingAlgorithm(
-            script=call_without_kwargs,
-            sim_params=params,
-            env=self.env,
-        )
-        test_algo.run(self.data_portal)
+        self.run_algorithm(sim_params=params, script=call_without_kwargs)
 
     def test_good_kwargs(self):
         """
@@ -1877,13 +1775,7 @@ def handle_data(context, data):
             end_session=pd.Timestamp("2006-01-11", tz='UTC'),
             trading_calendar=self.trading_calendar,
         )
-
-        test_algo = TradingAlgorithm(
-            script=call_with_kwargs,
-            sim_params=params,
-            env=self.env,
-        )
-        test_algo.run(self.data_portal)
+        self.run_algorithm(script=call_with_kwargs, sim_params=params)
 
     @parameterized.expand([('history', call_with_bad_kwargs_history),
                            ('current', call_with_bad_kwargs_current)])
@@ -1893,13 +1785,9 @@ def handle_data(context, data):
         a meaningful TypeError that we create, rather than an unhelpful cython
         error
         """
+        algo = self.make_algo(script=algo_text)
         with self.assertRaises(TypeError) as cm:
-            test_algo = TradingAlgorithm(
-                script=algo_text,
-                sim_params=self.sim_params,
-                env=self.env,
-            )
-            test_algo.run(self.data_portal)
+            algo.run()
 
         self.assertEqual("%s() got an unexpected keyword argument 'blahblah'"
                          % name, cm.exception.args[0])
@@ -1909,13 +1797,9 @@ def handle_data(context, data):
 
         keyword = name.split('__')[1]
 
+        algo = self.make_algo(script=inputs[0])
         with self.assertRaises(TypeError) as cm:
-            algo = TradingAlgorithm(
-                script=inputs[0],
-                sim_params=self.sim_params,
-                env=self.env
-            )
-            algo.run(self.data_portal)
+            algo.run()
 
         expected = "Expected %s argument to be of type %s%s" % (
             keyword,
@@ -1932,7 +1816,7 @@ def handle_data(context, data):
             trading_calendar=self.trading_calendar,
         )
 
-        algo = TradingAlgorithm(
+        self.run_algorithm(
             script=dedent("""
                 def initialize(context):
                     pass
@@ -1941,10 +1825,7 @@ def handle_data(context, data):
                     data.history([], "price", 5, '1d')
                 """),
             sim_params=params,
-            env=self.env
         )
-
-        algo.run(self.data_portal)
 
     @parameterized.expand(
         [('bad_kwargs', call_with_bad_kwargs_get_open_orders),
@@ -1952,12 +1833,7 @@ def handle_data(context, data):
          ('no_kwargs', call_with_no_kwargs_get_open_orders)]
     )
     def test_get_open_orders_kwargs(self, name, script):
-        algo = TradingAlgorithm(
-            script=script,
-            sim_params=self.sim_params,
-            env=self.env
-        )
-
+        algo = self.make_algo(script=script)
         if name == 'bad_kwargs':
             with self.assertRaises(TypeError) as cm:
                 algo.run(self.data_portal)
@@ -1974,13 +1850,7 @@ def handle_data(context, data):
         (but more importantly, we don't crash) and don't save this Position
         to the user-facing dictionary PositionTracker._positions_store
         """
-        algo = TradingAlgorithm(
-            script=empty_positions,
-            sim_params=self.sim_params,
-            env=self.env
-        )
-
-        results = algo.run(self.data_portal)
+        results = self.run_algorithm(script=empty_positions)
         num_positions = results.num_positions
         amounts = results.amounts
         self.assertTrue(all(num_positions == 0))
@@ -2022,12 +1892,8 @@ def handle_data(context, data):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("ignore", PerformanceWarning)
 
-            algo = TradingAlgorithm(
-                script=algocode,
-                sim_params=sim_params,
-                env=self.env
-            )
-            algo.run(self.data_portal)
+            algo = self.make_algo(script=algocode, sim_params=sim_params)
+            algo.run()
 
             self.assertEqual(len(w), 2)
 
