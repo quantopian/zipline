@@ -1002,9 +1002,7 @@ class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
             assert_equal(daily_stats.iloc[i]['position_weights'], expected)
 
 
-class TestBeforeTradingStart(WithDataPortal,
-                             WithSimParams,
-                             ZiplineTestCase):
+class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
     START_DATE = pd.Timestamp('2016-01-06', tz='utc')
     END_DATE = pd.Timestamp('2016-01-07', tz='utc')
     SIM_PARAMS_CAPITAL_BASE = 10000
@@ -1047,13 +1045,13 @@ class TestBeforeTradingStart(WithDataPortal,
             yield sid, create_minute_df_for_asset(
                 cls.trading_calendar,
                 cls.data_start,
-                cls.sim_params.end_session,
+                cls.END_DATE,
             )
 
         yield 2, create_minute_df_for_asset(
             cls.trading_calendar,
             cls.data_start,
-            cls.sim_params.end_session,
+            cls.END_DATE,
             50,
         )
         yield cls.SPLIT_ASSET_SID, split_data
@@ -1074,7 +1072,7 @@ class TestBeforeTradingStart(WithDataPortal,
             yield sid, create_daily_df_for_asset(
                 cls.trading_calendar,
                 cls.data_start,
-                cls.sim_params.end_session,
+                cls.END_DATE,
             )
 
     def test_data_in_bts_minute(self):
@@ -1100,13 +1098,8 @@ class TestBeforeTradingStart(WithDataPortal,
             pass
         """)
 
-        algo = TradingAlgorithm(
-            script=algo_code,
-            sim_params=self.sim_params,
-            env=self.env
-        )
-
-        results = algo.run(self.data_portal)
+        algo = self.make_algo(script=algo_code)
+        results = algo.run()
 
         # fetching data at midnight gets us the previous market minute's data
         self.assertEqual(390, results.iloc[0].the_price1)
@@ -1172,13 +1165,8 @@ class TestBeforeTradingStart(WithDataPortal,
             pass
         """)
 
-        algo = TradingAlgorithm(
-            script=algo_code,
-            sim_params=self.sim_params,
-            env=self.env
-        )
-
-        results = algo.run(self.data_portal)
+        algo = self.make_algo(script=algo_code)
+        results = algo.run()
 
         self.assertEqual(392, results.the_high1[0])
         self.assertEqual(390, results.the_price1[0])
@@ -1217,14 +1205,8 @@ class TestBeforeTradingStart(WithDataPortal,
             context.hd_portfolio = context.portfolio
         """)
 
-        algo = TradingAlgorithm(
-            script=algo_code,
-            data_frequency="minute",
-            sim_params=self.sim_params,
-            env=self.env
-        )
-
-        results = algo.run(self.data_portal)
+        algo = self.make_algo(script=algo_code)
+        results = algo.run()
 
         # Asset starts with price 1 on 1/05 and increases by 1 every minute.
         # Simulation starts on 1/06, where the price in bts is 390, and
@@ -1235,11 +1217,12 @@ class TestBeforeTradingStart(WithDataPortal,
 
     def test_account_bts(self):
         algo_code = dedent("""
-        from zipline.api import order, sid, record
+        from zipline.api import order, sid, record, set_slippage, slippage
 
         def initialize(context):
             context.ordered = False
             context.hd_account = context.account
+            set_slippage(slippage.VolumeShareSlippage())
 
         def before_trading_start(context, data):
             bts_account = context.account
@@ -1256,15 +1239,8 @@ class TestBeforeTradingStart(WithDataPortal,
             context.hd_account = context.account
         """)
 
-        algo = TradingAlgorithm(
-            script=algo_code,
-            data_frequency="minute",
-            sim_params=self.sim_params,
-            env=self.env,
-        )
-        algo.set_slippage(VolumeShareSlippage())
-
-        results = algo.run(self.data_portal)
+        algo = self.make_algo(script=algo_code)
+        results = algo.run()
 
         # Starting portfolio value is 10000. Order for the asset fills on the
         # second bar of 1/06, where the price is 391, and costs the default
@@ -1278,9 +1254,11 @@ class TestBeforeTradingStart(WithDataPortal,
     def test_portfolio_bts_with_overnight_split(self):
         algo_code = dedent("""
         from zipline.api import order, sid, record
+
         def initialize(context):
             context.ordered = False
             context.hd_portfolio = context.portfolio
+
         def before_trading_start(context, data):
             bts_portfolio = context.portfolio
             # Assert that the portfolio in BTS is the same as the last
@@ -1294,6 +1272,7 @@ class TestBeforeTradingStart(WithDataPortal,
             record(
                 last_sale_price=bts_portfolio.positions[sid(3)].last_sale_price
             )
+
         def handle_data(context, data):
             if not context.ordered:
                 order(sid(3), 1)
@@ -1301,14 +1280,7 @@ class TestBeforeTradingStart(WithDataPortal,
             context.hd_portfolio = context.portfolio
         """)
 
-        algo = TradingAlgorithm(
-            script=algo_code,
-            data_frequency="minute",
-            sim_params=self.sim_params,
-            env=self.env
-        )
-
-        results = algo.run(self.data_portal)
+        results = self.run_algorithm(script=algo_code)
 
         # On 1/07, positions value should by 780, same as without split
         self.assertEqual(results.pos_value.iloc[0], 0)
@@ -1324,16 +1296,21 @@ class TestBeforeTradingStart(WithDataPortal,
 
     def test_account_bts_with_overnight_split(self):
         algo_code = dedent("""
-        from zipline.api import order, sid, record
+        from zipline.api import order, sid, record, set_slippage, slippage
+
         def initialize(context):
             context.ordered = False
             context.hd_account = context.account
+            set_slippage(slippage.VolumeShareSlippage())
+
+
         def before_trading_start(context, data):
             bts_account = context.account
             # Assert that the account in BTS is the same as the last account
             # in handle_data
             assert (context.hd_account == bts_account)
             record(port_value=bts_account.equity_with_loan)
+
         def handle_data(context, data):
             if not context.ordered:
                 order(sid(1), 1)
@@ -1341,15 +1318,7 @@ class TestBeforeTradingStart(WithDataPortal,
             context.hd_account = context.account
         """)
 
-        algo = TradingAlgorithm(
-            script=algo_code,
-            data_frequency="minute",
-            sim_params=self.sim_params,
-            env=self.env,
-        )
-        algo.set_slippage(VolumeShareSlippage())
-
-        results = algo.run(self.data_portal)
+        results = self.run_algorithm(script=algo_code)
 
         # On 1/07, portfolio value is the same as without split
         self.assertEqual(results.port_value.iloc[0], 10000)
