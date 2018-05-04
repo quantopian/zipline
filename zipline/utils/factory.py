@@ -21,13 +21,9 @@ import pandas as pd
 import numpy as np
 from datetime import timedelta, datetime
 
-from zipline.assets import Asset
-from zipline.finance.transaction import Transaction
-from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.sources import SpecificEquityTrades
 from zipline.finance.trading import SimulationParameters
 from zipline.sources.test_source import create_trade
-from zipline.utils.input_validation import expect_types
 from zipline.utils.calendars import get_calendar
 
 
@@ -104,73 +100,6 @@ def create_trade_history(sid, prices, amounts, interval, sim_params,
 
     assert len(trades) == len(prices)
     return trades
-
-
-def create_dividend(sid, payment, declared_date, ex_date, pay_date):
-    div = Event({
-        'sid': sid,
-        'gross_amount': payment,
-        'net_amount': payment,
-        'payment_sid': None,
-        'ratio': None,
-        'declared_date': pd.tslib.normalize_date(declared_date),
-        'ex_date': pd.tslib.normalize_date(ex_date),
-        'pay_date': pd.tslib.normalize_date(pay_date),
-        'type': DATASOURCE_TYPE.DIVIDEND,
-        'source_id': 'MockDividendSource'
-    })
-    return div
-
-
-def create_stock_dividend(sid, payment_sid, ratio, declared_date,
-                          ex_date, pay_date):
-    return Event({
-        'sid': sid,
-        'payment_sid': payment_sid,
-        'ratio': ratio,
-        'net_amount': None,
-        'gross_amount': None,
-        'dt': pd.tslib.normalize_date(declared_date),
-        'ex_date': pd.tslib.normalize_date(ex_date),
-        'pay_date': pd.tslib.normalize_date(pay_date),
-        'type': DATASOURCE_TYPE.DIVIDEND,
-        'source_id': 'MockDividendSource'
-    })
-
-
-def create_split(sid, ratio, date):
-    return Event({
-        'sid': sid,
-        'ratio': ratio,
-        'dt': date.replace(hour=0, minute=0, second=0, microsecond=0),
-        'type': DATASOURCE_TYPE.SPLIT,
-        'source_id': 'MockSplitSource'
-    })
-
-
-@expect_types(asset=Asset)
-def create_txn(asset, price, amount, datetime, order_id):
-    return Transaction(
-        asset=asset,
-        price=price,
-        amount=amount,
-        dt=datetime,
-        order_id=order_id,
-    )
-
-
-@expect_types(asset=Asset)
-def create_txn_history(asset, priceList, amtList, interval, sim_params,
-                       trading_calendar):
-    txns = []
-    current = sim_params.first_open
-
-    for price, amount in zip(priceList, amtList):
-        dt = get_next_trading_dt(current, interval, trading_calendar)
-
-        txns.append(create_txn(asset, price, amount, dt, None))
-        current = current + interval
-    return txns
 
 
 def create_returns_from_range(sim_params):
