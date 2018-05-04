@@ -626,17 +626,6 @@ def handle_data(context, data):
     order(symbol('TEST'), 1)
 """
 
-call_order_in_init = """
-from zipline.api import (sid, order)
-
-def initialize(context):
-    order(sid(0), 10)
-    pass
-
-def handle_data(context, data):
-    pass
-"""
-
 access_portfolio_in_init = """
 def initialize(context):
     var = context.portfolio.cash
@@ -653,27 +642,6 @@ def initialize(context):
 
 def handle_data(context, data):
     pass
-"""
-
-call_all_order_methods = """
-from zipline.api import (order,
-                         order_value,
-                         order_percent,
-                         order_target,
-                         order_target_value,
-                         order_target_percent,
-                         sid)
-
-def initialize(context):
-    pass
-
-def handle_data(context, data):
-    order(sid(0), 10)
-    order_value(sid(0), 300)
-    order_percent(sid(0), .1)
-    order_target(sid(0), 100)
-    order_target_value(sid(0), 100)
-    order_target_percent(sid(0), .2)
 """
 
 record_variables = """
