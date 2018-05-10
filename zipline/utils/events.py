@@ -634,10 +634,37 @@ class calendars(object):
     US_FUTURES = sentinel('US_FUTURES')
 
 
+def _invert(d):
+    return dict(zip(d.values(), d.keys()))
+
+
+_uncalled_rules = _invert(vars(date_rules))
+_uncalled_rules.update(_invert(vars(time_rules)))
+
+
+def _check_if_not_called(v):
+    try:
+        name = _uncalled_rules[v]
+    except KeyError:
+        if not issubclass(v, EventRule):
+            return
+
+        name = getattr(v, '__name__', None)
+
+    msg = 'invalid rule: %r' % (v,)
+    if name is not None:
+        msg += ' (hint: did you mean %s())' % name
+
+    raise TypeError(msg)
+
+
 def make_eventrule(date_rule, time_rule, cal, half_days=True):
     """
     Constructs an event rule from the factory api.
     """
+    _check_if_not_called(date_rule)
+    _check_if_not_called(time_rule)
+
     if half_days:
         inner_rule = date_rule & time_rule
     else:
