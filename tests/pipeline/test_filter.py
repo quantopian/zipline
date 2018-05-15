@@ -763,6 +763,17 @@ class FilterTestCase(BasePipelineTestCase):
             mask=self.build_mask(self.ones_mask()),
         )
 
+    def test_numerical_expression_filters_are_window_safe(self):
+        class TestFactor(CustomFactor):
+            inputs = ()
+            window_length = 3
+
+            def compute(self, today, assets, out):
+                raise AssertionError("Never called")
+
+        filter_ = TestFactor() > 3
+        self.assertTrue(filter_.window_safe)
+
     @parameter_space(
         dtype=('float64', 'datetime64[ns]'),
         seed=(1, 2, 3),
