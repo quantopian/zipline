@@ -13,6 +13,7 @@ from numpy import (
 )
 
 from zipline.pipeline.term import Term, ComputableTerm
+from zipline.utils.numpy_utils import bool_dtype
 
 
 _VARIABLE_NAME_RE = re.compile("^(x_)([0-9]+)$")
@@ -185,12 +186,19 @@ class NumericalExpression(ComputableTerm):
     window_length = 0
 
     def __new__(cls, expr, binds, dtype):
+        # We always allow filters to be used in windowed computations.
+        # Otherwise, an expression is window_safe if all its constituents are
+        # window_safe.
+        window_safe = (
+            (dtype == bool_dtype) or all(t.window_safe for t in binds)
+        )
+
         return super(NumericalExpression, cls).__new__(
             cls,
             inputs=binds,
             expr=expr,
             dtype=dtype,
-            window_safe=all(t.window_safe for t in binds),
+            window_safe=window_safe,
         )
 
     def _init(self, expr, *args, **kwargs):
