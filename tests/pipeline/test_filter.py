@@ -771,6 +771,10 @@ class FilterTestCase(BasePipelineTestCase):
             def compute(self, today, assets, out):
                 raise AssertionError("Never called")
 
+        # Factors are not window safe by default.
+        factor = TestFactor()
+        self.assertFalse(factor.window_safe)
+
         filter_ = TestFactor() > 3
         self.assertTrue(filter_.window_safe)
 
