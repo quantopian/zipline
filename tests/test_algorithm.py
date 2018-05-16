@@ -16,6 +16,7 @@ import warnings
 from collections import namedtuple
 import datetime
 from datetime import timedelta
+from functools import partial
 from textwrap import dedent
 from unittest import skip
 from copy import deepcopy
@@ -75,10 +76,10 @@ from zipline.finance.asset_restrictions import (
     StaticRestrictions,
     RESTRICTION_STATES,
 )
+from zipline.finance.controls import AssetDateBounds
 from zipline.testing import (
     FakeDataPortal,
     create_daily_df_for_asset,
-    create_data_portal,
     create_data_portal_from_trade_history,
     create_minute_df_for_asset,
     make_test_handler,
@@ -97,14 +98,6 @@ from zipline.test_algorithms import (
     AmbitiousStopLimitAlgorithm,
     FutureFlipAlgo,
     TestPositionWeightsAlgorithm,
-    SetLongOnlyAlgorithm,
-    SetAssetDateBoundsAlgorithm,
-    SetMaxPositionSizeAlgorithm,
-    SetMaxOrderCountAlgorithm,
-    SetMaxOrderSizeAlgorithm,
-    SetDoNotOrderListAlgorithm,
-    SetAssetRestrictionsAlgorithm,
-    SetMultipleAssetRestrictionsAlgorithm,
     SetMaxLeverageAlgorithm,
     SetMinLeverageAlgorithm,
     api_algo,
@@ -2594,14 +2587,16 @@ class TestGetDatetime(zf.WithMakeAlgo, zf.ZiplineTestCase):
         self.assertFalse(algo.first_bar)
 
 
-class TestTradingControls(zf.WithSimParams,
-                          zf.WithDataPortal,
+class TestTradingControls(zf.WithMakeAlgo,
                           zf.ZiplineTestCase):
     START_DATE = pd.Timestamp('2006-01-03', tz='utc')
     END_DATE = pd.Timestamp('2006-01-06', tz='utc')
 
     sid = 133
     sids = ASSET_FINDER_EQUITY_SIDS = 133, 134
+
+    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    DATA_PORTAL_USE_MINUTE_DATA = True
 
     @classmethod
     def init_class_fixtures(cls):
@@ -2611,37 +2606,44 @@ class TestTradingControls(zf.WithSimParams,
 
     def _check_algo(self,
                     algo,
-                    handle_data,
                     expected_order_count,
                     expected_exc):
 
-        algo._handle_data = handle_data
         with self.assertRaises(expected_exc) if expected_exc else nop_context:
-            algo.run(self.data_portal)
+            algo.run()
         self.assertEqual(algo.order_count, expected_order_count)
 
-    def check_algo_succeeds(self, algo, handle_data, order_count=4):
+    def check_algo_succeeds(self, algo, order_count=4):
         # Default for order_count assumes one order per handle_data call.
-        self._check_algo(algo, handle_data, order_count, None)
+        self._check_algo(algo, order_count, None)
 
-    def check_algo_fails(self, algo, handle_data, order_count):
+    def check_algo_fails(self, algo, order_count):
         self._check_algo(algo,
-                         handle_data,
                          order_count,
                          TradingControlViolation)
 
     def test_set_max_position_size(self):
 
+        def initialize(self, asset, max_shares, max_notional):
+            self.set_slippage(FixedSlippage())
+            self.order_count = 0
+            self.set_max_position_size(asset=asset,
+                                       max_shares=max_shares,
+                                       max_notional=max_notional)
+
         # Buy one share four times.  Should be fine.
         def handle_data(algo, data):
             algo.order(algo.sid(self.sid), 1)
             algo.order_count += 1
-        algo = SetMaxPositionSizeAlgorithm(asset=self.asset,
-                                           max_shares=10,
-                                           max_notional=500.0,
-                                           sim_params=self.sim_params,
-                                           env=self.env)
-        self.check_algo_succeeds(algo, handle_data)
+
+        algo = self.make_algo(
+            asset=self.asset,
+            max_shares=10,
+            max_notional=500.0,
+            initialize=initialize,
+            handle_data=handle_data,
+        )
+        self.check_algo_succeeds(algo)
 
         # Buy three shares four times.  Should bail on the fourth before it's
         # placed.
@@ -2649,12 +2651,14 @@ class TestTradingControls(zf.WithSimParams,
             algo.order(algo.sid(self.sid), 3)
             algo.order_count += 1
 
-        algo = SetMaxPositionSizeAlgorithm(asset=self.asset,
-                                           max_shares=10,
-                                           max_notional=500.0,
-                                           sim_params=self.sim_params,
-                                           env=self.env)
-        self.check_algo_fails(algo, handle_data, 3)
+        algo = self.make_algo(
+            asset=self.asset,
+            max_shares=10,
+            max_notional=500.0,
+            initialize=initialize,
+            handle_data=handle_data,
+        )
+        self.check_algo_fails(algo, 3)
 
         # Buy three shares four times. Should bail due to max_notional on the
         # third attempt.
@@ -2662,36 +2666,51 @@ class TestTradingControls(zf.WithSimParams,
             algo.order(algo.sid(self.sid), 3)
             algo.order_count += 1
 
-        algo = SetMaxPositionSizeAlgorithm(asset=self.asset,
-                                           max_shares=10,
-                                           max_notional=67.0,
-                                           sim_params=self.sim_params,
-                                           env=self.env)
-        self.check_algo_fails(algo, handle_data, 2)
+        algo = self.make_algo(
+            asset=self.asset,
+            max_shares=10,
+            max_notional=67.0,
+            initialize=initialize,
+            handle_data=handle_data,
+        )
+        self.check_algo_fails(algo, 2)
 
         # Set the trading control to a different sid, then BUY ALL THE THINGS!.
         # Should continue normally.
         def handle_data(algo, data):
             algo.order(algo.sid(self.sid), 10000)
             algo.order_count += 1
-        algo = SetMaxPositionSizeAlgorithm(asset=self.another_asset,
-                                           max_shares=10,
-                                           max_notional=67.0,
-                                           sim_params=self.sim_params,
-                                           env=self.env)
-        self.check_algo_succeeds(algo, handle_data)
+
+        algo = self.make_algo(
+            asset=self.another_asset,
+            max_shares=10,
+            max_notional=67.0,
+            initialize=initialize,
+            handle_data=handle_data,
+        )
+        self.check_algo_succeeds(algo)
 
         # Set the trading control sid to None, then BUY ALL THE THINGS!. Should
         # fail because setting sid to None makes the control apply to all sids.
         def handle_data(algo, data):
             algo.order(algo.sid(self.sid), 10000)
             algo.order_count += 1
-        algo = SetMaxPositionSizeAlgorithm(max_shares=10, max_notional=61.0,
-                                           sim_params=self.sim_params,
-                                           env=self.env)
-        self.check_algo_fails(algo, handle_data, 0)
+
+        algo = self.make_algo(
+            max_shares=10,
+            max_notional=61.0,
+            asset=None,
+            initialize=initialize,
+            handle_data=handle_data,
+        )
+
+        self.check_algo_fails(algo, 0)
 
     def test_set_asset_restrictions(self):
+
+        def initialize(algo, sid, restrictions, on_error):
+            algo.order_count = 0
+            algo.set_asset_restrictions(restrictions, on_error)
 
         def handle_data(algo, data):
             algo.could_trade = data.can_trade(algo.sid(self.sid))
@@ -2706,36 +2725,39 @@ class TestTradingControls(zf.WithSimParams,
                 self.sim_params.start_session,
                 RESTRICTION_STATES.FROZEN)
         ])
-        algo = SetAssetRestrictionsAlgorithm(
+        algo = self.make_algo(
             sid=self.sid,
             restrictions=rlm,
-            sim_params=self.sim_params,
-            env=self.env,
+            on_error='fail',
+            initialize=initialize,
+            handle_data=handle_data,
         )
-        self.check_algo_fails(algo, handle_data, 0)
+        self.check_algo_fails(algo, 0)
         self.assertFalse(algo.could_trade)
 
         # Set StaticRestrictions for one sid and fail.
         rlm = StaticRestrictions([self.sid])
-        algo = SetAssetRestrictionsAlgorithm(
+        algo = self.make_algo(
             sid=self.sid,
             restrictions=rlm,
-            sim_params=self.sim_params,
-            env=self.env,
+            on_error='fail',
+            initialize=initialize,
+            handle_data=handle_data,
         )
-        self.check_algo_fails(algo, handle_data, 0)
+
+        self.check_algo_fails(algo, 0)
         self.assertFalse(algo.could_trade)
 
         # just log an error on the violation if we choose not to fail.
-        algo = SetAssetRestrictionsAlgorithm(
+        algo = self.make_algo(
             sid=self.sid,
             restrictions=rlm,
-            sim_params=self.sim_params,
-            env=self.env,
-            on_error='log'
+            on_error='log',
+            initialize=initialize,
+            handle_data=handle_data,
         )
         with make_test_handler(self) as log_catcher:
-            self.check_algo_succeeds(algo, handle_data)
+            self.check_algo_succeeds(algo)
         logs = [r.message for r in log_catcher.records]
         self.assertIn("Order for 100 shares of Equity(133 [A]) at "
                       "2006-01-03 21:00:00+00:00 violates trading constraint "
@@ -2749,13 +2771,14 @@ class TestTradingControls(zf.WithSimParams,
                 self.sim_params.start_session,
                 RESTRICTION_STATES.FROZEN) for sid in [134, 135, 136]
         ])
-        algo = SetAssetRestrictionsAlgorithm(
+        algo = self.make_algo(
             sid=self.sid,
             restrictions=rlm,
-            sim_params=self.sim_params,
-            env=self.env,
+            on_error='fail',
+            initialize=initialize,
+            handle_data=handle_data,
         )
-        self.check_algo_succeeds(algo, handle_data)
+        self.check_algo_succeeds(algo)
         self.assertTrue(algo.could_trade)
 
     @parameterized.expand([
@@ -2763,6 +2786,11 @@ class TestTradingControls(zf.WithSimParams,
         ('order_second_restricted_sid', 1)
     ])
     def test_set_multiple_asset_restrictions(self, name, to_order_idx):
+
+        def initialize(algo, restrictions1, restrictions2, on_error):
+            algo.order_count = 0
+            algo.set_asset_restrictions(restrictions1, on_error)
+            algo.set_asset_restrictions(restrictions2, on_error)
 
         def handle_data(algo, data):
             algo.could_trade1 = data.can_trade(algo.sid(self.sids[0]))
@@ -2772,17 +2800,22 @@ class TestTradingControls(zf.WithSimParams,
 
         rl1 = StaticRestrictions([self.sids[0]])
         rl2 = StaticRestrictions([self.sids[1]])
-        algo = SetMultipleAssetRestrictionsAlgorithm(
+        algo = self.make_algo(
             restrictions1=rl1,
             restrictions2=rl2,
-            sim_params=self.sim_params,
-            env=self.env,
+            initialize=initialize,
+            handle_data=handle_data,
+            on_error='fail',
         )
-        self.check_algo_fails(algo, handle_data, 0)
+        self.check_algo_fails(algo, 0)
         self.assertFalse(algo.could_trade1)
         self.assertFalse(algo.could_trade2)
 
     def test_set_do_not_order_list(self):
+
+        def initialize(self, restricted_list):
+            self.order_count = 0
+            self.set_do_not_order_list(restricted_list, on_error='fail')
 
         def handle_data(algo, data):
             algo.could_trade = data.can_trade(algo.sid(self.sid))
@@ -2790,29 +2823,36 @@ class TestTradingControls(zf.WithSimParams,
             algo.order_count += 1
 
         rlm = [self.sid]
-        algo = SetDoNotOrderListAlgorithm(
-            sid=self.sid,
+        algo = self.make_algo(
             restricted_list=rlm,
-            sim_params=self.sim_params,
-            env=self.env,
+            initialize=initialize,
+            handle_data=handle_data,
         )
 
-        self.check_algo_fails(algo, handle_data, 0)
+        self.check_algo_fails(algo, 0)
         self.assertFalse(algo.could_trade)
 
     def test_set_max_order_size(self):
+
+        def initialize(algo, asset, max_shares, max_notional):
+            algo.order_count = 0
+            algo.set_max_order_size(asset=asset,
+                                    max_shares=max_shares,
+                                    max_notional=max_notional)
 
         # Buy one share.
         def handle_data(algo, data):
             algo.order(algo.sid(self.sid), 1)
             algo.order_count += 1
 
-        algo = SetMaxOrderSizeAlgorithm(asset=self.asset,
-                                        max_shares=10,
-                                        max_notional=500.0,
-                                        sim_params=self.sim_params,
-                                        env=self.env)
-        self.check_algo_succeeds(algo, handle_data)
+        algo = self.make_algo(
+            initialize=initialize,
+            handle_data=handle_data,
+            asset=self.asset,
+            max_shares=10,
+            max_notional=500.0,
+        )
+        self.check_algo_succeeds(algo)
 
         # Buy 1, then 2, then 3, then 4 shares.  Bail on the last attempt
         # because we exceed shares.
@@ -2820,12 +2860,14 @@ class TestTradingControls(zf.WithSimParams,
             algo.order(algo.sid(self.sid), algo.order_count + 1)
             algo.order_count += 1
 
-        algo = SetMaxOrderSizeAlgorithm(asset=self.asset,
-                                        max_shares=3,
-                                        max_notional=500.0,
-                                        sim_params=self.sim_params,
-                                        env=self.env)
-        self.check_algo_fails(algo, handle_data, 3)
+        algo = self.make_algo(
+            initialize=initialize,
+            handle_data=handle_data,
+            asset=self.asset,
+            max_shares=3,
+            max_notional=500.0,
+        )
+        self.check_algo_fails(algo, 3)
 
         # Buy 1, then 2, then 3, then 4 shares.  Bail on the last attempt
         # because we exceed notional.
@@ -2833,24 +2875,29 @@ class TestTradingControls(zf.WithSimParams,
             algo.order(algo.sid(self.sid), algo.order_count + 1)
             algo.order_count += 1
 
-        algo = SetMaxOrderSizeAlgorithm(asset=self.asset,
-                                        max_shares=10,
-                                        max_notional=40.0,
-                                        sim_params=self.sim_params,
-                                        env=self.env)
-        self.check_algo_fails(algo, handle_data, 3)
+        algo = self.make_algo(
+            initialize=initialize,
+            handle_data=handle_data,
+            asset=self.asset,
+            max_shares=10,
+            max_notional=40.0,
+        )
+        self.check_algo_fails(algo, 3)
 
         # Set the trading control to a different sid, then BUY ALL THE THINGS!.
         # Should continue normally.
         def handle_data(algo, data):
             algo.order(algo.sid(self.sid), 10000)
             algo.order_count += 1
-        algo = SetMaxOrderSizeAlgorithm(asset=self.another_asset,
-                                        max_shares=1,
-                                        max_notional=1.0,
-                                        sim_params=self.sim_params,
-                                        env=self.env)
-        self.check_algo_succeeds(algo, handle_data)
+
+        algo = self.make_algo(
+            initialize=initialize,
+            handle_data=handle_data,
+            asset=self.another_asset,
+            max_shares=1,
+            max_notional=1.0,
+        )
+        self.check_algo_succeeds(algo)
 
         # Set the trading control sid to None, then BUY ALL THE THINGS!.
         # Should fail because not specifying a sid makes the trading control
@@ -2858,95 +2905,100 @@ class TestTradingControls(zf.WithSimParams,
         def handle_data(algo, data):
             algo.order(algo.sid(self.sid), 10000)
             algo.order_count += 1
-        algo = SetMaxOrderSizeAlgorithm(max_shares=1,
-                                        max_notional=1.0,
-                                        sim_params=self.sim_params,
-                                        env=self.env)
-        self.check_algo_fails(algo, handle_data, 0)
+
+        algo = self.make_algo(
+            initialize=initialize,
+            handle_data=handle_data,
+            asset=None,
+            max_shares=1,
+            max_notional=1.0,
+        )
+        self.check_algo_fails(algo, 0)
 
     def test_set_max_order_count(self):
-        start = pd.Timestamp('2006-01-05', tz='utc')
-        metadata = pd.DataFrame.from_dict(
-            {
-                1: {
-                    'symbol': 'SYM',
-                    'start_date': start,
-                    'end_date': start + timedelta(days=6),
-                    'exchange': "TEST",
-                },
-            },
-            orient='index',
+
+        def initialize(algo, count):
+            algo.order_count = 0
+            algo.set_max_order_count(count)
+
+        def handle_data(algo, data):
+            for i in range(5):
+                algo.order(self.asset, 1)
+                algo.order_count += 1
+
+        algo = self.make_algo(
+            count=3,
+            initialize=initialize,
+            handle_data=handle_data,
         )
-        with TempDirectory() as tempdir, \
-                tmp_trading_env(equities=metadata,
-                                load=self.make_load_function()) as env:
-            sim_params = factory.create_simulation_parameters(
-                start=start,
-                num_days=4,
-                data_frequency='minute',
-            )
+        with self.assertRaises(TradingControlViolation):
+            algo.run()
 
-            data_portal = create_data_portal(
-                env.asset_finder,
-                tempdir,
-                sim_params,
-                [1],
-                self.trading_calendar,
-            )
+        self.assertEqual(algo.order_count, 3)
 
-            def handle_data(algo, data):
+    def test_set_max_order_count_minutely(self):
+        sim_params = self.make_simparams(data_frequency='minute')
+
+        def initialize(algo, max_orders_per_day):
+            algo.minute_count = 0
+            algo.order_count = 0
+            algo.set_max_order_count(max_orders_per_day)
+
+        # Order 5 times twice in a single day, and set a max order count of
+        # 9. The last order of the second batch should fail.
+        def handle_data(algo, data):
+            if algo.minute_count == 0 or algo.minute_count == 100:
                 for i in range(5):
-                    algo.order(algo.sid(1), 1)
+                    algo.order(self.asset, 1)
                     algo.order_count += 1
 
-            algo = SetMaxOrderCountAlgorithm(3, sim_params=sim_params,
-                                             env=env)
-            with self.assertRaises(TradingControlViolation):
-                algo._handle_data = handle_data
-                algo.run(data_portal)
+            algo.minute_count += 1
 
-            self.assertEqual(algo.order_count, 3)
+        algo = self.make_algo(
+            initialize=initialize,
+            handle_data=handle_data,
+            max_orders_per_day=9,
+            sim_params=sim_params,
+        )
 
-            # This time, order 5 times twice in a single day. The last order
-            # of the second batch should fail.
-            def handle_data2(algo, data):
-                if algo.minute_count == 0 or algo.minute_count == 100:
-                    for i in range(5):
-                        algo.order(algo.sid(1), 1)
-                        algo.order_count += 1
+        with self.assertRaises(TradingControlViolation):
+            algo.run()
 
-                algo.minute_count += 1
+        self.assertEqual(algo.order_count, 9)
 
-            algo = SetMaxOrderCountAlgorithm(9, sim_params=sim_params,
-                                             env=env)
-            with self.assertRaises(TradingControlViolation):
-                algo._handle_data = handle_data2
-                algo.run(data_portal)
+        # Set a limit of 5 orders per day, and order 5 times in the first
+        # minute of each day. This should succeed because the counter gets
+        # reset each day.
+        def handle_data(algo, data):
+            if (algo.minute_count % 390) == 0:
+                for i in range(5):
+                    algo.order(self.asset, 1)
+                    algo.order_count += 1
 
-            self.assertEqual(algo.order_count, 9)
+            algo.minute_count += 1
 
-            def handle_data3(algo, data):
-                if (algo.minute_count % 390) == 0:
-                    for i in range(5):
-                        algo.order(algo.sid(1), 1)
-                        algo.order_count += 1
+        algo = self.make_algo(
+            initialize=initialize,
+            handle_data=handle_data,
+            max_orders_per_day=5,
+            sim_params=sim_params,
+        )
+        algo.run()
 
-                algo.minute_count += 1
-
-            # Only 5 orders are placed per day, so this should pass even
-            # though in total more than 20 orders are placed.
-            algo = SetMaxOrderCountAlgorithm(5, sim_params=sim_params,
-                                             env=env)
-            algo._handle_data = handle_data3
-            algo.run(data_portal)
+        # 5 orders per day times 4 days.
+        self.assertEqual(algo.order_count, 20)
 
     def test_long_only(self):
+        def initialize(algo):
+            algo.order_count = 0
+            algo.set_long_only()
+
         # Sell immediately -> fail immediately.
         def handle_data(algo, data):
             algo.order(algo.sid(self.sid), -1)
             algo.order_count += 1
-        algo = SetLongOnlyAlgorithm(sim_params=self.sim_params, env=self.env)
-        self.check_algo_fails(algo, handle_data, 0)
+        algo = self.make_algo(initialize=initialize, handle_data=handle_data)
+        self.check_algo_fails(algo, 0)
 
         # Buy on even days, sell on odd days.  Never takes a short position, so
         # should succeed.
@@ -2956,16 +3008,16 @@ class TestTradingControls(zf.WithSimParams,
             else:
                 algo.order(algo.sid(self.sid), -1)
             algo.order_count += 1
-        algo = SetLongOnlyAlgorithm(sim_params=self.sim_params, env=self.env)
-        self.check_algo_succeeds(algo, handle_data)
+        algo = self.make_algo(initialize=initialize, handle_data=handle_data)
+        self.check_algo_succeeds(algo)
 
         # Buy on first three days, then sell off holdings.  Should succeed.
         def handle_data(algo, data):
             amounts = [1, 1, 1, -3]
             algo.order(algo.sid(self.sid), amounts[algo.order_count])
             algo.order_count += 1
-        algo = SetLongOnlyAlgorithm(sim_params=self.sim_params, env=self.env)
-        self.check_algo_succeeds(algo, handle_data)
+        algo = self.make_algo(initialize=initialize, handle_data=handle_data)
+        self.check_algo_succeeds(algo)
 
         # Buy on first three days, then sell off holdings plus an extra share.
         # Should fail on the last sale.
@@ -2973,8 +3025,8 @@ class TestTradingControls(zf.WithSimParams,
             amounts = [1, 1, 1, -4]
             algo.order(algo.sid(self.sid), amounts[algo.order_count])
             algo.order_count += 1
-        algo = SetLongOnlyAlgorithm(sim_params=self.sim_params, env=self.env)
-        self.check_algo_fails(algo, handle_data, 3)
+        algo = self.make_algo(initialize=initialize, handle_data=handle_data)
+        self.check_algo_fails(algo, 3)
 
     def test_register_post_init(self):
 
@@ -2991,83 +3043,64 @@ class TestTradingControls(zf.WithSimParams,
             with self.assertRaises(RegisterTradingControlPostInit):
                 algo.set_long_only()
 
-        algo = TradingAlgorithm(initialize=initialize,
-                                handle_data=handle_data,
-                                sim_params=self.sim_params,
-                                env=self.env)
-        algo.run(self.data_portal)
+        self.run_algorithm(initialize=initialize, handle_data=handle_data)
+
+
+class TestAssetDateBounds(zf.WithMakeAlgo, zf.ZiplineTestCase):
+
+    START_DATE = pd.Timestamp('2014-01-02', tz='UTC')
+    END_DATE = pd.Timestamp('2014-01-03', tz='UTC')
+    SIM_PARAMS_START_DATE = END_DATE  # Only run for one day.
+
+    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    DATA_PORTAL_USE_MINUTE_DATA = False
+
+    BENCHMARK_SID = 3
+
+    @classmethod
+    def make_equity_info(cls):
+        T = partial(pd.Timestamp, tz='UTC')
+        return pd.DataFrame.from_records([
+            {'sid': 1,
+             'symbol': 'OLD',
+             'start_date': T('1990'),
+             'end_date': T('1991'),
+             'exchange': 'TEST'},
+            {'sid': 2,
+             'symbol': 'NEW',
+             'start_date': T('2017'),
+             'end_date': T('2018'),
+             'exchange': 'TEST'},
+            {'sid': 3,
+             'symbol': 'GOOD',
+             'start_date': cls.START_DATE,
+             'end_date': cls.END_DATE,
+             'exchange': 'TEST'},
+        ])
 
     def test_asset_date_bounds(self):
-        metadata = pd.DataFrame([{
-            'symbol': 'SYM',
-            'start_date': self.sim_params.start_session,
-            'end_date': '2020-01-01',
-            'exchange': "TEST",
-            'sid': 999,
-        }])
-        with TempDirectory() as tempdir, \
-                tmp_trading_env(equities=metadata,
-                                load=self.make_load_function()) as env:
-            algo = SetAssetDateBoundsAlgorithm(
-                sim_params=self.sim_params,
-                env=env,
-            )
-            data_portal = create_data_portal(
-                env.asset_finder,
-                tempdir,
-                self.sim_params,
-                [999],
-                self.trading_calendar,
-            )
-            algo.run(data_portal)
+        def initialize(algo):
+            algo.ran = False
+            algo.register_trading_control(AssetDateBounds(on_error='fail'))
 
-        metadata = pd.DataFrame([{
-            'symbol': 'SYM',
-            'start_date': '1989-01-01',
-            'end_date': '1990-01-01',
-            'exchange': "TEST",
-            'sid': 999,
-        }])
-        with TempDirectory() as tempdir, \
-                tmp_trading_env(equities=metadata,
-                                load=self.make_load_function()) as env:
-            data_portal = create_data_portal(
-                env.asset_finder,
-                tempdir,
-                self.sim_params,
-                [999],
-                self.trading_calendar,
-            )
-            algo = SetAssetDateBoundsAlgorithm(
-                sim_params=self.sim_params,
-                env=env,
-            )
-            with self.assertRaises(TradingControlViolation):
-                algo.run(data_portal)
+        def handle_data(algo, data):
+            # This should work because sid 3's is valid during the algo
+            # lifetime.
+            algo.order(algo.sid(3), 1)
 
-        metadata = pd.DataFrame([{
-            'symbol': 'SYM',
-            'start_date': '2020-01-01',
-            'end_date': '2021-01-01',
-            'exchange': "TEST",
-            'sid': 999,
-        }])
-        with TempDirectory() as tempdir, \
-                tmp_trading_env(equities=metadata,
-                                load=self.make_load_function()) as env:
-            data_portal = create_data_portal(
-                env.asset_finder,
-                tempdir,
-                self.sim_params,
-                [999],
-                self.trading_calendar,
-            )
-            algo = SetAssetDateBoundsAlgorithm(
-                sim_params=self.sim_params,
-                env=env,
-            )
+            # Sid already expired.
             with self.assertRaises(TradingControlViolation):
-                algo.run(data_portal)
+                algo.order(algo.sid(1), 1)
+
+            # Sid doesn't exist yet.
+            with self.assertRaises(TradingControlViolation):
+                algo.order(algo.sid(2), 1)
+
+            algo.ran = True
+
+        algo = self.make_algo(initialize=initialize, handle_data=handle_data)
+        algo.run()
+        self.assertTrue(algo.ran)
 
 
 class TestAccountControls(zf.WithDataPortal,

@@ -57,7 +57,6 @@ from ..data.us_equity_pricing import (
     SQLiteAdjustmentWriter,
 )
 from ..finance.trading import SimulationParameters, TradingEnvironment
-from ..utils import factory
 from ..utils.classproperty import classproperty
 from ..utils.final import FinalMeta, final
 

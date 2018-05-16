@@ -93,7 +93,6 @@ from zipline.finance.execution import (
     StopLimitOrder,
     StopOrder,
 )
-from zipline.finance.controls import AssetDateBounds
 
 
 class TestAlgorithm(TradingAlgorithm):
@@ -243,69 +242,6 @@ class SetMinLeverageAlgorithm(TradingAlgorithm):
 ############################
 # TradingControl Test Algos#
 ############################
-
-
-class SetMaxPositionSizeAlgorithm(TradingAlgorithm):
-    def initialize(self, asset=None, max_shares=None, max_notional=None):
-        self.set_slippage(FixedSlippage())
-        self.order_count = 0
-        self.set_max_position_size(asset=asset,
-                                   max_shares=max_shares,
-                                   max_notional=max_notional)
-
-
-class SetMaxOrderSizeAlgorithm(TradingAlgorithm):
-    def initialize(self, asset=None, max_shares=None, max_notional=None):
-        self.order_count = 0
-        self.set_max_order_size(asset=asset,
-                                max_shares=max_shares,
-                                max_notional=max_notional)
-
-
-class SetDoNotOrderListAlgorithm(TradingAlgorithm):
-    def initialize(self, sid=None, restricted_list=None, on_error='fail'):
-        self.order_count = 0
-        self.set_do_not_order_list(restricted_list, on_error)
-
-
-class SetAssetRestrictionsAlgorithm(TradingAlgorithm):
-    def initialize(self, sid=None, restrictions=None, on_error='fail'):
-        self.order_count = 0
-        self.set_asset_restrictions(restrictions, on_error)
-
-
-class SetMultipleAssetRestrictionsAlgorithm(TradingAlgorithm):
-    def initialize(self, restrictions1, restrictions2, on_error='fail'):
-        self.order_count = 0
-        self.set_asset_restrictions(restrictions1, on_error)
-        self.set_asset_restrictions(restrictions2, on_error)
-
-
-class SetMaxOrderCountAlgorithm(TradingAlgorithm):
-    def initialize(self, count):
-        self.order_count = 0
-        self.set_max_order_count(count)
-        self.minute_count = 0
-
-
-class SetLongOnlyAlgorithm(TradingAlgorithm):
-    def initialize(self):
-        self.order_count = 0
-        self.set_long_only()
-
-
-class SetAssetDateBoundsAlgorithm(TradingAlgorithm):
-    """
-    Algorithm that tries to order 1 share of sid 999 on every bar and has an
-    AssetDateBounds() trading control in place.
-    """
-    def initialize(self):
-        self.register_trading_control(AssetDateBounds(on_error='fail'))
-
-    def handle_data(algo, data):
-        algo.order(algo.sid(999), 1)
-
-
 class AmbitiousStopLimitAlgorithm(TradingAlgorithm):
     """
     Algorithm that tries to buy with extremely low stops/limits and tries to
