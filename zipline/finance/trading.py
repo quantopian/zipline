@@ -71,10 +71,6 @@ class TradingEnvironment(object):
         construct an AssetFinder.
     """
 
-    # Token used as a substitute for pickling objects that contain a
-    # reference to a TradingEnvironment
-    PERSISTENT_TOKEN = "<TradingEnvironment>"
-
     def __init__(
         self,
         load=None,
