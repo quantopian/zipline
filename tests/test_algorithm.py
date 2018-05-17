@@ -18,7 +18,6 @@ import datetime
 from datetime import timedelta
 from functools import partial
 from textwrap import dedent
-from unittest import skip
 from copy import deepcopy
 
 import logbook
@@ -3409,8 +3408,12 @@ class TestFuturesAlgo(zf.WithDataPortal,
             self.assertEqual(txn['price'], expected_price)
 
 
-class TestTradingAlgorithm(zf.WithTradingEnvironment,
-                           zf.ZiplineTestCase):
+class TestAnalyzeAPIMethod(zf.WithMakeAlgo, zf.ZiplineTestCase):
+    START_DATE = pd.Timestamp('2016-01-05', tz='utc')
+    END_DATE = pd.Timestamp('2016-01-05', tz='utc')
+    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    DATA_PORTAL_USE_MINUTE_DATA = False
+
     def test_analyze_called(self):
         self.perf_ref = None
 
@@ -3423,16 +3426,10 @@ class TestTradingAlgorithm(zf.WithTradingEnvironment,
         def analyze(context, perf):
             self.perf_ref = perf
 
-        algo = TradingAlgorithm(
-            initialize=initialize,
-            handle_data=handle_data,
-            analyze=analyze,
-            env=self.env,
+        algo = self.make_algo(
+            initialize=initialize, handle_data=handle_data, analyze=analyze,
         )
-
-        data_portal = FakeDataPortal(self.env)
-        results = algo.run(data_portal)
-
+        results = algo.run()
         self.assertIs(results, self.perf_ref)
 
 
