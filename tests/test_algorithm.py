@@ -96,7 +96,6 @@ from zipline.test_algorithms import (
     access_account_in_init,
     access_portfolio_in_init,
     AmbitiousStopLimitAlgorithm,
-    FutureFlipAlgo,
     TestPositionWeightsAlgorithm,
     SetMaxLeverageAlgorithm,
     SetMinLeverageAlgorithm,
@@ -3207,69 +3206,6 @@ class TestAccountControls(zf.WithDataPortal,
                                        sim_params=self.sim_params,
                                        env=self.env)
         self.check_algo_succeeds(algo, handle_data)
-
-
-class TestFutureFlip(zf.WithDataPortal,
-                     zf.WithSimParams,
-                     zf.ZiplineTestCase):
-    START_DATE = pd.Timestamp('2006-01-09', tz='utc')
-    END_DATE = pd.Timestamp('2006-01-10', tz='utc')
-    sid, = ASSET_FINDER_EQUITY_SIDS = (1,)
-
-    @classmethod
-    def make_equity_daily_bar_data(cls):
-        return trades_by_sid_to_dfs(
-            {
-                cls.sid: factory.create_trade_history(
-                    cls.sid,
-                    [1, 2],
-                    [1e9, 1e9],
-                    timedelta(days=1),
-                    cls.sim_params,
-                    cls.trading_calendar,
-                ),
-            },
-            index=cls.sim_params.sessions,
-        )
-
-    @skip('broken in zipline 1.0.0')
-    def test_flip_algo(self):
-        metadata = {1: {'symbol': 'TEST',
-                        'start_date': self.sim_params.trading_days[0],
-                        'end_date': self.trading_calendar.next_session_label(
-                            self.sim_params.sessions[-1]
-                        ),
-                        'multiplier': 5}}
-
-        self.env.write_data(futures_data=metadata)
-
-        algo = FutureFlipAlgo(sid=1, amount=1, env=self.env,
-                              commission=PerShare(0),
-                              order_count=0,  # not applicable but required
-                              sim_params=self.sim_params)
-
-        results = algo.run(self.data_portal)
-
-        expected_positions = [0, 1, -1]
-        self.check_algo_positions(results, expected_positions)
-
-        expected_pnl = [0, 5, -10]
-        self.check_algo_pnl(results, expected_pnl)
-
-    def check_algo_pnl(self, results, expected_pnl):
-        np.testing.assert_array_almost_equal(results.pnl, expected_pnl)
-
-    def check_algo_positions(self, results, expected_positions):
-        for i, amount in enumerate(results.positions):
-            if amount:
-                actual_position = amount[0]['amount']
-            else:
-                actual_position = 0
-
-            self.assertEqual(
-                actual_position, expected_positions[i],
-                "position for day={0} not equal, actual={1}, expected={2}".
-                format(i, actual_position, expected_positions[i]))
 
 
 class TestFuturesAlgo(zf.WithDataPortal,
