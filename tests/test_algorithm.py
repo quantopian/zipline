@@ -3207,9 +3207,7 @@ class TestAccountControls(zf.WithDataPortal,
         self.check_algo_succeeds(algo, handle_data)
 
 
-class TestFuturesAlgo(zf.WithDataPortal,
-                      zf.WithSimParams,
-                      zf.ZiplineTestCase):
+class TestFuturesAlgo(zf.WithMakeAlgo, zf.ZiplineTestCase):
     START_DATE = pd.Timestamp('2016-01-06', tz='utc')
     END_DATE = pd.Timestamp('2016-01-07', tz='utc')
     FUTURE_MINUTE_BAR_START_DATE = pd.Timestamp('2016-01-05', tz='UTC')
@@ -3218,6 +3216,7 @@ class TestFuturesAlgo(zf.WithDataPortal,
 
     TRADING_CALENDAR_STRS = ('us_futures',)
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
+    BENCHMARK_SID = None
 
     @classmethod
     def make_futures_info(cls):
@@ -3279,13 +3278,11 @@ class TestFuturesAlgo(zf.WithDataPortal,
             """
         )
 
-        algo = TradingAlgorithm(
+        algo = self.make_algo(
             script=algo_code,
-            sim_params=self.sim_params,
-            env=self.env,
             trading_calendar=get_calendar('us_futures'),
         )
-        algo.run(self.data_portal)
+        algo.run()
 
         # Assert that we were able to retrieve history data for minutes outside
         # of the 6:31am US/Eastern to 5:00pm US/Eastern futures open times.
@@ -3348,13 +3345,11 @@ class TestFuturesAlgo(zf.WithDataPortal,
 
     def test_fixed_future_slippage(self):
         algo_code = self.algo_with_slippage('FixedSlippage(spread=0.10)')
-        algo = TradingAlgorithm(
+        algo = self.make_algo(
             script=algo_code,
-            sim_params=self.sim_params,
-            env=self.env,
             trading_calendar=get_calendar('us_futures'),
         )
-        results = algo.run(self.data_portal)
+        results = algo.run()
 
         # Flatten the list of transactions.
         all_txns = [
@@ -3377,13 +3372,11 @@ class TestFuturesAlgo(zf.WithDataPortal,
         algo_code = self.algo_with_slippage(
             'VolumeShareSlippage(volume_limit=0.05, price_impact=0.1)',
         )
-        algo = TradingAlgorithm(
+        algo = self.make_algo(
             script=algo_code,
-            sim_params=self.sim_params,
-            env=self.env,
             trading_calendar=get_calendar('us_futures'),
         )
-        results = algo.run(self.data_portal)
+        results = algo.run()
 
         # There should be no commissions.
         self.assertEqual(results['orders'][0][0]['commission'], 0.0)
