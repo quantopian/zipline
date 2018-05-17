@@ -3433,15 +3433,13 @@ class TestAnalyzeAPIMethod(zf.WithMakeAlgo, zf.ZiplineTestCase):
         self.assertIs(results, self.perf_ref)
 
 
-class TestOrderCancelation(zf.WithDataPortal,
-                           zf.WithSimParams,
-                           zf.ZiplineTestCase):
-
+class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
     START_DATE = pd.Timestamp('2016-01-05', tz='utc')
     END_DATE = pd.Timestamp('2016-01-07', tz='utc')
 
     ASSET_FINDER_EQUITY_SIDS = (1,)
     ASSET_FINDER_EQUITY_SYMBOLS = ('ASSET1',)
+    BENCHMARK_SID = None
 
     code = dedent(
         """
@@ -3474,8 +3472,8 @@ class TestOrderCancelation(zf.WithDataPortal,
     def make_equity_minute_bar_data(cls):
         asset_minutes = \
             cls.trading_calendar.minutes_for_sessions_in_range(
-                cls.sim_params.start_session,
-                cls.sim_params.end_session,
+                cls.START_DATE,
+                cls.END_DATE,
             )
 
         minutes_count = len(asset_minutes)
@@ -3503,25 +3501,22 @@ class TestOrderCancelation(zf.WithDataPortal,
                 'close': np.full(3, 1, dtype=np.float64),
                 'volume': np.full(3, 1, dtype=np.float64),
             },
-            index=cls.sim_params.sessions,
+            index=cls.equity_daily_bar_days,
         )
 
-    def prep_algo(self, cancelation_string, data_frequency="minute",
-                  amount=1000, minute_emission=False):
+    def prep_algo(self,
+                  cancelation_string,
+                  data_frequency="minute",
+                  amount=1000,
+                  minute_emission=False):
         code = self.code.format(cancelation_string, amount)
-        algo = TradingAlgorithm(
+        return self.make_algo(
             script=code,
-            env=self.env,
-            sim_params=SimulationParameters(
-                start_session=self.sim_params.start_session,
-                end_session=self.sim_params.end_session,
-                trading_calendar=self.trading_calendar,
+            sim_params=self.make_simparams(
                 data_frequency=data_frequency,
-                emission_rate='minute' if minute_emission else 'daily'
+                emission_rate='minute' if minute_emission else 'daily',
             )
         )
-
-        return algo
 
     @parameter_space(
         direction=[1, -1],
@@ -3542,7 +3537,7 @@ class TestOrderCancelation(zf.WithDataPortal,
 
         log_catcher = TestHandler()
         with log_catcher:
-            results = algo.run(self.data_portal)
+            results = algo.run()
 
             for daily_positions in results.positions:
                 self.assertEqual(1, len(daily_positions))
@@ -3592,7 +3587,7 @@ class TestOrderCancelation(zf.WithDataPortal,
 
         log_catcher = TestHandler()
         with log_catcher:
-            results = algo.run(self.data_portal)
+            results = algo.run()
 
             # order stays open throughout simulation
             np.testing.assert_array_equal([1, 1, 1],
@@ -3615,7 +3610,7 @@ class TestOrderCancelation(zf.WithDataPortal,
 
         log_catcher = TestHandler()
         with log_catcher:
-            results = algo.run(self.data_portal)
+            results = algo.run()
 
             # order stays open throughout simulation
             np.testing.assert_array_equal([1, 1, 1],
