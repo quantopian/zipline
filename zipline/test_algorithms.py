@@ -211,17 +211,6 @@ class DivByZeroAlgorithm(TradingAlgorithm):
             5 / 0
         pass
 
-
-class FutureFlipAlgo(TestAlgorithm):
-    def handle_data(self, data):
-        if len(self.portfolio.positions) > 0:
-            if self.portfolio.positions[self.asset.sid]["amount"] > 0:
-                self.order_target(self.asset, -self.amount)
-            else:
-                self.order_target(self.asset, 0)
-        else:
-            self.order_target(self.asset, self.amount)
-
 ############################
 # AccountControl Test Algos#
 ############################
