@@ -161,44 +161,6 @@ class NoopAlgorithm(TradingAlgorithm):
         pass
 
 
-class ExceptionAlgorithm(TradingAlgorithm):
-    """
-    Throw an exception from the method name specified in the
-    constructor.
-    """
-
-    def initialize(self, throw_from, sid):
-
-        self.throw_from = throw_from
-        self.asset = self.sid(sid)
-
-        if self.throw_from == "initialize":
-            raise Exception("Algo exception in initialize")
-        else:
-            pass
-
-    def set_portfolio(self, portfolio):
-        if self.throw_from == "set_portfolio":
-            raise Exception("Algo exception in set_portfolio")
-        else:
-            pass
-
-    def handle_data(self, data):
-        if self.throw_from == "handle_data":
-            raise Exception("Algo exception in handle_data")
-        else:
-            pass
-
-    def get_sid_filter(self):
-        if self.throw_from == "get_sid_filter":
-            raise Exception("Algo exception in get_sid_filter")
-        else:
-            return [self.asset]
-
-    def set_transact_setter(self, txn_sim_callable):
-        pass
-
-
 class DivByZeroAlgorithm(TradingAlgorithm):
 
     def initialize(self, sid):
