@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import warnings
-from collections import namedtuple
 import datetime
 from datetime import timedelta
 from functools import partial
@@ -41,16 +40,6 @@ from zipline.assets.continuous_futures import ContinuousFuture
 from zipline.assets.synthetic import (
     make_jagged_equity_info,
     make_simple_equity_info,
-)
-from zipline.data.data_portal import DataPortal
-from zipline.data.minute_bars import (
-    BcolzMinuteBarReader,
-    BcolzMinuteBarWriter,
-    US_EQUITIES_MINUTES_PER_DAY,
-)
-from zipline.data.us_equity_pricing import (
-    BcolzDailyBarReader,
-    BcolzDailyBarWriter,
 )
 from zipline.errors import (
     AccountControlViolation,
@@ -85,7 +74,6 @@ from zipline.testing import (
     make_trade_data_for_asset_info,
     parameter_space,
     str_to_seconds,
-    tmp_trading_env,
     to_utc,
     trades_by_sid_to_dfs,
 )
@@ -3616,150 +3604,77 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
             self.assertFalse(log_catcher.has_warnings)
 
 
-class TestEquityAutoClose(zf.WithTradingEnvironment,
-                          zf.WithTmpDir,
-                          zf.ZiplineTestCase):
+class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
     """
     Tests if delisted equities are properly removed from a portfolio holding
     positions in said equities.
     """
+    #     January 2015
+    # Su Mo Tu We Th Fr Sa
+    #              1  2  3
+    #  4  5  6  7  8  9 10
+    # 11 12 13 14 15 16 17
+    # 18 19 20 21 22 23 24
+    # 25 26 27 28 29 30 31
+    START_DATE = pd.Timestamp('2015-01-05', tz='UTC')
+    END_DATE = pd.Timestamp('2015-01-13', tz='UTC')
+
+    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    DATA_PORTAL_USE_MINUTE_DATA = False
+    BENCHMARK_SID = None
+
     @classmethod
     def init_class_fixtures(cls):
-        super(TestEquityAutoClose, cls).init_class_fixtures()
-        trading_sessions = cls.trading_calendar.all_sessions
-        start_date = pd.Timestamp('2015-01-05', tz='UTC')
-        start_date_loc = trading_sessions.get_loc(start_date)
-        test_duration = 7
-        cls.test_days = trading_sessions[
-            start_date_loc:start_date_loc + test_duration
-        ]
+        super(TestDailyEquityAutoClose, cls).init_class_fixtures()
+        cls.assets = (
+            cls.asset_finder.retrieve_all(cls.asset_finder.equities_sids)
+        )
+
+    @classmethod
+    def make_equity_info(cls):
+        cls.test_days = cls.trading_calendar.sessions_in_range(
+            cls.START_DATE, cls.END_DATE,
+        )
+        assert len(cls.test_days) == 7, "Number of days in test changed!"
         cls.first_asset_expiration = cls.test_days[2]
 
-    def make_data(self, auto_close_delta, frequency,
-                  capital_base=1.0e5):
-
-        asset_info = make_jagged_equity_info(
+        # Assets start on start date and delist every two days:
+        #
+        #     start_date   end_date auto_close_date
+        #   0 2015-01-05 2015-01-07      2015-01-09
+        #   1 2015-01-05 2015-01-09      2015-01-13
+        #   2 2015-01-05 2015-01-13      2015-01-15
+        cls.asset_info = make_jagged_equity_info(
             num_assets=3,
-            start_date=self.test_days[0],
-            first_end=self.first_asset_expiration,
-            frequency=self.trading_calendar.day,
+            start_date=cls.test_days[0],
+            first_end=cls.first_asset_expiration,
+            frequency=cls.trading_calendar.day,
             periods_between_ends=2,
-            auto_close_delta=auto_close_delta,
+            auto_close_delta=2 * cls.trading_calendar.day,
         )
+        return cls.asset_info
 
-        sids = asset_info.index
-
-        env = self.enter_instance_context(
-            tmp_trading_env(equities=asset_info,
-                            load=self.make_load_function())
+    @classmethod
+    def make_equity_daily_bar_data(cls):
+        cls.daily_data = make_trade_data_for_asset_info(
+            dates=cls.test_days,
+            asset_info=cls.asset_info,
+            price_start=10,
+            price_step_by_sid=10,
+            price_step_by_date=1,
+            volume_start=100,
+            volume_step_by_sid=100,
+            volume_step_by_date=10,
         )
+        return cls.daily_data.items()
 
-        if frequency == 'daily':
-            dates = self.test_days
-            trade_data_by_sid = make_trade_data_for_asset_info(
-                dates=dates,
-                asset_info=asset_info,
-                price_start=10,
-                price_step_by_sid=10,
-                price_step_by_date=1,
-                volume_start=100,
-                volume_step_by_sid=100,
-                volume_step_by_date=10,
-                frequency=frequency
-            )
-            path = self.tmpdir.getpath("testdaily.bcolz")
-            writer = BcolzDailyBarWriter(
-                path, self.trading_calendar, dates[0], dates[-1]
-            )
-            writer.write(iteritems(trade_data_by_sid))
-            reader = BcolzDailyBarReader(path)
-            data_portal = DataPortal(
-                env.asset_finder, self.trading_calendar,
-                first_trading_day=reader.first_trading_day,
-                equity_daily_reader=reader,
-            )
-        elif frequency == 'minute':
-            dates = self.trading_calendar.minutes_for_sessions_in_range(
-                self.test_days[0],
-                self.test_days[-1],
-            )
-            writer = BcolzMinuteBarWriter(
-                self.tmpdir.path,
-                self.trading_calendar,
-                self.test_days[0],
-                self.test_days[-1],
-                US_EQUITIES_MINUTES_PER_DAY
-            )
-            trade_data_by_sid = make_trade_data_for_asset_info(
-                writer=writer,
-                dates=dates,
-                asset_info=asset_info,
-                price_start=10,
-                price_step_by_sid=10,
-                price_step_by_date=1,
-                volume_start=100,
-                volume_step_by_sid=100,
-                volume_step_by_date=10,
-                frequency=frequency
-            )
-            reader = BcolzMinuteBarReader(self.tmpdir.path)
-            data_portal = DataPortal(
-                env.asset_finder, self.trading_calendar,
-                first_trading_day=reader.first_trading_day,
-                equity_minute_reader=reader,
-            )
-        else:
-            self.fail("Unknown frequency in make_data: %r" % frequency)
+    def daily_prices_on_tick(self, row):
+        return [
+            trades.iloc[row].close for trades in itervalues(self.daily_data)
+        ]
 
-        assets = env.asset_finder.retrieve_all(sids)
-
-        sim_params = factory.create_simulation_parameters(
-            start=self.test_days[0],
-            end=self.test_days[-1],
-            data_frequency=frequency,
-            emission_rate=frequency,
-            capital_base=capital_base,
-        )
-
-        if frequency == 'daily':
-            final_prices = {
-                asset.sid: trade_data_by_sid[asset.sid].
-                loc[asset.end_date].close
-                for asset in assets
-            }
-        else:
-            final_prices = {
-                asset.sid: trade_data_by_sid[asset.sid].loc[
-                    self.trading_calendar.session_close(asset.end_date)
-                ].close
-                for asset in assets
-            }
-
-        TestData = namedtuple(
-            'TestData',
-            [
-                'asset_info',
-                'assets',
-                'env',
-                'data_portal',
-                'final_prices',
-                'trade_data_by_sid',
-                'sim_params'
-            ],
-        )
-        return TestData(
-            asset_info=asset_info,
-            assets=assets,
-            env=env,
-            data_portal=data_portal,
-            final_prices=final_prices,
-            trade_data_by_sid=trade_data_by_sid,
-            sim_params=sim_params
-        )
-
-    def prices_on_tick(self, trades_by_sid, row):
-        return [trades.iloc[row].close
-                for trades in itervalues(trades_by_sid)]
+    def final_daily_price(self, asset):
+        return self.daily_data[asset.sid].loc[asset.end_date].close
 
     def default_initialize(self):
         """
@@ -3792,87 +3707,63 @@ class TestEquityAutoClose(zf.WithTradingEnvironment,
     @parameter_space(
         order_size=[10, -10],
         capital_base=[0, 100000],
-        auto_close_lag=[1, 2],
+        __fail_fast=True,
     )
     def test_daily_delisted_equities(self,
                                      order_size,
-                                     capital_base,
-                                     auto_close_lag):
+                                     capital_base):
         """
         Make sure that after an equity gets delisted, our portfolio holds the
         correct number of equities and correct amount of cash.
         """
-        auto_close_delta = self.trading_calendar.day * auto_close_lag
-        resources = self.make_data(auto_close_delta, 'daily', capital_base)
-
-        assets = resources.assets
-        final_prices = resources.final_prices
+        assets = self.assets
+        final_prices = {
+            asset.sid: self.final_daily_price(asset)
+            for asset in assets
+        }
 
         # Prices at which we expect our orders to be filled.
-        initial_fill_prices = \
-            self.prices_on_tick(resources.trade_data_by_sid, 1)
+        initial_fill_prices = self.daily_prices_on_tick(1)
         cost_basis = sum(initial_fill_prices) * order_size
 
         # Last known prices of assets that will be auto-closed.
         fp0 = final_prices[0]
         fp1 = final_prices[1]
 
-        algo = TradingAlgorithm(
+        algo = self.make_algo(
             initialize=self.default_initialize(),
             handle_data=self.default_handle_data(assets, order_size),
-            env=resources.env,
-            sim_params=resources.sim_params
+            sim_params=self.make_simparams(
+                capital_base=capital_base,
+                data_frequency='daily',
+            ),
         )
-        output = algo.run(resources.data_portal)
+        output = algo.run()
 
         initial_cash = capital_base
         after_fills = initial_cash - cost_basis
         after_first_auto_close = after_fills + fp0 * (order_size)
         after_second_auto_close = after_first_auto_close + fp1 * (order_size)
 
-        if auto_close_lag == 1:
-            # Day 1: Order 10 shares of each equity; there are 3 equities.
-            # Day 2: Order goes through at the day 2 price of each equity.
-            # Day 3: End date of Equity 0.
-            # Day 4: Auto close date of Equity 0. Add cash == (fp0 * size).
-            # Day 5: End date of Equity 1.
-            # Day 6: Auto close date of Equity 1. Add cash == (fp1 * size).
-            # Day 7: End date of Equity 2 and last day of backtest; no changes.
-            expected_cash = [
-                initial_cash,
-                after_fills,
-                after_fills,
-                after_first_auto_close,
-                after_first_auto_close,
-                after_second_auto_close,
-                after_second_auto_close,
-            ]
-            expected_num_positions = [0, 3, 3, 2, 2, 1, 1]
-        elif auto_close_lag == 2:
-            # Day 1: Order 10 shares of each equity; there are 3 equities.
-            # Day 2: Order goes through at the day 2 price of each equity.
-            # Day 3: End date of Equity 0.
-            # Day 4: Nothing happens.
-            # Day 5: End date of Equity 1. Auto close of equity 0.
-            #        Add cash == (fp0 * size).
-            # Day 6: Nothing happens.
-            # Day 7: End date of Equity 2 and auto-close date of Equity 1.
-            #        Add cash equal to (fp1 * size).
-            expected_cash = [
-                initial_cash,
-                after_fills,
-                after_fills,
-                after_fills,
-                after_first_auto_close,
-                after_first_auto_close,
-                after_second_auto_close,
-            ]
-            expected_num_positions = [0, 3, 3, 3, 2, 2, 1]
-        else:
-            self.fail(
-                "Don't know about auto_close lags other than 1 or 2. "
-                "Add test answers please!"
-            )
+        # Day 1: Order 10 shares of each equity; there are 3 equities.
+        # Day 2: Order goes through at the day 2 price of each equity.
+        # Day 3: End date of Equity 0.
+        # Day 4: Nothing happens.
+        # Day 5: End date of Equity 1. Auto close of equity 0.
+        #        Add cash == (fp0 * size).
+        # Day 6: Nothing happens.
+        # Day 7: End date of Equity 2 and auto-close date of Equity 1.
+        #        Add cash equal to (fp1 * size).
+        expected_cash = [
+            initial_cash,
+            after_fills,
+            after_fills,
+            after_fills,
+            after_first_auto_close,
+            after_first_auto_close,
+            after_second_auto_close,
+        ]
+        expected_num_positions = [0, 3, 3, 3, 2, 2, 1]
 
         # Check expected cash.
         self.assertEqual(expected_cash, list(output['ending_cash']))
@@ -3977,11 +3868,7 @@ class TestEquityAutoClose(zf.WithTradingEnvironment,
         canceled.  Unless an equity is auto closed, any open orders for that
         equity will persist indefinitely.
         """
-        auto_close_delta = self.trading_calendar.day
-        resources = self.make_data(auto_close_delta, 'daily')
-        env = resources.env
-        assets = resources.assets
-
+        assets = self.assets
         first_asset_end_date = assets[0].end_date
         first_asset_auto_close_date = assets[0].auto_close_date
 
@@ -4014,13 +3901,14 @@ class TestEquityAutoClose(zf.WithTradingEnvironment,
             elif today_session == day_after_auto_close:
                 assert len(context.get_open_orders()) == 0
 
-        algo = TradingAlgorithm(
+        algo = self.make_algo(
             initialize=initialize,
             handle_data=handle_data,
-            env=env,
-            sim_params=resources.sim_params
+            sim_params=self.make_simparams(
+                data_frequency='daily',
+            ),
         )
-        results = algo.run(resources.data_portal)
+        results = algo.run()
 
         orders = results['orders']
 
@@ -4063,28 +3951,132 @@ class TestEquityAutoClose(zf.WithTradingEnvironment,
             orders_after_auto_close[0],
         )
 
-    def test_minutely_delisted_equities(self):
-        resources = self.make_data(self.trading_calendar.day, 'minute')
 
-        env = resources.env
-        assets = resources.assets
-        final_prices = resources.final_prices
-        backtest_minutes = resources.trade_data_by_sid[0].index.tolist()
+# NOTE: This suite is almost the same as TestDailyEquityAutoClose, except it
+# uses minutely data instead of daily data, and the auto_close_date for
+# equities is one day after their end_date instead of two.
+class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
+                                  zf.ZiplineTestCase):
+    #     January 2015
+    # Su Mo Tu We Th Fr Sa
+    #              1  2  3
+    #  4  5  6  7  8  9 10
+    # 11 12 13 14 15 16 17
+    # 18 19 20 21 22 23 24
+    # 25 26 27 28 29 30 31
+    START_DATE = pd.Timestamp('2015-01-05', tz='UTC')
+    END_DATE = pd.Timestamp('2015-01-13', tz='UTC')
+
+    BENCHMARK_SID = None
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(TestMinutelyEquityAutoClose, cls).init_class_fixtures()
+        cls.assets = (
+            cls.asset_finder.retrieve_all(cls.asset_finder.equities_sids)
+        )
+
+    @classmethod
+    def make_equity_info(cls):
+        cls.test_days = cls.trading_calendar.sessions_in_range(
+            cls.START_DATE, cls.END_DATE,
+        )
+        cls.test_minutes = cls.trading_calendar.minutes_for_sessions_in_range(
+            cls.START_DATE, cls.END_DATE,
+        )
+        cls.first_asset_expiration = cls.test_days[2]
+
+        # Assets start on start date and delist every two days:
+        #
+        #     start_date   end_date auto_close_date
+        #   0 2015-01-05 2015-01-07      2015-01-09
+        #   1 2015-01-05 2015-01-09      2015-01-13
+        #   2 2015-01-05 2015-01-13      2015-01-15
+        cls.asset_info = make_jagged_equity_info(
+            num_assets=3,
+            start_date=cls.test_days[0],
+            first_end=cls.first_asset_expiration,
+            frequency=cls.trading_calendar.day,
+            periods_between_ends=2,
+            auto_close_delta=1 * cls.trading_calendar.day,
+        )
+        return cls.asset_info
+
+    # XXX: This test suite uses inconsistent data for minutely and daily bars.
+    @classmethod
+    def make_equity_minute_bar_data(cls):
+        cls.minute_data = make_trade_data_for_asset_info(
+            dates=cls.test_minutes,
+            asset_info=cls.asset_info,
+            price_start=10,
+            price_step_by_sid=10,
+            price_step_by_date=1,
+            volume_start=100,
+            volume_step_by_sid=100,
+            volume_step_by_date=10,
+        )
+        return cls.minute_data.items()
+
+    def minute_prices_on_tick(self, row):
+        return [
+            trades.iloc[row].close for trades in itervalues(self.minute_data)
+        ]
+
+    def final_minute_price(self, asset):
+        return self.minute_data[asset.sid].loc[
+            self.trading_calendar.session_close(asset.end_date)
+        ].close
+
+    def default_initialize(self):
+        """
+        Initialize function shared between test algos.
+        """
+        def initialize(context):
+            context.ordered = False
+            context.set_commission(PerShare(0, 0))
+            context.set_slippage(FixedSlippage(spread=0))
+            context.num_positions = []
+            context.cash = []
+
+        return initialize
+
+    def default_handle_data(self, assets, order_size):
+        """
+        Handle data function shared between test algos.
+        """
+        def handle_data(context, data):
+            if not context.ordered:
+                for asset in assets:
+                    context.order(asset, order_size)
+                context.ordered = True
+
+            context.cash.append(context.portfolio.cash)
+            context.num_positions.append(len(context.portfolio.positions))
+
+        return handle_data
+
+    def test_minutely_delisted_equities(self):
+        assets = self.assets
+        final_prices = {
+            asset.sid: self.final_minute_price(asset)
+            for asset in assets
+        }
+        backtest_minutes = self.minute_data[0].index.tolist()
 
         order_size = 10
 
         capital_base = 100000
-        algo = TradingAlgorithm(
+        algo = self.make_algo(
             initialize=self.default_initialize(),
             handle_data=self.default_handle_data(assets, order_size),
-            env=env,
-            sim_params=resources.sim_params,
-            data_frequency='minute',
+            sim_params=self.make_simparams(
+                capital_base=capital_base,
+                data_frequency='minute',
+            )
         )
 
-        output = algo.run(resources.data_portal)
-        initial_fill_prices = \
-            self.prices_on_tick(resources.trade_data_by_sid, 1)
+        output = algo.run()
+        initial_fill_prices = self.minute_prices_on_tick(1)
         cost_basis = sum(initial_fill_prices) * order_size
 
         # Last known prices of assets that will be auto-closed.
