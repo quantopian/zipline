@@ -32,7 +32,6 @@ import pandas as pd
 import pytz
 from pandas.core.common import PerformanceWarning
 
-from zipline.algorithm import TradingAlgorithm
 import zipline.api
 from zipline.api import FixedSlippage
 from zipline.assets import Equity, Future, Asset
@@ -4287,7 +4286,7 @@ class TestOrderAfterDelist(zf.WithMakeAlgo, zf.ZiplineTestCase):
                 self.assertEqual(expected_message, w.message)
 
 
-class AlgoInputValidationTestCase(zf.WithTradingEnvironment,
+class AlgoInputValidationTestCase(zf.WithMakeAlgo,
                                   zf.ZiplineTestCase):
 
     def test_reject_passing_both_api_methods_and_script(self):
@@ -4312,8 +4311,7 @@ class AlgoInputValidationTestCase(zf.WithTradingEnvironment,
                        'analyze'):
 
             with self.assertRaises(ValueError):
-                TradingAlgorithm(
+                self.make_algo(
                     script=script,
-                    env=self.env,
                     **{method: lambda *args, **kwargs: None}
                 )
