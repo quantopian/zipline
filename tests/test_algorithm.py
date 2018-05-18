@@ -53,7 +53,7 @@ from zipline.errors import (
     UnsupportedDatetimeFormat,
 )
 
-from zipline.finance.commission import PerShare
+from zipline.finance.commission import PerShare, PerTrade
 from zipline.finance.execution import LimitOrder
 from zipline.finance.order import ORDER_STATUS
 from zipline.finance.trading import SimulationParameters
@@ -81,10 +81,6 @@ import zipline.testing.fixtures as zf
 from zipline.test_algorithms import (
     access_account_in_init,
     access_portfolio_in_init,
-    AmbitiousStopLimitAlgorithm,
-    TestPositionWeightsAlgorithm,
-    SetMaxLeverageAlgorithm,
-    SetMinLeverageAlgorithm,
     api_algo,
     api_get_environment_algo,
     api_symbol_algo,
@@ -919,10 +915,56 @@ class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
             self.assertEqual(result.ix[i]['num_positions'], expected)
 
     def test_noop_orders(self):
-        algo = AmbitiousStopLimitAlgorithm(sid=1,
-                                           sim_params=self.sim_params,
-                                           env=self.env)
-        daily_stats = algo.run(self.data_portal)
+        asset = self.asset_finder.retrieve_asset(1)
+
+        # Algorithm that tries to buy with extremely low stops/limits and tries
+        # to sell with extremely high versions of same. Should not end up with
+        # any positions for reasonable data.
+        def handle_data(algo, data):
+
+            ########
+            # Buys #
+            ########
+
+            # Buy with low limit, shouldn't trigger.
+            algo.order(asset, 100, limit_price=1)
+
+            # But with high stop, shouldn't trigger
+            algo.order(asset, 100, stop_price=10000000)
+
+            # Buy with high limit (should trigger) but also high stop (should
+            # prevent trigger).
+            algo.order(asset, 100, limit_price=10000000, stop_price=10000000)
+
+            # Buy with low stop (should trigger), but also low limit (should
+            # prevent trigger).
+            algo.order(asset, 100, limit_price=1, stop_price=1)
+
+            #########
+            # Sells #
+            #########
+
+            # Sell with high limit, shouldn't trigger.
+            algo.order(asset, -100, limit_price=1000000)
+
+            # Sell with low stop, shouldn't trigger.
+            algo.order(asset, -100, stop_price=1)
+
+            # Sell with low limit (should trigger), but also high stop (should
+            # prevent trigger).
+            algo.order(asset, -100, limit_price=1000000, stop_price=1000000)
+
+            # Sell with low limit (should trigger), but also low stop (should
+            # prevent trigger).
+            algo.order(asset, -100, limit_price=1, stop_price=1)
+
+            ###################
+            # Rounding Checks #
+            ###################
+            algo.order(asset, 100, limit_price=.00000001)
+            algo.order(asset, -100, stop_price=.00000001)
+
+        daily_stats = self.run_algorithm(handle_data=handle_data)
 
         # Verify that positions are empty for all dates.
         empty_positions = daily_stats.positions.map(lambda x: len(x) == 0)
@@ -933,12 +975,32 @@ class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
         equity_1, equity_133, future_1000 = \
             self.asset_finder.retrieve_all(sids)
 
-        algo = TestPositionWeightsAlgorithm(
+        def initialize(algo, sids_and_amounts, *args, **kwargs):
+            algo.ordered = False
+            algo.sids_and_amounts = sids_and_amounts
+            algo.set_commission(
+                us_equities=PerTrade(0), us_futures=PerTrade(0),
+            )
+            algo.set_slippage(
+                us_equities=FixedSlippage(0),
+                us_futures=FixedSlippage(0),
+            )
+
+        def handle_data(algo, data):
+            if not algo.ordered:
+                for s, amount in algo.sids_and_amounts:
+                    algo.order(algo.sid(s), amount)
+                algo.ordered = True
+
+            algo.record(
+                position_weights=algo.portfolio.current_portfolio_weights,
+            )
+
+        daily_stats = self.run_algorithm(
             sids_and_amounts=zip(sids, [2, -1, 1]),
-            sim_params=self.sim_params,
-            env=self.env,
+            initialize=initialize,
+            handle_data=handle_data,
         )
-        daily_stats = algo.run(self.data_portal)
 
         expected_position_weights = [
             # No positions held on the first day.
@@ -3087,58 +3149,54 @@ class TestAssetDateBounds(zf.WithMakeAlgo, zf.ZiplineTestCase):
         self.assertTrue(algo.ran)
 
 
-class TestAccountControls(zf.WithDataPortal,
-                          zf.WithSimParams,
+class TestAccountControls(zf.WithMakeAlgo,
                           zf.ZiplineTestCase):
     START_DATE = pd.Timestamp('2006-01-03', tz='utc')
     END_DATE = pd.Timestamp('2006-01-06', tz='utc')
 
     sidint, = ASSET_FINDER_EQUITY_SIDS = (133,)
+    BENCHMARK_SID = None
+    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    DATA_PORTAL_USE_MINUTE_DATA = False
 
     @classmethod
     def make_equity_daily_bar_data(cls):
-        return trades_by_sid_to_dfs(
-            {
-                cls.sidint: factory.create_trade_history(
-                    cls.sidint,
-                    [10.0, 10.0, 11.0, 11.0],
-                    [100, 100, 100, 300],
-                    timedelta(days=1),
-                    cls.sim_params,
-                    cls.trading_calendar,
-                ),
-            },
-            index=cls.sim_params.sessions,
-        )
+        frame = pd.DataFrame(data={
+            'close': [10., 10., 11., 11.],
+            'open': [10., 10., 11., 11.],
+            'low': [9.5, 9.5, 10.45, 10.45],
+            'high': [10.5, 10.5, 11.55, 11.55],
+            'volume': [100, 100, 100, 300],
+        }, index=cls.equity_daily_bar_days)
+        yield cls.sidint, frame
 
-    def _check_algo(self,
-                    algo,
-                    handle_data,
-                    expected_exc):
-
-        algo._handle_data = handle_data
+    def _check_algo(self, algo, expected_exc):
         with self.assertRaises(expected_exc) if expected_exc else nop_context:
-            algo.run(self.data_portal)
+            algo.run()
 
-    def check_algo_succeeds(self, algo, handle_data):
+    def check_algo_succeeds(self, algo):
         # Default for order_count assumes one order per handle_data call.
-        self._check_algo(algo, handle_data, None)
+        self._check_algo(algo, None)
 
-    def check_algo_fails(self, algo, handle_data):
-        self._check_algo(algo,
-                         handle_data,
-                         AccountControlViolation)
+    def check_algo_fails(self, algo):
+        self._check_algo(algo, AccountControlViolation)
 
     def test_set_max_leverage(self):
 
-        # Set max leverage to 0 so buying one share fails.
+        def initialize(algo, max_leverage):
+            algo.set_max_leverage(max_leverage=max_leverage)
+
         def handle_data(algo, data):
             algo.order(algo.sid(self.sidint), 1)
             algo.record(latest_time=algo.get_datetime())
 
-        algo = SetMaxLeverageAlgorithm(0, sim_params=self.sim_params,
-                                       env=self.env)
-        self.check_algo_fails(algo, handle_data)
+        # Set max leverage to 0 so buying one share fails.
+        algo = self.make_algo(
+            initialize=initialize,
+            handle_data=handle_data,
+            max_leverage=0,
+        )
+        self.check_algo_fails(algo)
         self.assertEqual(
             algo.recorded_vars['latest_time'],
             pd.Timestamp('2006-01-04 21:00:00', tz='UTC'),
@@ -3148,29 +3206,44 @@ class TestAccountControls(zf.WithDataPortal,
         def handle_data(algo, data):
             algo.order(algo.sid(self.sidint), 1)
 
-        algo = SetMaxLeverageAlgorithm(1,  sim_params=self.sim_params,
-                                       env=self.env)
-        self.check_algo_succeeds(algo, handle_data)
+        algo = self.make_algo(
+            initialize=initialize,
+            handle_data=handle_data,
+            max_leverage=1,
+        )
+        self.check_algo_succeeds(algo)
 
     def test_set_min_leverage(self):
+        def initialize(algo, min_leverage, grace_period):
+            algo.set_min_leverage(
+                min_leverage=min_leverage, grace_period=grace_period
+            )
+
         def handle_data(algo, data):
             algo.order_target_percent(algo.sid(self.sidint), .5)
             algo.record(latest_time=algo.get_datetime())
+
+        # Helper for not having to pass init/handle_data at each callsite.
+        def make_algo(min_leverage, grace_period):
+            return self.make_algo(
+                initialize=initialize,
+                handle_data=handle_data,
+                min_leverage=min_leverage,
+                grace_period=grace_period,
+            )
 
         # Set min leverage to 1.
         # The algorithm will succeed because it doesn't run for more
         # than 10 days.
         offset = pd.Timedelta('10 days')
-        algo = SetMinLeverageAlgorithm(1, offset, sim_params=self.sim_params,
-                                       env=self.env)
-        self.check_algo_succeeds(algo, handle_data)
+        algo = make_algo(min_leverage=1, grace_period=offset)
+        self.check_algo_succeeds(algo)
 
         # The algorithm will fail because it doesn't reach a min leverage of 1
         # after 1 day.
         offset = pd.Timedelta('1 days')
-        algo = SetMinLeverageAlgorithm(1, offset, sim_params=self.sim_params,
-                                       env=self.env)
-        self.check_algo_fails(algo, handle_data)
+        algo = make_algo(min_leverage=1, grace_period=offset)
+        self.check_algo_fails(algo)
         self.assertEqual(
             algo.recorded_vars['latest_time'],
             pd.Timestamp('2006-01-04 21:00:00', tz='UTC'),
@@ -3178,20 +3251,16 @@ class TestAccountControls(zf.WithDataPortal,
 
         # Increase the offset to 2 days, and the algorithm fails a day later
         offset = pd.Timedelta('2 days')
-        algo = SetMinLeverageAlgorithm(1, offset, sim_params=self.sim_params,
-                                       env=self.env)
-        self.check_algo_fails(algo, handle_data)
+        algo = make_algo(min_leverage=1, grace_period=offset)
+        self.check_algo_fails(algo)
         self.assertEqual(
             algo.recorded_vars['latest_time'],
             pd.Timestamp('2006-01-05 21:00:00', tz='UTC'),
         )
 
         # Set the min_leverage to .0001 and the algorithm succeeds.
-        algo = SetMinLeverageAlgorithm(.0001,
-                                       offset,
-                                       sim_params=self.sim_params,
-                                       env=self.env)
-        self.check_algo_succeeds(algo, handle_data)
+        algo = make_algo(min_leverage=.0001, grace_period=offset)
+        self.check_algo_succeeds(algo)
 
 
 class TestFuturesAlgo(zf.WithMakeAlgo, zf.ZiplineTestCase):

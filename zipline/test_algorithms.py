@@ -211,81 +211,10 @@ class DivByZeroAlgorithm(TradingAlgorithm):
             5 / 0
         pass
 
-############################
-# AccountControl Test Algos#
-############################
-
-
-class SetMaxLeverageAlgorithm(TradingAlgorithm):
-    def initialize(self, max_leverage=None):
-        self.set_max_leverage(max_leverage=max_leverage)
-
-
-class SetMinLeverageAlgorithm(TradingAlgorithm):
-    def initialize(self, min_leverage, grace_period):
-        self.set_min_leverage(
-            min_leverage=min_leverage, grace_period=grace_period
-        )
-
 
 ############################
 # TradingControl Test Algos#
 ############################
-class AmbitiousStopLimitAlgorithm(TradingAlgorithm):
-    """
-    Algorithm that tries to buy with extremely low stops/limits and tries to
-    sell with extremely high versions of same. Should not end up with any
-    positions for reasonable data.
-    """
-
-    def initialize(self, *args, **kwargs):
-        self.asset = self.sid(kwargs.pop('sid'))
-
-    def handle_data(self, data):
-
-        ########
-        # Buys #
-        ########
-
-        # Buy with low limit, shouldn't trigger.
-        self.order(self.asset, 100, limit_price=1)
-
-        # But with high stop, shouldn't trigger
-        self.order(self.asset, 100, stop_price=10000000)
-
-        # Buy with high limit (should trigger) but also high stop (should
-        # prevent trigger).
-        self.order(self.asset, 100, limit_price=10000000, stop_price=10000000)
-
-        # Buy with low stop (should trigger), but also low limit (should
-        # prevent trigger).
-        self.order(self.asset, 100, limit_price=1, stop_price=1)
-
-        #########
-        # Sells #
-        #########
-
-        # Sell with high limit, shouldn't trigger.
-        self.order(self.asset, -100, limit_price=1000000)
-
-        # Sell with low stop, shouldn't trigger.
-        self.order(self.asset, -100, stop_price=1)
-
-        # Sell with low limit (should trigger), but also high stop (should
-        # prevent trigger).
-        self.order(self.asset, -100, limit_price=1000000, stop_price=1000000)
-
-        # Sell with low limit (should trigger), but also low stop (should
-        # prevent trigger).
-        self.order(self.asset, -100, limit_price=1, stop_price=1)
-
-        ###################
-        # Rounding Checks #
-        ###################
-        self.order(self.asset, 100, limit_price=.00000001)
-        self.order(self.asset, -100, stop_price=.00000001)
-
-
 class SetPortfolioAlgorithm(TradingAlgorithm):
     """
     An algorithm that tries to set the portfolio directly.
@@ -361,27 +290,6 @@ class EmptyPositionsAlgorithm(TradingAlgorithm):
 
         # Should be 0 when all positions are exited.
         self.record(num_positions=len(self.portfolio.positions))
-
-
-class TestPositionWeightsAlgorithm(TradingAlgorithm):
-    """
-    An algorithm that records the weights of its portfolio holdings each day.
-    """
-    def initialize(self, sids_and_amounts, *args, **kwargs):
-        self.ordered = False
-        self.sids_and_amounts = sids_and_amounts
-        self.set_commission(us_equities=PerTrade(0), us_futures=PerTrade(0))
-        self.set_slippage(
-            us_equities=FixedSlippage(0), us_futures=FixedSlippage(0),
-        )
-
-    def handle_data(self, data):
-        if not self.ordered:
-            for s, amount in self.sids_and_amounts:
-                self.order(self.sid(s), amount)
-            self.ordered = True
-
-        self.record(position_weights=self.portfolio.current_portfolio_weights)
 
 
 class InvalidOrderAlgorithm(TradingAlgorithm):
