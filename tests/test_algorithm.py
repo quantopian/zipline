@@ -3084,8 +3084,7 @@ class TestAssetDateBounds(zf.WithMakeAlgo, zf.ZiplineTestCase):
             algo.register_trading_control(AssetDateBounds(on_error='fail'))
 
         def handle_data(algo, data):
-            # This should work because sid 3's is valid during the algo
-            # lifetime.
+            # This should work because sid 3 is valid during the algo lifetime.
             algo.order(algo.sid(3), 1)
 
             # Sid already expired.
