@@ -301,9 +301,7 @@ def make_trade_data_for_asset_info(dates,
                                    price_step_by_sid,
                                    volume_start,
                                    volume_step_by_date,
-                                   volume_step_by_sid,
-                                   frequency,
-                                   writer=None):
+                                   volume_step_by_sid):
     """
     Convert the asset info dataframe into a dataframe of trade data for each
     sid, and write to the writer if provided. Write NaNs for locations where
@@ -340,10 +338,6 @@ def make_trade_data_for_asset_info(dates,
             },
             index=dates,
         )
-
-        if writer:
-            writer.write_sid(sid, df)
-
         trade_data[sid] = df
 
     return trade_data
