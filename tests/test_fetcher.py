@@ -18,14 +18,13 @@ import pandas as pd
 import numpy as np
 from mock import patch
 
-from zipline import TradingAlgorithm
 from zipline.errors import UnsupportedOrderParameters
 from zipline.sources.requests_csv import mask_requests_args
 from zipline.utils import factory
 from zipline.testing import FetcherDataPortal
 from zipline.testing.fixtures import (
     WithResponses,
-    WithSimParams,
+    WithMakeAlgo,
     ZiplineTestCase,
 )
 from .resources.fetcher_inputs.fetcher_test_data import (
@@ -43,9 +42,16 @@ from .resources.fetcher_inputs.fetcher_test_data import (
 )
 
 
+# XXX: The algorithms in this suite do way more work than they should have to.
 class FetcherTestCase(WithResponses,
-                      WithSimParams,
+                      WithMakeAlgo,
                       ZiplineTestCase):
+    START_DATE = pd.Timestamp('2006-01-03', tz='utc')
+    END_DATE = pd.Timestamp('2006-12-29', tz='utc')
+
+    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    DATA_PORTAL_USE_MINUTE_DATA = False
+    BENCHMARK_SID = None
 
     @classmethod
     def make_equity_info(cls):
@@ -101,15 +107,13 @@ class FetcherTestCase(WithResponses,
         if sim_params is None:
             sim_params = self.sim_params
 
-        test_algo = TradingAlgorithm(
+        test_algo = self.make_algo(
             script=code,
             sim_params=sim_params,
-            env=self.env,
-            data_frequency=data_frequency
+            data_frequency=data_frequency,
+            data_portal=FetcherDataPortal(self.env, self.trading_calendar),
         )
-
-        results = test_algo.run(FetcherDataPortal(self.env,
-                                                  self.trading_calendar))
+        results = test_algo.run()
 
         return results
 
@@ -128,7 +132,7 @@ class FetcherTestCase(WithResponses,
             data_frequency="minute"
         )
 
-        test_algo = TradingAlgorithm(
+        test_algo = self.make_algo(
             script="""
 from zipline.api import fetch_csv, record, sid
 
@@ -137,13 +141,10 @@ def initialize(context):
 
 def handle_data(context, data):
     record(aapl_signal=data.current(sid(24), "signal"))
-""", sim_params=sim_params, data_frequency="minute", env=self.env)
+""", sim_params=sim_params)
 
-        # manually setting data portal and getting generator because we need
-        # the minutely emission packets here.  TradingAlgorithm.run() only
-        # returns daily packets.
-        test_algo.data_portal = FetcherDataPortal(self.env,
-                                                  self.trading_calendar)
+        # manually getting generator because we need the minutely emission
+        # packets here. TradingAlgorithm.run() only returns daily packets.
         gen = test_algo.get_generator()
         perf_packets = list(gen)
 
