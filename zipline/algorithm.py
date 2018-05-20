@@ -627,9 +627,23 @@ class TradingAlgorithm(object):
               Daily performance metrics such as returns, alpha etc.
 
         """
+        # XXX: _assets_from_source is a backwards compatibility shim for old,
+        #      deprecated APIs that treat BarData like a dictionary with asset
+        #      keys. We initialize it differently depending on what kind of
+        #      data we're running against. This is kind of a mess...
         self._assets_from_source = []
 
-        if isinstance(data, DataPortal):
+        if data is None:
+            if self.data_portal is None:
+                raise ValueError(
+                    "Must pass a data portal to TradingAlgorithm() "
+                    "or to run()."
+                )
+            self._assets_from_source = self.asset_finder.retrieve_all(
+                self.asset_finder.sids
+            )
+
+        elif isinstance(data, DataPortal):
             self.data_portal = data
 
             # define the universe as all the assets in the assetfinder
