@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from pandas.core.common import PerformanceWarning
 
-from zipline import TradingAlgorithm
 from zipline.finance.trading import SimulationParameters
 from zipline.testing import (
     MockDailyBarReader,
@@ -15,8 +14,7 @@ from zipline.testing import (
 )
 from zipline.testing.fixtures import (
     WithCreateBarData,
-    WithDataPortal,
-    WithSimParams,
+    WithMakeAlgo,
     ZiplineTestCase,
 )
 from zipline.zipline_warnings import ZiplineDeprecationWarning
@@ -131,10 +129,9 @@ def handle_data(context, data):
 
 
 class TestAPIShim(WithCreateBarData,
-                  WithDataPortal,
-                  WithSimParams,
-                  ZiplineTestCase,
-                  ):
+                  WithMakeAlgo,
+                  ZiplineTestCase):
+
     START_DATE = pd.Timestamp("2016-01-05", tz='UTC')
     END_DATE = pd.Timestamp("2016-01-28", tz='UTC')
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
@@ -177,18 +174,17 @@ class TestAPIShim(WithCreateBarData,
     def init_class_fixtures(cls):
         super(TestAPIShim, cls).init_class_fixtures()
 
-        cls.asset1 = cls.env.asset_finder.retrieve_asset(1)
-        cls.asset2 = cls.env.asset_finder.retrieve_asset(2)
-        cls.asset3 = cls.env.asset_finder.retrieve_asset(3)
+        cls.asset1 = cls.asset_finder.retrieve_asset(1)
+        cls.asset2 = cls.asset_finder.retrieve_asset(2)
+        cls.asset3 = cls.asset_finder.retrieve_asset(3)
 
     def create_algo(self, code, filename=None, sim_params=None):
         if sim_params is None:
             sim_params = self.sim_params
 
-        return TradingAlgorithm(
+        return self.make_algo(
             script=code,
             sim_params=sim_params,
-            env=self.env,
             algo_filename=filename
         )
 
@@ -290,7 +286,7 @@ class TestAPIShim(WithCreateBarData,
             sim_params=test_sim_params
         )
         assert_get_history_window_called(
-            lambda: history_algorithm.run(self.data_portal),
+            lambda: history_algorithm.run(),
             is_legacy=True
         )
         assert_get_history_window_called(
@@ -316,7 +312,7 @@ class TestAPIShim(WithCreateBarData,
             warnings.simplefilter("ignore", PerformanceWarning)
             warnings.simplefilter("default", ZiplineDeprecationWarning)
             algo = self.create_algo(sid_accessor_algo)
-            algo.run(self.data_portal)
+            algo.run()
 
             # Since we're already raising a warning on doing data[sid(x)],
             # we don't want to raise an extra warning on data[sid(x)].sid.
@@ -345,7 +341,7 @@ class TestAPIShim(WithCreateBarData,
             warnings.simplefilter("ignore", PerformanceWarning)
             warnings.simplefilter("default", ZiplineDeprecationWarning)
             algo = self.create_algo(data_items_algo)
-            algo.run(self.data_portal)
+            algo.run()
 
             self.assertEqual(4, len(w))
 
@@ -371,7 +367,7 @@ class TestAPIShim(WithCreateBarData,
             warnings.simplefilter("default", ZiplineDeprecationWarning)
 
             algo = self.create_algo(simple_algo)
-            algo.run(self.data_portal)
+            algo.run()
 
             self.assertEqual(4, len(w))
 
@@ -408,7 +404,7 @@ class TestAPIShim(WithCreateBarData,
 
             algo = self.create_algo(history_algo,
                                     sim_params=sim_params)
-            algo.run(self.data_portal)
+            algo.run()
 
             self.assertEqual(1, len(w))
             self.assertEqual(ZiplineDeprecationWarning, w[0].category)
@@ -425,7 +421,7 @@ class TestAPIShim(WithCreateBarData,
         market minute and the current time, and 3) applying those adjustments
         """
         algo = self.create_algo(history_bts_algo)
-        algo.run(self.data_portal)
+        algo.run()
 
         expected_vol_without_split = np.arange(386, 391) * 100
         expected_vol_with_split = np.arange(386, 391) * 200
@@ -452,7 +448,7 @@ class TestAPIShim(WithCreateBarData,
 
             algo = self.create_algo(simple_transforms_algo,
                                     sim_params=sim_params)
-            algo.run(self.data_portal)
+            algo.run()
 
             self.assertEqual(8, len(w))
             transforms = ["mavg", "vwap", "stddev", "returns"]
@@ -515,7 +511,7 @@ class TestAPIShim(WithCreateBarData,
             warnings.simplefilter("default", ZiplineDeprecationWarning)
 
             algo = self.create_algo(simple_algo)
-            algo.run(self.data_portal)
+            algo.run()
 
             self.assertEqual(4, len(w))
 
@@ -537,7 +533,7 @@ class TestAPIShim(WithCreateBarData,
             warnings.simplefilter("default", ZiplineDeprecationWarning)
 
             algo = self.create_algo(reference_missing_position_by_int_algo)
-            algo.run(self.data_portal)
+            algo.run()
 
             self.assertEqual(1, len(w))
             self.assertEqual(
@@ -553,7 +549,7 @@ class TestAPIShim(WithCreateBarData,
             algo = self.create_algo(
                 reference_missing_position_by_unexpected_type_algo
             )
-            algo.run(self.data_portal)
+            algo.run()
 
             self.assertEqual(1, len(w))
             self.assertEqual(
