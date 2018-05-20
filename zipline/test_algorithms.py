@@ -86,7 +86,6 @@ from zipline.api import (
     sid,
 )
 from zipline.errors import UnsupportedOrderParameters
-from zipline.finance.commission import PerTrade
 from zipline.finance.execution import (
     LimitOrder,
     MarketOrder,
