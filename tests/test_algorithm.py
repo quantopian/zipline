@@ -74,7 +74,6 @@ from zipline.testing import (
     parameter_space,
     str_to_seconds,
     to_utc,
-    trades_by_sid_to_dfs,
 )
 from zipline.testing import RecordBatchBlotter
 import zipline.testing.fixtures as zf
