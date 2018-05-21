@@ -46,7 +46,6 @@ class AlgorithmSimulator(object):
         # Param Setup
         # ==============
         self.sim_params = sim_params
-        self.env = algo.trading_environment
         self.data_portal = data_portal
         self.restrictions = restrictions
 
