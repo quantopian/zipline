@@ -44,11 +44,7 @@ from zipline.testing import (
     make_cascading_boolean_array,
     parameter_space,
 )
-from zipline.testing.fixtures import (
-    WithSeededRandomPipelineEngine,
-    WithTradingEnvironment,
-    ZiplineTestCase,
-)
+import zipline.testing.fixtures as zf
 from zipline.testing.predicates import assert_equal
 from zipline.utils.numpy_utils import (
     as_column,
@@ -58,7 +54,9 @@ from zipline.utils.numpy_utils import (
 )
 
 
-class StatisticalBuiltInsTestCase(WithTradingEnvironment, ZiplineTestCase):
+class StatisticalBuiltInsTestCase(zf.WithAssetFinder,
+                                  zf.WithTradingCalendars,
+                                  zf.ZiplineTestCase):
     sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
     START_DATE = Timestamp('2015-01-31', tz='UTC')
     END_DATE = Timestamp('2015-03-01', tz='UTC')
@@ -495,8 +493,8 @@ class StatisticalBuiltInsTestCase(WithTradingEnvironment, ZiplineTestCase):
         self.assertEqual(result, expected)
 
 
-class StatisticalMethodsTestCase(WithSeededRandomPipelineEngine,
-                                 ZiplineTestCase):
+class StatisticalMethodsTestCase(zf.WithSeededRandomPipelineEngine,
+                                 zf.ZiplineTestCase):
     sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
     START_DATE = Timestamp('2015-01-31', tz='UTC')
     END_DATE = Timestamp('2015-03-01', tz='UTC')
@@ -912,7 +910,7 @@ class StatisticalMethodsTestCase(WithSeededRandomPipelineEngine,
             assert_frame_equal(output_result, expected_output_result)
 
 
-class VectorizedBetaTestCase(ZiplineTestCase):
+class VectorizedBetaTestCase(zf.ZiplineTestCase):
 
     def compare_with_empyrical(self, dependents, independent):
         INFINITY = 1000000  # close enough

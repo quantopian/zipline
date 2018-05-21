@@ -818,7 +818,7 @@ class MinuteEquityHistoryTestCase(WithHistory,
     def test_minute_regular(self, name, field, sid):
         # asset2 and asset3 both started on 1/5/2015, but asset3 trades every
         # 10 minutes
-        asset = self.env.asset_finder.retrieve_asset(sid)
+        asset = self.asset_finder.retrieve_asset(sid)
 
         # Check the first hour of equities trading.
         minutes = self.trading_calendars[Equity].minutes_for_session(
