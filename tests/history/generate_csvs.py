@@ -17,8 +17,8 @@ import random
 import numpy as np
 import pandas as pd
 
-from zipline.finance.trading import TradingEnvironment
 from zipline.data.us_equity_minutes import BcolzMinuteBarWriter
+from zipline.utils.calendars import get_calendar
 
 
 def generate_daily_test_data(first_day,
@@ -28,7 +28,8 @@ def generate_daily_test_data(first_day,
                              multipliers_list,
                              path):
 
-    days = TradingEnvironment.instance().days_in_range(first_day, last_day)
+    cal = get_calendar('NYSE')
+    days = cal.days_in_range(first_day, last_day)
 
     days_count = len(days)
     o = np.zeros(days_count, dtype=np.uint32)
@@ -108,8 +109,10 @@ def generate_minute_test_data(first_day,
         first_day, last_day)
     minutes_count = len(full_minutes)
 
-    minutes = TradingEnvironment.instance().minutes_for_days_in_range(
-        first_day, last_day)
+    cal = get_calendar('NYSE')
+    minutes = cal.minutes_for_sessions_in_range(
+        first_day, last_day
+    )
 
     o = np.zeros(minutes_count, dtype=np.uint32)
     h = np.zeros(minutes_count, dtype=np.uint32)
