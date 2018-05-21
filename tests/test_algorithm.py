@@ -115,7 +115,6 @@ from zipline.test_algorithms import (
     empty_positions,
     no_handle_data,
 )
-import zipline.test_algorithms as zta
 from zipline.testing.predicates import assert_equal
 from zipline.utils.api_support import ZiplineAPI
 from zipline.utils.calendars import get_calendar, register_calendar
@@ -528,7 +527,7 @@ def log_nyse_close(context, data):
             handle_data=handle_data,
             create_event_context=CallbackManager(pre, post),
         )
-        algo.run(self.data_portal)
+        algo.run()
 
         self.assertEqual(len(expected_data), 780)
         self.assertEqual(collected_data_pre, expected_data)
@@ -562,7 +561,6 @@ def log_nyse_close(context, data):
             initialize=nop,
             handle_data=nop,
             sim_params=self.sim_params,
-            env=self.env,
         )
 
         # Schedule something for NOT Always.
@@ -768,42 +766,6 @@ class TestSetSymbolLookupDate(zf.WithMakeAlgo, zf.ZiplineTestCase):
                 set_symbol_lookup_date('foobar')
 
         self.run_algorithm(initialize=initialize)
-
-
-class TestRunTwice(zf.WithMakeAlgo, zf.ZiplineTestCase):
-    #     January 2006
-    # Su Mo Tu We Th Fr Sa
-    #  1  2  3  4  5  6  7
-    #  8  9 10 11 12 13 14
-    # 15 16 17 18 19 20 21
-    # 22 23 24 25 26 27 28
-    # 29 30 31
-    START_DATE = pd.Timestamp('2006-01-03', tz='utc')
-    END_DATE = pd.Timestamp('2006-01-06', tz='utc')
-
-    ASSET_FINDER_EQUITY_SIDS = [0, 1, 133]
-    SIM_PARAMS_DATA_FREQUENCY = 'daily'
-    DATA_PORTAL_USE_MINUTE_DATA = False
-
-    # FIXME: Pass a benchmark source explicitly here.
-    BENCHMARK_SID = None
-
-    def test_run_twice(self):
-        algo = self.make_algo(script=zta.noop_algo)
-
-        res1 = algo.run()
-        # XXX: Calling run() twice only works if you pass a data portal
-        # explicitly on the second call, because we `del self.data_portal` at
-        # the end of an algorithm execution. Do we actually still care about
-        # the ability to double-run an algo?
-        res2 = algo.run(self.data_portal)
-
-        # There are some np.NaN values in the first row because there is not
-        # enough data to calculate the metric, e.g. beta.
-        res1 = res1.fillna(value=0)
-        res2 = res2.fillna(value=0)
-
-        np.testing.assert_array_equal(res1, res2)
 
 
 class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
@@ -1543,7 +1505,17 @@ def handle_data(context, data):
 
             # verify order -> transaction -> portfolio position.
             # --------------
+            # XXX: This is the last remaining consumer of
+            #      create_daily_trade_source.
+            trades = factory.create_daily_trade_source(
+                [0], self.sim_params, self.asset_finder, self.trading_calendar
+            )
+            data_portal = create_data_portal_from_trade_history(
+                self.asset_finder, self.trading_calendar, tempdir,
+                self.sim_params, {0: trades}
+            )
             test_algo = self.make_algo(
+                data_portal=data_portal,
                 script="""
 from zipline.api import *
 
@@ -1569,12 +1541,7 @@ def handle_data(context, data):
     context.incr += 1
     """.format(commission_line),
             )
-            trades = factory.create_daily_trade_source(
-                [0], self.sim_params, self.env, self.trading_calendar)
-            data_portal = create_data_portal_from_trade_history(
-                self.env.asset_finder, self.trading_calendar, tempdir,
-                self.sim_params, {0: trades})
-            results = test_algo.run(data_portal)
+            results = test_algo.run()
 
             all_txns = [
                 val for sublist in results["transactions"].tolist()
@@ -1627,7 +1594,7 @@ def handle_data(context, data):
 
     def test_algo_record_vars(self):
         test_algo = self.make_algo(script=record_variables)
-        results = test_algo.run(self.data_portal)
+        results = test_algo.run()
 
         for i in range(1, 252):
             self.assertEqual(results.iloc[i-1]["incr"], i)
@@ -1665,7 +1632,7 @@ def handle_data(context, data):
             """).format(share_counts=list(share_counts)),
             blotter=multi_blotter,
         )
-        multi_stats = multi_test_algo.run(self.data_portal)
+        multi_stats = multi_test_algo.run()
         self.assertFalse(multi_blotter.order_batch_called)
 
         batch_blotter = RecordBatchBlotter(self.SIM_PARAMS_DATA_FREQUENCY)
@@ -1873,12 +1840,12 @@ def handle_data(context, data):
         algo = self.make_algo(script=script)
         if name == 'bad_kwargs':
             with self.assertRaises(TypeError) as cm:
-                algo.run(self.data_portal)
+                algo.run()
                 self.assertEqual('Keyword argument `sid` is no longer '
                                  'supported for get_open_orders. Use `asset` '
                                  'instead.', cm.exception.args[0])
         else:
-            algo.run(self.data_portal)
+            algo.run()
 
     def test_empty_positions(self):
         """
@@ -4294,7 +4261,7 @@ class TestOrderAfterDelist(zf.WithMakeAlgo, zf.ZiplineTestCase):
     # FakeDataPortal with different mock data.
     def init_instance_fixtures(self):
         super(TestOrderAfterDelist, self).init_instance_fixtures()
-        self.data_portal = FakeDataPortal(self.env)
+        self.data_portal = FakeDataPortal(self.asset_finder)
 
     @parameterized.expand([
         ('auto_close_after_end_date', 1),

@@ -20,7 +20,7 @@ import numpy as np
 from zipline.utils import factory
 
 from zipline.finance.trading import SimulationParameters
-from zipline.testing.fixtures import WithTradingEnvironment, ZiplineTestCase
+import zipline.testing.fixtures as zf
 
 from zipline.finance.metrics import _ClassicRiskMetrics as ClassicRiskMetrics
 
@@ -39,7 +39,7 @@ PERIODS = [
 ]
 
 
-class TestRisk(WithTradingEnvironment, ZiplineTestCase):
+class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
 
     def init_instance_fixtures(self):
         super(TestRisk, self).init_instance_fixtures()
@@ -172,7 +172,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
         returns = factory.create_returns_from_range(self.sim_params)
         metrics = ClassicRiskMetrics.risk_report(
             algorithm_returns=returns,
-            benchmark_returns=self.env.benchmark_returns,
+            benchmark_returns=self.benchmark_returns,
             algorithm_leverages=pd.Series(0.0, index=returns.index)
         )
 
@@ -202,7 +202,8 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
         returns = factory.create_returns_from_range(sim_params)
         metrics = ClassicRiskMetrics.risk_report(
             algorithm_returns=returns,
-            benchmark_returns=self.env.benchmark_returns,
+            # use returns from the fixture to ensure that we have enough data.
+            benchmark_returns=self.BENCHMARK_RETURNS,
             algorithm_leverages=pd.Series(0.0, index=returns.index)
         )
 
@@ -227,7 +228,8 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
         returns = returns[:-10]  # truncate the returns series to end mid-month
         metrics = ClassicRiskMetrics.risk_report(
             algorithm_returns=returns,
-            benchmark_returns=self.env.benchmark_returns,
+            # use returns from the fixture to ensure that we have enough data.
+            benchmark_returns=self.BENCHMARK_RETURNS,
             algorithm_leverages=pd.Series(0.0, index=returns.index)
         )
         total_months = 60

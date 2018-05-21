@@ -54,7 +54,7 @@ class ContinuousFuturesTestCase(zf.WithCreateBarData,
     TRADING_CALENDAR_STRS = ('us_futures',)
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
-    TRADING_ENV_FUTURE_CHAIN_PREDICATES = {
+    ASSET_FINDER_FUTURE_CHAIN_PREDICATES = {
         'BZ': partial(delivery_predicate, set(['F', 'H'])),
     }
 

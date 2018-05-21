@@ -96,7 +96,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
         days_to_use = self.sim_params.sessions[1:]
 
         source = BenchmarkSource(
-            self.env.asset_finder.retrieve_asset(1),
+            self.asset_finder.retrieve_asset(1),
             self.trading_calendar,
             days_to_use,
             self.data_portal
@@ -128,7 +128,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
         )
 
     def test_asset_not_trading(self):
-        benchmark = self.env.asset_finder.retrieve_asset(3)
+        benchmark = self.asset_finder.retrieve_asset(3)
         benchmark_start = benchmark.start_date
         benchmark_end = benchmark.end_date
 
@@ -175,7 +175,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
         )
         with tmp_reader as reader:
             data_portal = DataPortal(
-                self.env.asset_finder, self.trading_calendar,
+                self.asset_finder, self.trading_calendar,
                 first_trading_day=reader.first_trading_day,
                 equity_minute_reader=reader,
                 equity_daily_reader=self.bcolz_equity_daily_bar_reader,
@@ -183,7 +183,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
             )
 
             source = BenchmarkSource(
-                self.env.asset_finder.retrieve_asset(2),
+                self.asset_finder.retrieve_asset(2),
                 self.trading_calendar,
                 self.sim_params.sessions,
                 data_portal
@@ -214,7 +214,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
 
         with self.assertRaises(InvalidBenchmarkAsset) as exc:
             BenchmarkSource(
-                self.env.asset_finder.retrieve_asset(4),
+                self.asset_finder.retrieve_asset(4),
                 self.trading_calendar,
                 self.sim_params.sessions,
                 self.data_portal

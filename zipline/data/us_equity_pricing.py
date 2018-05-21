@@ -61,11 +61,9 @@ from zipline.data.bar_reader import (
 )
 from zipline.utils.calendars import get_calendar
 from zipline.utils.functional import apply
-from zipline.utils.preprocess import call
 from zipline.utils.input_validation import (
     expect_element,
     preprocess,
-    verify_indices_all_unique,
 )
 from zipline.utils.sqlite_utils import group_into_chunks, coerce_string_to_conn
 from zipline.utils.memoize import lazyval
@@ -748,123 +746,6 @@ class BcolzDailyBarReader(SessionBarReader):
                 return price * 0.001
         else:
             return price
-
-
-class PanelBarReader(SessionBarReader):
-    """
-    Reader for data passed as Panel.
-
-    DataPanel Structure
-    -------
-    items : Int64Index
-        Asset identifiers.  Must be unique.
-    major_axis : DatetimeIndex
-       Dates for data provided provided by the Panel.  Must be unique.
-    minor_axis : ['open', 'high', 'low', 'close', 'volume']
-       Price attributes.  Must be unique.
-
-    Attributes
-    ----------
-    The table with which this loader interacts contains the following
-    attributes:
-
-    panel : pd.Panel
-        The panel from which to read OHLCV data.
-    first_trading_day : pd.Timestamp
-        The first trading day in the dataset.
-    """
-    @preprocess(panel=call(verify_indices_all_unique))
-    @expect_element(data_frequency={'daily', 'minute'})
-    def __init__(self, trading_calendar, panel, data_frequency):
-
-        panel = panel.copy()
-        if 'volume' not in panel.minor_axis:
-            # Fake volume if it does not exist.
-            panel.loc[:, :, 'volume'] = int(1e9)
-
-        self.trading_calendar = trading_calendar
-        self._first_trading_day = trading_calendar.minute_to_session_label(
-            panel.major_axis[0]
-        )
-        last_trading_day = trading_calendar.minute_to_session_label(
-            panel.major_axis[-1]
-        )
-
-        self.sessions = trading_calendar.sessions_in_range(
-            self.first_trading_day,
-            last_trading_day
-        )
-
-        if data_frequency == 'daily':
-            self._calendar = self.sessions
-        elif data_frequency == 'minute':
-            self._calendar = trading_calendar.minutes_for_sessions_in_range(
-                self.first_trading_day,
-                last_trading_day
-            )
-
-        self.panel = panel
-
-    sessions = None
-
-    @property
-    def last_available_dt(self):
-        return self._calendar[-1]
-
-    trading_calendar = None
-
-    def load_raw_arrays(self, columns, start_dt, end_dt, assets):
-        cal = self._calendar
-        return self.panel.loc[
-            list(assets),
-            start_dt:end_dt,
-            list(columns)
-        ].reindex(major_axis=cal[cal.slice_indexer(start_dt, end_dt)]).values.T
-
-    def get_value(self, sid, dt, field):
-        """
-        Parameters
-        ----------
-        sid : int
-            The asset identifier.
-        day : datetime64-like
-            Midnight of the day for which data is requested.
-        field : string
-            The price field. e.g. ('open', 'high', 'low', 'close', 'volume')
-
-        Returns
-        -------
-        float
-            The spot price for colname of the given sid on the given day.
-            Raises a NoDataOnDate exception if the given day and sid is before
-            or after the date range of the equity.
-            Returns -1 if the day is within the date range, but the price is
-            0.
-        """
-        return self.panel.loc[sid, dt, field]
-
-    def get_last_traded_dt(self, asset, dt):
-        """
-        Parameters
-        ----------
-        asset : zipline.asset.Asset
-            The asset identifier.
-        dt : datetime64-like
-            Midnight of the day for which data is requested.
-
-        Returns
-        -------
-        pd.Timestamp : The last know dt for the asset and dt;
-                       NaT if no trade is found before the given dt.
-        """
-        try:
-            return self.panel.loc[int(asset), :dt, 'close'].last_valid_index()
-        except IndexError:
-            return NaT
-
-    @property
-    def first_trading_day(self):
-        return self._first_trading_day
 
 
 class SQLiteAdjustmentWriter(object):

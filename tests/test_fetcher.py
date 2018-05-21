@@ -103,15 +103,17 @@ class FetcherTestCase(WithResponses,
             orient='index',
         )
 
-    def run_algo(self, code, sim_params=None, data_frequency="daily"):
+    def run_algo(self, code, sim_params=None):
         if sim_params is None:
             sim_params = self.sim_params
 
         test_algo = self.make_algo(
             script=code,
             sim_params=sim_params,
-            data_frequency=data_frequency,
-            data_portal=FetcherDataPortal(self.env, self.trading_calendar),
+            data_portal=FetcherDataPortal(
+                self.asset_finder,
+                self.trading_calendar,
+            ),
         )
         results = test_algo.run()
 
@@ -535,7 +537,7 @@ def handle_data(context, data):
     record(sid_count=len(actual))
     record(bar_count=context.bar_count)
     context.bar_count += 1
-        """, sim_params=sim_params, data_frequency="minute"
+        """, sim_params=sim_params,
         )
 
         self.assertEqual(3, len(results))
@@ -568,7 +570,7 @@ def initialize(context):
 
 def before_trading_start(context, data):
     record(Short_Interest = data.current(context.stock, 'dtc'))
-""", sim_params=sim_params, data_frequency="minute")
+""", sim_params=sim_params)
 
         values = results["Short_Interest"]
         np.testing.assert_array_equal(values[0:33], np.full(33, np.nan))
@@ -607,6 +609,6 @@ def handle_data(context, data):
     assert np.isnan(data.current(context.nflx, 'invalid_column'))
     assert np.isnan(data.current(context.aapl, 'invalid_column'))
     assert np.isnan(data.current(context.aapl, 'dtc'))
-""", sim_params=sim_params, data_frequency="minute")
+""", sim_params=sim_params)
 
         self.assertEqual(3, len(results))

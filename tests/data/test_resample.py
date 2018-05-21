@@ -23,7 +23,6 @@ from six import iteritems
 
 from zipline.data.resample import (
     minute_frame_to_session_frame,
-    minute_panel_to_session_panel,
     DailyHistoryAggregator,
     MinuteResampleSessionBarReader,
     ReindexMinuteBarReader,
@@ -563,21 +562,6 @@ class TestMinuteToSession(WithEquityMinuteBarData,
             assert_almost_equal(expected.values,
                                 result.values,
                                 err_msg='sid={0}'.format(sid))
-
-    def test_minute_panel_to_session_panel(self):
-        minute_panel = pd.Panel(
-            {sid: self.equity_frames[sid]
-             for sid in self.ASSET_FINDER_EQUITY_SIDS}
-        )
-        expected = pd.Panel(
-            {sid: EXPECTED_SESSIONS[sid]
-             for sid in self.ASSET_FINDER_EQUITY_SIDS}
-        )
-        result = minute_panel_to_session_panel(
-            minute_panel,
-            self.nyse_calendar
-        )
-        assert_almost_equal(expected.values, result.values)
 
 
 class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,

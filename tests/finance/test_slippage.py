@@ -45,10 +45,11 @@ from zipline.testing import (
     tmp_bcolz_equity_minute_bar_reader,
 )
 from zipline.testing.fixtures import (
+    WithAssetFinder,
     WithCreateBarData,
     WithDataPortal,
     WithSimParams,
-    WithTradingEnvironment,
+    WithTradingCalendars,
     ZiplineTestCase,
 )
 from zipline.utils.classproperty import classproperty
@@ -96,7 +97,7 @@ class SlippageTestCase(WithCreateBarData,
     @classmethod
     def init_class_fixtures(cls):
         super(SlippageTestCase, cls).init_class_fixtures()
-        cls.ASSET133 = cls.env.asset_finder.retrieve_asset(133)
+        cls.ASSET133 = cls.asset_finder.retrieve_asset(133)
 
     def test_allowed_asset_types(self):
         # Custom equities model.
@@ -628,8 +629,8 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
     @classmethod
     def init_class_fixtures(cls):
         super(VolumeShareSlippageTestCase, cls).init_class_fixtures()
-        cls.ASSET133 = cls.env.asset_finder.retrieve_asset(133)
-        cls.ASSET1000 = cls.env.asset_finder.retrieve_asset(1000)
+        cls.ASSET133 = cls.asset_finder.retrieve_asset(133)
+        cls.ASSET1000 = cls.asset_finder.retrieve_asset(1000)
 
     def test_volume_share_slippage(self):
 
@@ -943,7 +944,8 @@ class MarketImpactTestCase(WithCreateBarData, ZiplineTestCase):
 
 
 class OrdersStopTestCase(WithSimParams,
-                         WithTradingEnvironment,
+                         WithAssetFinder,
+                         WithTradingCalendars,
                          ZiplineTestCase):
 
     START_DATE = pd.Timestamp('2006-01-05 14:31', tz='utc')
@@ -961,7 +963,7 @@ class OrdersStopTestCase(WithSimParams,
     @classmethod
     def init_class_fixtures(cls):
         super(OrdersStopTestCase, cls).init_class_fixtures()
-        cls.ASSET133 = cls.env.asset_finder.retrieve_asset(133)
+        cls.ASSET133 = cls.asset_finder.retrieve_asset(133)
 
     STOP_ORDER_CASES = {
         # Stop orders can be long/short and have their price greater or
@@ -1111,7 +1113,7 @@ class OrdersStopTestCase(WithSimParams,
         with tmp_bcolz_equity_minute_bar_reader(
                 self.trading_calendar, days, assets) as reader:
             data_portal = DataPortal(
-                self.env.asset_finder, self.trading_calendar,
+                self.asset_finder, self.trading_calendar,
                 first_trading_day=reader.first_trading_day,
                 equity_minute_reader=reader,
             )

@@ -65,59 +65,6 @@ def minute_frame_to_session_frame(minute_frame, calendar):
     return minute_frame.groupby(calendar.minute_to_session_label).agg(how)
 
 
-def minute_panel_to_session_panel(minute_panel, calendar):
-    """
-    Resample a Panel with minute data into a daily data Panel accepted by
-    PanelBarReader.
-
-    Parameters
-    ----------
-    minute_panel : pd.Panel
-        A pricing data Panel with axes:
-          * items: assets
-          * major_axis: minute pd.DatetimeIndex
-          * minor_axis: labels ['open', 'high', 'low', 'close', 'volume']
-    calendar : zipline.utils.calendars.trading_calendar.TradingCalendar
-        A TradingCalendar on which session labels to resample from minute
-        to session.
-    """
-    def get_first_valid(df):
-        """
-        Return a Series with the first non-nan value in each column.
-
-        On an all-nan column, this function gives nan.
-        """
-        # Indices of first non-nan values
-        idxs = pd.notnull(df).idxmax()
-
-        # Expand indices to one-hot boolean columns
-        indexer = pd.get_dummies(idxs).T.astype(bool)
-
-        # Preserve all indices' values, while others are masked to nan.
-        # Then `.max()` selects the non-nan value in each column.
-        return df.loc[indexer.index][indexer].max()
-
-    def sum_or_nan(df):
-        """
-        Return `df.sum()`, but nan where the whole column is nan.
-        """
-        return df.sum().mask(pd.isnull(df).all(axis=0))
-
-    def aggregator(session_panel):
-        return pd.DataFrame({
-            'open': get_first_valid(session_panel.loc[:, :, 'open']),
-            'close': get_first_valid(session_panel.loc[:, ::-1, 'close']),
-            'high': session_panel.loc[:, :, 'high'].max(),
-            'low': session_panel.loc[:, :, 'low'].min(),
-            'volume': sum_or_nan(session_panel.loc[:, :, 'volume']),
-        }).T
-
-    session_index = calendar.minute_index_to_session_labels(
-        minute_panel.major_axis
-    )
-    return minute_panel.groupby(session_index).agg(aggregator)
-
-
 def minute_to_session(column, close_locs, data, out):
     """
     Resample an array with minute data into an array with session data.

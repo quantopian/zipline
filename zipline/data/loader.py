@@ -128,7 +128,7 @@ def load_market_data(trading_day=None, trading_days=None, bm_symbol='SPY',
     '1year','2year','3year','5year','7year','10year','20year','30year'
     """
     if trading_day is None:
-        trading_day = get_calendar('NYSE').trading_day
+        trading_day = get_calendar('NYSE').day
     if trading_days is None:
         trading_days = get_calendar('NYSE').all_sessions
 
