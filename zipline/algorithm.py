@@ -205,8 +205,9 @@ class TradingAlgorithm(object):
     """
 
     def __init__(self,
-                 data_portal,
                  sim_params,
+                 data_portal=None,
+                 asset_finder=None,
                  # Algorithm API
                  namespace=None,
                  script=None,
@@ -238,7 +239,30 @@ class TradingAlgorithm(object):
 
         self._platform = platform
         self.logger = None
+
+        # XXX: This is kind of a mess.
+        # We support passing a data_portal in `run`, but we need an asset
+        # finder earlier than that to look up assets for things like
+        # set_benchmark.
         self.data_portal = data_portal
+
+        if self.data_portal is None:
+            if asset_finder is None:
+                raise ValueError(
+                    "Must pass either data_portal or asset_finder "
+                    "to TradingAlgorithm()"
+                )
+            self.asset_finder = asset_finder
+        else:
+            # Raise an error if we were passed two different asset finders.
+            # There's no world where that's a good idea.
+            if asset_finder is not None \
+               and asset_finder is not data_portal.asset_finder:
+                raise ValueError(
+                    "Inconsistent asset_finders in TradingAlgorithm()"
+                )
+            self.asset_finder = data_portal.asset_finder
+
         self.benchmark_returns = benchmark_returns
 
         # If a schedule has been provided, pop it. Otherwise, use NYSE.
@@ -251,8 +275,6 @@ class TradingAlgorithm(object):
         self._metrics_set = metrics_set
         if self._metrics_set is None:
             self._metrics_set = load_metrics_set('default')
-
-        self.asset_finder = self.data_portal.asset_finder
 
         # Initialize Pipeline API data.
         self.init_engine(get_pipeline_loader)
@@ -344,6 +366,7 @@ class TradingAlgorithm(object):
 
         # Prepare the algo for initialization
         self.initialized = False
+
         self.initialize_kwargs = initialize_kwargs or {}
 
         self.benchmark_sid = benchmark_sid
@@ -556,11 +579,23 @@ class TradingAlgorithm(object):
         """
         return self._create_generator(self.sim_params)
 
-    def run(self):
+    def run(self, data_portal=None):
         """Run the algorithm.
         """
-        if self.data_portal is None:
-            raise ValueError("Can't run algorithms multiple times.")
+        # HACK: I don't think we really want to support passing a data portal
+        # this late in the long term, but this is needed for now for backwards
+        # compat downstream.
+        if data_portal is not None:
+            self.data_portal = data_portal
+            self.asset_finder = data_portal.asset_finder
+        elif self.data_portal is None:
+            raise RuntimeError(
+                "No data portal in TradingAlgorithm.run().\n"
+                "Either pass a DataPortal to TradingAlgorithm() or to run()."
+            )
+        else:
+            assert self.asset_finder is not None, \
+                "Have data portal without asset_finder."
 
         # Create zipline and loop through simulated_trading.
         # Each iteration returns a perf dictionary
