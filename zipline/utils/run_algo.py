@@ -52,9 +52,7 @@ class _RunAlgoError(click.ClickException, ValueError):
         return self.pyfunc_msg
 
 
-def _run(
-        loaders,
-        handle_data,
+def _run(handle_data,
         initialize,
         before_trading_start,
         analyze,
@@ -73,7 +71,8 @@ def _run(
         print_algo,
         metrics_set,
         local_namespace,
-        environ):
+        environ,
+        loaders,):
     """Run a backtest for the given algorithm.
 
     This is shared between the cli and :func:`zipline.run_algo`.
