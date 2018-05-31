@@ -28,7 +28,7 @@ from six.moves import range
 from testfixtures import TempDirectory
 
 from zipline.assets.synthetic import make_simple_equity_info
-from zipline.finance.simulatedblotter import SimulatedBlotter
+from zipline.finance.blotter.simulatedblotter import SimulatedBlotter
 from zipline.finance.execution import MarketOrder, LimitOrder
 from zipline.finance.metrics import MetricsTracker, load as load_metrics_set
 from zipline.finance.trading import SimulationParameters
@@ -277,7 +277,8 @@ class FinanceTestCase(WithLogger,
             else:
                 slippage_func = None
 
-            blotter = SimulatedBlotter(sim_params.data_frequency, slippage_func)
+            blotter = SimulatedBlotter(sim_params.data_frequency,
+                                       slippage_func)
 
             start_date = sim_params.first_open
 
