@@ -53,7 +53,7 @@ class _RunAlgoError(click.ClickException, ValueError):
 
 
 def _run(
-        my_loader,
+        loaders,
         handle_data,
         initialize,
         before_trading_start,
@@ -170,10 +170,12 @@ def _run(
         def choose_loader(column):
             if column in USEquityPricing.columns:
                 return pipeline_loader
-            return my_loader
-            """raise ValueError(
-                "No PipelineLoader registered for column %s." % column
-            )"""
+            elif column in loaders:
+                return loaders[column]
+            else:
+                raise ValueError(
+                    "No PipelineLoader registered for column %s." % column
+                )
     else:
         env = TradingEnvironment(environ=environ)
         choose_loader = None
@@ -289,7 +291,7 @@ def run_algorithm(start,
                   extensions=(),
                   strict_extensions=True,
                   environ=os.environ,
-                  my_loader=None):
+                  loaders=None):
     """Run a trading algorithm.
 
     Parameters
@@ -348,6 +350,9 @@ def run_algorithm(start,
     environ : mapping[str -> str], optional
         The os environment to use. Many extensions use this to get parameters.
         This defaults to ``os.environ``.
+    loaders : iterable{PipelineLoader}, optional
+        A dictionary containing custom loaders to include data from external sources
+        in a pipeline.
 
     Returns
     -------
@@ -380,7 +385,6 @@ def run_algorithm(start,
         )
 
     return _run(
-        my_loader,
         handle_data=handle_data,
         initialize=initialize,
         before_trading_start=before_trading_start,
@@ -401,4 +405,5 @@ def run_algorithm(start,
         metrics_set=metrics_set,
         local_namespace=False,
         environ=environ,
+        loaders=loaders
     )
