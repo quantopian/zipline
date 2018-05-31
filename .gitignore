@@ -78,3 +78,5 @@ TAGS
 .gdb_history
 
 .vscode
+
+.gitignore
