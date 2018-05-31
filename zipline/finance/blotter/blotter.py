@@ -17,7 +17,7 @@ from zipline.assets import Asset
 from zipline.utils.input_validation import expect_types
 
 
-class Blotter:
+class Blotter(object):
 
     def __init__(self, data_frequency, cancel_policy=None):
 
