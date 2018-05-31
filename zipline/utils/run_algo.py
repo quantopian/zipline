@@ -52,26 +52,28 @@ class _RunAlgoError(click.ClickException, ValueError):
         return self.pyfunc_msg
 
 
-def _run(handle_data,
-         initialize,
-         before_trading_start,
-         analyze,
-         algofile,
-         algotext,
-         defines,
-         data_frequency,
-         capital_base,
-         data,
-         bundle,
-         bundle_timestamp,
-         start,
-         end,
-         output,
-         trading_calendar,
-         print_algo,
-         metrics_set,
-         local_namespace,
-         environ):
+def _run(
+        my_loader,
+        handle_data,
+        initialize,
+        before_trading_start,
+        analyze,
+        algofile,
+        algotext,
+        defines,
+        data_frequency,
+        capital_base,
+        data,
+        bundle,
+        bundle_timestamp,
+        start,
+        end,
+        output,
+        trading_calendar,
+        print_algo,
+        metrics_set,
+        local_namespace,
+        environ):
     """Run a backtest for the given algorithm.
 
     This is shared between the cli and :func:`zipline.run_algo`.
@@ -168,9 +170,10 @@ def _run(handle_data,
         def choose_loader(column):
             if column in USEquityPricing.columns:
                 return pipeline_loader
-            raise ValueError(
+            return my_loader
+            """raise ValueError(
                 "No PipelineLoader registered for column %s." % column
-            )
+            )"""
     else:
         env = TradingEnvironment(environ=environ)
         choose_loader = None
@@ -285,7 +288,8 @@ def run_algorithm(start,
                   default_extension=True,
                   extensions=(),
                   strict_extensions=True,
-                  environ=os.environ):
+                  environ=os.environ,
+                  my_loader=None):
     """Run a trading algorithm.
 
     Parameters
@@ -376,6 +380,7 @@ def run_algorithm(start,
         )
 
     return _run(
+        my_loader,
         handle_data=handle_data,
         initialize=initialize,
         before_trading_start=before_trading_start,
