@@ -53,28 +53,27 @@ class _RunAlgoError(click.ClickException, ValueError):
 
 
 def _run(
-    loaders,
-    handle_data,
-    initialize,
-    before_trading_start,
-    analyze,
-    algofile,
-    algotext,
-    defines,
-    data_frequency,
-    capital_base,
-    data,
-    bundle,
-    bundle_timestamp,
-    start,
-    end,
-    output,
-    trading_calendar,
-    print_algo,
-    metrics_set,
-    local_namespace,
-    environ
-    ):
+        loaders,
+        handle_data,
+        initialize,
+        before_trading_start,
+        analyze,
+        algofile,
+        algotext,
+        defines,
+        data_frequency,
+        capital_base,
+        data,
+        bundle,
+        bundle_timestamp,
+        start,
+        end,
+        output,
+        trading_calendar,
+        print_algo,
+        metrics_set,
+        local_namespace,
+        environ):
     """Run a backtest for the given algorithm.
 
     This is shared between the cli and :func:`zipline.run_algo`.
@@ -275,26 +274,24 @@ def load_extensions(default, extensions, strict, environ, reload=False):
             _loaded_extensions.add(ext)
 
 
-def run_algorithm(
-    start,
-    end,
-    initialize,
-    capital_base,
-    handle_data=None,
-    before_trading_start=None,
-    analyze=None,
-    data_frequency='daily',
-    data=None,
-    bundle=None,
-    bundle_timestamp=None,
-    trading_calendar=None,
-    metrics_set='default',
-    default_extension=True,
-    extensions=(),
-    strict_extensions=True,
-    environ=os.environ,
-    loaders=None
-):
+def run_algorithm(start,
+                  end,
+                  initialize,
+                  capital_base,
+                  handle_data=None,
+                  before_trading_start=None,
+                  analyze=None,
+                  data_frequency='daily',
+                  data=None,
+                  bundle=None,
+                  bundle_timestamp=None,
+                  trading_calendar=None,
+                  metrics_set='default',
+                  default_extension=True,
+                  extensions=(),
+                  strict_extensions=True,
+                  environ=os.environ,
+                  loaders=None):
     """Run a trading algorithm.
 
     Parameters
@@ -387,26 +384,24 @@ def run_algorithm(
             'cannot specify `bundle_timestamp` without passing `bundle`',
         )
 
-    return _run(
-        handle_data=handle_data,
-        initialize=initialize,
-        before_trading_start=before_trading_start,
-        analyze=analyze,
-        algofile=None,
-        algotext=None,
-        defines=(),
-        data_frequency=data_frequency,
-        capital_base=capital_base,
-        data=data,
-        bundle=bundle,
-        bundle_timestamp=bundle_timestamp,
-        start=start,
-        end=end,
-        output=os.devnull,
-        trading_calendar=trading_calendar,
-        print_algo=False,
-        metrics_set=metrics_set,
-        local_namespace=False,
-        environ=environ,
-        loaders=loaders
-    )
+    return _run(handle_data=handle_data,
+                initialize=initialize,
+                before_trading_start=before_trading_start,
+                analyze=analyze,
+                algofile=None,
+                algotext=None,
+                defines=(),
+                data_frequency=data_frequency,
+                capital_base=capital_base,
+                data=data,
+                bundle=bundle,
+                bundle_timestamp=bundle_timestamp,
+                start=start,
+                end=end,
+                output=os.devnull,
+                trading_calendar=trading_calendar,
+                print_algo=False,
+                metrics_set=metrics_set,
+                local_namespace=False,
+                environ=environ,
+                loaders=loaders)
