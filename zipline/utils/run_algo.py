@@ -72,7 +72,7 @@ def _run(handle_data,
          metrics_set,
          local_namespace,
          environ,
-         loaders):
+         data_frame_loaders):
     """Run a backtest for the given algorithm.
 
     This is shared between the cli and :func:`zipline.run_algo`.
@@ -169,8 +169,8 @@ def _run(handle_data,
         def choose_loader(column):
             if column in USEquityPricing.columns:
                 return pipeline_loader
-            elif column in loaders:
-                return loaders[column]
+            elif data_frame_loaders and column in data_frame_loaders:
+                return data_frame_loaders[column]
             else:
                 raise ValueError(
                     "No PipelineLoader registered for column %s." % column
@@ -290,7 +290,7 @@ def run_algorithm(start,
                   extensions=(),
                   strict_extensions=True,
                   environ=os.environ,
-                  loaders=None):
+                  data_frame_loaders=None):
     """Run a trading algorithm.
 
     Parameters
@@ -404,5 +404,5 @@ def run_algorithm(start,
         metrics_set=metrics_set,
         local_namespace=False,
         environ=environ,
-        loaders=loaders
+        data_frame_loaders=data_frame_loaders
     )
