@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .simulatedblotter import SimulatedBlotter
+from .simulated_blotter import SimulatedBlotter
 from .core import (
     blotters,
     register,
