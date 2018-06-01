@@ -12,28 +12,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from abc import ABCMeta, abstractmethod
+from six import with_metaclass
 from zipline.finance.cancel_policy import NeverCancel
-from zipline.assets import Asset
-from zipline.utils.input_validation import expect_types
 
 
-class Blotter(object):
+class Blotter(with_metaclass(ABCMeta)):
 
     def __init__(self, data_frequency, cancel_policy=None):
-
         self.data_frequency = data_frequency
-
         self.cancel_policy = cancel_policy if cancel_policy else NeverCancel()
-
         self.current_dt = None
-
-    def __repr__(self):
-        raise NotImplementedError
 
     def set_date(self, dt):
         self.current_dt = dt
 
-    @expect_types(asset=Asset)
+    @abstractmethod
     def order(self, asset, amount, style, order_id=None):
         """Place an order.
 
@@ -67,7 +61,7 @@ class Blotter(object):
                                stop_price))
         """
 
-        raise NotImplementedError
+        raise NotImplementedError('order')
 
     def batch_order(self, order_arg_lists):
         """Place a batch of orders.
@@ -91,20 +85,24 @@ class Blotter(object):
 
         return [self.order(*order_args) for order_args in order_arg_lists]
 
+    @abstractmethod
     def cancel(self, order_id, relay_status=True):
-        raise NotImplementedError
+        raise NotImplementedError('cancel')
 
+    @abstractmethod
     def cancel_all_orders_for_asset(self, asset, warn=False,
                                     relay_status=True):
         """
         Cancel all open orders for a given asset.
         """
 
-        raise NotImplementedError
+        raise NotImplementedError('cancel_all_orders_for_asset')
 
+    @abstractmethod
     def execute_cancel_policy(self, event):
-        raise NotImplementedError
+        raise NotImplementedError('execute_cancel_policy')
 
+    @abstractmethod
     def reject(self, order_id, reason=''):
         """
         Mark the given order as 'rejected', which is functionally similar to
@@ -113,8 +111,9 @@ class Blotter(object):
         rejected) while cancels are typically user-driven.
         """
 
-        raise NotImplementedError
+        raise NotImplementedError('reject')
 
+    @abstractmethod
     def hold(self, order_id, reason=''):
         """
         Mark the order with order_id as 'held'. Held is functionally similar
@@ -122,8 +121,9 @@ class Blotter(object):
         will automatically change back to open/filled as necessary.
         """
 
-        raise NotImplementedError
+        raise NotImplementedError('hold')
 
+    @abstractmethod
     def process_splits(self, splits):
         """
         Processes a list of splits by modifying any open orders as needed.
@@ -138,8 +138,9 @@ class Blotter(object):
         None
         """
 
-        raise NotImplementedError
+        raise NotImplementedError('process_splits')
 
+    @abstractmethod
     def get_transactions(self, bar_data):
         """
         Creates a list of transactions based on the current open orders,
@@ -170,8 +171,9 @@ class Blotter(object):
             closed_orders: list of all the orders that have filled.
         """
 
-        raise NotImplementedError
+        raise NotImplementedError('get_transactions')
 
+    @abstractmethod
     def prune_orders(self, closed_orders):
         """
         Removes all given orders from the blotter's open_orders list.
@@ -185,4 +187,4 @@ class Blotter(object):
         None
         """
 
-        raise NotImplementedError
+        raise NotImplementedError('prune_orders')

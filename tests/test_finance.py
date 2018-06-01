@@ -28,7 +28,7 @@ from six.moves import range
 from testfixtures import TempDirectory
 
 from zipline.assets.synthetic import make_simple_equity_info
-from zipline.finance.blotter.simulatedblotter import SimulatedBlotter
+from zipline.finance.blotter.simulated_blotter import SimulatedBlotter
 from zipline.finance.execution import MarketOrder, LimitOrder
 from zipline.finance.metrics import MetricsTracker, load as load_metrics_set
 from zipline.finance.trading import SimulationParameters

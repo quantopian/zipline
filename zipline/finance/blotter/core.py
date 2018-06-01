@@ -35,9 +35,9 @@ def _make_blotters_core():
         The function which loads the blotters back into memory.
     """
     _blotters = {}  # set of all registered blotters
-    # Expose _metrics_sets through a proxy so that users cannot mutate this
+    # Expose _blotters through a proxy so that users cannot mutate this
     # accidentally. Users may go through `register` to update this which will
-    # warn when trampling another metrics set.
+    # warn when trampling another blotter class.
     blotters = mappingproxy(_blotters)
 
     def register(name, func=None):
@@ -92,13 +92,12 @@ def _make_blotters_core():
             )
 
     def load(name):
-        """Return an instance of the blotter class registered
-        with the given name.
+        """Return the blotter class registered with the given name.
 
         Returns
         -------
         blotter class : type
-            A new instance of the metrics set.
+            A blotter class.
 
         Raises
         ------
