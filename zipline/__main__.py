@@ -191,6 +191,12 @@ def ipython_only(option):
     help='The metrics set to use. New metrics sets may be registered in your'
     ' extension.py.',
 )
+@click.option(
+    '--blotter-class',
+    default='default',
+    help='The blotter class to use for running the algorithm. Custom '
+         'blotter classes may be registered in your extension.py.',
+)
 @ipython_only(click.option(
     '--local-namespace/--no-local-namespace',
     is_flag=True,
@@ -212,6 +218,7 @@ def run(ctx,
         trading_calendar,
         print_algo,
         metrics_set,
+        blotter_class,
         local_namespace):
     """Run a backtest for the given algorithm.
     """
@@ -257,6 +264,7 @@ def run(ctx,
         metrics_set=metrics_set,
         local_namespace=local_namespace,
         environ=os.environ,
+        blotter_class=blotter_class
     )
 
     if output == '-':
