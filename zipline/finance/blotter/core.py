@@ -40,14 +40,14 @@ def _make_blotters_core():
     # warn when trampling another blotter class.
     blotters = mappingproxy(_blotters)
 
-    def register(name, func=None):
+    def register(name, blotter_class=None):
         """Register a new blotter class.
 
         Parameters
         ----------
         name : str
             The name of the blotter class
-        func : callable
+        blotter_class : type
             A fully implemented subclass of the abstract Blotter class
 
         Notes
@@ -55,21 +55,19 @@ def _make_blotters_core():
         This may be used as a decorator if only ``name`` is passed.
 
         """
-        if func is None:
+        if blotter_class is None:
             # allow as decorator with just name.
             return partial(register, name)
 
         if name in _blotters:
-            raise ValueError('blotter class %r is already register' % name)
+            raise ValueError('blotter class %r is already registered' % name)
 
-        if not issubclass(func(), Blotter):
-            raise TypeError("Blotter specified is of type %s "
-                            "which is not a subclass of "
-                            "Blotter" % func())
+        if not issubclass(blotter_class, Blotter):
+            raise TypeError("The class specified is not a subclass of Blotter")
 
-        _blotters[name] = func
+        _blotters[name] = blotter_class
 
-        return func
+        return blotter_class
 
     def unregister(name):
         """Unregister an existing blotter class.
@@ -105,7 +103,7 @@ def _make_blotters_core():
             Raised when no blotter class is registered to ``name``
         """
         try:
-            func = _blotters[name]
+            blotter_class = _blotters[name]
         except KeyError:
             raise ValueError(
                 'no blotter class registered as %r, options are: %r' % (
@@ -114,7 +112,7 @@ def _make_blotters_core():
                 ),
             )
 
-        return func()
+        return blotter_class
 
     return blotters, register, unregister, load
 

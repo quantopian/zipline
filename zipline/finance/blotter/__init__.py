@@ -16,15 +16,8 @@
 from .simulated_blotter import SimulatedBlotter
 from .core import (
     blotters,
-    register,
     unregister,
     load,
 )
 
-__all__ = ['SimulatedBlotter', 'unregister', 'blotters', 'load']
-
-
-@register('default')
-def default_blotter():
-
-    return SimulatedBlotter
+__all__ = ['SimulatedBlotter', 'register', 'unregister', 'blotters', 'load']
