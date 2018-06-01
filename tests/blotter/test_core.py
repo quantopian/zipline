@@ -73,7 +73,7 @@ class BlotterCoreTestCase(ZiplineTestCase):
                 pass
 
         expected_blotters = mappingproxy({'ayy-lmao': ProperDummyBlotter})
-        assert_equal(self.metrics_sets, expected_blotters)
+        assert_equal(self.blotters, expected_blotters)
         assert_is(self.load('ayy-lmao'), ProperDummyBlotter)
 
         msg = "blotter class 'ayy-lmao' is already registered"
@@ -139,7 +139,7 @@ class BlotterCoreTestCase(ZiplineTestCase):
         self.register('ayy-lmao', ProperDummyBlotter)
 
         expected_blotters = mappingproxy({'ayy-lmao': ProperDummyBlotter})
-        assert_equal(self.metrics_sets, expected_blotters)
+        assert_equal(self.blotters, expected_blotters)
         assert_is(self.load('ayy-lmao'), ProperDummyBlotter)
 
         msg = "blotter class 'ayy-lmao' is already registered"
@@ -147,14 +147,14 @@ class BlotterCoreTestCase(ZiplineTestCase):
             class Fake(object):
                 pass
 
-            self.register(Fake)
+            self.register('ayy-lmao', Fake)
 
         msg = "The class specified is not a subclass of Blotter"
         with assert_raises_str(TypeError, msg):
             class ImproperDummyBlotter(object):
                 pass
 
-            self.register(ImproperDummyBlotter)
+            self.register('something-different', ImproperDummyBlotter)
 
         # ensure that the failed registration didn't break the previously
         # registered blotter
