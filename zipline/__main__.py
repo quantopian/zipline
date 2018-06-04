@@ -1,5 +1,6 @@
 import errno
 import os
+import re
 
 import click
 import logbook
@@ -16,6 +17,21 @@ try:
     __IPYTHON__
 except NameError:
     __IPYTHON__ = False
+
+extension_args = {}
+
+
+def _parse_extension_arg(arg):
+    match = re.match(r'^(([^\d\W]\w*)(\.[^\d\W]\w*)*)=(.*)$', arg)
+    if match is None:
+        raise ValueError(
+            "invalid extension argument {arg}, must be in key=value form"
+            % arg
+        )
+
+    name = match.group(1)
+    value = match.group(4)
+    extension_args[name] = value
 
 
 @click.group()
@@ -39,9 +55,17 @@ except NameError:
     default=True,
     help="Don't load the default zipline extension.py file in $ZIPLINE_HOME.",
 )
-def main(extension, strict_extensions, default_extension):
+@click.option(
+    '-x',
+    multiple=True,
+    help='Any custom command line arguments to define, in key=value form'
+)
+def main(extension, strict_extensions, default_extension, x):
     """Top level zipline entry point.
     """
+    for arg in x:
+        _parse_extension_arg(arg)
+
     # install a logbook handler before performing any other operations
     logbook.StderrHandler().push_application()
     load_extensions(
