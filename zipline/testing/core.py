@@ -41,7 +41,7 @@ from zipline.data.us_equity_pricing import (
     BcolzDailyBarWriter,
     SQLiteAdjustmentWriter,
 )
-from zipline.finance.blotter.simulated_blotter import SimulatedBlotter
+from zipline.finance.blotter import SimulatedBlotter
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.order import ORDER_STATUS
 from zipline.lib.labelarray import LabelArray

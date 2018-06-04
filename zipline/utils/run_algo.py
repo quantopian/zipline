@@ -7,6 +7,7 @@ import warnings
 import click
 
 from zipline.finance.blotter.blotter import Blotter
+from zipline.finance.blotter.blotter_utils import get_blotter_class
 
 try:
     from pygments import highlight
@@ -21,7 +22,7 @@ from toolz import valfilter, concatv
 from zipline.algorithm import TradingAlgorithm
 from zipline.data import bundles
 from zipline.data.data_portal import DataPortal
-from zipline.finance import metrics, blotter
+from zipline.finance import metrics
 from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders import USEquityPricingLoader
@@ -187,7 +188,7 @@ def _run(handle_data,
 
     if isinstance(blotter_class, six.string_types):
         try:
-            blotter_class = blotter.load(blotter_class)
+            blotter_class = get_blotter_class(blotter_class)
         except ValueError as e:
             raise _RunAlgoError(str(e))
     else:
