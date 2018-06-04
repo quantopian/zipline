@@ -19,7 +19,6 @@ from copy import copy
 from six import iteritems
 
 from zipline.assets import Equity, Future, Asset
-from zipline.finance.blotter.core import register
 from zipline.finance.blotter.blotter import Blotter
 from zipline.finance.order import Order
 from zipline.finance.slippage import (
@@ -33,13 +32,14 @@ from zipline.finance.commission import (
     PerContract,
     PerShare,
 )
+from zipline.finance.blotter.blotter_utils import register_blotter_class
 from zipline.utils.input_validation import expect_types
 
 log = Logger('Blotter')
 warning_logger = Logger('AlgoWarning')
 
 
-@register('default')
+@register_blotter_class('default')
 class SimulatedBlotter(Blotter):
     def __init__(self, data_frequency, equity_slippage=None,
                  future_slippage=None, equity_commission=None,
