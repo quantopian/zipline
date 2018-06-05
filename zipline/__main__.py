@@ -1,12 +1,12 @@
 import errno
 import os
-import re
 
 import click
 import logbook
 import pandas as pd
 from six import text_type
 
+import zipline
 from zipline.data import bundles as bundles_module
 from zipline.utils.calendars.calendar_utils import get_calendar
 from zipline.utils.compat import wraps
@@ -18,8 +18,6 @@ try:
     __IPYTHON__
 except NameError:
     __IPYTHON__ = False
-
-extension_args = None
 
 
 @click.group()
@@ -51,7 +49,7 @@ extension_args = None
 def main(extension, strict_extensions, default_extension, x):
     """Top level zipline entry point.
     """
-    extension_args = ExtensionArgs(x)
+    zipline.extension_args = ExtensionArgs(x)
 
     # install a logbook handler before performing any other operations
     logbook.StderrHandler().push_application()
@@ -61,7 +59,6 @@ def main(extension, strict_extensions, default_extension, x):
         strict_extensions,
         os.environ,
     )
-
 
 def extract_option_object(option):
     """Convert a click.option call into a click.Option object.
