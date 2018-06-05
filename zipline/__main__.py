@@ -12,25 +12,14 @@ from zipline.utils.calendars.calendar_utils import get_calendar
 from zipline.utils.compat import wraps
 from zipline.utils.cli import Date, Timestamp
 from zipline.utils.run_algo import _run, load_extensions
+from zipline.extensions import ExtensionArgs
 
 try:
     __IPYTHON__
 except NameError:
     __IPYTHON__ = False
 
-extension_args = {}
-
-
-def _parse_extension_arg(arg):
-    match = re.match(r'^(([^\d\W]\w*)(\.[^\d\W]\w*)*)=(.*)$', arg)
-    if match is None:
-        raise ValueError(
-            "invalid extension argument %s, must be in key=value form" % arg
-        )
-
-    name = match.group(1)
-    value = match.group(4)
-    extension_args[name] = value
+extension_args = None
 
 
 @click.group()
@@ -62,8 +51,7 @@ def _parse_extension_arg(arg):
 def main(extension, strict_extensions, default_extension, x):
     """Top level zipline entry point.
     """
-    for arg in x:
-        _parse_extension_arg(arg)
+    extension_args = ExtensionArgs(x)
 
     # install a logbook handler before performing any other operations
     logbook.StderrHandler().push_application()
