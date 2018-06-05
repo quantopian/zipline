@@ -17,6 +17,7 @@ import os
 
 # This is *not* a place to dump arbitrary classes/modules for convenience,
 # it is a place to expose the public interfaces.
+from zipline.extensions import ExtensionArgs
 from . import data
 from . import finance
 from . import gens
@@ -46,6 +47,8 @@ del global_calendar_dispatcher
 
 __version__ = get_versions()['version']
 del get_versions
+
+extension_args = ExtensionArgs([])
 
 
 def load_ipython_extension(ipython):
