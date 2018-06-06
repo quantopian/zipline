@@ -1,5 +1,5 @@
 from functools import partial
-from zipline.finance.blotter import Blotter
+from .blotter import Blotter
 from zipline.utils.compat import mappingproxy
 
 

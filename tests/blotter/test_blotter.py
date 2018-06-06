@@ -17,7 +17,7 @@ from nose_parameterized import parameterized
 import pandas as pd
 
 from zipline.assets import Equity
-from zipline.finance.blotter.simulated_blotter import SimulatedBlotter
+from zipline.finance.blotter import SimulatedBlotter
 from zipline.finance.cancel_policy import EODCancel, NeverCancel
 from zipline.finance.commission import PerTrade
 from zipline.finance.execution import (
