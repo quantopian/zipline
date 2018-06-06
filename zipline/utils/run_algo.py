@@ -7,7 +7,7 @@ import warnings
 import click
 
 from zipline.finance.blotter.blotter import Blotter
-from zipline.finance.blotter.blotter_utils import get_blotter_class
+from zipline.finance.blotter.core import get_blotter_class
 
 try:
     from pygments import highlight
