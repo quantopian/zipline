@@ -5,6 +5,7 @@ from zipline.testing.predicates import (
     assert_equal,
     assert_is,
     assert_raises_str,
+    assert_true,
 )
 from zipline.utils.compat import mappingproxy
 
@@ -44,6 +45,7 @@ class BlotterCoreTestCase(ZiplineTestCase):
         expected_blotters = mappingproxy({'ayy-lmao': ProperDummyBlotter})
         assert_equal(bcd.blotter_factories, expected_blotters)
         assert_is(bcd.load('ayy-lmao'), ProperDummyBlotter)
+        assert_true(bcd.class_exists('ayy-lmao'))
 
         msg = "blotter class 'ayy-lmao' is already registered"
         with assert_raises_str(ValueError, msg):
@@ -83,6 +85,7 @@ class BlotterCoreTestCase(ZiplineTestCase):
         expected_blotters = mappingproxy({'ayy-lmao': ProperDummyBlotter})
         assert_equal(bcd.blotter_factories, expected_blotters)
         assert_is(bcd.load('ayy-lmao'), ProperDummyBlotter)
+        assert_true(bcd.class_exists('ayy-lmao'))
 
         msg = "blotter class 'ayy-lmao' is already registered"
         with assert_raises_str(ValueError, msg):
