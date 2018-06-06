@@ -14,7 +14,7 @@
 # limitations under the License.
 
 from .simulated_blotter import SimulatedBlotter
-from zipline.finance.blotter.blotter_utils import (
+from zipline.finance.blotter.core import (
     get_blotter_class,
     unregister_blotter_class,
     register_blotter_class,

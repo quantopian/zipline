@@ -32,7 +32,7 @@ from zipline.finance.commission import (
     PerContract,
     PerShare,
 )
-from zipline.finance.blotter.blotter_utils import register_blotter_class
+from zipline.finance.blotter.core import register_blotter_class
 from zipline.utils.input_validation import expect_types
 
 log = Logger('Blotter')
