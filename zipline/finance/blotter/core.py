@@ -1,5 +1,5 @@
 from functools import partial
-from zipline.finance.blotter.blotter import Blotter
+from zipline.finance.blotter import Blotter
 from zipline.utils.compat import mappingproxy
 
 
@@ -40,7 +40,7 @@ class BlotterClassDispatcher(object):
                              "are: %r" % (name, sorted(self._blotter_factories
                                                        )))
 
-    def exists(self, name):
+    def class_exists(self, name):
         """
         Whether or not the global list of blotter classes contains the
         class with the specified name
@@ -65,7 +65,7 @@ class BlotterClassDispatcher(object):
         if blotter_class is None:
             return partial(self.register, name)
 
-        if self.exists(name):
+        if self.class_exists(name):
             raise ValueError("blotter class %r is already registered" % name)
 
         if not issubclass(blotter_class, Blotter):
@@ -103,10 +103,9 @@ global_blotter_class_dispatcher = BlotterClassDispatcher(
     blotter_factories={}
 )
 
-get_blotter_class = global_blotter_class_dispatcher.load
-clear_blotter_classes = global_blotter_class_dispatcher.clear
-unregister_blotter_class = \
-    global_blotter_class_dispatcher.unregister
-register_blotter_class = \
-    global_blotter_class_dispatcher.register
+load = global_blotter_class_dispatcher.load
+clear = global_blotter_class_dispatcher.clear
+unregister = global_blotter_class_dispatcher.unregister
+register = global_blotter_class_dispatcher.register
+class_exists = global_blotter_class_dispatcher.class_exists
 blotter_classes = global_blotter_class_dispatcher.blotter_factories
