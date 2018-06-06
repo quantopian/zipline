@@ -60,6 +60,7 @@ def main(extension, strict_extensions, default_extension, x):
         os.environ,
     )
 
+
 def extract_option_object(option):
     """Convert a click.option call into a click.Option object.
 

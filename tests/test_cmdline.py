@@ -4,7 +4,6 @@ from zipline.testing import ZiplineTestCase
 from zipline.testing.predicates import (
     assert_equal,
     assert_raises_str,
-    assert_is,
 )
 from click.testing import CliRunner
 from zipline.extensions import ExtensionArgs
@@ -53,9 +52,9 @@ class CmdLineTestCase(ZiplineTestCase):
 
     def test_user_input(self):
         runner = CliRunner()
-        result = runner.invoke(main.main, [    '-xfirst.second.a=blah1',
-                                       '-xfirst.second.b=blah2',
-                                       '-xfirst.third=blah3',
+        runner.invoke(main.main, ['-xfirst.second.a=blah1',
+                                  '-xfirst.second.b=blah2',
+                                  '-xfirst.third=blah3',
                                   'bundles', ])
 
         assert_equal(zipline.extension_args.first.second.a, 'blah1')
