@@ -14,16 +14,18 @@
 # limitations under the License.
 
 from .simulated_blotter import SimulatedBlotter
-from zipline.finance.blotter.core import (
-    get_blotter_class,
-    unregister_blotter_class,
-    register_blotter_class,
+from .blotter import Blotter
+from .core import (
+    load,
+    unregister,
+    register,
     blotter_classes,
 )
 
 __all__ = ['SimulatedBlotter',
-           'register_blotter_class',
-           'unregister_blotter_class',
+           'Blotter',
+           'register',
+           'unregister',
            'blotter_classes',
-           'get_blotter_class',
+           'load',
            ]

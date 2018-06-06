@@ -6,8 +6,7 @@ import warnings
 
 import click
 
-from zipline.finance.blotter.blotter import Blotter
-from zipline.finance.blotter.core import get_blotter_class
+from zipline.finance.blotter import Blotter, load
 
 try:
     from pygments import highlight
@@ -188,7 +187,7 @@ def _run(handle_data,
 
     if isinstance(blotter_class, six.string_types):
         try:
-            blotter_class = get_blotter_class(blotter_class)
+            blotter_class = load(blotter_class)
         except ValueError as e:
             raise _RunAlgoError(str(e))
     else:
