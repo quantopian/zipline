@@ -63,7 +63,7 @@ class BlotterClassDispatcher(object):
         """
 
         if blotter_class is None:
-            return partial(register_blotter_class, name)
+            return partial(self.register_blotter_class, name)
 
         if self.has_blotter_class(name):
             raise ValueError("blotter class %r is already registered" % name)
