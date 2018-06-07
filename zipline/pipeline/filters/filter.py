@@ -379,6 +379,14 @@ class PercentileFilter(SingleInputMixin, Filter):
         )
         return (lower_bounds <= data) & (data <= upper_bounds)
 
+    def short_repr(self):
+        return "{}({}, {}, {})".format(
+            type(self).__name__,
+            self.inputs[0].short_repr(),
+            self._min_percentile,
+            self._max_percentile,
+        )
+
 
 class CustomFilter(PositiveWindowLengthMixin, CustomTermMixin, Filter):
     """
@@ -480,6 +488,9 @@ class ArrayPredicate(SingleInputMixin, Filter):
         params = self.params
         data = arrays[0]
         return params['op'](data, *params['opargs']) & mask
+
+    def short_repr(self):
+        return "{}({!r})".format(type(self).__name__, self.params['op'])
 
 
 class Latest(LatestMixin, CustomFilter):
@@ -624,4 +635,4 @@ class MaximumFilter(Filter, StandardOutputs):
         )
 
     def short_repr(self):
-        return "Maximum()"
+        return "Maximum({})".format(self.inputs[0].short_repr())
