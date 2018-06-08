@@ -330,12 +330,9 @@ class NumericalExpression(ComputableTerm):
 
     def short_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
-        final = self._expr
-        num_list = re.findall(r"[-+]?\d*\.\d+", self._expr)
-        for i in num_list:
-            final = final.replace(i, '%.2E' % Decimal(i))
-
-        return "Expression:\n{expr}".format(
-            typename=type(self).__name__,
-            expr=final,
+        final = re.sub(r"[-+]?\d*\.\d+",
+                       lambda x: format(float(x.group(0)), '.2E'),
+                       self._expr)
+        return "Expression:\l{}\l".format(
+            final,
         )

@@ -380,7 +380,7 @@ class PercentileFilter(SingleInputMixin, Filter):
         return (lower_bounds <= data) & (data <= upper_bounds)
 
     def short_repr(self):
-        return "{}\nmin={}, max={}".format(
+        return "{}:\l  min: {}, max: {}\l".format(
             type(self).__name__,
             self._min_percentile,
             self._max_percentile,
@@ -489,10 +489,11 @@ class ArrayPredicate(SingleInputMixin, Filter):
         return params['op'](data, *params['opargs']) & mask
 
     def short_repr(self):
-        return "{}\nop={}.{}()".format(type(self).__name__,
-                                  self.params['op'].__module__,
-                                  self.params['op'].__name__,
-                                  )
+        return "{}:\l  op: {}.{}()".format(
+            type(self).__name__,
+            self.params['op'].__module__,
+            self.params['op'].__name__,
+        )
 
 
 class Latest(LatestMixin, CustomFilter):
@@ -534,7 +535,7 @@ class SingleAsset(Filter):
         return out
 
     def short_repr(self):
-        return "SingleAsset\nasset={}".format(self._asset)
+        return "SingleAsset:\l  asset: {!r}\l".format(self._asset)
 
 
 class StaticSids(Filter):
@@ -640,8 +641,7 @@ class MaximumFilter(Filter, StandardOutputs):
         )
 
     def short_repr(self):
-        return "Maximum({})\ngroupby={}\nmask={}".format(
-            type(self.inputs[0]).__name__,
+        return "Maximum:\l  groupby: {}\l  mask={}\l".format(
             type(self.inputs[1]).__name__,
             type(self.mask).__name__,
         )

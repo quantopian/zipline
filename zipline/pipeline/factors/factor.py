@@ -1412,8 +1412,7 @@ class Rank(SingleInputMixin, Factor):
         )
 
     def short_repr(self):
-        return "Rank({})\nmethod={}\nmask={}".format(
-            type(self.inputs[0]).__name__,
+        return "Rank:\l  method: {!r}\l  mask: {}\l".format(
             self._method,
             type(self.mask).__name__,
         )

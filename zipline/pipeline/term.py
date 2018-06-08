@@ -679,7 +679,7 @@ class ComputableTerm(Term):
             "{type}([{inputs}], {window_length})"
         ).format(
             type=type(self).__name__,
-            inputs=', '.join(i.short_repr() for i in self.inputs),
+            inputs=', '.join(i.__name__ for i in self.inputs),
             window_length=self.window_length,
         )
 
@@ -716,7 +716,7 @@ class Slice(ComputableTerm):
     def __repr__(self):
         return "{parent_term}[{asset}])".format(
             type=type(self).__name__,
-            parent_term=self.inputs[0].short_repr(),
+            parent_term=self.inputs[0].__name__,
             asset=self._asset,
         )
 

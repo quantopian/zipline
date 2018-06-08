@@ -217,7 +217,7 @@ class CustomTermMixin(object):
 
     def short_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
-        return type(self).__name__ + '\nwindow_length=%d' % \
+        return type(self).__name__ + ':\l  window_length: %d\l' % \
             self.window_length
 
 
