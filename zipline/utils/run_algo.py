@@ -123,6 +123,7 @@ def _run(handle_data,
     if trading_calendar is None:
         trading_calendar = get_calendar('NYSE')
 
+    # date parameter validation
     if trading_calendar.session_distance(start, end) < 1:
         raise _RunAlgoError(
             'There are no trading days between %s and %s' % (
