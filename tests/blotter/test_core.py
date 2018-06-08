@@ -9,14 +9,14 @@ from zipline.testing.predicates import (
 )
 from zipline.utils.compat import mappingproxy
 
-bcd = BlotterClassDispatcher(blotter_factories={})
+bcd = BlotterClassDispatcher(classes={})
 
 
 class BlotterCoreTestCase(ZiplineTestCase):
 
     def init_instance_fixtures(self):
         super(BlotterCoreTestCase, self).init_instance_fixtures()
-        bcd.clear()
+        bcd = BlotterClassDispatcher(classes={})
         assert_equal(bcd.blotter_factories, mappingproxy({}))
 
     def test_load_not_registered(self):

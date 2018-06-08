@@ -12,11 +12,11 @@ class BlotterClassDispatcher(object):
 
     Parameters
     ----------
-    blotter_factories : dict[str -> function]
-        Factories for lazy blotter creation.
+    classes : dict[str -> type]
+        A mapping of names to blotter classes
     """
-    def __init__(self, blotter_factories):
-        self._blotter_factories = blotter_factories
+    def __init__(self, classes):
+        self._blotter_factories = classes
         self.blotter_factories = mappingproxy(self._blotter_factories)
 
     def load(self, name):
@@ -36,18 +36,27 @@ class BlotterClassDispatcher(object):
         try:
             return self._blotter_factories[name]
         except KeyError:
-            raise ValueError("no blotter class registered as %r, options "
-                             "are: %r" % (name, sorted(self._blotter_factories
-                                                       )))
+            raise ValueError(
+                "no blotter class registered as %r, options are: %r" % (
+                    name,
+                    sorted(self._blotter_factories),
+                ),
+            )
 
     def class_exists(self, name):
         """
         Whether or not the global list of blotter classes contains the
         class with the specified name
 
-        :param name: The name of the blotter class
+        Parameters
+        ----------
+        name : str
+            The name of the blotter class
 
-        :return: True/False
+        Returns
+        -------
+        Result : bool
+            Whether or not a given blotter class is registered
         """
 
         return name in self._blotter_factories
@@ -57,9 +66,14 @@ class BlotterClassDispatcher(object):
         Registers a blotter class for retrieval by the
         get_blotter_class method
 
-        :param name: The name of the blotter class
-        :param blotter_class: The class to register, which must be a
-        subclass of the abstract class zipline.finance.blotter.Blotter
+        Parameters
+        ----------
+        name : str
+            The name of the blotter class
+
+        blotter_class : zipline.finance.blotter.Blotter
+            The class to register, which must be a subclass of the
+            abstract class zipline.finance.blotter.Blotter
         """
 
         if blotter_class is None:
@@ -100,7 +114,7 @@ class BlotterClassDispatcher(object):
 
 # Global blotter class dispatcher
 global_blotter_class_dispatcher = BlotterClassDispatcher(
-    blotter_factories={}
+    classes={}
 )
 
 load = global_blotter_class_dispatcher.load
