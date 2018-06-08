@@ -14,6 +14,8 @@ from numpy import (
 
 from zipline.pipeline.term import Term, ComputableTerm
 from zipline.utils.numpy_utils import bool_dtype
+from decimal import Decimal
+import re
 
 
 _VARIABLE_NAME_RE = re.compile("^(x_)([0-9]+)$")
@@ -328,7 +330,12 @@ class NumericalExpression(ComputableTerm):
 
     def short_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
-        return "Expression: {expr}".format(
+        final = self._expr
+        num_list = re.findall(r"[-+]?\d*\.\d+", self._expr)
+        for i in num_list:
+            final = final.replace(i, '%.2E' % Decimal(i))
+
+        return "Expression:\n{expr}".format(
             typename=type(self).__name__,
-            expr=self._expr,
+            expr=final,
         )
