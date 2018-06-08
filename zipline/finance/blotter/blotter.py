@@ -87,6 +87,16 @@ class Blotter(with_metaclass(ABCMeta)):
 
     @abstractmethod
     def cancel(self, order_id, relay_status=True):
+        """Cancel a single order
+
+        Parameters
+        ----------
+        order_id : int
+            The id of the order
+
+        relay_status : bool
+            Whether or not to record the status of the order
+        """
         raise NotImplementedError('cancel')
 
     @abstractmethod

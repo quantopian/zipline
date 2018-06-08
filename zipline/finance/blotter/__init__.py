@@ -22,10 +22,11 @@ from .core import (
     blotter_classes,
 )
 
-__all__ = ['SimulatedBlotter',
-           'Blotter',
-           'register',
-           'unregister',
-           'blotter_classes',
-           'load',
-           ]
+__all__ = [
+    'SimulatedBlotter',
+    'Blotter',
+    'register',
+    'unregister',
+    'blotter_classes',
+    'load',
+]
