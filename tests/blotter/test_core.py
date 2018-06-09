@@ -97,8 +97,7 @@ class BlotterCoreTestCase(ZiplineTestCase):
             class ImproperDummyBlotter(object):
                 pass
 
-            self.bcd.register('something-different',
-                         ImproperDummyBlotter)
+            self.bcd.register('something-different', ImproperDummyBlotter)
 
         # ensure that the failed registration didn't break the previously
         # registered blotter
