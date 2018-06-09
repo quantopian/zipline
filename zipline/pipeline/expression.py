@@ -1,8 +1,8 @@
 """
 NumericalExpression term.
 """
-from itertools import chain
 import re
+from itertools import chain
 from numbers import Number
 
 import numexpr
@@ -11,12 +11,8 @@ from numpy import (
     full,
     inf,
 )
-
 from zipline.pipeline.term import Term, ComputableTerm
 from zipline.utils.numpy_utils import bool_dtype
-from decimal import Decimal
-import re
-
 
 _VARIABLE_NAME_RE = re.compile("^(x_)([0-9]+)$")
 

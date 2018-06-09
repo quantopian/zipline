@@ -641,7 +641,7 @@ class MaximumFilter(Filter, StandardOutputs):
         )
 
     def short_repr(self):
-        return "Maximum:\l  groupby: {}\l  mask={}\l".format(
+        return "Maximum:\l  groupby: {}\l  mask: {}\l".format(
             type(self.inputs[1]).__name__,
             type(self.mask).__name__,
         )
