@@ -17,7 +17,6 @@ import os
 
 # This is *not* a place to dump arbitrary classes/modules for convenience,
 # it is a place to expose the public interfaces.
-from zipline.extensions import ExtensionArgs
 from . import data
 from . import finance
 from . import gens
@@ -29,6 +28,7 @@ from ._version import get_versions
 # These need to happen after the other imports.
 from . algorithm import TradingAlgorithm
 from . import api
+from .extensions import Namespace
 
 
 # PERF: Fire a warning if calendars were instantiated during zipline import.
@@ -48,7 +48,7 @@ del global_calendar_dispatcher
 __version__ = get_versions()['version']
 del get_versions
 
-extension_args = ExtensionArgs([])
+extension_args = Namespace()
 
 
 def load_ipython_extension(ipython):

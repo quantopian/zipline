@@ -12,7 +12,7 @@ from zipline.utils.calendars.calendar_utils import get_calendar
 from zipline.utils.compat import wraps
 from zipline.utils.cli import Date, Timestamp
 from zipline.utils.run_algo import _run, load_extensions
-from zipline.extensions import ExtensionArgs
+from zipline.extensions import Namespace, create_args
 
 try:
     __IPYTHON__
@@ -49,7 +49,7 @@ except NameError:
 def main(extension, strict_extensions, default_extension, x):
     """Top level zipline entry point.
     """
-    zipline.extension_args = ExtensionArgs(x)
+    create_args(x, zipline.extension_args)
 
     # install a logbook handler before performing any other operations
     logbook.StderrHandler().push_application()
