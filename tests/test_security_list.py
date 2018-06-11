@@ -3,7 +3,7 @@ from datetime import timedelta
 import pandas as pd
 from nose_parameterized import parameterized
 
-from zipline.algorithm import TradingAlgorithm
+from zipline.algorithm import SimulatedTradingAlgorithm
 from zipline.errors import TradingControlViolation
 from zipline.testing import (
     add_security_data,
@@ -22,7 +22,7 @@ from zipline.utils.security_list import (
 LEVERAGED_ETFS = load_from_directory('leveraged_etf_list')
 
 
-class RestrictedAlgoWithCheck(TradingAlgorithm):
+class RestrictedAlgoWithCheck(SimulatedTradingAlgorithm):
     def initialize(self, symbol):
         self.rl = SecurityListSet(self.get_datetime, self.asset_finder)
         self.set_asset_restrictions(self.rl.restrict_leveraged_etfs)
@@ -38,7 +38,7 @@ class RestrictedAlgoWithCheck(TradingAlgorithm):
                 self.order_count += 1
 
 
-class RestrictedAlgoWithoutCheck(TradingAlgorithm):
+class RestrictedAlgoWithoutCheck(SimulatedTradingAlgorithm):
     def initialize(self, symbol):
         self.rl = SecurityListSet(self.get_datetime, self.asset_finder)
         self.set_asset_restrictions(self.rl.restrict_leveraged_etfs)
@@ -50,7 +50,7 @@ class RestrictedAlgoWithoutCheck(TradingAlgorithm):
         self.order_count += 1
 
 
-class RestrictedAlgoWithoutCheckSetDoNotOrderList(TradingAlgorithm):
+class RestrictedAlgoWithoutCheckSetDoNotOrderList(SimulatedTradingAlgorithm):
     def initialize(self, symbol):
         self.rl = SecurityListSet(self.get_datetime, self.asset_finder)
         self.set_do_not_order_list(self.rl.leveraged_etf_list)
@@ -62,7 +62,7 @@ class RestrictedAlgoWithoutCheckSetDoNotOrderList(TradingAlgorithm):
         self.order_count += 1
 
 
-class IterateRLAlgo(TradingAlgorithm):
+class IterateRLAlgo(SimulatedTradingAlgorithm):
     def initialize(self, symbol):
         self.rl = SecurityListSet(self.get_datetime, self.asset_finder)
         self.set_asset_restrictions(self.rl.restrict_leveraged_etfs)

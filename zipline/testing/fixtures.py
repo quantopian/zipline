@@ -11,7 +11,7 @@ import pandas as pd
 import responses
 
 import zipline
-from zipline.algorithm import TradingAlgorithm
+from zipline.algorithm import SimulatedTradingAlgorithm
 from zipline.assets import Equity, Future
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.pipeline import SimplePipelineEngine
@@ -1803,7 +1803,7 @@ class WithMakeAlgo(WithSimParams,
     START_DATE = pd.Timestamp('2014-12-29', tz='UTC')
     END_DATE = pd.Timestamp('2015-1-05', tz='UTC')
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
-    DEFAULT_ALGORITHM_CLASS = TradingAlgorithm
+    DEFAULT_ALGORITHM_CLASS = SimulatedTradingAlgorithm
 
     @classproperty
     def BENCHMARK_SID(cls):

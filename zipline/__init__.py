@@ -26,7 +26,7 @@ from .utils.run_algo import run_algorithm
 from ._version import get_versions
 
 # These need to happen after the other imports.
-from . algorithm import TradingAlgorithm
+from . algorithm import SimulatedTradingAlgorithm
 from . import api
 
 
@@ -71,7 +71,7 @@ if os.name == 'nt':
 
 
 __all__ = [
-    'TradingAlgorithm',
+    'SimulatedTradingAlgorithm',
     'api',
     'data',
     'finance',

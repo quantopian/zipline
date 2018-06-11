@@ -77,7 +77,7 @@ from nose.tools import assert_raises
 
 from six import itervalues
 
-from zipline.algorithm import TradingAlgorithm
+from zipline.algorithm import SimulatedTradingAlgorithm
 from zipline.api import (
     FixedSlippage,
     order,
@@ -94,7 +94,7 @@ from zipline.finance.execution import (
 )
 
 
-class TestAlgorithm(TradingAlgorithm):
+class TestAlgorithm(SimulatedTradingAlgorithm):
     """
     This algorithm will send a specified number of orders, to allow unit tests
     to verify the orders sent/received, transactions created, and positions
@@ -131,7 +131,7 @@ class TestAlgorithm(TradingAlgorithm):
             self.incr += 1
 
 
-class HeavyBuyAlgorithm(TradingAlgorithm):
+class HeavyBuyAlgorithm(SimulatedTradingAlgorithm):
     """
     This algorithm will send a specified number of orders, to allow unit tests
     to verify the orders sent/received, transactions created, and positions
@@ -149,7 +149,7 @@ class HeavyBuyAlgorithm(TradingAlgorithm):
         self.incr += 1
 
 
-class NoopAlgorithm(TradingAlgorithm):
+class NoopAlgorithm(SimulatedTradingAlgorithm):
     """
     Dolce fa niente.
     """
@@ -160,7 +160,7 @@ class NoopAlgorithm(TradingAlgorithm):
         pass
 
 
-class DivByZeroAlgorithm(TradingAlgorithm):
+class DivByZeroAlgorithm(SimulatedTradingAlgorithm):
 
     def initialize(self, sid):
         self.asset = self.sid(sid)
@@ -176,7 +176,7 @@ class DivByZeroAlgorithm(TradingAlgorithm):
 ############################
 # TradingControl Test Algos#
 ############################
-class SetPortfolioAlgorithm(TradingAlgorithm):
+class SetPortfolioAlgorithm(SimulatedTradingAlgorithm):
     """
     An algorithm that tries to set the portfolio directly.
 
@@ -191,7 +191,7 @@ class SetPortfolioAlgorithm(TradingAlgorithm):
         self.portfolio = 3
 
 
-class TALIBAlgorithm(TradingAlgorithm):
+class TALIBAlgorithm(SimulatedTradingAlgorithm):
     """
     An algorithm that applies a TA-Lib transform. The transform object can be
     passed at initialization with the 'talib' keyword argument. The results are
@@ -220,7 +220,7 @@ class TALIBAlgorithm(TradingAlgorithm):
             self.talib_results[t].append(result)
 
 
-class EmptyPositionsAlgorithm(TradingAlgorithm):
+class EmptyPositionsAlgorithm(SimulatedTradingAlgorithm):
     """
     An algorithm that ensures that 'phantom' positions do not appear in
     portfolio.positions in the case that a position has been entered
@@ -253,7 +253,7 @@ class EmptyPositionsAlgorithm(TradingAlgorithm):
         self.record(num_positions=len(self.portfolio.positions))
 
 
-class InvalidOrderAlgorithm(TradingAlgorithm):
+class InvalidOrderAlgorithm(SimulatedTradingAlgorithm):
     """
     An algorithm that tries to make various invalid order calls, verifying that
     appropriate exceptions are raised.

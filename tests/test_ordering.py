@@ -1,7 +1,7 @@
 from nose_parameterized import parameterized
 import pandas as pd
 
-from zipline.algorithm import TradingAlgorithm
+from zipline.algorithm import SimulatedTradingAlgorithm
 import zipline.api as api
 import zipline.errors as ze
 from zipline.finance.execution import StopLimitOrder
@@ -343,10 +343,10 @@ class TestOrderRounding(zf.ZiplineTestCase):
         for input, answer in answer_key:
             self.assertEqual(
                 answer,
-                TradingAlgorithm.round_order(input)
+                SimulatedTradingAlgorithm.round_order(input)
             )
 
             self.assertEqual(
                 -1 * answer,
-                TradingAlgorithm.round_order(-1 * input)
+                SimulatedTradingAlgorithm.round_order(-1 * input)
             )

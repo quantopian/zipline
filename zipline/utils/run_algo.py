@@ -15,7 +15,7 @@ except ImportError:
 import six
 from toolz import valfilter, concatv
 
-from zipline.algorithm import TradingAlgorithm
+from zipline.algorithm import SimulatedTradingAlgorithm
 from zipline.data import bundles
 from zipline.data.data_portal import DataPortal
 from zipline.finance import metrics
@@ -181,7 +181,7 @@ def _run(handle_data,
         except ValueError as e:
             raise _RunAlgoError(str(e))
 
-    perf = TradingAlgorithm(
+    perf = SimulatedTradingAlgorithm(
         namespace=namespace,
         env=env,
         get_pipeline_loader=choose_loader,

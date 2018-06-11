@@ -1,5 +1,5 @@
 #
-# Copyright 2015 Quantopian, Inc.
+# Copyright 2018 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from abc import ABCMeta, abstractmethod
 from collections import Iterable
 from copy import copy
 import operator as op
@@ -33,7 +34,7 @@ from six import (
     itervalues,
     string_types,
     viewkeys,
-)
+    with_metaclass)
 
 from zipline._protocol import handle_non_market_minutes
 from zipline.assets.synthetic import make_simple_equity_info
@@ -140,10 +141,7 @@ from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 
-log = logbook.Logger("ZiplineLog")
-
-
-class TradingAlgorithm(object):
+class TradingAlgorithm(with_metaclass(ABCMeta)):
     """A class that represents a trading strategy and parameters to execute
     the strategy.
 
@@ -355,6 +353,8 @@ class TradingAlgorithm(object):
         def noop(*args, **kwargs):
             pass
 
+        self.algo_filename = kwargs.pop('algo_filename', None)
+
         if self.algoscript is not None:
             api_methods = {
                 'initialize',
@@ -371,10 +371,9 @@ class TradingAlgorithm(object):
                     )
                 )
 
-            filename = kwargs.pop('algo_filename', None)
-            if filename is None:
-                filename = '<string>'
-            code = compile(self.algoscript, filename, 'exec')
+            if self.algo_filename is None:
+                self.algo_filename = '<string>'
+            code = compile(self.algoscript, self.algo_filename, 'exec')
             exec_(code, self.namespace)
 
             self._initialize = self.namespace.get('initialize', noop)
@@ -497,49 +496,10 @@ class TradingAlgorithm(object):
                    blotter=repr(self.blotter),
                    recorded_vars=repr(self.recorded_vars))
 
+    @abstractmethod
     def _create_clock(self):
-        """
-        If the clock property is not set, then create one based on frequency.
-        """
-        trading_o_and_c = self.trading_calendar.schedule.ix[
-            self.sim_params.sessions]
-        market_closes = trading_o_and_c['market_close']
-        minutely_emission = False
 
-        if self.sim_params.data_frequency == 'minute':
-            market_opens = trading_o_and_c['market_open']
-
-            minutely_emission = self.sim_params.emission_rate == "minute"
-        else:
-            # in daily mode, we want to have one bar per session, timestamped
-            # as the last minute of the session.
-            market_opens = market_closes
-
-        # The calendar's execution times are the minutes over which we actually
-        # want to run the clock. Typically the execution times simply adhere to
-        # the market open and close times. In the case of the futures calendar,
-        # for example, we only want to simulate over a subset of the full 24
-        # hour calendar, so the execution times dictate a market open time of
-        # 6:31am US/Eastern and a close of 5:00pm US/Eastern.
-        execution_opens = \
-            self.trading_calendar.execution_time_from_open(market_opens)
-        execution_closes = \
-            self.trading_calendar.execution_time_from_close(market_closes)
-
-        # FIXME generalize these values
-        before_trading_start_minutes = days_at_time(
-            self.sim_params.sessions,
-            time(8, 45),
-            "US/Eastern"
-        )
-
-        return MinuteSimulationClock(
-            self.sim_params.sessions,
-            execution_opens,
-            execution_closes,
-            before_trading_start_minutes,
-            minute_emission=minutely_emission,
-        )
+        raise NotImplementedError("_create_clock")
 
     def _create_benchmark_source(self):
         if self.benchmark_sid is not None:
@@ -572,33 +532,10 @@ class TradingAlgorithm(object):
             metrics=self._metrics_set,
         )
 
+    @abstractmethod
     def _create_generator(self, sim_params):
-        if sim_params is not None:
-            self.sim_params = sim_params
 
-        self.metrics_tracker = metrics_tracker = self._create_metrics_tracker()
-
-        # Set the dt initially to the period start by forcing it to change.
-        self.on_dt_changed(self.sim_params.start_session)
-
-        if not self.initialized:
-            self.initialize(*self.initialize_args, **self.initialize_kwargs)
-            self.initialized = True
-
-        benchmark_source = self._create_benchmark_source()
-
-        self.trading_client = AlgorithmSimulator(
-            self,
-            sim_params,
-            self.data_portal,
-            self._create_clock(),
-            benchmark_source,
-            self.restrictions,
-            universe_func=self._calculate_universe
-        )
-
-        metrics_tracker.handle_start_of_simulation(benchmark_source)
-        return self.trading_client.transform()
+        raise NotImplementedError('_create_generator')
 
     def _calculate_universe(self):
         # this exists to provide backwards compatibility for older,
