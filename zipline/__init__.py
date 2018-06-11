@@ -28,7 +28,7 @@ from ._version import get_versions
 # These need to happen after the other imports.
 from . algorithm import TradingAlgorithm
 from . import api
-from .extensions import Namespace
+from .extensions import Namespace, custom_types
 
 
 # PERF: Fire a warning if calendars were instantiated during zipline import.
@@ -82,4 +82,5 @@ __all__ = [
     'gens',
     'run_algorithm',
     'utils',
+    'custom_types',
 ]

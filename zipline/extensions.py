@@ -1,4 +1,9 @@
 import re
+from functools import partial
+
+from zipline.finance.blotter import Blotter
+from zipline.algorithm import TradingAlgorithm
+from zipline.utils.compat import mappingproxy
 
 
 def create_args(args, root):
@@ -43,3 +48,188 @@ def get_namespace(obj, path, name):
 class Namespace(object):
 
     pass
+
+
+class RegistrationManager(object):
+
+    def __init__(self, dtype):
+        self.dtype = dtype
+        self._classes = {}
+        self.classes = mappingproxy(self._classes)
+
+    def load(self, name):
+        try:
+            return self._classes[name]
+        except KeyError:
+            raise ValueError(
+                "no class registered under name %r, options are: %r" % (
+                    name,
+                    sorted(self._classes),
+                ),
+            )
+
+    def class_exists(self, name):
+        return name in self._classes
+
+    def register(self, name, custom_class=None):
+        if custom_class is None:
+            return partial(self.register, name)
+
+        if self.class_exists(name):
+            raise ValueError("class %r is already registered" % name)
+
+        if not issubclass(custom_class, self.dtype):
+            raise TypeError(
+                "The class specified is not a subclass of %s"
+                % type(self.dtype).__name__
+            )
+
+        self._classes[name] = custom_class
+
+        return custom_class
+
+    def unregister(self, name):
+        try:
+            del self._classes[name]
+        except KeyError:
+            raise ValueError("class %r was not already registered" % name)
+
+    def clear(self):
+        self._classes.clear()
+
+    def get_registered_classes(self):
+        return self.classes
+
+
+def get_registration_manager(dtype):
+    """
+    Getter method for retrieving the registration manager
+    instance for a given extendable type
+
+    Parameters
+    ----------
+    dtype : type
+        extendable type (base class)
+
+    Returns
+    -------
+    manager : RegistrationManager
+        The corresponding registration manager
+    """
+    try:
+        return custom_types[dtype]
+    except KeyError:
+        raise ValueError("class specified is not an extendable type")
+
+
+def load(dtype, name):
+    """
+    Retrieves a custom class whose name is given.
+
+    Parameters
+    ----------
+    dtype : type
+        The base class for which to perform this operation
+    name : str
+        The name of the class to be retrieved.
+
+    Returns
+    -------
+    class : type
+        The desired class.
+    """
+    return get_registration_manager(dtype).load(name)
+
+
+def class_exists(dtype, name):
+    """
+    Whether or not the global dictionary of classes contains the
+    class with the specified name
+
+    Parameters
+    ----------
+    dtype : type
+        The base class for which to perform this operation
+    name : str
+        The name of the class
+
+    Returns
+    -------
+    result : bool
+        Whether or not a given class is registered
+    """
+
+    return get_registration_manager(dtype).class_exists(name)
+
+
+def register(dtype, name, custom_class=None):
+    """
+    Registers a class for retrieval by the load method
+
+    Parameters
+    ----------
+    dtype : type
+        The base class for which to perform this operation
+    name : str
+        The name of the subclass
+    custom_class : type
+        The subclass to register
+
+    class : type
+        The class to register, which must be a subclass of the
+        abstract base class in self.dtype
+    """
+
+    return get_registration_manager(dtype).register(name, custom_class)
+
+
+def unregister(dtype, name):
+    """
+    If a class is registered with the given name,
+    it is unregistered.
+
+    Parameters
+    ----------
+    dtype : type
+        The base class for which to perform this operation
+    name : str
+        The name of the class to be unregistered.
+    """
+    get_registration_manager(dtype).unregister(name)
+
+
+def clear(dtype):
+    """
+    Unregisters all current registered classes
+
+    Parameters
+    ----------
+    dtype : type
+        The base class for which to perform this operation
+    """
+    get_registration_manager(dtype).clear()
+
+
+def get_registered_classes(dtype):
+    """
+    A getter method for the dictionary of registered classes
+
+    Parameters
+    ----------
+    dtype : type
+        The base class for which to perform this operation
+
+    Returns
+    -------
+    classes : dict
+        The dictionary of registered classes
+    """
+    return get_registration_manager(dtype).get_registered_classes()
+
+
+# Add any base classes that can be extended here, along with
+# instances of RegistrationManager with the corresponding type
+custom_types = {
+    Blotter: RegistrationManager(Blotter),
+    TradingAlgorithm: RegistrationManager(TradingAlgorithm),
+}

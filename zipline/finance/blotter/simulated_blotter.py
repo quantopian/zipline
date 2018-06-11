@@ -20,7 +20,7 @@ from six import iteritems
 
 from zipline.assets import Equity, Future, Asset
 from .blotter import Blotter
-from .core import register
+from zipline.extensions import register
 from zipline.finance.order import Order
 from zipline.finance.slippage import (
     DEFAULT_FUTURE_VOLUME_SLIPPAGE_BAR_LIMIT,
@@ -39,7 +39,7 @@ log = Logger('Blotter')
 warning_logger = Logger('AlgoWarning')
 
 
-@register('default')
+@register(Blotter, 'default')
 class SimulatedBlotter(Blotter):
     def __init__(self, data_frequency, equity_slippage=None,
                  future_slippage=None, equity_commission=None,
