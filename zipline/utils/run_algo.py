@@ -1,12 +1,11 @@
 import os
 import re
-from runpy import run_path
 import sys
 import warnings
+from runpy import run_path
 
 import click
-
-from zipline.finance.blotter import Blotter, load
+from zipline.finance.blotter import Blotter
 
 try:
     from pygments import highlight
@@ -18,7 +17,6 @@ except ImportError:
 import six
 from toolz import valfilter, concatv
 
-from zipline.algorithm import TradingAlgorithm
 from zipline.data import bundles
 from zipline.data.data_portal import DataPortal
 from zipline.finance import metrics
@@ -28,6 +26,7 @@ from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.utils.calendars import get_calendar
 from zipline.utils.factory import create_simulation_parameters
 import zipline.utils.paths as pth
+from zipline.extensions import load
 
 
 class _RunAlgoError(click.ClickException, ValueError):
@@ -187,7 +186,7 @@ def _run(handle_data,
 
     if isinstance(blotter_class, six.string_types):
         try:
-            blotter_class = load(blotter_class)
+            blotter_class = load(Blotter, blotter_class)
         except ValueError as e:
             raise _RunAlgoError(str(e))
     else:

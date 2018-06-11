@@ -15,18 +15,8 @@
 
 from .simulated_blotter import SimulatedBlotter
 from .blotter import Blotter
-from .core import (
-    load,
-    unregister,
-    register,
-    blotter_classes,
-)
 
 __all__ = [
     'SimulatedBlotter',
     'Blotter',
-    'register',
-    'unregister',
-    'blotter_classes',
-    'load',
 ]
