@@ -27,8 +27,8 @@ environment:
     - PYTHON_VERSION: "2.7"
     - PYTHON_VERSION: "3.5"
 
-    - PYTHON_VERSION: "3.5"
-      PANDAS_VERSION: "0.19.2"
+    # - PYTHON_VERSION: "3.5"
+    #   PANDAS_VERSION: "0.19.2"
 
     - PYTHON_VERSION: "3.5"
       PANDAS_VERSION: "0.22.0"
