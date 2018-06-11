@@ -200,12 +200,6 @@ def ipython_only(option):
     help='The metrics set to use. New metrics sets may be registered in your'
     ' extension.py.',
 )
-@click.option(
-    '--blotter-class',
-    default='default',
-    help='The blotter class to use for running the algorithm. Custom '
-         'blotter classes may be registered in your extension.py.',
-)
 @ipython_only(click.option(
     '--local-namespace/--no-local-namespace',
     is_flag=True,
@@ -228,7 +222,9 @@ def run(ctx,
         print_algo,
         metrics_set,
         blotter_class,
-        local_namespace):
+        local_namespace,
+        *args,
+        **kwargs):
     """Run a backtest for the given algorithm.
     """
     # check that the start and end dates are passed correctly

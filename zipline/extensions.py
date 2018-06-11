@@ -1,13 +1,25 @@
 import re
+import click
+from zipline.__main__ import run
 from functools import partial
-
 from zipline.finance.blotter import Blotter
 from zipline.algorithm import TradingAlgorithm
 from zipline.utils.compat import mappingproxy
+from collections import OrderedDict
+
+
+def add_cli_option(name, choices, help):
+    run.params.append(
+        click.core.Option(
+            param_decls=[name],
+            type=click.Choice(choices),
+            default='default',
+            help=help,
+        ),
+    )
 
 
 def create_args(args, root):
-
     extension_args = {}
 
     for arg in args:
@@ -46,7 +58,6 @@ def get_namespace(obj, path, name):
 
 
 class Namespace(object):
-
     pass
 
 
@@ -56,6 +67,12 @@ class RegistrationManager(object):
         self.dtype = dtype
         self._classes = {}
         self.classes = mappingproxy(self._classes)
+        add_cli_option(
+            name="--%s-class" % type(self.dtype).__name__,
+            choices=[],
+            help="The subclass of %s to use, defaults to 'default'"
+            % type(self.dtype).__name__
+        )
 
     def load(self, name):
         try:
@@ -85,12 +102,17 @@ class RegistrationManager(object):
             )
 
         self._classes[name] = custom_class
+        global_index = list(custom_types.keys()).index(self.dtype)
+        run.params[global_index].type.choices.append(name)
 
         return custom_class
 
     def unregister(self, name):
         try:
             del self._classes[name]
+            global_index = list(custom_types.keys()).index(self.dtype)
+            choice_index = run.params[global_index].type.choices.index(name)
+            run.params[global_index].type.choices.pop(choice_index)
         except KeyError:
             raise ValueError("class %r was not already registered" % name)
 
@@ -229,7 +251,7 @@ def get_registered_classes(dtype):
 
 # Add any base classes that can be extended here, along with
 # instances of RegistrationManager with the corresponding type
-custom_types = {
-    Blotter: RegistrationManager(Blotter),
-    TradingAlgorithm: RegistrationManager(TradingAlgorithm),
-}
+custom_types = OrderedDict([
+    (Blotter, RegistrationManager(Blotter)),
+    (TradingAlgorithm, RegistrationManager(TradingAlgorithm)),
+])
