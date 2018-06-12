@@ -58,24 +58,28 @@ class RegistrationManager(object):
             return self._classes[name]
         except KeyError:
             raise ValueError(
-                "no class registered under name %r, options are: %r" % (
-                    name,
-                    sorted(self._classes),
-                ),
+                "no %s class registered under name %r, options are: %r" %
+                (self.dtype.__name__, name, sorted(self._classes)),
             )
 
     def class_exists(self, name):
         return name in self._classes
 
-    def register(self, name, custom_class):
+    def register(self, name, custom_class=None):
+
+        if custom_class is None:
+            return partial(self.register, name)
 
         if self.class_exists(name):
-            raise ValueError("class %r is already registered" % name)
+            raise ValueError(
+                "%s class %r is already registered" %
+                (self.dtype.__name__, name)
+            )
 
         if not issubclass(custom_class, self.dtype):
             raise TypeError(
                 "The class specified is not a subclass of %s"
-                % type(self.dtype).__name__
+                % self.dtype.__name__
             )
 
         self._classes[name] = custom_class
@@ -86,7 +90,10 @@ class RegistrationManager(object):
         try:
             del self._classes[name]
         except KeyError:
-            raise ValueError("class %r was not already registered" % name)
+            raise ValueError(
+                "%s class %r was not already registered" %
+                (self.dtype.__name__, name)
+            )
 
     def clear(self):
         self._classes.clear()
@@ -228,6 +235,4 @@ def create_registration_manager(dtype):
     return dtype
 
 
-# Add any base classes that can be extended here, along with
-# instances of RegistrationManager with the corresponding type
 custom_types = OrderedDict([])

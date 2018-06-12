@@ -415,5 +415,5 @@ def run_algorithm(start,
         metrics_set=metrics_set,
         local_namespace=False,
         environ=environ,
-        blotter_class=blotter_class,
+        Blotter_class=blotter_class,
     )
