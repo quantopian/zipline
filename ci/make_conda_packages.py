@@ -33,6 +33,7 @@ def main(env, do_upload):
                "--skip-existing",
                "--old-build-string",
                "-c", "quantopian/label/ci",
+               "-c", "quantopian/label/pandas_upgrade",
                "-c", "quantopian"]
 
         do_upload_msg = ' and uploading' if do_upload else ''
@@ -51,7 +52,8 @@ def main(env, do_upload):
         if do_upload:
             if output and os.path.exists(output):
                 cmd = ["anaconda", "-t", env['ANACONDA_TOKEN'],
-                       "upload", output, "-u", "quantopian", "--label", "ci"]
+                       "upload", output, "-u", "quantopian", "--label", "pandas_upgrade",
+                       "--force"]
 
                 for line in iter_stdout(cmd):
                     print(line)
@@ -64,6 +66,6 @@ def main(env, do_upload):
 if __name__ == '__main__':
     env = os.environ.copy()
     main(env,
-         do_upload=((env.get('ANACONDA_TOKEN')
-                     and env.get('APPVEYOR_REPO_BRANCH') == 'master')
-                    and 'APPVEYOR_PULL_REQUEST_NUMBER' not in env))
+         do_upload=env.get('ANACONDA_TOKEN'))
+                    #  and env.get('APPVEYOR_REPO_BRANCH') == 'master')
+                    # and 'APPVEYOR_PULL_REQUEST_NUMBER' not in env))

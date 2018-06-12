@@ -53,14 +53,14 @@ install:
   - CONDA_NPY=${NPY_VERSION_ARR[0]}${NPY_VERSION_ARR[1]}
   - CONDA_PY=$TRAVIS_PYTHON_VERSION
 
-  - if [[ "$TRAVIS_SECURE_ENV_VARS" = "true" && "$TRAVIS_BRANCH" = "master" && "$TRAVIS_PULL_REQUEST" = "false" ]]; then DO_UPLOAD="true"; else DO_UPLOAD="false"; fi
+  - if [[ "$TRAVIS_SECURE_ENV_VARS" = "true" ]]; then DO_UPLOAD="true"; else DO_UPLOAD="false"; fi
   - |
     for recipe in $(ls -d conda/*/ | xargs -I {} basename {}); do
       if [[ "$recipe" = "zipline" ]]; then continue; fi
 
-      conda build conda/$recipe --python=$CONDA_PY --numpy=$CONDA_NPY --skip-existing --old-build-string -c quantopian -c quantopian/label/ci
+      conda build conda/$recipe --python=$CONDA_PY --numpy=$CONDA_NPY --skip-existing --old-build-string -c quantopian -c quantopian/label/ci -c quantopian/label/pandas_upgrade
       RECIPE_OUTPUT=$(conda build conda/$recipe --python=$CONDA_PY --numpy=$CONDA_NPY --old-build-string --output)
-      if [[ -f "$RECIPE_OUTPUT" && "$DO_UPLOAD" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload "$RECIPE_OUTPUT" -u quantopian --label ci; fi
+      if [[ -f "$RECIPE_OUTPUT" && "$DO_UPLOAD" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload "$RECIPE_OUTPUT" -u quantopian --label pandas_upgrade; fi
     done
   # Make sure stdout is in blocking mode. If we don't, then conda create will barf during downloads.
   # See https://github.com/travis-ci/travis-ci/issues/4704#issuecomment-348435959 for details.
@@ -85,18 +85,18 @@ script:
 
   # unshallow the clone so the conda build can clone it.
   - git fetch --unshallow
-  - exec 3>&1; ZP_OUT=$(conda build conda/zipline --python=$CONDA_PY --numpy=$CONDA_NPY -c quantopian -c quantopian/label/ci | tee >(cat - >&3))
+  - exec 3>&1; ZP_OUT=$(conda build conda/zipline --python=$CONDA_PY --numpy=$CONDA_NPY -c quantopian -c quantopian/label/ci -c quantopian/label/pandas_upgrade | tee >(cat - >&3))
   - ZP_OUTPUT=$(echo "$ZP_OUT" | grep "anaconda upload " | awk '{print $NF}')
   - if [ -z "$ZP_OUTPUT" ]; then exit 1; fi
   # test that we can conda install zipline in a new env
-  - conda create -n installenv --yes -q --use-local python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION zipline -c quantopian -c https://conda.anaconda.org/quantopian/label/ci
-  - if [[ "$DO_UPLOAD" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload $ZP_OUTPUT -u quantopian --label ci; fi
+  - conda create -n installenv --yes -q --use-local python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION zipline -c quantopian -c https://conda.anaconda.org/quantopian/label/ci -c https://conda.anaconda.org/quantopian/label/pandas_upgrade
+  - if [[ "$DO_UPLOAD" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload $ZP_OUTPUT -u quantopian --label pandas_upgrade --force; fi
   # reactivate env (necessary for coveralls)
   - source activate testenv
 
 after_success:
   - coveralls
 
-branches:
-  only:
-    - master
+#branches:
+#  only:
+#    - master
