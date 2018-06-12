@@ -1,22 +1,7 @@
 import re
-import click
-from zipline.__main__ import run
 from functools import partial
-from zipline.finance.blotter import Blotter
-from zipline.algorithm import TradingAlgorithm
 from zipline.utils.compat import mappingproxy
 from collections import OrderedDict
-
-
-def add_cli_option(name, choices, help):
-    run.params.append(
-        click.core.Option(
-            param_decls=[name],
-            type=click.Choice(choices),
-            default='default',
-            help=help,
-        ),
-    )
 
 
 def create_args(args, root):
@@ -67,12 +52,6 @@ class RegistrationManager(object):
         self.dtype = dtype
         self._classes = {}
         self.classes = mappingproxy(self._classes)
-        add_cli_option(
-            name="--%s-class" % type(self.dtype).__name__,
-            choices=[],
-            help="The subclass of %s to use, defaults to 'default'"
-            % type(self.dtype).__name__
-        )
 
     def load(self, name):
         try:
@@ -88,9 +67,7 @@ class RegistrationManager(object):
     def class_exists(self, name):
         return name in self._classes
 
-    def register(self, name, custom_class=None):
-        if custom_class is None:
-            return partial(self.register, name)
+    def register(self, name, custom_class):
 
         if self.class_exists(name):
             raise ValueError("class %r is already registered" % name)
@@ -102,17 +79,12 @@ class RegistrationManager(object):
             )
 
         self._classes[name] = custom_class
-        global_index = list(custom_types.keys()).index(self.dtype)
-        run.params[global_index].type.choices.append(name)
 
         return custom_class
 
     def unregister(self, name):
         try:
             del self._classes[name]
-            global_index = list(custom_types.keys()).index(self.dtype)
-            choice_index = run.params[global_index].type.choices.index(name)
-            run.params[global_index].type.choices.pop(choice_index)
         except KeyError:
             raise ValueError("class %r was not already registered" % name)
 
@@ -201,6 +173,8 @@ def register(dtype, name, custom_class=None):
         The class to register, which must be a subclass of the
         abstract base class in self.dtype
     """
+    if custom_class is None:
+        return partial(register, dtype, name)
 
     return get_registration_manager(dtype).register(name, custom_class)
 
@@ -249,9 +223,11 @@ def get_registered_classes(dtype):
     return get_registration_manager(dtype).get_registered_classes()
 
 
+def create_registration_manager(dtype):
+    custom_types[dtype] = RegistrationManager(dtype)
+    return dtype
+
+
 # Add any base classes that can be extended here, along with
 # instances of RegistrationManager with the corresponding type
-custom_types = OrderedDict([
-    (Blotter, RegistrationManager(Blotter)),
-    (TradingAlgorithm, RegistrationManager(TradingAlgorithm)),
-])
+custom_types = OrderedDict([])

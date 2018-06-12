@@ -5,6 +5,7 @@ import warnings
 from runpy import run_path
 
 import click
+from zipline.algorithm import TradingAlgorithm
 from zipline.finance.blotter import Blotter
 
 try:
@@ -74,7 +75,8 @@ def _run(handle_data,
          metrics_set,
          local_namespace,
          environ,
-         blotter_class):
+         *args,
+         **kwargs):
     """Run a backtest for the given algorithm.
 
     This is shared between the cli and :func:`zipline.run_algo`.
@@ -184,15 +186,14 @@ def _run(handle_data,
         except ValueError as e:
             raise _RunAlgoError(str(e))
 
-    if isinstance(blotter_class, six.string_types):
+    blotter_class = kwargs.pop("Blotter_class")
+    if blotter_class is not None:
         try:
             blotter_class = load(Blotter, blotter_class)
         except ValueError as e:
             raise _RunAlgoError(str(e))
     else:
-        if not issubclass(blotter_class, Blotter):
-            raise TypeError("Blotter specified is not a subclass of "
-                            "abstract class blotter")
+        blotter_class = load(Blotter, 'default')
 
     perf = TradingAlgorithm(
         namespace=namespace,
@@ -414,5 +415,5 @@ def run_algorithm(start,
         metrics_set=metrics_set,
         local_namespace=False,
         environ=environ,
-        blotter_class=blotter_class
+        blotter_class=blotter_class,
     )

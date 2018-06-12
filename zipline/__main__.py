@@ -12,7 +12,7 @@ from zipline.utils.calendars.calendar_utils import get_calendar
 from zipline.utils.compat import wraps
 from zipline.utils.cli import Date, Timestamp
 from zipline.utils.run_algo import _run, load_extensions
-from zipline.extensions import create_args
+from zipline.extensions import create_args, custom_types
 
 try:
     __IPYTHON__
@@ -49,7 +49,6 @@ except NameError:
 def main(extension, strict_extensions, default_extension, x):
     """Top level zipline entry point.
     """
-    create_args(x, zipline.extension_args)
 
     # install a logbook handler before performing any other operations
     logbook.StderrHandler().push_application()
@@ -59,6 +58,16 @@ def main(extension, strict_extensions, default_extension, x):
         strict_extensions,
         os.environ,
     )
+
+    for c in custom_types:
+        add_cli_option(
+            name="--%s-class" % c.__name__,
+            choices=list(custom_types[c].get_registered_classes().keys()),
+            help="The subclass of %s to use, defaults to 'default'"
+                 % c.__name__,
+        )
+
+    create_args(x, zipline.extension_args)
 
 
 def extract_option_object(option):
@@ -221,7 +230,6 @@ def run(ctx,
         trading_calendar,
         print_algo,
         metrics_set,
-        blotter_class,
         local_namespace,
         *args,
         **kwargs):
@@ -269,7 +277,8 @@ def run(ctx,
         metrics_set=metrics_set,
         local_namespace=local_namespace,
         environ=os.environ,
-        blotter_class=blotter_class
+        *args,
+        **kwargs
     )
 
     if output == '-':
@@ -278,6 +287,17 @@ def run(ctx,
         perf.to_pickle(output)
 
     return perf
+
+
+def add_cli_option(name, choices, help):
+    run.params.append(
+        click.core.Option(
+            param_decls=[name],
+            type=click.Choice(choices),
+            default='default',
+            help=help,
+        ),
+    )
 
 
 def zipline_magic(line, cell=None):
