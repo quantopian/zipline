@@ -21,6 +21,8 @@ from six import with_metaclass
 
 from numpy import isfinite
 
+import zipline.utils.math_utils as zp_math
+
 from zipline.errors import BadOrderParameters
 
 import math
@@ -191,7 +193,6 @@ def asymmetric_round_price(price, prefer_round_down,
     """
     precision = get_precision(tick_size)
     diff *= (10 ** -precision)
-    print(price, precision, diff)
 
     # Subtracting an epsilon from diff to enforce the open-ness of the upper
     # bound on buys and the lower bound on sells.  Using the actual system
@@ -201,8 +202,8 @@ def asymmetric_round_price(price, prefer_round_down,
 
     # relies on rounding half away from zero, unlike numpy's bankers' rounding
     rounded = round(price - (diff if prefer_round_down else -diff), precision)
-    # if zp_math.tolerant_equals(rounded, 0.0):
-    #     return 0.0
+    if zp_math.tolerant_equals(rounded, 0.0):
+        return 0.0
     return rounded
 
 
