@@ -18,11 +18,8 @@ class CmdLineTestCase(ZiplineTestCase):
     def init_instance_fixtures(self):
         super(CmdLineTestCase, self).init_instance_fixtures()
 
-        # make sure this starts empty
-        # TODO: decide how this needs to be reset
-        zipline.extension_args = Namespace()
-
     def test_parse_args(self):
+        n = Namespace()
 
         arg_dict = {}
 
@@ -45,12 +42,12 @@ class CmdLineTestCase(ZiplineTestCase):
                 'key': 'value',
             }
         )
-        create_args(arg_list, zipline.extension_args)
-        assert_equal(zipline.extension_args.key, 'value')
-        assert_equal(zipline.extension_args.arg1, 'test1')
-        assert_equal(zipline.extension_args.arg2, 'test2')
-        assert_equal(zipline.extension_args.arg_3, 'test3')
-        assert_equal(zipline.extension_args._arg_4_, 'test4')
+        create_args(arg_list, n)
+        assert_equal(n.key, 'value')
+        assert_equal(n.arg1, 'test1')
+        assert_equal(n.arg2, 'test2')
+        assert_equal(n.arg_3, 'test3')
+        assert_equal(n._arg_4_, 'test4')
 
         msg = (
             'invalid extension argument 1=test3, '
@@ -84,6 +81,7 @@ class CmdLineTestCase(ZiplineTestCase):
             parse_extension_arg('arg7.-arg7=test7', {})
 
     def test_parse_namespaces(self):
+        n = Namespace()
 
         create_args(
             [
@@ -93,15 +91,15 @@ class CmdLineTestCase(ZiplineTestCase):
                 "second.a=blah4",
                 "second.b=blah5",
             ],
-            zipline.extension_args
+            n
         )
-        assert_equal(zipline.extension_args.first.second.a, 'blah1')
-        assert_equal(zipline.extension_args.first.second.b, 'blah2')
-        assert_equal(zipline.extension_args.first.third, 'blah3')
-        assert_equal(zipline.extension_args.second.a, 'blah4')
-        assert_equal(zipline.extension_args.second.b, 'blah5')
+        assert_equal(n.first.second.a, 'blah1')
+        assert_equal(n.first.second.b, 'blah2')
+        assert_equal(n.first.third, 'blah3')
+        assert_equal(n.second.a, 'blah4')
+        assert_equal(n.second.b, 'blah5')
 
-        zipline.extension_args = Namespace()
+        n = Namespace()
 
         msg = "Conflicting assignments at namespace level 'second'"
         with assert_raises_str(ValueError, msg):
@@ -111,10 +109,12 @@ class CmdLineTestCase(ZiplineTestCase):
                     "first.second.b=blah2",
                     "first.second=blah3",
                 ],
-                zipline.extension_args
+                n
             )
 
     def test_user_input(self):
+        zipline.extension_args = Namespace()
+
         runner = CliRunner()
         result = runner.invoke(main.main, [
             '-xfirst.second.a=blah1',
@@ -127,7 +127,6 @@ class CmdLineTestCase(ZiplineTestCase):
             'bundles',
         ])
 
-        print(result.output)
         assert_equal(result.exit_code, 0)  # assert successful invocation
         assert_equal(zipline.extension_args.first.second.a, 'blah1')
         assert_equal(zipline.extension_args.first.second.b, 'blah2')
