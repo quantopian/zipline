@@ -7,7 +7,6 @@ from zipline.testing.predicates import (
     assert_raises_str,
     assert_true,
 )
-from zipline.utils.compat import mappingproxy
 
 
 class RegistrationManagerTestCase(ZiplineTestCase):
@@ -17,7 +16,7 @@ class RegistrationManagerTestCase(ZiplineTestCase):
 
     def test_load_not_registered(self):
         rm = RegistrationManager(Blotter)
-        assert_equal(rm.get_registered_classes(), mappingproxy({}))
+        assert_equal(rm.get_registered_classes(), {})
 
         msg = (
             "no Blotter class registered under name 'ayy-lmao', "
@@ -40,13 +39,13 @@ class RegistrationManagerTestCase(ZiplineTestCase):
 
     def test_register_decorator(self):
         rm = RegistrationManager(Blotter)
-        assert_equal(rm.get_registered_classes(), mappingproxy({}))
+        assert_equal(rm.get_registered_classes(), {})
 
         @rm.register('ayy-lmao')
         class ProperDummyBlotter(SimulatedBlotter):
             pass
 
-        expected_blotters = mappingproxy({'ayy-lmao': ProperDummyBlotter})
+        expected_blotters = {'ayy-lmao': ProperDummyBlotter}
         assert_equal(rm.get_registered_classes(), expected_blotters)
         assert_is(rm.load('ayy-lmao'), ProperDummyBlotter)
         assert_true(rm.class_registered('ayy-lmao'))
@@ -69,7 +68,7 @@ class RegistrationManagerTestCase(ZiplineTestCase):
         assert_is(rm.load('ayy-lmao'), ProperDummyBlotter)
 
         rm.unregister('ayy-lmao')
-        assert_equal(rm.get_registered_classes(), mappingproxy({}))
+        assert_equal(rm.get_registered_classes(), {})
 
         msg = (
             "no Blotter class registered under name 'ayy-lmao', "
@@ -84,30 +83,30 @@ class RegistrationManagerTestCase(ZiplineTestCase):
 
     def test_register_non_decorator(self):
         rm = RegistrationManager(Blotter)
-        assert_equal(rm.get_registered_classes(), mappingproxy({}))
+        assert_equal(rm.get_registered_classes(), {})
 
         class ProperDummyBlotter(SimulatedBlotter):
             pass
 
         rm.register('ayy-lmao', ProperDummyBlotter)
 
-        expected_blotters = mappingproxy({'ayy-lmao': ProperDummyBlotter})
+        expected_blotters = {'ayy-lmao': ProperDummyBlotter}
         assert_equal(rm.get_registered_classes(), expected_blotters)
         assert_is(rm.load('ayy-lmao'), ProperDummyBlotter)
         assert_true(rm.class_registered('ayy-lmao'))
 
+        class Fake(object):
+            pass
+
         msg = "Blotter class 'ayy-lmao' is already registered"
         with assert_raises_str(ValueError, msg):
-            class Fake(object):
-                pass
-
             rm.register('ayy-lmao', Fake)
+
+        class ImproperDummyBlotter(object):
+            pass
 
         msg = "The class specified is not a subclass of Blotter"
         with assert_raises_str(TypeError, msg):
-            class ImproperDummyBlotter(object):
-                pass
-
             rm.register('something-different', ImproperDummyBlotter)
 
         # ensure that the failed registration didn't break the previously
@@ -116,7 +115,7 @@ class RegistrationManagerTestCase(ZiplineTestCase):
         assert_is(rm.load('ayy-lmao'), ProperDummyBlotter)
 
         rm.unregister('ayy-lmao')
-        assert_equal(rm.get_registered_classes(), mappingproxy({}))
+        assert_equal(rm.get_registered_classes(), {})
 
         msg = (
             "no Blotter class registered under name 'ayy-lmao', "
