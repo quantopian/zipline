@@ -75,8 +75,7 @@ def _run(handle_data,
          metrics_set,
          local_namespace,
          environ,
-         *args,
-         **kwargs):
+         blotter_class):
     """Run a backtest for the given algorithm.
 
     This is shared between the cli and :func:`zipline.run_algo`.
@@ -186,14 +185,11 @@ def _run(handle_data,
         except ValueError as e:
             raise _RunAlgoError(str(e))
 
-    blotter_class = kwargs.pop("Blotter_class")
-    if blotter_class is not None:
+    if isinstance(blotter_class, six.string_types):
         try:
             blotter_class = load(Blotter, blotter_class)
         except ValueError as e:
             raise _RunAlgoError(str(e))
-    else:
-        blotter_class = load(Blotter, 'default')
 
     perf = TradingAlgorithm(
         namespace=namespace,
@@ -415,5 +411,5 @@ def run_algorithm(start,
         metrics_set=metrics_set,
         local_namespace=False,
         environ=environ,
-        Blotter_class=blotter_class,
+        blotter_class=blotter_class,
     )

@@ -62,7 +62,7 @@ def main(extension, strict_extensions, default_extension, x):
     for c in custom_types:
         add_cli_option(
             run,
-            name="--%s-class" % c.__name__,
+            name="--%s-class" % c.__name__.lower(),
             choices=list(custom_types[c].get_registered_classes().keys()),
             help="The subclass of %s to use, defaults to 'default'"
                  % c.__name__,
@@ -232,8 +232,7 @@ def run(ctx,
         print_algo,
         metrics_set,
         local_namespace,
-        *args,
-        **kwargs):
+        blotter_class):
     """Run a backtest for the given algorithm.
     """
     # check that the start and end dates are passed correctly
@@ -278,8 +277,7 @@ def run(ctx,
         metrics_set=metrics_set,
         local_namespace=local_namespace,
         environ=os.environ,
-        *args,
-        **kwargs
+        blotter_class=blotter_class,
     )
 
     if output == '-':
