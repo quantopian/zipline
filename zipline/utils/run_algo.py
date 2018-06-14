@@ -3,10 +3,8 @@ import re
 import sys
 import warnings
 from runpy import run_path
-
 import click
-from zipline.algorithm import TradingAlgorithm
-from zipline.finance.blotter import Blotter
+
 
 try:
     from pygments import highlight
@@ -28,6 +26,8 @@ from zipline.utils.calendars import get_calendar
 from zipline.utils.factory import create_simulation_parameters
 import zipline.utils.paths as pth
 from zipline.extensions import load
+from zipline.algorithm import TradingAlgorithm
+from zipline.finance.blotter import Blotter
 
 
 class _RunAlgoError(click.ClickException, ValueError):
