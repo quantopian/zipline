@@ -61,6 +61,7 @@ def main(extension, strict_extensions, default_extension, x):
 
     for c in custom_types:
         add_cli_option(
+            run,
             name="--%s-class" % c.__name__,
             choices=list(custom_types[c].get_registered_classes().keys()),
             help="The subclass of %s to use, defaults to 'default'"
@@ -289,8 +290,16 @@ def run(ctx,
     return perf
 
 
-def add_cli_option(name, choices, help):
-    run.params.append(
+def add_cli_option(func, name, choices, help):
+    """
+    Adds a click option to the specified callable func.
+    The callable must be accessible via click.
+    """
+
+    if not hasattr(func, 'params'):
+        raise ValueError('function is not set up with click')
+
+    func.params.append(
         click.core.Option(
             param_decls=[name],
             type=click.Choice(choices),
