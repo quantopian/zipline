@@ -32,6 +32,7 @@ from .core import (
     tmp_asset_finder,
     tmp_dir,
 )
+from .debug import debug_mro_failure
 from ..data.data_portal import (
     DataPortal,
     DEFAULT_MINUTE_HISTORY_PREFETCH,
@@ -65,7 +66,24 @@ from ..utils.memoize import remember_last
 zipline_dir = os.path.dirname(zipline.__file__)
 
 
-class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
+class DebugMROMeta(FinalMeta):
+    """Metaclass that helps debug MRO resolution errors.
+    """
+    def __new__(mcls, name, bases, clsdict):
+        try:
+            return super(DebugMROMeta, mcls).__new__(
+                mcls, name, bases, clsdict
+            )
+        except TypeError as e:
+            if "(MRO)" in str(e):
+                if os.environ.get('DRAW_MRO_FAILURES'):
+                    debug_mro_failure(name, bases, output_file=name + '.dot')
+                raise
+            else:
+                raise
+
+
+class ZiplineTestCase(with_metaclass(DebugMROMeta, TestCase)):
     """
     Shared extensions to core unittest.TestCase.
 
@@ -115,7 +133,7 @@ class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
         if cls._in_setup:
             raise ValueError(
                 'Called init_class_fixtures from init_instance_fixtures.'
-                'Did you write super(..., self).init_class_fixtures() instead'
+                ' Did you write super(..., self).init_class_fixtures() instead'
                 ' of super(..., self).init_instance_fixtures()?',
             )
         cls._base_init_fixtures_was_called = True
@@ -252,7 +270,7 @@ def alias(attr_name):
     return classproperty(flip(getattr, attr_name))
 
 
-class WithDefaultDateBounds(object):
+class WithDefaultDateBounds(with_metaclass(DebugMROMeta, object)):
     """
     ZiplineTestCase mixin which makes it possible to synchronize date bounds
     across fixtures.
@@ -704,7 +722,6 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
     WithEquityMinuteBarData
     zipline.testing.create_daily_bar_data
     """
-    EQUITY_DAILY_BAR_USE_FULL_CALENDAR = False
     EQUITY_DAILY_BAR_START_DATE = alias('START_DATE')
     EQUITY_DAILY_BAR_END_DATE = alias('END_DATE')
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = None
@@ -746,26 +763,24 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
     def init_class_fixtures(cls):
         super(WithEquityDailyBarData, cls).init_class_fixtures()
         trading_calendar = cls.trading_calendars[Equity]
-        if cls.EQUITY_DAILY_BAR_USE_FULL_CALENDAR:
-            days = trading_calendar.all_sessions
+
+        if trading_calendar.is_session(cls.EQUITY_DAILY_BAR_START_DATE):
+            first_session = cls.EQUITY_DAILY_BAR_START_DATE
         else:
-            if trading_calendar.is_session(cls.EQUITY_DAILY_BAR_START_DATE):
-                first_session = cls.EQUITY_DAILY_BAR_START_DATE
-            else:
-                first_session = trading_calendar.minute_to_session_label(
-                    pd.Timestamp(cls.EQUITY_DAILY_BAR_START_DATE)
-                )
-
-            if cls.EQUITY_DAILY_BAR_LOOKBACK_DAYS > 0:
-                first_session = trading_calendar.sessions_window(
-                    first_session,
-                    -1 * cls.EQUITY_DAILY_BAR_LOOKBACK_DAYS
-                )[0]
-
-            days = trading_calendar.sessions_in_range(
-                first_session,
-                cls.EQUITY_DAILY_BAR_END_DATE,
+            first_session = trading_calendar.minute_to_session_label(
+                pd.Timestamp(cls.EQUITY_DAILY_BAR_START_DATE)
             )
+
+        if cls.EQUITY_DAILY_BAR_LOOKBACK_DAYS > 0:
+            first_session = trading_calendar.sessions_window(
+                first_session,
+                -1 * cls.EQUITY_DAILY_BAR_LOOKBACK_DAYS
+            )[0]
+
+        days = trading_calendar.sessions_in_range(
+            first_session,
+            cls.EQUITY_DAILY_BAR_END_DATE,
+        )
 
         cls.equity_daily_bar_days = days
 
