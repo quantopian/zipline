@@ -40,12 +40,12 @@ warning_logger = Logger('AlgoWarning')
 
 
 @register(Blotter, 'default')
-class SimulatedBlotter(Blotter):
+class SimulationBlotter(Blotter):
     def __init__(self, data_frequency, equity_slippage=None,
                  future_slippage=None, equity_commission=None,
                  future_commission=None, cancel_policy=None):
-        super(SimulatedBlotter, self).__init__(data_frequency,
-                                               cancel_policy=cancel_policy)
+        super(SimulationBlotter, self).__init__(data_frequency,
+                                                cancel_policy=cancel_policy)
 
         # these orders are aggregated by asset
         self.open_orders = defaultdict(list)

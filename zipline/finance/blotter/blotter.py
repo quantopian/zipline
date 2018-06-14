@@ -14,11 +14,11 @@
 # limitations under the License.
 from abc import ABCMeta, abstractmethod
 from six import with_metaclass
-from zipline.extensions import create_registration_manager
+from zipline.extensions import extensible
 from zipline.finance.cancel_policy import NeverCancel
 
 
-@create_registration_manager
+@extensible
 class Blotter(with_metaclass(ABCMeta)):
 
     def __init__(self, data_frequency, cancel_policy=None):

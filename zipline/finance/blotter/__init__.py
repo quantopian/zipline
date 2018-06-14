@@ -13,10 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .simulated_blotter import SimulatedBlotter
+from .simulation_blotter import SimulationBlotter
 from .blotter import Blotter
 
 __all__ = [
-    'SimulatedBlotter',
+    'SimulationBlotter',
     'Blotter',
 ]

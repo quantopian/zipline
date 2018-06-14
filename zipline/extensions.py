@@ -306,5 +306,8 @@ def create_registration_manager(dtype):
     return dtype
 
 
+extensible = create_registration_manager
+
+
 # A global dictionary for storing instances of RegistrationManager:
 custom_types = OrderedDict([])

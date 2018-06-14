@@ -1,5 +1,5 @@
 from zipline.extensions import RegistrationManager
-from zipline.finance.blotter import SimulatedBlotter, Blotter
+from zipline.finance.blotter import SimulationBlotter, Blotter
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import (
     assert_equal,
@@ -26,9 +26,9 @@ class RegistrationManagerTestCase(ZiplineTestCase):
             rm.load('ayy-lmao')
 
         # register in reverse order to test the sorting of the options
-        rm.register('c', SimulatedBlotter)
-        rm.register('b', SimulatedBlotter)
-        rm.register('a', SimulatedBlotter)
+        rm.register('c', SimulationBlotter)
+        rm.register('b', SimulationBlotter)
+        rm.register('a', SimulationBlotter)
 
         msg = (
             "no Blotter class registered under name 'ayy-lmao', options are: "
@@ -42,7 +42,7 @@ class RegistrationManagerTestCase(ZiplineTestCase):
         assert_equal(rm.get_registered_classes(), {})
 
         @rm.register('ayy-lmao')
-        class ProperDummyBlotter(SimulatedBlotter):
+        class ProperDummyBlotter(SimulationBlotter):
             pass
 
         expected_blotters = {'ayy-lmao': ProperDummyBlotter}
@@ -85,7 +85,7 @@ class RegistrationManagerTestCase(ZiplineTestCase):
         rm = RegistrationManager(Blotter)
         assert_equal(rm.get_registered_classes(), {})
 
-        class ProperDummyBlotter(SimulatedBlotter):
+        class ProperDummyBlotter(SimulationBlotter):
             pass
 
         rm.register('ayy-lmao', ProperDummyBlotter)
