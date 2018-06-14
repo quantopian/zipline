@@ -323,6 +323,8 @@ class TradingAlgorithm(object):
             cleanup=clear_dataframe_indexer_caches
         )
 
+        if 'blotter' in kwargs and 'blotter_class' in kwargs:
+            raise RuntimeError('both blotter and blotter_class are defined')
         self.blotter = kwargs.pop('blotter', None)
         self.cancel_policy = kwargs.pop('cancel_policy', NeverCancel())
         if not self.blotter:

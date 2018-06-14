@@ -102,14 +102,14 @@ class RegistrationManager(object):
     rather than through the object instance itself.
     """
 
-    def __init__(self, dtype):
+    def __init__(self, interface):
         """
         Parameters
         ----------
-        dtype : type
+        interface : type
             The abstract base class to manage
         """
-        self.dtype = dtype
+        self.interface = interface
         self._classes = {}
         self.classes = mappingproxy(self._classes)
 
@@ -119,7 +119,7 @@ class RegistrationManager(object):
         except KeyError:
             raise ValueError(
                 "no %s class registered under name %r, options are: %r" %
-                (self.dtype.__name__, name, sorted(self._classes)),
+                (self.interface.__name__, name, sorted(self._classes)),
             )
 
     def class_registered(self, name):
@@ -133,13 +133,13 @@ class RegistrationManager(object):
         if self.class_registered(name):
             raise ValueError(
                 "%s class %r is already registered" %
-                (self.dtype.__name__, name)
+                (self.interface.__name__, name)
             )
 
-        if not issubclass(custom_class, self.dtype):
+        if not issubclass(custom_class, self.interface):
             raise TypeError(
                 "The class specified is not a subclass of %s"
-                % self.dtype.__name__
+                % self.interface.__name__
             )
 
         self._classes[name] = custom_class
@@ -152,7 +152,7 @@ class RegistrationManager(object):
         except KeyError:
             raise ValueError(
                 "%s class %r was not already registered" %
-                (self.dtype.__name__, name)
+                (self.interface.__name__, name)
             )
 
     def clear(self):
@@ -164,14 +164,14 @@ class RegistrationManager(object):
 
 # Public wrapper methods for RegistrationManager:
 
-def get_registration_manager(dtype):
+def get_registration_manager(interface):
     """
     Getter method for retrieving the registration manager
     instance for a given extendable type
 
     Parameters
     ----------
-    dtype : type
+    interface : type
         extendable type (base class)
 
     Returns
@@ -180,18 +180,18 @@ def get_registration_manager(dtype):
         The corresponding registration manager
     """
     try:
-        return custom_types[dtype]
+        return custom_types[interface]
     except KeyError:
         raise ValueError("class specified is not an extendable type")
 
 
-def load(dtype, name):
+def load(interface, name):
     """
     Retrieves a custom class whose name is given.
 
     Parameters
     ----------
-    dtype : type
+    interface : type
         The base class for which to perform this operation
     name : str
         The name of the class to be retrieved.
@@ -201,17 +201,17 @@ def load(dtype, name):
     class : type
         The desired class.
     """
-    return get_registration_manager(dtype).load(name)
+    return get_registration_manager(interface).load(name)
 
 
-def class_registered(dtype, name):
+def class_registered(interface, name):
     """
     Whether or not the global dictionary of classes contains the
     class with the specified name
 
     Parameters
     ----------
-    dtype : type
+    interface : type
         The base class for which to perform this operation
     name : str
         The name of the class
@@ -222,16 +222,16 @@ def class_registered(dtype, name):
         Whether or not a given class is registered
     """
 
-    return get_registration_manager(dtype).class_registered(name)
+    return get_registration_manager(interface).class_registered(name)
 
 
-def register(dtype, name, custom_class=None):
+def register(interface, name, custom_class=None):
     """
     Registers a class for retrieval by the load method
 
     Parameters
     ----------
-    dtype : type
+    interface : type
         The base class for which to perform this operation
     name : str
         The name of the subclass
@@ -240,45 +240,45 @@ def register(dtype, name, custom_class=None):
         abstract base class in self.dtype
     """
     if custom_class is None:
-        return partial(register, dtype, name)
+        return partial(register, interface, name)
 
-    return get_registration_manager(dtype).register(name, custom_class)
+    return get_registration_manager(interface).register(name, custom_class)
 
 
-def unregister(dtype, name):
+def unregister(interface, name):
     """
     If a class is registered with the given name,
     it is unregistered.
 
     Parameters
     ----------
-    dtype : type
+    interface : type
         The base class for which to perform this operation
     name : str
         The name of the class to be unregistered.
     """
-    get_registration_manager(dtype).unregister(name)
+    get_registration_manager(interface).unregister(name)
 
 
-def clear(dtype):
+def clear(interface):
     """
     Unregisters all current registered classes
 
     Parameters
     ----------
-    dtype : type
+    interface : type
         The base class for which to perform this operation
     """
-    get_registration_manager(dtype).clear()
+    get_registration_manager(interface).clear()
 
 
-def get_registered_classes(dtype):
+def get_registered_classes(interface):
     """
     A getter method for the dictionary of registered classes
 
     Parameters
     ----------
-    dtype : type
+    interface : type
         The base class for which to perform this operation
 
     Returns
@@ -286,10 +286,10 @@ def get_registered_classes(dtype):
     classes : dict
         The dictionary of registered classes
     """
-    return get_registration_manager(dtype).get_registered_classes()
+    return get_registration_manager(interface).get_registered_classes()
 
 
-def create_registration_manager(dtype):
+def create_registration_manager(interface):
     """
 
     Parameters
@@ -300,8 +300,11 @@ def create_registration_manager(dtype):
     dtype : type
         The data type specified/decorated
     """
-    custom_types[dtype] = RegistrationManager(dtype)
-    return dtype
+    if interface in custom_types:
+        raise ValueError('there is already a RegistrationManager instance '
+                         'for the specified type')
+    custom_types[interface] = RegistrationManager(interface)
+    return interface
 
 
 extensible = create_registration_manager
