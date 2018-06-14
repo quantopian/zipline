@@ -93,6 +93,7 @@ class CmdLineTestCase(ZiplineTestCase):
             ],
             n
         )
+
         assert_equal(n.first.second.a, 'blah1')
         assert_equal(n.first.second.b, 'blah2')
         assert_equal(n.first.third, 'blah3')

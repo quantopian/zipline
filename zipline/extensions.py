@@ -74,10 +74,8 @@ def update_namespace(namespace, path, name):
     if len(path) == 1:
         setattr(namespace, path[0], name)
     else:
-        if hasattr(namespace, path[0]) and isinstance(
-                getattr(namespace, path[0]),
-                six.string_types):
-
+        if hasattr(namespace, path[0]):
+            if isinstance(getattr(namespace, path[0]), six.string_types):
                 raise ValueError("Conflicting assignments at namespace"
                                  " level '%s'" % path[0])
         else:
