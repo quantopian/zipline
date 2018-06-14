@@ -49,7 +49,7 @@ class RegistrationManagerTestCase(ZiplineTestCase):
         expected_blotters = mappingproxy({'ayy-lmao': ProperDummyBlotter})
         assert_equal(rm.get_registered_classes(), expected_blotters)
         assert_is(rm.load('ayy-lmao'), ProperDummyBlotter)
-        assert_true(rm.class_exists('ayy-lmao'))
+        assert_true(rm.class_registered('ayy-lmao'))
 
         msg = "Blotter class 'ayy-lmao' is already registered"
         with assert_raises_str(ValueError, msg):
@@ -94,7 +94,7 @@ class RegistrationManagerTestCase(ZiplineTestCase):
         expected_blotters = mappingproxy({'ayy-lmao': ProperDummyBlotter})
         assert_equal(rm.get_registered_classes(), expected_blotters)
         assert_is(rm.load('ayy-lmao'), ProperDummyBlotter)
-        assert_true(rm.class_exists('ayy-lmao'))
+        assert_true(rm.class_registered('ayy-lmao'))
 
         msg = "Blotter class 'ayy-lmao' is already registered"
         with assert_raises_str(ValueError, msg):

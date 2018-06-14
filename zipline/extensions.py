@@ -62,7 +62,7 @@ class RegistrationManager(object):
                 (self.dtype.__name__, name, sorted(self._classes)),
             )
 
-    def class_exists(self, name):
+    def class_registered(self, name):
         return name in self._classes
 
     def register(self, name, custom_class=None):
@@ -70,7 +70,7 @@ class RegistrationManager(object):
         if custom_class is None:
             return partial(self.register, name)
 
-        if self.class_exists(name):
+        if self.class_registered(name):
             raise ValueError(
                 "%s class %r is already registered" %
                 (self.dtype.__name__, name)
@@ -142,7 +142,7 @@ def load(dtype, name):
     return get_registration_manager(dtype).load(name)
 
 
-def class_exists(dtype, name):
+def class_registered(dtype, name):
     """
     Whether or not the global dictionary of classes contains the
     class with the specified name
@@ -160,7 +160,7 @@ def class_exists(dtype, name):
         Whether or not a given class is registered
     """
 
-    return get_registration_manager(dtype).class_exists(name)
+    return get_registration_manager(dtype).class_registered(name)
 
 
 def register(dtype, name, custom_class=None):
