@@ -1,10 +1,25 @@
 import re
+import six
 from functools import partial
 from zipline.utils.compat import mappingproxy
 from collections import OrderedDict
 
 
 def create_args(args, root):
+    """
+    Encapsulates a set of custom command line arguments in key=value
+    or key.namespace=value form into a chain of Namespace objects,
+    where each next level is an attribute of the Namespace object on the
+    current level
+
+    Parameters
+    ----------
+    args : list
+        A list of strings representing arguments in key=value form
+    root : Namespace
+        The top-level element of the argument tree
+    """
+
     extension_args = {}
 
     for arg in args:
@@ -12,43 +27,90 @@ def create_args(args, root):
 
     for name in sorted(extension_args, key=len):
         path = name.split('.')
-        get_namespace(root, path, extension_args[name])
+        update_namespace(root, path, extension_args[name])
 
 
 def parse_extension_arg(arg, arg_dict):
+    """
+    Converts argument strings in key=value or key.namespace=value form
+    to dictionary entries
+
+    Parameters
+    ----------
+    arg : str
+        The argument string to parse, which must be in key=value or
+        key.namespace=value form.
+    arg_dict : dict
+        The dictionary into which the key/value pair will be added
+    """
+
     match = re.match(r'^(([^\d\W]\w*)(\.[^\d\W]\w*)*)=(.*)$', arg)
     if match is None:
         raise ValueError(
-            "invalid extension argument %s, must be in key=value form" %
-            arg)
+            "invalid extension argument %s, must be in key=value form" % arg
+        )
 
     name = match.group(1)
     value = match.group(4)
     arg_dict[name] = value
 
 
-def get_namespace(obj, path, name):
+def update_namespace(namespace, path, name):
+    """
+    A recursive function that takes a root element, list of namespaces,
+    and the value being stored, and assigns namespaces to the root object
+    via a chain of Namespace objects, connected through attributes
+
+    Parameters
+    ----------
+    namespace : Namespace
+        The object onto which an attribute will be added
+    path : list
+        A list of strings representing namespaces
+    name : str
+        The value to be stored at the bottom level
+    """
+
     if len(path) == 1:
-        setattr(obj, path[0], name)
+        setattr(namespace, path[0], name)
     else:
-        if hasattr(obj, path[0]):
-            if type(getattr(obj, path[0])) is str:
+        if hasattr(namespace, path[0]) and isinstance(
+                getattr(namespace, path[0]),
+                six.string_types):
+
                 raise ValueError("Conflicting assignments at namespace"
                                  " level '%s'" % path[0])
-            get_namespace(getattr(obj, path[0]), path[1:], name)
         else:
             a = Namespace()
-            setattr(obj, path[0], a)
-            get_namespace(getattr(obj, path[0]), path[1:], name)
+            setattr(namespace, path[0], a)
+
+        update_namespace(getattr(namespace, path[0]), path[1:], name)
 
 
 class Namespace(object):
+    """
+    A placeholder object representing a namespace
+    """
     pass
 
 
 class RegistrationManager(object):
+    """
+    Responsible for managing all instances of custom subclasses of a
+    given abstract base class - only one instance needs to be created
+    per abstract base class, and should be created through the
+    create_registration_manager function/decorator. All management methods
+    for a given base class can be called through the global wrapper functions
+    rather than through the object instance itself.
+    """
 
     def __init__(self, dtype):
+        """
+        Parameters
+        ----------
+        dtype : type
+            The abstract base class to manage
+        """
         self.dtype = dtype
         self._classes = {}
         self.classes = mappingproxy(self._classes)
@@ -101,6 +163,8 @@ class RegistrationManager(object):
     def get_registered_classes(self):
         return self.classes
 
+
+# Public wrapper methods for RegistrationManager:
 
 def get_registration_manager(dtype):
     """
@@ -174,9 +238,6 @@ def register(dtype, name, custom_class=None):
     name : str
         The name of the subclass
     custom_class : type
-        The subclass to register
-
-    class : type
         The class to register, which must be a subclass of the
         abstract base class in self.dtype
     """
@@ -231,8 +292,19 @@ def get_registered_classes(dtype):
 
 
 def create_registration_manager(dtype):
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    dtype : type
+        The data type specified/decorated
+    """
     custom_types[dtype] = RegistrationManager(dtype)
     return dtype
 
 
+# A global dictionary for storing instances of RegistrationManager:
 custom_types = OrderedDict([])
