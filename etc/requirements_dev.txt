@@ -59,7 +59,7 @@ requests-futures==0.9.7
 piprot==0.9.6
 
 # For mocking out requests fetches
-responses==0.4.0
+responses==0.9.0
 
 # Debugging
 pdbpp==0.9.1
