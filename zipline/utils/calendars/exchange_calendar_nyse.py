@@ -107,7 +107,7 @@ class NYSEExchangeCalendar(TradingCalendar):
 
     @property
     def open_time(self):
-        return time(9, 31)
+        return time(9, 30)
 
     @property
     def close_time(self):
