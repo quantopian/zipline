@@ -25,8 +25,6 @@ import zipline.utils.math_utils as zp_math
 
 from zipline.errors import BadOrderParameters
 
-import math
-
 
 class ExecutionStyle(with_metaclass(abc.ABCMeta)):
     """
