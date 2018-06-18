@@ -16,7 +16,7 @@ from warnings import warn
 
 import pandas as pd
 
-from .assets import Asset, Future
+from .assets import Asset
 from .utils.enum import enum
 from ._protocol import BarData, InnerPosition  # noqa
 

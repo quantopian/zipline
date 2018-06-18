@@ -359,7 +359,7 @@ class TestFuture(WithAssetFinder, ZiplineTestCase):
                     'expiration_date': pd.Timestamp('2014-02-20', tz='UTC'),
                     'auto_close_date': pd.Timestamp('2014-01-18', tz='UTC'),
                     'tick_size': .01,
-                    'multiplier': 500.0,
+                    'price_multiplier': 500.0,
                     'exchange': "TEST",
                 },
                 0: {
@@ -368,7 +368,7 @@ class TestFuture(WithAssetFinder, ZiplineTestCase):
                     'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
                     'notice_date': pd.Timestamp('2005-12-20', tz='UTC'),
                     'expiration_date': pd.Timestamp('2006-01-20', tz='UTC'),
-                    'multiplier': 1.0,
+                    'price_multiplier': 1.0,
                     'exchange': 'TEST',
                 },
             },

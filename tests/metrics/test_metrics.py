@@ -85,7 +85,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             first_sid=ord('Z'),
             root_symbols=['Z'],
             years=[cls.START_DATE.year],
-            multiplier=cls.future_contract_multiplier,
+            price_multiplier=cls.future_contract_multiplier,
         )
 
     @classmethod

@@ -1378,7 +1378,7 @@ class TradingAlgorithm(object):
                 self.logger.debug(zero_message)
             # Don't place any order
             return 0
-        
+
         value_multiplier = asset.price_multiplier
 
         return value / (last_price * value_multiplier)

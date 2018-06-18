@@ -76,7 +76,7 @@ class DataPortalTestBase(WithDataPortal,
             'notice_date': [cls.END_DATE, cls.END_DATE],
             'expiration_date': [cls.END_DATE, cls.END_DATE],
             'tick_size': [0.01, 0.0001],
-            'multiplier': [500, 50000],
+            'price_multiplier': [500, 50000],
             'exchange': ['CME', 'CME'],
         })
 

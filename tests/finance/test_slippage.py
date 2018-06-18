@@ -608,7 +608,7 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
             'symbol': ['CLF06'],
             'start_date': [cls.ASSET_FINDER_EQUITY_START_DATE],
             'end_date': [cls.ASSET_FINDER_EQUITY_END_DATE],
-            'multiplier': [500],
+            'price_multiplier': [500],
             'exchange': ['CME'],
         })
 
@@ -760,7 +760,7 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
             'symbol': ['CLF07', 'FVF07'],
             'start_date': [cls.ASSET_START_DATE, cls.START_DATE],
             'end_date': [cls.END_DATE, cls.END_DATE],
-            'multiplier': [500, 500],
+            'price_multiplier': [500, 500],
             'exchange': ['CME', 'CME'],
         })
 

@@ -52,7 +52,7 @@ class TestOrderMethods(zf.WithConstantEquityMinuteBarData,
     def make_futures_info(cls):
         return pd.DataFrame.from_dict({
             2: {
-                'multiplier': 10,
+                'price_multiplier': 10,
                 'symbol': 'F',
                 'exchange': 'TEST'
             }

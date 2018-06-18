@@ -115,7 +115,7 @@ class ContinuousFuturesTestCase(zf.WithCreateBarData,
                                 Timestamp('2022-01-26', tz='UTC'),
                                 Timestamp('2022-02-26', tz='UTC')],
             'tick_size': [0.001] * 7,
-            'multiplier': [1000.0] * 7,
+            'price_multiplier': [1000.0] * 7,
             'exchange': ['CME'] * 7,
         })
 
@@ -142,7 +142,7 @@ class ContinuousFuturesTestCase(zf.WithCreateBarData,
                                 Timestamp('2016-02-08', tz='UTC'),
                                 Timestamp('2016-03-09', tz='UTC')],
             'tick_size': [0.001] * 3,
-            'multiplier': [1000.0] * 3,
+            'price_multiplier': [1000.0] * 3,
             'exchange': ['CME'] * 3,
         })
 
@@ -168,7 +168,7 @@ class ContinuousFuturesTestCase(zf.WithCreateBarData,
                                 Timestamp('2016-03-16', tz='UTC'),
                                 Timestamp('2016-04-13', tz='UTC')],
             'tick_size': [0.001] * 3,
-            'multiplier': [1000.0] * 3,
+            'price_multiplier': [1000.0] * 3,
             'exchange': ['CME'] * 3,
         })
 
@@ -196,7 +196,7 @@ class ContinuousFuturesTestCase(zf.WithCreateBarData,
                                 Timestamp('2016-03-16', tz='UTC'),
                                 Timestamp('2016-04-20', tz='UTC')],
             'tick_size': [0.001] * 3,
-            'multiplier': [1000.0] * 3,
+            'price_multiplier': [1000.0] * 3,
             'exchange': ['CME'] * 3,
         })
 
@@ -1648,7 +1648,7 @@ class OrderedContractsTestCase(zf.WithAssetFinder, zf.ZiplineTestCase):
             'auto_close_date': pd.date_range(
                 '2016-01-01', periods=4, tz="UTC"),
             'tick_size': [0.001] * 4,
-            'multiplier': [1000.0] * 4,
+            'price_multiplier': [1000.0] * 4,
             'exchange': ['CME'] * 4,
         })
         # BA is set up to test a quarterly roll, to test Eurodollar-like
@@ -1667,7 +1667,7 @@ class OrderedContractsTestCase(zf.WithAssetFinder, zf.ZiplineTestCase):
             'auto_close_date': pd.date_range(
                 '2016-01-01', periods=3, tz="UTC"),
             'tick_size': [0.001] * 3,
-            'multiplier': [1000.0] * 3,
+            'price_multiplier': [1000.0] * 3,
             'exchange': ['CME'] * 3,
         })
         # BZ is set up to test the case where the first contract in a chain has
@@ -1704,7 +1704,7 @@ class OrderedContractsTestCase(zf.WithAssetFinder, zf.ZiplineTestCase):
                 pd.Timestamp('2015-04-15', tz='UTC'),
             ],
             'tick_size': [0.001] * 4,
-            'multiplier': [1000.0] * 4,
+            'price_multiplier': [1000.0] * 4,
             'exchange': ['CME'] * 4,
         })
 

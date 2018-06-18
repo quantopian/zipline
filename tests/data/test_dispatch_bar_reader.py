@@ -113,7 +113,7 @@ class AssetDispatchSessionBarTestCase(WithBcolzEquityDailyBarReader,
             # TODO: Make separate from 'end_date'
             'notice_date': [cls.END_DATE] * 3,
             'expiration_date': [cls.END_DATE] * 3,
-            'multiplier': [500] * 3,
+            'price_multiplier': [500] * 3,
             'exchange': ['CME'] * 3,
         })
 
@@ -248,7 +248,7 @@ class AssetDispatchMinuteBarTestCase(WithBcolzEquityMinuteBarReader,
             # TODO: Make separate from 'end_date'
             'notice_date': [cls.END_DATE] * 3,
             'expiration_date': [cls.END_DATE] * 3,
-            'multiplier': [500] * 3,
+            'price_multiplier': [500] * 3,
             'exchange': ['CME'] * 3,
         })
 
