@@ -207,7 +207,7 @@ cpdef calculate_position_tracker_stats(positions, PositionStats stats):
             value = 0
 
             # unchecked cast, this is safe because we do a type check above
-            exposure *= (<Future> position.asset).multiplier
+            exposure *= position.asset.price_multiplier
         else:
             value = exposure
 

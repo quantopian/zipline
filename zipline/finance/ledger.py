@@ -497,7 +497,7 @@ class Ledger(object):
 
                 self._cash_flow(
                     self._calculate_payout(
-                        asset.multiplier,
+                        asset.price_multiplier,
                         amount,
                         old_price,
                         price,
@@ -692,7 +692,7 @@ class Ledger(object):
             payout_last_sale_prices[asset] = price = position.last_sale_price
             amount = position.amount
             total += calculate_payout(
-                asset.multiplier,
+                asset.price_multiplier,
                 amount,
                 old_price,
                 price,

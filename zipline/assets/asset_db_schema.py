@@ -39,7 +39,9 @@ equities = sa.Table(
     sa.Column('first_traded', sa.Integer),
     sa.Column('auto_close_date', sa.Integer),
     sa.Column('exchange', sa.Text),
-    sa.Column('exchange_full', sa.Text)
+    sa.Column('exchange_full', sa.Text),
+    sa.Column('price_multiplier', sa.Float),
+    sa.Column('tick_size', sa.Float)
 )
 
 equity_symbol_mappings = sa.Table(
@@ -163,7 +165,7 @@ futures_contracts = sa.Table(
     sa.Column('notice_date', sa.Integer, nullable=False),
     sa.Column('expiration_date', sa.Integer, nullable=False),
     sa.Column('auto_close_date', sa.Integer, nullable=False),
-    sa.Column('multiplier', sa.Float),
+    sa.Column('price_multiplier', sa.Float),
     sa.Column('tick_size', sa.Float),
 )
 

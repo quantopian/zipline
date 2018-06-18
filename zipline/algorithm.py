@@ -1378,11 +1378,8 @@ class TradingAlgorithm(object):
                 self.logger.debug(zero_message)
             # Don't place any order
             return 0
-
-        if isinstance(asset, Future):
-            value_multiplier = asset.multiplier
-        else:
-            value_multiplier = 1
+        
+        value_multiplier = asset.price_multiplier
 
         return value / (last_price * value_multiplier)
 

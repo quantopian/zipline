@@ -191,7 +191,7 @@ def asymmetric_round_price(price, prefer_round_down,
     If prefer_round_down: [<X-1>.0095, X.0195) -> round to X.01.
     If not prefer_round_down: (<X-1>.0005, X.0105] -> round to X.01.
     """
-    precision = get_precision(tick_size)
+    precision = zp_math.number_of_decimal_places(tick_size)
     diff *= (10 ** -precision)
 
     # Subtracting an epsilon from diff to enforce the open-ness of the upper
@@ -205,14 +205,6 @@ def asymmetric_round_price(price, prefer_round_down,
     if zp_math.tolerant_equals(rounded, 0.0):
         return 0.0
     return rounded
-
-
-def get_precision(tick_size):
-    """
-    Returns an approximation of the precision to be used for rounding based
-    on the the smallest amount by which the price of the asset could change
-    """
-    return -(int(round(math.log10(tick_size))))
 
 
 def check_stoplimit_prices(price, label):

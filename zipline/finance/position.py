@@ -196,7 +196,7 @@ class Position(object):
 
         prev_cost = self.cost_basis * self.amount
         if isinstance(asset, Future):
-            cost_to_use = cost / asset.multiplier
+            cost_to_use = cost / asset.price_multiplier
         else:
             cost_to_use = cost
         new_cost = prev_cost + cost_to_use

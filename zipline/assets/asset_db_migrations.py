@@ -111,7 +111,7 @@ def downgrades(src):
 def _downgrade_v1(op):
     """
     Downgrade assets db by removing the 'tick_size' column and renaming the
-    'multiplier' column.
+    'price_multiplier' column.
     """
     # Drop indices before batch
     # This is to prevent index collision when creating the temp table
@@ -122,7 +122,7 @@ def _downgrade_v1(op):
     with op.batch_alter_table('futures_contracts') as batch_op:
 
         # Rename 'multiplier'
-        batch_op.alter_column(column_name='multiplier',
+        batch_op.alter_column(column_name='price_multiplier',
                               new_column_name='contract_multiplier')
 
         # Delete 'tick_size'

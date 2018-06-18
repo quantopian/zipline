@@ -160,8 +160,8 @@ class Order(Event):
     )
 
 
-def asset_multiplier(asset):
-    return asset.multiplier if isinstance(asset, Future) else 1
+def asset_price_multiplier(asset):
+    return asset.price_multiplier
 
 
 class Portfolio(object):
@@ -228,9 +228,9 @@ class Portfolio(object):
         """
         position_values = pd.Series({
             asset: (
-                position.last_sale_price *
-                position.amount *
-                asset_multiplier(asset)
+                    position.last_sale_price *
+                    position.amount *
+                    asset_price_multiplier(asset)
             )
             for asset, position in self.positions.items()
         })
