@@ -89,14 +89,7 @@ class LimitOrder(ExecutionStyle):
         self.asset = asset
 
     def get_limit_price(self, is_buy):
-        if hasattr(self.asset, 'tick_size'):
-            return asymmetric_round_price(
-                self.limit_price,
-                is_buy,
-                tick_size=float(self.asset.tick_size)
-            )
-        else:
-            return asymmetric_round_price(self.limit_price, is_buy)
+        return _get_limit_price(self.asset, self.limit_price, is_buy)
 
     def get_stop_price(self, _is_buy):
         return None
@@ -122,14 +115,7 @@ class StopOrder(ExecutionStyle):
         return None
 
     def get_stop_price(self, is_buy):
-        if hasattr(self.asset, 'tick_size'):
-            return asymmetric_round_price(
-                self.stop_price,
-                not is_buy,
-                tick_size=float(self.asset.tick_size)
-            )
-        else:
-            return asymmetric_round_price(self.stop_price, not is_buy)
+        return _get_stop_price(self.asset, self.stop_price, is_buy)
 
 
 class StopLimitOrder(ExecutionStyle):
@@ -152,24 +138,32 @@ class StopLimitOrder(ExecutionStyle):
         self.asset = asset
 
     def get_limit_price(self, is_buy):
-        if hasattr(self.asset, 'tick_size'):
-            return asymmetric_round_price(
-                self.limit_price,
-                is_buy,
-                tick_size=float(self.asset.tick_size)
-            )
-        else:
-            return asymmetric_round_price(self.limit_price, is_buy)
+        return _get_limit_price(self.asset, self.limit_price, is_buy)
 
     def get_stop_price(self, is_buy):
-        if hasattr(self.asset, 'tick_size'):
-            return asymmetric_round_price(
-                self.stop_price,
-                not is_buy,
-                tick_size=float(self.asset.tick_size)
-            )
-        else:
-            return asymmetric_round_price(self.stop_price, not is_buy)
+        return _get_stop_price(self.asset, self.stop_price, is_buy)
+
+
+def _get_stop_price(asset, price, is_buy):
+    if hasattr(asset, 'tick_size'):
+        return asymmetric_round_price(
+            price,
+            not is_buy,
+            tick_size=float(asset.tick_size)
+        )
+    else:
+        return asymmetric_round_price(price, not is_buy)
+
+
+def _get_limit_price(asset, price, is_buy):
+    if hasattr(asset, 'tick_size'):
+        return asymmetric_round_price(
+            price,
+            is_buy,
+            tick_size=float(asset.tick_size)
+        )
+    else:
+        return asymmetric_round_price(price, is_buy)
 
 
 def asymmetric_round_price(price, prefer_round_down,
