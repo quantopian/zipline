@@ -17,6 +17,7 @@ import os
 import logbook
 import pandas as pd
 from six.moves.urllib_error import HTTPError
+from trading_calendars import get_calendar
 
 from .benchmarks import get_benchmark_returns
 from . import treasuries, treasuries_can
@@ -24,7 +25,6 @@ from ..utils.paths import (
     cache_root,
     data_root,
 )
-from zipline.utils.calendars import get_calendar
 
 
 logger = logbook.Logger('Loader')

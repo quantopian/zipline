@@ -19,11 +19,11 @@ import pandas as pd
 from pandas.tslib import normalize_date
 from six import string_types
 from sqlalchemy import create_engine
+from trading_calendars import get_calendar
 
 from zipline.assets import AssetDBWriter, AssetFinder
 from zipline.assets.continuous_futures import CHAIN_PREDICATES
 from zipline.data.loader import load_market_data
-from zipline.utils.calendars import get_calendar
 from zipline.utils.memoize import remember_last
 
 log = logbook.Logger('Trading')
