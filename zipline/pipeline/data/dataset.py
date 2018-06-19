@@ -216,7 +216,10 @@ class BoundColumn(LoadableTerm):
 
     def short_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
-        return self.qualname
+        return "BoundColumn:\l  Dataset: {}\l  Column: {}\l".format(
+            self.dataset.__name__,
+            self.name
+        )
 
 
 @total_ordering

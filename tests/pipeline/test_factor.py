@@ -1325,11 +1325,11 @@ class ShortReprTestCase(TestCase):
 
         self.assertEqual(
             SomeDataSet.a.latest.short_repr(),
-            "SomeDataSet.a.latest"
+            "Latest"
         )
         self.assertEqual(
             SomeDataSet.b.latest.short_repr(),
-            "SomeDataSet.b.latest"
+            "Latest"
         )
 
 

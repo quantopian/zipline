@@ -349,8 +349,8 @@ class Term(with_metaclass(ABCMeta, object)):
         raise NotImplementedError('dependencies')
 
     def short_repr(self):
-        # Default short_repr is just the full repr.
-        return repr(self)
+        # Default short_repr is just the name of the type.
+        return type(self).__name__
 
 
 class AssetExists(Term):
@@ -380,6 +380,8 @@ class AssetExists(Term):
     def __repr__(self):
         return "AssetExists()"
 
+    short_repr = __repr__
+
     def _compute(self, today, assets, out):
         raise NotImplementedError(
             "AssetExists cannot be computed directly."
@@ -405,6 +407,8 @@ class InputDates(Term):
 
     def __repr__(self):
         return "InputDates()"
+
+    short_repr = __repr__
 
     def _compute(self, today, assets, out):
         raise NotImplementedError(
@@ -672,10 +676,10 @@ class ComputableTerm(Term):
 
     def __repr__(self):
         return (
-            "{type}({inputs}, window_length={window_length})"
+            "{type}([{inputs}], {window_length})"
         ).format(
             type=type(self).__name__,
-            inputs=self.inputs,
+            inputs=', '.join(i.name for i in self.inputs),
             window_length=self.window_length,
         )
 
@@ -710,9 +714,9 @@ class Slice(ComputableTerm):
         )
 
     def __repr__(self):
-        return "{type}({parent_term}, column={asset})".format(
+        return "{parent_term}[{asset}])".format(
             type=type(self).__name__,
-            parent_term=type(self.inputs[0]).__name__,
+            parent_term=self.inputs[0].__name__,
             asset=self._asset,
         )
 
