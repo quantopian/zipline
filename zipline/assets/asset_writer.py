@@ -73,8 +73,6 @@ _equities_defaults = {
     'exchange': None,
     # optional, something like "New York Stock Exchange"
     'exchange_full': None,
-    'tick_size': None,
-    'price_multiplier': 1,
 }
 
 # Default values for the futures DataFrame
@@ -90,7 +88,7 @@ _futures_defaults = {
     'expiration_date': None,
     'auto_close_date': None,
     'tick_size': None,
-    'price_multiplier': 100,
+    'multiplier': 1,
 }
 
 # Default values for the exchanges DataFrame
@@ -422,7 +420,7 @@ class AssetDBWriter(object):
                   positions in this contract.
               tick_size : float
                   The minimum price movement of the contract.
-              price_multiplier: float
+              multiplier: float
                   The amount of the underlying asset represented by this
                   contract.
         exchanges : pd.DataFrame, optional
