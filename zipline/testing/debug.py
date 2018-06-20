@@ -13,6 +13,15 @@ def debug_mro_failure(name, bases, output_file):
         nx.write_dot(graph.subgraph(cycle), output_file)
         subprocess.call(['dot', '-T', 'svg', '-O', output_file])
 
+    # Return a nicely formatted error describing the cycle.
+    lines = ["Cycle found when trying to compute MRO for {}:\n".format(name)]
+    for source, dest in list(zip(cycle, cycle[1:])) + [(cycle[-1], cycle[0])]:
+        label = verbosify_label(graph.get_edge_data(source, dest)['label'])
+        lines.append("{} comes before {}: cause={}"
+                     .format(source, dest, label))
+
+    return '\n'.join(lines)
+
 
 def build_linearization_graph(child_name, bases):
     g = nx.DiGraph()
@@ -39,4 +48,20 @@ def add_direct_edges(g, child, bases):
 def add_implicit_edges(g, child, bases):
     # Enforce that bases' previous linearizations are preserved.
     for base in bases:
-        g.add_path([b.__name__ for b in base.mro()], label=base.__name__ + '(L)')
+        g.add_path(
+            [b.__name__ for b in base.mro()],
+            label=base.__name__ + '(L)',
+        )
+
+
+VERBOSE_LABELS = {
+    "(D)": "(Direct Subclass)",
+    "(O)": "(Parent Class Order)",
+    "(L)": "(Linearization Order)",
+}
+
+
+def verbosify_label(label):
+    prefix = label[:-3]
+    suffix = label[-3:]
+    return " ".join([prefix, VERBOSE_LABELS[suffix]])
