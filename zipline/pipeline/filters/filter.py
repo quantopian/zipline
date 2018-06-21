@@ -623,6 +623,8 @@ class MaximumFilter(Filter, StandardOutputs):
         )
 
     def _compute(self, arrays, dates, assets, mask):
+        # XXX: We're doing a lot of unncessary work here if `groupby` isn't
+        # specified.
         data = arrays[0]
         group_labels, null_label = self.inputs[1]._to_integral(arrays[1])
         effective_mask = (
