@@ -49,6 +49,8 @@ from zipline.utils.numpy_utils import (
     repeat_first_axis,
 )
 
+from ..sentinels import NotSpecified
+
 
 def concat_tuples(*tuples):
     """
@@ -610,6 +612,10 @@ class MaximumFilter(Filter, StandardOutputs):
     window_length = 0
 
     def __new__(cls, factor, groupby, mask):
+        from zipline.pipeline.classifiers import Everything
+        if groupby is NotSpecified:
+            groupby = Everything()
+
         return super(MaximumFilter, cls).__new__(
             cls,
             inputs=(factor, groupby),
