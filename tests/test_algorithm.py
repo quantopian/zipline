@@ -840,7 +840,7 @@ class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
                     'end_date': cls.END_DATE,
                     'auto_close_date': cls.END_DATE + cls.trading_calendar.day,
                     'exchange': 'CME',
-                    'price_multiplier': 100,
+                    'multiplier': 100,
                 },
             },
             orient='index',

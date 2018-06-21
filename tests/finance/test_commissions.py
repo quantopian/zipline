@@ -34,7 +34,7 @@ class CommissionUnitTests(WithAssetFinder, ZiplineTestCase):
             'end_date': [cls.END_DATE, cls.END_DATE],
             'notice_date': [cls.END_DATE, cls.END_DATE],
             'expiration_date': [cls.END_DATE, cls.END_DATE],
-            'price_multiplier': [500, 500],
+            'multiplier': [500, 500],
             'exchange': ['CME', 'CME'],
         })
 
@@ -336,7 +336,7 @@ class CommissionAlgorithmTests(WithMakeAlgo, ZiplineTestCase):
             'end_date': [cls.END_DATE, cls.END_DATE],
             'notice_date': [cls.END_DATE, cls.END_DATE],
             'expiration_date': [cls.END_DATE, cls.END_DATE],
-            'price_multiplier': [500, 500],
+            'multiplier': [500, 500],
             'exchange': ['CME', 'CME'],
         })
 

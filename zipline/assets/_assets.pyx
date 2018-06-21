@@ -55,7 +55,7 @@ cdef class Asset:
         'exchange',
         'exchange_full',
         'tick_size',
-        'price_multiplier',
+        'multiplier',
     })
 
     def __init__(self,
@@ -69,7 +69,7 @@ cdef class Asset:
                  object auto_close_date=None,
                  object exchange_full=None,
                  object tick_size="0.001",
-                 float price_multiplier=1.0):
+                 float multiplier=1.0):
 
         self.sid = sid
         self.symbol = symbol
@@ -82,7 +82,7 @@ cdef class Asset:
         self.first_traded = first_traded
         self.auto_close_date = auto_close_date
         self.tick_size = tick_size
-        self.price_multiplier = price_multiplier
+        self.price_multiplier = multiplier
 
     def __int__(self):
         return self.sid
@@ -169,7 +169,7 @@ cdef class Asset:
             'exchange': self.exchange,
             'exchange_full': self.exchange_full,
             'tick_size': self.tick_size,
-            'price_multiplier': self.price_multiplier,
+            'multiplier': self.price_multiplier,
         }
 
     @classmethod
@@ -266,7 +266,7 @@ cdef class Future(Asset):
         'exchange',
         'exchange_full',
         'tick_size',
-        'price_multiplier',
+        'multiplier',
     })
 
     def __init__(self,
@@ -282,7 +282,7 @@ cdef class Future(Asset):
                  object auto_close_date=None,
                  object first_traded=None,
                  object tick_size="0.001",
-                 float price_multiplier=1.0,
+                 float multiplier=1.0,
                  object exchange_full=None):
 
         super().__init__(
@@ -296,7 +296,7 @@ cdef class Future(Asset):
             auto_close_date=auto_close_date,
             exchange_full=exchange_full,
             tick_size=tick_size,
-            price_multiplier=price_multiplier
+            multiplier=multiplier
         )
         self.root_symbol = root_symbol
         self.notice_date = notice_date
@@ -341,7 +341,7 @@ cdef class Future(Asset):
         super_dict['notice_date'] = self.notice_date
         super_dict['expiration_date'] = self.expiration_date
         super_dict['tick_size'] = self.tick_size
-        super_dict['price_multiplier'] = self.price_multiplier
+        super_dict['multiplier'] = self.price_multiplier
         return super_dict
 
 
