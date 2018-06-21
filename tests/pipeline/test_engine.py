@@ -1552,7 +1552,8 @@ class MaximumRegressionTest(WithSeededRandomPipelineEngine,
 
         # The maximum computed by pipeline should match the maximum computed by
         # doing a groupby in pandas.
-        groupby_max = result.groupby(level=0).max()
-        pipeline_max = result[result.maximum].reset_index(level=1, drop=True)
+        groupby_max = result.groupby(level=0).factor.max()
+        pipeline_max = (result.factor[result.maximum]
+                        .reset_index(level=1, drop=True))
 
         assert_equal(groupby_max, pipeline_max)
