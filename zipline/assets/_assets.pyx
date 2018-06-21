@@ -310,6 +310,17 @@ cdef class Future(Asset):
             else:
                 self.auto_close_date = min(notice_date, expiration_date)
 
+    property multiplier:
+        """
+        DEPRECATION: This property should be deprecated and is only present for
+        backwards compatibility
+        """
+        def __get__(self):
+            warnings.warn("The multiplier property will soon be "
+            "retired. Please use the price_multiplier property instead.",
+            DeprecationWarning)
+            return self.price_multiplier
+
     cpdef __reduce__(self):
         """
         Function used by pickle to determine how to serialize/deserialize this
