@@ -76,11 +76,7 @@ class DebugMROMeta(FinalMeta):
             )
         except TypeError as e:
             if "(MRO)" in str(e):
-                if os.environ.get('DRAW_MRO_FAILURES'):
-                    output_file = name + '.dot'
-                else:
-                    output_file = None
-                msg = debug_mro_failure(name, bases, output_file=output_file)
+                msg = debug_mro_failure(name, bases)
                 raise TypeError(msg)
             else:
                 raise
