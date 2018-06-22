@@ -169,15 +169,15 @@ def _get_limit_price(asset, price, is_buy):
 def asymmetric_round_price(price, prefer_round_down,
                            diff=(0.95 - .5), tick_size=0.01):
     """
-    Asymmetric rounding function for adjusting prices to two places in a way
-    that "improves" the price.  For limit prices, this means preferring to
-    round down on buys and preferring to round up on sells.  For stop prices,
-    it means the reverse.
+    Asymmetric rounding function for adjusting prices to the specified number
+    of places in a way that "improves" the price. For limit prices, this means
+    preferring to round down on buys and preferring to round up on sells.
+    For stop prices, it means the reverse.
 
     If prefer_round_down == True:
-        When .05 below to .95 above a penny, use that penny.
+        When .05 below to .95 above a specified decimal place, use it.
     If prefer_round_down == False:
-        When .95 below to .05 above a penny, use that penny.
+        When .95 below to .05 above a specified decimal place, use it.
 
     In math-speak:
     If prefer_round_down: [<X-1>.0095, X.0195) -> round to X.01.

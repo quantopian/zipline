@@ -14,6 +14,7 @@
 # limitations under the License.
 from nose_parameterized import parameterized
 from six.moves import range
+import pandas as pd
 
 from zipline.errors import BadOrderParameters
 from zipline.finance.execution import (
@@ -25,10 +26,15 @@ from zipline.finance.execution import (
 from zipline.testing.fixtures import (
     WithLogger,
     ZiplineTestCase,
+    WithConstantFutureMinuteBarData
 )
 
+from zipline.testing.predicates import assert_equal
 
-class ExecutionStyleTestCase(WithLogger, ZiplineTestCase):
+
+class ExecutionStyleTestCase(WithConstantFutureMinuteBarData,
+                             WithLogger,
+                             ZiplineTestCase):
     """
     Tests for zipline ExecutionStyle classes.
     """
@@ -43,6 +49,21 @@ class ExecutionStyleTestCase(WithLogger, ZiplineTestCase):
         (1.0005 + epsilon, 1.00, 1.01),
         (1.0095 - epsilon, 1.0, 1.01),
         (1.0095, 1.01, 1.01),  # Highest value to round up on buy.
+        (0.01, 0.01, 0.01)
+    ]
+
+    # Testing for an asset with a tick_size of 0.0001
+    smaller_epsilon = 0.00000001
+
+    EXPECTED_PRECISION_ROUNDING = [
+        (0.00, 0.00, 0.00),
+        (0.0005, 0.0005, 0.0005),
+        (0.00005, 0.00, 0.0001),
+        (0.000005, 0.00, 0.00),
+        (1.000005, 1.00, 1.00),  # Lowest value to round down on sell.
+        (1.000005 + smaller_epsilon, 1.00, 1.0001),
+        (1.000095 - smaller_epsilon, 1.0, 1.0001),
+        (1.000095, 1.0001, 1.0001),  # Highest value to round up on buy.
         (0.01, 0.01, 0.01)
     ]
 
@@ -67,6 +88,22 @@ class ExecutionStyleTestCase(WithLogger, ZiplineTestCase):
         (float('inf'),),
         (ArbitraryObject(),),
     ]
+
+    @classmethod
+    def make_futures_info(cls):
+        return pd.DataFrame.from_dict({
+            1: {
+                'multiplier': 100,
+                'tick_size': '0.0001',
+                'symbol': 'F',
+                'exchange': 'TEST'
+            }
+        }, orient='index')
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(ExecutionStyleTestCase, cls).init_class_fixtures()
+        cls.FUTURE = cls.asset_finder.retrieve_asset(1)
 
     @parameterized.expand(INVALID_PRICES)
     def test_invalid_prices(self, price):
@@ -154,4 +191,66 @@ class ExecutionStyleTestCase(WithLogger, ZiplineTestCase):
         self.assertEqual(expected_limit_buy_or_stop_sell + 1,
                          style.get_stop_price(False))
         self.assertEqual(expected_limit_sell_or_stop_buy + 1,
+                         style.get_stop_price(True))
+
+    @parameterized.expand(EXPECTED_PRECISION_ROUNDING)
+    def test_limit_order_precision(self,
+                                   price,
+                                   expected_limit_buy_or_stop_sell,
+                                   expected_limit_sell_or_stop_buy):
+        """
+        Test price getters for the LimitOrder class with an asset that
+        has a tick_size of 0.0001.
+        """
+        style = LimitOrder(price, asset=self.FUTURE)
+
+        assert_equal(expected_limit_buy_or_stop_sell,
+                         style.get_limit_price(True))
+        assert_equal(expected_limit_sell_or_stop_buy,
+                         style.get_limit_price(False))
+
+        assert_equal(None, style.get_stop_price(True))
+        assert_equal(None, style.get_stop_price(False))
+
+    @parameterized.expand(EXPECTED_PRECISION_ROUNDING)
+    def test_stop_order_precision(self,
+                                  price,
+                                  expected_limit_buy_or_stop_sell,
+                                  expected_limit_sell_or_stop_buy):
+        """
+        Test price getters for StopOrder class with an asset that
+        has a tick_size of 0.0001. Note that the expected rounding
+        direction for stop prices is the reverse of that for limit prices.
+        """
+        style = StopOrder(price, asset=self.FUTURE)
+
+        assert_equal(None, style.get_limit_price(False))
+        assert_equal(None, style.get_limit_price(True))
+
+        assert_equal(expected_limit_buy_or_stop_sell,
+                         style.get_stop_price(False))
+        assert_equal(expected_limit_sell_or_stop_buy,
+                         style.get_stop_price(True))
+
+    @parameterized.expand(EXPECTED_PRECISION_ROUNDING)
+    def test_stop_limit_order_precision(self,
+                                        price,
+                                        expected_limit_buy_or_stop_sell,
+                                        expected_limit_sell_or_stop_buy):
+        """
+        Test price getters for StopLimitOrder class with an asset that
+        has a tick_size of 0.0001. Note that the expected rounding direction
+        for stop prices is the reverse of that for limit prices.
+        """
+
+        style = StopLimitOrder(price, price + 1.00, asset=self.FUTURE)
+
+        assert_equal(expected_limit_buy_or_stop_sell,
+                         style.get_limit_price(True))
+        assert_equal(expected_limit_sell_or_stop_buy,
+                         style.get_limit_price(False))
+
+        assert_equal(expected_limit_buy_or_stop_sell + 1,
+                         style.get_stop_price(False))
+        assert_equal(expected_limit_sell_or_stop_buy + 1,
                          style.get_stop_price(True))
