@@ -1,5 +1,6 @@
-import sys
+import os
 import subprocess
+
 import networkx as nx
 
 
@@ -8,10 +9,10 @@ def debug_mro_failure(name, bases, output_file):
     cycles = sorted(nx.cycles.simple_cycles(graph), key=len)
     cycle = cycles[0]
 
-    if output_file is not None:
-        sys.__stderr__.write("Writing debug graph to {}\n".format(output_file))
-        nx.write_dot(graph.subgraph(cycle), output_file)
-        subprocess.call(['dot', '-T', 'svg', '-O', output_file])
+    if os.environ.get('DRAW_MRO_FAILURES'):
+        output_file = name + '.dot'
+    else:
+        output_file = None
 
     # Return a nicely formatted error describing the cycle.
     lines = ["Cycle found when trying to compute MRO for {}:\n".format(name)]
@@ -19,6 +20,25 @@ def debug_mro_failure(name, bases, output_file):
         label = verbosify_label(graph.get_edge_data(source, dest)['label'])
         lines.append("{} comes before {}: cause={}"
                      .format(source, dest, label))
+
+    # Either graphviz graph and tell the user where it went, or tell people how
+    # to enable that feature.
+    lines.append('')
+    if output_file is None:
+        lines.append("Set the DRAW_MRO_FAILURES environment variable to"
+                     " render a GraphViz graph of this cycle.")
+    else:
+        try:
+            nx.write_dot(graph.subgraph(cycle), output_file)
+            subprocess.check_call(['dot', '-T', 'svg', '-O', output_file])
+            lines.append(
+                "GraphViz rendering written to "
+                + output_file.replace(".dot", ".svg")
+            )
+        except Exception as e:
+            lines.append(
+                "Failed to write GraphViz graph. Error was {}".format(e)
+            )
 
     return '\n'.join(lines)
 
