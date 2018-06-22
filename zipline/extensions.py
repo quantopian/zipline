@@ -1,8 +1,9 @@
 import re
 import six
 from functools import partial
+
+from toolz import curry
 from zipline.utils.compat import mappingproxy
-from collections import OrderedDict
 
 
 def create_args(args, root):
@@ -87,17 +88,16 @@ def update_namespace(namespace, path, name):
 
 class Namespace(object):
     """
-    A placeholder object representing a namespace
+    A placeholder object representing a namespace level
     """
-    pass
 
 
-class RegistrationManager(object):
+class Registry(object):
     """
     Responsible for managing all instances of custom subclasses of a
     given abstract base class - only one instance needs to be created
     per abstract base class, and should be created through the
-    create_registration_manager function/decorator. All management methods
+    create_registry function/decorator. All management methods
     for a given base class can be called through the global wrapper functions
     rather than through the object instance itself.
     """
@@ -162,9 +162,9 @@ class RegistrationManager(object):
         return self.classes
 
 
-# Public wrapper methods for RegistrationManager:
+# Public wrapper methods for Registry:
 
-def get_registration_manager(interface):
+def get_registry(interface):
     """
     Getter method for retrieving the registration manager
     instance for a given extendable type
@@ -176,7 +176,7 @@ def get_registration_manager(interface):
 
     Returns
     -------
-    manager : RegistrationManager
+    manager : Registry
         The corresponding registration manager
     """
     try:
@@ -201,7 +201,7 @@ def load(interface, name):
     class : type
         The desired class.
     """
-    return get_registration_manager(interface).load(name)
+    return get_registry(interface).load(name)
 
 
 def class_registered(interface, name):
@@ -222,10 +222,11 @@ def class_registered(interface, name):
         Whether or not a given class is registered
     """
 
-    return get_registration_manager(interface).class_registered(name)
+    return get_registry(interface).class_registered(name)
 
 
-def register(interface, name, custom_class=None):
+@curry
+def register(interface, name, custom_class):
     """
     Registers a class for retrieval by the load method
 
@@ -239,10 +240,8 @@ def register(interface, name, custom_class=None):
         The class to register, which must be a subclass of the
         abstract base class in self.dtype
     """
-    if custom_class is None:
-        return partial(register, interface, name)
 
-    return get_registration_manager(interface).register(name, custom_class)
+    return get_registry(interface).register(name, custom_class)
 
 
 def unregister(interface, name):
@@ -257,7 +256,7 @@ def unregister(interface, name):
     name : str
         The name of the class to be unregistered.
     """
-    get_registration_manager(interface).unregister(name)
+    get_registry(interface).unregister(name)
 
 
 def clear(interface):
@@ -269,7 +268,7 @@ def clear(interface):
     interface : type
         The base class for which to perform this operation
     """
-    get_registration_manager(interface).clear()
+    get_registry(interface).clear()
 
 
 def get_registered_classes(interface):
@@ -286,29 +285,32 @@ def get_registered_classes(interface):
     classes : dict
         The dictionary of registered classes
     """
-    return get_registration_manager(interface).get_registered_classes()
+    return get_registry(interface).get_registered_classes()
 
 
-def create_registration_manager(interface):
+def create_registry(interface):
     """
 
     Parameters
     ----------
+    interface : type
+        The abstract data type for which to create a registration manager,
+        which will manage registration for subclasses of this type
 
     Returns
     -------
-    dtype : type
-        The data type specified/decorated
+    interface : type
+        The data type specified/decorated, which is unaltered
     """
     if interface in custom_types:
-        raise ValueError('there is already a RegistrationManager instance '
+        raise ValueError('there is already a Registry instance '
                          'for the specified type')
-    custom_types[interface] = RegistrationManager(interface)
+    custom_types[interface] = Registry(interface)
     return interface
 
 
-extensible = create_registration_manager
+extensible = create_registry
 
 
-# A global dictionary for storing instances of RegistrationManager:
-custom_types = OrderedDict([])
+# A global dictionary for storing instances of Registry:
+custom_types = {}

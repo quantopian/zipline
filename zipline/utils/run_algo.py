@@ -1,9 +1,9 @@
+import click
 import os
 import re
+from runpy import run_path
 import sys
 import warnings
-from runpy import run_path
-import click
 
 
 try:

@@ -1,4 +1,4 @@
-from zipline.extensions import RegistrationManager
+from zipline.extensions import Registry
 from zipline.finance.blotter import SimulationBlotter, Blotter
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import (
@@ -11,11 +11,8 @@ from zipline.testing.predicates import (
 
 class RegistrationManagerTestCase(ZiplineTestCase):
 
-    def init_instance_fixtures(self):
-        super(RegistrationManagerTestCase, self).init_instance_fixtures()
-
     def test_load_not_registered(self):
-        rm = RegistrationManager(Blotter)
+        rm = Registry(Blotter)
         assert_equal(rm.get_registered_classes(), {})
 
         msg = (
@@ -38,7 +35,7 @@ class RegistrationManagerTestCase(ZiplineTestCase):
             rm.load('ayy-lmao')
 
     def test_register_decorator(self):
-        rm = RegistrationManager(Blotter)
+        rm = Registry(Blotter)
         assert_equal(rm.get_registered_classes(), {})
 
         @rm.register('ayy-lmao')
@@ -82,7 +79,7 @@ class RegistrationManagerTestCase(ZiplineTestCase):
             rm.unregister('ayy-lmao')
 
     def test_register_non_decorator(self):
-        rm = RegistrationManager(Blotter)
+        rm = Registry(Blotter)
         assert_equal(rm.get_registered_classes(), {})
 
         class ProperDummyBlotter(SimulationBlotter):

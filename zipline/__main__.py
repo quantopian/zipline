@@ -63,9 +63,9 @@ def main(extension, strict_extensions, default_extension, x):
         add_cli_option(
             run,
             name="--%s-class" % c.__name__.lower(),
-            choices=list(custom_types[c].get_registered_classes().keys()),
-            help="The subclass of %s to use, defaults to 'default'"
-                 % c.__name__,
+            choices=list(custom_types[c].get_registered_classes()),
+            help=("The subclass of %s to use, defaults to 'default'"
+                  % c.__name__),
         )
 
     create_args(x, zipline.extension_args)
