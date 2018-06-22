@@ -1539,8 +1539,8 @@ class ChunkedPipelineTestCase(zf.WithEquityPricingPipelineEngine,
         self.assertTrue(chunked_result.equals(pipeline_result))
 
 
-class MaximumRegressionTest(WithSeededRandomPipelineEngine,
-                            ZiplineTestCase):
+class MaximumRegressionTest(zf.WithSeededRandomPipelineEngine,
+                            zf.ZiplineTestCase):
     ASSET_FINDER_EQUITY_SIDS = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 
     def test_no_groupby_maximum(self):
