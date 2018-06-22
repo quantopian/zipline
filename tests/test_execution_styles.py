@@ -205,9 +205,9 @@ class ExecutionStyleTestCase(WithConstantFutureMinuteBarData,
         style = LimitOrder(price, asset=self.FUTURE)
 
         assert_equal(expected_limit_buy_or_stop_sell,
-                         style.get_limit_price(True))
+                     style.get_limit_price(True))
         assert_equal(expected_limit_sell_or_stop_buy,
-                         style.get_limit_price(False))
+                     style.get_limit_price(False))
 
         assert_equal(None, style.get_stop_price(True))
         assert_equal(None, style.get_stop_price(False))
@@ -228,9 +228,9 @@ class ExecutionStyleTestCase(WithConstantFutureMinuteBarData,
         assert_equal(None, style.get_limit_price(True))
 
         assert_equal(expected_limit_buy_or_stop_sell,
-                         style.get_stop_price(False))
+                     style.get_stop_price(False))
         assert_equal(expected_limit_sell_or_stop_buy,
-                         style.get_stop_price(True))
+                     style.get_stop_price(True))
 
     @parameterized.expand(EXPECTED_PRECISION_ROUNDING)
     def test_stop_limit_order_precision(self,
@@ -246,11 +246,11 @@ class ExecutionStyleTestCase(WithConstantFutureMinuteBarData,
         style = StopLimitOrder(price, price + 1.00, asset=self.FUTURE)
 
         assert_equal(expected_limit_buy_or_stop_sell,
-                         style.get_limit_price(True))
+                     style.get_limit_price(True))
         assert_equal(expected_limit_sell_or_stop_buy,
-                         style.get_limit_price(False))
+                     style.get_limit_price(False))
 
         assert_equal(expected_limit_buy_or_stop_sell + 1,
-                         style.get_stop_price(False))
+                     style.get_stop_price(False))
         assert_equal(expected_limit_sell_or_stop_buy + 1,
-                         style.get_stop_price(True))
+                     style.get_stop_price(True))
