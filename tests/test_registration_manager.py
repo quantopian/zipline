@@ -1,5 +1,7 @@
+from abc import ABCMeta
+
+from six import with_metaclass
 from zipline.extensions import Registry
-from zipline.finance.blotter import SimulationBlotter, Blotter
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import (
     assert_equal,
@@ -9,118 +11,122 @@ from zipline.testing.predicates import (
 )
 
 
+class FakeInterface(with_metaclass(ABCMeta)):
+    pass
+
+
 class RegistrationManagerTestCase(ZiplineTestCase):
 
     def test_load_not_registered(self):
-        rm = Registry(Blotter)
+        rm = Registry(FakeInterface)
         assert_equal(rm.get_registered_classes(), {})
 
         msg = (
-            "no Blotter class registered under name 'ayy-lmao', "
+            "no FakeInterface class registered under name 'ayy-lmao', "
             "options are: []"
         )
         with assert_raises_str(ValueError, msg):
             rm.load('ayy-lmao')
 
         # register in reverse order to test the sorting of the options
-        rm.register('c', SimulationBlotter)
-        rm.register('b', SimulationBlotter)
-        rm.register('a', SimulationBlotter)
+        rm.register('c', FakeInterface)
+        rm.register('b', FakeInterface)
+        rm.register('a', FakeInterface)
 
         msg = (
-            "no Blotter class registered under name 'ayy-lmao', options are: "
-            "['a', 'b', 'c']"
+            "no FakeInterface class registered under name 'ayy-lmao', "
+            "options are: ['a', 'b', 'c']"
         )
         with assert_raises_str(ValueError, msg):
             rm.load('ayy-lmao')
 
     def test_register_decorator(self):
-        rm = Registry(Blotter)
+        rm = Registry(FakeInterface)
         assert_equal(rm.get_registered_classes(), {})
 
         @rm.register('ayy-lmao')
-        class ProperDummyBlotter(SimulationBlotter):
+        class ProperDummyInterface(FakeInterface):
             pass
 
-        expected_blotters = {'ayy-lmao': ProperDummyBlotter}
-        assert_equal(rm.get_registered_classes(), expected_blotters)
-        assert_is(rm.load('ayy-lmao'), ProperDummyBlotter)
+        expected_classes = {'ayy-lmao': ProperDummyInterface}
+        assert_equal(rm.get_registered_classes(), expected_classes)
+        assert_is(rm.load('ayy-lmao'), ProperDummyInterface)
         assert_true(rm.class_registered('ayy-lmao'))
 
-        msg = "Blotter class 'ayy-lmao' is already registered"
+        msg = "FakeInterface class 'ayy-lmao' is already registered"
         with assert_raises_str(ValueError, msg):
             @rm.register('ayy-lmao')
             class Fake(object):
                 pass
 
-        msg = "The class specified is not a subclass of Blotter"
+        msg = "The class specified is not a subclass of FakeInterface"
         with assert_raises_str(TypeError, msg):
             @rm.register('something-different')
-            class ImproperDummyBlotter(object):
+            class ImproperDummyInterface(object):
                 pass
 
         # ensure that the failed registration didn't break the previously
-        # registered blotter
-        assert_equal(rm.get_registered_classes(), expected_blotters)
-        assert_is(rm.load('ayy-lmao'), ProperDummyBlotter)
+        # registered interface class
+        assert_equal(rm.get_registered_classes(), expected_classes)
+        assert_is(rm.load('ayy-lmao'), ProperDummyInterface)
 
         rm.unregister('ayy-lmao')
         assert_equal(rm.get_registered_classes(), {})
 
         msg = (
-            "no Blotter class registered under name 'ayy-lmao', "
+            "no FakeInterface class registered under name 'ayy-lmao', "
             "options are: []"
         )
         with assert_raises_str(ValueError, msg):
             rm.load('ayy-lmao')
 
-        msg = "Blotter class 'ayy-lmao' was not already registered"
+        msg = "FakeInterface class 'ayy-lmao' was not already registered"
         with assert_raises_str(ValueError, msg):
             rm.unregister('ayy-lmao')
 
     def test_register_non_decorator(self):
-        rm = Registry(Blotter)
+        rm = Registry(FakeInterface)
         assert_equal(rm.get_registered_classes(), {})
 
-        class ProperDummyBlotter(SimulationBlotter):
+        class ProperDummyInterface(FakeInterface):
             pass
 
-        rm.register('ayy-lmao', ProperDummyBlotter)
+        rm.register('ayy-lmao', ProperDummyInterface)
 
-        expected_blotters = {'ayy-lmao': ProperDummyBlotter}
-        assert_equal(rm.get_registered_classes(), expected_blotters)
-        assert_is(rm.load('ayy-lmao'), ProperDummyBlotter)
+        expected_classes = {'ayy-lmao': ProperDummyInterface}
+        assert_equal(rm.get_registered_classes(), expected_classes)
+        assert_is(rm.load('ayy-lmao'), ProperDummyInterface)
         assert_true(rm.class_registered('ayy-lmao'))
 
         class Fake(object):
             pass
 
-        msg = "Blotter class 'ayy-lmao' is already registered"
+        msg = "FakeInterface class 'ayy-lmao' is already registered"
         with assert_raises_str(ValueError, msg):
             rm.register('ayy-lmao', Fake)
 
-        class ImproperDummyBlotter(object):
+        class ImproperDummyInterface(object):
             pass
 
-        msg = "The class specified is not a subclass of Blotter"
+        msg = "The class specified is not a subclass of FakeInterface"
         with assert_raises_str(TypeError, msg):
-            rm.register('something-different', ImproperDummyBlotter)
+            rm.register('something-different', ImproperDummyInterface)
 
         # ensure that the failed registration didn't break the previously
-        # registered blotter
-        assert_equal(rm.get_registered_classes(), expected_blotters)
-        assert_is(rm.load('ayy-lmao'), ProperDummyBlotter)
+        # registered interface class
+        assert_equal(rm.get_registered_classes(), expected_classes)
+        assert_is(rm.load('ayy-lmao'), ProperDummyInterface)
 
         rm.unregister('ayy-lmao')
         assert_equal(rm.get_registered_classes(), {})
 
         msg = (
-            "no Blotter class registered under name 'ayy-lmao', "
+            "no FakeInterface class registered under name 'ayy-lmao', "
             "options are: []"
         )
         with assert_raises_str(ValueError, msg):
             rm.load('ayy-lmao')
 
-        msg = "Blotter class 'ayy-lmao' was not already registered"
+        msg = "FakeInterface class 'ayy-lmao' was not already registered"
         with assert_raises_str(ValueError, msg):
             rm.unregister('ayy-lmao')

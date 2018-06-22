@@ -1,8 +1,7 @@
 import re
 import six
-from functools import partial
-
 from toolz import curry
+
 from zipline.utils.compat import mappingproxy
 
 
@@ -125,10 +124,8 @@ class Registry(object):
     def class_registered(self, name):
         return name in self._classes
 
-    def register(self, name, custom_class=None):
-
-        if custom_class is None:
-            return partial(self.register, name)
+    @curry
+    def register(self, name, custom_class):
 
         if self.class_registered(name):
             raise ValueError(
@@ -166,7 +163,7 @@ class Registry(object):
 
 def get_registry(interface):
     """
-    Getter method for retrieving the registration manager
+    Getter method for retrieving the registry
     instance for a given extendable type
 
     Parameters
@@ -177,7 +174,7 @@ def get_registry(interface):
     Returns
     -------
     manager : Registry
-        The corresponding registration manager
+        The corresponding registry
     """
     try:
         return custom_types[interface]
@@ -294,7 +291,7 @@ def create_registry(interface):
     Parameters
     ----------
     interface : type
-        The abstract data type for which to create a registration manager,
+        The abstract data type for which to create a registry,
         which will manage registration for subclasses of this type
 
     Returns

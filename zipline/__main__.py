@@ -8,11 +8,12 @@ from six import text_type
 
 import zipline
 from zipline.data import bundles as bundles_module
+from zipline.finance.blotter import Blotter
 from zipline.utils.calendars.calendar_utils import get_calendar
 from zipline.utils.compat import wraps
 from zipline.utils.cli import Date, Timestamp
 from zipline.utils.run_algo import _run, load_extensions
-from zipline.extensions import create_args, custom_types
+from zipline.extensions import create_args, get_registry
 
 try:
     __IPYTHON__
@@ -58,15 +59,6 @@ def main(extension, strict_extensions, default_extension, x):
         strict_extensions,
         os.environ,
     )
-
-    for c in custom_types:
-        add_cli_option(
-            run,
-            name="--%s-class" % c.__name__.lower(),
-            choices=list(custom_types[c].get_registered_classes()),
-            help=("The subclass of %s to use, defaults to 'default'"
-                  % c.__name__),
-        )
 
     create_args(x, zipline.extension_args)
 
@@ -209,6 +201,12 @@ def ipython_only(option):
     default='default',
     help='The metrics set to use. New metrics sets may be registered in your'
     ' extension.py.',
+)
+@click.option(
+    '--blotter-class',
+    type=click.Choice(list(get_registry(Blotter).get_registered_classes())),
+    default='default',
+    help="The subclass of Blotter to use, defaults to 'default'",
 )
 @ipython_only(click.option(
     '--local-namespace/--no-local-namespace',
