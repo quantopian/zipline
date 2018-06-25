@@ -608,6 +608,11 @@ class TradingAlgorithm(object):
         # our universe is all the assets passed into `run`.
         return self._assets_from_source
 
+    def _compute_pipelines(self):
+        for name, p in self._pipelines.items():
+            if p[2]:
+                self.pipeline_output(name)
+
     def get_generator(self):
         """
         Override this method to add new logic to the construction
@@ -2416,7 +2421,7 @@ class TradingAlgorithm(object):
         name=string_types,
         chunks=(int, Iterable, type(None)),
     )
-    def attach_pipeline(self, pipeline, name, chunks=None):
+    def attach_pipeline(self, pipeline, name, chunks=None, is_eager=True):
         """Register a pipeline to be computed at the start of each day.
 
         Parameters
@@ -2430,6 +2435,9 @@ class TradingAlgorithm(object):
             this number will make it longer to get the first results but
             may improve the total runtime of the simulation. If an iterator
             is passed, we will run in chunks based on values of the itereator.
+        is_eager : bool, optional
+            Whether or not to compute this pipeline outside of
+            before_trading_start
 
         Returns
         -------
@@ -2450,7 +2458,7 @@ class TradingAlgorithm(object):
         if name in self._pipelines:
             raise DuplicatePipelineName(name=name)
 
-        self._pipelines[name] = pipeline, iter(chunks)
+        self._pipelines[name] = pipeline, iter(chunks), is_eager
 
         # Return the pipeline to allow expressions like
         # p = attach_pipeline(Pipeline(), 'name')
@@ -2484,7 +2492,7 @@ class TradingAlgorithm(object):
         :meth:`zipline.pipeline.engine.PipelineEngine.run_pipeline`
         """
         try:
-            p, chunks = self._pipelines[name]
+            p, chunks, is_eager = self._pipelines[name]
         except KeyError:
             raise NoSuchPipeline(
                 name=name,
