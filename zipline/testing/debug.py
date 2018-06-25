@@ -4,7 +4,7 @@ import subprocess
 import networkx as nx
 
 
-def debug_mro_failure(name, bases, output_file):
+def debug_mro_failure(name, bases):
     graph = build_linearization_graph(name, bases)
     cycles = sorted(nx.cycles.simple_cycles(graph), key=len)
     cycle = cycles[0]
@@ -33,7 +33,7 @@ def debug_mro_failure(name, bases, output_file):
             subprocess.check_call(['dot', '-T', 'svg', '-O', output_file])
             lines.append(
                 "GraphViz rendering written to "
-                + output_file.replace(".dot", ".svg")
+                + output_file + '.svg'
             )
         except Exception as e:
             lines.append(
