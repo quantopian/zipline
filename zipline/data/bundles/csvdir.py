@@ -175,10 +175,13 @@ def _pricing_iter(csvdir, symbols, metadata, divs_splits, show_progress):
         for sid, symbol in enumerate(it):
             logger.debug('%s: sid %s' % (symbol, sid))
 
+            fname = symbol + '.csv'
             try:
-                fname = [fname for fname in files
-                         if '%s.csv' % symbol in fname][0]
-            except IndexError:
+                dfr = read_csv(os.path.join(csvdir, fname),
+                               parse_dates=[0],
+                               infer_datetime_format=False,
+                               index_col=0).sort_index()
+            except OSError:
                 raise ValueError("%s.csv file is not in %s" % (symbol, csvdir))
 
             dfr = read_csv(os.path.join(csvdir, fname),
