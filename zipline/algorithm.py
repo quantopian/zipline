@@ -61,6 +61,7 @@ from zipline.errors import (
     UnsupportedCancelPolicy,
     UnsupportedDatetimeFormat,
     UnsupportedOrderParameters,
+    ZeroCapitalError
 )
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.blotter import Blotter
@@ -408,6 +409,10 @@ class TradingAlgorithm(object):
         # compatibility.
         if 'data_frequency' in kwargs:
             self.data_frequency = kwargs.pop('data_frequency')
+
+        capital_base = self.sim_params.capital_base
+        if capital_base <= 0:
+            raise ZeroCapitalError()
 
         # Prepare the algo for initialization
         self.initialized = False
