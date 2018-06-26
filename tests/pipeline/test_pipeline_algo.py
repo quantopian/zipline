@@ -43,13 +43,15 @@ from zipline.errors import (
 )
 from zipline.finance.trading import SimulationParameters
 from zipline.lib.adjustment import MULTIPLY
-from zipline.pipeline import Pipeline
+from zipline.pipeline import Pipeline, CustomFactor
 from zipline.pipeline.factors import VWAP
 from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
 )
+from zipline.pipeline.mixins import SingleInputMixin
 from zipline.testing import (
     str_to_seconds
 )
@@ -57,6 +59,7 @@ from zipline.testing import create_empty_splits_mergers_frame
 from zipline.testing.fixtures import (
     WithMakeAlgo,
     WithAdjustmentReader,
+    WithSeededRandomPipelineEngine,
     WithBcolzEquityDailyBarReaderFromCSVs,
     ZiplineTestCase,
 )
@@ -738,3 +741,64 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
         )
 
         self.assertTrue(count[0] > 0)
+
+
+class PipelineSequenceTestCase(
+    WithSeededRandomPipelineEngine,
+    WithMakeAlgo,
+    ZiplineTestCase,
+):
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(PipelineSequenceTestCase, cls).init_class_fixtures()
+
+    def make_algo_kwargs(self, **overrides):
+        return self.merge_with_inherited_algo_kwargs(
+            PipelineSequenceTestCase,
+            suite_overrides=dict(
+                get_pipeline_loader=lambda column: self.seeded_random_loader,
+            ),
+            method_overrides=overrides,
+        )
+
+    def test_pipeline_compute_before_bts(self):
+
+        # for storing and keeping track of calls to BTS and TestFactor.compute
+        history = []
+        counter = [0]
+
+        class TestFactor(CustomFactor, SingleInputMixin):
+
+            inputs = [TestingDataSet.float_col]
+
+            def compute(self, today, assets, out, inputs):
+                history.append(
+                    "CustomFactor call"
+                )
+
+        def initialize(context):
+            pipeline = attach_pipeline(Pipeline(), 'my_pipeline')
+            test_factor = TestFactor(window_length=30)
+            pipeline.add(test_factor, 'test_factor')
+
+        def handle_data(context, data):
+            pass
+
+        def before_trading_start(context, data):
+            context.results = pipeline_output('my_pipeline')
+            history.append("BTS call %s" % counter[0])
+            counter[0] += 1
+
+        self.run_algorithm(
+            initialize=initialize,
+            handle_data=handle_data,
+            before_trading_start=before_trading_start,
+        )
+
+        self.assertTrue(counter[0] > 0)
+
+        # All pipeline computation calls should occur before any BTS calls,
+        # so there shouldn't be any compute calls in the second half of
+        # this list
+        self.assertFalse("CustomFactor call" in history[int(len(history)/2):])

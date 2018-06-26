@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import Iterable
+from collections import Iterable, namedtuple
 from copy import copy
 import operator as op
 import warnings
@@ -141,6 +141,9 @@ from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 
 log = logbook.Logger("ZiplineLog")
+
+# For creating and storing pipeline instances
+p = namedtuple('pipeline', ['pipe', 'chunks', 'eager'])
 
 
 class TradingAlgorithm(object):
@@ -449,6 +452,8 @@ class TradingAlgorithm(object):
             self._initialize(self, *args, **kwargs)
 
     def before_trading_start(self, data):
+        self.compute_eager_pipelines()
+
         if self._before_trading_start is None:
             return
 
@@ -608,9 +613,14 @@ class TradingAlgorithm(object):
         # our universe is all the assets passed into `run`.
         return self._assets_from_source
 
-    def _compute_pipelines(self):
-        for name, p in self._pipelines.items():
-            if p[2]:
+    def compute_eager_pipelines(self):
+        """
+        Compute any 'eager' pipelines stored in the algorithm's list
+        of pipelines. This method ensures that no additional time is
+        used for pipeline computation inside of before_trading_start
+        """
+        for name, pipe in self._pipelines.items():
+            if pipe.eager:
                 self.pipeline_output(name)
 
     def get_generator(self):
@@ -2421,7 +2431,7 @@ class TradingAlgorithm(object):
         name=string_types,
         chunks=(int, Iterable, type(None)),
     )
-    def attach_pipeline(self, pipeline, name, chunks=None, is_eager=True):
+    def attach_pipeline(self, pipeline, name, chunks=None, eager=True):
         """Register a pipeline to be computed at the start of each day.
 
         Parameters
@@ -2435,7 +2445,7 @@ class TradingAlgorithm(object):
             this number will make it longer to get the first results but
             may improve the total runtime of the simulation. If an iterator
             is passed, we will run in chunks based on values of the itereator.
-        is_eager : bool, optional
+        eager : bool, optional
             Whether or not to compute this pipeline outside of
             before_trading_start
 
@@ -2458,7 +2468,7 @@ class TradingAlgorithm(object):
         if name in self._pipelines:
             raise DuplicatePipelineName(name=name)
 
-        self._pipelines[name] = pipeline, iter(chunks), is_eager
+        self._pipelines[name] = p(pipeline, iter(chunks), eager)
 
         # Return the pipeline to allow expressions like
         # p = attach_pipeline(Pipeline(), 'name')
@@ -2492,13 +2502,13 @@ class TradingAlgorithm(object):
         :meth:`zipline.pipeline.engine.PipelineEngine.run_pipeline`
         """
         try:
-            p, chunks, is_eager = self._pipelines[name]
+            pipe, chunks, eager = self._pipelines[name]
         except KeyError:
             raise NoSuchPipeline(
                 name=name,
                 valid=list(self._pipelines.keys()),
             )
-        return self._pipeline_output(p, chunks, name)
+        return self._pipeline_output(pipe, chunks, name)
 
     def _pipeline_output(self, pipeline, chunks, name):
         """
