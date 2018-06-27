@@ -268,10 +268,27 @@ class TradingAlgorithm(object):
 
         self.benchmark_returns = benchmark_returns
 
-        # If a schedule has been provided, pop it. Otherwise, use NYSE.
-        self.trading_calendar = trading_calendar or get_calendar('NYSE')
-
+        # XXX: This is also a mess. We should remove all of this and only allow
+        #      one way to pass a calendar.
+        #
+        # We have a required sim_params argument as well as an optional
+        # trading_calendar argument, but sim_params has a trading_calendar
+        # attribute. If the user passed trading_calendar explicitly, make sure
+        # it matches their sim_params. Otherwise, just use what's in their
+        # sim_params.
         self.sim_params = sim_params
+        if trading_calendar is None:
+            self.trading_calendar = sim_params.trading_calendar
+        elif trading_calendar.name == sim_params.trading_calendar.name:
+            self.trading_calendar = sim_params.trading_calendar
+        else:
+            raise ValueError(
+                "Conflicting calendars: trading_calendar={}, but "
+                "sim_params.trading_calendar={}".format(
+                    trading_calendar.name,
+                    self.sim_params.trading_calendar.name,
+                )
+            )
 
         self.metrics_tracker = None
         self._last_sync_time = pd.NaT
