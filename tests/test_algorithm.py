@@ -446,7 +446,9 @@ def log_nyse_close(context, data):
 
         algo = self.make_algo(
             script=algotext,
-            trading_calendar=get_calendar("CME"),
+            sim_params=self.make_simparams(
+                trading_calendar=get_calendar("CME"),
+            )
         )
         algo.run()
 
@@ -480,7 +482,9 @@ def log_nyse_close(context, data):
 
         algo = self.make_algo(
             script=erroring_algotext,
-            trading_calendar=get_calendar('CME'),
+            sim_params=self.make_simparams(
+                trading_calendar=get_calendar("CME"),
+            ),
         )
 
         with self.assertRaises(ScheduleFunctionInvalidCalendar):
