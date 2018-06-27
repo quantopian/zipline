@@ -125,6 +125,10 @@ class SimulationParameters(object):
         return self._last_close
 
     @property
+    def trading_calendar(self):
+        return self._trading_calendar
+
+    @property
     @remember_last
     def sessions(self):
         return self._trading_calendar.sessions_in_range(
