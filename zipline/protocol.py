@@ -160,10 +160,6 @@ class Order(Event):
     )
 
 
-def asset_price_multiplier(asset):
-    return asset.price_multiplier
-
-
 class Portfolio(object):
     """The portfolio at a given time.
 
@@ -230,7 +226,7 @@ class Portfolio(object):
             asset: (
                     position.last_sale_price *
                     position.amount *
-                    asset_price_multiplier(asset)
+                    asset.price_multiplier
             )
             for asset, position in self.positions.items()
         })

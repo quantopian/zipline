@@ -14,16 +14,12 @@
 # limitations under the License.
 
 import abc
-
 from sys import float_info
-
 from six import with_metaclass
-
 from numpy import isfinite
-
 import zipline.utils.math_utils as zp_math
-
 from zipline.errors import BadOrderParameters
+from zipline.utils.compat import consistent_round
 
 
 class ExecutionStyle(with_metaclass(abc.ABCMeta)):
@@ -145,29 +141,23 @@ class StopLimitOrder(ExecutionStyle):
 
 
 def _get_stop_price(asset, price, is_buy):
-    if hasattr(asset, 'tick_size'):
-        return asymmetric_round_price(
-            price,
-            not is_buy,
-            tick_size=float(asset.tick_size)
-        )
-    else:
-        return asymmetric_round_price(price, not is_buy)
+    return asymmetric_round_price(
+        price,
+        not is_buy,
+        tick_size=float(asset.tick_size)
+    )
 
 
 def _get_limit_price(asset, price, is_buy):
-    if hasattr(asset, 'tick_size'):
-        return asymmetric_round_price(
-            price,
-            is_buy,
-            tick_size=float(asset.tick_size)
-        )
-    else:
-        return asymmetric_round_price(price, is_buy)
+    return asymmetric_round_price(
+        price,
+        is_buy,
+        tick_size=float(asset.tick_size)
+    )
 
 
 def asymmetric_round_price(price, prefer_round_down,
-                           diff=(0.95 - .5), tick_size=0.01):
+                           diff=0.95, tick_size=0.01):
     """
     Asymmetric rounding function for adjusting prices to the specified number
     of places in a way that "improves" the price. For limit prices, this means
@@ -184,7 +174,10 @@ def asymmetric_round_price(price, prefer_round_down,
     If not prefer_round_down: (<X-1>.0005, X.0105] -> round to X.01.
     """
     precision = zp_math.number_of_decimal_places(tick_size)
-    diff *= (10 ** -precision)
+    multiplier = int(tick_size * (10 ** precision))
+    diff -= 0.5  # shift the difference down
+    diff *= (10 ** -precision)  # adjust diff to precision of tick size
+    diff *= multiplier  # adjust diff to value of tick_size
 
     # Subtracting an epsilon from diff to enforce the open-ness of the upper
     # bound on buys and the lower bound on sells.  Using the actual system
@@ -193,7 +186,9 @@ def asymmetric_round_price(price, prefer_round_down,
     diff = diff - epsilon
 
     # relies on rounding half away from zero, unlike numpy's bankers' rounding
-    rounded = round(price - (diff if prefer_round_down else -diff), precision)
+    rounded = tick_size * consistent_round(
+        (price - (diff if prefer_round_down else -diff)) / tick_size
+    )
     if zp_math.tolerant_equals(rounded, 0.0):
         return 0.0
     return rounded
