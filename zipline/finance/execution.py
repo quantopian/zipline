@@ -85,8 +85,11 @@ class LimitOrder(ExecutionStyle):
         self.asset = asset
 
     def get_limit_price(self, is_buy):
-        if self.asset is not None:
-            return _get_limit_price(self.asset, self.limit_price, is_buy)
+        return asymmetric_round_price(
+            self.limit_price,
+            is_buy,
+            tick_size=(0.01 if self.asset is None else self.asset.tick_size)
+        )
 
     def get_stop_price(self, _is_buy):
         return None
@@ -112,8 +115,11 @@ class StopOrder(ExecutionStyle):
         return None
 
     def get_stop_price(self, is_buy):
-        if self.asset is not None:
-            return _get_stop_price(self.asset, self.stop_price, is_buy)
+        return asymmetric_round_price(
+            self.stop_price,
+            not is_buy,
+            tick_size=(0.01 if self.asset is None else self.asset.tick_size)
+        )
 
 
 class StopLimitOrder(ExecutionStyle):
@@ -136,32 +142,21 @@ class StopLimitOrder(ExecutionStyle):
         self.asset = asset
 
     def get_limit_price(self, is_buy):
-        if self.asset is not None:
-            return _get_limit_price(self.asset, self.limit_price, is_buy)
+        return asymmetric_round_price(
+            self.limit_price,
+            is_buy,
+            tick_size=(0.01 if self.asset is None else self.asset.tick_size)
+        )
 
     def get_stop_price(self, is_buy):
-        if self.asset is not None:
-            return _get_stop_price(self.asset, self.stop_price, is_buy)
+        return asymmetric_round_price(
+            self.stop_price,
+            not is_buy,
+            tick_size=(0.01 if self.asset is None else self.asset.tick_size)
+        )
 
 
-def _get_stop_price(asset, price, is_buy):
-    return asymmetric_round_price(
-        price,
-        not is_buy,
-        tick_size=asset.tick_size
-    )
-
-
-def _get_limit_price(asset, price, is_buy):
-    return asymmetric_round_price(
-        price,
-        is_buy,
-        tick_size=asset.tick_size
-    )
-
-
-def asymmetric_round_price(price, prefer_round_down,
-                           diff=0.95, tick_size=0.01):
+def asymmetric_round_price(price, prefer_round_down, tick_size, diff=0.95):
     """
     Asymmetric rounding function for adjusting prices to the specified number
     of places in a way that "improves" the price. For limit prices, this means
