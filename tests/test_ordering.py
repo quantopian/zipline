@@ -275,7 +275,7 @@ def do_order(context, data):
             order_method(
                 self.EQUITY,
                 order_param,
-                style=StopLimitOrder(10, 10),
+                style=StopLimitOrder(10, 10, asset=self.EQUITY),
             )
 
             assert len(context.blotter.open_orders[self.EQUITY]) == 1

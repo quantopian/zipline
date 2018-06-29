@@ -129,19 +129,19 @@ class ExecutionStyleTestCase(WithConstantFutureMinuteBarData,
         return pd.DataFrame.from_dict({
             1: {
                 'multiplier': 100,
-                'tick_size': '0.01',
+                'tick_size': 0.01,
                 'symbol': 'F1',
                 'exchange': 'TEST'
             },
             2: {
                 'multiplier': 100,
-                'tick_size': '0.0001',
+                'tick_size': 0.0001,
                 'symbol': 'F2',
                 'exchange': 'TEST'
             },
             3: {
                 'multiplier': 100,
-                'tick_size': '0.05',
+                'tick_size': 0.05,
                 'symbol': 'F3',
                 'exchange': 'TEST'
             }
