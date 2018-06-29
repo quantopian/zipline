@@ -88,7 +88,6 @@ else:
         # clears the exception.
         pass
 
-
     def consistent_round(val):
         if (val % 1) >= 0.5:
             return ceil(val)
