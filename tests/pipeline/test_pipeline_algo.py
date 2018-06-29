@@ -46,12 +46,10 @@ from zipline.lib.adjustment import MULTIPLY
 from zipline.pipeline import Pipeline, CustomFactor
 from zipline.pipeline.factors import VWAP
 from zipline.pipeline.data import USEquityPricing
-from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
 )
-from zipline.pipeline.mixins import SingleInputMixin
 from zipline.testing import (
     str_to_seconds
 )
@@ -59,7 +57,6 @@ from zipline.testing import create_empty_splits_mergers_frame
 from zipline.testing.fixtures import (
     WithMakeAlgo,
     WithAdjustmentReader,
-    WithSeededRandomPipelineEngine,
     WithBcolzEquityDailyBarReaderFromCSVs,
     ZiplineTestCase,
 )
