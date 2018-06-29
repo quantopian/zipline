@@ -569,6 +569,11 @@ class SimpleBeta(CustomFactor, StandardOutputs):
         )
 
 
+class MultipleLinearRegression(CustomFactor):
+
+    
+
+
 def vectorized_beta(dependents, independent, allowed_missing, out=None):
     """
     Compute slopes of linear regressions between columns of ``dependents`` and
@@ -663,3 +668,168 @@ def vectorized_beta(dependents, independent, allowed_missing, out=None):
     out[nanlocs] = nan
 
     return out
+
+
+class MultipleLinearRegression(CustomFactor):
+    """
+    A Factor that performs an ordinary least-squares regression predicting the
+    columns of a dependent variable from one or more independent variables.
+
+    Parameters
+    ----------
+    dependent : zipline.pipeline.factors.Factor
+        The factor whose columns are the predicted/dependent variable of each
+        regression with `independent`.
+    independent : zipline.pipeline.slice.Slice or zipline.pipeline.Factor
+        The factor/slice whose columns are the predictor/independent variable
+        of each regression with `dependent`. If `independent` is a Factor,
+        regressions are computed asset-wise.
+    regression_length : int
+        Length of the lookback window over which to compute each regression.
+    mask : zipline.pipeline.Filter, optional
+        A Filter describing which assets (columns) of `dependent` should be
+        regressed against `independent` each day.
+    """
+    window_safe = True
+    @expect_dtypes(dependent
+    def __new__(cls,
+                dependent,
+                independent,
+                regression_length,
+                outputs,
+                mask=NotSpecified):
+
+        inputs = (dependent,) + tuple(independent)
+        return cls(
+            inputs=inputs,
+            window_length=window_length,
+            outputs=outputs,
+            mask=mask,
+        )
+
+    def compute(self, today, assets, out, dependent, *independents):
+        # Input Types
+        # -----------
+        # today:        Timestamp
+        # assets:       np.array[int64],   shape: (num_assets,)
+        # out:          np.recarray, shape: (num_assets,)
+        #   Out is a recarray whose entries have a len(independents) + 1 cells.
+        # dependent:    np.array[float64], shape: (num_dates, num_assets)
+        # independents: tuple[np.array[float64]]
+        #   Each array in independents has the same shape as dependent.
+
+        # Put all independent variables together into a single array, and add a
+        # constant coefficient of 1 to compute an intercept.
+        #
+        # shape: (num_assets, num_dates, num_variables)
+        design_matrices = (np.dstack(np.broadcast_arrays(1, *independents))
+                           .transpose(1, 0, 2))
+
+        # Compute a mask of assets with NaNs in their inputs. We can't compute
+        # regression coefficients for these assets using this method, so we
+        # need to filter them out.
+        #
+        # shape: (num_assets,)
+        nonnull = ~(np.isnan(design_matrices).any(axis=(1, 2)))
+
+        # Filter down to only assets with no missing values.
+        #
+        # shape: (num_nonnull_assets, num_dates)
+        nonnull_dependent = dependent.T[nonnull]
+
+        # shape: (num_nonnull_assets, num_dates, num_varia
+        nonnull_design = design_matrices[nonnull]
+
+        # Compute the coefficients of our linear regression.
+        # shape: (num_variables, num_nonnull_assets)
+        results = vectorized_multiple_linear_regression(
+            nonnull_dependent,
+            nonnull_design,
+        )
+
+        # Write coefficients into our output array.
+        output_keys = self.outputs
+        for key, column in zip(output_keys, results.T):
+            out[key][nonnull] = column
+
+
+def vectorized_multiple_linear_regression(dependent, independent, rcond=1e-15):
+    """
+    Compute a stack of N multiple linear regressions at once using Singular
+    Value Decomposition.
+
+    Parameters
+    ----------
+    dependent : np.array[float64]
+        Array of shape (num_assets, num_days) of data points to be explained.
+    independent : np.array[float64
+        Array of shape (num_assets, num_days, num_variables) of explanatory
+        data points.
+    rcond : float, optional
+        Relative condition number for singular values. This is used as a
+        tolerance threshold for removing very small singular values that should
+        be zero. You probably shouldn't change this unless you know what you're
+        doing.
+
+    Returns
+    -------
+    coeffs : np.array[float64]
+        An array of shape (num_assets, num_variables) containing fit
+        coefficients for each asset.
+
+    Notes
+    -----
+    This function is equivalent to computing N separate linear regressions on
+    ``dependent[i]`` and ``independent[i]`` for each asset ``i``. For each
+    ``i``, ``coeffs[i]`` contains the results of the corresponding regression.
+
+    See Also
+    --------
+    :func:`numpy.linalg.svg`
+    :func:`numpy.linalg.pinv`
+    https://en.wikipedia.org/wiki/Moore%E2%80%93Penrose_inverse#Singular_value_decomposition_(SVD)
+    """
+    # Compute the singular value decomposition (SVD), for each asset's
+    # dependent and independent variables. Passing ``full_matrices`` tells
+    # np.linalg.svd to just return the diagonal entries of the middle term of
+    # the decomposition (the rest of the entries are zero, so we don't need
+    # them).
+    #
+    # u.shape: (num_assets, num_days, num_variables)
+    # s.shape: (num_assets, num_variables)
+    # vt.shape: (num_assets, num_variables, num_variables)
+    u, s, vt = np.linalg.svd(independent, full_matrices=False)
+
+    # Take the reciprocal of the singular values, clipping very small entries
+    # to 0. (Mathematically, the very small values should almost certainly 0,
+    # but due to floating point error, they can be very small, which results in
+    # problematically-huge values when we take the reciprocal.)
+    cutoff = rcond * s.max(axis=-1, keepdims=True)
+    large = (s > cutoff)
+    np.divide(1, s, where=large, out=s)
+    s[~large] = 0
+
+    # For each asset, the coefficients of the linear regression are given by:
+    #
+    #    V * Sigma * U_t * b
+    #
+    # where:
+    #    Sigma = diag(s)
+    #    b     = dependent
+    #
+    # The (V * Sigma * U_t) term is the Moore-Penrose Inverse of `independent`.
+    V = _T(vt)
+    Sigma = s[..., None]
+    U_t = _T(u)
+    b = dependent[..., None]
+
+    # We do Sigma * T(u) instead of matmul here because Sigma is just the
+    # diagonal entries of the matrix, and multiplying by a diagonal matrix is
+    # equivalent to multiplying each column by a scalar.
+    return np.matmul(V, np.matmul(Sigma * U_t, b))[..., 0]
+
+
+def _T(a):
+    """Transpose the last two axes in a stack of matrices.
+    """
+    return np.swapaxes(a, -2, -1)
