@@ -143,7 +143,7 @@ from zipline.zipline_warnings import ZiplineDeprecationWarning
 log = logbook.Logger("ZiplineLog")
 
 # For creating and storing pipeline instances
-p = namedtuple('pipeline', ['pipe', 'chunks', 'eager'])
+AttachedPipeline = namedtuple('AttachedPipeline', 'pipe chunks eager')
 
 
 class TradingAlgorithm(object):
@@ -615,9 +615,7 @@ class TradingAlgorithm(object):
 
     def compute_eager_pipelines(self):
         """
-        Compute any 'eager' pipelines stored in the algorithm's list
-        of pipelines. This method ensures that no additional time is
-        used for pipeline computation inside of before_trading_start
+        Compute any pipelines attached with eager=True.
         """
         for name, pipe in self._pipelines.items():
             if pipe.eager:
@@ -2444,10 +2442,11 @@ class TradingAlgorithm(object):
             The number of days to compute pipeline results for. Increasing
             this number will make it longer to get the first results but
             may improve the total runtime of the simulation. If an iterator
-            is passed, we will run in chunks based on values of the itereator.
+            is passed, we will run in chunks based on values of the iterator.
+            Default is True.
         eager : bool, optional
-            Whether or not to compute this pipeline outside of
-            before_trading_start
+            Whether or not to compute this pipeline prior to
+            before_trading_start.
 
         Returns
         -------
@@ -2468,7 +2467,7 @@ class TradingAlgorithm(object):
         if name in self._pipelines:
             raise DuplicatePipelineName(name=name)
 
-        self._pipelines[name] = p(pipeline, iter(chunks), eager)
+        self._pipelines[name] = AttachedPipeline(pipeline, iter(chunks), eager)
 
         # Return the pipeline to allow expressions like
         # p = attach_pipeline(Pipeline(), 'name')
@@ -2502,7 +2501,7 @@ class TradingAlgorithm(object):
         :meth:`zipline.pipeline.engine.PipelineEngine.run_pipeline`
         """
         try:
-            pipe, chunks, eager = self._pipelines[name]
+            pipe, chunks, _ = self._pipelines[name]
         except KeyError:
             raise NoSuchPipeline(
                 name=name,

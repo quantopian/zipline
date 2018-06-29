@@ -743,62 +743,60 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
         self.assertTrue(count[0] > 0)
 
 
-class PipelineSequenceTestCase(
-    WithSeededRandomPipelineEngine,
-    WithMakeAlgo,
-    ZiplineTestCase,
-):
-
-    @classmethod
-    def init_class_fixtures(cls):
-        super(PipelineSequenceTestCase, cls).init_class_fixtures()
+class PipelineSequenceTestCase(WithMakeAlgo, ZiplineTestCase):
 
     def make_algo_kwargs(self, **overrides):
+        # run the algorithm for 3 days
+        self.START_DATE = pd.Timestamp('2015-07-13', tz='utc')
+        self.END_DATE = pd.Timestamp('2015-07-15', tz='utc')
         return self.merge_with_inherited_algo_kwargs(
             PipelineSequenceTestCase,
             suite_overrides=dict(
-                get_pipeline_loader=lambda column: self.seeded_random_loader,
+                get_pipeline_loader=lambda column: self.fake_pipeline,
             ),
             method_overrides=overrides,
         )
 
+    def fake_pipeline(self):
+        raise AssertionError
+
     def test_pipeline_compute_before_bts(self):
 
         # for storing and keeping track of calls to BTS and TestFactor.compute
-        history = []
-        counter = [0]
+        trace = []
 
-        class TestFactor(CustomFactor, SingleInputMixin):
+        class TestFactor(CustomFactor):
+            inputs = ()
 
-            inputs = [TestingDataSet.float_col]
+            # window_length doesn't actually matter for this test case
+            window_length = 1
 
-            def compute(self, today, assets, out, inputs):
-                history.append(
-                    "CustomFactor call"
-                )
+            def compute(self, today, assets, out):
+                trace.append("CustomFactor call")
 
         def initialize(context):
             pipeline = attach_pipeline(Pipeline(), 'my_pipeline')
-            test_factor = TestFactor(window_length=30)
+            test_factor = TestFactor()
             pipeline.add(test_factor, 'test_factor')
 
-        def handle_data(context, data):
-            pass
-
         def before_trading_start(context, data):
-            context.results = pipeline_output('my_pipeline')
-            history.append("BTS call %s" % counter[0])
-            counter[0] += 1
+            pipeline_output('my_pipeline')
+            trace.append("BTS call")
 
         self.run_algorithm(
             initialize=initialize,
-            handle_data=handle_data,
             before_trading_start=before_trading_start,
+            sim_params=SimulationParameters(
+                start_session=pd.Timestamp('2014-12-29', tz='utc'),
+                end_session=pd.Timestamp('2014-12-31', tz='utc'),
+                data_frequency='daily',
+                emission_rate='daily',
+                trading_calendar=self.trading_calendar,
+            )
         )
 
-        self.assertTrue(counter[0] > 0)
-
         # All pipeline computation calls should occur before any BTS calls,
-        # so there shouldn't be any compute calls in the second half of
-        # this list
-        self.assertFalse("CustomFactor call" in history[int(len(history)/2):])
+        # and the algorithm is being run for 3 days, so the first 3 calls
+        # should be to the custom factor and the next 3 calls should be to BTS
+        expected_result = ["CustomFactor call"] * 3 + ["BTS call"] * 3
+        self.assertEqual(trace, expected_result)
