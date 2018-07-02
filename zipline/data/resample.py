@@ -50,7 +50,7 @@ def minute_frame_to_session_frame(minute_frame, calendar):
     minute_frame : pd.DataFrame
         A DataFrame with the columns `open`, `high`, `low`, `close`, `volume`,
         and `dt` (minute dts)
-    calendar : zipline.utils.calendars.trading_calendar.TradingCalendar
+    calendar : trading_calendars.trading_calendar.TradingCalendar
         A TradingCalendar on which session labels to resample from minute
         to session.
 
@@ -77,7 +77,7 @@ def minute_panel_to_session_panel(minute_panel, calendar):
           * items: assets
           * major_axis: minute pd.DatetimeIndex
           * minor_axis: labels ['open', 'high', 'low', 'close', 'volume']
-    calendar : zipline.utils.calendars.trading_calendar.TradingCalendar
+    calendar : trading_calendars.trading_calendar.TradingCalendar
         A TradingCalendar on which session labels to resample from minute
         to session.
     """

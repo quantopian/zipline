@@ -29,6 +29,7 @@ from pandas import (
 )
 from pandas.tseries.tools import normalize_date
 from six import iteritems, itervalues
+from trading_calendars import get_calendar
 
 from zipline.api import (
     attach_pipeline,
@@ -60,7 +61,6 @@ from zipline.testing.fixtures import (
     WithBcolzEquityDailyBarReaderFromCSVs,
     ZiplineTestCase,
 )
-from zipline.utils.calendars import get_calendar
 
 TEST_RESOURCE_PATH = join(
     dirname(dirname(realpath(__file__))),  # zipline_repo/tests

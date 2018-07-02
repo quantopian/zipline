@@ -5,10 +5,14 @@ import warnings
 
 from contextlib2 import ExitStack
 from logbook import NullHandler, Logger
-from six import with_metaclass, iteritems
-from toolz import flip, merge
 import pandas as pd
+from six import with_metaclass, iteritems
 import responses
+from toolz import flip, merge
+from trading_calendars import (
+    get_calendar,
+    register_calendar,
+)
 
 import zipline
 from zipline.algorithm import TradingAlgorithm
@@ -19,10 +23,6 @@ from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.protocol import BarData
-from zipline.utils.calendars import (
-    get_calendar,
-    register_calendar,
-)
 from zipline.utils.paths import ensure_directory
 from .core import (
     create_daily_bar_data,

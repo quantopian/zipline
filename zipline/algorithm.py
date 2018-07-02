@@ -34,6 +34,8 @@ from six import (
     string_types,
     viewkeys,
 )
+from trading_calendars.utils.pandas_utils import days_at_time
+from trading_calendars import get_calendar
 
 from zipline._protocol import handle_non_market_minutes
 from zipline.assets.synthetic import make_simple_equity_info
@@ -110,9 +112,7 @@ from zipline.utils.input_validation import (
     optional,
 )
 from zipline.utils.numpy_utils import int64_dtype
-from zipline.utils.calendars.trading_calendar import days_at_time
 from zipline.utils.cache import ExpiringCache
-from zipline.utils.calendars import get_calendar
 from zipline.utils.pandas_utils import clear_dataframe_indexer_caches
 
 import zipline.utils.events
