@@ -2,13 +2,12 @@ from importlib import import_module
 import os
 
 from toolz import merge
+from trading_calendars import register_calendar, get_calendar
 
 from zipline import run_algorithm
 
 
 # These are used by test_examples.py to discover the examples to run.
-from zipline.utils.calendars import register_calendar, get_calendar
-
 EXAMPLE_MODULES = {}
 for f in os.listdir(os.path.dirname(__file__)):
     if not f.endswith('.py') or f == '__init__.py':

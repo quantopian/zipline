@@ -15,13 +15,13 @@ from numpy import (
     iinfo,
     uint32,
 )
+from trading_calendars import get_calendar
 
 from zipline.data.us_equity_pricing import (
     BcolzDailyBarReader,
     SQLiteAdjustmentReader,
 )
 from zipline.lib.adjusted_array import AdjustedArray
-from zipline.utils.calendars import get_calendar
 
 from .base import PipelineLoader
 from .utils import shift_dates
