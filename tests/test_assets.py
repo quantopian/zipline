@@ -36,6 +36,7 @@ import sqlalchemy as sa
 
 from zipline.assets import (
     Asset,
+    ExchangeInfo,
     Equity,
     Future,
     AssetDBWriter,
@@ -77,8 +78,9 @@ from zipline.testing import (
     empty_assets_db,
     parameter_space,
     tmp_assets_db,
+    tmp_asset_finder,
 )
-from zipline.testing.predicates import assert_equal
+from zipline.testing.predicates import assert_equal, assert_not_equal
 from zipline.testing.fixtures import (
     WithAssetFinder,
     ZiplineTestCase,
@@ -243,19 +245,26 @@ class AssetTestCase(TestCase):
         1337,
         symbol="DOGE",
         asset_name="DOGECOIN",
-        start_date=pd.Timestamp('2013-12-08 9:31AM', tz='UTC'),
-        end_date=pd.Timestamp('2014-06-25 11:21AM', tz='UTC'),
-        first_traded=pd.Timestamp('2013-12-08 9:31AM', tz='UTC'),
-        auto_close_date=pd.Timestamp('2014-06-26 11:21AM', tz='UTC'),
-        exchange='THE MOON',
+        start_date=pd.Timestamp('2013-12-08 9:31', tz='UTC'),
+        end_date=pd.Timestamp('2014-06-25 11:21', tz='UTC'),
+        first_traded=pd.Timestamp('2013-12-08 9:31', tz='UTC'),
+        auto_close_date=pd.Timestamp('2014-06-26 11:21', tz='UTC'),
+        exchange_info=ExchangeInfo('THE MOON', 'MOON', '??'),
     )
 
-    asset3 = Asset(3, exchange="test")
-    asset4 = Asset(4, exchange="test")
-    asset5 = Asset(5, exchange="still testing")
+    test_exchange = ExchangeInfo('test full', 'test', '??')
+    asset3 = Asset(3, exchange_info=test_exchange)
+    asset4 = Asset(4, exchange_info=test_exchange)
+    asset5 = Asset(
+        5,
+        exchange_info=ExchangeInfo('still testing', 'still testing', '??'),
+    )
 
     def test_asset_object(self):
-        the_asset = Asset(5061, exchange="bar")
+        the_asset = Asset(
+            5061,
+            exchange_info=ExchangeInfo('bar', 'bar', '??'),
+        )
 
         self.assertEquals({5061: 'foo'}[the_asset], 'foo')
         self.assertEquals(the_asset, 5061)
@@ -282,8 +291,8 @@ class AssetTestCase(TestCase):
 
     def test_asset_comparisons(self):
 
-        s_23 = Asset(23, exchange="test")
-        s_24 = Asset(24, exchange="test")
+        s_23 = Asset(23, exchange_info=self.test_exchange)
+        s_24 = Asset(24, exchange_info=self.test_exchange)
 
         self.assertEqual(s_23, s_23)
         self.assertEqual(s_23, 23)
@@ -903,7 +912,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         # Build an asset with an end_date
         eq_end = pd.Timestamp('2012-01-01', tz='UTC')
         equity_asset = Equity(1, symbol="TESTEQ", end_date=eq_end,
-                              exchange="TEST")
+                              exchange_info=ExchangeInfo("TEST", "TEST", "??"))
 
         # Catch all warnings
         with warnings.catch_warnings(record=True) as w:
@@ -922,10 +931,11 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         # Build an empty finder and some Assets
         dt = pd.Timestamp('2014-01-01', tz='UTC')
         finder = self.asset_finder
-        asset1 = Equity(1, symbol="AAPL", exchange="TEST")
-        asset2 = Equity(2, symbol="GOOG", exchange="TEST")
-        asset200 = Future(200, symbol="CLK15", exchange="TEST")
-        asset201 = Future(201, symbol="CLM15", exchange="TEST")
+        exchange_info = ExchangeInfo("TEST FULL", "TEST", "??")
+        asset1 = Equity(1, symbol="AAPL", exchange_info=exchange_info)
+        asset2 = Equity(2, symbol="GOOG", exchange_info=exchange_info)
+        asset200 = Future(200, symbol="CLK15", exchange_info=exchange_info)
+        asset201 = Future(201, symbol="CLM15", exchange_info=exchange_info)
 
         # Check for correct mapping and types
         pre_map = [asset1, asset2, asset200, asset201]
@@ -1482,17 +1492,18 @@ class TestAssetDBVersioning(ZiplineTestCase):
 
     def test_v5_to_v4_selects_most_recent_ticker(self):
         T = pd.Timestamp
-        AssetDBWriter(self.engine).write(
-            equities=pd.DataFrame(
-                [['A', 'A', T('2014-01-01'), T('2014-01-02')],
-                 ['B', 'B', T('2014-01-01'), T('2014-01-02')],
-                 # these two are both ticker sid 2
-                 ['B', 'C', T('2014-01-03'), T('2014-01-04')],
-                 ['C', 'C', T('2014-01-01'), T('2014-01-02')]],
-                index=[0, 1, 2, 2],
-                columns=['symbol', 'asset_name', 'start_date', 'end_date'],
-            ),
+        equities = pd.DataFrame(
+            [['A', 'A', T('2014-01-01'), T('2014-01-02')],
+             ['B', 'B', T('2014-01-01'), T('2014-01-02')],
+             # these two are both ticker sid 2
+             ['B', 'C', T('2014-01-03'), T('2014-01-04')],
+             ['C', 'C', T('2014-01-01'), T('2014-01-02')]],
+            index=[0, 1, 2, 2],
+            columns=['symbol', 'asset_name', 'start_date', 'end_date'],
         )
+        equities['exchange'] = 'NYSE'
+
+        AssetDBWriter(self.engine).write(equities=equities)
 
         downgrade(self.engine, 4)
         metadata = sa.MetaData(self.engine)
@@ -1527,7 +1538,6 @@ class TestVectorizedSymbolLookup(WithAssetFinder, ZiplineTestCase):
                 start_date=T(start_date),
                 end_date=T(end_date),
                 exchange='NYSE',
-                exchange_full='NYSE',
             )
 
         records = [
@@ -1602,3 +1612,78 @@ class TestAssetFinderPreprocessors(WithTmpDir, ZiplineTestCase):
         # sqlite3.connect will create an empty file if you connect somewhere
         # nonexistent. Test that we don't do that.
         self.assertFalse(os.path.exists(nonexistent_path))
+
+
+class TestExchangeInfo(ZiplineTestCase):
+    def test_equality(self):
+        a = ExchangeInfo('FULL NAME', 'E', 'US')
+        b = ExchangeInfo('FULL NAME', 'E', 'US')
+
+        assert_equal(a, b)
+
+        # same full name but different canonical name
+        c = ExchangeInfo('FULL NAME', 'NOT E', 'US')
+        assert_not_equal(c, a)
+
+        # same canonical name but different full name
+        d = ExchangeInfo('DIFFERENT FULL NAME', 'E', 'US')
+        assert_not_equal(d, a)
+
+        # same names but different country
+
+        e = ExchangeInfo('FULL NAME', 'E', 'JP')
+        assert_not_equal(e, a)
+
+    def test_repr(self):
+        e = ExchangeInfo('FULL NAME', 'E', 'US')
+        assert_equal(repr(e), "ExchangeInfo('FULL NAME', 'E', 'US')")
+
+    def test_read_from_asset_finder(self):
+        sids = list(range(8))
+        exchange_names = [
+            'NEW YORK STOCK EXCHANGE',
+            'NEW YORK STOCK EXCHANGE',
+            'NASDAQ STOCK MARKET',
+            'NASDAQ STOCK MARKET',
+            'TOKYO STOCK EXCHANGE',
+            'TOKYO STOCK EXCHANGE',
+            'OSAKA STOCK EXCHANGE',
+            'OSAKA STOCK EXCHANGE',
+        ]
+        equities = pd.DataFrame({
+            'sid': sids,
+            'exchange': exchange_names,
+            'symbol': [chr(65 + sid) for sid in sids],
+        })
+        exchange_infos = [
+            ExchangeInfo('NEW YORK STOCK EXCHANGE', 'NYSE', 'US'),
+            ExchangeInfo('NASDAQ STOCK MARKET', 'NYSE', 'US'),
+            ExchangeInfo('TOKYO STOCK EXCHANGE', 'JPX', 'JP'),
+            ExchangeInfo('OSAKA STOCK EXCHANGE', 'JPX', 'JP'),
+        ]
+        exchange_info_table = pd.DataFrame(
+            [
+                (info.name, info.canonical_name, info.country_code)
+                for info in exchange_infos
+            ],
+            columns=['exchange', 'canonical_name', 'country_code'],
+        )
+        expected_exchange_info_map = {
+            info.name: info for info in exchange_infos
+        }
+
+        ctx = tmp_asset_finder(
+            equities=equities,
+            exchanges=exchange_info_table,
+        )
+        with ctx as af:
+            actual_exchange_info_map = af.exchange_info
+            assets = af.retrieve_all(sids)
+
+        assert_equal(actual_exchange_info_map, expected_exchange_info_map)
+
+        for asset in assets:
+            expected_exchange_info = expected_exchange_info_map[
+                exchange_names[asset.sid]
+            ]
+            assert_equal(asset.exchange_info, expected_exchange_info)

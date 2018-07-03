@@ -12,8 +12,7 @@ cdef class Asset:
     cdef public object first_traded
     cdef readonly object auto_close_date
 
-    cdef readonly object exchange
-    cdef readonly object exchange_full
+    cdef readonly object exchange_info
 
     cdef readonly object tick_size
     cdef readonly float price_multiplier

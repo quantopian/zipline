@@ -6,7 +6,7 @@ import sqlalchemy as sa
 # assets database
 # NOTE: When upgrading this remember to add a downgrade in:
 # .asset_db_migrations
-ASSET_DB_VERSION = 6
+ASSET_DB_VERSION = 7
 
 # A frozenset of the names of all tables in the assets db
 # NOTE: When modifying this schema, update the ASSET_DB_VERSION value
@@ -16,12 +16,26 @@ asset_db_table_names = frozenset({
     'equity_symbol_mappings',
     'equity_supplementary_mappings',
     'futures_contracts',
-    'futures_exchanges',
+    'exchanges',
     'futures_root_symbols',
     'version_info',
 })
 
 metadata = sa.MetaData()
+
+exchanges = sa.Table(
+    'exchanges',
+    metadata,
+    sa.Column(
+        'exchange',
+        sa.Text,
+        unique=True,
+        nullable=False,
+        primary_key=True,
+    ),
+    sa.Column('canonical_name', sa.Text, nullable=False),
+    sa.Column('country_code', sa.Text, nullable=False),
+)
 
 equities = sa.Table(
     'equities',
@@ -38,8 +52,7 @@ equities = sa.Table(
     sa.Column('end_date', sa.Integer, nullable=False),
     sa.Column('first_traded', sa.Integer),
     sa.Column('auto_close_date', sa.Integer),
-    sa.Column('exchange', sa.Text),
-    sa.Column('exchange_full', sa.Text)
+    sa.Column('exchange', sa.Text, sa.ForeignKey(exchanges.c.exchange)),
 )
 
 equity_symbol_mappings = sa.Table(
@@ -101,19 +114,6 @@ equity_supplementary_mappings = sa.Table(
     sa.Column('value', sa.Text, nullable=False),
 )
 
-futures_exchanges = sa.Table(
-    'futures_exchanges',
-    metadata,
-    sa.Column(
-        'exchange',
-        sa.Text,
-        unique=True,
-        nullable=False,
-        primary_key=True,
-    ),
-    sa.Column('timezone', sa.Text),
-)
-
 futures_root_symbols = sa.Table(
     'futures_root_symbols',
     metadata,
@@ -130,7 +130,7 @@ futures_root_symbols = sa.Table(
     sa.Column(
         'exchange',
         sa.Text,
-        sa.ForeignKey('futures_exchanges.exchange'),
+        sa.ForeignKey(exchanges.c.exchange),
     ),
 )
 
@@ -148,7 +148,7 @@ futures_contracts = sa.Table(
     sa.Column(
         'root_symbol',
         sa.Text,
-        sa.ForeignKey('futures_root_symbols.root_symbol'),
+        sa.ForeignKey(futures_root_symbols.c.root_symbol),
         index=True
     ),
     sa.Column('asset_name', sa.Text),
@@ -158,7 +158,7 @@ futures_contracts = sa.Table(
     sa.Column(
         'exchange',
         sa.Text,
-        sa.ForeignKey('futures_exchanges.exchange'),
+        sa.ForeignKey(exchanges.c.exchange),
     ),
     sa.Column('notice_date', sa.Integer, nullable=False),
     sa.Column('expiration_date', sa.Integer, nullable=False),

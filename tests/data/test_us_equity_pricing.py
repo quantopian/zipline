@@ -82,6 +82,7 @@ EQUITY_INFO = DataFrame(
     columns=['start_date', 'end_date'],
 ).astype(datetime64)
 EQUITY_INFO['symbol'] = [chr(ord('A') + n) for n in range(len(EQUITY_INFO))]
+EQUITY_INFO['exchange'] = 'TEST'
 
 TEST_QUERY_ASSETS = EQUITY_INFO.index
 

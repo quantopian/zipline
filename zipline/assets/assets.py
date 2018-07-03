@@ -70,6 +70,7 @@ from .asset_writer import (
 from .asset_db_schema import (
     ASSET_DB_VERSION
 )
+from .exchange_info import ExchangeInfo
 from zipline.utils.functional import invert
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import as_column
@@ -281,7 +282,9 @@ class AssetFinder(object):
         #
         # The caches are read through, i.e. accessing an asset through
         # retrieve_asset will populate the cache on first retrieval.
-        self._caches = (self._asset_cache, self._asset_type_cache) = {}, {}
+        self._asset_cache = {}
+        self._asset_type_cache = {}
+        self._caches = (self._asset_cache, self._asset_type_cache)
 
         self._future_chain_predicates = future_chain_predicates \
             if future_chain_predicates is not None else {}
@@ -289,6 +292,14 @@ class AssetFinder(object):
 
         # Populated on first call to `lifetimes`.
         self._asset_lifetimes = None
+
+    @lazyval
+    def exchange_info(self):
+        es = sa.select(self.exchanges.c).execute().fetchall()
+        return {
+            name: ExchangeInfo(name, canonical_name, country_code)
+            for name, canonical_name, country_code in es
+        }
 
     def _reset_caches(self):
         """
@@ -302,6 +313,7 @@ class AssetFinder(object):
         for cache in self._caches:
             cache.clear()
         self.reload_symbol_maps()
+        del type(self).exchanges[self]
 
     def reload_symbol_maps(self):
         """Clear the in memory symbol lookup maps.
@@ -624,10 +636,16 @@ class AssetFinder(object):
 
         if querying_equities:
             def mkdict(row,
+                       exchanges=self.exchange_info,
                        symbols=self._lookup_most_recent_symbols(sids)):
-                return merge(row, symbols[row['sid']])
+                d = dict(row)
+                d['exchange_info'] = exchanges[d.pop('exchange')]
+                return merge(d, symbols[row['sid']])
         else:
-            mkdict = dict
+            def mkdict(row, exchanges=self.exchange_info):
+                d = dict(row)
+                d['exchange_info'] = exchanges[d.pop('exchange')]
+                return d
 
         for assets in group_into_chunks(sids):
             # Load misses from the db.
@@ -1053,7 +1071,7 @@ class AssetFinder(object):
             roll_style=roll_style,
             start_date=oc.start_date,
             end_date=oc.end_date,
-            exchange=exchange,
+            exchange_info=self.exchange_info[exchange],
         )
 
         cf = cf_template(sid=sid)
