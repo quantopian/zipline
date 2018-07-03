@@ -5,7 +5,7 @@ from numpy import where
 from pandas import Int64Index, Timestamp
 from pandas.util.testing import assert_frame_equal
 
-from zipline.assets import Asset
+from zipline.assets import Asset, ExchangeInfo
 from zipline.errors import (
     NonExistentAssetInTimeFrame,
     NonSliceableTerm,
@@ -165,7 +165,10 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         Test that indexing into a term with a non-existent asset raises the
         proper exception.
         """
-        my_asset = Asset(0, exchange="TEST")
+        my_asset = Asset(
+            0,
+            exchange_info=ExchangeInfo('TEST FULL', 'TEST', 'US'),
+        )
         returns = Returns(window_length=2, inputs=[self.col])
         returns_slice = returns[my_asset]
 

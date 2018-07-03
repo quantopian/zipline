@@ -809,6 +809,7 @@ class tmp_assets_db(object):
             )
 
         frames['equities'] = equities
+
         self._frames = frames
         self._eng = None  # set in enter and exit
 

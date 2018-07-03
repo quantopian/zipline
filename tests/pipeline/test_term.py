@@ -8,7 +8,7 @@ from unittest import TestCase
 from toolz import assoc
 import pandas as pd
 
-from zipline.assets import Asset
+from zipline.assets import Asset, ExchangeInfo
 from zipline.errors import (
     DTypeNotSpecified,
     InvalidOutputName,
@@ -316,7 +316,10 @@ class ObjectIdentityTestCase(TestCase):
         self.assertIs(beta, multiple_outputs.beta)
 
     def test_instance_caching_of_slices(self):
-        my_asset = Asset(1, exchange="TEST")
+        my_asset = Asset(
+            1,
+            exchange_info=ExchangeInfo('TEST FULL', 'TEST', 'US'),
+        )
 
         f = GenericCustomFactor()
         f_slice = f[my_asset]

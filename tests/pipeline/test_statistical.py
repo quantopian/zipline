@@ -20,7 +20,7 @@ from scipy.stats import linregress, pearsonr, spearmanr
 
 from empyrical.stats import beta_aligned as empyrical_beta
 
-from zipline.assets import Equity
+from zipline.assets import Equity, ExchangeInfo
 from zipline.errors import IncompatibleTerms, NonExistentAssetInTimeFrame
 from zipline.pipeline import CustomFactor, Pipeline
 from zipline.pipeline.data import USEquityPricing
@@ -349,7 +349,10 @@ class StatisticalBuiltInsTestCase(zf.WithAssetFinder,
         `RollingLinearRegressionOfReturns` raise the proper exception when
         given a nonexistent target asset.
         """
-        my_asset = Equity(0, exchange="TEST")
+        my_asset = Equity(
+            0,
+            exchange_info=ExchangeInfo('TEST', 'TEST FULL', 'US'),
+        )
         start_date = self.pipeline_start_date
         end_date = self.pipeline_end_date
         run_pipeline = self.run_pipeline
@@ -398,7 +401,10 @@ class StatisticalBuiltInsTestCase(zf.WithAssetFinder,
                 )
 
     def test_require_length_greater_than_one(self):
-        my_asset = Equity(0, exchange="TEST")
+        my_asset = Equity(
+            0,
+            exchange_info=ExchangeInfo('TEST', 'TEST FULL', 'US'),
+        )
 
         with self.assertRaises(ValueError):
             RollingPearsonOfReturns(

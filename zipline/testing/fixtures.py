@@ -369,6 +369,7 @@ class WithAssetFinder(WithDefaultDateBounds):
     ASSET_FINDER_EQUITY_SIDS = ord('A'), ord('B'), ord('C')
     ASSET_FINDER_EQUITY_SYMBOLS = None
     ASSET_FINDER_EQUITY_NAMES = None
+    ASSET_FINDER_EQUITY_EXCHANGE = 'TEST'
     ASSET_FINDER_EQUITY_START_DATE = alias('START_DATE')
     ASSET_FINDER_EQUITY_END_DATE = alias('END_DATE')
     ASSET_FINDER_FUTURE_CHAIN_PREDICATES = CHAIN_PREDICATES
@@ -392,6 +393,7 @@ class WithAssetFinder(WithDefaultDateBounds):
             cls.ASSET_FINDER_EQUITY_END_DATE,
             cls.ASSET_FINDER_EQUITY_SYMBOLS,
             cls.ASSET_FINDER_EQUITY_NAMES,
+            cls.ASSET_FINDER_EQUITY_EXCHANGE,
         )
 
     @classmethod
