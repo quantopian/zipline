@@ -217,6 +217,33 @@ cdef class Asset:
 
 cdef class Equity(Asset):
 
+    def __init__(self,
+                 int64_t sid, # sid is required
+                 object exchange, # exchange is required
+                 object symbol="",
+                 object asset_name="",
+                 object start_date=None,
+                 object end_date=None,
+                 object first_traded=None,
+                 object auto_close_date=None,
+                 object exchange_full=None,
+                 object tick_size=0.01,
+                 float multiplier=1.0):
+
+        super().__init__(
+            sid,
+            exchange,
+            symbol=symbol,
+            asset_name=asset_name,
+            start_date=start_date,
+            end_date=end_date,
+            first_traded=first_traded,
+            auto_close_date=auto_close_date,
+            exchange_full=exchange_full,
+            tick_size=tick_size,
+            multiplier=multiplier
+        )
+
     property security_start_date:
         """
         DEPRECATION: This property should be deprecated and is only present for
