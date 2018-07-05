@@ -352,7 +352,8 @@ class MultipleValuesFoundForField(ZiplineError):
     """
     msg = """
 Multiple occurrences of the value '{value}' found for field '{field}'.
-Use the as_of_date' argument to specify when the lookup should be valid.
+Use the 'as_of_date' or 'country_code' argument to specify when or where the
+lookup should be valid.
 
 Possible options: {options}
     """.strip()

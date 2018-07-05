@@ -101,6 +101,7 @@ from zipline.utils.input_validation import (
     expect_dtypes,
     expect_types,
     optional,
+    optionally,
 )
 from zipline.utils.numpy_utils import int64_dtype
 from zipline.utils.pandas_utils import normalize_date
@@ -986,42 +987,6 @@ class TradingAlgorithm(object):
         self.benchmark_sid = benchmark
 
     @api_method
-    @preprocess(symbol_str=ensure_upper_case)
-    def symbol(self, symbol_str):
-        """Lookup an Equity by its ticker symbol.
-
-        Parameters
-        ----------
-        symbol_str : str
-            The ticker symbol for the equity to lookup.
-
-        Returns
-        -------
-        equity : Equity
-            The equity that held the ticker symbol on the current
-            symbol lookup date.
-
-        Raises
-        ------
-        SymbolNotFound
-            Raised when the symbols was not held on the current lookup date.
-
-        See Also
-        --------
-        :func:`zipline.api.set_symbol_lookup_date`
-        """
-        # If the user has not set the symbol lookup date,
-        # use the end_session as the date for sybmol->sid resolution.
-        _lookup_date = self._symbol_lookup_date \
-            if self._symbol_lookup_date is not None \
-            else self.sim_params.end_session
-
-        return self.asset_finder.lookup_symbol(
-            symbol_str,
-            as_of_date=_lookup_date,
-        )
-
-    @api_method
     @preprocess(root_symbol_str=ensure_upper_case)
     def continuous_future(self,
                           root_symbol_str,
@@ -1058,13 +1023,59 @@ class TradingAlgorithm(object):
         )
 
     @api_method
-    def symbols(self, *args):
+    @preprocess(
+        symbol_str=ensure_upper_case,
+        country_code=optionally(ensure_upper_case),
+    )
+    def symbol(self, symbol_str, country_code=None):
+        """Lookup an Equity by its ticker symbol.
+
+        Parameters
+        ----------
+        symbol_str : str
+            The ticker symbol for the equity to lookup.
+        country_code : str or None, optional
+            A country to limit symbol searches to.
+
+        Returns
+        -------
+        equity : Equity
+            The equity that held the ticker symbol on the current
+            symbol lookup date.
+
+        Raises
+        ------
+        SymbolNotFound
+            Raised when the symbols was not held on the current lookup date.
+
+        See Also
+        --------
+        :func:`zipline.api.set_symbol_lookup_date`
+        """
+        # If the user has not set the symbol lookup date,
+        # use the end_session as the date for symbol->sid resolution.
+        _lookup_date = self._symbol_lookup_date \
+            if self._symbol_lookup_date is not None \
+            else self.sim_params.end_session
+
+        return self.asset_finder.lookup_symbol(
+            symbol_str,
+            as_of_date=_lookup_date,
+            country_code=country_code,
+        )
+
+    @api_method
+    def symbols(self, *args, **kwargs):
         """Lookup multuple Equities as a list.
 
         Parameters
         ----------
         *args : iterable[str]
             The ticker symbols to lookup.
+        country_code : str or None, optional
+            A country to limit symbol searches to.
+
+
 
         Returns
         -------
@@ -1082,7 +1093,15 @@ class TradingAlgorithm(object):
         --------
         :func:`zipline.api.set_symbol_lookup_date`
         """
-        return [self.symbol(identifier) for identifier in args]
+        country_code = kwargs.pop('country_code', None)
+        if kwargs:
+            raise TypeError(
+                'symbols got unexpected keyword arguments %s' % sorted(kwargs),
+            )
+        return [
+            self.symbol(identifier, country_code=country_code)
+            for identifier in args
+        ]
 
     @api_method
     def sid(self, sid):
