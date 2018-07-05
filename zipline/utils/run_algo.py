@@ -14,6 +14,7 @@ except ImportError:
     PYGMENTS = False
 import six
 from toolz import valfilter, concatv
+from trading_calendars import get_calendar
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.data import bundles
@@ -22,7 +23,6 @@ from zipline.finance import metrics
 from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders import USEquityPricingLoader
-from zipline.utils.calendars import get_calendar
 from zipline.utils.factory import create_simulation_parameters
 import zipline.utils.paths as pth
 
@@ -123,6 +123,7 @@ def _run(handle_data,
     if trading_calendar is None:
         trading_calendar = get_calendar('NYSE')
 
+    # date parameter validation
     if trading_calendar.session_distance(start, end) < 1:
         raise _RunAlgoError(
             'There are no trading days between %s and %s' % (

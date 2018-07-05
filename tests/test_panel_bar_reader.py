@@ -17,6 +17,7 @@ from itertools import permutations, product
 
 import numpy as np
 import pandas as pd
+from trading_calendars import get_calendar
 
 from zipline.data.us_equity_pricing import PanelBarReader
 from zipline.testing import ExplodingObject
@@ -24,7 +25,6 @@ from zipline.testing.fixtures import (
     WithAssetFinder,
     ZiplineTestCase,
 )
-from zipline.utils.calendars import get_calendar
 
 
 class WithPanelBarReader(WithAssetFinder):

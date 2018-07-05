@@ -52,6 +52,7 @@ from six import (
     viewkeys,
 )
 from toolz import compose
+from trading_calendars import get_calendar
 
 from zipline.data.session_bars import SessionBarReader
 from zipline.data.bar_reader import (
@@ -59,7 +60,6 @@ from zipline.data.bar_reader import (
     NoDataBeforeDate,
     NoDataOnDate,
 )
-from zipline.utils.calendars import get_calendar
 from zipline.utils.functional import apply
 from zipline.utils.preprocess import call
 from zipline.utils.input_validation import (

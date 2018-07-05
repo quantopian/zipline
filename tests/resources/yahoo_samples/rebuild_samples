@@ -6,9 +6,9 @@ from textwrap import dedent
 
 import numpy as np
 import pandas as pd
+from trading_calendars import get_calendar
 
 from zipline.testing import test_resource_path, write_compressed
-from zipline.utils.calendars import get_calendar
 
 
 def zipfile_path(symbol, ext):

@@ -34,7 +34,7 @@ from numpy cimport int64_t
 import warnings
 cimport numpy as np
 
-from zipline.utils.calendars import get_calendar
+from trading_calendars import get_calendar
 
 
 # IMPORTANT NOTE: You must change this template if you change
