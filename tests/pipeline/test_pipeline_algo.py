@@ -777,8 +777,8 @@ class PipelineSequenceTestCase(WithMakeAlgo, ZiplineTestCase):
             pipeline.add(test_factor, 'test_factor')
 
         def before_trading_start(context, data):
-            pipeline_output('my_pipeline')
             trace.append("BTS call")
+            pipeline_output('my_pipeline')
 
         self.run_algorithm(
             initialize=initialize,
