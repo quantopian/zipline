@@ -28,6 +28,7 @@ import uuid
 import warnings
 
 from nose_parameterized import parameterized
+import numpy as np
 from numpy import full, int32, int64
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
@@ -48,7 +49,7 @@ from zipline.assets.synthetic import (
     make_simple_equity_info,
 )
 from six import itervalues, integer_types
-from toolz import valmap
+from toolz import valmap, concat
 
 from zipline.assets.asset_writer import (
     check_version_info,
@@ -743,7 +744,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
             str(e.exception),
             "Ambiguous ownership for 1 symbol, multiple assets held the"
             " following symbols:\n"
-            "MULTIPLE:\n"
+            "MULTIPLE (??):\n"
             "  intersections: (('2010-01-01 00:00:00', '2012-01-01 00:00:00'),"
             " ('2011-01-01 00:00:00', '2012-01-01 00:00:00'))\n"
             "      start_date   end_date\n"
@@ -1384,6 +1385,538 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                 str(e),
                 "No {plural} found for sids: [1, 2].".format(plural=plural)
             )
+
+
+class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
+    asset_finder_type = AssetFinder
+
+    def write_assets(self, **kwargs):
+        self._asset_writer.write(**kwargs)
+
+    def init_instance_fixtures(self):
+        super(AssetFinderMultipleCountries, self).init_instance_fixtures()
+
+        conn = self.enter_instance_context(empty_assets_db())
+        self._asset_writer = AssetDBWriter(conn)
+        self.asset_finder = self.asset_finder_type(conn)
+
+    @staticmethod
+    def country_code(n):
+        return 'A' + chr(ord('A') + n)
+
+    def test_lookup_symbol_delimited(self):
+        as_of = pd.Timestamp('2013-01-01', tz='UTC')
+        num_assets = 3
+        frame = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': n,
+                    'symbol':  'TEST.A',
+                    'company_name': "company %d" % n,
+                    'start_date': as_of.value,
+                    'end_date': as_of.value,
+                    'exchange': 'EXCHANGE %d' % n,
+                }
+                for n in range(num_assets)
+            ]
+        )
+
+        exchanges = pd.DataFrame({
+            'exchange': frame['exchange'],
+            'country_code': [self.country_code(n) for n in range(num_assets)],
+        })
+        self.write_assets(equities=frame, exchanges=exchanges)
+        finder = self.asset_finder
+        assets = [finder.retrieve_asset(n) for n in range(3)]
+
+        def shouldnt_resolve(ticker):
+            with self.assertRaises(SymbolNotFound):
+                finder.lookup_symbol(ticker, as_of)
+            for n in range(num_assets):
+                with self.assertRaises(SymbolNotFound):
+                    finder.lookup_symbol(
+                        ticker,
+                        as_of,
+                        country_code=self.country_code(n),
+                    )
+
+        # we do it twice to catch caching bugs
+        for _ in range(2):
+            shouldnt_resolve('TEST')
+            shouldnt_resolve('TESTA')
+            # '@' is not a supported delimiter
+            shouldnt_resolve('TEST@A')
+
+            # Adding an unnecessary fuzzy shouldn't matter.
+            for fuzzy_char in '-', '/', '_', '.':
+                ticker = 'TEST%sA' % fuzzy_char
+                with self.assertRaises(MultipleSymbolsFound):
+                    finder.lookup_symbol(ticker, as_of)
+
+                for n in range(num_assets):
+                    actual_asset = finder.lookup_symbol(
+                        ticker,
+                        as_of,
+                        country_code=self.country_code(n),
+                    )
+                    assert_equal(actual_asset, assets[n])
+                    assert_equal(
+                        actual_asset.exchange_info.country_code,
+                        self.country_code(n),
+                    )
+
+    def test_lookup_symbol_fuzzy(self):
+        num_exchanges = 3
+        metadata = pd.DataFrame.from_records([
+            {'symbol': symbol, 'exchange': 'EXCHANGE %d' % n}
+            for n in range(num_exchanges)
+            for symbol in ('PRTY_HRD', 'BRKA', 'BRK_A')
+        ])
+        exchanges = pd.DataFrame({
+            'exchange': metadata['exchange'].unique(),
+            'country_code': list(map(self.country_code, range(num_exchanges))),
+        })
+        self.write_assets(equities=metadata, exchanges=exchanges)
+        finder = self.asset_finder
+        dt = pd.Timestamp('2013-01-01', tz='UTC')
+
+        # Try combos of looking up PRTYHRD with and without a time or fuzzy
+        # Both non-fuzzys get no result
+        with self.assertRaises(SymbolNotFound):
+            finder.lookup_symbol('PRTYHRD', None)
+        with self.assertRaises(SymbolNotFound):
+            finder.lookup_symbol('PRTYHRD', dt)
+
+        for n in range(num_exchanges):
+            with self.assertRaises(SymbolNotFound):
+                finder.lookup_symbol(
+                    'PRTYHRD',
+                    None,
+                    country_code=self.country_code(n),
+                )
+                with self.assertRaises(SymbolNotFound):
+                    finder.lookup_symbol(
+                        'PRTYHRD',
+                        dt,
+                        country_code=self.country_code(n),
+                    )
+
+        with self.assertRaises(MultipleSymbolsFound):
+            finder.lookup_symbol('PRTYHRD', None, fuzzy=True)
+
+        with self.assertRaises(MultipleSymbolsFound):
+            finder.lookup_symbol('PRTYHRD', dt, fuzzy=True)
+
+        def check_sid(expected_sid, ticker, n):
+            params = (
+                {'as_of_date': None},
+                {'as_of_date': dt},
+                {'as_of_date': None, 'fuzzy': True},
+                {'as_of_date': dt, 'fuzzy': True},
+            )
+            for extra_params in params:
+                with self.assertRaises(MultipleSymbolsFound):
+                    finder.lookup_symbol(ticker, **extra_params)
+
+                self.assertEqual(
+                    expected_sid,
+                    finder.lookup_symbol(
+                        ticker,
+                        country_code=self.country_code(n),
+                        **extra_params
+                    ),
+                )
+
+        for n in range(num_exchanges):
+            check_sid(n * 3, 'PRTY_HRD', n)
+            check_sid(n * 3 + 1, 'BRKA', n)
+            check_sid(n * 3 + 2, 'BRK_A', n)
+
+    def test_lookup_symbol_change_ticker(self):
+        T = partial(pd.Timestamp, tz='utc')
+        num_exchanges = 3
+        metadata = pd.DataFrame.from_records(
+            [
+                # first sid per country
+                {
+                    'symbol': 'A',
+                    'asset_name': 'Asset A',
+                    'start_date': T('2014-01-01'),
+                    'end_date': T('2014-01-05'),
+                },
+                {
+                    'symbol': 'B',
+                    'asset_name': 'Asset B',
+                    'start_date': T('2014-01-06'),
+                    'end_date': T('2014-01-10'),
+                },
+
+                # second sid per country
+                {
+                    'symbol': 'C',
+                    'asset_name': 'Asset C',
+                    'start_date': T('2014-01-01'),
+                    'end_date': T('2014-01-05'),
+                },
+                {
+                    'symbol': 'A',  # claiming the unused symbol 'A'
+                    'asset_name': 'Asset A',
+                    'start_date': T('2014-01-06'),
+                    'end_date': T('2014-01-10'),
+                },
+            ] * num_exchanges,
+            index=np.repeat(np.arange(num_exchanges * 2), 2),
+        )
+        metadata['exchange'] = np.repeat(
+            ['EXCHANGE %d' % n for n in range(num_exchanges)],
+            4,
+        )
+        exchanges = pd.DataFrame({
+            'exchange': ['EXCHANGE %d' % n for n in range(num_exchanges)],
+            'country_code': [
+                self.country_code(n) for n in range(num_exchanges)
+            ]
+        })
+        self.write_assets(equities=metadata, exchanges=exchanges)
+        finder = self.asset_finder
+
+        # note: these assertions walk forward in time, starting at assertions
+        # about ownership before the start_date and ending with assertions
+        # after the end_date; new assertions should be inserted in the correct
+        # locations
+
+        # no one held 'A' before 01
+        with self.assertRaises(SymbolNotFound):
+            finder.lookup_symbol('A', T('2013-12-31'))
+        for n in range(num_exchanges):
+            with self.assertRaises(SymbolNotFound):
+                finder.lookup_symbol(
+                    'A',
+                    T('2013-12-31'),
+                    country_code=self.country_code(n),
+                )
+
+        # no one held 'C' before 01
+        with self.assertRaises(SymbolNotFound):
+            finder.lookup_symbol('C', T('2013-12-31'))
+        for n in range(num_exchanges):
+            with self.assertRaises(SymbolNotFound):
+                finder.lookup_symbol(
+                    'C',
+                    T('2013-12-31'),
+                    country_code=self.country_code(n),
+                )
+
+        for asof in pd.date_range('2014-01-01', '2014-01-05', tz='utc'):
+            # from 01 through 05 the first sid on the exchange held 'A'
+            with self.assertRaises(MultipleSymbolsFound):
+                finder.lookup_symbol('A', asof)
+
+            for n in range(num_exchanges):
+                A_result = finder.lookup_symbol(
+                    'A',
+                    asof,
+                    country_code=self.country_code(n),
+                )
+                assert_equal(
+                    A_result,
+                    finder.retrieve_asset(n * 2),
+                    msg=str(asof),
+                )
+                # The symbol and asset_name should always be the last held
+                # values
+                assert_equal(A_result.symbol, 'B')
+                assert_equal(A_result.asset_name, 'Asset B')
+
+            # from 01 through 05 the second sid on the exchange held 'C'
+            with self.assertRaises(MultipleSymbolsFound):
+                finder.lookup_symbol('C', asof)
+
+            for n in range(num_exchanges):
+                C_result = finder.lookup_symbol(
+                    'C',
+                    asof,
+                    country_code=self.country_code(n),
+                )
+                assert_equal(
+                    C_result,
+                    finder.retrieve_asset(n * 2 + 1),
+                    msg=str(asof),
+                )
+                # The symbol and asset_name should always be the last held
+                # values
+                assert_equal(C_result.symbol, 'A')
+                assert_equal(C_result.asset_name, 'Asset A')
+
+        # no one held 'B' before 06
+        with self.assertRaises(SymbolNotFound):
+            finder.lookup_symbol('B', T('2014-01-05'))
+        for n in range(num_exchanges):
+            with self.assertRaises(SymbolNotFound):
+                finder.lookup_symbol(
+                    'B',
+                    T('2014-01-05'),
+                    country_code=self.country_code(n),
+                )
+
+        # no one held 'C' after 06, however, no one has claimed it yet
+        # so it still maps to sid 1
+        with self.assertRaises(MultipleSymbolsFound):
+            finder.lookup_symbol('C', T('2014-01-07'))
+
+        for n in range(num_exchanges):
+            assert_equal(
+                finder.lookup_symbol(
+                    'C',
+                    T('2014-01-07'),
+                    country_code=self.country_code(n),
+                ),
+                finder.retrieve_asset(n * 2 + 1),
+            )
+
+        for asof in pd.date_range('2014-01-06', '2014-01-11', tz='utc'):
+            # from 06 through 10 sid 0 held 'B'
+            # we test through the 11th because sid 1 is the last to hold 'B'
+            # so it should ffill
+            with self.assertRaises(MultipleSymbolsFound):
+                finder.lookup_symbol('B', asof)
+
+            for n in range(num_exchanges):
+                B_result = finder.lookup_symbol(
+                    'B',
+                    asof,
+                    country_code=self.country_code(n),
+                )
+                assert_equal(
+                    B_result,
+                    finder.retrieve_asset(n * 2),
+                    msg=str(asof),
+                )
+                assert_equal(B_result.symbol, 'B')
+                assert_equal(B_result.asset_name, 'Asset B')
+
+            # from 06 through 10 sid 1 held 'A'
+            # we test through the 11th because sid 1 is the last to hold 'A'
+            # so it should ffill
+            with self.assertRaises(MultipleSymbolsFound):
+                finder.lookup_symbol('A', asof)
+
+            for n in range(num_exchanges):
+                A_result = finder.lookup_symbol(
+                    'A',
+                    asof,
+                    country_code=self.country_code(n),
+                )
+                assert_equal(
+                    A_result,
+                    finder.retrieve_asset(n * 2 + 1),
+                    msg=str(asof),
+                )
+                assert_equal(A_result.symbol, 'A')
+                assert_equal(A_result.asset_name, 'Asset A')
+
+    def test_lookup_symbol(self):
+        num_exchanges = 3
+        # Incrementing by two so that start and end dates for each
+        # generated Asset don't overlap (each Asset's end_date is the
+        # day after its start date.)
+        dates = pd.date_range('2013-01-01', freq='2D', periods=5, tz='UTC')
+        df = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': n * len(dates) + i,
+                    'symbol':  'existing',
+                    'start_date': date.value,
+                    'end_date': (date + timedelta(days=1)).value,
+                    'exchange': 'EXCHANGE %d' % n,
+                }
+                for n in range(num_exchanges)
+                for i, date in enumerate(dates)
+            ]
+        )
+        exchanges = pd.DataFrame({
+            'exchange': ['EXCHANGE %d' % n for n in range(num_exchanges)],
+            'country_code': [
+                self.country_code(n) for n in range(num_exchanges)
+            ],
+        })
+        self.write_assets(equities=df, exchanges=exchanges)
+        finder = self.asset_finder
+        for _ in range(2):  # Run checks twice to test for caching bugs.
+            with self.assertRaises(SymbolNotFound):
+                finder.lookup_symbol('NON_EXISTING', dates[0])
+            for n in range(num_exchanges):
+                with self.assertRaises(SymbolNotFound):
+                    finder.lookup_symbol(
+                        'NON_EXISTING',
+                        dates[0],
+                        country_code=self.country_code(n),
+                    )
+
+            with self.assertRaises(MultipleSymbolsFound):
+                finder.lookup_symbol('EXISTING', None)
+
+            for n in range(num_exchanges):
+                with self.assertRaises(MultipleSymbolsFound):
+                    finder.lookup_symbol(
+                        'EXISTING',
+                        None,
+                        country_code=self.country_code(n),
+                    )
+
+            for i, date in enumerate(dates):
+                # Verify that we correctly resolve multiple symbols using
+                # the supplied date
+                with self.assertRaises(MultipleSymbolsFound):
+                    finder.lookup_symbol('EXISTING', date)
+
+                for n in range(num_exchanges):
+                    result = finder.lookup_symbol(
+                        'EXISTING',
+                        date,
+                        country_code=self.country_code(n),
+                    )
+                    self.assertEqual(result.symbol, 'EXISTING')
+                    expected_sid = n * len(dates) + i
+                    self.assertEqual(result.sid, expected_sid)
+
+    def test_fail_to_write_overlapping_data(self):
+        num_exchanges = 3
+        df = pd.DataFrame.from_records(concat(
+            [
+                {
+                    'sid': n * 3,
+                    'symbol': 'multiple',
+                    'start_date': pd.Timestamp('2010-01-01'),
+                    'end_date': pd.Timestamp('2012-01-01'),
+                    'exchange': 'EXCHANGE %d' % n,
+                },
+                # Same as asset 1, but with a later end date.
+                {
+                    'sid': n * 3 + 1,
+                    'symbol': 'multiple',
+                    'start_date': pd.Timestamp('2010-01-01'),
+                    'end_date': pd.Timestamp('2013-01-01'),
+                    'exchange': 'EXCHANGE %d' % n,
+                },
+                # Same as asset 1, but with a later start_date
+                {
+                    'sid': n * 3 + 2,
+                    'symbol': 'multiple',
+                    'start_date': pd.Timestamp('2011-01-01'),
+                    'end_date': pd.Timestamp('2012-01-01'),
+                    'exchange': 'EXCHANGE %d' % n,
+                },
+            ]
+            for n in range(num_exchanges)
+        ))
+        exchanges = pd.DataFrame({
+            'exchange': ['EXCHANGE %d' % n for n in range(num_exchanges)],
+            'country_code': [
+                self.country_code(n) for n in range(num_exchanges)
+            ],
+        })
+
+        with self.assertRaises(ValueError) as e:
+            self.write_assets(equities=df, exchanges=exchanges)
+
+        expected_error_msg = (
+            "Ambiguous ownership for 3 symbols, multiple assets held the"
+            " following symbols:\n"
+            "MULTIPLE (%s):\n"
+            "  intersections: (('2010-01-01 00:00:00', '2012-01-01 00:00:00'),"
+            " ('2011-01-01 00:00:00', '2012-01-01 00:00:00'))\n"
+            "      start_date   end_date\n"
+            "  sid                      \n"
+            "  0   2010-01-01 2012-01-01\n"
+            "  1   2010-01-01 2013-01-01\n"
+            "  2   2011-01-01 2012-01-01\n"
+            "MULTIPLE (%s):\n"
+            "  intersections: (('2010-01-01 00:00:00', '2012-01-01 00:00:00'),"
+            " ('2011-01-01 00:00:00', '2012-01-01 00:00:00'))\n"
+            "      start_date   end_date\n"
+            "  sid                      \n"
+            "  3   2010-01-01 2012-01-01\n"
+            "  4   2010-01-01 2013-01-01\n"
+            "  5   2011-01-01 2012-01-01\n"
+            "MULTIPLE (%s):\n"
+            "  intersections: (('2010-01-01 00:00:00', '2012-01-01 00:00:00'),"
+            " ('2011-01-01 00:00:00', '2012-01-01 00:00:00'))\n"
+            "      start_date   end_date\n"
+            "  sid                      \n"
+            "  6   2010-01-01 2012-01-01\n"
+            "  7   2010-01-01 2013-01-01\n"
+            "  8   2011-01-01 2012-01-01" % (
+                self.country_code(0),
+                self.country_code(1),
+                self.country_code(2),
+            )
+        )
+        self.assertEqual(str(e.exception), expected_error_msg)
+
+    def test_endless_multiple_resolves(self):
+        """
+        Situation:
+        1. Asset 1 w/ symbol FOOB changes to FOO_B, and then is delisted.
+        2. Asset 2 is listed with symbol FOO_B.
+
+        If someone asks for FOO_B with fuzzy matching after 2 has been listed,
+        they should be able to correctly get 2.
+        """
+
+        date = pd.Timestamp('2013-01-01', tz='UTC')
+        num_exchanges = 3
+        df = pd.DataFrame.from_records(concat(
+            [
+                {
+                    'sid': n * 2,
+                    'symbol': 'FOOB',
+                    'start_date': date.value,
+                    'end_date': date.max.value,
+                    'exchange': 'EXCHANGE %d' % n,
+                },
+                {
+                    'sid': n * 2,
+                    'symbol': 'FOO_B',
+                    'start_date': (date + timedelta(days=31)).value,
+                    'end_date': (date + timedelta(days=60)).value,
+                    'exchange': 'EXCHANGE %d' % n,
+                },
+                {
+                    'sid': n * 2 + 1,
+                    'symbol': 'FOO_B',
+                    'start_date': (date + timedelta(days=61)).value,
+                    'end_date': date.max.value,
+                    'exchange': 'EXCHANGE %d' % n,
+                },
+
+            ]
+            for n in range(num_exchanges)
+        ))
+        exchanges = pd.DataFrame({
+            'exchange': ['EXCHANGE %d' % n for n in range(num_exchanges)],
+            'country_code': [
+                self.country_code(n) for n in range(num_exchanges)
+            ],
+        })
+        self.write_assets(equities=df, exchanges=exchanges)
+        finder = self.asset_finder
+
+        with self.assertRaises(MultipleSymbolsFound):
+            finder.lookup_symbol(
+                'FOO/B',
+                date + timedelta(days=90),
+                fuzzy=True,
+            )
+
+        for n in range(num_exchanges):
+            result = finder.lookup_symbol(
+                'FOO/B',
+                date + timedelta(days=90),
+                fuzzy=True,
+                country_code=self.country_code(n)
+            )
+            self.assertEqual(result.sid, n * 2 + 1)
 
 
 class TestAssetDBVersioning(ZiplineTestCase):

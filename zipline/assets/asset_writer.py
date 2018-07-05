@@ -225,7 +225,7 @@ def _format_range(r):
     )
 
 
-def _split_symbol_mappings(df):
+def _split_symbol_mappings(df, exchanges):
     """Split out the symbol: sid mappings from the raw data.
 
     Parameters
@@ -242,19 +242,22 @@ def _split_symbol_mappings(df):
         the sid, then there will be three columns: symbol, start_date, and
         end_date.
     """
-    mappings = df[list(mapping_columns)]
+    mappings = df[list(mapping_columns)].copy()
+    mappings['country_code'] = exchanges['country_code'][df['exchange']].values
     ambigious = {}
-    for symbol in mappings.symbol.unique():
-        persymbol = mappings[mappings.symbol == symbol]
+
+    def check_intersections(persymbol):
         intersections = list(intersecting_ranges(map(
             from_tuple,
             zip(persymbol.start_date, persymbol.end_date),
         )))
         if intersections:
-            ambigious[symbol] = (
+            ambigious[persymbol.name] = (
                 intersections,
                 persymbol[['start_date', 'end_date']].astype('datetime64[ns]'),
             )
+
+    mappings.groupby(['symbol', 'country_code']).apply(check_intersections)
 
     if ambigious:
         raise ValueError(
@@ -263,13 +266,14 @@ def _split_symbol_mappings(df):
                 len(ambigious),
                 '' if len(ambigious) == 1 else 's',
                 '\n'.join(
-                    '%s:\n  intersections: %s\n  %s' % (
+                    '%s (%s):\n  intersections: %s\n  %s' % (
                         symbol,
+                        country_code,
                         tuple(map(_format_range, intersections)),
                         # indent the dataframe string
                         '\n  '.join(str(df).splitlines()),
                     )
-                    for symbol, (intersections, df) in sorted(
+                    for (symbol, country_code), (intersections, df) in sorted(
                         ambigious.items(),
                         key=first,
                     ),
@@ -478,7 +482,6 @@ class AssetDBWriter(object):
             if exchange_names:
                 exchanges = pd.DataFrame({
                     'exchange': pd.concat(exchange_names).unique(),
-                    'country_code': 'US',
                 })
 
         with self.engine.begin() as conn:
@@ -649,7 +652,7 @@ class AssetDBWriter(object):
             else:
                 write_version_info(txn, version_info, ASSET_DB_VERSION)
 
-    def _normalize_equities(self, equities):
+    def _normalize_equities(self, equities, exchanges):
         # HACK: If 'company_name' is provided, map it to asset_name
         if ('company_name' in equities.columns and
                 'asset_name' not in equities.columns):
@@ -684,7 +687,7 @@ class AssetDBWriter(object):
                     'auto_close_date'):
             equities_output[col] = _dt_to_epoch_ns(equities_output[col])
 
-        return _split_symbol_mappings(equities_output)
+        return _split_symbol_mappings(equities_output, exchanges)
 
     def _normalize_futures(self, futures):
         futures_output = _generate_output_dataframe(
@@ -737,7 +740,6 @@ class AssetDBWriter(object):
             if id_col in df.columns:
                 df.set_index(id_col, inplace=True)
 
-        equities_output, equities_mappings = self._normalize_equities(equities)
         futures_output = self._normalize_futures(futures)
 
         equity_supplementary_mappings_output = (
@@ -749,6 +751,11 @@ class AssetDBWriter(object):
         exchanges_output = _generate_output_dataframe(
             data_subset=exchanges,
             defaults=_exchanges_defaults,
+        )
+
+        equities_output, equities_mappings = self._normalize_equities(
+            equities,
+            exchanges_output,
         )
 
         root_symbols_output = _generate_output_dataframe(

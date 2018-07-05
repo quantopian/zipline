@@ -334,6 +334,10 @@ class WithAssetFinder(WithDefaultDateBounds):
         ``END_DATE``.
     ASSET_FINDER_EQUITY_NAMES: iterable[str]
         The default names to use for the equities.
+    ASSET_FINDER_EQUITY_EXCHANGE : str
+        The default exchange to assign each equity.
+    ASSET_FINDER_COUNTRY_CODE : str
+        The default country code to assign each exchange.
 
     Methods
     -------
@@ -373,9 +377,10 @@ class WithAssetFinder(WithDefaultDateBounds):
     ASSET_FINDER_EQUITY_START_DATE = alias('START_DATE')
     ASSET_FINDER_EQUITY_END_DATE = alias('END_DATE')
     ASSET_FINDER_FUTURE_CHAIN_PREDICATES = CHAIN_PREDICATES
+    ASSET_FINDER_COUNTRY_CODE = '??'
 
     @classmethod
-    def _make_info(cls):
+    def _make_info(cls, *args):
         return None
 
     make_futures_info = _make_info
@@ -408,12 +413,29 @@ class WithAssetFinder(WithDefaultDateBounds):
         -------
         asset_finder : zipline.assets.AssetFinder
         """
+        equities = cls.make_equity_info()
+        futures = cls.make_futures_info()
+        root_symbols = cls.make_root_symbols_info()
+
+        exchanges = cls.make_exchanges_info(equities, futures, root_symbols)
+        if exchanges is None:
+            exchange_names = [
+                df['exchange']
+                for df in (equities, futures, root_symbols)
+                if df is not None
+            ]
+            if exchange_names:
+                exchanges = pd.DataFrame({
+                    'exchange': pd.concat(exchange_names).unique(),
+                    'country_code': cls.ASSET_FINDER_COUNTRY_CODE,
+                })
+
         return cls.enter_class_context(tmp_asset_finder(
             url=cls.make_asset_finder_db_url(),
-            equities=cls.make_equity_info(),
-            futures=cls.make_futures_info(),
-            exchanges=cls.make_exchanges_info(),
-            root_symbols=cls.make_root_symbols_info(),
+            equities=equities,
+            futures=futures,
+            exchanges=exchanges,
+            root_symbols=root_symbols,
             equity_supplementary_mappings=(
                 cls.make_equity_supplementary_mappings()
             ),
