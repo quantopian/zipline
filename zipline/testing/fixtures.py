@@ -1540,7 +1540,7 @@ class WithEquityPricingPipelineEngine(WithAdjustmentReader,
         return cls.adjustments_db_path
 
 
-class WithSeededRandomPipelineEngine(WithAssetFinder, WithTradingSessions):
+class WithSeededRandomPipelineEngine(WithTradingSessions, WithAssetFinder):
     """
     ZiplineTestCase mixin providing class-level fixtures for running pipelines
     against deterministically-generated random data.
