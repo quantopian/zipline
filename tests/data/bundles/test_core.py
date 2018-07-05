@@ -5,6 +5,8 @@ import pandas as pd
 import sqlalchemy as sa
 from toolz import valmap
 import toolz.curried.operator as op
+from trading_calendars import TradingCalendar, get_calendar
+
 from zipline.assets import ASSET_DB_VERSION
 
 from zipline.assets.asset_writer import check_version_info
@@ -36,7 +38,6 @@ from zipline.testing.predicates import (
 )
 from zipline.utils.cache import dataframe_cache
 from zipline.utils.functional import apply
-from zipline.utils.calendars import TradingCalendar, get_calendar
 import zipline.utils.paths as pth
 
 

@@ -249,6 +249,13 @@ class SetBenchmarkOutsideInitialize(ZiplineError):
     msg = "'set_benchmark' can only be called within initialize function."
 
 
+class ZeroCapitalError(ZiplineError):
+    """
+    Raised if initial capital is set at or below zero
+    """
+    msg = "initial capital base must be greater than zero"
+
+
 class AccountControlViolation(ZiplineError):
     """
     Raised if the account violates a constraint set by a AccountControl.

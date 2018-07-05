@@ -11,6 +11,7 @@ cimport numpy as np
 import numpy as np
 import pandas as pd
 from toolz import sliding_window
+from trading_calendars.utils.pandas_utils import days_at_time
 
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.adjustment cimport (
@@ -25,7 +26,6 @@ from zipline.pipeline.common import (
     SID_FIELD_NAME,
     TS_FIELD_NAME
 )
-from zipline.utils.pandas_utils import days_at_time
 
 
 cdef bint isnan(np.float64_t value):

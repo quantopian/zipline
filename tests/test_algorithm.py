@@ -31,6 +31,7 @@ import numpy as np
 import pandas as pd
 import pytz
 from pandas.core.common import PerformanceWarning
+from trading_calendars import get_calendar, register_calendar
 
 import zipline.api
 from zipline.api import FixedSlippage
@@ -51,6 +52,7 @@ from zipline.errors import (
     TradingControlViolation,
     UnsupportedCancelPolicy,
     UnsupportedDatetimeFormat,
+    ZeroCapitalError
 )
 
 from zipline.finance.commission import PerShare, PerTrade
@@ -118,7 +120,6 @@ from zipline.test_algorithms import (
 import zipline.test_algorithms as zta
 from zipline.testing.predicates import assert_equal
 from zipline.utils.api_support import ZiplineAPI
-from zipline.utils.calendars import get_calendar, register_calendar
 from zipline.utils.context_tricks import CallbackManager, nop_context
 from zipline.utils.events import (
     date_rules,
@@ -313,6 +314,39 @@ def handle_data(context, data):
         with self.assertRaises(TypeError):
             algo.run()
 
+    @parameterized.expand([
+        (-1000, 'invalid_base'),
+        (0, 'invalid_base'),
+    ])
+    def test_invalid_capital_base(self, cap_base, name):
+        """
+        Test that the appropriate error is being raised and orders aren't
+        filled for algos with capital base <= 0
+        """
+        algo_text = """
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    order(sid(24), 1000)
+        """
+        sim_params = SimulationParameters(
+            start_session=pd.Timestamp("2006-01-03", tz='UTC'),
+            end_session=pd.Timestamp("2006-01-06", tz='UTC'),
+            capital_base=cap_base,
+            data_frequency="minute",
+            trading_calendar=self.trading_calendar
+        )
+
+        with self.assertRaises(ZeroCapitalError) as exc:
+            # make_algo will trace to TradingAlgorithm,
+            # where the exception will be raised
+            self.make_algo(script=algo_text, sim_params=sim_params)
+        # Make sure the correct error was raised
+        error = exc.exception
+        self.assertEqual(str(error),
+                         'initial capital base must be greater than zero')
+
     def test_get_environment(self):
         expected_env = {
             'arena': 'backtest',
@@ -435,7 +469,7 @@ def log_nyse_close(context, data):
         erroring_algotext = dedent(
             """
             from zipline.api import schedule_function
-            from zipline.utils.calendars import get_calendar
+            from trading_calendars import get_calendar
 
             def initialize(context):
                 schedule_function(func=my_func, calendar=get_calendar('NYSE'))
@@ -3773,7 +3807,7 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
     @parameter_space(
         order_size=[10, -10],
-        capital_base=[0, 100000],
+        capital_base=[1, 100000],
         __fail_fast=True,
     )
     def test_daily_delisted_equities(self,

@@ -5,6 +5,7 @@ import click
 import logbook
 import pandas as pd
 from six import text_type
+from trading_calendars.calendar_utils import get_calendar
 
 import zipline
 from zipline.data import bundles as bundles_module

@@ -49,6 +49,8 @@ from zipline.utils.numpy_utils import (
     repeat_first_axis,
 )
 
+from ..sentinels import NotSpecified
+
 
 def concat_tuples(*tuples):
     """
@@ -379,6 +381,13 @@ class PercentileFilter(SingleInputMixin, Filter):
         )
         return (lower_bounds <= data) & (data <= upper_bounds)
 
+    def short_repr(self):
+        return "{}:\l  min: {}, max: {}\l".format(
+            type(self).__name__,
+            self._min_percentile,
+            self._max_percentile,
+        )
+
 
 class CustomFilter(PositiveWindowLengthMixin, CustomTermMixin, Filter):
     """
@@ -481,6 +490,13 @@ class ArrayPredicate(SingleInputMixin, Filter):
         data = arrays[0]
         return params['op'](data, *params['opargs']) & mask
 
+    def short_repr(self):
+        return "{}:\l  op: {}.{}()".format(
+            type(self).__name__,
+            self.params['op'].__module__,
+            self.params['op'].__name__,
+        )
+
 
 class Latest(LatestMixin, CustomFilter):
     """
@@ -519,6 +535,9 @@ class SingleAsset(Filter):
                 asset=self._asset, start_date=dates[0], end_date=dates[-1],
             )
         return out
+
+    def short_repr(self):
+        return "SingleAsset:\l  asset: {!r}\l".format(self._asset)
 
 
 class StaticSids(Filter):
@@ -593,6 +612,10 @@ class MaximumFilter(Filter, StandardOutputs):
     window_length = 0
 
     def __new__(cls, factor, groupby, mask):
+        if groupby is NotSpecified:
+            from zipline.pipeline.classifiers import Everything
+            groupby = Everything()
+
         return super(MaximumFilter, cls).__new__(
             cls,
             inputs=(factor, groupby),
@@ -600,6 +623,8 @@ class MaximumFilter(Filter, StandardOutputs):
         )
 
     def _compute(self, arrays, dates, assets, mask):
+        # XXX: We're doing a lot of unncessary work here if `groupby` isn't
+        # specified.
         data = arrays[0]
         group_labels, null_label = self.inputs[1]._to_integral(arrays[1])
         effective_mask = (
@@ -624,4 +649,7 @@ class MaximumFilter(Filter, StandardOutputs):
         )
 
     def short_repr(self):
-        return "Maximum()"
+        return "Maximum:\l  groupby: {}\l  mask: {}\l".format(
+            type(self.inputs[1]).__name__,
+            type(self.mask).__name__,
+        )

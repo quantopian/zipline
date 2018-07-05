@@ -1,8 +1,8 @@
 """
 NumericalExpression term.
 """
-from itertools import chain
 import re
+from itertools import chain
 from numbers import Number
 
 import numexpr
@@ -11,10 +11,8 @@ from numpy import (
     full,
     inf,
 )
-
 from zipline.pipeline.term import Term, ComputableTerm
 from zipline.utils.numpy_utils import bool_dtype
-
 
 _VARIABLE_NAME_RE = re.compile("^(x_)([0-9]+)$")
 
@@ -328,7 +326,12 @@ class NumericalExpression(ComputableTerm):
 
     def short_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
-        return "Expression: {expr}".format(
-            typename=type(self).__name__,
-            expr=self._expr,
+
+        # Replace any floating point numbers in the expression
+        # with their scientific notation
+        final = re.sub(r"[-+]?\d*\.\d+",
+                       lambda x: format(float(x.group(0)), '.2E'),
+                       self._expr)
+        return "Expression:\l  {}\l".format(
+            final,
         )

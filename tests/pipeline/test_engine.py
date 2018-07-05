@@ -1529,3 +1529,31 @@ class ChunkedPipelineTestCase(WithEquityPricingPipelineEngine,
             chunksize=22
         )
         self.assertTrue(chunked_result.equals(pipeline_result))
+
+
+class MaximumRegressionTest(WithSeededRandomPipelineEngine,
+                            ZiplineTestCase):
+    ASSET_FINDER_EQUITY_SIDS = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+    def test_no_groupby_maximum(self):
+        # This is a regression test for a bug where factor.top(1) would fail
+        # when not passed a groupby parameter.
+
+        factor = TestingDataSet.float_col.latest
+        maximum = factor.top(1)
+        pipe = Pipeline({'factor': factor, 'maximum': maximum})
+        result = self.run_pipeline(
+            pipe, self.trading_days[-5], self.trading_days[-1]
+        )
+
+        # We should have one maximum every day.
+        maxes_per_day = result.groupby(level=0)['maximum'].sum()
+        self.assertTrue((maxes_per_day == 1).all())
+
+        # The maximum computed by pipeline should match the maximum computed by
+        # doing a groupby in pandas.
+        groupby_max = result.groupby(level=0).factor.max()
+        pipeline_max = (result.factor[result.maximum]
+                        .reset_index(level=1, drop=True))
+
+        assert_equal(groupby_max, pipeline_max)

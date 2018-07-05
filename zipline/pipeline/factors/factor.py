@@ -1411,6 +1411,12 @@ class Rank(SingleInputMixin, Factor):
             mask=self.mask,
         )
 
+    def short_repr(self):
+        return "Rank:\l  method: {!r}\l  mask: {}\l".format(
+            self._method,
+            type(self.mask).__name__,
+        )
+
 
 class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
     '''
