@@ -172,7 +172,8 @@ def build_grouped_ownership_map(table,
                                 value_from_row,
                                 group_key):
     """
-    Builds a dict mapping to lists of OwnershipPeriods, from a db table.
+    Builds a dict mapping group keys to maps of keys to to lists of
+    OwnershipPeriods, from a db table.
     """
     grouped_rows = groupby(
         group_key,
@@ -319,7 +320,7 @@ class AssetFinder(object):
         self._ordered_contracts = {}
 
         # Populated on first call to `lifetimes`.
-        self._asset_lifetimes = None
+        self._asset_lifetimes = {}
 
     @lazyval
     def exchange_info(self):
@@ -350,7 +351,8 @@ class AssetFinder(object):
         symbol maps.
         """
         # clear the lazyval caches, the next access will requery
-        for value in vars(type(self)).items():
+        for attr in dir(type(self)):
+            value = getattr(self, attr)
             if isinstance(value, lazyval):
                 del value[self]
 
@@ -757,6 +759,65 @@ class AssetFinder(object):
                               multi_country,
                               symbol,
                               as_of_date):
+        """
+        Resolve a symbol to an asset object without fuzzy matching.
+
+        Parameters
+        ----------
+        ownership_map : dict[(str, str), list[OwnershipPeriod]]
+            The mapping from split symbols to ownership periods.
+        multi_country : bool
+            Does this mapping span multiple countries?
+        symbol : str
+            The symbol to look up.
+        as_of_date : datetime or None
+            If multiple assets have held this sid, which day should the
+            resolution be checked against? If this value is None and multiple
+            sids have held the ticker, then a MultipleSymbolsFound error will
+            be raised.
+
+        Returns
+        -------
+        asset : Asset
+            The asset that held the given symbol.
+
+        Raises
+        ------
+        SymbolNotFound
+            Raised when the symbol or symbol as_of_date pair do not map to
+            any assets.
+        MultipleSymbolsFound
+            Raised when multiple assets held the symbol. This happens if
+            multiple assets held the symbol at disjoint times and
+            ``as_of_date`` is None, or if multiple assets held the symbol at
+            the same time and``multi_country`` is True.
+
+        Notes
+        -----
+        The resolution algorithm is as follows:
+
+        - Split the symbol into the company and share class component.
+        - Do a dictionary lookup of the
+          ``(company_symbol, share_class_symbol)`` in the provided ownership
+          map.
+        - If there is no entry in the dictionary, we don't know about this
+          symbol so raise a ``SymbolNotFound`` error.
+        - If ``as_of_date`` is None:
+          - If more there is more than one owner, raise
+            ``MultipleSymbolsFound``
+          - Otherwise, because the list mapped to a symbol cannot be empty,
+            return the single asset.
+        - Iterate through all of the owners:
+          - If the ``as_of_date`` is between the start and end of the ownership
+            period:
+            - If multi_country is False, return the found asset.
+            - Otherwise, put the asset in a list.
+        - At the end of the loop, if there are no candidate assets, raise a
+          ``SymbolNotFound``.
+        - If there is exactly one candidate, return it.
+        - Othewise, raise ``MultipleSymbolsFound`` because the ticker is not
+          unique across countries.
+        """
         # split the symbol into the components, if there are no
         # company/share class parts then share_class_symbol will be empty
         company_symbol, share_class_symbol = split_delimited_symbol(symbol)
@@ -788,10 +849,10 @@ class AssetFinder(object):
             if start <= as_of_date < end:
                 # find the equity that owned it on the given asof date
                 asset = self.retrieve_asset(sid)
-                if multi_country:
-                    options.append(asset)
-                else:
+                if not multi_country:
                     return asset
+                else:
+                    options.append(asset)
 
         if len(options) == 1:
             return options[0]
@@ -834,7 +895,7 @@ class AssetFinder(object):
             # there are more than one exact match for this fuzzy symbol
             raise MultipleSymbolsFound(
                 symbol=symbol,
-                options=[self.retrieve_asset(owner.sid) for owner in owners],
+                options=self.retrieve_all(owner.sid for owner in owners),
             )
 
         options = {}
@@ -873,10 +934,10 @@ class AssetFinder(object):
         # there are no exact matches
         raise MultipleSymbolsFound(
             symbol=symbol,
-            options=[self.retrieve_asset(s) for s in sid_keys],
+            options=self.retrieve_all(owner.sid for owner in owners),
         )
 
-    def _which_fuzzy_symbol_ownership_map(self, country_code):
+    def _choose_fuzzy_symbol_ownership_map(self, country_code):
         if country_code is None:
             return self.fuzzy_symbol_ownership_map
 
@@ -884,7 +945,7 @@ class AssetFinder(object):
             country_code,
         )
 
-    def _which_symbol_ownership_map(self, country_code):
+    def _choose_symbol_ownership_map(self, country_code):
         if country_code is None:
             return self.symbol_ownership_map
 
@@ -912,7 +973,9 @@ class AssetFinder(object):
             shareclass of ``BRK`` as ``BRK.A``, where others could write
             ``BRK_A``.
         country_code : str or None, optional
-            The country to limit searches to.
+            The country to limit searches to. If not provided, the search will
+            span all countries which increases the likelihood of an ambiguous
+            lookup.
 
         Returns
         -------
@@ -937,10 +1000,10 @@ class AssetFinder(object):
 
         if fuzzy:
             f = self._lookup_symbol_fuzzy
-            mapping = self._which_fuzzy_symbol_ownership_map(country_code)
+            mapping = self._choose_fuzzy_symbol_ownership_map(country_code)
         else:
             f = self._lookup_symbol_strict
-            mapping = self._which_symbol_ownership_map(country_code)
+            mapping = self._choose_symbol_ownership_map(country_code)
 
         if mapping is None:
             raise SymbolNotFound(symbol=symbol)
@@ -974,7 +1037,9 @@ class AssetFinder(object):
         fuzzy : bool, optional
             Forwarded to ``lookup_symbol``.
         country_code : str or None, optional
-            The country to limit searches to.
+            The country to limit searches to. If not provided, the search will
+            span all countries which increases the likelihood of an ambiguous
+            lookup.
 
         Returns
         -------
@@ -986,10 +1051,10 @@ class AssetFinder(object):
         multi_country = country_code is None
         if fuzzy:
             f = self._lookup_symbol_fuzzy
-            mapping = self._which_fuzzy_symbol_ownership_map(country_code)
+            mapping = self._choose_fuzzy_symbol_ownership_map(country_code)
         else:
             f = self._lookup_symbol_strict
-            mapping = self._which_symbol_ownership_map(country_code)
+            mapping = self._choose_symbol_ownership_map(country_code)
 
         if mapping is None:
             raise SymbolNotFound(symbol=symbols[0])
@@ -1391,27 +1456,34 @@ class AssetFinder(object):
         # Return a list of the sids of the found assets
         return [asset.sid for asset in matches]
 
-    def _compute_asset_lifetimes(self):
+    def _compute_asset_lifetimes(self, country_codes):
         """
-        Compute and cache a recarry of asset lifetimes.
+        Compute and cache a recarray of asset lifetimes.
         """
         equities_cols = self.equities.c
-        buf = np.array(
-            tuple(
-                sa.select((
-                    equities_cols.sid,
-                    equities_cols.start_date,
-                    equities_cols.end_date,
-                )).execute(),
-            ), dtype='<f8',  # use doubles so we get NaNs
-        )
+        if country_codes:
+            buf = np.array(
+                tuple(
+                    sa.select((
+                        equities_cols.sid,
+                        equities_cols.start_date,
+                        equities_cols.end_date,
+                    )).where(
+                        (self.exchanges.c.exchange == equities_cols.exchange) &
+                        (self.exchanges.c.country_code.in_(country_codes))
+                    ).execute(),
+                ),
+                dtype='f8',  # use doubles so we get NaNs
+            )
+        else:
+            buf = np.array([], dtype='f8')
         lifetimes = np.recarray(
             buf=buf,
             shape=(len(buf),),
             dtype=[
-                ('sid', '<f8'),
-                ('start', '<f8'),
-                ('end', '<f8')
+                ('sid', 'f8'),
+                ('start', 'f8'),
+                ('end', 'f8')
             ],
         )
         start = lifetimes.start
@@ -1420,12 +1492,12 @@ class AssetFinder(object):
         end[np.isnan(end)] = np.iinfo(int).max  # convert missing end to INTMAX
         # Cast the results back down to int.
         return lifetimes.astype([
-            ('sid', '<i8'),
-            ('start', '<i8'),
-            ('end', '<i8'),
+            ('sid', 'i8'),
+            ('start', 'i8'),
+            ('end', 'i8'),
         ])
 
-    def lifetimes(self, dates, include_start_date):
+    def lifetimes(self, dates, include_start_date, country_codes):
         """
         Compute a DataFrame representing asset lifetimes for the specified date
         range.
@@ -1442,6 +1514,8 @@ class AssetFinder(object):
             this date?"  For many financial metrics, (e.g. daily close), data
             isn't available for an asset until the end of the asset's first
             day.
+        country_codes : iterable[str]
+            The country codes to get lifetimes for.
 
         Returns
         -------
@@ -1457,13 +1531,18 @@ class AssetFinder(object):
         numpy.putmask
         zipline.pipeline.engine.SimplePipelineEngine._compute_root_mask
         """
+        # normalize this to a cache-key
+        country_codes = frozenset(country_codes)
+
         # This is a less than ideal place to do this, because if someone adds
         # assets to the finder after we've touched lifetimes we won't have
         # those new assets available.  Mutability is not my favorite
         # programming feature.
-        if self._asset_lifetimes is None:
-            self._asset_lifetimes = self._compute_asset_lifetimes()
-        lifetimes = self._asset_lifetimes
+        lifetimes = self._asset_lifetimes.get(country_codes)
+        if lifetimes is None:
+            self._asset_lifetimes[country_codes] = lifetimes = (
+                self._compute_asset_lifetimes(country_codes)
+            )
 
         raw_dates = as_column(dates.asi8)
         if include_start_date:

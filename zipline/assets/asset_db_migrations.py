@@ -40,6 +40,10 @@ def alter_columns(op, name, *columns, **kwargs):
     op.rename_table(name, tmp_name)
 
     for column in columns:
+        # Clear any indices that already exist on this table, otherwise we will
+        # fail to create the table because the indices will already be present.
+        # When we create the table below, the indices that we want to preserve
+        # will just get recreated.
         for table in name, tmp_name:
             try:
                 op.drop_index('ix_%s_%s' % (table, column.name))
@@ -462,7 +466,9 @@ def _downgrade_v7(op):
             primary_key=True,
         ),
         sa.Column('timezone', sa.Text),
-        selection_string="exchange, 'US/Eastern'",
+        # Set the timezone to NULL because we don't know what it was before.
+        # Nothing in zipline reads the timezone so it doesn't matter.
+        selection_string="exchange, NULL",
     )
     op.rename_table('exchanges', 'futures_exchanges')
 
