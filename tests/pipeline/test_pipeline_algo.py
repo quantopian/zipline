@@ -44,7 +44,7 @@ from zipline.errors import (
 )
 from zipline.finance.trading import SimulationParameters
 from zipline.lib.adjustment import MULTIPLY
-from zipline.pipeline import Pipeline
+from zipline.pipeline import Pipeline, CustomFactor
 from zipline.pipeline.factors import VWAP
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders.frame import DataFrameLoader
@@ -738,3 +738,62 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
         )
 
         self.assertTrue(count[0] > 0)
+
+
+class PipelineSequenceTestCase(WithMakeAlgo, ZiplineTestCase):
+
+    def make_algo_kwargs(self, **overrides):
+        # run the algorithm for 3 days
+        self.START_DATE = pd.Timestamp('2015-07-13', tz='utc')
+        self.END_DATE = pd.Timestamp('2015-07-15', tz='utc')
+        return self.merge_with_inherited_algo_kwargs(
+            PipelineSequenceTestCase,
+            suite_overrides=dict(
+                get_pipeline_loader=lambda column: self.fake_pipeline,
+            ),
+            method_overrides=overrides,
+        )
+
+    def fake_pipeline(self):
+        raise AssertionError
+
+    def test_pipeline_compute_before_bts(self):
+
+        # for storing and keeping track of calls to BTS and TestFactor.compute
+        trace = []
+
+        class TestFactor(CustomFactor):
+            inputs = ()
+
+            # window_length doesn't actually matter for this test case
+            window_length = 1
+
+            def compute(self, today, assets, out):
+                trace.append("CustomFactor call")
+
+        def initialize(context):
+            pipeline = attach_pipeline(Pipeline(), 'my_pipeline')
+            test_factor = TestFactor()
+            pipeline.add(test_factor, 'test_factor')
+
+        def before_trading_start(context, data):
+            trace.append("BTS call")
+            pipeline_output('my_pipeline')
+
+        self.run_algorithm(
+            initialize=initialize,
+            before_trading_start=before_trading_start,
+            sim_params=SimulationParameters(
+                start_session=pd.Timestamp('2014-12-29', tz='utc'),
+                end_session=pd.Timestamp('2014-12-31', tz='utc'),
+                data_frequency='daily',
+                emission_rate='daily',
+                trading_calendar=self.trading_calendar,
+            )
+        )
+
+        # All pipeline computation calls should occur before any BTS calls,
+        # and the algorithm is being run for 3 days, so the first 3 calls
+        # should be to the custom factor and the next 3 calls should be to BTS
+        expected_result = ["CustomFactor call"] * 3 + ["BTS call"] * 3
+        self.assertEqual(trace, expected_result)
