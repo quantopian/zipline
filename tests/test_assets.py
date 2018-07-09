@@ -2092,6 +2092,37 @@ class TestAssetDBVersioning(ZiplineTestCase):
 
         assert_equal(expected_data, actual_data)
 
+    def test_v7_to_v6_only_keeps_US(self):
+        T = pd.Timestamp
+        equities = pd.DataFrame(
+            [['A', T('2014-01-01'), T('2014-01-02'), 'NYSE'],
+             ['B', T('2014-01-01'), T('2014-01-02'), 'JPX'],
+             ['C', T('2014-01-03'), T('2014-01-04'), 'NYSE'],
+             ['D', T('2014-01-01'), T('2014-01-02'), 'JPX']],
+            index=[0, 1, 2, 3],
+            columns=['symbol', 'start_date', 'end_date', 'exchange'],
+        )
+        exchanges = pd.DataFrame.from_records([
+            {'exchange': 'NYSE', 'country_code': 'US'},
+            {'exchange': 'JPX', 'country_code': 'JP'},
+        ])
+        AssetDBWriter(self.engine).write(
+            equities=equities,
+            exchanges=exchanges,
+        )
+
+        downgrade(self.engine, 6)
+        metadata = sa.MetaData(self.engine)
+        metadata.reflect()
+
+        expected_sids = {0, 2}
+        actual_sids = set(map(
+            lambda r: r.sid,
+            sa.select(metadata.tables['equities'].c).execute(),
+        ))
+
+        assert_equal(expected_sids, actual_sids)
+
 
 class TestVectorizedSymbolLookup(WithAssetFinder, ZiplineTestCase):
 
