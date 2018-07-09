@@ -746,8 +746,8 @@ class PipelineSequenceTestCase(WithMakeAlgo, ZiplineTestCase):
     START_DATE = pd.Timestamp('2014-12-29', tz='utc')
     END_DATE = pd.Timestamp('2014-12-31', tz='utc')
 
-    def fake_pipeline(self):
-        raise AssertionError
+    def get_pipeline_loader(self):
+        raise AssertionError("Loading terms for pipeline with no inputs")
 
     def test_pipeline_compute_before_bts(self):
 
@@ -775,7 +775,7 @@ class PipelineSequenceTestCase(WithMakeAlgo, ZiplineTestCase):
         self.run_algorithm(
             initialize=initialize,
             before_trading_start=before_trading_start,
-            get_pipeline_loader=self.fake_pipeline,
+            get_pipeline_loader=self.get_pipeline_loader,
         )
 
         # All pipeline computation calls should occur before any BTS calls,
