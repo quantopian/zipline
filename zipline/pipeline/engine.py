@@ -376,7 +376,9 @@ class SimplePipelineEngine(PipelineEngine):
         # `start_date.`
         lifetimes = finder.lifetimes(
             calendar[start_idx - extra_rows:end_idx],
-            include_start_date=False
+            include_start_date=False,
+            # TODO: update this when we add domains.
+            country_codes={'??', 'US'},
         )
 
         if lifetimes.index[extra_rows] != start_date:

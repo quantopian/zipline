@@ -12,7 +12,8 @@ def make_rotating_equity_info(num_assets,
                               first_start,
                               frequency,
                               periods_between_starts,
-                              asset_lifetime):
+                              asset_lifetime,
+                              exchange='TEST'):
     """
     Create a DataFrame representing lifetimes of assets that are constantly
     rotating in and out of existence.
@@ -29,6 +30,8 @@ def make_rotating_equity_info(num_assets,
         Create a new asset every `frequency` * `periods_between_new`
     asset_lifetime : int
         Each asset exists for `frequency` * `asset_lifetime` days.
+    exchange : str, optional
+        The exchange name.
 
     Returns
     -------
@@ -50,7 +53,7 @@ def make_rotating_equity_info(num_assets,
                 freq=(periods_between_starts * frequency),
                 periods=num_assets,
             ),
-            'exchange': 'TEST',
+            'exchange': exchange,
         },
         index=range(num_assets),
     )

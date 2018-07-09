@@ -1093,15 +1093,7 @@ class TradingAlgorithm(object):
         --------
         :func:`zipline.api.set_symbol_lookup_date`
         """
-        country_code = kwargs.pop('country_code', None)
-        if kwargs:
-            raise TypeError(
-                'symbols got unexpected keyword arguments %s' % sorted(kwargs),
-            )
-        return [
-            self.symbol(identifier, country_code=country_code)
-            for identifier in args
-        ]
+        return [self.symbol(identifier, **kwargs) for identifier in args]
 
     @api_method
     def sid(self, sid):

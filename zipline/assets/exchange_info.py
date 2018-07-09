@@ -47,7 +47,6 @@ class ExchangeInfo(object):
 
     def __ne__(self, other):
         eq = self == other
-        if eq is not NotImplemented:
-            eq = not eq
-
-        return eq
+        if eq is NotImplemented:
+            return NotImplemented
+        return not eq

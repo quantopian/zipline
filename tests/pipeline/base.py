@@ -65,6 +65,8 @@ class BasePipelineTestCase(WithTradingSessions,
         cls.default_asset_exists_mask = cls.asset_finder.lifetimes(
             cls.nyse_sessions[-30:],
             include_start_date=False,
+            # TODO: update this when we add domains.
+            country_codes={'??', 'US'},
         )
 
     @property
