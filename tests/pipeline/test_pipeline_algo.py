@@ -742,17 +742,9 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
 
 class PipelineSequenceTestCase(WithMakeAlgo, ZiplineTestCase):
 
-    def make_algo_kwargs(self, **overrides):
-        # run the algorithm for 3 days
-        self.START_DATE = pd.Timestamp('2015-07-13', tz='utc')
-        self.END_DATE = pd.Timestamp('2015-07-15', tz='utc')
-        return self.merge_with_inherited_algo_kwargs(
-            PipelineSequenceTestCase,
-            suite_overrides=dict(
-                get_pipeline_loader=lambda column: self.fake_pipeline,
-            ),
-            method_overrides=overrides,
-        )
+    # run algorithm for 3 days
+    START_DATE = pd.Timestamp('2014-12-29', tz='utc')
+    END_DATE = pd.Timestamp('2014-12-31', tz='utc')
 
     def fake_pipeline(self):
         raise AssertionError
@@ -783,13 +775,7 @@ class PipelineSequenceTestCase(WithMakeAlgo, ZiplineTestCase):
         self.run_algorithm(
             initialize=initialize,
             before_trading_start=before_trading_start,
-            sim_params=SimulationParameters(
-                start_session=pd.Timestamp('2014-12-29', tz='utc'),
-                end_session=pd.Timestamp('2014-12-31', tz='utc'),
-                data_frequency='daily',
-                emission_rate='daily',
-                trading_calendar=self.trading_calendar,
-            )
+            get_pipeline_loader=self.fake_pipeline,
         )
 
         # All pipeline computation calls should occur before any BTS calls,
