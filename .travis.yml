@@ -17,15 +17,25 @@ env:
     #   See https://docs.travis-ci.com/api#external-apis.
     - secure: "qQ3vMSXUybUyKljJjgcVT9YaWcZ0PkdLZSFj6BVuo82SWO7e4L+hC8pqsa1Sm/EjyetVwfKk5lkvruPpro++8hDPLq3ahNOMmm4axfcWvACpW+acD/VCA5D8Dxz2ohrvpwsqo7BmIV6OUtIO5JeePHP1SqaIdVZFJ0pIAZToEWQ="
     - CONDA_ROOT_PYTHON_VERSION: "2.7"
-    - NUMPY_VERSION=1.11.1
-    - PANDAS_VERSION=0.18.1
-    - SCIPY_VERSION=0.17.1
+  matrix:
+    - OLD_PANDAS=1
+    - NEW_PANDAS=1
 matrix:
+  exclude:
+    - python: 2.7
+      env: NEW_PANDAS=1
   include:
-    # - python: 3.5
-    #   env: PANDAS_VERSION=0.19.2
-    - python: 3.5
-      env: NUMPY_VERSION=1.14.1 PANDAS_VERSION=0.22.0 SCIPY_VERSION=1.0.0 PANDAS_DATAREADER_VERSION=0.4.0 DASK_VERSION=0.17.1
+    # Workaround Travis OSX not natively supporting Python.
+    - os: osx
+      language: generic
+      env: TRAVIS_PYTHON_VERSION=2.7 OLD_PANDAS=1
+    - os: osx
+      language: generic
+      env: TRAVIS_PYTHON_VERSION=3.5 OLD_PANDAS=1
+    - os: osx
+      language: generic
+      env: TRAVIS_PYTHON_VERSION=3.5 NEW_PANDAS=1
+
 cache:
   directories:
     - $HOME/.cache/.pip/
@@ -35,6 +45,12 @@ before_install:
   - chmod +x miniconda.sh
   - ./miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
+  - |
+    if [ "$OLD_PANDAS" ]; then
+      NUMPY_VERSION=1.11.1 PANDAS_VERSION=0.18.1 SCIPY_VERSION=0.17.1
+    else
+      NUMPY_VERSION=1.14.1 PANDAS_VERSION=0.22.0 SCIPY_VERSION=1.0.0 PANDAS_DATAREADER_VERSION=0.4.0 DASK_VERSION=0.17.1
+    fi
   - sed -i "s/numpy==.*/numpy==$NUMPY_VERSION/" etc/requirements.txt
   - sed -i "s/pandas==.*/pandas==$PANDAS_VERSION/" etc/requirements.txt
   - sed -i "s/scipy==.*/scipy==$SCIPY_VERSION/" etc/requirements.txt
