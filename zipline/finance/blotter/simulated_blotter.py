@@ -19,6 +19,8 @@ from copy import copy
 from six import iteritems
 
 from zipline.assets import Equity, Future, Asset
+from .blotter import Blotter
+from .core import register
 from zipline.finance.order import Order
 from zipline.finance.slippage import (
     DEFAULT_FUTURE_VOLUME_SLIPPAGE_BAR_LIMIT,
@@ -31,17 +33,20 @@ from zipline.finance.commission import (
     PerContract,
     PerShare,
 )
-from zipline.finance.cancel_policy import NeverCancel
 from zipline.utils.input_validation import expect_types
 
 log = Logger('Blotter')
 warning_logger = Logger('AlgoWarning')
 
 
-class Blotter(object):
+@register('default')
+class SimulatedBlotter(Blotter):
     def __init__(self, data_frequency, equity_slippage=None,
                  future_slippage=None, equity_commission=None,
                  future_commission=None, cancel_policy=None):
+        super(SimulatedBlotter, self).__init__(data_frequency,
+                                               cancel_policy=cancel_policy)
+
         # these orders are aggregated by asset
         self.open_orders = defaultdict(list)
 
@@ -50,7 +55,6 @@ class Blotter(object):
 
         # holding orders that have come in since the last event.
         self.new_orders = []
-        self.current_dt = None
 
         self.max_shares = int(1e+11)
 
@@ -68,10 +72,6 @@ class Blotter(object):
             ),
         }
 
-        self.data_frequency = data_frequency
-
-        self.cancel_policy = cancel_policy if cancel_policy else NeverCancel()
-
     def __repr__(self):
         return """
 {class_name}(
@@ -88,9 +88,6 @@ class Blotter(object):
                    orders=self.orders,
                    new_orders=self.new_orders,
                    current_dt=self.current_dt)
-
-    def set_date(self, dt):
-        self.current_dt = dt
 
     @expect_types(asset=Asset)
     def order(self, asset, amount, style, order_id=None):
@@ -153,27 +150,6 @@ class Blotter(object):
         self.new_orders.append(order)
 
         return order.id
-
-    def batch_order(self, order_arg_lists):
-        """Place a batch of orders.
-
-        Parameters
-        ----------
-        order_arg_lists : iterable[tuple]
-            Tuples of args that `order` expects.
-
-        Returns
-        -------
-        order_ids : list[str or None]
-            The unique identifier (or None) for each of the orders placed
-            (or not placed).
-
-        Notes
-        -----
-        This is required for `Blotter` subclasses to be able to place a batch
-        of orders, instead of being passed the order requests one at a time.
-        """
-        return [self.order(*order_args) for order_args in order_arg_lists]
 
     def cancel(self, order_id, relay_status=True):
         if order_id not in self.orders:
