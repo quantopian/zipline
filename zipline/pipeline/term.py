@@ -679,7 +679,7 @@ class ComputableTerm(Term):
             "{type}([{inputs}], {window_length})"
         ).format(
             type=type(self).__name__,
-            inputs=', '.join(i.name for i in self.inputs),
+            inputs=', '.join(i.short_repr() for i in self.inputs),
             window_length=self.window_length,
         )
 
