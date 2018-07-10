@@ -159,6 +159,8 @@ def _run(handle_data,
             equity_minute_reader=bundle_data.equity_minute_bar_reader,
             equity_daily_reader=bundle_data.equity_daily_bar_reader,
             adjustment_reader=bundle_data.adjustment_reader,
+            future_minute_reader=bundle_data.equity_minute_bar_reader,
+            future_daily_reader=bundle_data.equity_daily_bar_reader,
         )
 
         pipeline_loader = USEquityPricingLoader(
