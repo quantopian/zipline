@@ -617,6 +617,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             (self.ASSET_FINDER_EQUITY_SIDS[-1],) * 2,
             'float_value': (0., 1., 2., np.NaN),
             'str_value': ('a', 'b', 'c', None),
+            'cat_value': pd.Categorical(
+                values=['a', 'b', 'c', None],
+                categories=['a', 'b', 'c', None],
+            ),
             'int_value': (1, 2, 3, 0),
             'bool_value': (True, True, True, False),
             'dt_value': (pd.Timestamp('2011-01-01'),
@@ -634,6 +638,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                  sid: int64,
                  float_value: float64,
                  str_value: string,
+                 cat_value: string,
                  int_value: int64,
                  bool_value: bool,
                  dt_value: datetime,
@@ -646,6 +651,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         expected = pd.DataFrame(
             {
                 'str_value': np.array(
+                    ['a', None, 'c', 'a', None, 'c', 'a', 'b', 'c'],
+                    dtype='object',
+                ),
+                'cat_value': np.array(
                     ['a', None, 'c', 'a', None, 'c', 'a', 'b', 'c'],
                     dtype='object',
                 ),
@@ -675,6 +684,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             },
             columns=[
                 'str_value',
+                'cat_value',
                 'float_value',
                 'int_value',
                 'bool_value',
