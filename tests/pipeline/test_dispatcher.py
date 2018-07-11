@@ -1,6 +1,3 @@
-import os
-
-from zipline.data import bundles
 from zipline.pipeline import USEquityPricingLoader
 from zipline.pipeline.data import (
     Column,
