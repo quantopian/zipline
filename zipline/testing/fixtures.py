@@ -635,11 +635,6 @@ class WithTradingSessions(WithDefaultDateBounds, WithTradingCalendars):
             setattr(cls,
                     '{0}_sessions'.format(cal_str.lower()), sessions)
             cls.trading_sessions[cal_str] = sessions
-        for exchange, cal_str in iteritems(cls.TRADING_CALENDAR_FOR_EXCHANGE):
-            trading_calendar = cls.trading_calendars[cal_str]
-            sessions = trading_calendar.sessions_in_range(
-                cls.DATA_MIN_DAY, cls.DATA_MAX_DAY)
-            cls.trading_sessions[exchange] = sessions
 
 
 class WithTmpDir(object):
