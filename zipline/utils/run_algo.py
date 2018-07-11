@@ -5,6 +5,7 @@ import sys
 import warnings
 
 import click
+
 try:
     from pygments import highlight
     from pygments.lexers import PythonLexer
@@ -21,6 +22,10 @@ from zipline.data import bundles
 from zipline.data.data_portal import DataPortal
 from zipline.finance import metrics
 from zipline.finance.trading import TradingEnvironment
+from zipline.pipeline import (
+    register_pipeline_loader,
+    global_pipeline_dispatcher,
+)
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.utils.factory import create_simulation_parameters
@@ -166,12 +171,13 @@ def _run(handle_data,
             bundle_data.adjustment_reader,
         )
 
+        # we register our default loader last, after any loaders from users
+        # have been registered via extensions
+        register_pipeline_loader(USEquityPricing, pipeline_loader)
+
         def choose_loader(column):
-            if column in USEquityPricing.columns:
-                return pipeline_loader
-            raise ValueError(
-                "No PipelineLoader registered for column %s." % column
-            )
+            return global_pipeline_dispatcher(column)
+
     else:
         env = TradingEnvironment(environ=environ)
         choose_loader = None
