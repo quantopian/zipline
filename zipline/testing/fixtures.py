@@ -448,7 +448,6 @@ class WithTradingCalendars(object):
     """
     TRADING_CALENDAR_STRS = ('NYSE',)
     TRADING_CALENDAR_FOR_ASSET_TYPE = {Equity: 'NYSE', Future: 'us_futures'}
-    TRADING_CALENDAR_FOR_EXCHANGE = {}
     # For backwards compatibility, exisitng tests and fixtures refer to
     # `trading_calendar` with the assumption that the value is the NYSE
     # calendar.
@@ -469,15 +468,15 @@ class WithTradingCalendars(object):
             setattr(cls,
                     '{0}_calendar'.format(cal_str.lower()), calendar)
             cls.trading_calendars[cal_str] = calendar
-        for asset_type, cal_str in iteritems(
-                cls.TRADING_CALENDAR_FOR_ASSET_TYPE):
+
+        type_to_cal = iteritems(cls.TRADING_CALENDAR_FOR_ASSET_TYPE)
+        for asset_type, cal_str in type_to_cal:
             calendar = get_calendar(cal_str)
             cls.trading_calendars[asset_type] = calendar
-        for exchange, cal_str in iteritems(cls.TRADING_CALENDAR_FOR_EXCHANGE):
-            register_calendar(exchange, get_calendar(cal_str))
-            cls.trading_calendars[exchange] = get_calendar(cal_str)
-        cls.trading_calendar = cls.trading_calendars[
-            cls.TRADING_CALENDAR_PRIMARY_CAL]
+
+        cls.trading_calendar = (
+            cls.trading_calendars[cls.TRADING_CALENDAR_PRIMARY_CAL]
+        )
 
 
 _MARKET_DATA_DIR = os.path.join(zipline_dir, 'resources', 'market_data')
