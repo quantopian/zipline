@@ -515,6 +515,7 @@ class AssetFinder(object):
         SidsNotFound
             When a requested sid is not found and default_none=False.
         """
+        sids = list(sids)
         hits, missing, failures = {}, set(), []
         for sid in sids:
             try:
