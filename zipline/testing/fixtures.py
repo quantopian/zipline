@@ -11,7 +11,7 @@ import responses
 from toolz import flip, merge
 from trading_calendars import (
     get_calendar,
-    register_calendar,
+    register_calendar_alias,
 )
 
 import zipline
@@ -386,8 +386,6 @@ class WithAssetFinder(WithDefaultDateBounds):
 
     @classmethod
     def make_equity_info(cls):
-        register_calendar("TEST", get_calendar("NYSE"), force=True)
-
         return make_simple_equity_info(
             cls.ASSET_FINDER_EQUITY_SIDS,
             cls.ASSET_FINDER_EQUITY_START_DATE,
@@ -1800,3 +1798,6 @@ class WithWerror(object):
         warnings.simplefilter('error')
 
         super(WithWerror, cls).init_class_fixtures()
+
+
+register_calendar_alias("TEST", "NYSE")
