@@ -18,14 +18,14 @@ class PipelineDispatcher(object):
                                                  is not None else {}
         self.column_loaders = mappingproxy(self._column_loaders)
         if dataset_loaders is not None:
-            for dataset, pl in dataset_loaders:
+            for dataset, pl in dataset_loaders.items():
                 self.register(dataset, pl)
 
     def __call__(self, column):
         if column in self._column_loaders:
             return self._column_loaders[column]
         else:
-            raise LookupError("No pipeline loader registered for %s", column)
+            raise LookupError("No pipeline loader registered for %s" % column)
 
     def register(self, data, pl):
         """Register a given PipelineLoader to a column or columns of a dataset
