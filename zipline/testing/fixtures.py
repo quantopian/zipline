@@ -485,12 +485,14 @@ _MARKET_DATA_DIR = os.path.join(zipline_dir, 'resources', 'market_data')
 @remember_last
 def read_checked_in_benchmark_data():
     symbol = 'SPY'
-
     filename = get_benchmark_filename(symbol)
     source_path = os.path.join(_MARKET_DATA_DIR, filename)
-    benchmark_returns = pd.Series.from_csv(source_path).tz_localize('UTC')
-
-    return benchmark_returns
+    benchmark_returns = pd.read_csv(
+        source_path,
+        parse_dates=[0],
+        index_col=0
+    ).tz_localize('UTC')
+    return benchmark_returns.iloc[:, 0]
 
 
 class WithBenchmarkReturns(WithDefaultDateBounds,
