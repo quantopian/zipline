@@ -12,7 +12,7 @@ try:
 except ImportError:
     PYGMENTS = False
 import six
-from toolz import valfilter, concatv
+from toolz import concatv
 from trading_calendars import get_calendar
 
 from zipline.algorithm import TradingAlgorithm
