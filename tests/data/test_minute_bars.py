@@ -650,7 +650,7 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
                 'close': full(9, nan),
                 'volume': full(9, 0.0),
             },
-            index=[minutes])
+            index=minutes)
         self.writer.write_sid(sid, data)
 
         fields = ['open', 'high', 'low', 'close', 'volume']
@@ -693,7 +693,7 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
                 view(float64),
                 'volume': full(9, 0.0),
             },
-            index=[minutes])
+            index=minutes)
         self.writer.write_sid(sid, data)
 
         fields = ['open', 'high', 'low', 'close', 'volume']
@@ -1134,7 +1134,7 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
                 'close': [40.0, 41.0, nan],
                 'volume': [50, 51, 0]
             },
-            index=[minutes])
+            index=minutes)
         self.writer.write_sid(sid, data)
 
         open_price = self.reader.get_value(sid, minute, 'open')
