@@ -65,6 +65,15 @@ Orders
 
 .. autofunction:: zipline.api.cancel_order
 
+Blotters
+''''''''
+
+.. autoclass:: zipline.finance.blotter.Blotter
+   :members:
+
+.. autoclass:: zipline.finance.blotter.SimulationBlotter
+   :members:
+
 Order Cancellation Policies
 '''''''''''''''''''''''''''
 
