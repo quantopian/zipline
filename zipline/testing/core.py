@@ -42,7 +42,7 @@ from zipline.data.us_equity_pricing import (
     BcolzDailyBarWriter,
     SQLiteAdjustmentWriter,
 )
-from zipline.finance.blotter import Blotter
+from zipline.finance.blotter import SimulationBlotter
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.order import ORDER_STATUS
 from zipline.lib.labelarray import LabelArray
@@ -1553,7 +1553,7 @@ def ensure_doctest(f, name=None):
     return f
 
 
-class RecordBatchBlotter(Blotter):
+class RecordBatchBlotter(SimulationBlotter):
     """Blotter that tracks how its batch_order method was called.
     """
     def __init__(self, data_frequency):

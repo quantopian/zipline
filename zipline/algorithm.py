@@ -65,7 +65,7 @@ from zipline.errors import (
     ZeroCapitalError
 )
 from zipline.finance.trading import TradingEnvironment
-from zipline.finance.blotter import Blotter
+from zipline.finance.blotter import SimulationBlotter
 from zipline.finance.controls import (
     LongOnly,
     MaxOrderCount,
@@ -325,10 +325,12 @@ class TradingAlgorithm(object):
             cleanup=clear_dataframe_indexer_caches
         )
 
+        if 'blotter' in kwargs and 'blotter_class' in kwargs:
+            raise RuntimeError('both blotter and blotter_class are defined')
         self.blotter = kwargs.pop('blotter', None)
         self.cancel_policy = kwargs.pop('cancel_policy', NeverCancel())
         if not self.blotter:
-            self.blotter = Blotter(
+            self.blotter = kwargs.pop('blotter_class', SimulationBlotter)(
                 data_frequency=self.data_frequency,
                 # Default to NeverCancel in zipline
                 cancel_policy=self.cancel_policy,

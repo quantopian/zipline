@@ -28,7 +28,7 @@ from six.moves import range
 from testfixtures import TempDirectory
 
 from zipline.assets.synthetic import make_simple_equity_info
-from zipline.finance.blotter import Blotter
+from zipline.finance.blotter.simulation_blotter import SimulationBlotter
 from zipline.finance.execution import MarketOrder, LimitOrder
 from zipline.finance.metrics import MetricsTracker, load as load_metrics_set
 from zipline.finance.trading import SimulationParameters
@@ -277,7 +277,8 @@ class FinanceTestCase(WithLogger,
             else:
                 slippage_func = None
 
-            blotter = Blotter(sim_params.data_frequency, slippage_func)
+            blotter = SimulationBlotter(sim_params.data_frequency,
+                                        slippage_func)
 
             start_date = sim_params.first_open
 
@@ -376,7 +377,7 @@ class FinanceTestCase(WithLogger,
             )
 
     def test_blotter_processes_splits(self):
-        blotter = Blotter('daily',  equity_slippage=FixedSlippage())
+        blotter = SimulationBlotter('daily', equity_slippage=FixedSlippage())
 
         # set up two open limit orders with very low limit prices,
         # one for sid 1 and one for sid 2

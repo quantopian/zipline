@@ -1,10 +1,11 @@
+import click
 import os
 import re
 from runpy import run_path
 import sys
 import warnings
 
-import click
+
 try:
     from pygments import highlight
     from pygments.lexers import PythonLexer
@@ -16,7 +17,6 @@ import six
 from toolz import valfilter, concatv
 from trading_calendars import get_calendar
 
-from zipline.algorithm import TradingAlgorithm
 from zipline.data import bundles
 from zipline.data.data_portal import DataPortal
 from zipline.finance import metrics
@@ -25,6 +25,9 @@ from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.utils.factory import create_simulation_parameters
 import zipline.utils.paths as pth
+from zipline.extensions import load
+from zipline.algorithm import TradingAlgorithm
+from zipline.finance.blotter import Blotter
 
 
 class _RunAlgoError(click.ClickException, ValueError):
@@ -71,7 +74,8 @@ def _run(handle_data,
          print_algo,
          metrics_set,
          local_namespace,
-         environ):
+         environ,
+         blotter_class):
     """Run a backtest for the given algorithm.
 
     This is shared between the cli and :func:`zipline.run_algo`.
@@ -193,6 +197,12 @@ def _run(handle_data,
         except ValueError as e:
             raise _RunAlgoError(str(e))
 
+    if isinstance(blotter_class, six.string_types):
+        try:
+            blotter_class = load(Blotter, blotter_class)
+        except ValueError as e:
+            raise _RunAlgoError(str(e))
+
     perf = TradingAlgorithm(
         namespace=namespace,
         env=env,
@@ -206,6 +216,7 @@ def _run(handle_data,
             trading_calendar=trading_calendar,
         ),
         metrics_set=metrics_set,
+        blotter_class=blotter_class,
         **{
             'initialize': initialize,
             'handle_data': handle_data,
@@ -297,7 +308,8 @@ def run_algorithm(start,
                   default_extension=True,
                   extensions=(),
                   strict_extensions=True,
-                  environ=os.environ):
+                  environ=os.environ,
+                  blotter_class='default'):
     """Run a trading algorithm.
 
     Parameters
@@ -356,6 +368,9 @@ def run_algorithm(start,
     environ : mapping[str -> str], optional
         The os environment to use. Many extensions use this to get parameters.
         This defaults to ``os.environ``.
+    blotter_class : class or str, optional
+        The blotter class to use with this algorithm, which must be a subclass
+        of the abstract Blotter class. Defaults to SimulatedBlotter.
 
     Returns
     -------
@@ -408,4 +423,5 @@ def run_algorithm(start,
         metrics_set=metrics_set,
         local_namespace=False,
         environ=environ,
+        blotter_class=blotter_class,
     )
