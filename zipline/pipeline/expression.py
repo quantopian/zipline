@@ -324,7 +324,7 @@ class NumericalExpression(ComputableTerm):
             bindings=self.bindings,
         )
 
-    def short_repr(self):
+    def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
 
         # Replace any floating point numbers in the expression

@@ -214,12 +214,16 @@ class BoundColumn(LoadableTerm):
             dtype=self.dtype.name,
         )
 
-    def short_repr(self):
+    def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
         return "BoundColumn:\l  Dataset: {}\l  Column: {}\l".format(
             self.dataset.__name__,
             self.name
         )
+
+    def recursive_repr(self):
+        """Short repr used to render in recursive contexts."""
+        return self.qualname
 
 
 @total_ordering

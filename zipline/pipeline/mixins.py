@@ -215,7 +215,7 @@ class CustomTermMixin(object):
                 out[idx][out_mask] = out_row
         return out
 
-    def short_repr(self):
+    def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
         return type(self).__name__ + ':\l  window_length: %d\l' % \
             self.window_length
@@ -242,7 +242,7 @@ class LatestMixin(SingleInputMixin):
                 )
             )
 
-    def short_repr(self):
+    def graph_repr(self):
         return "Latest"
 
 
@@ -284,7 +284,7 @@ class AliasedMixin(SingleInputMixin):
             name=self.name,
         )
 
-    def short_repr(self):
+    def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
         return self.name
 
