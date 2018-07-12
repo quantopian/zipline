@@ -27,7 +27,6 @@ from pandas import (
     Series,
     Timestamp,
 )
-from pandas.tseries.tools import normalize_date
 from six import iteritems, itervalues
 from trading_calendars import get_calendar
 
@@ -44,7 +43,7 @@ from zipline.errors import (
 )
 from zipline.finance.trading import SimulationParameters
 from zipline.lib.adjustment import MULTIPLY
-from zipline.pipeline import Pipeline
+from zipline.pipeline import Pipeline, CustomFactor
 from zipline.pipeline.factors import VWAP
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders.frame import DataFrameLoader
@@ -61,6 +60,7 @@ from zipline.testing.fixtures import (
     WithBcolzEquityDailyBarReaderFromCSVs,
     ZiplineTestCase,
 )
+from zipline.utils.pandas_utils import normalize_date
 
 TEST_RESOURCE_PATH = join(
     dirname(dirname(realpath(__file__))),  # zipline_repo/tests
@@ -738,3 +738,48 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
         )
 
         self.assertTrue(count[0] > 0)
+
+
+class PipelineSequenceTestCase(WithMakeAlgo, ZiplineTestCase):
+
+    # run algorithm for 3 days
+    START_DATE = pd.Timestamp('2014-12-29', tz='utc')
+    END_DATE = pd.Timestamp('2014-12-31', tz='utc')
+
+    def get_pipeline_loader(self):
+        raise AssertionError("Loading terms for pipeline with no inputs")
+
+    def test_pipeline_compute_before_bts(self):
+
+        # for storing and keeping track of calls to BTS and TestFactor.compute
+        trace = []
+
+        class TestFactor(CustomFactor):
+            inputs = ()
+
+            # window_length doesn't actually matter for this test case
+            window_length = 1
+
+            def compute(self, today, assets, out):
+                trace.append("CustomFactor call")
+
+        def initialize(context):
+            pipeline = attach_pipeline(Pipeline(), 'my_pipeline')
+            test_factor = TestFactor()
+            pipeline.add(test_factor, 'test_factor')
+
+        def before_trading_start(context, data):
+            trace.append("BTS call")
+            pipeline_output('my_pipeline')
+
+        self.run_algorithm(
+            initialize=initialize,
+            before_trading_start=before_trading_start,
+            get_pipeline_loader=self.get_pipeline_loader,
+        )
+
+        # All pipeline computation calls should occur before any BTS calls,
+        # and the algorithm is being run for 3 days, so the first 3 calls
+        # should be to the custom factor and the next 3 calls should be to BTS
+        expected_result = ["CustomFactor call"] * 3 + ["BTS call"] * 3
+        self.assertEqual(trace, expected_result)

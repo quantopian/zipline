@@ -396,8 +396,8 @@ def handle_data(context, data):
 
             algocode = """
 from pandas import Timestamp
-from pandas.tseries.tools import normalize_date
 from zipline.api import fetch_csv, record, sid, get_datetime
+from zipline.utils.pandas_utils import normalize_date
 
 def initialize(context):
     fetch_csv(

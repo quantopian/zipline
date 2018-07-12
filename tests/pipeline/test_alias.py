@@ -36,10 +36,10 @@ class BaseAliasTestCase(BasePipelineTestCase):
             ),
         )
 
-    def test_short_repr(self):
+    def test_graph_repr(self):
         for name in ('a', 'b'):
             assert_equal(
-                self.Term().alias(name).short_repr(),
+                self.Term().alias(name).graph_repr(),
                 name,
             )
 

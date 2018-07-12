@@ -13,6 +13,23 @@ from distutils.version import StrictVersion
 from trading_calendars.utils.pandas_utils import days_at_time  # noqa: reexport
 
 pandas_version = StrictVersion(pd.__version__)
+new_pandas = pandas_version >= StrictVersion('0.19')
+skip_pipeline_new_pandas = \
+    'Pipeline categoricals are not yet compatible with pandas >=0.19'
+
+if pandas_version >= StrictVersion('0.20'):
+    def normalize_date(dt):
+        """
+        Normalize datetime.datetime value to midnight. Returns datetime.date as
+        a datetime.datetime at midnight
+
+        Returns
+        -------
+        normalized : datetime.datetime or Timestamp
+        """
+        return dt.normalize()
+else:
+    from pandas.tseries.tools import normalize_date  # noqa
 
 
 def july_5th_holiday_observance(datetime_index):
@@ -192,7 +209,7 @@ def timedelta_to_integral_minutes(delta):
 @contextmanager
 def ignore_pandas_nan_categorical_warning():
     with warnings.catch_warnings():
-        # Pandas >= 0.18 doesn't like null-ish values in catgories, but
+        # Pandas >= 0.18 doesn't like null-ish values in categories, but
         # avoiding that requires a broader change to how missing values are
         # handled in pipeline, so for now just silence the warning.
         warnings.filterwarnings(

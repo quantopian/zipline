@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import Iterable
+from collections import Iterable, namedtuple
 from copy import copy
 import operator as op
 import warnings
@@ -21,7 +21,6 @@ import logbook
 import pytz
 import pandas as pd
 from contextlib2 import ExitStack
-from pandas.tseries.tools import normalize_date
 import numpy as np
 
 from itertools import chain, repeat
@@ -112,6 +111,7 @@ from zipline.utils.input_validation import (
     optional,
 )
 from zipline.utils.numpy_utils import int64_dtype
+from zipline.utils.pandas_utils import normalize_date
 from zipline.utils.cache import ExpiringCache
 from zipline.utils.pandas_utils import clear_dataframe_indexer_caches
 
@@ -142,6 +142,9 @@ from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 
 log = logbook.Logger("ZiplineLog")
+
+# For creating and storing pipeline instances
+AttachedPipeline = namedtuple('AttachedPipeline', 'pipe chunks eager')
 
 
 class TradingAlgorithm(object):
@@ -175,8 +178,6 @@ class TradingAlgorithm(object):
         tracebacks. default: '<string>'.
     data_frequency : {'daily', 'minute'}, optional
         The duration of the bars.
-    instant_fill : bool, optional
-        Whether to fill orders immediately or on next bar. default: False
     equities_metadata : dict or DataFrame or file-like object, optional
         If dict is provided, it must have the following structure:
         * keys are the identifiers
@@ -454,6 +455,8 @@ class TradingAlgorithm(object):
             self._initialize(self, *args, **kwargs)
 
     def before_trading_start(self, data):
+        self.compute_eager_pipelines()
+
         if self._before_trading_start is None:
             return
 
@@ -612,6 +615,14 @@ class TradingAlgorithm(object):
 
         # our universe is all the assets passed into `run`.
         return self._assets_from_source
+
+    def compute_eager_pipelines(self):
+        """
+        Compute any pipelines attached with eager=True.
+        """
+        for name, pipe in self._pipelines.items():
+            if pipe.eager:
+                self.pipeline_output(name)
 
     def get_generator(self):
         """
@@ -2422,7 +2433,7 @@ class TradingAlgorithm(object):
         name=string_types,
         chunks=(int, Iterable, type(None)),
     )
-    def attach_pipeline(self, pipeline, name, chunks=None):
+    def attach_pipeline(self, pipeline, name, chunks=None, eager=True):
         """Register a pipeline to be computed at the start of each day.
 
         Parameters
@@ -2435,7 +2446,11 @@ class TradingAlgorithm(object):
             The number of days to compute pipeline results for. Increasing
             this number will make it longer to get the first results but
             may improve the total runtime of the simulation. If an iterator
-            is passed, we will run in chunks based on values of the itereator.
+            is passed, we will run in chunks based on values of the iterator.
+            Default is True.
+        eager : bool, optional
+            Whether or not to compute this pipeline prior to
+            before_trading_start.
 
         Returns
         -------
@@ -2456,7 +2471,7 @@ class TradingAlgorithm(object):
         if name in self._pipelines:
             raise DuplicatePipelineName(name=name)
 
-        self._pipelines[name] = pipeline, iter(chunks)
+        self._pipelines[name] = AttachedPipeline(pipeline, iter(chunks), eager)
 
         # Return the pipeline to allow expressions like
         # p = attach_pipeline(Pipeline(), 'name')
@@ -2490,13 +2505,13 @@ class TradingAlgorithm(object):
         :meth:`zipline.pipeline.engine.PipelineEngine.run_pipeline`
         """
         try:
-            p, chunks = self._pipelines[name]
+            pipe, chunks, _ = self._pipelines[name]
         except KeyError:
             raise NoSuchPipeline(
                 name=name,
                 valid=list(self._pipelines.keys()),
             )
-        return self._pipeline_output(p, chunks, name)
+        return self._pipeline_output(pipe, chunks, name)
 
     def _pipeline_output(self, pipeline, chunks, name):
         """
