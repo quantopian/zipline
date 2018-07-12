@@ -84,6 +84,7 @@ __all__ = [
     'gens',
     'run_algorithm',
     'utils',
+    'extension_args'
 ]
 
 

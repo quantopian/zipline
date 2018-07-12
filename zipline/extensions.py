@@ -47,7 +47,7 @@ def parse_extension_arg(arg, arg_dict):
     match = re.match(r'^(([^\d\W]\w*)(\.[^\d\W]\w*)*)=(.*)$', arg)
     if match is None:
         raise ValueError(
-            "invalid extension argument %s, must be in key=value form" % arg
+            "invalid extension argument '%s', must be in key=value form" % arg
         )
 
     name = match.group(1)

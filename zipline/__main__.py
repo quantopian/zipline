@@ -45,7 +45,7 @@ except NameError:
 @click.option(
     '-x',
     multiple=True,
-    help='Any custom command line arguments to define, in key=value form'
+    help='Any custom command line arguments to define, in key=value form.'
 )
 def main(extension, strict_extensions, default_extension, x):
     """Top level zipline entry point.
@@ -53,14 +53,13 @@ def main(extension, strict_extensions, default_extension, x):
 
     # install a logbook handler before performing any other operations
     logbook.StderrHandler().push_application()
+    create_args(x, zipline.extension_args)
     load_extensions(
         default_extension,
         extension,
         strict_extensions,
         os.environ,
     )
-
-    create_args(x, zipline.extension_args)
 
 
 def extract_option_object(option):
@@ -284,25 +283,6 @@ def run(ctx,
         perf.to_pickle(output)
 
     return perf
-
-
-def add_cli_option(func, name, choices, help):
-    """
-    Adds a click option to the specified callable func.
-    The callable must be accessible via click.
-    """
-
-    if not hasattr(func, 'params'):
-        raise ValueError('function is not set up with click')
-
-    func.params.append(
-        click.core.Option(
-            param_decls=[name],
-            type=click.Choice(choices),
-            default='default',
-            help=help,
-        ),
-    )
 
 
 def zipline_magic(line, cell=None):

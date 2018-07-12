@@ -50,32 +50,32 @@ class CmdLineTestCase(ZiplineTestCase):
         assert_equal(n._arg_4_, 'test4')
 
         msg = (
-            'invalid extension argument 1=test3, '
-            'must be in key=value form'
+            "invalid extension argument '1=test3', "
+            "must be in key=value form"
         )
         with assert_raises_str(ValueError, msg):
             parse_extension_arg('1=test3', {})
         msg = (
-            'invalid extension argument arg4 test4, '
-            'must be in key=value form'
+            "invalid extension argument 'arg4 test4', "
+            "must be in key=value form"
         )
         with assert_raises_str(ValueError, msg):
             parse_extension_arg('arg4 test4', {})
         msg = (
-            'invalid extension argument arg5.1=test5, '
-            'must be in key=value form'
+            "invalid extension argument 'arg5.1=test5', "
+            "must be in key=value form"
         )
         with assert_raises_str(ValueError, msg):
             parse_extension_arg('arg5.1=test5', {})
         msg = (
-            'invalid extension argument arg6.6arg=test6, '
-            'must be in key=value form'
+            "invalid extension argument 'arg6.6arg=test6', "
+            "must be in key=value form"
         )
         with assert_raises_str(ValueError, msg):
             parse_extension_arg('arg6.6arg=test6', {})
         msg = (
-            'invalid extension argument arg7.-arg7=test7, '
-            'must be in key=value form'
+            "invalid extension argument 'arg7.-arg7=test7', "
+            "must be in key=value form"
         )
         with assert_raises_str(ValueError, msg):
             parse_extension_arg('arg7.-arg7=test7', {})

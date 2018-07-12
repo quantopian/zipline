@@ -1,6 +1,3 @@
-from abc import ABCMeta
-
-from six import with_metaclass
 from zipline.extensions import Registry
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import (
@@ -11,7 +8,7 @@ from zipline.testing.predicates import (
 )
 
 
-class FakeInterface(with_metaclass(ABCMeta)):
+class FakeInterface():
     pass
 
 
@@ -51,7 +48,11 @@ class RegistrationManagerTestCase(ZiplineTestCase):
         expected_classes = {'ayy-lmao': ProperDummyInterface}
         assert_equal(rm.get_registered_classes(), expected_classes)
         assert_is(rm.load('ayy-lmao'), ProperDummyInterface)
-        assert_true(rm.class_registered('ayy-lmao'))
+        assert_true(
+            rm.class_registered('ayy-lmao'),
+            "Class ProperDummyInterface wasn't properly registered under"
+            "name 'ayy-lmao'"
+        )
 
         msg = "FakeInterface class 'ayy-lmao' is already registered"
         with assert_raises_str(ValueError, msg):
@@ -96,7 +97,11 @@ class RegistrationManagerTestCase(ZiplineTestCase):
         expected_classes = {'ayy-lmao': ProperDummyInterface}
         assert_equal(rm.get_registered_classes(), expected_classes)
         assert_is(rm.load('ayy-lmao'), ProperDummyInterface)
-        assert_true(rm.class_registered('ayy-lmao'))
+        assert_true(
+            rm.class_registered('ayy-lmao'),
+            "Class ProperDummyInterface wasn't properly registered under"
+            "name 'ayy-lmao'"
+        )
 
         class Fake(object):
             pass
