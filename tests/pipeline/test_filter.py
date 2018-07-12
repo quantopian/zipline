@@ -1123,7 +1123,7 @@ class ReprTestCase(ZiplineTestCase):
             )
         )
 
-        short_rep = m.short_repr()
+        short_rep = m.graph_repr()
         assert_equal(short_rep, "Maximum:\l  "
                                 "groupby: SomeClassifier\l  "
                                 "mask: SomeFilter\l")

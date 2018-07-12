@@ -484,13 +484,13 @@ class StatisticalBuiltInsTestCase(WithTradingEnvironment, ZiplineTestCase):
         )
         self.assertEqual(result, expected)
 
-    def test_simple_beta_short_repr(self):
+    def test_simple_beta_graph_repr(self):
         beta = SimpleBeta(
             target=self.my_asset,
             regression_length=50,
             allowed_missing_percentage=0.5,
         )
-        result = beta.short_repr()
+        result = beta.graph_repr()
         expected = "SimpleBeta('A', 50, 25)".format(self.my_asset)
         self.assertEqual(result, expected)
 
