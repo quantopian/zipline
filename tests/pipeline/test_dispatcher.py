@@ -5,7 +5,10 @@ from zipline.pipeline.data import (
     BoundColumn,
     USEquityPricing,
 )
-from zipline.pipeline.dispatcher import PipelineDispatcher
+from zipline.pipeline.dispatcher import (
+    PipelineDispatcher,
+    clear_all_associations,
+)
 from zipline.pipeline.loaders.base import PipelineLoader
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.testing import ZiplineTestCase
@@ -44,6 +47,8 @@ class PipelineDispatcherTestCase(WithAdjustmentReader, ZiplineTestCase):
             cls.bcolz_equity_daily_bar_reader,
             cls.adjustment_reader,
         )
+
+        cls.add_class_callback(clear_all_associations)
 
     def test_load_not_registered(self):
         fake_col_instance = FakeColumn(

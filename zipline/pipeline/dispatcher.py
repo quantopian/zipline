@@ -53,6 +53,11 @@ class PipelineDispatcher(object):
             raise TypeError("Data provided is neither a BoundColumn "
                             "nor a DataSet")
 
+    def clear(self):
+        """Unregisters all dataset-loader associations"""
+        self._column_loaders.clear()
+
 
 global_pipeline_dispatcher = PipelineDispatcher()
 register_pipeline_loader = global_pipeline_dispatcher.register
+clear_all_associations = global_pipeline_dispatcher.clear
