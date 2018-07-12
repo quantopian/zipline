@@ -54,6 +54,8 @@ cdef class Asset:
         'auto_close_date',
         'exchange',
         'exchange_full',
+        'tick_size',
+        'multiplier',
     })
 
     def __init__(self,
@@ -65,7 +67,9 @@ cdef class Asset:
                  object end_date=None,
                  object first_traded=None,
                  object auto_close_date=None,
-                 object exchange_full=None):
+                 object exchange_full=None,
+                 object tick_size=0.01,
+                 float multiplier=1.0):
 
         self.sid = sid
         self.symbol = symbol
@@ -77,6 +81,8 @@ cdef class Asset:
         self.end_date = end_date
         self.first_traded = first_traded
         self.auto_close_date = auto_close_date
+        self.tick_size = tick_size
+        self.price_multiplier = multiplier
 
     def __int__(self):
         return self.sid
@@ -144,7 +150,9 @@ cdef class Asset:
                                  self.end_date,
                                  self.first_traded,
                                  self.auto_close_date,
-                                 self.exchange_full))
+                                 self.exchange_full,
+                                 self.tick_size,
+                                 self.price_multiplier))
 
     cpdef to_dict(self):
         """
@@ -160,6 +168,8 @@ cdef class Asset:
             'auto_close_date': self.auto_close_date,
             'exchange': self.exchange,
             'exchange_full': self.exchange_full,
+            'tick_size': self.tick_size,
+            'multiplier': self.price_multiplier,
         }
 
     @classmethod
@@ -206,6 +216,33 @@ cdef class Asset:
 
 
 cdef class Equity(Asset):
+
+    def __init__(self,
+                 int64_t sid, # sid is required
+                 object exchange, # exchange is required
+                 object symbol="",
+                 object asset_name="",
+                 object start_date=None,
+                 object end_date=None,
+                 object first_traded=None,
+                 object auto_close_date=None,
+                 object exchange_full=None,
+                 object tick_size=0.01,
+                 float multiplier=1.0):
+
+        super().__init__(
+            sid,
+            exchange,
+            symbol=symbol,
+            asset_name=asset_name,
+            start_date=start_date,
+            end_date=end_date,
+            first_traded=first_traded,
+            auto_close_date=auto_close_date,
+            exchange_full=exchange_full,
+            tick_size=tick_size,
+            multiplier=multiplier
+        )
 
     property security_start_date:
         """
@@ -254,9 +291,9 @@ cdef class Future(Asset):
         'auto_close_date',
         'first_traded',
         'exchange',
+        'exchange_full',
         'tick_size',
         'multiplier',
-        'exchange_full',
     })
 
     def __init__(self,
@@ -271,7 +308,7 @@ cdef class Future(Asset):
                  object expiration_date=None,
                  object auto_close_date=None,
                  object first_traded=None,
-                 object tick_size="",
+                 object tick_size=0.001,
                  float multiplier=1.0,
                  object exchange_full=None):
 
@@ -285,12 +322,12 @@ cdef class Future(Asset):
             first_traded=first_traded,
             auto_close_date=auto_close_date,
             exchange_full=exchange_full,
+            tick_size=tick_size,
+            multiplier=multiplier
         )
         self.root_symbol = root_symbol
         self.notice_date = notice_date
         self.expiration_date = expiration_date
-        self.tick_size = tick_size
-        self.multiplier = multiplier
 
         if auto_close_date is None:
             if notice_date is None:
@@ -299,6 +336,17 @@ cdef class Future(Asset):
                 self.auto_close_date = notice_date
             else:
                 self.auto_close_date = min(notice_date, expiration_date)
+
+    property multiplier:
+        """
+        DEPRECATION: This property should be deprecated and is only present for
+        backwards compatibility
+        """
+        def __get__(self):
+            warnings.warn("The multiplier property will soon be "
+            "retired. Please use the price_multiplier property instead.",
+            DeprecationWarning)
+            return self.price_multiplier
 
     cpdef __reduce__(self):
         """
@@ -319,7 +367,7 @@ cdef class Future(Asset):
                                  self.auto_close_date,
                                  self.first_traded,
                                  self.tick_size,
-                                 self.multiplier,
+                                 self.price_multiplier,
                                  self.exchange_full))
 
     cpdef to_dict(self):
@@ -331,7 +379,7 @@ cdef class Future(Asset):
         super_dict['notice_date'] = self.notice_date
         super_dict['expiration_date'] = self.expiration_date
         super_dict['tick_size'] = self.tick_size
-        super_dict['multiplier'] = self.multiplier
+        super_dict['multiplier'] = self.price_multiplier
         return super_dict
 
 
