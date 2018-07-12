@@ -68,7 +68,7 @@ cdef class Asset:
                  object first_traded=None,
                  object auto_close_date=None,
                  object exchange_full=None,
-                 object tick_size=0.001,
+                 object tick_size=0.01,
                  float multiplier=1.0):
 
         self.sid = sid
