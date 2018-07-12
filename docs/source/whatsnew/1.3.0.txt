@@ -1,4 +1,4 @@
-Development
+Release 1.3.0
 -----------
 
 :Release: 1.3.0
@@ -30,7 +30,7 @@ will be tested during our normal build/release cycle.
 Moving forward, our goal to continue to maintain support for two sets of
 packages at any given time. The "stable" package set will change relatively
 infrequently, and will contain the versions of numpy and pandas supported on
-Quantopian. The "latset" package set will change regularly, and will contain
+Quantopian. The "latest" package set will change regularly, and will contain
 recently-released versions of numpy and pandas.
 
 Our hope with these changes is to strike a balance between stability and
@@ -50,12 +50,46 @@ For backwards compability, Zipline will continue to re-export calendar-related
 functions (e.g., :meth:`zipline.get_calendar` still exists, but is now an alias
 for ``trading_calendars.get_calendar``).
 
+Custom class registration
+`````````````````````````
+We have begun work to reorganize the way in which custom classes for certain
+abstract types in Zipline are registered, making it easier for users to create
+their own extensions. In this release, we've created a ``RegistrationManager``
+class which will be responsible for containing associations between supported
+interfaces and their registered subtypes. The only interface officially
+supported for extension with this release is
+``zipline.finance.blotter.Blotter``, but we will be adding more in coming
+releases. ``Blotter`` is now an abstract base class, and the default subclass
+now used for running algos in Zipline is ``SimulationBlotter``. Users can
+register custom subclasses of this interface with the following decorator:
+``@register(Blotter, 'name')``. The ``name`` value can then be used to specify
+which Blotter subclass Zipline should use when running
+``zipline run --blotter-class 'name' ...``.
+
+Custom command line argument support
+````````````````````````````````````
+In this release, we've added support for specifying custom string arguments
+from the command line by running with the ``-x key=value`` flag, where ``key``
+may include namespaces. Users can then access these arguments globally via
+``zipline.extension_args.key.[optional_namespaces...]`` in their code.
+Some usage examples are the following:
+
+If the user runs with ``zipline -x custom_arg=blah run ...``, then
+``zipline.extension_args.custom_arg`` will contain ``'blah'``.
+
+If the user runs with ``zipline -x first.second.third=blah run ...``, then
+``zipline.extension_args.first.second.third`` will contain ``'blah'``.
+
 Enhancements
 ~~~~~~~~~~~~
 - Added support for pandas 0.22 and numpy 1.14. See above for
   details. (:issue:`2194`)
 - Moved ``zipline.utils.calendars`` into a separately-installable
   `trading-calendars`_ package. (:issue:`2219`)
+- Added support for registering custom subclass of
+  ``zipline.finance.blotter.Blotter``. See above for details. (:issue:`2210`)
+- Added support for specifying custom string arguments with the ``-x`` flag.
+  See above for details. (:issue:`2210`)
 
 Bug Fixes
 ~~~~~~~~~
@@ -67,6 +101,9 @@ Bug Fixes
   groupby. (:issue:`2218`)
 - Fixed a bug where calling ``data.history`` with a negative lookback would
   fetch prices from the future. (:issue:`2164`)
+- Fixed a bug where ``StopOrder``, ``LimitOrder``, and ``StopLimitOrder``
+  prices were being rounded to the nearest penny regardless of asset tick size.
+  (:issue:`2211`)
 
 Performance
 ~~~~~~~~~~~
@@ -80,6 +117,9 @@ Maintenance and Refactorings
 - Refactored large parts of the Zipline test suite to make it easier to change
   the signature of :class:`zipline.algorithm.TradingAlgorithm`. (:issue:`2169`,
   :issue:`2168`, :issue:`2165`, :issue:`2171`)
+- Made the ``tick_size`` field and ``multiplier`` field (now called
+  ``price_multiplier``) available in both futures and equities.
+  (:issue:`2211`)
 
 Build
 ~~~~~
