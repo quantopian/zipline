@@ -1332,6 +1332,16 @@ class ShortReprTestCase(TestCase):
             "Latest"
         )
 
+    def test_combined_repr(self):
+        c = C()
+        other_c = OtherC()
+        test_fac = F(
+            dtype=float64_dtype,
+            inputs=(c, other_c),
+            window_length=0
+        )
+        self.assertEqual("%s" % test_fac, "F([C, OtherC], 0)")
+
 
 class TestWindowSafety(TestCase):
 
