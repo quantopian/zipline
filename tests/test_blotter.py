@@ -108,6 +108,7 @@ class BlotterTestCase(WithCreateBarData,
                            (StopOrder(10), None, 10),
                            (StopLimitOrder(10, 20), 10, 20)])
     def test_blotter_order_types(self, style_obj, expected_lmt, expected_stp):
+        style_obj.asset = self.asset_24
 
         blotter = SimulationBlotter('daily')
 

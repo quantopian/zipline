@@ -377,9 +377,15 @@ def handle_data(context, data):
                 algo.order(algo.sid(1), 1)
 
                 # Won't be filled because the price is too low.
-                algo.order(algo.sid(2), 1, style=LimitOrder(0.01))
-                algo.order(algo.sid(2), 1, style=LimitOrder(0.01))
-                algo.order(algo.sid(2), 1, style=LimitOrder(0.01))
+                algo.order(
+                    algo.sid(2), 1, style=LimitOrder(0.01, asset=algo.sid(2))
+                )
+                algo.order(
+                    algo.sid(2), 1, style=LimitOrder(0.01, asset=algo.sid(2))
+                )
+                algo.order(
+                    algo.sid(2), 1, style=LimitOrder(0.01, asset=algo.sid(2))
+                )
 
                 all_orders = algo.get_open_orders()
                 self.assertEqual(list(all_orders.keys()), [1, 2])

@@ -385,8 +385,8 @@ class FinanceTestCase(WithLogger,
         asset2 = self.asset_finder.retrieve_asset(2)
         asset133 = self.asset_finder.retrieve_asset(133)
 
-        blotter.order(asset1, 100, LimitOrder(10))
-        blotter.order(asset2, 100, LimitOrder(10))
+        blotter.order(asset1, 100, LimitOrder(10, asset=asset1))
+        blotter.order(asset2, 100, LimitOrder(10, asset=asset2))
 
         # send in splits for assets 133 and 2.  We have no open orders for
         # asset 133 so it should be ignored.

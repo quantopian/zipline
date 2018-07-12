@@ -16,7 +16,7 @@ from warnings import warn
 
 import pandas as pd
 
-from .assets import Asset, Future
+from .assets import Asset
 from .utils.enum import enum
 from ._protocol import BarData, InnerPosition  # noqa
 
@@ -160,10 +160,6 @@ class Order(Event):
     )
 
 
-def asset_multiplier(asset):
-    return asset.multiplier if isinstance(asset, Future) else 1
-
-
 class Portfolio(object):
     """The portfolio at a given time.
 
@@ -228,9 +224,9 @@ class Portfolio(object):
         """
         position_values = pd.Series({
             asset: (
-                position.last_sale_price *
-                position.amount *
-                asset_multiplier(asset)
+                    position.last_sale_price *
+                    position.amount *
+                    asset.price_multiplier
             )
             for asset, position in self.positions.items()
         })

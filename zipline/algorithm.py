@@ -1397,10 +1397,7 @@ class TradingAlgorithm(object):
             # Don't place any order
             return 0
 
-        if isinstance(asset, Future):
-            value_multiplier = asset.multiplier
-        else:
-            value_multiplier = 1
+        value_multiplier = asset.price_multiplier
 
         return value / (last_price * value_multiplier)
 
@@ -1494,7 +1491,8 @@ class TradingAlgorithm(object):
 
         # Convert deprecated limit_price and stop_price parameters to use
         # ExecutionStyle objects.
-        style = self.__convert_order_params_for_blotter(limit_price,
+        style = self.__convert_order_params_for_blotter(asset,
+                                                        limit_price,
                                                         stop_price,
                                                         style)
         return amount, style
@@ -1547,7 +1545,10 @@ class TradingAlgorithm(object):
                              self.trading_client.current_data)
 
     @staticmethod
-    def __convert_order_params_for_blotter(limit_price, stop_price, style):
+    def __convert_order_params_for_blotter(asset,
+                                           limit_price,
+                                           stop_price,
+                                           style):
         """
         Helper method for converting deprecated limit_price and stop_price
         arguments into ExecutionStyle instances.
@@ -1559,11 +1560,11 @@ class TradingAlgorithm(object):
             assert (limit_price, stop_price) == (None, None)
             return style
         if limit_price and stop_price:
-            return StopLimitOrder(limit_price, stop_price)
+            return StopLimitOrder(limit_price, stop_price, asset=asset)
         if limit_price:
-            return LimitOrder(limit_price)
+            return LimitOrder(limit_price, asset=asset)
         if stop_price:
-            return StopOrder(stop_price)
+            return StopOrder(stop_price, asset=asset)
         else:
             return MarketOrder()
 
