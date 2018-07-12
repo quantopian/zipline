@@ -357,7 +357,7 @@ class Term(with_metaclass(ABCMeta, object)):
     def recursive_repr(self):
         """A short repr to use when recursively rendering terms with inputs.
         """
-        # Default graph_repr is just the name of the type.
+        # Default recursive_repr is just the name of the type.
         return type(self).__name__
 
 
