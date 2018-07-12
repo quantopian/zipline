@@ -1,6 +1,8 @@
 """
 Tests BoundColumn attributes and methods.
 """
+from unittest import skipIf
+
 from pandas import Timestamp, DataFrame
 from pandas.util.testing import assert_frame_equal
 
@@ -12,7 +14,8 @@ from zipline.testing.fixtures import (
     WithTradingSessions,
     ZiplineTestCase
 )
-from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning
+from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning, \
+    new_pandas, skip_pipeline_new_pandas
 
 
 class LatestTestCase(WithSeededRandomPipelineEngine,
@@ -56,6 +59,7 @@ class LatestTestCase(WithSeededRandomPipelineEngine,
             columns=self.assets,
         )
 
+    @skipIf(new_pandas, skip_pipeline_new_pandas)
     def test_latest(self):
         columns = TDS.columns
         pipe = Pipeline(

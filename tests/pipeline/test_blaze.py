@@ -6,6 +6,7 @@ from __future__ import division
 from collections import OrderedDict
 from datetime import timedelta, time
 from itertools import product, chain
+from unittest import skipIf
 import warnings
 
 import blaze as bz
@@ -15,7 +16,6 @@ import numpy as np
 from numpy.testing.utils import assert_array_almost_equal
 from odo import odo
 import pandas as pd
-from pandas.util.testing import assert_frame_equal
 from toolz import keymap, valmap, concatv
 from toolz.curried import operator as op
 
@@ -39,10 +39,14 @@ from zipline.testing import (
     tmp_asset_finder,
 )
 from zipline.testing.fixtures import WithAssetFinder
-from zipline.testing.predicates import assert_equal, assert_isidentical
+from zipline.testing.predicates import (
+    assert_equal,
+    assert_frame_equal,
+    assert_isidentical,
+)
 from zipline.utils.numpy_utils import float64_dtype, int64_dtype
-from zipline.utils.pandas_utils import empty_dataframe
-
+from zipline.utils.pandas_utils import empty_dataframe, new_pandas, \
+    skip_pipeline_new_pandas
 
 nameof = op.attrgetter('name')
 dtypeof = op.attrgetter('dtype')
@@ -425,6 +429,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             NonPipelineField,
         )
 
+    @skipIf(new_pandas, skip_pipeline_new_pandas)
     def test_cols_with_all_missing_vals(self):
         """
         Tests that when there is no known data, we get output where the
@@ -555,6 +560,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
              'dt_value'),
         )
 
+    @skipIf(new_pandas, skip_pipeline_new_pandas)
     def test_cols_with_some_missing_vals(self):
         """
         Tests the following:
@@ -611,6 +617,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             (self.ASSET_FINDER_EQUITY_SIDS[-1],) * 2,
             'float_value': (0., 1., 2., np.NaN),
             'str_value': ('a', 'b', 'c', None),
+            'cat_value': pd.Categorical(
+                values=['a', 'b', 'c', None],
+                categories=['a', 'b', 'c', None],
+            ),
             'int_value': (1, 2, 3, 0),
             'bool_value': (True, True, True, False),
             'dt_value': (pd.Timestamp('2011-01-01'),
@@ -628,6 +638,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                  sid: int64,
                  float_value: float64,
                  str_value: string,
+                 cat_value: string,
                  int_value: int64,
                  bool_value: bool,
                  dt_value: datetime,
@@ -640,6 +651,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         expected = pd.DataFrame(
             {
                 'str_value': np.array(
+                    ['a', None, 'c', 'a', None, 'c', 'a', 'b', 'c'],
+                    dtype='object',
+                ),
+                'cat_value': np.array(
                     ['a', None, 'c', 'a', None, 'c', 'a', 'b', 'c'],
                     dtype='object',
                 ),
@@ -669,6 +684,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             },
             columns=[
                 'str_value',
+                'cat_value',
                 'float_value',
                 'int_value',
                 'bool_value',

@@ -546,7 +546,7 @@ class SimpleBeta(CustomFactor, StandardOutputs):
             out=out,
         )
 
-    def short_repr(self):
+    def graph_repr(self):
         return "{}({!r}, {}, {})".format(
             type(self).__name__,
             str(self.target.symbol),  # coerce from unicode to str in py2.

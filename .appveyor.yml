@@ -27,6 +27,16 @@ environment:
     - PYTHON_VERSION: "2.7"
     - PYTHON_VERSION: "3.5"
 
+    # - PYTHON_VERSION: "3.5"
+    #   PANDAS_VERSION: "0.19.2"
+
+    - PYTHON_VERSION: "3.5"
+      PANDAS_VERSION: "0.22.0"
+      NUMPY_VERSION: "1.14.1"
+      SCIPY_VERSION: "1.0.0"
+      PANDAS_DATAREADER_VERSION: "0.4.0"
+      DASK_VERSION: "0.17.1"
+
 # We always use a 64-bit machine, but can build x86 distributions
 # with the PYTHON_ARCH variable (which is used by CMD_IN_ENV).
 platform:
@@ -66,7 +76,9 @@ install:
   - sed -i "s/numpy==.*/numpy==%NUMPY_VERSION%/" etc/requirements.txt
   - sed -i "s/pandas==.*/pandas==%PANDAS_VERSION%/" etc/requirements.txt
   - sed -i "s/scipy==.*/scipy==%SCIPY_VERSION%/" etc/requirements.txt
-
+  - IF NOT "%PANDAS_DATAREADER_VERSION%"=="" sed -i "s/pandas-datareader==.*/pandas-datareader==%PANDAS_DATAREADER_VERSION%/" etc/requirements.txt
+  - IF NOT "%DASK_VERSION%"=="" sed -i "s/dask\[dataframe\]==.*/dask\[dataframe\]==%DASK_VERSION%/" etc/requirements_blaze.txt
+  - cat etc/requirements.txt
   - conda info -a
   - conda install conda=4.3.30 conda-build=3.0.28 anaconda-client=1.6.3 --yes -q
   - conda list
@@ -80,7 +92,7 @@ install:
   - ps: $env:BCOLZ_VERSION=(sls "bcolz==(.*)" .\etc\requirements.txt -ca).matches.groups[1].value
   - ps: $env:NUMEXPR_VERSION=(sls "numexpr==(.*)" .\etc\requirements.txt -ca).matches.groups[1].value
   - ps: $env:TALIB_VERSION=(sls "TA-Lib==(.*)" .\etc\requirements_talib.txt -ca).matches.groups[1].value
-  - conda create -n testenv --yes -q --use-local pip python=%PYTHON_VERSION% numpy=%NUMPY_VERSION% scipy=%SCIPY_VERSION% ta-lib=%TALIB_VERSION% bcolz=%BCOLZ_VERSION% numexpr=%NUMEXPR_VERSION% -c quantopian -c https://conda.anaconda.org/quantopian/label/ci
+  - conda create -n testenv --yes -q --use-local pip python=%PYTHON_VERSION% numpy=%NUMPY_VERSION% pandas=%PANDAS_VERSION% scipy=%SCIPY_VERSION% ta-lib=%TALIB_VERSION% bcolz=%BCOLZ_VERSION% numexpr=%NUMEXPR_VERSION% -c quantopian -c https://conda.anaconda.org/quantopian/label/ci
   - activate testenv
   - SET CACHE_DIR=%LOCALAPPDATA%\pip\Cache\pip_np%CONDA_NPY%py%CONDA_PY%
   # pip on windows complains

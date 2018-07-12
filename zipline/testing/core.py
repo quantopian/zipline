@@ -538,24 +538,33 @@ def create_minute_df_for_asset(trading_calendar,
         start_dt, end_dt
     )
     minutes_count = len(asset_minutes)
-    minutes_arr = np.array(range(start_val, start_val + minutes_count))
+
+    if interval > 1:
+        minutes_arr = np.zeros(minutes_count)
+        minutes_arr[interval-1::interval] = \
+            np.arange(start_val+interval-1, start_val+minutes_count, interval)
+    else:
+        minutes_arr = np.arange(start_val, start_val + minutes_count)
+
+    open_ = minutes_arr.copy()
+    open_[interval-1::interval] += 1
+
+    high = minutes_arr.copy()
+    high[interval-1::interval] += 2
+
+    low = minutes_arr.copy()
+    low[interval - 1::interval] -= 1
 
     df = pd.DataFrame(
         {
-            "open": minutes_arr + 1,
-            "high": minutes_arr + 2,
-            "low": minutes_arr - 1,
+            "open": open_,
+            "high": high,
+            "low": low,
             "close": minutes_arr,
             "volume": 100 * minutes_arr,
         },
         index=asset_minutes,
     )
-
-    if interval > 1:
-        counter = 0
-        while counter < len(minutes_arr):
-            df[counter:(counter + interval - 1)] = 0
-            counter += interval
 
     if minute_blacklist is not None:
         for minute in minute_blacklist:
