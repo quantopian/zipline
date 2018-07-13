@@ -63,6 +63,7 @@ def _run(handle_data,
          algotext,
          defines,
          data_frequency,
+         emission_rate,
          capital_base,
          data,
          bundle,
@@ -213,6 +214,7 @@ def _run(handle_data,
             end=end,
             capital_base=capital_base,
             data_frequency=data_frequency,
+            emission_rate=emission_rate,
             trading_calendar=trading_calendar,
         ),
         metrics_set=metrics_set,
@@ -300,6 +302,7 @@ def run_algorithm(start,
                   before_trading_start=None,
                   analyze=None,
                   data_frequency='daily',
+                  emission_rate='daily',
                   data=None,
                   bundle=None,
                   bundle_timestamp=None,
@@ -337,6 +340,8 @@ def run_algorithm(start,
         performance data.
     data_frequency : {'daily', 'minute'}, optional
         The data frequency to run the algorithm at.
+    emission_rate : {'daily', 'minute'}, optional
+        The emission rate to run the algorithm at.
     data : pd.DataFrame, pd.Panel, or DataPortal, optional
         The ohlcv data to run the backtest with.
         This argument is mutually exclusive with:
@@ -411,6 +416,7 @@ def run_algorithm(start,
         algotext=None,
         defines=(),
         data_frequency=data_frequency,
+        emission_rate=emission_rate,
         capital_base=capital_base,
         data=data,
         bundle=bundle,
