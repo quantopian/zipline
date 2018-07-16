@@ -325,15 +325,10 @@ class TradingAlgorithm(object):
             cleanup=clear_dataframe_indexer_caches
         )
 
-        if 'blotter' in kwargs and 'blotter_class' in kwargs:
-            raise RuntimeError('both blotter and blotter_class are defined')
         self.blotter = kwargs.pop('blotter', None)
-        self.cancel_policy = kwargs.pop('cancel_policy', NeverCancel())
         if not self.blotter:
-            self.blotter = kwargs.pop('blotter_class', SimulationBlotter)(
-                # Default to NeverCancel in zipline
-                cancel_policy=self.cancel_policy,
-            )
+            cancel_policy = kwargs.pop('cancel_policy', NeverCancel())
+            self.blotter = SimulationBlotter(cancel_policy=cancel_policy)
 
         # The symbol lookup date specifies the date to use when resolving
         # symbols to sids, and can be set using set_symbol_lookup_date()

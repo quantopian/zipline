@@ -106,7 +106,7 @@ class Registry(object):
         Parameters
         ----------
         interface : type
-            The abstract base class to manage
+            The abstract base class to manage.
         """
         self.interface = interface
         self._classes = {}
@@ -117,7 +117,7 @@ class Registry(object):
             return self._classes[name]
         except KeyError:
             raise ValueError(
-                "no %s class registered under name %r, options are: %r" %
+                "no %s factory registered under name %r, options are: %r" %
                 (self.interface.__name__, name, sorted(self._classes)),
             )
 
@@ -125,30 +125,23 @@ class Registry(object):
         return name in self._classes
 
     @curry
-    def register(self, name, custom_class):
-
+    def register(self, name, factory):
         if self.class_registered(name):
             raise ValueError(
-                "%s class %r is already registered" %
+                "%s factory with name %r is already registered" %
                 (self.interface.__name__, name)
             )
 
-        if not issubclass(custom_class, self.interface):
-            raise TypeError(
-                "The class specified is not a subclass of %s"
-                % self.interface.__name__
-            )
+        self._classes[name] = factory
 
-        self._classes[name] = custom_class
-
-        return custom_class
+        return factory
 
     def unregister(self, name):
         try:
             del self._classes[name]
         except KeyError:
             raise ValueError(
-                "%s class %r was not already registered" %
+                "%s factory %r was not already registered" %
                 (self.interface.__name__, name)
             )
 
@@ -292,12 +285,12 @@ def create_registry(interface):
     ----------
     interface : type
         The abstract data type for which to create a registry,
-        which will manage registration for subclasses of this type
+        which will manage registration of factories for this type.
 
     Returns
     -------
     interface : type
-        The data type specified/decorated, which is unaltered
+        The data type specified/decorated, unaltered.
     """
     if interface in custom_types:
         raise ValueError('there is already a Registry instance '
