@@ -11,8 +11,8 @@ version.
 .. note::
 
    This will likely be the last minor release in the Zipline 1.x series. The
-   release will be Zipline 2.0, which will include a number of small breaking
-   changes required to support international equities.
+   release next will be Zipline 2.0, which will include a number of small
+   breaking changes required to support international equities.
 
 Highlights
 ~~~~~~~~~~
@@ -67,7 +67,7 @@ Custom Blotters
 ```````````````
 
 This release adds experimental support for running Zipline with user-defined
-subclasses of :class:`zipline.finance.blotter.Blotter`. The primary motivation
+subclasses of :class:`~zipline.finance.blotter.blotter.Blotter`. The primary motivation
 for this change is to make it easier to run live algorithms with Zipline.
 
 You can register a custom Blotter subclass by decorating their subclass with
@@ -75,7 +75,7 @@ You can register a custom Blotter subclass by decorating their subclass with
 your new subclass by passing ``--blotter-class "my-blotter"`` on the command
 line.
 
-As part of this change, the :class:`zipline.finance.blotter.Blotter` class has
+As part of this change, the :class:`~zipline.finance.blotter.blotter.Blotter` class has
 been converted into an abstract base class. The default blotter used in
 simulations is now named :class:`zipline.finance.blotter.SimulationBlotter`.
 
@@ -99,7 +99,7 @@ in keys. For example, if zipline is invoked like this::
     $ zipline -x argle.bargle=foo
 
 then ``zipline.extension_args.argle`` will contain an object with a ``bargle``
-attribute containing the string ``"foo"`. Keys can contain multiple dots to
+attribute containing the string ``"foo"``. Keys can contain multiple dots to
 create nested namespaces.
 
 Enhancements
