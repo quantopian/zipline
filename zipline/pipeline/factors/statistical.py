@@ -569,11 +569,6 @@ class SimpleBeta(CustomFactor, StandardOutputs):
         )
 
 
-class MultipleLinearRegression(CustomFactor):
-
-    
-
-
 def vectorized_beta(dependents, independent, allowed_missing, out=None):
     """
     Compute slopes of linear regressions between columns of ``dependents`` and
@@ -686,12 +681,13 @@ class MultipleLinearRegression(CustomFactor):
         regressions are computed asset-wise.
     regression_length : int
         Length of the lookback window over which to compute each regression.
+    outputs : list[str]
     mask : zipline.pipeline.Filter, optional
         A Filter describing which assets (columns) of `dependent` should be
         regressed against `independent` each day.
     """
     window_safe = True
-    @expect_dtypes(dependent
+
     def __new__(cls,
                 dependent,
                 independent,
@@ -699,10 +695,19 @@ class MultipleLinearRegression(CustomFactor):
                 outputs,
                 mask=NotSpecified):
 
+        # We should have an output for each independent variable, plus one for
+        # the constant term.
+        if len(outputs) != len(independent) + 1:
+            raise ValueError(
+                "Number of outputs should be one more than the number of "
+                "independent terms.\n\n"
+            )
+
         inputs = (dependent,) + tuple(independent)
+
         return cls(
             inputs=inputs,
-            window_length=window_length,
+            window_length=regression_length,
             outputs=outputs,
             mask=mask,
         )
