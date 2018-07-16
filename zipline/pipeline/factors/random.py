@@ -21,14 +21,14 @@ class _PseudoRandomCustomFactor(CustomFactor):
 
 
 class UniformRandom(_PseudoRandomCustomFactor):
-    """A Factor generating uniformly-random
+    """A Factor generating uniform pseudo-random values.
 
     Parameters
     ----------
     low : float, optional
-        Lower bound for generated variables. Default is 0.
+        Lower bound for generated values. Default is 0.
     high : float, optional
-        Upper bound for generated variables. Default is 1.
+        Upper bound for generated values. Default is 1.
     seed : int, optional
         Seed for random number generation. Default is 0.
     """
@@ -44,6 +44,17 @@ class UniformRandom(_PseudoRandomCustomFactor):
 
 
 class NormalRandom(_PseudoRandomCustomFactor):
+    """A Factor generating normally-distributed pseudo-random values.
+
+    Parameters
+    ----------
+    mean : float, optional
+        Mean of generated random values.
+    high : float, optional
+        Upper bound for generated variables. Default is 1.
+    seed : int, optional
+        Seed for random number generation. Default is 0.
+    """
     params = {
         'mean': 0.0,
         'std': 1.0,
@@ -53,15 +64,3 @@ class NormalRandom(_PseudoRandomCustomFactor):
     @staticmethod
     def generate_random_values(state, size, mean, std):
         return state.normal(loc=mean, scale=std)
-
-
-class StudentTRandom(_PseudoRandomCustomFactor):
-    params = {
-        'mean': 0.0,
-        'scale': 1.0,
-        'seed': 0,
-    }
-
-    @staticmethod
-    def generate_random_values(state, size, mean, scale):
-        return state.normal(loc=mean, scale=scale)
