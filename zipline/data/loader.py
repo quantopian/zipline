@@ -295,14 +295,15 @@ def ensure_treasury_data(symbol, first_date, last_date, now, environ=None):
 def _load_cached_data(filename, first_date, last_date, now, resource_name,
                       environ=None):
     if resource_name == 'benchmark':
-        # We expect a series here.
         def from_csv(path):
             return pd.read_csv(
                 path,
                 parse_dates=[0],
                 index_col=0,
                 header=None,
-            ).tz_localize('UTC').iloc[:, 0]
+                # Pass squeeze=True so that we get a series instead of a frame.
+                squeeze=True,
+            ).tz_localize('UTC')
     else:
         def from_csv(path):
             return pd.read_csv(
