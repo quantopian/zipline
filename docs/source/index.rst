@@ -8,6 +8,7 @@
    bundles
    trading-calendars
    risk-and-perf-metrics
+   pipeline
    development-guidelines
    appendix
    release-process
