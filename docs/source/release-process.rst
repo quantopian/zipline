@@ -126,14 +126,8 @@ Edit your ``~/.pypirc`` file to look like:
    [distutils]
    index-servers =
        pypi
-       pypitest
 
    [pypi]
-   username:
-   password:
-
-   [pypitest]
-   repository: https://testpypi.python.org/pypi
    username:
    password:
 
@@ -141,8 +135,11 @@ after that, run:
 
 .. code-block:: bash
 
-   $ python setup.py sdist upload -r pypitest
+   $ pip install twine
+   $ twine upload --repository-url https://test.pypi.org/legacy/ dist/zipline-<version-number>.tar.gz
 
+Twine will prompt you for a username and password, which you should have access
+to if you're authorized to push Zipline releases.
 
 .. note::
 
