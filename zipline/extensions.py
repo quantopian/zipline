@@ -2,8 +2,6 @@ import re
 import six
 from toolz import curry
 
-from zipline.utils.compat import mappingproxy
-
 
 def create_args(args, root):
     """
@@ -99,46 +97,52 @@ class Registry(object):
     create_registry function/decorator. All management methods
     for a given base class can be called through the global wrapper functions
     rather than through the object instance itself.
-    """
 
+    Parameters
+    ----------
+    interface : type
+        The abstract base class to manage.
+    """
     def __init__(self, interface):
-        """
-        Parameters
-        ----------
-        interface : type
-            The abstract base class to manage.
-        """
         self.interface = interface
-        self._classes = {}
-        self.classes = mappingproxy(self._classes)
+        self._factories = {}
 
     def load(self, name):
+        """Construct an object from a registered factory.
+
+        Parameters
+        ----------
+        name : str
+            Name with which the factory was registered.
+        """
         try:
-            return self._classes[name]
+            return self._factories[name]()
         except KeyError:
             raise ValueError(
                 "no %s factory registered under name %r, options are: %r" %
-                (self.interface.__name__, name, sorted(self._classes)),
+                (self.interface.__name__, name, sorted(self._factories)),
             )
 
-    def class_registered(self, name):
-        return name in self._classes
+    def is_registered(self, name):
+        """Check whether we have a factory registered under ``name``.
+        """
+        return name in self._factories
 
     @curry
     def register(self, name, factory):
-        if self.class_registered(name):
+        if self.is_registered(name):
             raise ValueError(
                 "%s factory with name %r is already registered" %
                 (self.interface.__name__, name)
             )
 
-        self._classes[name] = factory
+        self._factories[name] = factory
 
         return factory
 
     def unregister(self, name):
         try:
-            del self._classes[name]
+            del self._factories[name]
         except KeyError:
             raise ValueError(
                 "%s factory %r was not already registered" %
@@ -146,10 +150,7 @@ class Registry(object):
             )
 
     def clear(self):
-        self._classes.clear()
-
-    def get_registered_classes(self):
-        return self.classes
+        self._factories.clear()
 
 
 # Public wrapper methods for Registry:
@@ -188,31 +189,10 @@ def load(interface, name):
 
     Returns
     -------
-    class : type
-        The desired class.
+    obj : object
+        An instance of the desired class.
     """
     return get_registry(interface).load(name)
-
-
-def class_registered(interface, name):
-    """
-    Whether or not the global dictionary of classes contains the
-    class with the specified name
-
-    Parameters
-    ----------
-    interface : type
-        The base class for which to perform this operation
-    name : str
-        The name of the class
-
-    Returns
-    -------
-    result : bool
-        Whether or not a given class is registered
-    """
-
-    return get_registry(interface).class_registered(name)
 
 
 @curry
@@ -261,25 +241,9 @@ def clear(interface):
     get_registry(interface).clear()
 
 
-def get_registered_classes(interface):
-    """
-    A getter method for the dictionary of registered classes
-
-    Parameters
-    ----------
-    interface : type
-        The base class for which to perform this operation
-
-    Returns
-    -------
-    classes : dict
-        The dictionary of registered classes
-    """
-    return get_registry(interface).get_registered_classes()
-
-
 def create_registry(interface):
     """
+    Create a new registry for an extensible interface.
 
     Parameters
     ----------

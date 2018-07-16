@@ -16,7 +16,6 @@ class RegistrationManagerTestCase(ZiplineTestCase):
 
     def test_load_not_registered(self):
         rm = Registry(FakeInterface)
-        assert_equal(rm.get_registered_classes(), {})
 
         msg = (
             "no FakeInterface factory registered under name 'ayy-lmao', "
@@ -39,34 +38,35 @@ class RegistrationManagerTestCase(ZiplineTestCase):
 
     def test_register_decorator(self):
         rm = Registry(FakeInterface)
-        assert_equal(rm.get_registered_classes(), {})
 
         @rm.register('ayy-lmao')
         class ProperDummyInterface(FakeInterface):
             pass
 
-        expected_classes = {'ayy-lmao': ProperDummyInterface}
-        assert_equal(rm.get_registered_classes(), expected_classes)
-        assert_is(rm.load('ayy-lmao'), ProperDummyInterface)
-        assert_true(
-            rm.class_registered('ayy-lmao'),
-            "Class ProperDummyInterface wasn't properly registered under"
-            "name 'ayy-lmao'"
-        )
+        def check_registered():
+            assert_true(
+                rm.is_registered('ayy-lmao'),
+                "Class ProperDummyInterface wasn't properly registered under"
+                "name 'ayy-lmao'"
+            )
+            self.assertIsInstance(rm.load('ayy-lmao'), ProperDummyInterface)
 
+        # Check that we successfully registered.
+        check_registered()
+
+        # Try and fail to register with the same key again.
         m = "FakeInterface factory with name 'ayy-lmao' is already registered"
         with assert_raises_str(ValueError, m):
             @rm.register('ayy-lmao')
             class Fake(object):
                 pass
 
-        # ensure that the failed registration didn't break the previously
-        # registered interface class
-        assert_equal(rm.get_registered_classes(), expected_classes)
-        assert_is(rm.load('ayy-lmao'), ProperDummyInterface)
+        # check that the failed registration didn't break the previous
+        # registration
+        check_registered()
 
+        # Unregister the key and assert that the key is now gone.
         rm.unregister('ayy-lmao')
-        assert_equal(rm.get_registered_classes(), {})
 
         msg = (
             "no FakeInterface factory registered under name 'ayy-lmao', "
@@ -81,39 +81,36 @@ class RegistrationManagerTestCase(ZiplineTestCase):
 
     def test_register_non_decorator(self):
         rm = Registry(FakeInterface)
-        assert_equal(rm.get_registered_classes(), {})
 
         class ProperDummyInterface(FakeInterface):
             pass
 
         rm.register('ayy-lmao', ProperDummyInterface)
 
-        expected_classes = {'ayy-lmao': ProperDummyInterface}
-        assert_equal(rm.get_registered_classes(), expected_classes)
-        assert_is(rm.load('ayy-lmao'), ProperDummyInterface)
-        assert_true(
-            rm.class_registered('ayy-lmao'),
-            "Class ProperDummyInterface wasn't properly registered under"
-            "name 'ayy-lmao'"
-        )
+        def check_registered():
+            assert_true(
+                rm.is_registered('ayy-lmao'),
+                "Class ProperDummyInterface wasn't properly registered under"
+                "name 'ayy-lmao'"
+            )
+            self.assertIsInstance(rm.load('ayy-lmao'), ProperDummyInterface)
+
+        # Check that we successfully registered.
+        check_registered()
 
         class Fake(object):
             pass
 
+        # Try and fail to register with the same key again.
         m = "FakeInterface factory with name 'ayy-lmao' is already registered"
         with assert_raises_str(ValueError, m):
             rm.register('ayy-lmao', Fake)
 
-        class ImproperDummyInterface(object):
-            pass
-
-        # ensure that the failed registration didn't break the previously
-        # registered interface class
-        assert_equal(rm.get_registered_classes(), expected_classes)
-        assert_is(rm.load('ayy-lmao'), ProperDummyInterface)
+        # check that the failed registration didn't break the previous
+        # registration
+        check_registered()
 
         rm.unregister('ayy-lmao')
-        assert_equal(rm.get_registered_classes(), {})
 
         msg = (
             "no FakeInterface factory registered under name 'ayy-lmao', "
