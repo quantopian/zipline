@@ -1,14 +1,9 @@
 from zipline.extensions import Registry
 from zipline.testing.fixtures import ZiplineTestCase
-from zipline.testing.predicates import (
-    assert_equal,
-    assert_is,
-    assert_raises_str,
-    assert_true,
-)
+from zipline.testing.predicates import assert_raises_str, assert_true
 
 
-class FakeInterface():
+class FakeInterface(object):
     pass
 
 
