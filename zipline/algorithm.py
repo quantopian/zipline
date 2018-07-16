@@ -326,8 +326,8 @@ class TradingAlgorithm(object):
         )
 
         self.blotter = kwargs.pop('blotter', None)
+        cancel_policy = kwargs.pop('cancel_policy', NeverCancel())
         if not self.blotter:
-            cancel_policy = kwargs.pop('cancel_policy', NeverCancel())
             self.blotter = SimulationBlotter(cancel_policy=cancel_policy)
 
         # The symbol lookup date specifies the date to use when resolving
