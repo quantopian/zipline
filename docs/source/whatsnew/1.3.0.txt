@@ -67,17 +67,44 @@ Custom Blotters
 ```````````````
 
 This release adds experimental support for running Zipline with user-defined
-subclasses of :class:`~zipline.finance.blotter.blotter.Blotter`. The primary motivation
-for this change is to make it easier to run live algorithms with Zipline.
+subclasses of :class:`~zipline.finance.blotter.blotter.Blotter`. The primary
+motivation for this change is to make it easier to run live algorithms from the
+Zipline CLI.
 
-You can register a custom Blotter subclass by decorating their subclass with
-``@register(zipline.Blotter, 'my-blotter)``. You can then tell zipline to use
-your new subclass by passing ``--blotter-class "my-blotter"`` on the command
-line.
+There are two primary ways to configure a custom blotter:
 
-As part of this change, the :class:`~zipline.finance.blotter.blotter.Blotter` class has
-been converted into an abstract base class. The default blotter used in
+1. You can pass an instance of :class:`~zipline.finance.blotter.blotter.Blotter` as the
+   ``blotter`` parameter to :func:`zipline.run_algorithm`. (This functionality
+   had existed previously, but wasn't well-documented.)
+
+2. You can register a named **factory** for a blotter in your ``extension.py``
+   and pass the name on the command line via the ``--blotter`` flag.
+
+An example usage of **(2)** might look like this:
+
+.. code-block:: python
+   :name: ~/.zipline/extension.py
+
+   from zipline.extensions import register
+   from zipline.finance.blotter import Blotter, SimulationBlotter
+   from zipline.finance.cancel_policy import EODCancel
+
+   @register(Blotter, 'my-blotter')
+   def my_blotter():
+       """Create a SimulationBlotter with a non-default cancel policy.
+       """
+       return SimulationBlotter(cancel_policy=EODCancel())
+
+To use this factory when running zipline from the command line, we would invoke
+zipline like this::
+
+  $ zipline run --blotter my-blotter <...other-args...>
+
+As part of this change, the :class:`~zipline.finance.blotter.blotter.Blotter`
+class has been converted to an abstract base class. The default blotter used in
 simulations is now named :class:`zipline.finance.blotter.SimulationBlotter`.
+
+(:issue:`2210`, :issue:`2251`)
 
 Custom Command-Line Arguments
 `````````````````````````````
@@ -100,7 +127,7 @@ in keys. For example, if zipline is invoked like this::
 
 then ``zipline.extension_args.argle`` will contain an object with a ``bargle``
 attribute containing the string ``"foo"``. Keys can contain multiple dots to
-create nested namespaces.
+create nested namespaces. (:issue:`2210`)
 
 Enhancements
 ~~~~~~~~~~~~
@@ -119,11 +146,10 @@ Experimental Features
 
 - Added support for registering custom subclass of
   :class:`zipline.finance.blotter.Blotter`. See above for
-  details. (:issue:`2210`)
+  details. (:issue:`2210`, :issue:`2251`)
 
 Bug Fixes
 ~~~~~~~~~
-- Fixed a bug where price adjustments were applied too early
 - Fixed a bug in :meth:`zipline.pipeline.Factor.winsorize` where NaN values
   were incorrectly included in value counts when determining cutoff thresholds
   for winsorization. (:issue:`2138`)
