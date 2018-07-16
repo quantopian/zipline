@@ -21,8 +21,7 @@ from zipline.finance.cancel_policy import NeverCancel
 @extensible
 class Blotter(with_metaclass(ABCMeta)):
 
-    def __init__(self, data_frequency, cancel_policy=None):
-        self.data_frequency = data_frequency
+    def __init__(self, cancel_policy=None):
         self.cancel_policy = cancel_policy if cancel_policy else NeverCancel()
         self.current_dt = None
 

@@ -277,8 +277,7 @@ class FinanceTestCase(WithLogger,
             else:
                 slippage_func = None
 
-            blotter = SimulationBlotter(sim_params.data_frequency,
-                                        slippage_func)
+            blotter = SimulationBlotter(slippage_func)
 
             start_date = sim_params.first_open
 
@@ -377,7 +376,7 @@ class FinanceTestCase(WithLogger,
             )
 
     def test_blotter_processes_splits(self):
-        blotter = SimulationBlotter('daily', equity_slippage=FixedSlippage())
+        blotter = SimulationBlotter(equity_slippage=FixedSlippage())
 
         # set up two open limit orders with very low limit prices,
         # one for sid 1 and one for sid 2

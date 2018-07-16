@@ -1556,8 +1556,8 @@ def ensure_doctest(f, name=None):
 class RecordBatchBlotter(SimulationBlotter):
     """Blotter that tracks how its batch_order method was called.
     """
-    def __init__(self, data_frequency):
-        super(RecordBatchBlotter, self).__init__(data_frequency)
+    def __init__(self):
+        super(RecordBatchBlotter, self).__init__()
         self.order_batch_called = []
 
     def batch_order(self, *args, **kwargs):
