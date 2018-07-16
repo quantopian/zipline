@@ -197,7 +197,7 @@ def _run(handle_data,
 
     if isinstance(blotter, six.string_types):
         try:
-            blotter = load(Blotter, blotter)()
+            blotter = load(Blotter, blotter)
         except ValueError as e:
             raise _RunAlgoError(str(e))
 
