@@ -201,6 +201,9 @@ Pipeline API
    :members:
    :exclude-members: compute_extra_rows, dependencies, inputs, mask, windowed
 
+.. autoclass:: zipline.pipeline.data.DataSet
+   :members:
+
 .. autoclass:: zipline.pipeline.data.USEquityPricing
    :members: open, high, low, close, volume
    :undoc-members:
