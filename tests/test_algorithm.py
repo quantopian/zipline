@@ -1681,7 +1681,7 @@ def handle_data(context, data):
     def test_batch_market_order_matches_multiple_manual_orders(self):
         share_counts = pd.Series([50, 100])
 
-        multi_blotter = RecordBatchBlotter(self.SIM_PARAMS_DATA_FREQUENCY)
+        multi_blotter = RecordBatchBlotter()
         multi_test_algo = self.make_algo(
             script=dedent("""\
                 from collections import OrderedDict
@@ -1708,7 +1708,7 @@ def handle_data(context, data):
         multi_stats = multi_test_algo.run(self.data_portal)
         self.assertFalse(multi_blotter.order_batch_called)
 
-        batch_blotter = RecordBatchBlotter(self.SIM_PARAMS_DATA_FREQUENCY)
+        batch_blotter = RecordBatchBlotter()
         batch_test_algo = self.make_algo(
             script=dedent("""\
                 import pandas as pd
@@ -1750,7 +1750,7 @@ def handle_data(context, data):
     def test_batch_market_order_filters_null_orders(self):
         share_counts = [50, 0]
 
-        batch_blotter = RecordBatchBlotter(self.SIM_PARAMS_DATA_FREQUENCY)
+        batch_blotter = RecordBatchBlotter()
         batch_test_algo = self.make_algo(
             script=dedent("""\
                 import pandas as pd

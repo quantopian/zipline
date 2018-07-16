@@ -331,7 +331,6 @@ class TradingAlgorithm(object):
         self.cancel_policy = kwargs.pop('cancel_policy', NeverCancel())
         if not self.blotter:
             self.blotter = kwargs.pop('blotter_class', SimulationBlotter)(
-                data_frequency=self.data_frequency,
                 # Default to NeverCancel in zipline
                 cancel_policy=self.cancel_policy,
             )
