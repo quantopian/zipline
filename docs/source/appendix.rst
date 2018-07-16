@@ -165,7 +165,7 @@ Miscellaneous
 Blotters
 ~~~~~~~~
 
-.. autoclass:: zipline.Blotter
+.. autoclass:: zipline.finance.blotter.blotter.Blotter
    :members:
 
 .. autoclass:: zipline.finance.blotter.SimulationBlotter
