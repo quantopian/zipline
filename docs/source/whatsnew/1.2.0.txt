@@ -4,6 +4,9 @@ Release 1.2.0
 :Release: 1.2.0
 :Date: TBD
 
+Highlights
+~~~~~~~~~~
+
 Extensible Risk and Performance Metrics (:issue:`2081`)
 ```````````````````````````````````````````````````````
 

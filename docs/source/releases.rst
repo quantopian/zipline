@@ -6,8 +6,6 @@ Release Notes
 
 .. include:: whatsnew/1.2.0.txt
 
-.. include:: whatsnew/1.1.2.txt
-
 .. include:: whatsnew/1.1.1.txt
 
 .. include:: whatsnew/1.1.0.txt
