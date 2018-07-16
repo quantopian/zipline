@@ -1,8 +1,18 @@
-Development
------------
+Release 1.3.0
+-------------
 
 :Release: 1.3.0
-:Date: TBD
+:Date: July 16, 2018
+
+This release includes several enhancements and performance improvements along
+with a small number of bug fixes. We recommend that all users upgrade to this
+version.
+
+.. note::
+
+   This will likely be the last minor release in the Zipline 1.x series. The
+   release will be Zipline 2.0, which will include a number of small breaking
+   changes required to support international equities.
 
 Highlights
 ~~~~~~~~~~
@@ -41,15 +51,17 @@ Standalone ``trading_calendars`` Module
 ```````````````````````````````````````
 
 One of the most popular features of Zipline is its collection of trading
-calendars, which describe historical and future holidays and trading hours of
+calendars, which provide information about holidays and trading hours of
 various markets. As part of this release, Zipline's calendar-related
-functionality has been moved into a separate `trading-calendars`_ package,
+functionality has been moved to a separate `trading-calendars`_ package,
 allowing users that only needed access to the calendars to use them without
 taking on the rest of Zipline's dependencies.
 
 For backwards compability, Zipline will continue to re-export calendar-related
 functions. For example, :meth:`zipline.get_calendar` still exists, but is now
-an alias for ``trading_calendars.get_calendar``. (:issue:`2219`)
+an alias for ``trading_calendars.get_calendar``. Users that depend on this
+functionality are encouraged to update their imports to the new locations in
+``trading_calendars``. (:issue:`2219`)
 
 Custom Blotters
 ```````````````
@@ -96,10 +108,18 @@ Enhancements
   details. (:issue:`2194`)
 - Moved ``zipline.utils.calendars`` into a separately-installable
   `trading-calendars`_ package. (:issue:`2219`)
-- Added support for registering custom subclass of
-  :class:`zipline.finance.blotter.Blotter`. See above for details. (:issue:`2210`)
 - Added support for specifying custom string arguments with the ``-x`` flag.
   See above for details. (:issue:`2210`)
+
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
+.. warning::
+
+   Experimental features are subject to change.
+
+- Added support for registering custom subclass of
+  :class:`zipline.finance.blotter.Blotter`. See above for
+  details. (:issue:`2210`)
 
 Bug Fixes
 ~~~~~~~~~
