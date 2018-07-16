@@ -119,20 +119,6 @@ This should print the version we are expecting to release.
 Now that we have tested the package locally, it should be tested using the test
 PyPI server.
 
-Edit your ``~/.pypirc`` file to look like:
-
-::
-
-   [distutils]
-   index-servers =
-       pypi
-
-   [pypi]
-   username:
-   password:
-
-after that, run:
-
 .. code-block:: bash
 
    $ pip install twine
