@@ -201,14 +201,15 @@ Once we are happy, push the updated docs to the GitHub ``gh-pages`` branch.
 Uploading conda packages
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Travis and AppVeyor build zipline conda packages for us.  Once they have built
-and uploaded to anaconda.org the packages (and their dependencies) for the
+`Travis <https://travis-ci.org/quantopian/zipline>`__ and
+`AppVeyor <https://ci.appveyor.com/project/quantopian/zipline/branch/master>`__
+build zipline conda packages for us (for Linux/OSX and Windows respectively).
+Once they have built and uploaded to anaconda.org the zipline packages for the
 release commit to master, we should move those packages from the "ci" label to
-the "main" label.  You can do this from the anaconda.org web interface.  This
-is also a good time to remove all the old "ci" packages from anaconda.
-
-Travis and AppVeyor only build and upload linux-64 and win-64 packages.  We'll
-need to build and upload osx-64 packages manually on an OSX machine.
+the "main" label. We should also do this for any packages we uploaded for
+zipline's dependencies. You can do this from the
+`anaconda.org web interface <https://anaconda.org/Quantopian/repo>`__.
+This is also a good time to remove all the old "ci" packages from anaconda.
 
 To build the conda packages for zipline locally, run:
 
