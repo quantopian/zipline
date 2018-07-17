@@ -174,10 +174,7 @@ def writeln(f, s):
 
 def fmt(obj):
     if isinstance(obj, Term):
-        if hasattr(obj, 'short_repr'):
-            r = obj.short_repr()
-        else:
-            r = type(obj).__name__
+        r = obj.graph_repr()
     else:
         r = obj
     return '"%s"' % r

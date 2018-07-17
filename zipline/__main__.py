@@ -5,12 +5,14 @@ import click
 import logbook
 import pandas as pd
 from six import text_type
-from trading_calendars.calendar_utils import get_calendar
 
+import zipline
 from zipline.data import bundles as bundles_module
+from trading_calendars import get_calendar
 from zipline.utils.compat import wraps
 from zipline.utils.cli import Date, Timestamp
 from zipline.utils.run_algo import _run, load_extensions
+from zipline.extensions import create_args
 
 try:
     __IPYTHON__
@@ -39,11 +41,18 @@ except NameError:
     default=True,
     help="Don't load the default zipline extension.py file in $ZIPLINE_HOME.",
 )
-def main(extension, strict_extensions, default_extension):
+@click.option(
+    '-x',
+    multiple=True,
+    help='Any custom command line arguments to define, in key=value form.'
+)
+def main(extension, strict_extensions, default_extension, x):
     """Top level zipline entry point.
     """
+
     # install a logbook handler before performing any other operations
     logbook.StderrHandler().push_application()
+    create_args(x, zipline.extension_args)
     load_extensions(
         default_extension,
         extension,
@@ -191,6 +200,12 @@ def ipython_only(option):
     help='The metrics set to use. New metrics sets may be registered in your'
     ' extension.py.',
 )
+@click.option(
+    '--blotter',
+    default='default',
+    help="The blotter to use.",
+    show_default=True,
+)
 @ipython_only(click.option(
     '--local-namespace/--no-local-namespace',
     is_flag=True,
@@ -212,7 +227,8 @@ def run(ctx,
         trading_calendar,
         print_algo,
         metrics_set,
-        local_namespace):
+        local_namespace,
+        blotter):
     """Run a backtest for the given algorithm.
     """
     # check that the start and end dates are passed correctly
@@ -246,7 +262,6 @@ def run(ctx,
         defines=define,
         data_frequency=data_frequency,
         capital_base=capital_base,
-        data=None,
         bundle=bundle,
         bundle_timestamp=bundle_timestamp,
         start=start,
@@ -257,6 +272,8 @@ def run(ctx,
         metrics_set=metrics_set,
         local_namespace=local_namespace,
         environ=os.environ,
+        blotter=blotter,
+        benchmark_returns=None,
     )
 
     if output == '-':

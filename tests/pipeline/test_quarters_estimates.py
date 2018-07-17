@@ -602,7 +602,7 @@ class WithEstimatesTimeZero(WithEstimates):
             else:
                 ts_sorted_estimates = self.events[
                     self.events[SID_FIELD_NAME] == sid
-                ].sort(TS_FIELD_NAME)
+                ].sort_values(TS_FIELD_NAME)
                 q1_knowledge = ts_sorted_estimates[
                     ts_sorted_estimates[FISCAL_QUARTER_FIELD_NAME] == 1
                 ]
@@ -792,8 +792,8 @@ class WithEstimateMultipleQuarters(WithEstimates):
         # quarters out for each of the dataset columns.
         assert_equal(sorted(np.array(q1_columns + q2_columns)),
                      sorted(results.columns.values))
-        assert_equal(self.expected_out.sort(axis=1),
-                     results.xs(0, level=1).sort(axis=1))
+        assert_equal(self.expected_out.sort_index(axis=1),
+                     results.xs(0, level=1).sort_index(axis=1))
 
 
 class NextEstimateMultipleQuarters(

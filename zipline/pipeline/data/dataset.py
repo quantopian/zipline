@@ -214,12 +214,16 @@ class BoundColumn(LoadableTerm):
             dtype=self.dtype.name,
         )
 
-    def short_repr(self):
+    def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
         return "BoundColumn:\l  Dataset: {}\l  Column: {}\l".format(
             self.dataset.__name__,
             self.name
         )
+
+    def recursive_repr(self):
+        """Short repr used to render in recursive contexts."""
+        return self.qualname
 
 
 @total_ordering
@@ -260,5 +264,57 @@ class DataSetMeta(type):
 
 
 class DataSet(with_metaclass(DataSetMeta, object)):
+    """
+    Base class for describing inputs to Pipeline expressions.
+
+    A DataSet is a collection of :class:`zipline.pipeline.data.Column` that
+    describes a collection of logically-related inputs to the Pipeline API.
+
+    To create a new Pipeline dataset, subclass from this class and create
+    columns at class scope for each attribute of your dataset. Each column
+    requires a dtype that describes the type of data that should be produced by
+    a loader for the dataset. Integer columns must also provide a
+    ``missing_value`` to be used when no value is available for a given
+    asset/date combination.
+
+    Examples
+    --------
+    The built-in USEquityPricing dataset is defined as follows::
+
+        class EquityPricing(DataSet):
+            open = Column(float)
+            high = Column(float)
+            low = Column(float)
+            close = Column(float)
+            volume = Column(float)
+
+    Columns can have types other than float. A dataset containing assorted
+    company metadata might be defined like this::
+
+        class CompanyMetadata(DataSet):
+            # Use float for semantically-numeric data, even if it's always
+            # integral valued (see Notes section below). The default missing
+            # value for floats is NaN.
+            shares_outstanding = Column(float)
+
+            # Use object-dtype for string columns. The default missing value
+            # for object-dtype columns is None.
+            ticker = Column(object)
+
+            # Use integers for integer-valued categorical data like sector or
+            # industry codes. Integer-dtype columns require an explicit missing
+            # value.
+            sector_code = Column(int, missing_value=-1)
+
+            # The default missing value for bool-dtype columns is False.
+            is_primary_share = Column(bool)
+
+    Notes
+    -----
+    Because numpy has no native support for integers with missing values, users
+    are strongly encouraged to use floats for any data that's semantically
+    numeric. Doing so enables the use of `NaN` as a natural missing value,
+    which has useful propagation semantics.
+    """
     domain = None
     ndim = 2

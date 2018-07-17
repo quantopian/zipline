@@ -162,6 +162,14 @@ Miscellaneous
 
 .. autofunction:: zipline.api.fetch_csv
 
+Blotters
+~~~~~~~~
+
+.. autoclass:: zipline.finance.blotter.blotter.Blotter
+   :members:
+
+.. autoclass:: zipline.finance.blotter.SimulationBlotter
+   :members:
 
 .. _pipeline-api:
 
@@ -193,6 +201,9 @@ Pipeline API
    :members:
    :exclude-members: compute_extra_rows, dependencies, inputs, mask, windowed
 
+.. autoclass:: zipline.pipeline.data.DataSet
+   :members:
+
 .. autoclass:: zipline.pipeline.data.USEquityPricing
    :members: open, high, low, close, volume
    :undoc-members:
@@ -210,6 +221,9 @@ Built-in Factors
    :members:
 
 .. autoclass:: zipline.pipeline.factors.BusinessDaysUntilNextEvent
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.DailyReturns
    :members:
 
 .. autoclass:: zipline.pipeline.factors.ExponentialWeightedMovingAverage
@@ -237,6 +251,9 @@ Built-in Factors
    :members:
 
 .. autoclass:: zipline.pipeline.factors.RollingSpearmanOfReturns
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.SimpleBeta
    :members:
 
 .. autoclass:: zipline.pipeline.factors.RSI

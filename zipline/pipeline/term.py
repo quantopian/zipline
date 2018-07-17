@@ -348,8 +348,16 @@ class Term(with_metaclass(ABCMeta, object)):
         """
         raise NotImplementedError('dependencies')
 
-    def short_repr(self):
-        # Default short_repr is just the name of the type.
+    def graph_repr(self):
+        """A short repr to use when rendering GraphViz graphs.
+        """
+        # Default graph_repr is just the name of the type.
+        return type(self).__name__
+
+    def recursive_repr(self):
+        """A short repr to use when recursively rendering terms with inputs.
+        """
+        # Default recursive_repr is just the name of the type.
         return type(self).__name__
 
 
@@ -380,7 +388,7 @@ class AssetExists(Term):
     def __repr__(self):
         return "AssetExists()"
 
-    short_repr = __repr__
+    graph_repr = __repr__
 
     def _compute(self, today, assets, out):
         raise NotImplementedError(
@@ -408,7 +416,7 @@ class InputDates(Term):
     def __repr__(self):
         return "InputDates()"
 
-    short_repr = __repr__
+    graph_repr = __repr__
 
     def _compute(self, today, assets, out):
         raise NotImplementedError(
@@ -679,9 +687,12 @@ class ComputableTerm(Term):
             "{type}([{inputs}], {window_length})"
         ).format(
             type=type(self).__name__,
-            inputs=', '.join(i.name for i in self.inputs),
+            inputs=', '.join(i.recursive_repr() for i in self.inputs),
             window_length=self.window_length,
         )
+
+    def recursive_repr(self):
+        return type(self).__name__ + '(...)'
 
 
 class Slice(ComputableTerm):

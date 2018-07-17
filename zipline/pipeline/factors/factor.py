@@ -1325,7 +1325,7 @@ class GroupedRowTransform(Factor):
     def transform_name(self):
         return self._transform.__name__
 
-    def short_repr(self):
+    def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
         return type(self).__name__ + '(%r)' % self.transform_name
 
@@ -1411,7 +1411,7 @@ class Rank(SingleInputMixin, Factor):
             mask=self.mask,
         )
 
-    def short_repr(self):
+    def graph_repr(self):
         return "Rank:\l  method: {!r}\l  mask: {}\l".format(
             self._method,
             type(self.mask).__name__,
@@ -1640,8 +1640,8 @@ class RecarrayField(SingleInputMixin, Factor):
     def _compute(self, windows, dates, assets, mask):
         return windows[0][self._attribute]
 
-    def short_repr(self):
-        return "{}.{}".format(self.inputs[0].short_repr(), self._attribute)
+    def graph_repr(self):
+        return "{}.{}".format(self.inputs[0].graph_repr(), self._attribute)
 
 
 class Latest(LatestMixin, CustomFactor):

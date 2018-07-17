@@ -4,7 +4,7 @@ Tests for Factor terms.
 from functools import partial
 from itertools import product
 from nose_parameterized import parameterized
-from unittest import TestCase
+from unittest import TestCase, skipIf
 
 from toolz import compose
 import numpy as np
@@ -56,6 +56,7 @@ from zipline.utils.numpy_utils import (
     NaTns,
 )
 from zipline.utils.math_utils import nanmean, nanstd
+from zipline.utils.pandas_utils import new_pandas, skip_pipeline_new_pandas
 
 from .base import BasePipelineTestCase
 
@@ -948,6 +949,7 @@ class FactorTestCase(BasePipelineTestCase):
             with self.assertRaises(BadPercentileBounds):
                 f.winsorize(min_percentile=min_, max_percentile=max_)
 
+    @skipIf(new_pandas, skip_pipeline_new_pandas)
     @parameter_space(
         seed_value=[1, 2],
         normalizer_name_and_func=[
@@ -1285,21 +1287,21 @@ class FactorTestCase(BasePipelineTestCase):
         self.assertIsNot(f.deciles(), f.deciles(mask=m))
 
 
-class ShortReprTestCase(TestCase):
+class ReprTestCase(TestCase):
     """
-    Tests for short_repr methods of Factors.
+    Tests for term reprs.
     """
 
     def test_demean(self):
-        r = F().demean().short_repr()
+        r = F().demean().graph_repr()
         self.assertEqual(r, "GroupedRowTransform('demean')")
 
     def test_zscore(self):
-        r = F().zscore().short_repr()
+        r = F().zscore().graph_repr()
         self.assertEqual(r, "GroupedRowTransform('zscore')")
 
     def test_winsorize(self):
-        r = F().winsorize(min_percentile=.05, max_percentile=.95).short_repr()
+        r = F().winsorize(min_percentile=.05, max_percentile=.95).graph_repr()
         self.assertEqual(r, "GroupedRowTransform('winsorize')")
 
     def test_recarray_field_repr(self):
@@ -1308,14 +1310,14 @@ class ShortReprTestCase(TestCase):
             inputs = ()
             window_length = 5
 
-            def short_repr(self):
+            def graph_repr(self):
                 return "CustomRepr()"
 
         a = MultipleOutputs().a
         b = MultipleOutputs().b
 
-        self.assertEqual(a.short_repr(), "CustomRepr().a")
-        self.assertEqual(b.short_repr(), "CustomRepr().b")
+        self.assertEqual(a.graph_repr(), "CustomRepr().a")
+        self.assertEqual(b.graph_repr(), "CustomRepr().b")
 
     def test_latest_repr(self):
 
@@ -1324,13 +1326,31 @@ class ShortReprTestCase(TestCase):
             b = Column(dtype=float64_dtype)
 
         self.assertEqual(
-            SomeDataSet.a.latest.short_repr(),
+            SomeDataSet.a.latest.graph_repr(),
             "Latest"
         )
         self.assertEqual(
-            SomeDataSet.b.latest.short_repr(),
+            SomeDataSet.b.latest.graph_repr(),
             "Latest"
         )
+
+    def test_recursive_repr(self):
+
+        class DS(DataSet):
+            a = Column(dtype=float64_dtype)
+            b = Column(dtype=float64_dtype)
+
+        class Input(CustomFactor):
+            inputs = ()
+            window_safe = True
+
+        class HasInputs(CustomFactor):
+            inputs = [Input(window_length=3), DS.a, DS.b]
+            window_length = 3
+
+        result = repr(HasInputs())
+        expected = "HasInputs([Input(...), DS.a, DS.b], 3)"
+        self.assertEqual(result, expected)
 
 
 class TestWindowSafety(TestCase):

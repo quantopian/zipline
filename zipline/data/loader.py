@@ -128,7 +128,7 @@ def load_market_data(trading_day=None, trading_days=None, bm_symbol='SPY',
     '1year','2year','3year','5year','7year','10year','20year','30year'
     """
     if trading_day is None:
-        trading_day = get_calendar('NYSE').trading_day
+        trading_day = get_calendar('NYSE').day
     if trading_days is None:
         trading_days = get_calendar('NYSE').all_sessions
 
@@ -295,9 +295,22 @@ def ensure_treasury_data(symbol, first_date, last_date, now, environ=None):
 def _load_cached_data(filename, first_date, last_date, now, resource_name,
                       environ=None):
     if resource_name == 'benchmark':
-        from_csv = pd.Series.from_csv
+        def from_csv(path):
+            return pd.read_csv(
+                path,
+                parse_dates=[0],
+                index_col=0,
+                header=None,
+                # Pass squeeze=True so that we get a series instead of a frame.
+                squeeze=True,
+            ).tz_localize('UTC')
     else:
-        from_csv = pd.DataFrame.from_csv
+        def from_csv(path):
+            return pd.read_csv(
+                path,
+                parse_dates=[0],
+                index_col=0,
+            ).tz_localize('UTC')
 
     # Path for the cache.
     path = get_data_filepath(filename, environ)
@@ -307,7 +320,6 @@ def _load_cached_data(filename, first_date, last_date, now, resource_name,
     if os.path.exists(path):
         try:
             data = from_csv(path)
-            data.index = data.index.to_datetime().tz_localize('UTC')
             if has_data_for_dates(data, first_date, last_date):
                 return data
 

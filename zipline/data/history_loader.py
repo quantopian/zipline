@@ -21,7 +21,6 @@ from abc import (
 from numpy import concatenate
 from lru import LRU
 from pandas import isnull
-from pandas.tslib import normalize_date
 from toolz import sliding_window
 
 from six import with_metaclass
@@ -35,7 +34,7 @@ from zipline.utils.cache import ExpiringCache
 from zipline.utils.math_utils import number_of_decimal_places
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import float64_dtype
-from zipline.utils.pandas_utils import find_in_sorted_index
+from zipline.utils.pandas_utils import find_in_sorted_index, normalize_date
 
 # Default number of decimal places used for rounding asset prices.
 DEFAULT_ASSET_PRICE_DECIMALS = 3

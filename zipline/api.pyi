@@ -9,7 +9,7 @@ from zipline.utils.events import EventRule
 from zipline.utils.security_list import SecurityList
 
 
-def attach_pipeline(pipeline, name, chunks=None):
+def attach_pipeline(pipeline, name, chunks=None, eager=True):
     """Register a pipeline to be computed at the start of each day.
 
     Parameters
@@ -22,7 +22,11 @@ def attach_pipeline(pipeline, name, chunks=None):
         The number of days to compute pipeline results for. Increasing
         this number will make it longer to get the first results but
         may improve the total runtime of the simulation. If an iterator
-        is passed, we will run in chunks based on values of the itereator.
+        is passed, we will run in chunks based on values of the iterator.
+        Default is True.
+    eager : bool, optional
+        Whether or not to compute this pipeline prior to
+        before_trading_start.
 
     Returns
     -------

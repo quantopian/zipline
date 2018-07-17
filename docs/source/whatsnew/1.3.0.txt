@@ -1,0 +1,186 @@
+Release 1.3.0
+-------------
+
+:Release: 1.3.0
+:Date: July 16, 2018
+
+This release includes several enhancements and performance improvements along
+with a small number of bug fixes. We recommend that all users upgrade to this
+version.
+
+.. note::
+
+   This will likely be the last minor release in the Zipline 1.x series. The
+   release next will be Zipline 2.0, which will include a number of small
+   breaking changes required to support international equities.
+
+Highlights
+~~~~~~~~~~
+
+Support for Newer Numpy/Pandas Versions
+```````````````````````````````````````
+
+Zipline has historically been very conservative when updating versions of
+numpy, pandas, and other "PyData" ecosystem packages. This conservatism is
+primarily due to the fact that Zipline is used as the backtesting engine for
+`Quantopian <https://www.quantopian.com/>`__, which means that updating package
+versions risks breaking a large installed codebase. Of course, many Zipline
+users don't have the backwards compatibility requirements that Quantopian has,
+and they'd like to be able to use the latest and greatest package versions.
+
+As part of this release, we're now building and testing Zipline with two
+package configurations:
+
+- "Stable", using numpy version 1.11 and pandas version 0.18.1.
+- "Latest", using numpy version 1.14 and pandas version 0.22.0.
+
+Other combinations of numpy and pandas **may** work, but these package sets
+will be built and tested during our normal development cycle.
+
+Moving forward, our goal is to continue to maintain support for two sets of
+packages at any given time. The "stable" package set will change relatively
+infrequently, and will contain the versions of numpy and pandas supported on
+Quantopian. The "latest" package set will change regularly, and will contain
+recently-released versions of numpy and pandas.
+
+Our hope with these changes is to strike a balance between stability and
+novelty without taking on too great a maintenance burden by supporting every
+possible combination of packages. (:issue:`2194`)
+
+Standalone ``trading_calendars`` Module
+```````````````````````````````````````
+
+One of the most popular features of Zipline is its collection of trading
+calendars, which provide information about holidays and trading hours of
+various markets. As part of this release, Zipline's calendar-related
+functionality has been moved to a separate `trading-calendars`_ package,
+allowing users that only needed access to the calendars to use them without
+taking on the rest of Zipline's dependencies.
+
+For backwards compability, Zipline will continue to re-export calendar-related
+functions. For example, :meth:`zipline.get_calendar` still exists, but is now
+an alias for ``trading_calendars.get_calendar``. Users that depend on this
+functionality are encouraged to update their imports to the new locations in
+``trading_calendars``. (:issue:`2219`)
+
+Custom Blotters
+```````````````
+
+This release adds experimental support for running Zipline with user-defined
+subclasses of :class:`~zipline.finance.blotter.blotter.Blotter`. The primary
+motivation for this change is to make it easier to run live algorithms from the
+Zipline CLI.
+
+There are two primary ways to configure a custom blotter:
+
+1. You can pass an instance of :class:`~zipline.finance.blotter.blotter.Blotter` as the
+   ``blotter`` parameter to :func:`zipline.run_algorithm`. (This functionality
+   had existed previously, but wasn't well-documented.)
+
+2. You can register a named **factory** for a blotter in your ``extension.py``
+   and pass the name on the command line via the ``--blotter`` flag.
+
+An example usage of **(2)** might look like this:
+
+.. code-block:: python
+   :name: ~/.zipline/extension.py
+
+   from zipline.extensions import register
+   from zipline.finance.blotter import Blotter, SimulationBlotter
+   from zipline.finance.cancel_policy import EODCancel
+
+   @register(Blotter, 'my-blotter')
+   def my_blotter():
+       """Create a SimulationBlotter with a non-default cancel policy.
+       """
+       return SimulationBlotter(cancel_policy=EODCancel())
+
+To use this factory when running zipline from the command line, we would invoke
+zipline like this::
+
+  $ zipline run --blotter my-blotter <...other-args...>
+
+As part of this change, the :class:`~zipline.finance.blotter.blotter.Blotter`
+class has been converted to an abstract base class. The default blotter used in
+simulations is now named :class:`zipline.finance.blotter.SimulationBlotter`.
+
+(:issue:`2210`, :issue:`2251`)
+
+Custom Command-Line Arguments
+`````````````````````````````
+
+This release adds support for passing custom arguments to the ``zipline``
+command-line interface. Custom command-line arguments are passed via the ``-x``
+flag followed by a ``key=value`` pair. Arguments passed this way can be
+accessed from Python code (e.g., an algorithm or an extension) via attributes
+of ``zipline.extension_args``. For example, if zipline is invoked like this::
+
+    $ zipline -x argle=bargle run ...
+
+then the result of ``zipline.extension_args.argle`` would be the string
+``"bargle"``.
+
+Custom arguments can be grouped into namespaces by including ``.`` characters
+in keys. For example, if zipline is invoked like this::
+
+    $ zipline -x argle.bargle=foo
+
+then ``zipline.extension_args.argle`` will contain an object with a ``bargle``
+attribute containing the string ``"foo"``. Keys can contain multiple dots to
+create nested namespaces. (:issue:`2210`)
+
+Enhancements
+~~~~~~~~~~~~
+- Added support for pandas 0.22 and numpy 1.14. See above for
+  details. (:issue:`2194`)
+- Moved ``zipline.utils.calendars`` into a separately-installable
+  `trading-calendars`_ package. (:issue:`2219`)
+- Added support for specifying custom string arguments with the ``-x`` flag.
+  See above for details. (:issue:`2210`)
+
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
+.. warning::
+
+   Experimental features are subject to change.
+
+- Added support for registering custom subclass of
+  :class:`zipline.finance.blotter.Blotter`. See above for
+  details. (:issue:`2210`, :issue:`2251`)
+
+Bug Fixes
+~~~~~~~~~
+- Fixed a bug in :meth:`zipline.pipeline.Factor.winsorize` where NaN values
+  were incorrectly included in value counts when determining cutoff thresholds
+  for winsorization. (:issue:`2138`)
+- Fixed a crash in :meth:`zipline.pipeline.Factor.top` with a count of 1 and no
+  groupby. (:issue:`2218`)
+- Fixed a bug where calling ``data.history`` with a negative lookback would
+  fetch prices from the future. (:issue:`2164`)
+- Fixed a bug where :class:`~zipline.finance.execution.StopOrder``,
+  :class:`zipline.finance.execution.LimitOrder`, and
+  :class:`zipline.finance.execution.StopLimitOrder` prices were being rounded
+  to the nearest penny regardless of asset tick size. Prices are now rounded
+  based on the ``tick_size`` attribute of the asset being
+  ordered. (:issue:`2211`)
+
+Performance
+~~~~~~~~~~~
+- Improved performance when fetching minutely prices for assets that trade
+  regularly. (:issue:`2108`)
+- Improved performance when fetching minutely prices for many assets by tuning
+  cache sizes. (:issue:`2110`)
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Refactored large parts of the Zipline test suite to make it easier to change
+  the signature of :class:`zipline.algorithm.TradingAlgorithm`. (:issue:`2169`,
+  :issue:`2168`, :issue:`2165`, :issue:`2171`)
+
+Build
+~~~~~
+- Added support for running travis builds with pandas 0.18 and 0.22.
+  (:issue:`2194`)
+- Added OSX builds to the travis build matrix. (:issue:`2244`)
+
+.. _`trading-calendars` : https://pypi.org/project/trading-calendars/

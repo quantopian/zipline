@@ -270,8 +270,8 @@ class InvalidOrderAlgorithm(TradingAlgorithm):
             order_value,
         )
 
-        for style in [MarketOrder(), LimitOrder(10),
-                      StopOrder(10), StopLimitOrder(10, 10)]:
+        for style in [MarketOrder(), LimitOrder(10, asset=self.asset),
+                      StopOrder(10), StopLimitOrder(10, 10, asset=self.asset)]:
 
             with assert_raises(UnsupportedOrderParameters):
                 order(self.asset, 10, limit_price=10, style=style)

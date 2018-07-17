@@ -39,6 +39,9 @@ if PY2:
     def exc_clear():
         sys.exc_clear()
 
+    def consistent_round(val):
+        return round(val)
+
     def update_wrapper(wrapper,
                        wrapped,
                        assigned=functools.WRAPPER_ASSIGNMENTS,
@@ -78,11 +81,18 @@ if PY2:
 
 else:
     from types import MappingProxyType as mappingproxy
+    from math import ceil
 
     def exc_clear():
         # exc_clear was removed in Python 3. The except statement automatically
         # clears the exception.
         pass
+
+    def consistent_round(val):
+        if (val % 1) >= 0.5:
+            return ceil(val)
+        else:
+            return round(val)
 
     update_wrapper = functools.update_wrapper
     wraps = functools.wraps
@@ -104,4 +114,5 @@ __all__ = [
     'update_wrapper',
     'values_as_list',
     'wraps',
+    'consistent_round',
 ]

@@ -27,8 +27,7 @@ from six import iteritems
 from six.moves import range
 from testfixtures import TempDirectory
 
-from zipline.assets.synthetic import make_simple_equity_info
-from zipline.finance.blotter import Blotter
+from zipline.finance.blotter.simulation_blotter import SimulationBlotter
 from zipline.finance.execution import MarketOrder, LimitOrder
 from zipline.finance.metrics import MetricsTracker, load as load_metrics_set
 from zipline.finance.trading import SimulationParameters
@@ -39,16 +38,8 @@ from zipline.data.us_equity_pricing import BcolzDailyBarWriter
 from zipline.finance.slippage import FixedSlippage, FixedBasisPointsSlippage
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.protocol import BarData
-from zipline.testing import (
-    tmp_trading_env,
-    write_bcolz_minute_data,
-)
-from zipline.testing.fixtures import (
-    WithLogger,
-    WithTradingEnvironment,
-    ZiplineTestCase,
-)
-
+from zipline.testing import write_bcolz_minute_data
+import zipline.testing.fixtures as zf
 import zipline.utils.factory as factory
 
 DEFAULT_TIMEOUT = 15  # seconds
@@ -57,9 +48,9 @@ EXTENDED_TIMEOUT = 90
 _multiprocess_can_split_ = False
 
 
-class FinanceTestCase(WithLogger,
-                      WithTradingEnvironment,
-                      ZiplineTestCase):
+class FinanceTestCase(zf.WithAssetFinder,
+                      zf.WithTradingCalendars,
+                      zf.ZiplineTestCase):
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 133
     start = START_DATE = pd.Timestamp('2006-01-01', tz='utc')
     end = END_DATE = pd.Timestamp('2006-12-31', tz='utc')
@@ -189,10 +180,7 @@ class FinanceTestCase(WithLogger,
         complete_fill = params.get('complete_fill')
 
         asset1 = self.asset_finder.retrieve_asset(1)
-        metadata = make_simple_equity_info([asset1.sid], self.start, self.end)
-        with TempDirectory() as tempdir, \
-                tmp_trading_env(equities=metadata,
-                                load=self.make_load_function()) as env:
+        with TempDirectory() as tempdir:
 
             if trade_interval < timedelta(days=1):
                 sim_params = factory.create_simulation_parameters(
@@ -235,7 +223,7 @@ class FinanceTestCase(WithLogger,
                 equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
 
                 data_portal = DataPortal(
-                    env.asset_finder, self.trading_calendar,
+                    self.asset_finder, self.trading_calendar,
                     first_trading_day=equity_minute_reader.first_trading_day,
                     equity_minute_reader=equity_minute_reader,
                 )
@@ -266,7 +254,7 @@ class FinanceTestCase(WithLogger,
                 equity_daily_reader = BcolzDailyBarReader(path)
 
                 data_portal = DataPortal(
-                    env.asset_finder, self.trading_calendar,
+                    self.asset_finder, self.trading_calendar,
                     first_trading_day=equity_daily_reader.first_trading_day,
                     equity_daily_reader=equity_daily_reader,
                 )
@@ -277,7 +265,7 @@ class FinanceTestCase(WithLogger,
             else:
                 slippage_func = None
 
-            blotter = Blotter(sim_params.data_frequency, slippage_func)
+            blotter = SimulationBlotter(slippage_func)
 
             start_date = sim_params.first_open
 
@@ -376,7 +364,7 @@ class FinanceTestCase(WithLogger,
             )
 
     def test_blotter_processes_splits(self):
-        blotter = Blotter('daily',  equity_slippage=FixedSlippage())
+        blotter = SimulationBlotter(equity_slippage=FixedSlippage())
 
         # set up two open limit orders with very low limit prices,
         # one for sid 1 and one for sid 2
@@ -384,8 +372,8 @@ class FinanceTestCase(WithLogger,
         asset2 = self.asset_finder.retrieve_asset(2)
         asset133 = self.asset_finder.retrieve_asset(133)
 
-        blotter.order(asset1, 100, LimitOrder(10))
-        blotter.order(asset2, 100, LimitOrder(10))
+        blotter.order(asset1, 100, LimitOrder(10, asset=asset1))
+        blotter.order(asset2, 100, LimitOrder(10, asset=asset2))
 
         # send in splits for assets 133 and 2.  We have no open orders for
         # asset 133 so it should be ignored.
@@ -411,9 +399,7 @@ class FinanceTestCase(WithLogger,
         self.assertEqual(2, asset2_order.asset)
 
 
-class TradingEnvironmentTestCase(WithLogger,
-                                 WithTradingEnvironment,
-                                 ZiplineTestCase):
+class SimParamsTestCase(zf.WithTradingCalendars, zf.ZiplineTestCase):
     """
     Tests for date management utilities in zipline.finance.trading.
     """

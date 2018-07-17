@@ -582,6 +582,11 @@ cdef arrays_from_rows(DatetimeIndex_t dates,
     cdef Py_ssize_t size = len(ts_ixs)
 
     for column in columns:
+        values = all_rows[getname(column)].values
+        if isinstance(values, pd.Categorical):
+            # convert pandas categoricals into ndarray[object]
+            values = values.get_values()
+
         out[column] = array_for_column[AsArrayKind](
             column.dtype,
             out_shape,
@@ -598,7 +603,7 @@ cdef arrays_from_rows(DatetimeIndex_t dates,
             asof_ixs,
             sids,
             column_ixs,
-            all_rows[getname(column)].values.astype(column.dtype, copy=False),
+            values.astype(column.dtype, copy=False),
             column.missing_value,
             array_kind,
         )

@@ -113,12 +113,12 @@ class SpecificEquityTrades(object):
     delta  : timedelta between internal events
     filter : filter to remove the sids
     """
-    def __init__(self, env, trading_calendar, *args, **kwargs):
+    def __init__(self, trading_calendar, *args, **kwargs):
         # We shouldn't get any positional arguments.
         assert len(args) == 0
 
-        self.env = env
         self.trading_calendar = trading_calendar
+        asset_finder = kwargs.pop('asset_finder')
 
         # Default to None for event_list and filter.
         self.event_list = kwargs.get('event_list')
@@ -142,7 +142,7 @@ class SpecificEquityTrades(object):
             )
             assets_by_identifier = {}
             for identifier in self.identifiers:
-                assets_by_identifier[identifier] = env.asset_finder.\
+                assets_by_identifier[identifier] = asset_finder.\
                     lookup_generic(identifier, datetime.now())[0]
             self.sids = [asset.sid for asset in assets_by_identifier.values()]
             for event in self.event_list:
@@ -165,7 +165,7 @@ class SpecificEquityTrades(object):
             self.identifiers = kwargs.get('sids', [1, 2])
             assets_by_identifier = {}
             for identifier in self.identifiers:
-                assets_by_identifier[identifier] = env.asset_finder.\
+                assets_by_identifier[identifier] = asset_finder.\
                     lookup_generic(identifier, datetime.now())[0]
             self.sids = [asset.sid for asset in assets_by_identifier.values()]
 
