@@ -9,7 +9,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Index &mdash; Zipline 1.2.0 documentation</title>
+  <title>Index &mdash; Zipline 1.3.0 documentation</title>
   
 
   
@@ -31,7 +31,7 @@
   
 
   
-    <link rel="top" title="Zipline 1.2.0 documentation" href="index.html"/> 
+    <link rel="top" title="Zipline 1.3.0 documentation" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -185,6 +185,7 @@
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="appendix.html#blotters">Blotters</a></li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#pipeline-api">Pipeline API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#built-in-factors">Built-in Factors</a></li>
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#built-in-filters">Built-in Filters</a></li>
@@ -228,48 +229,151 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-3-0">Release 1.3.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#highlights">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#support-for-newer-numpy-pandas-versions">Support for Newer Numpy/Pandas Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#standalone-trading-calendars-module">Standalone <code class="docutils literal"><span class="pre">trading_calendars</span></code> Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#custom-blotters">Custom Blotters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#custom-command-line-arguments">Custom Command-Line Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#performance">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#build">Build</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-2-0">Release 1.2.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#performance">Performance</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#build">Build</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#documentation">Documentation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id1">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id2">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id3">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id4">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id5">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id6">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id7">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-1">Release 1.1.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-0">Release 1.1.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-2">Release 1.0.2</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-1">Release 1.0.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-1">Release 1.1.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id10">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id11">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id12">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id13">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id14">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id15">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id16">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id17">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id18">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-0">Release 1.1.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id19">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id20">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id21">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id22">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id23">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id24">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id25">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-2">Release 1.0.2</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id26">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#experimental">Experimental</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id27">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id28">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id29">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id30">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#data-format-changes">Data Format Changes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id31">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id32">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id33">Documentation</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-0">Release 1.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#id3">Enhancements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#id4">Experimental Features</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#id5">Bug Fixes</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#id6">Performance</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#id7">Maintenance and Refactorings</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#id8">Build</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#id9">Documentation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#id10">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id34">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id35">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id36">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id37">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id38">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id39">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id40">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id41">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id42">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-9-0">Release 0.9.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-4">Release 0.8.4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-9-0">Release 0.9.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id43">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id44">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id45">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id46">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id47">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id48">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id49">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id50">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id51">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-4">Release 0.8.4</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id52">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id53">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id54">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id55">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id56">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id57">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id58">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id59">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id60">Miscellaneous</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-3">Release 0.8.3</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-0">Release 0.8.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-7-0">Release 0.7.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-6-1">Release 0.6.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-0">Release 0.8.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id61">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id62">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id63">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id64">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id65">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id66">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id67">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id68">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-7-0">Release 0.7.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id69">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id70">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id71">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id72">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id73">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id74">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id75">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id76">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id77">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id78">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id79">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id80">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id81">Contributors</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -476,6 +580,10 @@
   </dt>
 
       
+  <dt><a href="appendix.html#zipline.finance.blotter.blotter.Blotter.batch_order">batch_order() (zipline.finance.blotter.blotter.Blotter method)</a>
+  </dt>
+
+      
   <dt><a href="appendix.html#zipline.data.us_equity_pricing.BcolzDailyBarReader">BcolzDailyBarReader (class in zipline.data.us_equity_pricing)</a>
   </dt>
 
@@ -499,6 +607,10 @@
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.sources.benchmark_source.BenchmarkSource">BenchmarkSource (class in zipline.sources.benchmark_source)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.finance.blotter.blotter.Blotter">Blotter (class in zipline.finance.blotter.blotter)</a>
   </dt>
 
       
@@ -544,19 +656,33 @@
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.protocol.BarData.can_trade">can_trade() (zipline.protocol.BarData method)</a>
+  <dt><a href="appendix.html#zipline.protocol.BarData.can_trade">can_trade (zipline.protocol.BarData attribute)</a>
   </dt>
 
+      
+  <dt><a href="appendix.html#zipline.finance.blotter.blotter.Blotter.cancel">cancel() (zipline.finance.blotter.blotter.Blotter method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.finance.blotter.blotter.Blotter.cancel_all_orders_for_asset">cancel_all_orders_for_asset() (zipline.finance.blotter.blotter.Blotter method)</a>
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="appendix.html#zipline.finance.blotter.SimulationBlotter.cancel_all_orders_for_asset">(zipline.finance.blotter.SimulationBlotter method)</a>
+  </dt>
+
+      </dl></dd>
       
   <dt><a href="appendix.html#zipline.api.cancel_order">cancel_order() (in module zipline.api)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.finance.cancel_policy.CancelPolicy">CancelPolicy (class in zipline.finance.cancel_policy)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.finance.metrics.metric.CashFlow">CashFlow (class in zipline.finance.metrics.metric)</a>
   </dt>
@@ -578,7 +704,7 @@
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.protocol.BarData.current">current() (zipline.protocol.BarData method)</a>
+  <dt><a href="appendix.html#zipline.protocol.BarData.current">current (zipline.protocol.BarData attribute)</a>
   </dt>
 
       
@@ -612,6 +738,10 @@
   </dt>
 
       
+  <dt><a href="appendix.html#zipline.pipeline.factors.DailyReturns">DailyReturns (class in zipline.pipeline.factors)</a>
+  </dt>
+
+      
   <dt><a href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.data_len_for_day">data_len_for_day() (zipline.data.minute_bars.BcolzMinuteBarWriter method)</a>
   </dt>
 
@@ -623,6 +753,10 @@
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.data.data_portal.DataPortal">DataPortal (class in zipline.data.data_portal)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.pipeline.data.DataSet">DataSet (class in zipline.pipeline.data)</a>
   </dt>
 
       
@@ -811,12 +945,12 @@
   <dt><a href="appendix.html#zipline.api.get_order">get_order() (in module zipline.api)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.sources.benchmark_source.BenchmarkSource.get_range">get_range() (zipline.sources.benchmark_source.BenchmarkSource method)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.data.data_portal.DataPortal.get_scalar_asset_spot_value">get_scalar_asset_spot_value() (zipline.data.data_portal.DataPortal method)</a>
   </dt>
@@ -842,6 +976,16 @@
   </dt>
 
       
+  <dt><a href="appendix.html#zipline.finance.blotter.blotter.Blotter.get_transactions">get_transactions() (zipline.finance.blotter.blotter.Blotter method)</a>
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="appendix.html#zipline.finance.blotter.SimulationBlotter.get_transactions">(zipline.finance.blotter.SimulationBlotter method)</a>
+  </dt>
+
+      </dl></dd>
+      
   <dt><a href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarReader.get_value">get_value() (zipline.data.minute_bars.BcolzMinuteBarReader method)</a>
   </dt>
 
@@ -855,6 +999,10 @@
   </dt>
 
       </dl></dd>
+      
+  <dt><a href="appendix.html#zipline.pipeline.term.Term.graph_repr">graph_repr() (zipline.pipeline.term.Term method)</a>
+  </dt>
+
       
   <dt><a href="appendix.html#PositionStats.gross_exposure">gross_exposure (PositionStats attribute)</a>
   </dt>
@@ -881,16 +1029,26 @@
   <dt><a href="appendix.html#zipline.finance.ledger.PositionTracker.handle_splits">handle_splits() (zipline.finance.ledger.PositionTracker method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.pipeline.data.USEquityPricing.high">high (zipline.pipeline.data.USEquityPricing attribute)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="appendix.html#zipline.protocol.BarData.history">history() (zipline.protocol.BarData method)</a>
+  <dt><a href="appendix.html#zipline.protocol.BarData.history">history (zipline.protocol.BarData attribute)</a>
   </dt>
 
+      
+  <dt><a href="appendix.html#zipline.finance.blotter.blotter.Blotter.hold">hold() (zipline.finance.blotter.blotter.Blotter method)</a>
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="appendix.html#zipline.finance.blotter.SimulationBlotter.hold">(zipline.finance.blotter.SimulationBlotter method)</a>
+  </dt>
+
+      </dl></dd>
   </dl></td>
 </tr></table>
 
@@ -924,7 +1082,7 @@
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.protocol.BarData.is_stale">is_stale() (zipline.protocol.BarData method)</a>
+  <dt><a href="appendix.html#zipline.protocol.BarData.is_stale">is_stale (zipline.protocol.BarData attribute)</a>
   </dt>
 
       
@@ -1059,12 +1217,12 @@
   <dt><a href="appendix.html#zipline.utils.cli.maybe_show_progress">maybe_show_progress() (in module zipline.utils.cli)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.utils.calendars.TradingCalendar.minute_index_to_session_labels">minute_index_to_session_labels() (zipline.utils.calendars.TradingCalendar method)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.utils.calendars.TradingCalendar.minute_to_session_label">minute_to_session_label() (zipline.utils.calendars.TradingCalendar method)</a>
   </dt>
@@ -1091,6 +1249,10 @@
 
       
   <dt><a href="appendix.html#zipline.api.date_rules.month_start">month_start() (zipline.api.date_rules static method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.assets.Future.multiplier">multiplier (zipline.assets.Future attribute)</a>
   </dt>
 
   </dl></td>
@@ -1155,6 +1317,16 @@
   <dt><a href="appendix.html#zipline.api.order">order() (in module zipline.api)</a>
   </dt>
 
+      <dd><dl>
+        
+  <dt><a href="appendix.html#zipline.finance.blotter.SimulationBlotter.order">(zipline.finance.blotter.SimulationBlotter method)</a>
+  </dt>
+
+        
+  <dt><a href="appendix.html#zipline.finance.blotter.blotter.Blotter.order">(zipline.finance.blotter.blotter.Blotter method)</a>
+  </dt>
+
+      </dl></dd>
       
   <dt><a href="appendix.html#zipline.api.order_percent">order_percent() (in module zipline.api)</a>
   </dt>
@@ -1310,13 +1482,33 @@
 
       </dl></dd>
       
-  <dt><a href="appendix.html#zipline.finance.ledger.Ledger.process_splits">process_splits() (zipline.finance.ledger.Ledger method)</a>
+  <dt><a href="appendix.html#zipline.finance.blotter.blotter.Blotter.process_splits">process_splits() (zipline.finance.blotter.blotter.Blotter method)</a>
   </dt>
 
+      <dd><dl>
+        
+  <dt><a href="appendix.html#zipline.finance.blotter.SimulationBlotter.process_splits">(zipline.finance.blotter.SimulationBlotter method)</a>
+  </dt>
+
+        
+  <dt><a href="appendix.html#zipline.finance.ledger.Ledger.process_splits">(zipline.finance.ledger.Ledger method)</a>
+  </dt>
+
+      </dl></dd>
       
   <dt><a href="appendix.html#zipline.finance.ledger.Ledger.process_transaction">process_transaction() (zipline.finance.ledger.Ledger method)</a>
   </dt>
 
+      
+  <dt><a href="appendix.html#zipline.finance.blotter.blotter.Blotter.prune_orders">prune_orders() (zipline.finance.blotter.blotter.Blotter method)</a>
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="appendix.html#zipline.finance.blotter.SimulationBlotter.prune_orders">(zipline.finance.blotter.SimulationBlotter method)</a>
+  </dt>
+
+      </dl></dd>
   </dl></td>
 </tr></table>
 
@@ -1352,6 +1544,10 @@
   </dt>
 
       
+  <dt><a href="appendix.html#zipline.pipeline.term.Term.recursive_repr">recursive_repr() (zipline.pipeline.term.Term method)</a>
+  </dt>
+
+      
   <dt><a href="appendix.html#zipline.data.bundles.register">register() (in module zipline.data.bundles)</a>
   </dt>
 
@@ -1374,6 +1570,16 @@
   </dt>
 
       
+  <dt><a href="appendix.html#zipline.finance.blotter.blotter.Blotter.reject">reject() (zipline.finance.blotter.blotter.Blotter method)</a>
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="appendix.html#zipline.finance.blotter.SimulationBlotter.reject">(zipline.finance.blotter.SimulationBlotter method)</a>
+  </dt>
+
+      </dl></dd>
+      
   <dt><a href="appendix.html#zipline.assets.AssetFinder.reload_symbol_maps">reload_symbol_maps() (zipline.assets.AssetFinder method)</a>
   </dt>
 
@@ -1389,12 +1595,12 @@
   <dt><a href="appendix.html#zipline.assets.AssetFinder.retrieve_asset">retrieve_asset() (zipline.assets.AssetFinder method)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.assets.AssetFinder.retrieve_equities">retrieve_equities() (zipline.assets.AssetFinder method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.assets.AssetFinder.retrieve_futures_contracts">retrieve_futures_contracts() (zipline.assets.AssetFinder method)</a>
   </dt>
@@ -1563,12 +1769,12 @@
   <dt><a href="appendix.html#zipline.pipeline.Pipeline.show_graph">show_graph() (zipline.pipeline.Pipeline method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.api.sid">sid() (in module zipline.api)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.data.us_equity_pricing.BcolzDailyBarReader.sid_day_index">sid_day_index() (zipline.data.us_equity_pricing.BcolzDailyBarReader method)</a>
   </dt>
@@ -1582,6 +1788,10 @@
   </dt>
 
       
+  <dt><a href="appendix.html#zipline.pipeline.factors.SimpleBeta">SimpleBeta (class in zipline.pipeline.factors)</a>
+  </dt>
+
+      
   <dt><a href="appendix.html#zipline.finance.metrics.metric.SimpleLedgerField">SimpleLedgerField (class in zipline.finance.metrics.metric)</a>
   </dt>
 
@@ -1591,6 +1801,10 @@
 
       
   <dt><a href="appendix.html#zipline.pipeline.engine.SimplePipelineEngine">SimplePipelineEngine (class in zipline.pipeline.engine)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.finance.blotter.SimulationBlotter">SimulationBlotter (class in zipline.finance.blotter)</a>
   </dt>
 
       
@@ -1673,6 +1887,10 @@
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarReader.table_len">table_len() (zipline.data.minute_bars.BcolzMinuteBarReader method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.pipeline.factors.SimpleBeta.target">target (zipline.pipeline.factors.SimpleBeta attribute)</a>
   </dt>
 
       
@@ -1905,7 +2123,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'1.2.0',
+            VERSION:'1.3.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

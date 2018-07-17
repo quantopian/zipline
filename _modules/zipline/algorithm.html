@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.algorithm &mdash; Zipline 1.2.0 documentation</title>
+  <title>zipline.algorithm &mdash; Zipline 1.3.0 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 1.2.0 documentation" href="../../index.html"/>
+    <link rel="top" title="Zipline 1.3.0 documentation" href="../../index.html"/>
         <link rel="up" title="Module code" href="../index.html"/> 
 
   
@@ -185,6 +185,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../appendix.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../appendix.html#blotters">Blotters</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../appendix.html#pipeline-api">Pipeline API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../appendix.html#built-in-factors">Built-in Factors</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../appendix.html#built-in-filters">Built-in Filters</a></li>
@@ -228,48 +229,151 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../releases.html">Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-3-0">Release 1.3.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#highlights">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#support-for-newer-numpy-pandas-versions">Support for Newer Numpy/Pandas Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#standalone-trading-calendars-module">Standalone <code class="docutils literal"><span class="pre">trading_calendars</span></code> Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#custom-blotters">Custom Blotters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#custom-command-line-arguments">Custom Command-Line Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#experimental-features">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#performance">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#build">Build</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-2-0">Release 1.2.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../releases.html#enhancements">Enhancements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../releases.html#bug-fixes">Bug Fixes</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../releases.html#performance">Performance</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../releases.html#build">Build</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../releases.html#documentation">Documentation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../releases.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id1">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id2">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id3">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id4">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id5">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id6">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id7">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-1-1">Release 1.1.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-1-0">Release 1.1.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-0-2">Release 1.0.2</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-0-1">Release 1.0.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-1-1">Release 1.1.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id10">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id11">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id12">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id13">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id14">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id15">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id16">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id17">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id18">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-1-0">Release 1.1.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id19">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id20">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id21">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id22">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id23">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id24">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id25">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-0-2">Release 1.0.2</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id26">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#experimental">Experimental</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id27">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id28">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id29">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id30">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#data-format-changes">Data Format Changes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id31">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id32">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id33">Documentation</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../releases.html#id3">Enhancements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../releases.html#id4">Experimental Features</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../releases.html#id5">Bug Fixes</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../releases.html#id6">Performance</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../releases.html#id7">Maintenance and Refactorings</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../releases.html#id8">Build</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../releases.html#id9">Documentation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../releases.html#id10">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id34">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id35">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id36">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id37">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id38">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id39">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id40">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id41">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id42">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-9-0">Release 0.9.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-8-4">Release 0.8.4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-9-0">Release 0.9.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id43">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id44">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id45">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id46">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id47">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id48">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id49">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id50">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id51">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id52">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id53">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id54">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id55">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id56">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id57">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id58">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id59">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id60">Miscellaneous</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-8-3">Release 0.8.3</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-8-0">Release 0.8.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-7-0">Release 0.7.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-6-1">Release 0.6.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-8-0">Release 0.8.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id61">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id62">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id63">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id64">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id65">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id66">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id67">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id68">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id69">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id70">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id71">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id72">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id73">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id74">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id75">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id76">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id77">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id78">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id79">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id80">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id81">Contributors</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -324,7 +428,7 @@
 <span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
 <span class="c"># See the License for the specific language governing permissions and</span>
 <span class="c"># limitations under the License.</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Iterable</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">namedtuple</span>
 <span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">copy</span>
 <span class="kn">import</span> <span class="nn">operator</span> <span class="kn">as</span> <span class="nn">op</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
@@ -333,7 +437,6 @@
 <span class="kn">import</span> <span class="nn">pytz</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
 <span class="kn">from</span> <span class="nn">contextlib2</span> <span class="kn">import</span> <span class="n">ExitStack</span>
-<span class="kn">from</span> <span class="nn">pandas.tseries.tools</span> <span class="kn">import</span> <span class="n">normalize_date</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span><span class="p">,</span> <span class="n">repeat</span>
@@ -346,6 +449,8 @@
     <span class="n">string_types</span><span class="p">,</span>
     <span class="n">viewkeys</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span> <span class="nn">trading_calendars.utils.pandas_utils</span> <span class="kn">import</span> <span class="n">days_at_time</span>
+<span class="kn">from</span> <span class="nn">trading_calendars</span> <span class="kn">import</span> <span class="n">get_calendar</span>
 
 <span class="kn">from</span> <span class="nn">zipline._protocol</span> <span class="kn">import</span> <span class="n">handle_non_market_minutes</span>
 <span class="kn">from</span> <span class="nn">zipline.assets.synthetic</span> <span class="kn">import</span> <span class="n">make_simple_equity_info</span>
@@ -373,9 +478,10 @@
     <span class="n">UnsupportedCancelPolicy</span><span class="p">,</span>
     <span class="n">UnsupportedDatetimeFormat</span><span class="p">,</span>
     <span class="n">UnsupportedOrderParameters</span><span class="p">,</span>
+    <span class="n">ZeroCapitalError</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.finance.trading</span> <span class="kn">import</span> <span class="n">TradingEnvironment</span>
-<span class="kn">from</span> <span class="nn">zipline.finance.blotter</span> <span class="kn">import</span> <span class="n">Blotter</span>
+<span class="kn">from</span> <span class="nn">zipline.finance.blotter</span> <span class="kn">import</span> <span class="n">SimulationBlotter</span>
 <span class="kn">from</span> <span class="nn">zipline.finance.controls</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">LongOnly</span><span class="p">,</span>
     <span class="n">MaxOrderCount</span><span class="p">,</span>
@@ -421,9 +527,8 @@
     <span class="n">optional</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="n">int64_dtype</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.calendars.trading_calendar</span> <span class="kn">import</span> <span class="n">days_at_time</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.pandas_utils</span> <span class="kn">import</span> <span class="n">normalize_date</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.cache</span> <span class="kn">import</span> <span class="n">ExpiringCache</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.calendars</span> <span class="kn">import</span> <span class="n">get_calendar</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.pandas_utils</span> <span class="kn">import</span> <span class="n">clear_dataframe_indexer_caches</span>
 
 <span class="kn">import</span> <span class="nn">zipline.utils.events</span>
@@ -453,6 +558,9 @@
 
 
 <span class="n">log</span> <span class="o">=</span> <span class="n">logbook</span><span class="o">.</span><span class="n">Logger</span><span class="p">(</span><span class="s">&quot;ZiplineLog&quot;</span><span class="p">)</span>
+
+<span class="c"># For creating and storing pipeline instances</span>
+<span class="n">AttachedPipeline</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s">&#39;AttachedPipeline&#39;</span><span class="p">,</span> <span class="s">&#39;pipe chunks eager&#39;</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">TradingAlgorithm</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -486,8 +594,6 @@
 <span class="sd">        tracebacks. default: &#39;&lt;string&gt;&#39;.</span>
 <span class="sd">    data_frequency : {&#39;daily&#39;, &#39;minute&#39;}, optional</span>
 <span class="sd">        The duration of the bars.</span>
-<span class="sd">    instant_fill : bool, optional</span>
-<span class="sd">        Whether to fill orders immediately or on next bar. default: False</span>
 <span class="sd">    equities_metadata : dict or DataFrame or file-like object, optional</span>
 <span class="sd">        If dict is provided, it must have the following structure:</span>
 <span class="sd">        * keys are the identifiers</span>
@@ -636,13 +742,9 @@
         <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">blotter</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;blotter&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cancel_policy</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;cancel_policy&#39;</span><span class="p">,</span> <span class="n">NeverCancel</span><span class="p">())</span>
+        <span class="n">cancel_policy</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;cancel_policy&#39;</span><span class="p">,</span> <span class="n">NeverCancel</span><span class="p">())</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">blotter</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">blotter</span> <span class="o">=</span> <span class="n">Blotter</span><span class="p">(</span>
-                <span class="n">data_frequency</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data_frequency</span><span class="p">,</span>
-                <span class="c"># Default to NeverCancel in zipline</span>
-                <span class="n">cancel_policy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cancel_policy</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">blotter</span> <span class="o">=</span> <span class="n">SimulationBlotter</span><span class="p">(</span><span class="n">cancel_policy</span><span class="o">=</span><span class="n">cancel_policy</span><span class="p">)</span>
 
         <span class="c"># The symbol lookup date specifies the date to use when resolving</span>
         <span class="c"># symbols to sids, and can be set using set_symbol_lookup_date()</span>
@@ -721,6 +823,10 @@
         <span class="k">if</span> <span class="s">&#39;data_frequency&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">data_frequency</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;data_frequency&#39;</span><span class="p">)</span>
 
+        <span class="n">capital_base</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">capital_base</span>
+        <span class="k">if</span> <span class="n">capital_base</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ZeroCapitalError</span><span class="p">()</span>
+
         <span class="c"># Prepare the algo for initialization</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span> <span class="o">=</span> <span class="bp">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">initialize_args</span> <span class="o">=</span> <span class="n">args</span>
@@ -761,6 +867,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">before_trading_start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compute_eager_pipelines</span><span class="p">()</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_before_trading_start</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="k">return</span>
 
@@ -920,6 +1028,14 @@
         <span class="c"># our universe is all the assets passed into `run`.</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_assets_from_source</span>
 
+    <span class="k">def</span> <span class="nf">compute_eager_pipelines</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute any pipelines attached with eager=True.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">pipe</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pipelines</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">pipe</span><span class="o">.</span><span class="n">eager</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pipeline_output</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
     <span class="k">def</span> <span class="nf">get_generator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Override this method to add new logic to the construction</span>
@@ -939,9 +1055,23 @@
 <span class="sd">              Daily performance metrics such as returns, alpha etc.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># XXX: _assets_from_source is a backwards compatibility shim for old,</span>
+        <span class="c">#      deprecated APIs that treat BarData like a dictionary with asset</span>
+        <span class="c">#      keys. We initialize it differently depending on what kind of</span>
+        <span class="c">#      data we&#39;re running against. This is kind of a mess...</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_assets_from_source</span> <span class="o">=</span> <span class="p">[]</span>
 
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">DataPortal</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_portal</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s">&quot;Must pass a data portal to TradingAlgorithm() &quot;</span>
+                    <span class="s">&quot;or to run().&quot;</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_assets_from_source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">asset_finder</span><span class="o">.</span><span class="n">retrieve_all</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">asset_finder</span><span class="o">.</span><span class="n">sids</span>
+            <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">DataPortal</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">data_portal</span> <span class="o">=</span> <span class="n">data</span>
 
             <span class="c"># define the universe as all the assets in the assetfinder</span>
@@ -1677,10 +1807,7 @@
             <span class="c"># Don&#39;t place any order</span>
             <span class="k">return</span> <span class="mi">0</span>
 
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">Future</span><span class="p">):</span>
-            <span class="n">value_multiplier</span> <span class="o">=</span> <span class="n">asset</span><span class="o">.</span><span class="n">multiplier</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">value_multiplier</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">value_multiplier</span> <span class="o">=</span> <span class="n">asset</span><span class="o">.</span><span class="n">price_multiplier</span>
 
         <span class="k">return</span> <span class="n">value</span> <span class="o">/</span> <span class="p">(</span><span class="n">last_price</span> <span class="o">*</span> <span class="n">value_multiplier</span><span class="p">)</span>
 
@@ -1774,7 +1901,8 @@
 
         <span class="c"># Convert deprecated limit_price and stop_price parameters to use</span>
         <span class="c"># ExecutionStyle objects.</span>
-        <span class="n">style</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__convert_order_params_for_blotter</span><span class="p">(</span><span class="n">limit_price</span><span class="p">,</span>
+        <span class="n">style</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__convert_order_params_for_blotter</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span>
+                                                        <span class="n">limit_price</span><span class="p">,</span>
                                                         <span class="n">stop_price</span><span class="p">,</span>
                                                         <span class="n">style</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">amount</span><span class="p">,</span> <span class="n">style</span>
@@ -1827,7 +1955,10 @@
                              <span class="bp">self</span><span class="o">.</span><span class="n">trading_client</span><span class="o">.</span><span class="n">current_data</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">__convert_order_params_for_blotter</span><span class="p">(</span><span class="n">limit_price</span><span class="p">,</span> <span class="n">stop_price</span><span class="p">,</span> <span class="n">style</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__convert_order_params_for_blotter</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span>
+                                           <span class="n">limit_price</span><span class="p">,</span>
+                                           <span class="n">stop_price</span><span class="p">,</span>
+                                           <span class="n">style</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Helper method for converting deprecated limit_price and stop_price</span>
 <span class="sd">        arguments into ExecutionStyle instances.</span>
@@ -1839,11 +1970,11 @@
             <span class="k">assert</span> <span class="p">(</span><span class="n">limit_price</span><span class="p">,</span> <span class="n">stop_price</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">style</span>
         <span class="k">if</span> <span class="n">limit_price</span> <span class="ow">and</span> <span class="n">stop_price</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">StopLimitOrder</span><span class="p">(</span><span class="n">limit_price</span><span class="p">,</span> <span class="n">stop_price</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">StopLimitOrder</span><span class="p">(</span><span class="n">limit_price</span><span class="p">,</span> <span class="n">stop_price</span><span class="p">,</span> <span class="n">asset</span><span class="o">=</span><span class="n">asset</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">limit_price</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">LimitOrder</span><span class="p">(</span><span class="n">limit_price</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">LimitOrder</span><span class="p">(</span><span class="n">limit_price</span><span class="p">,</span> <span class="n">asset</span><span class="o">=</span><span class="n">asset</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">stop_price</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">StopOrder</span><span class="p">(</span><span class="n">stop_price</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">StopOrder</span><span class="p">(</span><span class="n">stop_price</span><span class="p">,</span> <span class="n">asset</span><span class="o">=</span><span class="n">asset</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">MarketOrder</span><span class="p">()</span>
 
@@ -2714,7 +2845,7 @@
         <span class="n">name</span><span class="o">=</span><span class="n">string_types</span><span class="p">,</span>
         <span class="n">chunks</span><span class="o">=</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="bp">None</span><span class="p">)),</span>
     <span class="p">)</span>
-    <span class="k">def</span> <span class="nf">attach_pipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">attach_pipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">eager</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Register a pipeline to be computed at the start of each day.</span>
 
 <span class="sd">        Parameters</span>
@@ -2727,7 +2858,11 @@
 <span class="sd">            The number of days to compute pipeline results for. Increasing</span>
 <span class="sd">            this number will make it longer to get the first results but</span>
 <span class="sd">            may improve the total runtime of the simulation. If an iterator</span>
-<span class="sd">            is passed, we will run in chunks based on values of the itereator.</span>
+<span class="sd">            is passed, we will run in chunks based on values of the iterator.</span>
+<span class="sd">            Default is True.</span>
+<span class="sd">        eager : bool, optional</span>
+<span class="sd">            Whether or not to compute this pipeline prior to</span>
+<span class="sd">            before_trading_start.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -2748,7 +2883,7 @@
         <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pipelines</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">DuplicatePipelineName</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_pipelines</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">pipeline</span><span class="p">,</span> <span class="nb">iter</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pipelines</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">AttachedPipeline</span><span class="p">(</span><span class="n">pipeline</span><span class="p">,</span> <span class="nb">iter</span><span class="p">(</span><span class="n">chunks</span><span class="p">),</span> <span class="n">eager</span><span class="p">)</span>
 
         <span class="c"># Return the pipeline to allow expressions like</span>
         <span class="c"># p = attach_pipeline(Pipeline(), &#39;name&#39;)</span>
@@ -2782,13 +2917,13 @@
 <span class="sd">        :meth:`zipline.pipeline.engine.PipelineEngine.run_pipeline`</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">p</span><span class="p">,</span> <span class="n">chunks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pipelines</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="n">pipe</span><span class="p">,</span> <span class="n">chunks</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pipelines</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">NoSuchPipeline</span><span class="p">(</span>
                 <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
                 <span class="n">valid</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pipelines</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span>
             <span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pipeline_output</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">chunks</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pipeline_output</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="n">chunks</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_pipeline_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">chunks</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -2894,7 +3029,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../',
-            VERSION:'1.2.0',
+            VERSION:'1.3.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

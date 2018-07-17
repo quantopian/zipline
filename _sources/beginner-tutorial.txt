@@ -843,6 +843,7 @@ Let's look at the strategy which should make this clear:
 
 
    from zipline.api import order_target, record, symbol
+   import matplotlib.pyplot as plt
 
    def initialize(context):
        context.i = 0

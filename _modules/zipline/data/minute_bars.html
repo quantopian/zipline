@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.data.minute_bars &mdash; Zipline 1.2.0 documentation</title>
+  <title>zipline.data.minute_bars &mdash; Zipline 1.3.0 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 1.2.0 documentation" href="../../../index.html"/>
+    <link rel="top" title="Zipline 1.3.0 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -185,6 +185,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#blotters">Blotters</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#pipeline-api">Pipeline API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#built-in-factors">Built-in Factors</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#built-in-filters">Built-in Filters</a></li>
@@ -228,48 +229,151 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-3-0">Release 1.3.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#highlights">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#support-for-newer-numpy-pandas-versions">Support for Newer Numpy/Pandas Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#standalone-trading-calendars-module">Standalone <code class="docutils literal"><span class="pre">trading_calendars</span></code> Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#custom-blotters">Custom Blotters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#custom-command-line-arguments">Custom Command-Line Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental-features">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#performance">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#build">Build</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-2-0">Release 1.2.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#enhancements">Enhancements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#bug-fixes">Bug Fixes</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#performance">Performance</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#build">Build</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#documentation">Documentation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id1">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id2">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id3">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id4">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id5">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id6">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id7">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-1-1">Release 1.1.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-1-0">Release 1.1.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-2">Release 1.0.2</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-1">Release 1.0.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-1-1">Release 1.1.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id10">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id11">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id12">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id13">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id14">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id15">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id16">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id17">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id18">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-1-0">Release 1.1.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id19">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id22">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id23">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id24">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id25">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-2">Release 1.0.2</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id26">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental">Experimental</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id27">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id28">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id29">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id30">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#data-format-changes">Data Format Changes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id31">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id32">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id33">Documentation</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#id3">Enhancements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#id4">Experimental Features</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#id5">Bug Fixes</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#id6">Performance</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#id7">Maintenance and Refactorings</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#id8">Build</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#id9">Documentation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#id10">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id34">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id35">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id36">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id37">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id38">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id39">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id40">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id41">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id42">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-9-0">Release 0.9.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-4">Release 0.8.4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-9-0">Release 0.9.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id43">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id44">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id45">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id46">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id47">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id48">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id49">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id50">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id51">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id52">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id53">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id54">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id55">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id56">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id57">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id58">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id59">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id60">Miscellaneous</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-3">Release 0.8.3</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-0">Release 0.8.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-7-0">Release 0.7.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-6-1">Release 0.6.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-0">Release 0.8.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id61">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id62">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id63">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id64">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id65">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id66">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id67">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id68">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id69">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id70">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id71">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id72">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id73">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id74">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id75">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id76">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id77">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id78">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id79">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id80">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id81">Contributors</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -341,6 +445,7 @@
 <span class="kn">import</span> <span class="nn">tables</span>
 <span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">with_metaclass</span>
 <span class="kn">from</span> <span class="nn">toolz</span> <span class="kn">import</span> <span class="n">keymap</span><span class="p">,</span> <span class="n">valmap</span>
+<span class="kn">from</span> <span class="nn">trading_calendars</span> <span class="kn">import</span> <span class="n">get_calendar</span>
 
 <span class="kn">from</span> <span class="nn">zipline.data._minute_bar_internal</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">minute_value</span><span class="p">,</span>
@@ -349,10 +454,8 @@
 <span class="p">)</span>
 
 <span class="kn">from</span> <span class="nn">zipline.gens.sim_engine</span> <span class="kn">import</span> <span class="n">NANOS_IN_MINUTE</span>
-
 <span class="kn">from</span> <span class="nn">zipline.data.bar_reader</span> <span class="kn">import</span> <span class="n">BarReader</span><span class="p">,</span> <span class="n">NoDataForSid</span><span class="p">,</span> <span class="n">NoDataOnDate</span>
 <span class="kn">from</span> <span class="nn">zipline.data.us_equity_pricing</span> <span class="kn">import</span> <span class="n">check_uint32_safe</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.calendars</span> <span class="kn">import</span> <span class="n">get_calendar</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.cli</span> <span class="kn">import</span> <span class="n">maybe_show_progress</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.compat</span> <span class="kn">import</span> <span class="n">mappingproxy</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.memoize</span> <span class="kn">import</span> <span class="n">lazyval</span>
@@ -500,7 +603,7 @@
 <span class="sd">    ohlc_ratio : int</span>
 <span class="sd">         The factor by which the pricing data is multiplied so that the</span>
 <span class="sd">         float data can be stored as an integer.</span>
-<span class="sd">    calendar :  zipline.utils.calendars.trading_calendar.TradingCalendar</span>
+<span class="sd">    calendar :  trading_calendars.trading_calendar.TradingCalendar</span>
 <span class="sd">        The TradingCalendar on which the minute bars are based.</span>
 <span class="sd">    start_session : datetime</span>
 <span class="sd">        The first trading session in the data set.</span>
@@ -671,7 +774,7 @@
 <span class="sd">    rootdir : string</span>
 <span class="sd">        Path to the root directory into which to write the metadata and</span>
 <span class="sd">        bcolz subdirectories.</span>
-<span class="sd">    calendar : zipline.utils.calendars.trading_calendar.TradingCalendar</span>
+<span class="sd">    calendar : trading_calendars.trading_calendar.TradingCalendar</span>
 <span class="sd">        The trading calendar on which to base the minute bars. Used to</span>
 <span class="sd">        get the market opens used as a starting point for each periodic</span>
 <span class="sd">        span of minutes in the index, and the market closes that</span>
@@ -1722,7 +1825,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'1.2.0',
+            VERSION:'1.3.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

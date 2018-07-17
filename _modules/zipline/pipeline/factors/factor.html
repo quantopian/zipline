@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.factors.factor &mdash; Zipline 1.2.0 documentation</title>
+  <title>zipline.pipeline.factors.factor &mdash; Zipline 1.3.0 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 1.2.0 documentation" href="../../../../index.html"/>
+    <link rel="top" title="Zipline 1.3.0 documentation" href="../../../../index.html"/>
         <link rel="up" title="Module code" href="../../../index.html"/> 
 
   
@@ -185,6 +185,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#blotters">Blotters</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#pipeline-api">Pipeline API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#built-in-factors">Built-in Factors</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#built-in-filters">Built-in Filters</a></li>
@@ -228,48 +229,151 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../releases.html">Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-3-0">Release 1.3.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#highlights">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#support-for-newer-numpy-pandas-versions">Support for Newer Numpy/Pandas Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#standalone-trading-calendars-module">Standalone <code class="docutils literal"><span class="pre">trading_calendars</span></code> Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#custom-blotters">Custom Blotters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#custom-command-line-arguments">Custom Command-Line Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#experimental-features">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#performance">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#build">Build</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-2-0">Release 1.2.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#enhancements">Enhancements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#bug-fixes">Bug Fixes</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#performance">Performance</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#build">Build</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#documentation">Documentation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id1">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id2">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id3">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id4">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id5">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id6">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id7">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-1-1">Release 1.1.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-1-0">Release 1.1.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-2">Release 1.0.2</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-1">Release 1.0.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-1-1">Release 1.1.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id10">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id11">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id12">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id13">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id14">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id15">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id16">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id17">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id18">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-1-0">Release 1.1.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id19">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id20">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id21">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id22">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id23">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id24">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id25">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-2">Release 1.0.2</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id26">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#experimental">Experimental</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id27">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id28">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id29">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id30">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#data-format-changes">Data Format Changes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id31">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id32">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id33">Documentation</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id3">Enhancements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id4">Experimental Features</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id5">Bug Fixes</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id6">Performance</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id7">Maintenance and Refactorings</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id8">Build</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id9">Documentation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#id10">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id34">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id35">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id36">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id37">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id38">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id39">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id40">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id41">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id42">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-9-0">Release 0.9.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-4">Release 0.8.4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-9-0">Release 0.9.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id43">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id44">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id45">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id46">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id47">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id48">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id49">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id50">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id51">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id52">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id53">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id54">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id55">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id56">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id57">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id58">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id59">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id60">Miscellaneous</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-3">Release 0.8.3</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-0">Release 0.8.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-7-0">Release 0.7.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-6-1">Release 0.6.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-0">Release 0.8.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id61">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id62">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id63">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id64">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id65">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id66">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id67">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id68">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id69">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id70">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id71">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id72">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id73">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id74">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id75">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id76">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id77">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id78">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id79">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id80">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id81">Contributors</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -317,7 +421,7 @@
 <span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Number</span>
 <span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">ceil</span>
 
-<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">empty_like</span><span class="p">,</span> <span class="n">inf</span><span class="p">,</span> <span class="n">nan</span><span class="p">,</span> <span class="n">where</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">empty_like</span><span class="p">,</span> <span class="n">inf</span><span class="p">,</span> <span class="n">isnan</span><span class="p">,</span> <span class="n">nan</span><span class="p">,</span> <span class="n">where</span>
 <span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">rankdata</span>
 
 <span class="kn">from</span> <span class="nn">zipline.utils.compat</span> <span class="kn">import</span> <span class="n">wraps</span>
@@ -1167,29 +1271,32 @@
                   <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">,</span>
                   <span class="n">groupby</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Construct a Factor returns a winsorized row. Winsorizing changes values</span>
-<span class="sd">        ranked less than the minimum percentile to to value at the minimum</span>
-<span class="sd">        percentile. Similarly, values ranking above the maximum percentile will</span>
-<span class="sd">        be changed to the value at the maximum percentile. This is useful</span>
-<span class="sd">        when limiting the impact of extreme values.</span>
+<span class="sd">        Construct a new factor that winsorizes the result of this factor.</span>
+
+<span class="sd">        Winsorizing changes values ranked less than the minimum percentile to</span>
+<span class="sd">        the value at the minimum percentile. Similarly, values ranking above</span>
+<span class="sd">        the maximum percentile are changed to the value at the maximum</span>
+<span class="sd">        percentile.</span>
+
+<span class="sd">        Winsorizing is useful for limiting the impact of extreme data points</span>
+<span class="sd">        without completely removing those points.</span>
 
 <span class="sd">        If ``mask`` is supplied, ignore values where ``mask`` returns False</span>
-<span class="sd">        when computing row means and standard deviations, and output NaN</span>
-<span class="sd">        anywhere the mask is False.</span>
+<span class="sd">        when computing percentile cutoffs, and output NaN anywhere the mask is</span>
+<span class="sd">        False.</span>
 
-<span class="sd">        If ``groupby`` is supplied, compute by partitioning each row based on</span>
-<span class="sd">        the values produced by ``groupby``, winsorizing the partitioned arrays,</span>
-<span class="sd">        and stitching the sub-results back together.</span>
+<span class="sd">        If ``groupby`` is supplied, winsorization is applied separately</span>
+<span class="sd">        separately to each group defined by ``groupby``.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        min_percentile: float, int</span>
 <span class="sd">            Entries with values at or below this percentile will be replaced</span>
-<span class="sd">            with the (len(inp) * min_percentile)th lowest value. If low values</span>
-<span class="sd">            should not be clipped, use 0.</span>
+<span class="sd">            with the (len(input) * min_percentile)th lowest value. If low</span>
+<span class="sd">            values should not be clipped, use 0.</span>
 <span class="sd">        max_percentile: float, int</span>
 <span class="sd">            Entries with values at or above this percentile will be replaced</span>
-<span class="sd">            with the (len(inp) * max_percentile)th lowest value. If high</span>
+<span class="sd">            with the (len(input) * max_percentile)th lowest value. If high</span>
 <span class="sd">            values should not be clipped, use 1.</span>
 <span class="sd">        mask : zipline.pipeline.Filter, optional</span>
 <span class="sd">            A Filter defining values to ignore when winsorizing.</span>
@@ -1634,7 +1741,7 @@
     <span class="k">def</span> <span class="nf">transform_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform</span><span class="o">.</span><span class="n">__name__</span>
 
-    <span class="k">def</span> <span class="nf">short_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">graph_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Short repr to use when rendering Pipeline graphs.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span> <span class="o">+</span> <span class="s">&#39;(</span><span class="si">%r</span><span class="s">)&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform_name</span>
 
@@ -1718,6 +1825,12 @@
             <span class="n">input_</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
             <span class="n">method</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_method</span><span class="p">,</span>
             <span class="n">mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">graph_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;Rank:\l  method: {!r}\l  mask: {}\l&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_method</span><span class="p">,</span>
+            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
         <span class="p">)</span>
 
 
@@ -1943,8 +2056,8 @@
     <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">windows</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">windows</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">_attribute</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">short_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;{}.{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">short_repr</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attribute</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">graph_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;{}.{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">graph_repr</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attribute</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="Latest"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Latest">[docs]</a><span class="k">class</span> <span class="nc">Latest</span><span class="p">(</span><span class="n">LatestMixin</span><span class="p">,</span> <span class="n">CustomFactor</span><span class="p">):</span>
@@ -1975,17 +2088,27 @@
 <span class="sd">    This implementation is based on scipy.stats.mstats.winsorize</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">a</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="n">num</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">size</span>
+    <span class="n">nan_count</span> <span class="o">=</span> <span class="n">isnan</span><span class="p">(</span><span class="n">row</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">nonnan_count</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span> <span class="n">nan_count</span>
+
+    <span class="c"># NOTE: argsort() sorts nans to the end of the array.</span>
     <span class="n">idx</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">argsort</span><span class="p">()</span>
+
+    <span class="c"># Set values at indices below the min percentile to the value of the entry</span>
+    <span class="c"># at the cutoff.</span>
     <span class="k">if</span> <span class="n">min_percentile</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">lowidx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">min_percentile</span> <span class="o">*</span> <span class="n">num</span><span class="p">)</span>
-        <span class="n">a</span><span class="p">[</span><span class="n">idx</span><span class="p">[:</span><span class="n">lowidx</span><span class="p">]]</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="n">lowidx</span><span class="p">]]</span>
+        <span class="n">lower_cutoff</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">min_percentile</span> <span class="o">*</span> <span class="n">nonnan_count</span><span class="p">)</span>
+        <span class="n">a</span><span class="p">[</span><span class="n">idx</span><span class="p">[:</span><span class="n">lower_cutoff</span><span class="p">]]</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="n">lower_cutoff</span><span class="p">]]</span>
+
+    <span class="c"># Set values at indices above the max percentile to the value of the entry</span>
+    <span class="c"># at the cutoff.</span>
     <span class="k">if</span> <span class="n">max_percentile</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">upidx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ceil</span><span class="p">(</span><span class="n">num</span> <span class="o">*</span> <span class="n">max_percentile</span><span class="p">))</span>
-        <span class="c"># upidx could return as the length of the array, in this case</span>
-        <span class="c"># no modification to the right tail is necessary.</span>
-        <span class="k">if</span> <span class="n">upidx</span> <span class="o">&lt;</span> <span class="n">num</span><span class="p">:</span>
-            <span class="n">a</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="n">upidx</span><span class="p">:]]</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="n">upidx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]</span>
+        <span class="n">upper_cutoff</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ceil</span><span class="p">(</span><span class="n">nonnan_count</span> <span class="o">*</span> <span class="n">max_percentile</span><span class="p">))</span>
+        <span class="c"># if max_percentile is close to 1, then upper_cutoff might not</span>
+        <span class="c"># remove any values.</span>
+        <span class="k">if</span> <span class="n">upper_cutoff</span> <span class="o">&lt;</span> <span class="n">nonnan_count</span><span class="p">:</span>
+            <span class="n">start_of_nans</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">nan_count</span><span class="p">)</span> <span class="k">if</span> <span class="n">nan_count</span> <span class="k">else</span> <span class="bp">None</span>
+            <span class="n">a</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="n">upper_cutoff</span><span class="p">:</span><span class="n">start_of_nans</span><span class="p">]]</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="n">upper_cutoff</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]</span>
 
     <span class="k">return</span> <span class="n">a</span>
 </pre></div>
@@ -2019,7 +2142,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'1.2.0',
+            VERSION:'1.3.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

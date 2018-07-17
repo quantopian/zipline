@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Risk and Performance Metrics &mdash; Zipline 1.2.0 documentation</title>
+  <title>Risk and Performance Metrics &mdash; Zipline 1.3.0 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 1.2.0 documentation" href="index.html"/>
+    <link rel="top" title="Zipline 1.3.0 documentation" href="index.html"/>
         <link rel="next" title="Development Guidelines" href="development-guidelines.html"/>
         <link rel="prev" title="Trading Calendars" href="trading-calendars.html"/> 
 
@@ -186,6 +186,7 @@
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="appendix.html#blotters">Blotters</a></li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#pipeline-api">Pipeline API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#built-in-factors">Built-in Factors</a></li>
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#built-in-filters">Built-in Filters</a></li>
@@ -229,48 +230,151 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-3-0">Release 1.3.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#highlights">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#support-for-newer-numpy-pandas-versions">Support for Newer Numpy/Pandas Versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#standalone-trading-calendars-module">Standalone <code class="docutils literal"><span class="pre">trading_calendars</span></code> Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#custom-blotters">Custom Blotters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#custom-command-line-arguments">Custom Command-Line Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#performance">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#build">Build</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-2-0">Release 1.2.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#performance">Performance</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#build">Build</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#documentation">Documentation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id1">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id2">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id3">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id4">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id5">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id6">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id7">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-1">Release 1.1.1</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-0">Release 1.1.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-2">Release 1.0.2</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-1">Release 1.0.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-1">Release 1.1.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id10">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id11">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id12">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id13">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id14">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id15">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id16">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id17">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id18">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-0">Release 1.1.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id19">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id20">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id21">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id22">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id23">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id24">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id25">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-2">Release 1.0.2</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id26">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#experimental">Experimental</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id27">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id28">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id29">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id30">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#data-format-changes">Data Format Changes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id31">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id32">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id33">Documentation</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-0">Release 1.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#id3">Enhancements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#id4">Experimental Features</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#id5">Bug Fixes</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#id6">Performance</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#id7">Maintenance and Refactorings</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#id8">Build</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#id9">Documentation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#id10">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id34">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id35">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id36">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id37">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id38">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id39">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id40">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id41">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id42">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-9-0">Release 0.9.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-4">Release 0.8.4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-9-0">Release 0.9.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id43">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id44">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id45">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id46">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id47">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id48">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id49">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id50">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id51">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-4">Release 0.8.4</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id52">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id53">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id54">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id55">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id56">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id57">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id58">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id59">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id60">Miscellaneous</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-3">Release 0.8.3</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-0">Release 0.8.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-7-0">Release 0.7.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-6-1">Release 0.6.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-0">Release 0.8.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id61">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id62">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id63">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id64">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id65">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id66">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id67">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id68">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-7-0">Release 0.7.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id69">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id70">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id71">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id72">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id73">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id74">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id75">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id76">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id77">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id78">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id79">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id80">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id81">Contributors</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -404,7 +508,7 @@ called at all.</p>
 <p><code class="docutils literal"><span class="pre">trading_calendar</span></code> is an instance of
 <a class="reference internal" href="appendix.html#zipline.utils.calendars.TradingCalendar" title="zipline.utils.calendars.TradingCalendar"><code class="xref py py-class docutils literal"><span class="pre">TradingCalendar</span></code></a> which is the trading calendar
 being used by the simulation.</p>
-<p><code class="docutils literal"><span class="pre">sessions</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.DatetimeIndex.html#pandas.DatetimeIndex" title="(in pandas v0.22.0)"><code class="xref py py-class docutils literal"><span class="pre">pandas.DatetimeIndex</span></code></a> which is holds the session
+<p><code class="docutils literal"><span class="pre">sessions</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.DatetimeIndex.html#pandas.DatetimeIndex" title="(in pandas v0.23.3)"><code class="xref py py-class docutils literal"><span class="pre">pandas.DatetimeIndex</span></code></a> which is holds the session
 labels, in sorted order, that the simulation will execute.</p>
 <p><code class="docutils literal"><span class="pre">benchmark_source</span></code> is an instance of
 <a class="reference internal" href="appendix.html#zipline.sources.benchmark_source.BenchmarkSource" title="zipline.sources.benchmark_source.BenchmarkSource"><code class="xref py py-class docutils literal"><span class="pre">BenchmarkSource</span></code></a> which is the
@@ -432,7 +536,7 @@ metric into.</p>
 <p><code class="docutils literal"><span class="pre">trading_calendar</span></code> is an instance of
 <a class="reference internal" href="appendix.html#zipline.utils.calendars.TradingCalendar" title="zipline.utils.calendars.TradingCalendar"><code class="xref py py-class docutils literal"><span class="pre">TradingCalendar</span></code></a> which is the trading calendar
 being used by the simulation.</p>
-<p><code class="docutils literal"><span class="pre">sessions</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.DatetimeIndex.html#pandas.DatetimeIndex" title="(in pandas v0.22.0)"><code class="xref py py-class docutils literal"><span class="pre">pandas.DatetimeIndex</span></code></a> which is holds the session
+<p><code class="docutils literal"><span class="pre">sessions</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.DatetimeIndex.html#pandas.DatetimeIndex" title="(in pandas v0.23.3)"><code class="xref py py-class docutils literal"><span class="pre">pandas.DatetimeIndex</span></code></a> which is holds the session
 labels, in sorted order, that the simulation has executed.</p>
 <p><code class="docutils literal"><span class="pre">data_portal</span></code> is an instance of <a class="reference internal" href="appendix.html#zipline.data.data_portal.DataPortal" title="zipline.data.data_portal.DataPortal"><code class="xref py py-class docutils literal"><span class="pre">DataPortal</span></code></a>
 which is the metric&#8217;s interface to pricing data.</p>
@@ -458,7 +562,7 @@ occurs.</p>
 <p><code class="docutils literal"><span class="pre">ledger</span></code> is an instance of <a class="reference internal" href="appendix.html#zipline.finance.ledger.Ledger" title="zipline.finance.ledger.Ledger"><code class="xref py py-class docutils literal"><span class="pre">Ledger</span></code></a> which is
 maintaining the simulation&#8217;s state. This may be used to lookup the algorithm&#8217;s
 current portfolio values.</p>
-<p><code class="docutils literal"><span class="pre">session_label</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.22.0)"><code class="xref py py-class docutils literal"><span class="pre">Timestamp</span></code></a> which is the label of the
+<p><code class="docutils literal"><span class="pre">session_label</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.23.3)"><code class="xref py py-class docutils literal"><span class="pre">Timestamp</span></code></a> which is the label of the
 session which is about to run.</p>
 <p><code class="docutils literal"><span class="pre">data_portal</span></code> is an instance of <a class="reference internal" href="appendix.html#zipline.data.data_portal.DataPortal" title="zipline.data.data_portal.DataPortal"><code class="xref py py-class docutils literal"><span class="pre">DataPortal</span></code></a>
 which is the metric&#8217;s interface to pricing data.</p>
@@ -482,7 +586,7 @@ to the current time.</p>
 <p><code class="docutils literal"><span class="pre">ledger</span></code> is an instance of <a class="reference internal" href="appendix.html#zipline.finance.ledger.Ledger" title="zipline.finance.ledger.Ledger"><code class="xref py py-class docutils literal"><span class="pre">Ledger</span></code></a> which is
 maintaining the simulation&#8217;s state. This may be used to lookup the algorithm&#8217;s
 current portfolio values.</p>
-<p><code class="docutils literal"><span class="pre">session_label</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.22.0)"><code class="xref py py-class docutils literal"><span class="pre">Timestamp</span></code></a> which is the label of the
+<p><code class="docutils literal"><span class="pre">session_label</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.23.3)"><code class="xref py py-class docutils literal"><span class="pre">Timestamp</span></code></a> which is the label of the
 session which is has just completed.</p>
 <p><code class="docutils literal"><span class="pre">session_ix</span></code> is an <a class="reference external" href="http://docs.python.org/dev/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-class docutils literal"><span class="pre">int</span></code></a> which is the index of the current trading
 session being run. This is provided to allow for efficient access to the daily
@@ -513,7 +617,7 @@ to the current time.</p>
 <p><code class="docutils literal"><span class="pre">ledger</span></code> is an instance of <a class="reference internal" href="appendix.html#zipline.finance.ledger.Ledger" title="zipline.finance.ledger.Ledger"><code class="xref py py-class docutils literal"><span class="pre">Ledger</span></code></a> which is
 maintaining the simulation&#8217;s state. This may be used to lookup the algorithm&#8217;s
 current portfolio values.</p>
-<p><code class="docutils literal"><span class="pre">dt</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.22.0)"><code class="xref py py-class docutils literal"><span class="pre">Timestamp</span></code></a> which is the label of bar that has just
+<p><code class="docutils literal"><span class="pre">dt</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.23.3)"><code class="xref py py-class docutils literal"><span class="pre">Timestamp</span></code></a> which is the label of bar that has just
 completed.</p>
 <p><code class="docutils literal"><span class="pre">session_ix</span></code> is an <a class="reference external" href="http://docs.python.org/dev/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-class docutils literal"><span class="pre">int</span></code></a> which is the index of the current trading
 session being run. This is provided to allow for efficient access to the daily
@@ -581,7 +685,7 @@ do not need to fetch the resources when the metrics set is not being used.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'1.2.0',
+            VERSION:'1.3.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.data.equity_pricing &mdash; Zipline 1.3.0 documentation</title>
+  <title>zipline.finance.blotter.blotter &mdash; Zipline 1.3.0 documentation</title>
   
 
   
@@ -402,7 +402,7 @@
       
           <li><a href="../../../index.html">Module code</a> &raquo;</li>
       
-    <li>zipline.pipeline.data.equity_pricing</li>
+    <li>zipline.finance.blotter.blotter</li>
       <li class="wy-breadcrumbs-aside">
         
           
@@ -413,24 +413,208 @@
 </div>
           <div role="main" class="document">
             
-  <h1>Source code for zipline.pipeline.data.equity_pricing</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Dataset representing OHLCV data.</span>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="n">float64_dtype</span>
+  <h1>Source code for zipline.finance.blotter.blotter</h1><div class="highlight"><pre>
+<span class="c">#</span>
+<span class="c"># Copyright 2018 Quantopian, Inc.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABCMeta</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">with_metaclass</span>
+<span class="kn">from</span> <span class="nn">zipline.extensions</span> <span class="kn">import</span> <span class="n">extensible</span>
+<span class="kn">from</span> <span class="nn">zipline.finance.cancel_policy</span> <span class="kn">import</span> <span class="n">NeverCancel</span>
 
-<span class="kn">from</span> <span class="nn">.dataset</span> <span class="kn">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">DataSet</span>
 
+<span class="nd">@extensible</span>
+<div class="viewcode-block" id="Blotter"><a class="viewcode-back" href="../../../../appendix.html#zipline.finance.blotter.blotter.Blotter">[docs]</a><span class="k">class</span> <span class="nc">Blotter</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">ABCMeta</span><span class="p">)):</span></div>
 
-<div class="viewcode-block" id="USEquityPricing"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.data.USEquityPricing">[docs]</a><span class="k">class</span> <span class="nc">USEquityPricing</span><span class="p">(</span><span class="n">DataSet</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Dataset representing daily trading prices and volumes.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="nb">open</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
-    <span class="n">high</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
-    <span class="n">low</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
-    <span class="n">close</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
-    <span class="n">volume</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cancel_policy</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cancel_policy</span> <span class="o">=</span> <span class="n">cancel_policy</span> <span class="k">if</span> <span class="n">cancel_policy</span> <span class="k">else</span> <span class="n">NeverCancel</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_dt</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">set_date</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_dt</span> <span class="o">=</span> <span class="n">dt</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">amount</span><span class="p">,</span> <span class="n">style</span><span class="p">,</span> <span class="n">order_id</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Place an order.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        asset : zipline.assets.Asset</span>
+<span class="sd">            The asset that this order is for.</span>
+<span class="sd">        amount : int</span>
+<span class="sd">            The amount of shares to order. If ``amount`` is positive, this is</span>
+<span class="sd">            the number of shares to buy or cover. If ``amount`` is negative,</span>
+<span class="sd">            this is the number of shares to sell or short.</span>
+<span class="sd">        style : zipline.finance.execution.ExecutionStyle</span>
+<span class="sd">            The execution style for the order.</span>
+<span class="sd">        order_id : str, optional</span>
+<span class="sd">            The unique identifier for this order.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        order_id : str or None</span>
+<span class="sd">            The unique identifier for this order, or None if no order was</span>
+<span class="sd">            placed.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        amount &gt; 0 :: Buy/Cover</span>
+<span class="sd">        amount &lt; 0 :: Sell/Short</span>
+<span class="sd">        Market order:    order(asset, amount)</span>
+<span class="sd">        Limit order:     order(asset, amount, style=LimitOrder(limit_price))</span>
+<span class="sd">        Stop order:      order(asset, amount, style=StopOrder(stop_price))</span>
+<span class="sd">        StopLimit order: order(asset, amount, style=StopLimitOrder(limit_price,</span>
+<span class="sd">                               stop_price))</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&#39;order&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">batch_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order_arg_lists</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Place a batch of orders.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        order_arg_lists : iterable[tuple]</span>
+<span class="sd">            Tuples of args that `order` expects.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        order_ids : list[str or None]</span>
+<span class="sd">            The unique identifier (or None) for each of the orders placed</span>
+<span class="sd">            (or not placed).</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This is required for `Blotter` subclasses to be able to place a batch</span>
+<span class="sd">        of orders, instead of being passed the order requests one at a time.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="o">*</span><span class="n">order_args</span><span class="p">)</span> <span class="k">for</span> <span class="n">order_args</span> <span class="ow">in</span> <span class="n">order_arg_lists</span><span class="p">]</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">cancel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order_id</span><span class="p">,</span> <span class="n">relay_status</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Cancel a single order</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        order_id : int</span>
+<span class="sd">            The id of the order</span>
+
+<span class="sd">        relay_status : bool</span>
+<span class="sd">            Whether or not to record the status of the order</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&#39;cancel&#39;</span><span class="p">)</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">cancel_all_orders_for_asset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                                    <span class="n">relay_status</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Cancel all open orders for a given asset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&#39;cancel_all_orders_for_asset&#39;</span><span class="p">)</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">execute_cancel_policy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&#39;execute_cancel_policy&#39;</span><span class="p">)</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">reject</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order_id</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Mark the given order as &#39;rejected&#39;, which is functionally similar to</span>
+<span class="sd">        cancelled. The distinction is that rejections are involuntary (and</span>
+<span class="sd">        usually include a message from a broker indicating why the order was</span>
+<span class="sd">        rejected) while cancels are typically user-driven.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&#39;reject&#39;</span><span class="p">)</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">hold</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order_id</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Mark the order with order_id as &#39;held&#39;. Held is functionally similar</span>
+<span class="sd">        to &#39;open&#39;. When a fill (full or partial) arrives, the status</span>
+<span class="sd">        will automatically change back to open/filled as necessary.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&#39;hold&#39;</span><span class="p">)</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">process_splits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">splits</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Processes a list of splits by modifying any open orders as needed.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        splits: list</span>
+<span class="sd">            A list of splits.  Each split is a tuple of (asset, ratio).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&#39;process_splits&#39;</span><span class="p">)</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">get_transactions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bar_data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a list of transactions based on the current open orders,</span>
+<span class="sd">        slippage model, and commission model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        bar_data: zipline._protocol.BarData</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This method book-keeps the blotter&#39;s open_orders dictionary, so that</span>
+<span class="sd">         it is accurate by the time we&#39;re done processing open orders.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        transactions_list: List</span>
+<span class="sd">            transactions_list: list of transactions resulting from the current</span>
+<span class="sd">            open orders.  If there were no open orders, an empty list is</span>
+<span class="sd">            returned.</span>
+
+<span class="sd">        commissions_list: List</span>
+<span class="sd">            commissions_list: list of commissions resulting from filling the</span>
+<span class="sd">            open orders.  A commission is an object with &quot;asset&quot; and &quot;cost&quot;</span>
+<span class="sd">            parameters.</span>
+
+<span class="sd">        closed_orders: List</span>
+<span class="sd">            closed_orders: list of all the orders that have filled.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&#39;get_transactions&#39;</span><span class="p">)</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">prune_orders</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">closed_orders</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Removes all given orders from the blotter&#39;s open_orders list.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        closed_orders: iterable of orders that are closed.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&#39;prune_orders&#39;</span><span class="p">)</span>
 </pre></div>
 
           </div>
