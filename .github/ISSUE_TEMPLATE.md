@@ -1,6 +1,6 @@
 Dear Zipline Maintainers,
 
-Before I tell you about my issue, let me describe my environment:
+Before I tell you about my issue, I will run the commands below and tell you about my environment:
 
 # Environment
 
@@ -22,9 +22,13 @@ having:
 * What did you expect to happen?
 * What happened instead?
 
+I will try and give a [Minimal, Complete, and Verifiable Example](https://stackoverflow.com/help/mcve)
+
 Here is how you can reproduce this issue on your machine:
 
 ## Reproduction Steps
+
+
 
 1.
 2.
