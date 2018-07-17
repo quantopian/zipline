@@ -21,7 +21,6 @@ import pandas as pd
 
 from zipline import examples
 from zipline.data.bundles import register, unregister
-from zipline.pipeline.dispatcher import clear_all_associations
 from zipline.testing import test_resource_path
 from zipline.testing.fixtures import WithTmpDir, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
@@ -63,8 +62,6 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
                     'example_data/root/data/' + data
                 )
             )
-
-        cls.add_class_callback(clear_all_associations)
 
     @parameterized.expand(sorted(examples.EXAMPLE_MODULES))
     def test_example(self, example_name):
