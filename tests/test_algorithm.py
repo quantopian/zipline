@@ -4301,7 +4301,7 @@ class TestOrderAfterDelist(zf.WithMakeAlgo, zf.ZiplineTestCase):
             orient='index',
         )
 
-    # XXX: This suite doesn't use the data in its DataPortal; it uses a
+    # XXX: This suite doesn't use the data in its HistoricDataPortal; it uses a
     # FakeDataPortal with different mock data.
     def init_instance_fixtures(self):
         super(TestOrderAfterDelist, self).init_instance_fixtures()

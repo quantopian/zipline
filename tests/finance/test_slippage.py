@@ -26,7 +26,7 @@ import pandas as pd
 import pytz
 
 from zipline.assets import Equity, Future
-from zipline.data.data_portal import DataPortal
+from zipline.data.historic_data_portal import HistoricDataPortal
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.finance.order import Order
 from zipline.finance.slippage import (
@@ -1112,7 +1112,7 @@ class OrdersStopTestCase(WithSimParams,
         )
         with tmp_bcolz_equity_minute_bar_reader(
                 self.trading_calendar, days, assets) as reader:
-            data_portal = DataPortal(
+            data_portal = HistoricDataPortal(
                 self.asset_finder, self.trading_calendar,
                 first_trading_day=reader.first_trading_day,
                 equity_minute_reader=reader,

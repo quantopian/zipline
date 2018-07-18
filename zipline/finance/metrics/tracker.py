@@ -249,7 +249,7 @@ class MetricsTracker(object):
         ----------
         session_label : Timestamp
             The label of the session that is about to begin.
-        data_portal : DataPortal
+        data_portal : HistoricDataPortal
             The current data portal.
         """
         ledger = self._ledger
@@ -281,7 +281,7 @@ class MetricsTracker(object):
         ----------
         dt : Timestamp
             The most recently completed simulation datetime.
-        data_portal : DataPortal
+        data_portal : HistoricDataPortal
             The current data portal.
 
         Returns

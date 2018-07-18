@@ -194,7 +194,7 @@ class TestAPIShim(WithCreateBarData,
 
         We want to ensure that the old data API(data[sid(N)].field and
         similar)  and the new data API(data.current(sid(N), field) and
-        similar) hit the same code paths on the DataPortal.
+        similar) hit the same code paths on the HistoricDataPortal.
         """
         test_start_minute = self.trading_calendar.minutes_for_session(
             self.sim_params.sessions[0]
@@ -213,7 +213,8 @@ class TestAPIShim(WithCreateBarData,
             "volume",
             "price",
         ]
-        spot_value_meth = 'zipline.data.data_portal.DataPortal.get_spot_value'
+        spot_value_meth = 'zipline.data.historic_data_portal.' \
+                          'HistoricDataPortal.get_spot_value'
 
         def assert_get_spot_value_called(fun, field):
             """
@@ -241,7 +242,8 @@ class TestAPIShim(WithCreateBarData,
                 field,
             )
 
-        history_meth = 'zipline.data.data_portal.DataPortal.get_history_window'
+        history_meth = 'zipline.data.historic_data_portal.' \
+                       'HistoricDataPortal.get_history_window'
 
         def assert_get_history_window_called(fun, is_legacy):
             """

@@ -30,7 +30,7 @@ from trading_calendars import get_calendar
 from zipline.assets import AssetFinder, AssetDBWriter
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.utils.compat import wraps
-from zipline.data.data_portal import DataPortal
+from zipline.data.historic_data_portal import HistoricDataPortal
 from zipline.data.loader import get_benchmark_filename, INDEX_MAPPING
 from zipline.data.minute_bars import (
     BcolzMinuteBarReader,
@@ -491,7 +491,7 @@ def create_data_portal(asset_finder, tempdir, sim_params, sids,
 
         equity_daily_reader = BcolzDailyBarReader(daily_path)
 
-        return DataPortal(
+        return HistoricDataPortal(
             asset_finder, trading_calendar,
             first_trading_day=equity_daily_reader.first_trading_day,
             equity_daily_reader=equity_daily_reader,
@@ -508,7 +508,7 @@ def create_data_portal(asset_finder, tempdir, sim_params, sids,
 
         equity_minute_reader = BcolzMinuteBarReader(minute_path)
 
-        return DataPortal(
+        return HistoricDataPortal(
             asset_finder, trading_calendar,
             first_trading_day=equity_minute_reader.first_trading_day,
             equity_minute_reader=equity_minute_reader,
@@ -643,7 +643,7 @@ def create_data_portal_from_trade_history(asset_finder, trading_calendar,
 
         equity_daily_reader = BcolzDailyBarReader(path)
 
-        return DataPortal(
+        return HistoricDataPortal(
             asset_finder, trading_calendar,
             first_trading_day=equity_daily_reader.first_trading_day,
             equity_daily_reader=equity_daily_reader,
@@ -692,14 +692,14 @@ def create_data_portal_from_trade_history(asset_finder, trading_calendar,
 
         equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
 
-        return DataPortal(
+        return HistoricDataPortal(
             asset_finder, trading_calendar,
             first_trading_day=equity_minute_reader.first_trading_day,
             equity_minute_reader=equity_minute_reader,
         )
 
 
-class FakeDataPortal(DataPortal):
+class FakeDataPortal(HistoricDataPortal):
     def __init__(self, asset_finder, trading_calendar=None,
                  first_trading_day=None):
         if trading_calendar is None:
@@ -746,7 +746,7 @@ class FakeDataPortal(DataPortal):
         return df
 
 
-class FetcherDataPortal(DataPortal):
+class FetcherDataPortal(HistoricDataPortal):
     """
     Mock dataportal that returns fake data for history and non-fetcher
     spot value.

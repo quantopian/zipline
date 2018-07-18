@@ -4,7 +4,7 @@ import pandas as pd
 from zipline import api
 from zipline.assets import Equity, Future
 from zipline.assets.synthetic import make_commodity_future_info
-from zipline.data.data_portal import DataPortal
+from zipline.data.historic_data_portal import HistoricDataPortal
 from zipline.data.resample import MinuteResampleSessionBarReader
 from zipline.testing import (
     parameter_space,
@@ -1392,7 +1392,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
                     self.bcolz_future_daily_bar_reader.first_trading_day
                 )
 
-        self.futures_data_portal = DataPortal(
+        self.futures_data_portal = HistoricDataPortal(
             self.asset_finder,
             self.trading_calendars[Future],
             first_trading_day=self.DATA_PORTAL_FIRST_TRADING_DAY,
