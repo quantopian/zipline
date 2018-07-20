@@ -6,9 +6,9 @@ import warnings
 from contextlib2 import ExitStack
 from logbook import NullHandler, Logger
 import pandas as pd
-from six import with_metaclass, iteritems
+from six import with_metaclass, iteritems, itervalues
 import responses
-from toolz import flip, merge
+from toolz import flip, groupby, merge
 from trading_calendars import (
     get_calendar,
     register_calendar_alias,
@@ -19,8 +19,10 @@ from zipline.algorithm import TradingAlgorithm
 from zipline.assets import Equity, Future
 from zipline.assets.continuous_futures import CHAIN_PREDICATES
 from zipline.finance.asset_restrictions import NoRestrictions
+from zipline.utils.memoize import classlazyval
 from zipline.pipeline import SimplePipelineEngine
 from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.domain import GENERIC, US_EQUITIES
 from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.protocol import BarData
@@ -33,6 +35,14 @@ from .core import (
     tmp_dir,
 )
 from .debug import debug_mro_failure
+from ..data.adjustments import (
+    SQLiteAdjustmentReader,
+    SQLiteAdjustmentWriter,
+)
+from ..data.bcolz_daily_bars import (
+    BcolzDailyBarReader,
+    BcolzDailyBarWriter,
+)
 from ..data.data_portal import (
     DataPortal,
     DEFAULT_MINUTE_HISTORY_PREFETCH,
@@ -51,12 +61,7 @@ from ..data.resample import (
     minute_frame_to_session_frame,
     MinuteResampleSessionBarReader
 )
-from ..data.us_equity_pricing import (
-    BcolzDailyBarReader,
-    BcolzDailyBarWriter,
-    SQLiteAdjustmentReader,
-    SQLiteAdjustmentWriter,
-)
+
 from ..finance.trading import SimulationParameters
 from ..utils.classproperty import classproperty
 from ..utils.final import FinalMeta, final
@@ -446,6 +451,31 @@ class WithAssetFinder(WithDefaultDateBounds):
     def init_class_fixtures(cls):
         super(WithAssetFinder, cls).init_class_fixtures()
         cls.asset_finder = cls.make_asset_finder()
+
+    @classlazyval
+    def all_assets(cls):
+        """A list of Assets for all sids in cls.asset_finder.
+        """
+        return cls.asset_finder.retrieve_all(cls.asset_finder.sids)
+
+    @classlazyval
+    def exchange_names(cls):
+        """A list of canonical exchange names for all exchanges in this suite.
+        """
+        infos = itervalues(cls.asset_finder.exchange_info)
+        return sorted(i.canonical_name for i in infos)
+
+    @classlazyval
+    def assets_by_calendar(cls):
+        """A dict from calendar -> list of assets with that calendar.
+        """
+        return groupby(lambda a: get_calendar(a.exchange), cls.all_assets)
+
+    @classlazyval
+    def all_calendars(cls):
+        """A list of all calendars for assets in this test suite.
+        """
+        return list(cls.assets_by_calendar)
 
 
 class WithTradingCalendars(object):
@@ -1487,8 +1517,8 @@ class WithAdjustmentReader(WithBcolzEquityDailyBarReader):
         cls.adjustment_reader = SQLiteAdjustmentReader(conn)
 
 
-class WithEquityPricingPipelineEngine(WithAdjustmentReader,
-                                      WithTradingSessions):
+class WithUSEquityPricingPipelineEngine(WithAdjustmentReader,
+                                        WithTradingSessions):
     """
     Mixin providing the following as a class-level fixtures.
         - cls.data_root_dir
@@ -1497,11 +1527,12 @@ class WithEquityPricingPipelineEngine(WithAdjustmentReader,
         - cls.adjustments_db_path
 
     """
+
     @classmethod
     def init_class_fixtures(cls):
         cls.data_root_dir = cls.enter_class_context(tmp_dir())
         cls.findata_dir = cls.data_root_dir.makedir('findata')
-        super(WithEquityPricingPipelineEngine, cls).init_class_fixtures()
+        super(WithUSEquityPricingPipelineEngine, cls).init_class_fixtures()
 
         loader = USEquityPricingLoader(
             cls.bcolz_equity_daily_bar_reader,
@@ -1516,8 +1547,8 @@ class WithEquityPricingPipelineEngine(WithAdjustmentReader,
 
         cls.pipeline_engine = SimplePipelineEngine(
             get_loader=get_loader,
-            calendar=cls.nyse_sessions,
             asset_finder=cls.asset_finder,
+            default_domain=US_EQUITIES,
         )
 
     @classmethod
@@ -1559,6 +1590,7 @@ class WithSeededRandomPipelineEngine(WithTradingSessions, WithAssetFinder):
     zipline.pipeline.engine.SimplePipelineEngine
     """
     SEEDED_RANDOM_PIPELINE_SEED = 42
+    SEEDED_RANDOM_PIPELINE_DEFAULT_DOMAIN = GENERIC
 
     @classmethod
     def init_class_fixtures(cls):
@@ -1571,8 +1603,8 @@ class WithSeededRandomPipelineEngine(WithTradingSessions, WithAssetFinder):
         )
         cls.seeded_random_engine = SimplePipelineEngine(
             get_loader=lambda column: loader,
-            calendar=cls.trading_days,
             asset_finder=cls.asset_finder,
+            default_domain=cls.SEEDED_RANDOM_PIPELINE_DEFAULT_DOMAIN,
         )
 
     def raw_expected_values(self, column, start_date, end_date):

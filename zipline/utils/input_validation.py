@@ -34,6 +34,13 @@ else:
         """
         Return the fully-qualified name (ignoring inner classes) of a type.
         """
+        # If the obj has an explicitly-set __qualname__, use it.
+        try:
+            return getattr(obj, '__qualname__')
+        except AttributeError:
+            pass
+
+        # If not, build our own __qualname__ as best we can.
         module = obj.__module__
         if module in ('__builtin__', '__main__', 'builtins'):
             return obj.__name__
@@ -835,3 +842,34 @@ class error_keywords(object):
 
 
 coerce_string = partial(coerce, string_types)
+
+
+def validate_keys(dict_, expected, funcname):
+    """Validate that a dictionary has an expected set of keys.
+    """
+    expected = set(expected)
+    received = set(dict_)
+
+    missing = expected - received
+    if missing:
+        raise ValueError(
+            "Missing keys in {}:\n"
+            "Expected Keys: {}\n"
+            "Received Keys: {}".format(
+                funcname,
+                sorted(expected),
+                sorted(received),
+            )
+        )
+
+    unexpected = received - expected
+    if unexpected:
+        raise ValueError(
+            "Unexpected keys in {}:\n"
+            "Expected Keys: {}\n"
+            "Received Keys: {}".format(
+                funcname,
+                sorted(expected),
+                sorted(received),
+            )
+        )

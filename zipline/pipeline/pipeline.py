@@ -1,3 +1,4 @@
+import six
 
 from zipline.errors import UnsupportedPipelineOutput
 from zipline.utils.input_validation import (
@@ -6,7 +7,8 @@ from zipline.utils.input_validation import (
     optional,
 )
 
-from .graph import ExecutionPlan, TermGraph
+from .domain import Domain, GENERIC, infer_domain
+from .graph import ExecutionPlan, TermGraph, SCREEN_NAME
 from .filters import Filter
 from .term import AssetExists, ComputableTerm, Term
 
@@ -17,14 +19,15 @@ class Pipeline(object):
     compiled and executed by a PipelineEngine.
 
     A Pipeline has two important attributes: 'columns', a dictionary of named
-    `Term` instances, and 'screen', a Filter representing criteria for
+    :class:`~zipline.pipeline.term.Term` instances, and 'screen', a
+    :class:`~zipline.pipeline.filters.Filter` representing criteria for
     including an asset in the results of a Pipeline.
 
     To compute a pipeline in the context of a TradingAlgorithm, users must call
     ``attach_pipeline`` in their ``initialize`` function to register that the
-    pipeline should be computed each trading day.  The outputs of a pipeline on
-    a given day can be accessed by calling ``pipeline_output`` in
-    ``handle_data`` or ``before_trading_start``.
+    pipeline should be computed each trading day. The most recent outputs of an
+    attached pipeline can be retrieved by calling ``pipeline_output`` from
+    ``handle_data``, ``before_trading_start``, or a scheduled function.
 
     Parameters
     ----------
@@ -33,13 +36,14 @@ class Pipeline(object):
     screen : zipline.pipeline.term.Filter, optional
         Initial screen.
     """
-    __slots__ = ('_columns', '_screen', '__weakref__')
+    __slots__ = ('_columns', '_screen', '_domain', '__weakref__')
 
     @expect_types(
         columns=optional(dict),
         screen=optional(Filter),
+        domain=Domain
     )
-    def __init__(self, columns=None, screen=None):
+    def __init__(self, columns=None, screen=None, domain=GENERIC):
         if columns is None:
             columns = {}
 
@@ -56,6 +60,7 @@ class Pipeline(object):
 
         self._columns = columns
         self._screen = screen
+        self._domain = domain
 
     @property
     def columns(self):
@@ -153,9 +158,8 @@ class Pipeline(object):
         self._screen = screen
 
     def to_execution_plan(self,
-                          screen_name,
+                          domain,
                           default_screen,
-                          all_dates,
                           start_date,
                           end_date):
         """
@@ -163,8 +167,8 @@ class Pipeline(object):
 
         Parameters
         ----------
-        screen_name : str
-            Name to supply for self.screen.
+        domain : zipline.pipeline.domain.Domain
+            Domain on which the pipeline will be executed.
         default_screen : zipline.pipeline.term.Term
             Term to use as a screen if self.screen is None.
         all_dates : pd.DatetimeIndex
@@ -174,36 +178,49 @@ class Pipeline(object):
             The first date of requested output.
         end_date : pd.Timestamp
             The last date of requested output.
+
+        Returns
+        -------
+        graph : zipline.pipeline.graph.ExecutionPlan
+            Graph encoding term dependencies, including metadata about extra
+            row requirements.
         """
+        if self._domain is not GENERIC and self._domain is not domain:
+            raise AssertionError(
+                "Attempted to compile Pipeline with domain {} to execution "
+                "plan with different domain {}.".format(self._domain, domain)
+            )
+
         return ExecutionPlan(
-            self._prepare_graph_terms(screen_name, default_screen),
-            all_dates,
-            start_date,
-            end_date,
+            domain=domain,
+            terms=self._prepare_graph_terms(default_screen),
+            start_date=start_date,
+            end_date=end_date,
         )
 
-    def to_simple_graph(self, screen_name, default_screen):
+    def to_simple_graph(self, default_screen):
         """
         Compile into a simple TermGraph with no extra row metadata.
 
         Parameters
         ----------
-        screen_name : str
-            Name to supply for self.screen.
         default_screen : zipline.pipeline.term.Term
             Term to use as a screen if self.screen is None.
-        """
-        return TermGraph(
-            self._prepare_graph_terms(screen_name, default_screen)
-        )
 
-    def _prepare_graph_terms(self, screen_name, default_screen):
+        Returns
+        -------
+        graph : zipline.pipeline.graph.TermGraph
+            Graph encoding term dependencies.
+        """
+        return TermGraph(self._prepare_graph_terms(default_screen))
+
+    def _prepare_graph_terms(self, default_screen):
         """Helper for to_graph and to_execution_plan."""
         columns = self.columns.copy()
         screen = self.screen
         if screen is None:
             screen = default_screen
-        columns[screen_name] = screen
+        columns[SCREEN_NAME] = screen
         return columns
 
     @expect_element(format=('svg', 'png', 'jpeg'))
@@ -216,7 +233,7 @@ class Pipeline(object):
         format : {'svg', 'png', 'jpeg'}
             Image format to render with.  Default is 'svg'.
         """
-        g = self.to_simple_graph('', AssetExists())
+        g = self.to_simple_graph(AssetExists())
         if format == 'svg':
             return g.svg
         elif format == 'png':
@@ -229,7 +246,69 @@ class Pipeline(object):
             raise AssertionError("Unknown graph format %r." % format)
 
     @staticmethod
-    @expect_types(term=Term, column_name=str)
+    @expect_types(term=Term, column_name=six.string_types)
     def validate_column(column_name, term):
         if term.ndim == 1:
             raise UnsupportedPipelineOutput(column_name=column_name, term=term)
+
+    @property
+    def _output_terms(self):
+        """
+        A list of terms that are outputs of this pipeline.
+
+        Includes all terms registered as data outputs of the pipeline, plus the
+        screen, if present.
+        """
+        terms = list(six.itervalues(self._columns))
+        screen = self.screen
+        if screen is not None:
+            terms.append(screen)
+        return terms
+
+    @expect_types(default=Domain)
+    def domain(self, default):
+        """
+        Get the domain for this pipeline.
+
+        - If an explicit domain was provided at construction time, use it.
+        - Otherwise, infer a domain from the registered columns.
+        - If no domain can be inferred, return ``default``.
+
+        Parameters
+        ----------
+        default : zipline.pipeline.Domain
+            Domain to use if no domain can be inferred from this pipeline by
+            itself.
+
+        Returns
+        -------
+        domain : zipline.pipeline.Domain
+            The domain for the pipeline.
+
+        Raises
+        ------
+        AmbiguousDomain
+        ValueError
+            If the terms in ``self`` conflict with self._domain.
+        """
+        # Always compute our inferred domain to ensure that it's compatible
+        # with our explicit domain.
+        inferred = infer_domain(self._output_terms)
+
+        if inferred is GENERIC and self._domain is GENERIC:
+            # Both generic. Fall back to default.
+            return default
+        elif inferred is GENERIC and self._domain is not GENERIC:
+            # Use the non-generic domain.
+            return self._domain
+        elif inferred is not GENERIC and self._domain is GENERIC:
+            # Use the non-generic domain.
+            return inferred
+        else:
+            # Both non-generic. They have to match.
+            if inferred is not self._domain:
+                raise ValueError(
+                    "Conflicting domains in Pipeline. Inferred {}, but {} was "
+                    "passed at construction.".format(inferred, self._domain)
+                )
+            return inferred

@@ -31,10 +31,12 @@ from zipline.finance.blotter.simulation_blotter import SimulationBlotter
 from zipline.finance.execution import MarketOrder, LimitOrder
 from zipline.finance.metrics import MetricsTracker, load as load_metrics_set
 from zipline.finance.trading import SimulationParameters
-from zipline.data.us_equity_pricing import BcolzDailyBarReader
+from zipline.data.bcolz_daily_bars import (
+    BcolzDailyBarReader,
+    BcolzDailyBarWriter,
+)
 from zipline.data.minute_bars import BcolzMinuteBarReader
 from zipline.data.data_portal import DataPortal
-from zipline.data.us_equity_pricing import BcolzDailyBarWriter
 from zipline.finance.slippage import FixedSlippage, FixedBasisPointsSlippage
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.protocol import BarData

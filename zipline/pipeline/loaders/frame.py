@@ -3,6 +3,7 @@ PipelineLoader accepting a DataFrame as input.
 """
 from functools import partial
 
+from interface import implements
 from numpy import (
     ix_,
     zeros,
@@ -28,7 +29,7 @@ ADJUSTMENT_COLUMNS = Index([
 ])
 
 
-class DataFrameLoader(PipelineLoader):
+class DataFrameLoader(implements(PipelineLoader)):
     """
     A PipelineLoader that reads its input from DataFrames.
 
@@ -145,20 +146,20 @@ class DataFrameLoader(PipelineLoader):
             )
         return out
 
-    def load_adjusted_array(self, columns, dates, assets, mask):
+    def load_adjusted_array(self, domain, columns, dates, sids, mask):
         """
         Load data from our stored baseline.
         """
-        column = self.column
         if len(columns) != 1:
             raise ValueError(
                 "Can't load multiple columns with DataFrameLoader"
             )
-        elif columns[0] != column:
-            raise ValueError("Can't load unknown column %s" % columns[0])
+
+        column = columns[0]
+        self._validate_input_column(column)
 
         date_indexer = self.dates.get_indexer(dates)
-        assets_indexer = self.assets.get_indexer(assets)
+        assets_indexer = self.assets.get_indexer(sids)
 
         # Boolean arrays with True on matched entries
         good_dates = (date_indexer != -1)
@@ -174,7 +175,13 @@ class DataFrameLoader(PipelineLoader):
             column: AdjustedArray(
                 # Pull out requested columns/rows from our baseline data.
                 data=data,
-                adjustments=self.format_adjustments(dates, assets),
+                adjustments=self.format_adjustments(dates, sids),
                 missing_value=column.missing_value,
             ),
         }
+
+    def _validate_input_column(self, column):
+        """Make sure a passed column is our column.
+        """
+        if column != self.column and column.unspecialize() != self.column:
+            raise ValueError("Can't load unknown column %s" % column)

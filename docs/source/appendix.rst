@@ -353,10 +353,10 @@ Writers
 .. autoclass:: zipline.data.minute_bars.BcolzMinuteBarWriter
    :members:
 
-.. autoclass:: zipline.data.us_equity_pricing.BcolzDailyBarWriter
+.. autoclass:: zipline.data.bcolz_daily_bars.BcolzDailyBarWriter
    :members:
 
-.. autoclass:: zipline.data.us_equity_pricing.SQLiteAdjustmentWriter
+.. autoclass:: zipline.data.adjustments.SQLiteAdjustmentWriter
    :members:
 
 .. autoclass:: zipline.assets.AssetDBWriter
@@ -367,10 +367,10 @@ Readers
 .. autoclass:: zipline.data.minute_bars.BcolzMinuteBarReader
    :members:
 
-.. autoclass:: zipline.data.us_equity_pricing.BcolzDailyBarReader
+.. autoclass:: zipline.data.bcolz_daily_bars.BcolzDailyBarReader
    :members:
 
-.. autoclass:: zipline.data.us_equity_pricing.SQLiteAdjustmentReader
+.. autoclass:: zipline.data.adjustments.SQLiteAdjustmentReader
    :members:
 
 .. autoclass:: zipline.assets.AssetFinder

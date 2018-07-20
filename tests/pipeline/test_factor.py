@@ -44,7 +44,7 @@ from zipline.testing import (
     permute_rows,
 )
 from zipline.testing.fixtures import (
-    WithEquityPricingPipelineEngine,
+    WithUSEquityPricingPipelineEngine,
     ZiplineTestCase,
 )
 from zipline.testing.predicates import assert_equal
@@ -58,7 +58,7 @@ from zipline.utils.numpy_utils import (
 from zipline.utils.math_utils import nanmean, nanstd
 from zipline.utils.pandas_utils import new_pandas, skip_pipeline_new_pandas
 
-from .base import BasePipelineTestCase
+from .base import BaseUSEquityPipelineTestCase
 
 
 class F(Factor):
@@ -131,7 +131,7 @@ def scipy_winsorize_with_nan_handling(array, limits):
     return sorted_winsorized[unsorter]
 
 
-class FactorTestCase(BasePipelineTestCase):
+class FactorTestCase(BaseUSEquityPipelineTestCase):
 
     def init_instance_fixtures(self):
         super(FactorTestCase, self).init_instance_fixtures()
@@ -1431,8 +1431,9 @@ class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
         )
 
 
-class TestSpecialCases(WithEquityPricingPipelineEngine,
+class TestSpecialCases(WithUSEquityPricingPipelineEngine,
                        ZiplineTestCase):
+    ASSET_FINDER_COUNTRY_CODE = 'US'
 
     def check_equivalent_terms(self, terms):
         self.assertTrue(len(terms) > 1, "Need at least two terms to compare")
@@ -1445,7 +1446,6 @@ class TestSpecialCases(WithEquityPricingPipelineEngine,
             assert_equal(results.loc[:, name], first_column, check_names=False)
 
     def test_daily_returns_is_special_case_of_returns(self):
-
         self.check_equivalent_terms({
             'daily': DailyReturns(),
             'manual_daily': Returns(window_length=2),

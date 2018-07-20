@@ -25,6 +25,7 @@ from zipline.errors import IncompatibleTerms, NonExistentAssetInTimeFrame
 from zipline.pipeline import CustomFactor, Pipeline
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.data.testing import TestingDataSet
+from zipline.pipeline.domain import US_EQUITIES
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.factors import (
     Returns,
@@ -61,6 +62,7 @@ class StatisticalBuiltInsTestCase(zf.WithAssetFinder,
     START_DATE = Timestamp('2015-01-31', tz='UTC')
     END_DATE = Timestamp('2015-03-01', tz='UTC')
     ASSET_FINDER_EQUITY_SYMBOLS = ('A', 'B', 'C')
+    ASSET_FINDER_COUNTRY_CODE = 'US'
 
     @classmethod
     def init_class_fixtures(cls):
@@ -103,8 +105,8 @@ class StatisticalBuiltInsTestCase(zf.WithAssetFinder,
 
         cls.run_pipeline = SimplePipelineEngine(
             {USEquityPricing.close: close_loader}.__getitem__,
-            dates,
             cls.asset_finder,
+            default_domain=US_EQUITIES,
         ).run_pipeline
 
         cls.cascading_mask = \
@@ -504,6 +506,8 @@ class StatisticalMethodsTestCase(zf.WithSeededRandomPipelineEngine,
     sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
     START_DATE = Timestamp('2015-01-31', tz='UTC')
     END_DATE = Timestamp('2015-03-01', tz='UTC')
+    ASSET_FINDER_COUNTRY_CODE = 'US'
+    SEEDED_RANDOM_PIPELINE_DEFAULT_DOMAIN = US_EQUITIES
 
     @classmethod
     def init_class_fixtures(cls):

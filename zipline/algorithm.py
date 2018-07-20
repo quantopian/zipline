@@ -84,6 +84,7 @@ from zipline.assets import Asset, Equity, Future
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.finance.metrics import MetricsTracker, load as load_metrics_set
 from zipline.pipeline import Pipeline
+import zipline.pipeline.domain as domain
 from zipline.pipeline.engine import (
     ExplodingPipelineEngine,
     SimplePipelineEngine,
@@ -413,8 +414,8 @@ class TradingAlgorithm(object):
         if get_loader is not None:
             self.engine = SimplePipelineEngine(
                 get_loader,
-                self.trading_calendar.all_sessions,
                 self.asset_finder,
+                self.default_pipeline_domain(self.trading_calendar),
             )
         else:
             self.engine = ExplodingPipelineEngine()
@@ -2356,6 +2357,16 @@ class TradingAlgorithm(object):
             self.engine.run_pipeline(pipeline, start_session, end_session), \
             end_session
 
+    @staticmethod
+    def default_pipeline_domain(calendar):
+        """
+        Get a default pipeline domain for algorithms running on ``calendar``.
+
+        This will be used to infer a domain for pipelines that only use generic
+        datasets when running in the context of a TradingAlgorithm.
+        """
+        return _DEFAULT_DOMAINS.get(calendar.name, domain.GENERIC)
+
     ##################
     # End Pipeline API
     ##################
@@ -2369,3 +2380,11 @@ class TradingAlgorithm(object):
             fn for fn in itervalues(vars(cls))
             if getattr(fn, 'is_api_method', False)
         ]
+
+
+# Map from calendar name to default domain for that calendar.
+_DEFAULT_DOMAINS = {
+    'NYSE': domain.US_EQUITIES,
+    'TSX': domain.CA_EQUITIES,
+    'LSE': domain.GB_EQUITIES,
+}

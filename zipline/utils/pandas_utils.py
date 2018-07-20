@@ -320,3 +320,30 @@ def empty_dataframe(*columns):
     dtype: object
     """
     return pd.DataFrame(np.array([], dtype=list(columns)))
+
+
+def check_indexes_all_same(indexes, message="Indexes are not equal."):
+    """Check that a list of Index objects are all equal.
+
+    Parameters
+    ----------
+    indexes : iterable[pd.Index]
+        Iterable of indexes to check.
+
+    Raises
+    ------
+    ValueError
+        If the indexes are not all the same.
+    """
+    iterator = iter(indexes)
+    first = next(iterator)
+    for other in iterator:
+        same = (first == other)
+        if not same.all():
+            bad_loc = np.flatnonzero(~same)[0]
+            raise ValueError(
+                "{}\nFirst difference is at index {}: "
+                "{} != {}".format(
+                    message, bad_loc, first[bad_loc], other[bad_loc]
+                ),
+            )

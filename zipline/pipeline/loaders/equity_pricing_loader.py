@@ -11,16 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from numpy import (
-    iinfo,
-    uint32,
-)
-from trading_calendars import get_calendar
+from interface import implements
+from numpy import iinfo, uint32
 
-from zipline.data.us_equity_pricing import (
-    BcolzDailyBarReader,
-    SQLiteAdjustmentReader,
-)
 from zipline.lib.adjusted_array import AdjustedArray
 
 from .base import PipelineLoader
@@ -29,60 +22,41 @@ from .utils import shift_dates
 UINT32_MAX = iinfo(uint32).max
 
 
-class USEquityPricingLoader(PipelineLoader):
+class EquityPricingLoader(implements(PipelineLoader)):
+    """A PipelineLoader for loading daily OHLCV data.
+
+    Parameters
+    ----------
+    raw_price_reader : zipline.data.session_bars.SessionBarReader
+        Reader providing raw prices.
+    adjustments_reader : zipline.data.adjustments.SQLiteAdjustmentReader
+        Reader providing price/volume adjustments.
     """
-    PipelineLoader for US Equity Pricing data
+    def __init__(self, raw_price_reader, adjustments_reader):
+        self.raw_price_reader = raw_price_reader
+        self.adjustments_reader = adjustments_reader
 
-    Delegates loading of baselines and adjustments.
-    """
-
-    def __init__(self, raw_price_loader, adjustments_loader):
-        self.raw_price_loader = raw_price_loader
-        self.adjustments_loader = adjustments_loader
-
-        cal = self.raw_price_loader.trading_calendar or \
-            get_calendar("NYSE")
-
-        self._all_sessions = cal.all_sessions
-
-    @classmethod
-    def from_files(cls, pricing_path, adjustments_path):
-        """
-        Create a loader from a bcolz equity pricing dir and a SQLite
-        adjustments path.
-
-        Parameters
-        ----------
-        pricing_path : str
-            Path to a bcolz directory written by a BcolzDailyBarWriter.
-        adjusments_path : str
-            Path to an adjusments db written by a SQLiteAdjustmentWriter.
-        """
-        return cls(
-            BcolzDailyBarReader(pricing_path),
-            SQLiteAdjustmentReader(adjustments_path)
-        )
-
-    def load_adjusted_array(self, columns, dates, assets, mask):
+    def load_adjusted_array(self, domain, columns, dates, sids, mask):
         # load_adjusted_array is called with dates on which the user's algo
         # will be shown data, which means we need to return the data that would
         # be known at the start of each date.  We assume that the latest data
         # known on day N is the data from day (N - 1), so we shift all query
         # dates back by a day.
+        sessions = domain.all_sessions()
         start_date, end_date = shift_dates(
-            self._all_sessions, dates[0], dates[-1], shift=1,
+            sessions, dates[0], dates[-1], shift=1,
         )
         colnames = [c.name for c in columns]
-        raw_arrays = self.raw_price_loader.load_raw_arrays(
+        raw_arrays = self.raw_price_reader.load_raw_arrays(
             colnames,
             start_date,
             end_date,
-            assets,
+            sids,
         )
-        adjustments = self.adjustments_loader.load_adjustments(
+        adjustments = self.adjustments_reader.load_adjustments(
             colnames,
             dates,
-            assets,
+            sids,
         )
 
         out = {}
@@ -93,3 +67,7 @@ class USEquityPricingLoader(PipelineLoader):
                 c.missing_value,
             )
         return out
+
+
+# Backwards compat alias.
+USEquityPricingLoader = EquityPricingLoader

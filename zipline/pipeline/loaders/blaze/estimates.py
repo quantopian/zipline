@@ -1,3 +1,4 @@
+from interface import implements
 from datashape import istabular
 
 from .core import (
@@ -26,7 +27,7 @@ from zipline.utils.input_validation import ensure_timezone, optionally
 from zipline.utils.preprocess import preprocess
 
 
-class BlazeEstimatesLoader(PipelineLoader):
+class BlazeEstimatesLoader(implements(PipelineLoader)):
     """An abstract pipeline loader for the estimates datasets that loads
     data from a blaze expression.
 
@@ -105,13 +106,13 @@ class BlazeEstimatesLoader(PipelineLoader):
         self._data_query_tz = data_query_tz
         self._checkpoints = checkpoints
 
-    def load_adjusted_array(self, columns, dates, assets, mask):
+    def load_adjusted_array(self, domain, columns, dates, sids, mask):
         # Only load requested columns.
         requested_column_names = [self._columns[column.name]
                                   for column in columns]
 
         raw = load_raw_data(
-            assets,
+            sids,
             dates,
             self._data_query_time,
             self._data_query_tz,
@@ -124,9 +125,10 @@ class BlazeEstimatesLoader(PipelineLoader):
             raw,
             {column.name: self._columns[column.name] for column in columns},
         ).load_adjusted_array(
+            domain,
             columns,
             dates,
-            assets,
+            sids,
             mask,
         )
 
@@ -156,7 +158,7 @@ class BlazeSplitAdjustedEstimatesLoader(BlazeEstimatesLoader):
             **kwargs
         )
 
-    def load_adjusted_array(self, columns, dates, assets, mask):
+    def load_adjusted_array(self, domain, columns, dates, sids, mask):
         # Only load requested columns.
         requested_column_names = [self._columns[column.name]
                                   for column in columns]
@@ -168,7 +170,7 @@ class BlazeSplitAdjustedEstimatesLoader(BlazeEstimatesLoader):
         ]
 
         raw = load_raw_data(
-            assets,
+            sids,
             dates,
             self._data_query_time,
             self._data_query_tz,
@@ -184,9 +186,10 @@ class BlazeSplitAdjustedEstimatesLoader(BlazeEstimatesLoader):
             requested_spilt_adjusted_columns,
             self._split_adjusted_asof,
         ).load_adjusted_array(
+            domain,
             columns,
             dates,
-            assets,
+            sids,
             mask,
         )
 

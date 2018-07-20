@@ -22,6 +22,7 @@ from zipline.pipeline.common import (
 )
 from zipline.pipeline.data import DataSet
 from zipline.pipeline.data import Column
+from zipline.pipeline.domain import EquitySessionDomain
 from zipline.pipeline.loaders.blaze.estimates import (
     BlazeNextEstimatesLoader,
     BlazeNextSplitAdjustedEstimatesLoader,
@@ -157,6 +158,18 @@ class WithEstimates(WithTradingSessions, WithAdjustmentReader):
             Estimates.estimate: 'estimate'
         }
 
+    def make_engine(self, loader=None):
+        if loader is None:
+            loader = self.loader
+
+        return SimplePipelineEngine(
+            lambda x: loader,
+            self.asset_finder,
+            default_domain=EquitySessionDomain(
+                self.trading_days, self.ASSET_FINDER_COUNTRY_CODE,
+            ),
+        )
+
     @classmethod
     def init_class_fixtures(cls):
         cls.events = cls.make_events()
@@ -232,12 +245,7 @@ class WithOneDayPipeline(WithEstimates):
     def test_load_one_day(self):
         # We want to test multiple columns
         dataset = MultipleColumnsQuartersEstimates(1)
-        engine = SimplePipelineEngine(
-            lambda x: self.loader,
-            self.trading_days,
-            self.asset_finder,
-        )
-
+        engine = self.make_engine()
         results = engine.run_pipeline(
             Pipeline({c.name: c.latest for c in dataset.columns}),
             start_date=pd.Timestamp('2015-01-15', tz='utc'),
@@ -334,11 +342,7 @@ class WithWrongLoaderDefinition(WithEstimates):
         bad_dataset1 = QuartersEstimates(-1)
         bad_dataset2 = QuartersEstimates(-2)
         good_dataset = QuartersEstimates(1)
-        engine = SimplePipelineEngine(
-            lambda x: self.loader,
-            self.trading_days,
-            self.asset_finder,
-        )
+        engine = self.make_engine()
         columns = {c.name + str(dataset.num_announcements): c.latest
                    for dataset in (bad_dataset1,
                                    bad_dataset2,
@@ -356,11 +360,7 @@ class WithWrongLoaderDefinition(WithEstimates):
 
     def test_no_num_announcements_attr(self):
         dataset = QuartersEstimatesNoNumQuartersAttr(1)
-        engine = SimplePipelineEngine(
-            lambda x: self.loader,
-            self.trading_days,
-            self.asset_finder,
-        )
+        engine = self.make_engine()
         p = Pipeline({c.name: c.latest for c in dataset.columns})
 
         with self.assertRaises(AttributeError):
@@ -583,11 +583,7 @@ class WithEstimatesTimeZero(WithEstimates):
 
     def test_estimates(self):
         dataset = QuartersEstimates(1)
-        engine = SimplePipelineEngine(
-            lambda x: self.loader,
-            self.trading_days,
-            self.asset_finder,
-        )
+        engine = self.make_engine()
         results = engine.run_pipeline(
             Pipeline({c.name: c.latest for c in dataset.columns}),
             start_date=self.trading_days[1],
@@ -771,11 +767,7 @@ class WithEstimateMultipleQuarters(WithEstimates):
     def test_multiple_qtrs_requested(self):
         dataset1 = QuartersEstimates(1)
         dataset2 = QuartersEstimates(2)
-        engine = SimplePipelineEngine(
-            lambda x: self.loader,
-            self.trading_days,
-            self.asset_finder,
-        )
+        engine = self.make_engine()
 
         results = engine.run_pipeline(
             Pipeline(
@@ -958,11 +950,7 @@ class WithVaryingNumEstimates(WithEstimates):
             def compute(self, today, assets, out, estimate):
                 assert_compute(estimate, today)
 
-        engine = SimplePipelineEngine(
-            lambda x: self.loader,
-            self.trading_days,
-            self.asset_finder,
-        )
+        engine = self.make_engine()
         engine.run_pipeline(
             Pipeline({'est': SomeFactor()}),
             start_date=pd.Timestamp('2015-01-13', tz='utc'),
@@ -1185,11 +1173,7 @@ class WithEstimateWindows(WithEstimates):
                 assert_almost_equal(estimate,
                                     today_timeline[timeline_start_idx:])
 
-        engine = SimplePipelineEngine(
-            lambda x: self.loader,
-            self.trading_days,
-            self.asset_finder,
-        )
+        engine = self.make_engine()
         engine.run_pipeline(
             Pipeline({'est': SomeFactor()}),
             start_date=start_date,
@@ -2085,11 +2069,7 @@ class WithSplitAdjustedMultipleEstimateColumns(WithEstimates):
                 assert_almost_equal(estimate1, timelines[today]['estimate1'])
                 assert_almost_equal(estimate2, timelines[today]['estimate2'])
 
-        engine = SimplePipelineEngine(
-            lambda x: self.loader,
-            self.trading_days,
-            self.asset_finder,
-        )
+        engine = self.make_engine()
         engine.run_pipeline(
             Pipeline({'est': SomeFactor()}),
             start_date=self.test_start_date,
@@ -2122,11 +2102,7 @@ class WithSplitAdjustedMultipleEstimateColumns(WithEstimates):
                     estimate2, timelines_2q_out[today]['estimate2']
                 )
 
-        engine = SimplePipelineEngine(
-            lambda x: self.loader,
-            self.trading_days,
-            self.asset_finder,
-        )
+        engine = self.make_engine()
         engine.run_pipeline(
             Pipeline({'est1': SomeFactor1(), 'est2': SomeFactor2()}),
             start_date=self.test_start_date,
@@ -2450,11 +2426,7 @@ class WithAdjustmentBoundaries(WithEstimates):
     def test_boundaries(self, split_date):
         dataset = QuartersEstimates(1)
         loader = self.loader(split_adjusted_asof=split_date)
-        engine = SimplePipelineEngine(
-            lambda x: loader,
-            self.trading_days,
-            self.asset_finder,
-        )
+        engine = engine = self.make_engine(loader)
         result = engine.run_pipeline(
             Pipeline({'estimate': dataset.estimate.latest}),
             start_date=self.trading_days[0],

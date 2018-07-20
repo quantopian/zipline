@@ -7,13 +7,11 @@ from pandas import DataFrame, Timestamp
 from six import iteritems
 
 from zipline.utils.compat import wraps
+from zipline.pipeline.domain import US_EQUITIES
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline import ExecutionPlan
 from zipline.pipeline.term import AssetExists, InputDates
-from zipline.testing import (
-    check_arrays,
-    ExplodingObject,
-)
+from zipline.testing import check_arrays
 from zipline.testing.fixtures import (
     WithAssetFinder,
     WithTradingSessions,
@@ -51,22 +49,21 @@ def with_defaults(**default_funcs):
 with_default_shape = with_defaults(shape=lambda self: self.default_shape)
 
 
-class BasePipelineTestCase(WithTradingSessions,
-                           WithAssetFinder,
-                           ZiplineTestCase):
+class BaseUSEquityPipelineTestCase(WithTradingSessions,
+                                   WithAssetFinder,
+                                   ZiplineTestCase):
     START_DATE = Timestamp('2014', tz='UTC')
     END_DATE = Timestamp('2014-12-31', tz='UTC')
     ASSET_FINDER_EQUITY_SIDS = list(range(20))
 
     @classmethod
     def init_class_fixtures(cls):
-        super(BasePipelineTestCase, cls).init_class_fixtures()
+        super(BaseUSEquityPipelineTestCase, cls).init_class_fixtures()
 
         cls.default_asset_exists_mask = cls.asset_finder.lifetimes(
             cls.nyse_sessions[-30:],
             include_start_date=False,
-            # TODO: update this when we add domains.
-            country_codes={'??', 'US'},
+            country_codes={cls.ASSET_FINDER_COUNTRY_CODE},
         )
 
     @property
@@ -81,7 +78,7 @@ class BasePipelineTestCase(WithTradingSessions,
 
         Parameters
         ----------
-        graph : zipline.pipeline.graph.TermGraph
+        graph : zipline.pipeline.graph.ExecutionPlan
             Graph to run.
         initial_workspace : dict
             Initial workspace to forward to SimplePipelineEngine.compute_chunk.
@@ -95,24 +92,27 @@ class BasePipelineTestCase(WithTradingSessions,
         results : dict
             Mapping from termname -> computed result.
         """
+        def get_loader(c):
+            raise AssertionError("run_graph() should not require any loaders!")
+
         engine = SimplePipelineEngine(
-            lambda column: ExplodingObject(),
-            self.nyse_sessions,
+            get_loader,
             self.asset_finder,
+            default_domain=US_EQUITIES,
         )
         if mask is None:
             mask = self.default_asset_exists_mask
 
-        dates, assets, mask_values = explode(mask)
+        dates, sids, mask_values = explode(mask)
 
         initial_workspace.setdefault(AssetExists(), mask_values)
         initial_workspace.setdefault(InputDates(), dates)
 
         return engine.compute_chunk(
-            graph,
-            dates,
-            assets,
-            initial_workspace,
+            graph=graph,
+            dates=dates,
+            sids=sids,
+            initial_workspace=initial_workspace,
         )
 
     def check_terms(self,
@@ -127,8 +127,8 @@ class BasePipelineTestCase(WithTradingSessions,
         """
         start_date, end_date = mask.index[[0, -1]]
         graph = ExecutionPlan(
-            terms,
-            all_dates=self.nyse_sessions,
+            domain=US_EQUITIES,
+            terms=terms,
             start_date=start_date,
             end_date=end_date,
         )

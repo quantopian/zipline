@@ -1,3 +1,4 @@
+from interface import implements
 from datashape import istabular
 
 from .core import (
@@ -18,7 +19,7 @@ from zipline.utils.input_validation import ensure_timezone, optionally
 from zipline.utils.preprocess import preprocess
 
 
-class BlazeEventsLoader(PipelineLoader):
+class BlazeEventsLoader(implements(PipelineLoader)):
     """An abstract pipeline loader for the events datasets that loads
     data from a blaze expression.
 
@@ -91,8 +92,8 @@ class BlazeEventsLoader(PipelineLoader):
         self._data_query_time = data_query_time
         self._data_query_tz = data_query_tz
 
-    def load_adjusted_array(self, columns, dates, assets, mask):
-        raw = load_raw_data(assets,
+    def load_adjusted_array(self, domain, columns, dates, sids, mask):
+        raw = load_raw_data(sids,
                             dates,
                             self._data_query_time,
                             self._data_query_tz,
@@ -104,8 +105,9 @@ class BlazeEventsLoader(PipelineLoader):
             next_value_columns=self._next_value_columns,
             previous_value_columns=self._previous_value_columns,
         ).load_adjusted_array(
+            domain,
             columns,
             dates,
-            assets,
+            sids,
             mask,
         )
