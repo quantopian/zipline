@@ -3,6 +3,7 @@ cimport numpy as np
 cdef class Asset:
 
     cdef readonly np.int64_t sid
+    cdef readonly object exchange_info
 
     cdef readonly object symbol
     cdef readonly object asset_name
@@ -11,8 +12,6 @@ cdef class Asset:
     cdef readonly object end_date
     cdef public object first_traded
     cdef readonly object auto_close_date
-
-    cdef readonly object exchange_info
 
     cdef readonly object tick_size
     cdef readonly float price_multiplier

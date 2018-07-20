@@ -278,7 +278,7 @@ cdef class Future(Asset):
                  object expiration_date=None,
                  object auto_close_date=None,
                  object first_traded=None,
-                 float tick_size=0.001,
+                 object tick_size=0.001,
                  float multiplier=1.0):
 
         super().__init__(
@@ -345,8 +345,6 @@ cdef class Future(Asset):
         super_dict['root_symbol'] = self.root_symbol
         super_dict['notice_date'] = self.notice_date
         super_dict['expiration_date'] = self.expiration_date
-        super_dict['tick_size'] = self.tick_size
-        super_dict['multiplier'] = self.price_multiplier
         return super_dict
 
 
