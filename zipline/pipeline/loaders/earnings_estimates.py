@@ -1,5 +1,6 @@
 from abc import abstractmethod, abstractproperty
 
+from interface import implements
 import numpy as np
 import pandas as pd
 from six import viewvalues
@@ -101,7 +102,7 @@ def add_new_adjustments(adjustments_dict,
         adjustments_dict[column_name][ts] = adjustments
 
 
-class EarningsEstimatesLoader(PipelineLoader):
+class EarningsEstimatesLoader(implements(PipelineLoader)):
     """
     An abstract pipeline loader for estimates data that can load data a
     variable number of quarters forwards/backwards from calendar dates
@@ -575,7 +576,7 @@ class EarningsEstimatesLoader(PipelineLoader):
             column.missing_value
         )
 
-    def load_adjusted_array(self, columns, dates, assets, mask):
+    def load_adjusted_array(self, domain, columns, dates, sids, mask):
         # Separate out getting the columns' datasets and the datasets'
         # num_announcements attributes to ensure that we're catching the right
         # AttributeError.
@@ -600,7 +601,7 @@ class EarningsEstimatesLoader(PipelineLoader):
         out = {}
         # To optimize performance, only work below on assets that are
         # actually in the raw data.
-        assets_with_data = set(assets) & set(self.estimates[SID_FIELD_NAME])
+        assets_with_data = set(sids) & set(self.estimates[SID_FIELD_NAME])
         last_per_qtr, stacked_last_per_qtr = self.get_last_data_per_qtr(
             assets_with_data,
             columns,
@@ -627,7 +628,7 @@ class EarningsEstimatesLoader(PipelineLoader):
                 requested_qtr_data,
                 last_per_qtr,
                 dates,
-                assets,
+                sids,
                 columns
             )
 
@@ -637,14 +638,14 @@ class EarningsEstimatesLoader(PipelineLoader):
             # sids for each field. This allows us to do the lookup once on
             # level 1 instead of doing the lookup each time per value in
             # level 0.
-            asset_indexer = assets.get_indexer_for(
+            asset_indexer = sids.get_indexer_for(
                 requested_qtr_data.columns.levels[1],
             )
             for col in columns:
                 column_name = self.name_map[col.name]
                 # allocate the empty output with the correct missing value
                 output_array = np.full(
-                    (len(dates), len(assets)),
+                    (len(dates), len(sids)),
                     col.missing_value,
                     dtype=col.dtype,
                 )

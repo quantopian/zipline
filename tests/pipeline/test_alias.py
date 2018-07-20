@@ -5,11 +5,11 @@ from zipline.testing.predicates import assert_equal
 from zipline.pipeline import Classifier, Factor, Filter
 from zipline.utils.numpy_utils import float64_dtype, int64_dtype
 
-from .base import BasePipelineTestCase
+from .base import BaseUSEquityPipelineTestCase
 
 
 @nottest
-class BaseAliasTestCase(BasePipelineTestCase):
+class BaseAliasTestCase(BaseUSEquityPipelineTestCase):
 
     def test_alias(self):
         f = self.Term()

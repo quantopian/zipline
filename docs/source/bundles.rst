@@ -221,9 +221,9 @@ to signal that there is no minutely data.
 ````````````````````
 
 ``daily_bar_writer`` is an instance of
-:class:`~zipline.data.us_equity_pricing.BcolzDailyBarWriter`. This writer is
+:class:`~zipline.data.bcolz_daily_bars.BcolzDailyBarWriter`. This writer is
 used to convert data into zipline's internal bcolz format to later be read by a
-:class:`~zipline.data.us_equity_pricing.BcolzDailyBarReader`. If daily data is
+:class:`~zipline.data.bcolz_daily_bars.BcolzDailyBarReader`. If daily data is
 provided, users should call
 :meth:`~zipline.data.minute_bars.BcolzDailyBarWriter.write` with an iterable of
 (sid dataframe) tuples. The ``show_progress`` argument should also be forwarded
@@ -245,10 +245,10 @@ is provided, a daily rollup will happen to service daily history requests.
 `````````````````````
 
 ``adjustment_writer`` is an instance of
-:class:`~zipline.data.us_equity_pricing.SQLiteAdjustmentWriter`. This writer is
+:class:`~zipline.data.adjustments.SQLiteAdjustmentWriter`. This writer is
 used to store splits, mergers, dividends, and stock dividends. The data should
 be provided as dataframes and passed to
-:meth:`~zipline.data.us_equity_pricing.SQLiteAdjustmentWriter.write`. Each of
+:meth:`~zipline.data.adjustments.SQLiteAdjustmentWriter.write`. Each of
 these fields are optional, but the writer can accept as much of the data as you
 have.
 

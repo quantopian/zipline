@@ -15,14 +15,14 @@ from zipline.utils.numpy_utils import (
     int64_dtype,
 )
 
-from .base import BasePipelineTestCase
+from .base import BaseUSEquityPipelineTestCase
 
 
 bytes_dtype = np.dtype('S3')
 unicode_dtype = np.dtype('U3')
 
 
-class ClassifierTestCase(BasePipelineTestCase):
+class ClassifierTestCase(BaseUSEquityPipelineTestCase):
 
     @parameter_space(mv=[-1, 0, 1, 999])
     def test_integral_isnull(self, mv):

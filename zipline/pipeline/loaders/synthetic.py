@@ -1,6 +1,7 @@
 """
 Synthetic data loaders for testing.
 """
+from interface import implements
 from numpy import (
     arange,
     array,
@@ -17,11 +18,12 @@ from sqlite3 import connect as sqlite3_connect
 
 from .base import PipelineLoader
 from .frame import DataFrameLoader
-from zipline.data.us_equity_pricing import (
+from zipline.data.adjustments import (
     SQLiteAdjustmentReader,
     SQLiteAdjustmentWriter,
-    US_EQUITY_PRICING_BCOLZ_COLUMNS,
 )
+from zipline.data.bcolz_daily_bars import US_EQUITY_PRICING_BCOLZ_COLUMNS
+
 from zipline.utils.numpy_utils import (
     bool_dtype,
     datetime64ns_dtype,
@@ -38,7 +40,7 @@ def nanos_to_seconds(nanos):
     return nanos / (1000 * 1000 * 1000)
 
 
-class PrecomputedLoader(PipelineLoader):
+class PrecomputedLoader(implements(PipelineLoader)):
     """
     Synthetic PipelineLoader that uses a pre-computed array for each column.
 
@@ -76,18 +78,20 @@ class PrecomputedLoader(PipelineLoader):
 
         self._loaders = loaders
 
-    def load_adjusted_array(self, columns, dates, assets, mask):
+    def load_adjusted_array(self, domain, columns, dates, sids, mask):
         """
         Load by delegating to sub-loaders.
         """
         out = {}
         for col in columns:
             try:
-                loader = self._loaders[col]
+                loader = self._loaders.get(col)
+                if loader is None:
+                    loader = self._loaders[col.unspecialize()]
             except KeyError:
                 raise ValueError("Couldn't find loader for %s" % col)
             out.update(
-                loader.load_adjusted_array([col], dates, assets, mask)
+                loader.load_adjusted_array(domain, [col], dates, sids, mask)
             )
         return out
 

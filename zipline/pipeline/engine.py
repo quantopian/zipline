@@ -1,23 +1,69 @@
 """
-Compute Engine definitions for the Pipeline API.
-"""
-from abc import (
-    ABCMeta,
-    abstractmethod,
-)
-from uuid import uuid4
+Computation engines for executing Pipelines.
 
-from six import (
-    iteritems,
-    with_metaclass,
-)
+This module defines the core computation algorithms for executing Pipelines.
+
+The primary entrypoint of this file is SimplePipelineEngine.run_pipeline, which
+implements the following algorithm for executing pipelines:
+
+1. Determine the domain of the pipeline. The domain determines the
+   top-level set of dates and assets that serve as row- and
+   column-labels for the computations performed by this
+   pipeline. This logic lives in
+   zipline.pipeline.domain.infer_domain.
+
+2. Build a dependency graph of all terms in `pipeline`, with
+   information about how many extra rows each term needs from its
+   inputs. At this point we also **specialize** any generic
+   LoadableTerms to the domain determined in (1). This logic lives in
+   zipline.pipeline.graph.TermGraph and
+   zipline.pipeline.graph.ExecutionPlan.
+
+3. Combine the domain computed in (2) with our AssetFinder to produce
+   a "lifetimes matrix". The lifetimes matrix is a DataFrame of
+   booleans whose labels are dates x assets. Each entry corresponds
+   to a (date, asset) pair and indicates whether the asset in
+   question was tradable on the date in question. This logic
+   primarily lives in AssetFinder.lifetimes.
+
+4. Call self._populate_initial_workspace, which produces a
+   "workspace" dictionary containing cached or otherwise pre-computed
+   terms. By default, the initial workspace contains the lifetimes
+   matrix and its date labels.
+
+5. Topologically sort the graph constructed in (1) to produce an
+   execution order for any terms that were not pre-populated.  This
+   logic lives in TermGraph.
+
+6. Iterate over the terms in the order computed in (5). For each term:
+
+   a. Fetch the term's inputs from the workspace, possibly removing
+      unneeded leading rows from the input (see ExecutionPlan.offset
+      for details on why we might have extra leading rows).
+
+   b. Call ``term._compute`` with the inputs. Store the results into
+      the workspace.
+
+   c. Decrement "reference counts" on the term's inputs, and remove
+      their results from the workspace if the refcount hits 0. This
+      significantly reduces the maximum amount of memory that we
+      consume during execution
+
+   This logic lives in SimplePipelineEngine.compute_chunk.
+
+7. Extract the pipeline's outputs from the workspace and convert them
+   into "narrow" format, with output labels dictated by the Pipeline's
+   screen. This logic lives in SimplePipelineEngine._to_narrow.
+"""
+from abc import ABCMeta, abstractmethod
+from six import iteritems, with_metaclass, viewkeys
 from numpy import array
 from pandas import DataFrame, MultiIndex
-from toolz import groupby, juxt
-from toolz.curried.operator import getitem
+from toolz import groupby
 
 from zipline.lib.adjusted_array import ensure_adjusted_array, ensure_ndarray
 from zipline.errors import NoFurtherDataError
+from zipline.utils.input_validation import expect_types
 from zipline.utils.numpy_utils import (
     as_column,
     repeat_first_axis,
@@ -25,6 +71,8 @@ from zipline.utils.numpy_utils import (
 )
 from zipline.utils.pandas_utils import explode
 
+from .domain import Domain, GENERIC
+from .graph import maybe_specialize
 from .term import AssetExists, InputDates, LoadableTerm
 
 from zipline.utils.date_utils import compute_date_range_chunks
@@ -172,9 +220,6 @@ class SimplePipelineEngine(PipelineEngine):
     get_loader : callable
         A function that is given a loadable term and returns a PipelineLoader
         to use to retrieve raw data for that term.
-    calendar : DatetimeIndex
-        Array of dates to consider as trading days when computing a range
-        between a fixed start and end.
     asset_finder : zipline.assets.AssetFinder
         An AssetFinder instance.  We depend on the AssetFinder to determine
         which assets are in the top-level universe at any point in time.
@@ -190,20 +235,23 @@ class SimplePipelineEngine(PipelineEngine):
     """
     __slots__ = (
         '_get_loader',
-        '_calendar',
         '_finder',
         '_root_mask_term',
         '_root_mask_dates_term',
         '_populate_initial_workspace',
     )
 
+    @expect_types(
+        default_domain=Domain,
+        __funcname='SimplePipelineEngine',
+    )
     def __init__(self,
                  get_loader,
-                 calendar,
                  asset_finder,
+                 default_domain=GENERIC,
                  populate_initial_workspace=None):
+
         self._get_loader = get_loader
-        self._calendar = calendar
         self._finder = asset_finder
 
         self._root_mask_term = AssetExists()
@@ -212,40 +260,11 @@ class SimplePipelineEngine(PipelineEngine):
         self._populate_initial_workspace = (
             populate_initial_workspace or default_populate_initial_workspace
         )
+        self._default_domain = default_domain
 
     def run_pipeline(self, pipeline, start_date, end_date):
         """
         Compute a pipeline.
-
-        The algorithm implemented here can be broken down into the following
-        stages:
-
-        0. Build a dependency graph of all terms in `pipeline`.  Topologically
-           sort the graph to determine an order in which we can compute the
-           terms.
-
-        1. Ask our AssetFinder for a "lifetimes matrix", which should contain,
-           for each date between start_date and end_date, a boolean value for
-           each known asset indicating whether the asset existed on that date.
-
-        2. Compute each term in the dependency order determined in (0), caching
-           the results in a a dictionary to that they can be fed into future
-           terms.
-
-        3. For each date, determine the number of assets passing
-           pipeline.screen.  The sum, N, of all these values is the total
-           number of rows in our output frame, so we pre-allocate an output
-           array of length N for each factor in `terms`.
-
-        4. Fill in the arrays allocated in (3) by copying computed values from
-           our output cache into the corresponding rows.
-
-        5. Stick the values computed in (4) into a DataFrame and return it.
-
-        Step 0 is performed by ``Pipeline.to_graph``.
-        Step 1 is performed in ``SimplePipelineEngine._compute_root_mask``.
-        Step 2 is performed in ``SimplePipelineEngine.compute_chunk``.
-        Steps 3, 4, and 5 are performed in ``SimplePiplineEngine._to_narrow``.
 
         Parameters
         ----------
@@ -275,22 +294,24 @@ class SimplePipelineEngine(PipelineEngine):
         :meth:`zipline.pipeline.engine.PipelineEngine.run_pipeline`
         :meth:`zipline.pipeline.engine.PipelineEngine.run_chunked_pipeline`
         """
+        # See notes at the top of this module for a description of the
+        # algorithm implemented here.
         if end_date < start_date:
             raise ValueError(
                 "start_date must be before or equal to end_date \n"
                 "start_date=%s, end_date=%s" % (start_date, end_date)
+
             )
 
-        screen_name = uuid4().hex
+        domain = self._resolve_domain(pipeline)
+
         graph = pipeline.to_execution_plan(
-            screen_name,
-            self._root_mask_term,
-            self._calendar,
-            start_date,
-            end_date,
+            domain, self._root_mask_term, start_date, end_date,
         )
         extra_rows = graph.extra_rows[self._root_mask_term]
-        root_mask = self._compute_root_mask(start_date, end_date, extra_rows)
+        root_mask = self._compute_root_mask(
+            domain, start_date, end_date, extra_rows,
+        )
         dates, assets, root_mask_values = explode(root_mask)
 
         initial_workspace = self._populate_initial_workspace(
@@ -304,25 +325,21 @@ class SimplePipelineEngine(PipelineEngine):
             assets,
         )
 
-        results = self.compute_chunk(
-            graph,
-            dates,
-            assets,
-            initial_workspace,
-        )
+        results = self.compute_chunk(graph, dates, assets, initial_workspace)
 
         return self._to_narrow(
             graph.outputs,
             results,
-            results.pop(screen_name),
+            results.pop(graph.screen_name),
             dates[extra_rows:],
             assets,
         )
 
     @copydoc(PipelineEngine.run_chunked_pipeline)
     def run_chunked_pipeline(self, pipeline, start_date, end_date, chunksize):
+        domain = self._resolve_domain(pipeline)
         ranges = compute_date_range_chunks(
-            self._calendar,
+            domain.all_sessions(),
             start_date,
             end_date,
             chunksize,
@@ -336,13 +353,15 @@ class SimplePipelineEngine(PipelineEngine):
 
         return categorical_df_concat(chunks, inplace=True)
 
-    def _compute_root_mask(self, start_date, end_date, extra_rows):
+    def _compute_root_mask(self, domain, start_date, end_date, extra_rows):
         """
         Compute a lifetimes matrix from our AssetFinder, then drop columns that
         didn't exist at all during the query dates.
 
         Parameters
         ----------
+        domain : zipline.pipeline.domain.Domain
+            Domain for which we're computing a pipeline.
         start_date : pd.Timestamp
             Base start date for the matrix.
         end_date : pd.Timestamp
@@ -361,38 +380,40 @@ class SimplePipelineEngine(PipelineEngine):
             that existed for at least one day between `start_date` and
             `end_date`.
         """
-        calendar = self._calendar
-        finder = self._finder
-        start_idx, end_idx = self._calendar.slice_locs(start_date, end_date)
+        sessions = domain.all_sessions()
+
+        if start_date not in sessions:
+            raise ValueError(
+                "Pipeline start date ({}) is not a trading session for "
+                "domain {}.".format(start_date, domain)
+            )
+
+        elif end_date not in sessions:
+            raise ValueError(
+                "Pipeline end date {} is not a trading session for "
+                "domain {}.".format(end_date, domain)
+            )
+
+        start_idx, end_idx = sessions.slice_locs(start_date, end_date)
         if start_idx < extra_rows:
             raise NoFurtherDataError.from_lookback_window(
                 initial_message="Insufficient data to compute Pipeline:",
-                first_date=calendar[0],
+                first_date=sessions[0],
                 lookback_start=start_date,
                 lookback_length=extra_rows,
             )
 
+        # NOTE: This logic should probably be delegated to the domain once we
+        #       start adding more complex domains.
+        #
         # Build lifetimes matrix reaching back to `extra_rows` days before
         # `start_date.`
+        finder = self._finder
         lifetimes = finder.lifetimes(
-            calendar[start_idx - extra_rows:end_idx],
+            sessions[start_idx - extra_rows:end_idx],
             include_start_date=False,
-            # TODO: update this when we add domains.
-            country_codes={'??', 'US'},
+            country_codes=(domain.country_code,),
         )
-
-        if lifetimes.index[extra_rows] != start_date:
-            raise ValueError(
-                'The first date of the lifetimes matrix does not match the'
-                ' start date of the pipeline. Did you forget to align the'
-                ' start_date to the trading calendar?'
-            )
-        if lifetimes.index[-1] != end_date:
-            raise ValueError(
-                'The last date of the lifetimes matrix does not match the'
-                ' start date of the pipeline. Did you forget to align the'
-                ' end_date to the trading calendar?'
-            )
 
         if not lifetimes.columns.unique:
             columns = lifetimes.columns
@@ -403,20 +424,22 @@ class SimplePipelineEngine(PipelineEngine):
         # window through the end of the requested dates.
         existed = lifetimes.any()
         ret = lifetimes.loc[:, existed]
-        shape = ret.shape
+        num_assets = ret.shape[1]
 
-        if shape[0] * shape[1] == 0:
+        if num_assets == 0:
             raise ValueError(
-                "Found only empty asset-days between {} and {}.\n"
-                "This probably means that either your asset db is out of date"
-                " or that you're trying to run a Pipeline during a period with"
-                " no market days.".format(start_date, end_date),
+                "Failed to find any assets with country_code {!r} that traded "
+                "between {} and {}.\n"
+                "This probably means that your asset db is old or that it has "
+                "incorrect country/exchange metadata.".format(
+                    domain.country_code, start_date, end_date,
+                )
             )
 
         return ret
 
     @staticmethod
-    def _inputs_for_term(term, workspace, graph):
+    def _inputs_for_term(term, workspace, graph, domain):
         """
         Compute inputs for the given term.
 
@@ -426,10 +449,16 @@ class SimplePipelineEngine(PipelineEngine):
         """
         offsets = graph.offset
         out = []
+
+        # We need to specialize here because we don't change ComputableTerm
+        # after resolving domains, so they can still contain generic terms as
+        # inputs.
+        specialized = [maybe_specialize(t, domain) for t in term.inputs]
+
         if term.windowed:
             # If term is windowed, then all input data should be instances of
             # AdjustedArray.
-            for input_ in term.inputs:
+            for input_ in specialized:
                 adjusted_array = ensure_adjusted_array(
                     workspace[input_], input_.missing_value,
                 )
@@ -441,8 +470,8 @@ class SimplePipelineEngine(PipelineEngine):
                 )
         else:
             # If term is not windowed, input_data may be an AdjustedArray or
-            # np.ndarray.  Coerce the former to the latter.
-            for input_ in term.inputs:
+            # np.ndarray. Coerce the former to the latter.
+            for input_ in specialized:
                 input_data = ensure_ndarray(workspace[input_])
                 offset = offsets[term, input_]
                 # OPTIMIZATION: Don't make a copy by doing input_data[0:] if
@@ -452,17 +481,17 @@ class SimplePipelineEngine(PipelineEngine):
                 out.append(input_data)
         return out
 
-    def get_loader(self, term):
-        return self._get_loader(term)
-
-    def compute_chunk(self, graph, dates, assets, initial_workspace):
+    def compute_chunk(self, graph, dates, sids, initial_workspace):
         """
         Compute the Pipeline terms in the graph for the requested start and end
         dates.
 
+        This is where we do the actual work of running a pipeline.
+
         Parameters
         ----------
-        graph : zipline.pipeline.graph.TermGraph
+        graph : zipline.pipeline.graph.ExecutionPlan
+            Dependency graph of the terms to be executed.
         dates : pd.DatetimeIndex
             Row labels for our root mask.
         assets : pd.Int64Index
@@ -478,25 +507,45 @@ class SimplePipelineEngine(PipelineEngine):
         results : dict
             Dictionary mapping requested results to outputs.
         """
-        self._validate_compute_chunk_params(dates, assets, initial_workspace)
-        get_loader = self.get_loader
+        self._validate_compute_chunk_params(
+            graph, dates, sids, initial_workspace,
+        )
+        get_loader = self._get_loader
 
         # Copy the supplied initial workspace so we don't mutate it in place.
         workspace = initial_workspace.copy()
         refcounts = graph.initial_refcounts(workspace)
         execution_order = graph.execution_order(refcounts)
+        domain = graph.domain
 
-        # If loadable terms share the same loader and extra_rows, load them all
-        # together.
-        loadable_terms = graph.loadable_terms
-        loader_group_key = juxt(get_loader, getitem(graph.extra_rows))
+        # Many loaders can fetch data more efficiently if we ask them to
+        # retrieve all their inputs at once. For example, a loader backed by a
+        # SQL database can fetch multiple columns from the database in a single
+        # query.
+        #
+        # To enable these loaders to fetch their data efficiently, we group
+        # together requests for LoadableTerms if they are provided by the same
+        # loader and they require the same number of extra rows.
+        #
+        # The extra rows condition is a simplification: we don't currently have
+        # a mechanism for asking a loader to fetch different windows of data
+        # for different terms, so we only batch requests together when they're
+        # going to produce data for the same set of dates. That may change in
+        # the future if we find a loader that can still benefit significantly
+        # from batching unequal-length requests.
+        def loader_group_key(term):
+            loader = get_loader(term)
+            extra_rows = graph.extra_rows[term]
+            return loader, extra_rows
+
+        # Only produce loader groups for the terms we expect to load.  This
+        # ensures that we can run pipelines for graphs where we don't have a
+        # loader registered for an atomic term if all the dependencies of that
+        # term were supplied in the initial workspace.
+        will_be_loaded = graph.loadable_terms - viewkeys(workspace)
         loader_groups = groupby(
             loader_group_key,
-            # Only produce loader groups for the terms we expect to load.  This
-            # ensures that we can run pipelines for graphs where we don't have
-            # a loader registered for an atomic term if all the dependencies of
-            # that term were supplied in the initial workspace.
-            (t for t in execution_order if t in loadable_terms),
+            (t for t in execution_order if t in will_be_loaded),
         )
 
         for term in graph.execution_order(refcounts):
@@ -517,13 +566,13 @@ class SimplePipelineEngine(PipelineEngine):
             )
 
             if isinstance(term, LoadableTerm):
+                loader = get_loader(term)
                 to_load = sorted(
                     loader_groups[loader_group_key(term)],
                     key=lambda t: t.dataset
                 )
-                loader = get_loader(term)
                 loaded = loader.load_adjusted_array(
-                    to_load, mask_dates, assets, mask,
+                    domain, to_load, mask_dates, sids, mask,
                 )
                 assert set(loaded) == set(to_load), (
                     'loader did not return an AdjustedArray for each column\n'
@@ -533,9 +582,9 @@ class SimplePipelineEngine(PipelineEngine):
                 workspace.update(loaded)
             else:
                 workspace[term] = term._compute(
-                    self._inputs_for_term(term, workspace, graph),
+                    self._inputs_for_term(term, workspace, graph, domain),
                     mask_dates,
-                    assets,
+                    sids,
                     mask,
                 )
                 if term.ndim == 2:
@@ -548,6 +597,7 @@ class SimplePipelineEngine(PipelineEngine):
                 for garbage_term in graph.decref_dependencies(term, refcounts):
                     del workspace[garbage_term]
 
+        # At this point, all the output terms are in the workspace.
         out = {}
         graph_extra_rows = graph.extra_rows
         for name, term in iteritems(graph.outputs):
@@ -621,7 +671,11 @@ class SimplePipelineEngine(PipelineEngine):
             index=MultiIndex.from_arrays([dates_kept, assets_kept]),
         ).tz_localize('UTC', level=0)
 
-    def _validate_compute_chunk_params(self, dates, assets, initial_workspace):
+    def _validate_compute_chunk_params(self,
+                                       graph,
+                                       dates,
+                                       sids,
+                                       initial_workspace):
         """
         Verify that the values passed to compute_chunk are well-formed.
         """
@@ -640,7 +694,7 @@ class SimplePipelineEngine(PipelineEngine):
             )
 
         shape = initial_workspace[root].shape
-        implied_shape = len(dates), len(assets)
+        implied_shape = len(dates), len(sids)
         if shape != implied_shape:
             raise AssertionError(
                 "root_mask shape is {shape}, but received dates/assets "
@@ -649,3 +703,68 @@ class SimplePipelineEngine(PipelineEngine):
                     implied=implied_shape,
                 )
             )
+
+        for term in initial_workspace:
+            if self._is_special_root_term(term):
+                continue
+
+            if term.domain is GENERIC:
+                # XXX: We really shouldn't allow **any** generic terms to be
+                # populated in the initial workspace. A generic term, by
+                # definition, can't correspond to concrete data until it's
+                # paired with a domain, and populate_initial_workspace isn't
+                # given the domain of execution, so it can't possibly know what
+                # data to use when populating a generic term.
+                #
+                # In our current implementation, however, we don't have a good
+                # way to represent specializations of ComputableTerms that take
+                # only generic inputs, so there's no good way for the initial
+                # workspace to provide data for such terms except by populating
+                # the generic ComputableTerm.
+                #
+                # The right fix for the above is to implement "full
+                # specialization", i.e., implementing ``specialize`` uniformly
+                # across all terms, not just LoadableTerms. Having full
+                # specialization will also remove the need for all of the
+                # remaining ``maybe_specialize`` calls floating around in this
+                # file.
+                #
+                # In the meantime, disallowing ComputableTerms in the initial
+                # workspace would break almost every test in
+                # `test_filter`/`test_factor`/`test_classifier`, and fixing
+                # them would require updating all those tests to compute with
+                # more specialized terms. Once we have full specialization, we
+                # can fix all the tests without a large volume of edits by
+                # simply specializing their workspaces, so for now I'm leaving
+                # this in place as a somewhat sharp edge.
+                if isinstance(term, LoadableTerm):
+                    raise ValueError(
+                        "Loadable workspace terms must be specialized to a "
+                        "domain, but got generic term {}".format(term)
+                    )
+
+            elif term.domain != graph.domain:
+                raise ValueError(
+                    "Initial workspace term {} has domain {}. "
+                    "Does not match pipeline domain {}".format(
+                        term, term.domain, graph.domain,
+                    )
+                )
+
+    def _resolve_domain(self, pipeline):
+        """Resolve a concrete domain for ``pipeline``.
+        """
+        domain = pipeline.domain(default=self._default_domain)
+        if domain is GENERIC:
+            raise ValueError(
+                "Unable to determine domain for Pipeline.\n"
+                "Pass domain=<desired domain> to your Pipeline to set a "
+                "domain."
+            )
+        return domain
+
+    def _is_special_root_term(self, term):
+        return (
+            term is self._root_mask_term
+            or term is self._root_mask_dates_term
+        )

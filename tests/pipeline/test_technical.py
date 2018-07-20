@@ -24,10 +24,10 @@ from zipline.pipeline.factors import (
 from zipline.testing import check_allclose, parameter_space
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import assert_equal
-from .base import BasePipelineTestCase
+from .base import BaseUSEquityPipelineTestCase
 
 
-class BollingerBandsTestCase(BasePipelineTestCase):
+class BollingerBandsTestCase(BaseUSEquityPipelineTestCase):
 
     def closes(self, mask_last_sid):
         data = self.arange_data(dtype=np.float64)

@@ -37,6 +37,9 @@ class NoDataForSid(Exception):
     pass
 
 
+OHLCV = ('open', 'high', 'low', 'close', 'volume')
+
+
 class BarReader(with_metaclass(ABCMeta, object)):
     @abstractproperty
     def data_frequency(self):

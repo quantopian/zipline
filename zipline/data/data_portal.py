@@ -52,7 +52,7 @@ from zipline.data.history_loader import (
     DailyHistoryLoader,
     MinuteHistoryLoader,
 )
-from zipline.data.us_equity_pricing import NoDataOnDate
+from zipline.data.bar_reader import NoDataOnDate
 from zipline.utils.math_utils import (
     nansum,
     nanmean,

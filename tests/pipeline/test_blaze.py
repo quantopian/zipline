@@ -23,6 +23,7 @@ from zipline.assets.synthetic import make_simple_equity_info
 from zipline.errors import UnsupportedPipelineOutput
 from zipline.pipeline import Pipeline, CustomFactor
 from zipline.pipeline.data import DataSet, BoundColumn, Column
+from zipline.pipeline.domain import EquitySessionDomain
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.loaders.blaze import (
     from_blaze,
@@ -129,6 +130,12 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             asof_date: datetime,
             timestamp: datetime,
         }""")
+
+    def create_domain(self, sessions):
+        return EquitySessionDomain(
+            sessions,
+            country_code=self.ASSET_FINDER_COUNTRY_CODE,
+        )
 
     def test_tabular(self):
         name = 'expr'
@@ -774,22 +781,22 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
     def _test_id(self, df, dshape, expected, finder, add):
         expr = bz.data(df, name='expr', dshape=dshape)
         loader = BlazeLoader()
+        domain = self.create_domain(self.dates)
         ds = from_blaze(
             expr,
             loader=loader,
             no_deltas_rule='ignore',
             no_checkpoints_rule='ignore',
             missing_values=self.missing_values,
+            domain=domain
         )
-        p = Pipeline()
+        p = Pipeline(domain=domain)
         for a in add:
             p.add(getattr(ds, a).latest, a)
         dates = self.dates
 
         result = SimplePipelineEngine(
-            loader,
-            dates,
-            finder,
+            loader, finder,
         ).run_pipeline(p, dates[0], dates[-1])
         assert_frame_equal(
             result.sort_index(axis=1),
@@ -802,15 +809,17 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             dates = self.dates
         expr = bz.data(df, name='expr', dshape=dshape)
         loader = BlazeLoader()
+        domain = self.create_domain(dates)
         ds = from_blaze(
             expr,
             loader=loader,
             no_deltas_rule='ignore',
             no_checkpoints_rule='ignore',
             missing_values=self.missing_values,
+            domain=domain,
         )
 
-        p = Pipeline()
+        p = Pipeline(domain=domain)
         macro_inputs = []
         for column_name in add:
             column = getattr(ds, column_name)
@@ -834,7 +843,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         # expected macro data are made in the `compute` function of our custom
         # factor above.
         p.add(UsesMacroInputs(), 'uses_macro_inputs')
-        engine = SimplePipelineEngine(loader, dates, finder)
+        engine = SimplePipelineEngine(loader, finder)
         engine.run_pipeline(p, dates[0], dates[-1])
 
     def test_custom_query_time_tz(self):
@@ -877,17 +886,15 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             no_deltas_rule='ignore',
             no_checkpoints_rule='ignore',
             missing_values=self.missing_values,
+            domain=self.create_domain(self.dates),
         )
         p = Pipeline()
         p.add(ds.value.latest, 'value')
         p.add(ds.int_value.latest, 'int_value')
-        dates = self.dates
 
         result = SimplePipelineEngine(
-            loader,
-            dates,
-            self.asset_finder,
-        ).run_pipeline(p, dates[0], dates[-1])
+            loader, self.asset_finder,
+        ).run_pipeline(p, self.dates[0], self.dates[-1])
 
         expected = df.drop('asof_date', axis=1)
         expected['timestamp'] = expected['timestamp'].dt.normalize().astype(
@@ -1308,6 +1315,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             no_deltas_rule='raise',
             no_checkpoints_rule='ignore',
             missing_values=self.missing_values,
+            domain=self.create_domain(calendar),
         )
         p = Pipeline()
 
@@ -1338,9 +1346,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         p.add(TestFactor(), 'value')
 
         result = SimplePipelineEngine(
-            loader,
-            calendar,
-            finder,
+            loader, finder,
         ).run_pipeline(p, start, end)
 
         if expected_output is not None:

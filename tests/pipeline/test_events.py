@@ -18,6 +18,7 @@ from zipline.pipeline.common import (
     SID_FIELD_NAME,
 )
 from zipline.pipeline.data import DataSet, Column
+from zipline.pipeline.domain import US_EQUITIES
 from zipline.pipeline.loaders.events import EventsLoader
 from zipline.pipeline.loaders.blaze.events import BlazeEventsLoader
 from zipline.pipeline.loaders.utils import (
@@ -65,6 +66,9 @@ class EventDataSet(DataSet):
         dtype=categorical_dtype,
         missing_value=u"<<NULL>>",
     )
+
+
+EventDataSet_US = EventDataSet.specialize(US_EQUITIES)
 
 
 critical_dates = pd.to_datetime([
@@ -274,6 +278,7 @@ class EventsLoaderEmptyTestCase(WithAssetFinder,
                                 ZiplineTestCase):
     START_DATE = pd.Timestamp('2014-01-01')
     END_DATE = pd.Timestamp('2014-01-30')
+    ASSET_FINDER_COUNTRY_CODE = 'US'
 
     @classmethod
     def init_class_fixtures(cls):
@@ -311,32 +316,33 @@ class EventsLoaderEmptyTestCase(WithAssetFinder,
                      "string"]
         )
         next_value_columns = {
-            EventDataSet.next_datetime: 'datetime',
-            EventDataSet.next_event_date: 'event_date',
-            EventDataSet.next_float: 'float',
-            EventDataSet.next_int: 'int',
-            EventDataSet.next_string: 'string',
-            EventDataSet.next_string_custom_missing: 'string'
+            EventDataSet_US.next_datetime: 'datetime',
+            EventDataSet_US.next_event_date: 'event_date',
+            EventDataSet_US.next_float: 'float',
+            EventDataSet_US.next_int: 'int',
+            EventDataSet_US.next_string: 'string',
+            EventDataSet_US.next_string_custom_missing: 'string'
         }
         previous_value_columns = {
-            EventDataSet.previous_datetime: 'datetime',
-            EventDataSet.previous_event_date: 'event_date',
-            EventDataSet.previous_float: 'float',
-            EventDataSet.previous_int: 'int',
-            EventDataSet.previous_string: 'string',
-            EventDataSet.previous_string_custom_missing: 'string'
+            EventDataSet_US.previous_datetime: 'datetime',
+            EventDataSet_US.previous_event_date: 'event_date',
+            EventDataSet_US.previous_float: 'float',
+            EventDataSet_US.previous_int: 'int',
+            EventDataSet_US.previous_string: 'string',
+            EventDataSet_US.previous_string_custom_missing: 'string'
         }
         loader = EventsLoader(
             raw_events, next_value_columns, previous_value_columns
         )
         engine = SimplePipelineEngine(
             lambda x: loader,
-            self.trading_days,
             self.asset_finder,
         )
 
         results = engine.run_pipeline(
-            Pipeline({c.name: c.latest for c in EventDataSet.columns}),
+            Pipeline({
+                c.name: c.latest for c in EventDataSet_US.columns
+            }, domain=US_EQUITIES),
             start_date=self.trading_days[0],
             end_date=self.trading_days[-1],
         )
@@ -346,7 +352,7 @@ class EventsLoaderEmptyTestCase(WithAssetFinder,
 
         expected = self.frame_containing_all_missing_values(
             index=pd.MultiIndex.from_product([dates, assets]),
-            columns=EventDataSet.columns,
+            columns=EventDataSet_US.columns,
         )
 
         assert_equal(results, expected)
@@ -358,6 +364,7 @@ class EventsLoaderTestCase(WithAssetFinder,
 
     START_DATE = pd.Timestamp('2014-01-01')
     END_DATE = pd.Timestamp('2014-01-30')
+    ASSET_FINDER_COUNTRY_CODE = 'US'
 
     @classmethod
     def init_class_fixtures(cls):
@@ -369,20 +376,20 @@ class EventsLoaderTestCase(WithAssetFinder,
             cls.raw_events['event_date'].notnull()
         ]
         cls.next_value_columns = {
-            EventDataSet.next_datetime: 'datetime',
-            EventDataSet.next_event_date: 'event_date',
-            EventDataSet.next_float: 'float',
-            EventDataSet.next_int: 'int',
-            EventDataSet.next_string: 'string',
-            EventDataSet.next_string_custom_missing: 'string'
+            EventDataSet_US.next_datetime: 'datetime',
+            EventDataSet_US.next_event_date: 'event_date',
+            EventDataSet_US.next_float: 'float',
+            EventDataSet_US.next_int: 'int',
+            EventDataSet_US.next_string: 'string',
+            EventDataSet_US.next_string_custom_missing: 'string'
         }
         cls.previous_value_columns = {
-            EventDataSet.previous_datetime: 'datetime',
-            EventDataSet.previous_event_date: 'event_date',
-            EventDataSet.previous_float: 'float',
-            EventDataSet.previous_int: 'int',
-            EventDataSet.previous_string: 'string',
-            EventDataSet.previous_string_custom_missing: 'string'
+            EventDataSet_US.previous_datetime: 'datetime',
+            EventDataSet_US.previous_event_date: 'event_date',
+            EventDataSet_US.previous_float: 'float',
+            EventDataSet_US.previous_int: 'int',
+            EventDataSet_US.previous_string: 'string',
+            EventDataSet_US.previous_string_custom_missing: 'string'
         }
         cls.loader = cls.make_loader(
             events=cls.raw_events,
@@ -395,6 +402,12 @@ class EventsLoaderTestCase(WithAssetFinder,
         ]
         super(EventsLoaderTestCase, cls).init_class_fixtures()
 
+        cls.engine = SimplePipelineEngine(
+            lambda c: cls.loader,
+            asset_finder=cls.asset_finder,
+            default_domain=US_EQUITIES,
+        )
+
     @classmethod
     def make_loader(cls, events, next_value_columns, previous_value_columns):
         # This method exists to be overridden by BlazeEventsLoaderTestCase
@@ -402,19 +415,13 @@ class EventsLoaderTestCase(WithAssetFinder,
 
     @skipIf(new_pandas, skip_pipeline_new_pandas)
     def test_load_with_trading_calendar(self):
-        engine = SimplePipelineEngine(
-            lambda x: self.loader,
-            self.trading_days,
-            self.asset_finder,
-        )
-
-        results = engine.run_pipeline(
-            Pipeline({c.name: c.latest for c in EventDataSet.columns}),
+        results = self.engine.run_pipeline(
+            Pipeline({c.name: c.latest for c in EventDataSet_US.columns}),
             start_date=self.trading_days[0],
             end_date=self.trading_days[-1],
         )
 
-        for c in EventDataSet.columns:
+        for c in EventDataSet_US.columns:
             if c in self.next_value_columns:
                 self.check_next_value_results(
                     c,
@@ -432,24 +439,19 @@ class EventsLoaderTestCase(WithAssetFinder,
 
     @skipIf(new_pandas, skip_pipeline_new_pandas)
     def test_load_properly_forward_fills(self):
-        engine = SimplePipelineEngine(
-            lambda x: self.loader,
-            self.trading_days,
-            self.asset_finder,
-        )
 
         # Cut the dates in half so we need to forward fill some data which
         # is not in our window. The results should be computed the same as if
         # we had computed across the entire window and then sliced after the
         # computation.
         dates = self.trading_days[len(self.trading_days) // 2:]
-        results = engine.run_pipeline(
-            Pipeline({c.name: c.latest for c in EventDataSet.columns}),
+        results = self.engine.run_pipeline(
+            Pipeline({c.name: c.latest for c in EventDataSet_US.columns}),
             start_date=dates[0],
             end_date=dates[-1],
         )
 
-        for c in EventDataSet.columns:
+        for c in EventDataSet_US.columns:
             if c in self.next_value_columns:
                 self.check_next_value_results(
                     c,
@@ -562,11 +564,11 @@ class EventsLoaderTestCase(WithAssetFinder,
             EVENT_DATE_FIELD_NAME: [pd.Timestamp('2014')],
         })
 
-        EventsLoader(events, {EventDataSet.next_float: 'c'}, {})
-        EventsLoader(events, {}, {EventDataSet.previous_float: 'c'})
+        EventsLoader(events, {EventDataSet_US.next_float: 'c'}, {})
+        EventsLoader(events, {}, {EventDataSet_US.previous_float: 'c'})
 
         with self.assertRaises(ValueError) as e:
-            EventsLoader(events, {EventDataSet.next_float: 'd'}, {})
+            EventsLoader(events, {EventDataSet_US.next_float: 'd'}, {})
 
         msg = str(e.exception)
         expected = (

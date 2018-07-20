@@ -104,24 +104,28 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
                 'symbol': 'A',
                 'start_date': cls.dates[10],
                 'end_date': cls.dates[13],
-                'exchange': 'TEST',
+                'exchange': 'NYSE',
             },
             {
                 'sid': 2,
                 'symbol': 'B',
                 'start_date': cls.dates[11],
                 'end_date': cls.dates[14],
-                'exchange': 'TEST',
+                'exchange': 'NYSE',
             },
             {
                 'sid': 3,
                 'symbol': 'C',
                 'start_date': cls.dates[12],
                 'end_date': cls.dates[15],
-                'exchange': 'TEST',
+                'exchange': 'NYSE',
             },
         ])
         return ret
+
+    @classmethod
+    def make_exchanges_info(cls, *args, **kwargs):
+        return DataFrame({'exchange': ['NYSE'], 'country_code': ['US']})
 
     @classmethod
     def make_equity_daily_bar_data(cls):
@@ -445,6 +449,8 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
     # environment.
     BENCHMARK_SID = None
 
+    ASSET_FINDER_COUNTRY_CODE = 'US'
+
     @classmethod
     def make_equity_daily_bar_data(cls):
         resources = {
@@ -512,7 +518,6 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
 
     def compute_expected_vwaps(self, window_lengths):
         AAPL, MSFT, BRK_A = self.AAPL, self.MSFT, self.BRK_A
-
         # Our view of the data before AAPL's split on June 9, 2014.
         raw = {k: v.copy() for k, v in iteritems(self.raw_data)}
 
@@ -704,7 +709,7 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
         count = [0]
 
         current_day = self.trading_calendar.next_session_label(
-            self.pipeline_loader.raw_price_loader.last_available_dt,
+            self.pipeline_loader.raw_price_reader.last_available_dt,
         )
 
         def initialize(context):
@@ -745,6 +750,7 @@ class PipelineSequenceTestCase(WithMakeAlgo, ZiplineTestCase):
     # run algorithm for 3 days
     START_DATE = pd.Timestamp('2014-12-29', tz='utc')
     END_DATE = pd.Timestamp('2014-12-31', tz='utc')
+    ASSET_FINDER_COUNTRY_CODE = 'US'
 
     def get_pipeline_loader(self):
         raise AssertionError("Loading terms for pipeline with no inputs")

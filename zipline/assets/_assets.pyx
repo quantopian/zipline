@@ -82,6 +82,10 @@ cdef class Asset:
     def exchange_full(self):
         return self.exchange_info.name
 
+    @property
+    def country_code(self):
+        return self.exchange_info.country_code
+
     def __int__(self):
         return self.sid
 

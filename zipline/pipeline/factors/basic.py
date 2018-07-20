@@ -14,7 +14,7 @@ from numpy import (
     sum as np_sum,
 )
 
-from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.data import EquityPricing
 from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import (
     nanargmax,
@@ -36,9 +36,9 @@ class Returns(CustomFactor):
     """
     Calculates the percent change in close price over the given window_length.
 
-    **Default Inputs**: [USEquityPricing.close]
+    **Default Inputs**: [EquityPricing.close]
     """
-    inputs = [USEquityPricing.close]
+    inputs = [EquityPricing.close]
     window_safe = True
 
     def _validate(self):
@@ -58,9 +58,9 @@ class DailyReturns(Returns):
     """
     Calculates daily percent change in close price.
 
-    **Default Inputs**: [USEquityPricing.close]
+    **Default Inputs**: [EquityPricing.close]
     """
-    inputs = [USEquityPricing.close]
+    inputs = [EquityPricing.close]
     window_safe = True
     window_length = 2
 
@@ -98,11 +98,11 @@ class VWAP(WeightedAverageValue):
     """
     Volume Weighted Average Price
 
-    **Default Inputs:** [USEquityPricing.close, USEquityPricing.volume]
+    **Default Inputs:** [EquityPricing.close, EquityPricing.volume]
 
     **Default Window Length:** None
     """
-    inputs = (USEquityPricing.close, USEquityPricing.volume)
+    inputs = (EquityPricing.close, EquityPricing.volume)
 
 
 class MaxDrawdown(CustomFactor, SingleInputMixin):
@@ -130,11 +130,11 @@ class AverageDollarVolume(CustomFactor):
     """
     Average Daily Dollar Volume
 
-    **Default Inputs:** [USEquityPricing.close, USEquityPricing.volume]
+    **Default Inputs:** [EquityPricing.close, EquityPricing.volume]
 
     **Default Window Length:** None
     """
-    inputs = [USEquityPricing.close, USEquityPricing.volume]
+    inputs = [EquityPricing.close, EquityPricing.volume]
 
     def compute(self, today, assets, out, close, volume):
         out[:] = nansum(close * volume, axis=0) / len(close)
@@ -208,12 +208,12 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
 
             # Equivalent to:
             # my_ewma = EWMA(
-            #    inputs=[USEquityPricing.close],
+            #    inputs=[EquityPricing.close],
             #    window_length=30,
             #    decay_rate=(1 - (2.0 / (1 + 15.0))),
             # )
             my_ewma = EWMA.from_span(
-                inputs=[USEquityPricing.close],
+                inputs=[EquityPricing.close],
                 window_length=30,
                 span=15,
             )
@@ -255,12 +255,12 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
 
             # Equivalent to:
             # my_ewma = EWMA(
-            #    inputs=[USEquityPricing.close],
+            #    inputs=[EquityPricing.close],
             #    window_length=30,
             #    decay_rate=np.exp(np.log(0.5) / 15),
             # )
             my_ewma = EWMA.from_halflife(
-                inputs=[USEquityPricing.close],
+                inputs=[EquityPricing.close],
                 window_length=30,
                 halflife=15,
             )
@@ -304,12 +304,12 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
 
             # Equivalent to:
             # my_ewma = EWMA(
-            #    inputs=[USEquityPricing.close],
+            #    inputs=[EquityPricing.close],
             #    window_length=30,
             #    decay_rate=(1 - (1 / 15.0)),
             # )
             my_ewma = EWMA.from_center_of_mass(
-                inputs=[USEquityPricing.close],
+                inputs=[EquityPricing.close],
                 window_length=30,
                 center_of_mass=15,
             )

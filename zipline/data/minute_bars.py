@@ -39,7 +39,7 @@ from zipline.data._minute_bar_internal import (
 
 from zipline.gens.sim_engine import NANOS_IN_MINUTE
 from zipline.data.bar_reader import BarReader, NoDataForSid, NoDataOnDate
-from zipline.data.us_equity_pricing import check_uint32_safe
+from zipline.data.bcolz_daily_bars import check_uint32_safe
 from zipline.utils.cli import maybe_show_progress
 from zipline.utils.compat import mappingproxy
 from zipline.utils.memoize import lazyval

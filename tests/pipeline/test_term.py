@@ -30,10 +30,11 @@ from zipline.pipeline import (
 )
 from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.data.testing import TestingDataSet
+from zipline.pipeline.domain import US_EQUITIES
 from zipline.pipeline.expression import NUMEXPR_MATH_FUNCS
 from zipline.pipeline.factors import RecarrayField
 from zipline.pipeline.sentinels import NotSpecified
-from zipline.pipeline.term import AssetExists, Slice
+from zipline.pipeline.term import AssetExists, LoadableTerm, Slice
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import WithTradingSessions, ZiplineTestCase
 from zipline.testing.predicates import (
@@ -165,21 +166,28 @@ class DependencyResolutionTestCase(WithTradingSessions, ZiplineTestCase):
     execution_plan_start = pd.Timestamp('2014-06-01', tz='UTC')
     execution_plan_end = pd.Timestamp('2014-06-30', tz='UTC')
 
+    DOMAIN = US_EQUITIES
+
     def check_dependency_order(self, ordered_terms):
         seen = set()
 
         for term in ordered_terms:
             for dep in term.dependencies:
-                self.assertIn(dep, seen)
+                # LoadableTerms should be specialized do the domain of
+                # execution when emitted by an execution plan.
+                if isinstance(dep, LoadableTerm):
+                    self.assertIn(dep.specialize(self.DOMAIN), seen)
+                else:
+                    self.assertIn(dep, seen)
 
             seen.add(term)
 
     def make_execution_plan(self, terms):
         return ExecutionPlan(
-            terms,
-            self.nyse_sessions,
-            self.execution_plan_start,
-            self.execution_plan_end,
+            domain=self.DOMAIN,
+            terms=terms,
+            start_date=self.execution_plan_start,
+            end_date=self.execution_plan_end,
         )
 
     def test_single_factor(self):
@@ -190,20 +198,22 @@ class DependencyResolutionTestCase(WithTradingSessions, ZiplineTestCase):
 
             resolution_order = list(graph.ordered())
 
+            # Loadable terms should get specialized during graph construction.
+            specialized_foo = SomeDataSet.foo.specialize(self.DOMAIN)
+            specialized_bar = SomeDataSet.foo.specialize(self.DOMAIN)
+
             self.assertEqual(len(resolution_order), 4)
             self.check_dependency_order(resolution_order)
             self.assertIn(AssetExists(), resolution_order)
-            self.assertIn(SomeDataSet.foo, resolution_order)
-            self.assertIn(SomeDataSet.bar, resolution_order)
+            self.assertIn(specialized_foo, resolution_order)
+            self.assertIn(specialized_bar, resolution_order)
             self.assertIn(SomeFactor(), resolution_order)
 
             self.assertEqual(
-                graph.graph.node[SomeDataSet.foo]['extra_rows'],
-                4,
+                graph.graph.node[specialized_foo]['extra_rows'], 4,
             )
             self.assertEqual(
-                graph.graph.node[SomeDataSet.bar]['extra_rows'],
-                4,
+                graph.graph.node[specialized_bar]['extra_rows'], 4,
             )
 
         for foobar in gen_equivalent_factors():
@@ -227,12 +237,18 @@ class DependencyResolutionTestCase(WithTradingSessions, ZiplineTestCase):
         self.assertIn(AssetExists(), resolution_order)
         self.assertEqual(graph.extra_rows[AssetExists()], 4)
 
-        self.assertIn(bar, resolution_order)
-        self.assertIn(buzz, resolution_order)
+        # LoadableTerms should be specialized to our domain in the execution
+        # order.
+        self.assertIn(bar.specialize(self.DOMAIN), resolution_order)
+        self.assertIn(buzz.specialize(self.DOMAIN), resolution_order)
+
+        # ComputableTerms don't yet have a notion of specialization, so they
+        # shouldn't appear unchanged in the execution order.
         self.assertIn(SomeFactor([bar, buzz], window_length=5),
                       resolution_order)
-        self.assertEqual(graph.extra_rows[bar], 4)
-        self.assertEqual(graph.extra_rows[buzz], 4)
+
+        self.assertEqual(graph.extra_rows[bar.specialize(self.DOMAIN)], 4)
+        self.assertEqual(graph.extra_rows[bar.specialize(self.DOMAIN)], 4)
 
     def test_reuse_loadable_terms(self):
         """

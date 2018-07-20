@@ -37,6 +37,7 @@ from pandas.util.testing import assert_frame_equal
 from toolz.curried.operator import getitem
 
 from zipline.lib.adjustment import Float64Multiply
+from zipline.pipeline.domain import US_EQUITIES
 from zipline.pipeline.loaders.synthetic import (
     NullAdjustmentReader,
     make_bar_data,
@@ -96,7 +97,7 @@ EQUITY_INFO = DataFrame(
 EQUITY_INFO['symbol'] = [chr(ord('A') + n) for n in range(len(EQUITY_INFO))]
 EQUITY_INFO['exchange'] = 'TEST'
 
-TEST_QUERY_ASSETS = EQUITY_INFO.index
+TEST_QUERY_SIDS = EQUITY_INFO.index
 
 
 # ADJUSTMENTS use the following scheme to indicate information about the value
@@ -294,7 +295,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
     @classmethod
     def init_class_fixtures(cls):
         super(USEquityPricingLoaderTestCase, cls).init_class_fixtures()
-        cls.assets = TEST_QUERY_ASSETS
+        cls.sids = TEST_QUERY_SIDS
         cls.asset_info = EQUITY_INFO
 
     def test_input_sanity(self):
@@ -370,7 +371,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
         adjustments = self.adjustment_reader.load_adjustments(
             [c.name for c in columns],
             query_days,
-            self.assets,
+            self.sids,
         )
 
         close_adjustments = adjustments[0]
@@ -467,7 +468,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
         adjustments = adjustment_reader.load_adjustments(
             [c.name for c in columns],
             query_days,
-            self.assets,
+            self.sids,
         )
         self.assertEqual(adjustments, [{}, {}])
 
@@ -477,10 +478,11 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
         )
 
         results = pricing_loader.load_adjusted_array(
-            columns,
+            domain=US_EQUITIES,
+            columns=columns,
             dates=query_days,
-            assets=self.assets,
-            mask=ones((len(query_days), len(self.assets)), dtype=bool),
+            sids=self.sids,
+            mask=ones((len(query_days), len(self.sids)), dtype=bool),
         )
         closes, volumes = map(getitem(results), columns)
 
@@ -554,9 +556,10 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
         )
 
         results = pricing_loader.load_adjusted_array(
-            columns,
+            domain=US_EQUITIES,
+            columns=columns,
             dates=query_days,
-            assets=Int64Index(arange(1, 7)),
+            sids=Int64Index(arange(1, 7)),
             mask=ones((len(query_days), 6), dtype=bool),
         )
         highs, volumes = map(getitem(results), columns)
@@ -580,7 +583,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
                 baseline_dates = query_days[offset:offset + windowlen]
                 expected_adjusted_highs = self.apply_adjustments(
                     baseline_dates,
-                    self.assets,
+                    self.sids,
                     baseline,
                     # Apply all adjustments.
                     concat([SPLITS, MERGERS, DIVIDENDS_EXPECTED],
@@ -597,7 +600,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
 
                 expected_adjusted_volumes = self.apply_adjustments(
                     baseline_dates,
-                    self.assets,
+                    self.sids,
                     baseline,
                     adjustments,
                 )

@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+from interface import implements
 from six import viewvalues
 from toolz import groupby, merge
 
@@ -57,7 +58,7 @@ def validate_column_specs(events, next_value_columns, previous_value_columns):
         )
 
 
-class EventsLoader(PipelineLoader):
+class EventsLoader(implements(PipelineLoader)):
     """
     Base class for PipelineLoaders that supports loading the next and previous
     value of an event field.
@@ -162,33 +163,43 @@ class EventsLoader(PipelineLoader):
             self.events[SID_FIELD_NAME],
         )
 
-    def load_next_events(self, columns, dates, sids, mask):
+    def load_next_events(self, domain, columns, dates, sids, mask):
         if not columns:
             return {}
 
         return self._load_events(
             name_map=self.next_value_columns,
             indexer=self.next_event_indexer(dates, sids),
+            domain=domain,
             columns=columns,
             dates=dates,
             sids=sids,
             mask=mask,
         )
 
-    def load_previous_events(self, columns, dates, sids, mask):
+    def load_previous_events(self, domain, columns, dates, sids, mask):
         if not columns:
             return {}
 
         return self._load_events(
             name_map=self.previous_value_columns,
             indexer=self.previous_event_indexer(dates, sids),
+            domain=domain,
             columns=columns,
             dates=dates,
             sids=sids,
             mask=mask,
         )
 
-    def _load_events(self, name_map, indexer, columns, dates, sids, mask):
+    def _load_events(self,
+                     name_map,
+                     indexer,
+                     domain,
+                     columns,
+                     dates,
+                     sids,
+                     mask):
+
         def to_frame(array):
             return pd.DataFrame(array, index=dates, columns=sids)
 
@@ -220,12 +231,14 @@ class EventsLoader(PipelineLoader):
 
             # Delegate the actual array formatting logic to a DataFrameLoader.
             loader = DataFrameLoader(c, to_frame(raw), adjustments=None)
-            out[c] = loader.load_adjusted_array([c], dates, sids, mask)[c]
+            out[c] = loader.load_adjusted_array(
+                domain, [c], dates, sids, mask
+            )[c]
         return out
 
-    def load_adjusted_array(self, columns, dates, sids, mask):
+    def load_adjusted_array(self, domain, columns, dates, sids, mask):
         n, p = self.split_next_and_previous_event_columns(columns)
         return merge(
-            self.load_next_events(n, dates, sids, mask),
-            self.load_previous_events(p, dates, sids, mask),
+            self.load_next_events(domain, n, dates, sids, mask),
+            self.load_previous_events(domain, p, dates, sids, mask),
         )

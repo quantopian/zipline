@@ -15,6 +15,12 @@ from zipline.pipeline import (
     SimplePipelineEngine,
 )
 from zipline.pipeline.data.testing import TestingDataSet
+from zipline.pipeline.domain import (
+    CA_EQUITIES,
+    EquitySessionDomain,
+    GB_EQUITIES,
+    US_EQUITIES,
+)
 from zipline.pipeline.factors import SimpleMovingAverage
 from zipline.pipeline.filters.smoothing import All
 from zipline.testing import ZiplineTestCase, parameter_space, ExplodingObject
@@ -23,6 +29,7 @@ from zipline.testing.fixtures import (
     WithSeededRandomPipelineEngine,
     WithAssetFinder,
 )
+from zipline.utils.classproperty import classproperty
 from zipline.utils.input_validation import _qualified_name
 from zipline.utils.numpy_utils import int64_dtype
 
@@ -53,7 +60,7 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
 
     DATA_MIN_DAY = pd.Timestamp('2012-06', tz='UTC')
     DATA_MAX_DAY = pd.Timestamp('2015', tz='UTC')
-    TRADING_CALENDAR_STRS = ('NYSE',)
+    TRADING_CALENDAR_STRS = ('NYSE', 'LSE', 'TSX')
 
     # Test with different window_lengths to ensure that window length is not
     # used when calculating exra rows for the top-level term.
@@ -595,6 +602,19 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
     END_DATE = pd.Timestamp('2015-01-06', tz='UTC')
 
     ASSET_FINDER_EQUITY_SIDS = tuple(range(10))
+    DOMAIN = US_EQUITIES
+
+    @classproperty
+    def ASSET_FINDER_COUNTRY_CODE(cls):
+        return cls.DOMAIN.country_code
+
+    @classproperty
+    def SEEDED_RANDOM_PIPELINE_DEFAULT_DOMAIN(cls):
+        return cls.DOMAIN
+
+    @classproperty
+    def all_sessions(cls):
+        return cls.DOMAIN.all_sessions()
 
     def check_downsampled_term(self, term):
 
@@ -606,7 +626,7 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
         # 16 17 18 19 20 21 22
         # 23 24 25 26 27 28 29
         # 30
-        all_sessions = self.nyse_sessions
+        all_sessions = self.all_sessions
         compute_dates = all_sessions[
             all_sessions.slice_indexer('2014-06-05', '2015-01-06')
         ]
@@ -717,6 +737,14 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
         self.assertEqual(str(e.exception), expected)
 
 
+class DownsampledGBPipelineTestCase(DownsampledPipelineTestCase):
+    DOMAIN = GB_EQUITIES
+
+
+class DownsampledCAPipelineTestCase(DownsampledPipelineTestCase):
+    DOMAIN = CA_EQUITIES
+
+
 class TestDownsampledRowwiseOperation(WithAssetFinder, ZiplineTestCase):
 
     T = partial(pd.Timestamp, tz='utc')
@@ -725,6 +753,8 @@ class TestDownsampledRowwiseOperation(WithAssetFinder, ZiplineTestCase):
     HALF_WAY_POINT = T('2014-01-15')
 
     dates = pd.date_range(START_DATE, END_DATE)
+
+    ASSET_FINDER_COUNTRY_CODE = '??'
 
     class SidFactor(CustomFactor):
         inputs = ()
@@ -740,8 +770,11 @@ class TestDownsampledRowwiseOperation(WithAssetFinder, ZiplineTestCase):
         super(TestDownsampledRowwiseOperation, cls).init_class_fixtures()
         cls.pipeline_engine = SimplePipelineEngine(
             get_loader=lambda c: ExplodingObject(),
-            calendar=cls.dates,
             asset_finder=cls.asset_finder,
+            default_domain=EquitySessionDomain(
+                cls.dates,
+                country_code=cls.ASSET_FINDER_COUNTRY_CODE,
+            ),
         )
 
     @classmethod

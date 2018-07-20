@@ -176,6 +176,7 @@ from zipline.pipeline.common import (
     TS_FIELD_NAME
 )
 from zipline.pipeline.data.dataset import DataSet, Column
+from zipline.pipeline.domain import GENERIC
 from zipline.pipeline.loaders.utils import (
     check_data_query_args,
     normalize_data_query_bounds,
@@ -281,7 +282,7 @@ def datashape_type_to_numpy(type_):
 
 
 @memoize
-def new_dataset(expr, missing_values):
+def new_dataset(expr, missing_values, domain):
     """
     Creates or returns a dataset from a blaze expression.
 
@@ -294,6 +295,8 @@ def new_dataset(expr, missing_values):
 
         This needs to be a frozenset rather than a dict or tuple of tuples
         because we want a collection that's unordered but still hashable.
+    domain : zipline.pipeline.domain.Domain
+        Domain of the dataset to be created.
 
     Returns
     -------
@@ -322,6 +325,11 @@ def new_dataset(expr, missing_values):
         else:
             col = NonPipelineField(name, type_)
         class_dict[name] = col
+
+    if 'domain' in class_dict:
+        raise ValueError("Got a column named 'domain' in new_dataset(). "
+                         "'domain' is reserved.")
+    class_dict['domain'] = domain
 
     name = expr._name
     if name is None:
@@ -517,6 +525,7 @@ def from_blaze(expr,
                resources=None,
                odo_kwargs=None,
                missing_values=None,
+               domain=GENERIC,
                no_deltas_rule='warn',
                no_checkpoints_rule='warn'):
     """Create a Pipeline API object from a blaze expression.
@@ -545,6 +554,8 @@ def from_blaze(expr,
         scope for ``bz.compute``.
     odo_kwargs : dict, optional
         The keyword arguments to pass to odo when evaluating the expressions.
+    domain : zipline.pipeline.domain.Domain
+        Domain of the dataset to be created.
     missing_values : dict[str -> any], optional
         A dict mapping column names to missing values for those columns.
         Missing values are required for integral columns.
@@ -673,7 +684,7 @@ def from_blaze(expr,
     # Create or retrieve the Pipeline API dataset.
     if missing_values is None:
         missing_values = {}
-    ds = new_dataset(dataset_expr, frozenset(missing_values.items()))
+    ds = new_dataset(dataset_expr, frozenset(missing_values.items()), domain)
 
     # Register our new dataset with the loader.
     (loader if loader is not None else global_loader).register_dataset(
@@ -886,10 +897,10 @@ class BlazeLoader(object):
             odo_kwargs,
         )
 
-    def load_adjusted_array(self, columns, dates, assets, mask):
+    def load_adjusted_array(self, domain, columns, dates, sids, mask):
         return merge(
             self.pool.imap_unordered(
-                partial(self._load_dataset, dates, assets, mask),
+                partial(self._load_dataset, dates, sids, mask),
                 itervalues(groupby(getitem(self._table_expressions), columns)),
             ),
         )

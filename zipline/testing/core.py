@@ -7,6 +7,7 @@ from itertools import (
     count,
     product,
 )
+import json
 import operator
 import os
 from os.path import abspath, dirname, join, realpath
@@ -37,15 +38,16 @@ from zipline.data.minute_bars import (
     BcolzMinuteBarWriter,
     US_EQUITIES_MINUTES_PER_DAY
 )
-from zipline.data.us_equity_pricing import (
+from zipline.data.bcolz_daily_bars import (
     BcolzDailyBarReader,
     BcolzDailyBarWriter,
-    SQLiteAdjustmentWriter,
 )
+from zipline.data.adjustments import SQLiteAdjustmentWriter
 from zipline.finance.blotter import SimulationBlotter
 from zipline.finance.order import ORDER_STATUS
 from zipline.lib.labelarray import LabelArray
-from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.data import EquityPricing
+from zipline.pipeline.domain import EquitySessionDomain
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
@@ -1095,7 +1097,52 @@ def temp_pipeline_engine(calendar, sids, random_seed, symbols=None):
         yield SimplePipelineEngine(get_loader, calendar, finder)
 
 
-def parameter_space(__fail_fast=False, **params):
+def bool_from_envvar(name, default=False, env=None):
+    """
+    Get a boolean value from the environment, making a reasonable attempt to
+    convert "truthy" values to True and "falsey" values to False.
+
+    Strings are coerced to bools using ``json.loads(s.lower())``.
+
+    Parameters
+    ----------
+    name : str
+        Name of the environment variable.
+    default : bool, optional
+        Value to use if the environment variable isn't set. Default is False
+    env : dict-like, optional
+        Mapping in which to look up ``name``. This is a parameter primarily for
+        testing purposes. Default is os.environ.
+
+    Returns
+    -------
+    value : bool
+        ``env[name]`` coerced to a boolean, or ``default`` if ``name`` is not
+        in ``env``.
+    """
+    if env is None:
+        env = os.environ
+
+    value = env.get(name)
+    if value is None:
+        return default
+
+    try:
+        # Try to parse as JSON. This makes strings like "0", "False", and
+        # "null" evaluate as falsey values.
+        value = json.loads(value.lower())
+    except ValueError:
+        # If the value can't be parsed as json, assume it should be treated as
+        # a string for the purpose of evaluation.
+        pass
+
+    return bool(value)
+
+
+_FAIL_FAST_DEFAULT = bool_from_envvar('PARAMETER_SPACE_FAIL_FAST')
+
+
+def parameter_space(__fail_fast=_FAIL_FAST_DEFAULT, **params):
     """
     Wrapper around subtest that allows passing keywords mapping names to
     iterables of values.
@@ -1560,7 +1607,7 @@ class AssetIDPlusDay(CustomFactor):
 
 class OpenPrice(CustomFactor):
     window_length = 1
-    inputs = [USEquityPricing.open]
+    inputs = [EquityPricing.open]
 
     def compute(self, today, assets, out, open):
         out[:] = open
@@ -1592,6 +1639,37 @@ def prices_generating_returns(returns, starting_price):
         )
 
     return rounded_prices
+
+
+def random_tick_prices(starting_price,
+                       count,
+                       tick_size=0.01,
+                       tick_range=(-5, 7),
+                       seed=42):
+    """
+    Construct a time series of prices that ticks by a random multiple of
+    ``tick_size`` every period.
+
+    Parameters
+    ----------
+    starting_price : float
+        The first price of the series.
+    count : int
+        Number of price observations to return.
+    tick_size : float
+        Unit of price movement between observations.
+    tick_range : (int, int)
+        Pair of lower/upper bounds for different in the number of ticks
+        between price observations.
+    seed : int, optional
+        Seed to use for random number generation.
+    """
+    out = np.full(count, starting_price, dtype=float)
+    rng = np.random.RandomState(seed)
+    diff = rng.randint(tick_range[0], tick_range[1], size=len(out) - 1)
+    ticks = starting_price + diff.cumsum() * tick_size
+    out[1:] = ticks
+    return out
 
 
 def simulate_minutes_for_day(open_,
@@ -1684,3 +1762,9 @@ def simulate_minutes_for_day(open_,
         'low': prices.min(),
         'volume': volume,
     })
+
+
+def create_simple_domain(start, end, country_code):
+    """Create a new pipeline domain with a simple date_range index.
+    """
+    return EquitySessionDomain(pd.date_range(start, end), country_code)
