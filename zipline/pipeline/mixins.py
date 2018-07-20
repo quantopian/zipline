@@ -144,7 +144,11 @@ class CustomTermMixin(object):
         """
         Override this method with a function that writes a value into `out`.
         """
-        raise NotImplementedError()
+        raise NotImplementedError(
+            "{name} must define a compute method".format(
+                name=type(self).__name__
+            )
+        )
 
     def _allocate_output(self, windows, shape):
         """
