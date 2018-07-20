@@ -254,6 +254,16 @@ class DependencyResolutionTestCase(WithTradingSessions, ZiplineTestCase):
         with self.assertRaises(NonWindowSafeInput):
             SomeFactor(inputs=[SomeFactor(), SomeDataSet.foo])
 
+    def test_window_safety_one_window_length(self):
+        """
+        Test that window safety problems are only raised if
+        the parent factor has window length greater than 1
+        """
+        with self.assertRaises(NonWindowSafeInput):
+            SomeFactor(inputs=[SomeOtherFactor()])
+
+        SomeFactor(inputs=[SomeOtherFactor()], window_length=1)
+
 
 class ObjectIdentityTestCase(TestCase):
 

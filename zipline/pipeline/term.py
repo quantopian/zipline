@@ -558,7 +558,7 @@ class ComputableTerm(Term):
             # This isn't user error, this is a bug in our code.
             raise AssertionError("{term} has no mask".format(term=self))
 
-        if self.window_length:
+        if self.window_length > 1:
             for child in self.inputs:
                 if not child.window_safe:
                     raise NonWindowSafeInput(parent=self, child=child)
