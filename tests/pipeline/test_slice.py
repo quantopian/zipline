@@ -170,7 +170,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         returns_slice = returns[my_asset]
 
         class UsesSlicedInput(CustomFactor):
-            window_length = 1
+            window_length = 2
             inputs = [returns_slice]
 
             def compute(self, today, assets, out, returns_slice):
@@ -196,7 +196,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         sma_slice = sma[my_asset]
 
         class UsesSlicedInput(CustomFactor):
-            window_length = 1
+            window_length = 2
             inputs = [sma_slice]
 
             def compute(self, today, assets, out, sma_slice):
@@ -211,7 +211,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
         # Make sure that slices of custom factors are not window safe.
         class MyUnsafeFactor(CustomFactor):
-            window_length = 1
+            window_length = 2
             inputs = [col]
 
             def compute(self, today, assets, out, col):
@@ -221,7 +221,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         my_unsafe_factor_slice = my_unsafe_factor[my_asset]
 
         class UsesSlicedInput(CustomFactor):
-            window_length = 1
+            window_length = 2
             inputs = [my_unsafe_factor_slice]
 
             def compute(self, today, assets, out, my_unsafe_factor_slice):
@@ -236,7 +236,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
         # Create a window safe factor.
         class MySafeFactor(CustomFactor):
-            window_length = 1
+            window_length = 2
             inputs = [col]
             window_safe = True
 
