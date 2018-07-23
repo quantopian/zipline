@@ -21,7 +21,7 @@ from pandas import Timedelta
 from six import iteritems
 
 from zipline.assets import Equity, Future
-from zipline.data.historic_data_portal import HISTORY_FREQUENCIES, OHLCV_FIELDS
+from zipline.data.data_portal import HISTORY_FREQUENCIES, OHLCV_FIELDS
 from zipline.data.minute_bars import (
     FUTURES_MINUTES_PER_DAY,
     US_EQUITIES_MINUTES_PER_DAY,

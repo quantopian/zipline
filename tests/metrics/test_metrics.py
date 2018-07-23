@@ -4,7 +4,7 @@ import pandas as pd
 from zipline import api
 from zipline.assets import Equity, Future
 from zipline.assets.synthetic import make_commodity_future_info
-from zipline.data.historic_data_portal import HistoricDataPortal
+from zipline.data import HistoricDataPortal
 from zipline.data.resample import MinuteResampleSessionBarReader
 from zipline.testing import (
     parameter_space,

@@ -26,7 +26,7 @@ import pandas as pd
 import pytz
 
 from zipline.assets import Equity, Future
-from zipline.data.historic_data_portal import HistoricDataPortal
+from zipline.data import HistoricDataPortal
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.finance.order import Order
 from zipline.finance.slippage import (

@@ -142,7 +142,7 @@ cdef class BarData:
 
     Parameters
     ----------
-    data_portal : HistoricDataPortal
+    data_portal : DataPortal
         Provider for bar pricing data.
     simulation_dt_func : callable
         Function which returns the current simulation time.
@@ -192,7 +192,7 @@ cdef class BarData:
     cdef _get_equity_price_view(self, asset):
         """
         Returns a DataPortalSidView for the given asset.  Used to support the
-        data[sid(N)] public API.  Not needed if HistoricDataPortal is used standalone.
+        data[sid(N)] public API.  Not needed if DataPortal is used standalone.
 
         Parameters
         ----------
@@ -840,7 +840,7 @@ cdef class SidView:
         asset : Asset
             The asset for which the instance retrieves data.
 
-        data_portal : HistoricDataPortal
+        data_portal : DataPortal
             Provider for bar pricing data.
 
         simulation_dt_func: function

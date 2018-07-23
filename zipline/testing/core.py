@@ -30,7 +30,7 @@ from trading_calendars import get_calendar
 from zipline.assets import AssetFinder, AssetDBWriter
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.utils.compat import wraps
-from zipline.data.historic_data_portal import HistoricDataPortal
+from zipline.data import HistoricDataPortal
 from zipline.data.loader import get_benchmark_filename, INDEX_MAPPING
 from zipline.data.minute_bars import (
     BcolzMinuteBarReader,

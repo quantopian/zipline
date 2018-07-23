@@ -33,7 +33,7 @@ from .core import (
     tmp_dir,
 )
 from .debug import debug_mro_failure
-from ..data.historic_data_portal import (
+from ..data.data_portal import (
     HistoricDataPortal,
     DEFAULT_MINUTE_HISTORY_PREFETCH,
     DEFAULT_DAILY_HISTORY_PREFETCH,

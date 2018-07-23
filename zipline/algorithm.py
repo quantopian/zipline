@@ -624,7 +624,7 @@ class TradingAlgorithm(object):
         elif self.data_portal is None:
             raise RuntimeError(
                 "No data portal in TradingAlgorithm.run().\n"
-                "Either pass a HistoricDataPortal to TradingAlgorithm() "
+                "Either pass a DataPortal to TradingAlgorithm() "
                 "or to run()."
             )
         else:

@@ -207,7 +207,7 @@ def ipython_only(option):
     show_default=True,
 )
 @click.option(
-    '--dataportal',
+    '--data-portal',
     default='default',
     help='The dataportal to use',
     show_default=True,
@@ -235,7 +235,7 @@ def run(ctx,
         metrics_set,
         local_namespace,
         blotter,
-        dataportal):
+        data_portal):
     """Run a backtest for the given algorithm.
     """
     # check that the start and end dates are passed correctly
@@ -280,7 +280,7 @@ def run(ctx,
         local_namespace=local_namespace,
         environ=os.environ,
         blotter=blotter,
-        dataportal=dataportal,
+        data_portal=data_portal,
         benchmark_returns=None,
     )
 

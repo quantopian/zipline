@@ -213,7 +213,7 @@ class TestAPIShim(WithCreateBarData,
             "volume",
             "price",
         ]
-        spot_value_meth = 'zipline.data.historic_data_portal.' \
+        spot_value_meth = 'zipline.data.data_portal.' \
                           'HistoricDataPortal.get_spot_value'
 
         def assert_get_spot_value_called(fun, field):
@@ -242,7 +242,7 @@ class TestAPIShim(WithCreateBarData,
                 field,
             )
 
-        history_meth = 'zipline.data.historic_data_portal.' \
+        history_meth = 'zipline.data.data_portal.' \
                        'HistoricDataPortal.get_history_window'
 
         def assert_get_history_window_called(fun, is_legacy):

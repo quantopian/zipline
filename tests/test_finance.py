@@ -33,7 +33,7 @@ from zipline.finance.metrics import MetricsTracker, load as load_metrics_set
 from zipline.finance.trading import SimulationParameters
 from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.data.minute_bars import BcolzMinuteBarReader
-from zipline.data.historic_data_portal import HistoricDataPortal
+from zipline.data import HistoricDataPortal
 from zipline.data.us_equity_pricing import BcolzDailyBarWriter
 from zipline.finance.slippage import FixedSlippage, FixedBasisPointsSlippage
 from zipline.finance.asset_restrictions import NoRestrictions
