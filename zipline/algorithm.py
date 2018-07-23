@@ -2295,7 +2295,7 @@ class TradingAlgorithm(object):
             data = self._pipeline_cache.get(name, today)
         except KeyError:
             # Calculate the next block.
-            data, valid_until = self._run_pipeline(
+            data, valid_until = self.run_pipeline(
                 pipeline, today, next(chunks),
             )
             self._pipeline_cache.set(name, data, valid_until)
@@ -2308,7 +2308,7 @@ class TradingAlgorithm(object):
             # day.
             return pd.DataFrame(index=[], columns=data.columns)
 
-    def _run_pipeline(self, pipeline, start_session, chunksize):
+    def run_pipeline(self, pipeline, start_session, chunksize):
         """
         Compute `pipeline`, providing values for at least `start_date`.
 
