@@ -252,10 +252,14 @@ def _split_symbol_mappings(df, exchanges):
             zip(persymbol.start_date, persymbol.end_date),
         )))
         if intersections:
-            ambigious[persymbol.name] = (
-                intersections,
-                persymbol[['start_date', 'end_date']].astype('datetime64[ns]'),
-            )
+            data = persymbol[
+                ['start_date', 'end_date']
+            ].astype('datetime64[ns]')
+            # indent the dataframe string, also compute this early because
+            # ``persymbol`` is a view and ``astype`` doesn't copy the index
+            # correctly in pandas 0.22
+            msg_component = '\n  '.join(str(data).splitlines())
+            ambigious[persymbol.name] = intersections, msg_component
 
     mappings.groupby(['symbol', 'country_code']).apply(check_intersections)
 
@@ -270,10 +274,9 @@ def _split_symbol_mappings(df, exchanges):
                         symbol,
                         country_code,
                         tuple(map(_format_range, intersections)),
-                        # indent the dataframe string
-                        '\n  '.join(str(df).splitlines()),
+                        cs,
                     )
-                    for (symbol, country_code), (intersections, df) in sorted(
+                    for (symbol, country_code), (intersections, cs) in sorted(
                         ambigious.items(),
                         key=first,
                     ),
