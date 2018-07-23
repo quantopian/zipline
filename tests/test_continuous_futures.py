@@ -51,7 +51,6 @@ class ContinuousFuturesTestCase(zf.WithCreateBarData,
     SIM_PARAMS_START = pd.Timestamp('2016-01-26', tz='UTC')
     SIM_PARAMS_END = pd.Timestamp('2016-01-28', tz='UTC')
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
-    TRADING_CALENDAR_STRS = ('us_futures',)
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
     ASSET_FINDER_FUTURE_CHAIN_PREDICATES = {
@@ -1275,8 +1274,6 @@ class RollFinderTestCase(zf.WithBcolzFutureDailyBarReader,
 
     START_DATE = pd.Timestamp('2017-01-03', tz='UTC')
     END_DATE = pd.Timestamp('2017-05-23', tz='UTC')
-
-    TRADING_CALENDAR_STRS = ('us_futures',)
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
     @classmethod

@@ -41,8 +41,6 @@ class AssetDispatchSessionBarTestCase(WithBcolzEquityDailyBarReader,
                                       WithBcolzFutureMinuteBarReader,
                                       WithTradingSessions,
                                       ZiplineTestCase):
-
-    TRADING_CALENDAR_STRS = ('us_futures', 'NYSE')
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 3
@@ -170,8 +168,6 @@ class AssetDispatchSessionBarTestCase(WithBcolzEquityDailyBarReader,
 class AssetDispatchMinuteBarTestCase(WithBcolzEquityMinuteBarReader,
                                      WithBcolzFutureMinuteBarReader,
                                      ZiplineTestCase):
-
-    TRADING_CALENDAR_STRS = ('us_futures', 'NYSE')
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 3

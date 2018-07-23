@@ -2033,6 +2033,10 @@ class TestCapitalChanges(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         yield cls.DAILY_SID, frame
 
+    def init_instance_fixtures(self):
+        super(TestCapitalChanges, self).init_instance_fixtures()
+        self.nyse_calendar = self.trading_calendars['NYSE']
+
     @parameterized.expand([
         ('target', 151000.0), ('delta', 50000.0)
     ])
@@ -3280,7 +3284,6 @@ class TestFuturesAlgo(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
 
-    TRADING_CALENDAR_STRS = ('us_futures',)
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
     BENCHMARK_SID = None
 

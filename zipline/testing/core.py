@@ -466,7 +466,7 @@ def create_daily_bar_data(sessions, sids):
                 "low": (np.array(range(8, 8 + length)) + sid_idx),
                 "close": (np.array(range(10, 10 + length)) + sid_idx),
                 "volume": np.array(range(100, 100 + length)) + sid_idx,
-                "day": [session.value for session in sessions]
+                "day": sessions.values,
             },
             index=sessions,
         )

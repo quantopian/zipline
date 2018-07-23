@@ -2166,10 +2166,8 @@ class NoPrefetchDailyEquityHistoryTestCase(DailyEquityHistoryTestCase):
 
 
 class MinuteEquityHistoryFuturesCalendarTestCase(MinuteEquityHistoryTestCase):
-    TRADING_CALENDAR_STRS = ('NYSE', 'us_futures')
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
 
 class DailyEquityHistoryFuturesCalendarTestCase(DailyEquityHistoryTestCase):
-    TRADING_CALENDAR_STRS = ('NYSE', 'us_futures')
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'

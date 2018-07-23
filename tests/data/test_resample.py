@@ -271,8 +271,6 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
         '2016-03-31', tz='UTC',
     )
 
-    TRADING_CALENDAR_STRS = ('NYSE', 'us_futures')
-
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 3, 4, 5
     ASSET_FINDER_FUTURE_SIDS = 1001, 1002, 1003, 1004
 
@@ -311,6 +309,7 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
 
     def init_instance_fixtures(self):
         super(MinuteToDailyAggregationTestCase, self).init_instance_fixtures()
+        self.nyse_calendar = self.trading_calendars['NYSE']
         # Set up a fresh data portal for each test, since order of calling
         # needs to be tested.
         self.equity_daily_aggregator = DailyHistoryAggregator(
@@ -320,9 +319,9 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
         )
 
         self.future_daily_aggregator = DailyHistoryAggregator(
-            self.us_futures_calendar.schedule.market_open,
+            self.trading_calendars['us_futures'].schedule.market_open,
             self.bcolz_future_minute_bar_reader,
-            self.us_futures_calendar
+            self.trading_calendars['us_futures'],
         )
 
     @parameter_space(
@@ -566,8 +565,6 @@ class TestMinuteToSession(WithEquityMinuteBarData,
 
 class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
                               ZiplineTestCase):
-
-    TRADING_CALENDAR_STRS = ('us_futures',)
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
     ASSET_FINDER_FUTURE_SIDS = 1001, 1002, 1003, 1004
@@ -668,8 +665,6 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
 
 class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader,
                             ZiplineTestCase):
-
-    TRADING_CALENDAR_STRS = ('us_futures', 'NYSE')
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 3
@@ -737,8 +732,6 @@ class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader,
 
 class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
                              ZiplineTestCase):
-
-    TRADING_CALENDAR_STRS = ('us_futures', 'NYSE')
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 3

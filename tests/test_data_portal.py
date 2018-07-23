@@ -45,8 +45,6 @@ class DataPortalTestBase(WithDataPortal,
     START_DATE = pd.Timestamp('2016-08-01')
     END_DATE = pd.Timestamp('2016-08-08')
 
-    TRADING_CALENDAR_STRS = ('NYSE', 'us_futures')
-
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = True
 
     # Since the future with sid 10001 has a tick size of 0.0001, its prices
@@ -480,8 +478,9 @@ class DataPortalTestBase(WithDataPortal,
         )
 
     def test_get_last_traded_dt_minute(self):
-        minutes = self.nyse_calendar.minutes_for_session(
-            self.trading_days[2])
+        minutes = self.trading_calendars['NYSE'].minutes_for_session(
+            self.trading_days[2],
+        )
         equity = self.asset_finder.retrieve_asset(1)
         result = self.data_portal.get_last_traded_dt(equity,
                                                      minutes[3],
@@ -526,7 +525,8 @@ class DataPortalTestBase(WithDataPortal,
         cf = self.data_portal.asset_finder.create_continuous_future(
             'BUZ', 0, 'calendar', None,
         )
-        minutes = self.nyse_calendar.minutes_for_session(self.trading_days[0])
+        cal = self.trading_calendars['NYSE']
+        minutes = cal.minutes_for_session(self.trading_days[0])
 
         if frequency == '1m':
             minute = minutes[0]
