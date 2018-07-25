@@ -519,6 +519,26 @@ class TermInputsNotSpecified(ZiplineError):
     msg = "{termname} requires inputs, but no inputs list was passed."
 
 
+class NonPipelineInputs(ZiplineError):
+    """
+    Raised when a non-pipeline object is passed as input to a ComputableTerm
+    """
+    def __init__(self, term, inputs):
+        self.term = term
+        self.inputs = inputs
+
+    def __str__(self):
+        return (
+            "Unexpected inputs types in {}. "
+            "Inputs to Pipeline expressions must be Filters, Factors, "
+            "Classifiers, or BoundColumns.\n"
+            "Got the following type(s) instead: {}".format(
+                type(self.term).__name__,
+                sorted(set(map(type, self.inputs)), key=lambda t: t.__name__),
+            )
+        )
+
+
 class TermOutputsEmpty(ZiplineError):
     """
     Raised if a user attempts to construct a term with an empty outputs list.
