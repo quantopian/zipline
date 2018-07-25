@@ -15,6 +15,7 @@ from zipline.errors import (
     NonWindowSafeInput,
     NotDType,
     TermInputsNotSpecified,
+    NonPipelineInputs,
     TermOutputsEmpty,
     UnsupportedDType,
     WindowLengthNotSpecified,
@@ -544,6 +545,9 @@ class ObjectIdentityTestCase(TestCase):
 
         with self.assertRaises(TermInputsNotSpecified):
             SomeFactorDefaultLength()
+
+        with self.assertRaises(NonPipelineInputs):
+            SomeFactor(window_length=1, inputs=[2])
 
         with self.assertRaises(WindowLengthNotSpecified):
             SomeFactor(inputs=(SomeDataSet.foo,))

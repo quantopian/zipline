@@ -22,6 +22,7 @@ from zipline.errors import (
     NonSliceableTerm,
     NonWindowSafeInput,
     NotDType,
+    NonPipelineInputs,
     TermInputsNotSpecified,
     TermOutputsEmpty,
     UnsupportedDType,
@@ -467,6 +468,13 @@ class ComputableTerm(Term):
             # Allow users to specify lists as class-level defaults, but
             # normalize to a tuple so that inputs is hashable.
             inputs = tuple(inputs)
+
+            # Make sure all our inputs are valid pipeline objects before trying
+            # to infer a domain.
+            for input_ in inputs:
+                non_terms = [t for t in inputs if not isinstance(t, Term)]
+                if non_terms:
+                    raise NonPipelineInputs(cls.__name__, non_terms)
 
         if outputs is NotSpecified:
             outputs = cls.outputs
