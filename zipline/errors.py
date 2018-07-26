@@ -529,7 +529,7 @@ class NonPipelineInputs(ZiplineError):
 
     def __str__(self):
         return (
-            "Unexpected inputs types in {}. "
+            "Unexpected input types in {}. "
             "Inputs to Pipeline expressions must be Filters, Factors, "
             "Classifiers, or BoundColumns.\n"
             "Got the following type(s) instead: {}".format(
