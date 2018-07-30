@@ -1,6 +1,6 @@
 """Tests for zipline.pipeline.data.DataSet and friends.
 """
-from zipline.pipeline.domain import USEquities
+from zipline.pipeline.domain import USEquities, CanadaEquities
 from zipline.pipeline.data.dataset import Column, DataSet
 import zipline.testing.fixtures as zf
 from zipline.testing.predicates import assert_equal
@@ -45,3 +45,24 @@ class DataSetTestCase(zf.ZiplineTestCase):
             assert_equal(original.name, new.name)
             assert_equal(original.dtype, new.dtype)
             assert_equal(original.missing_value, new.missing_value)
+
+    def test_repr(self):
+        class Data(DataSet):
+            col1 = Column(dtype=float)
+            col2 = Column(dtype=int, missing_value=100)
+            col3 = Column(dtype=object, missing_value="")
+
+        expected = "<DataSet: 'Data'>"
+        self.assertEqual(repr(Data), expected)
+
+        specialized = Data.specialize(USEquities)
+        expected_specialized = "<DataSet: 'Data_US', domain={}>".format(
+            str(USEquities),
+        )
+        self.assertEqual(repr(specialized), expected_specialized)
+
+        specialized_CA = Data.specialize(CanadaEquities)
+        expected_specialized_CA = "<DataSet: 'Data_CA', domain={}>".format(
+            str(CanadaEquities),
+        )
+        self.assertEqual(repr(specialized_CA), expected_specialized_CA)

@@ -338,7 +338,13 @@ class DataSetMeta(type):
         return id(self) < id(other)
 
     def __repr__(self):
-        return '<DataSet: %r, domain=%s>' % (self.__name__, self.domain)
+        if self.domain is NotSpecified:
+            return '<DataSet: {!r}>'.format(self.__name__)
+        else:
+            return '<DataSet: {!r}, domain={}>'.format(
+                self.__name__,
+                self.domain,
+            )
 
 
 class DataSet(with_metaclass(DataSetMeta, object)):

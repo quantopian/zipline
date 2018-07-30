@@ -70,9 +70,12 @@ class StandardDomain(Domain):
     def calendar(self):
         return get_calendar(self._calendar_name)
 
+    def __str__(self):
+        return self._name
+
     def __repr__(self):
-        return "{}(country={!r}, calendar={!r})".format(
-            self.name,
+        return "StandardDomain(name={!r}, country={!r}, calendar={!r})".format(
+            self._name,
             self.country_code,
             self._calendar_name,
         )
