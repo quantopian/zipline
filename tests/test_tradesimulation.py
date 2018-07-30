@@ -15,7 +15,7 @@
 
 import pandas as pd
 
-from zipline.gens.sim_engine import BEFORE_TRADING_START_BAR
+from zipline.gens.clock import BEFORE_TRADING_START_BAR
 
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.finance import metrics

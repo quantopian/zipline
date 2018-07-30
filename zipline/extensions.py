@@ -196,9 +196,9 @@ def load(interface, name):
 
 
 @curry
-def register(interface, name, custom_class):
+def register(interface, name, factory):
     """
-    Registers a class for retrieval by the load method
+    Registers a class factory for retrieval by the load method
 
     Parameters
     ----------
@@ -206,12 +206,12 @@ def register(interface, name, custom_class):
         The base class for which to perform this operation
     name : str
         The name of the subclass
-    custom_class : type
+    factory : type
         The class to register, which must be a subclass of the
-        abstract base class in self.dtype
+        abstract base class in self.interface
     """
 
-    return get_registry(interface).register(name, custom_class)
+    return get_registry(interface).register(name, factory)
 
 
 def unregister(interface, name):

@@ -106,7 +106,6 @@ ext_modules = [
         'zipline.finance._finance_ext',
         ['zipline/finance/_finance_ext.pyx'],
     ),
-    Extension('zipline.gens.sim_engine', ['zipline/gens/sim_engine.pyx']),
     Extension(
         'zipline.data._minute_bar_internal',
         ['zipline/data/_minute_bar_internal.pyx']

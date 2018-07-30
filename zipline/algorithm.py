@@ -128,7 +128,7 @@ from zipline.utils.security_list import SecurityList
 import zipline.protocol
 from zipline.sources.requests_csv import PandasRequestsCSV
 
-from zipline.gens.sim_engine import MinuteSimulationClock
+from zipline.gens.clock import MinuteSimulationClock
 from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 

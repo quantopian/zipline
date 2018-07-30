@@ -37,7 +37,7 @@ from zipline.data._minute_bar_internal import (
     find_last_traded_position_internal
 )
 
-from zipline.gens.sim_engine import NANOS_IN_MINUTE
+from zipline.gens.clock import NANOS_IN_MINUTE
 from zipline.data.bar_reader import BarReader, NoDataForSid, NoDataOnDate
 from zipline.data.us_equity_pricing import check_uint32_safe
 from zipline.utils.cli import maybe_show_progress

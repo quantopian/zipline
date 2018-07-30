@@ -13,27 +13,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cimport numpy as np
+from enum import Enum
 import numpy as np
 import pandas as pd
-cimport cython
-from cpython cimport bool
+import itertools
+from interface import Interface, implements
 
-cdef np.int64_t _nanos_in_minute = 60000000000
+from zipline.extensions import extensible, register
+
+
+@extensible
+class Clock(Interface):
+
+    def __iter__(self):
+        raise NotImplementedError('__iter__ must be implemented')
+
+
+_nanos_in_minute = np.int64(60000000000)
 NANOS_IN_MINUTE = _nanos_in_minute
 
-cpdef enum:
+
+class SessionEvt(Enum):
     BAR = 0
     SESSION_START = 1
     SESSION_END = 2
     MINUTE_END = 3
     BEFORE_TRADING_START_BAR = 4
 
-cdef class MinuteSimulationClock:
-    cdef bool minute_emission
-    cdef np.int64_t[:] market_opens_nanos, market_closes_nanos, bts_nanos, \
-        sessions_nanos
-    cdef dict minutes_by_session
+
+BAR = SessionEvt.BAR
+SESSION_START = SessionEvt.SESSION_START
+SESSION_END = SessionEvt.SESSION_END
+MINUTE_END = SessionEvt.MINUTE_END
+BEFORE_TRADING_START_BAR = SessionEvt.BEFORE_TRADING_START_BAR
+
+
+class MinuteSimulationClock(implements(Clock)):
 
     def __init__(self,
                  sessions,
@@ -50,14 +65,7 @@ cdef class MinuteSimulationClock:
 
         self.minutes_by_session = self.calc_minutes_by_session()
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef dict calc_minutes_by_session(self):
-        cdef dict minutes_by_session
-        cdef int session_idx
-        cdef np.int64_t session_nano
-        cdef np.ndarray[np.int64_t, ndim=1] minutes_nanos
-
+    def calc_minutes_by_session(self):
         minutes_by_session = {}
         for session_idx, session_nano in enumerate(self.sessions_nanos):
             minutes_nanos = np.arange(
@@ -111,7 +119,11 @@ cdef class MinuteSimulationClock:
             yield regular_minutes[-1], SESSION_END
 
     def _get_minutes_for_list(self, minutes, minute_emission):
-        for minute in minutes:
-            yield minute, BAR
-            if minute_emission:
-                yield minute, MINUTE_END
+        events_to_include = [BAR, MINUTE_END] if minute_emission else [BAR]
+        for status in itertools.product(minutes, events_to_include):
+            yield status
+
+
+@register(Clock, 'default')
+def func():
+    return MinuteSimulationClock

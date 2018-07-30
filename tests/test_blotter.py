@@ -32,7 +32,7 @@ from zipline.finance.slippage import (
     FixedSlippage,
     VolumeShareSlippage,
 )
-from zipline.gens.sim_engine import BAR, SESSION_END
+from zipline.gens.clock import BAR, SESSION_END
 from zipline.testing.fixtures import (
     WithCreateBarData,
     WithDataPortal,

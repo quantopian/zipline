@@ -17,7 +17,7 @@ import abc
 from abc import abstractmethod
 from six import with_metaclass
 
-from zipline.gens.sim_engine import SESSION_END
+from zipline.gens.clock import SESSION_END
 
 
 class CancelPolicy(with_metaclass(abc.ABCMeta)):
@@ -32,10 +32,10 @@ class CancelPolicy(with_metaclass(abc.ABCMeta)):
         ----------
         event : enum-value
             An event type, one of:
-              - :data:`zipline.gens.sim_engine.BAR`
-              - :data:`zipline.gens.sim_engine.DAY_START`
-              - :data:`zipline.gens.sim_engine.DAY_END`
-              - :data:`zipline.gens.sim_engine.MINUTE_END`
+              - :data:`zipline.gens.clock.BAR`
+              - :data:`zipline.gens.clock.DAY_START`
+              - :data:`zipline.gens.clock.DAY_END`
+              - :data:`zipline.gens.clock.MINUTE_END`
 
         Returns
         -------

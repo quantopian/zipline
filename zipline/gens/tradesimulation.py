@@ -20,7 +20,7 @@ from zipline.protocol import BarData
 from zipline.utils.api_support import ZiplineAPI
 from six import viewkeys
 
-from zipline.gens.sim_engine import (
+from zipline.gens.clock import (
     BAR,
     SESSION_START,
     SESSION_END,

@@ -4,7 +4,7 @@ import pandas as pd
 from trading_calendars import get_calendar
 from trading_calendars.utils.pandas_utils import days_at_time
 
-from zipline.gens.sim_engine import (
+from zipline.gens.clock import (
     MinuteSimulationClock,
     SESSION_START,
     BEFORE_TRADING_START_BAR,
