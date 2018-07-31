@@ -25,6 +25,7 @@ statsmodels==0.6.1
 
 python-dateutil==2.4.2
 six==1.10.0
+python-interface==1.4.0
 
 # For fetching remote data
 requests==2.9.1
