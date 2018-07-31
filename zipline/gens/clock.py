@@ -63,65 +63,48 @@ class MinuteSimulationClock(implements(Clock)):
         self.sessions_nanos = sessions.values.astype(np.int64)
         self.bts_nanos = before_trading_start_minutes.values.astype(np.int64)
 
-        self.minutes_by_session = self.calc_minutes_by_session()
-
-    def calc_minutes_by_session(self):
-        minutes_by_session = {}
-        for session_idx, session_nano in enumerate(self.sessions_nanos):
-            minutes_nanos = np.arange(
-                self.market_opens_nanos[session_idx],
-                self.market_closes_nanos[session_idx] + _nanos_in_minute,
-                _nanos_in_minute
-            )
-            minutes_by_session[session_nano] = pd.to_datetime(
-                minutes_nanos, utc=True, box=True
-            )
-        return minutes_by_session
+    #     self.minutes_by_session = self.calc_minutes_by_session()
+    #
+    # def calc_minutes_by_session(self):
+    #     minutes_by_session = {}
+    #     for session_idx, session_nano in enumerate(self.sessions_nanos):
+    #         minutes_nanos = np.arange(
+    #             self.market_opens_nanos[session_idx],
+    #             self.market_closes_nanos[session_idx] + _nanos_in_minute,
+    #             _nanos_in_minute
+    #         )
+    #         minutes_by_session[session_nano] = pd.to_datetime(
+    #             minutes_nanos, utc=True, box=True
+    #         )
+    #     return minutes_by_session
 
     def __iter__(self):
-        minute_emission = self.minute_emission
+        for session_nano, market_open, market_close, bts_minute in zip(
+            self.sessions_nanos,
+            self.market_opens_nanos,
+            self.market_closes_nanos,
+            self.bts_nanos
+        ):
 
-        for idx, session_nano in enumerate(self.sessions_nanos):
+            counter = pd.Timestamp(market_open, tz='UTC')
+            market_close = pd.Timestamp(market_close, tz='UTC')
+            bts_minute = pd.Timestamp(bts_minute, tz='UTC')
+
             yield pd.Timestamp(session_nano, tz='UTC'), SESSION_START
 
-            bts_minute = pd.Timestamp(self.bts_nanos[idx], tz='UTC')
-            regular_minutes = self.minutes_by_session[session_nano]
-
-            if bts_minute > regular_minutes[-1]:
-                # before_trading_start is after the last close,
-                # so don't emit it
-                for minute, evt in self._get_minutes_for_list(
-                    regular_minutes,
-                    minute_emission
-                ):
-                    yield minute, evt
-            else:
-                # we have to search anew every session, because there is no
-                # guarantee that any two session start on the same minute
-                bts_idx = regular_minutes.searchsorted(bts_minute)
-
-                # emit all the minutes before bts_minute
-                for minute, evt in self._get_minutes_for_list(
-                    regular_minutes[0:bts_idx],
-                    minute_emission
-                ):
-                    yield minute, evt
-
+            if bts_minute < counter:
                 yield bts_minute, BEFORE_TRADING_START_BAR
 
-                # emit all the minutes after bts_minute
-                for minute, evt in self._get_minutes_for_list(
-                    regular_minutes[bts_idx:],
-                    minute_emission
-                ):
-                    yield minute, evt
+            while counter <= market_close:
+                if counter == bts_minute:
+                    yield counter, BEFORE_TRADING_START_BAR
+                yield counter, BAR
+                if self.minute_emission:
+                    yield counter, MINUTE_END
 
-            yield regular_minutes[-1], SESSION_END
+                counter += pd.Timedelta(_nanos_in_minute)
 
-    def _get_minutes_for_list(self, minutes, minute_emission):
-        events_to_include = [BAR, MINUTE_END] if minute_emission else [BAR]
-        for status in itertools.product(minutes, events_to_include):
-            yield status
+            yield market_close, SESSION_END
 
 
 @register(Clock, 'default')
