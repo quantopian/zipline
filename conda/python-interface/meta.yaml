@@ -29,7 +29,6 @@ requirements:
 test:
   imports:
     - interface
-    - interface.tests
 
 about:
   home: https://github.com/ssanderson/interface
