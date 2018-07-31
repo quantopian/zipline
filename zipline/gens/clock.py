@@ -16,7 +16,6 @@
 from enum import Enum
 import numpy as np
 import pandas as pd
-import itertools
 from interface import Interface, implements
 
 from zipline.extensions import extensible, register
