@@ -22,13 +22,18 @@ requirements:
     - python
     - setuptools
     - six
+    - typing >=3.5.2
+    - funcsigs >=1.0.2
   run:
     - python
     - six
+    - typing >=3.5.2
+    - funcsigs >=1.0.2
 
 test:
   imports:
     - interface
+    - interface.tests
 
 about:
   home: https://github.com/ssanderson/interface
