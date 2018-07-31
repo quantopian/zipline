@@ -63,21 +63,6 @@ class MinuteSimulationClock(implements(Clock)):
         self.sessions_nanos = sessions.values.astype(np.int64)
         self.bts_nanos = before_trading_start_minutes.values.astype(np.int64)
 
-    #     self.minutes_by_session = self.calc_minutes_by_session()
-    #
-    # def calc_minutes_by_session(self):
-    #     minutes_by_session = {}
-    #     for session_idx, session_nano in enumerate(self.sessions_nanos):
-    #         minutes_nanos = np.arange(
-    #             self.market_opens_nanos[session_idx],
-    #             self.market_closes_nanos[session_idx] + _nanos_in_minute,
-    #             _nanos_in_minute
-    #         )
-    #         minutes_by_session[session_nano] = pd.to_datetime(
-    #             minutes_nanos, utc=True, box=True
-    #         )
-    #     return minutes_by_session
-
     def __iter__(self):
         for session_nano, market_open, market_close, bts_minute in zip(
             self.sessions_nanos,
