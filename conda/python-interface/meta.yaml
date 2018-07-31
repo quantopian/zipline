@@ -1,0 +1,42 @@
+{% set name = "python-interface" %}
+{% set version = "1.4.0" %}
+
+package:
+  name: "{{ name|lower }}"
+  version: "{{ version }}"
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: 9516c60d014549238b6c983c598ffba89d93fc8556bdb5dc761915dd92b05b72
+
+build:
+  number: 0
+  script: "{{ PYTHON }} -m pip install . --no-deps --ignore-installed --no-cache-dir -vvv "
+
+requirements:
+  host:
+    - pip
+    - pip
+    - python
+    - six
+  run:
+    - python
+    - six
+
+test:
+  imports:
+    - interface
+    - interface.tests
+
+about:
+  home: https://github.com/ssanderson/interface
+  license: Apache Software
+  license_family: APACHE
+  license_file: 
+  summary: Pythonic Interface definitions
+  doc_url: 
+  dev_url: 
+
+extra:
+  recipe-maintainers:
+    - your-github-id-here
