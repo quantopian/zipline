@@ -32,11 +32,10 @@ about:
   home: https://github.com/ssanderson/interface
   license: Apache Software
   license_family: APACHE
-  license_file: 
+  license_file: ''
   summary: Pythonic Interface definitions
-  doc_url: 
-  dev_url: 
+  doc_url: ''
+  dev_url: ''
 
 extra:
-  recipe-maintainers:
-    - your-github-id-here
+  recipe-maintainers: ''
