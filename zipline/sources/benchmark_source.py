@@ -210,7 +210,7 @@ class BenchmarkSource(object):
 
         trading_days: pd.DateTimeIndex
 
-        data_portal: DataPortal
+        data_portal: HistoricDataPortal
 
         Notes
         -----

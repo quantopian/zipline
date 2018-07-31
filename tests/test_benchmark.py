@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 from pandas.util.testing import assert_series_equal
 
-from zipline.data.data_portal import DataPortal
+from zipline.data import HistoricDataPortal
 from zipline.errors import (
     BenchmarkAssetNotAvailableTooEarly,
     BenchmarkAssetNotAvailableTooLate,
@@ -174,7 +174,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
             create_minute_bar_data(minutes, [2]),
         )
         with tmp_reader as reader:
-            data_portal = DataPortal(
+            data_portal = HistoricDataPortal(
                 self.asset_finder, self.trading_calendar,
                 first_trading_day=reader.first_trading_day,
                 equity_minute_reader=reader,

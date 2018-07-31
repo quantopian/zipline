@@ -34,7 +34,7 @@ from .core import (
 )
 from .debug import debug_mro_failure
 from ..data.data_portal import (
-    DataPortal,
+    HistoricDataPortal,
     DEFAULT_MINUTE_HISTORY_PREFETCH,
     DEFAULT_DAILY_HISTORY_PREFETCH,
 )
@@ -1627,7 +1627,7 @@ class WithDataPortal(WithAdjustmentReader,
 
     Methods
     -------
-    make_data_portal() -> DataPortal
+    make_data_portal() -> HistoricDataPortal
         Method which returns the data portal to be used for each test case.
         If this is overridden, the ``DATA_PORTAL_USE_*`` attributes may not
         be respected.
@@ -1655,7 +1655,7 @@ class WithDataPortal(WithAdjustmentReader,
                     self.bcolz_equity_daily_bar_reader.
                     first_trading_day)
 
-        return DataPortal(
+        return HistoricDataPortal(
             self.asset_finder,
             self.trading_calendar,
             first_trading_day=self.DATA_PORTAL_FIRST_TRADING_DAY,

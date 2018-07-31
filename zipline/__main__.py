@@ -206,6 +206,12 @@ def ipython_only(option):
     help="The blotter to use.",
     show_default=True,
 )
+@click.option(
+    '--data-portal',
+    default='default',
+    help='The dataportal to use',
+    show_default=True,
+)
 @ipython_only(click.option(
     '--local-namespace/--no-local-namespace',
     is_flag=True,
@@ -228,7 +234,8 @@ def run(ctx,
         print_algo,
         metrics_set,
         local_namespace,
-        blotter):
+        blotter,
+        data_portal):
     """Run a backtest for the given algorithm.
     """
     # check that the start and end dates are passed correctly
@@ -273,6 +280,7 @@ def run(ctx,
         local_namespace=local_namespace,
         environ=os.environ,
         blotter=blotter,
+        data_portal=data_portal,
         benchmark_returns=None,
     )
 

@@ -1,21 +1,7 @@
-#
-# Copyright 2016 Quantopian, Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+from abc import ABCMeta, abstractmethod
+from six import with_metaclass
 from operator import mul
-
 from logbook import Logger
-
 import numpy as np
 from numpy import float64, int64, nan
 import pandas as pd
@@ -53,6 +39,7 @@ from zipline.data.history_loader import (
     MinuteHistoryLoader,
 )
 from zipline.data.us_equity_pricing import NoDataOnDate
+from zipline.extensions import register
 from zipline.utils.math_utils import (
     nansum,
     nanmean,
@@ -64,9 +51,131 @@ from zipline.utils.pandas_utils import (
     timedelta_to_integral_minutes,
 )
 from zipline.errors import HistoryWindowStartsBeforeData
+from zipline.extensions import extensible
 
 
-log = Logger('DataPortal')
+@extensible
+class DataPortal(with_metaclass(ABCMeta)):
+
+    @abstractmethod
+    def _reindex_extra_source(self, df, source_date_index):
+
+        raise NotImplementedError('_reindex_extra_source')
+
+    @abstractmethod
+    def get_last_traded_dt(self, asset, dt, data_frequency):
+        """
+        Given an asset and dt, returns the last traded dt from the viewpoint
+        of the given dt.
+
+        If there is a trade on the dt, the answer is dt provided.
+        """
+
+        raise NotImplementedError('get_last_traded_dt')
+
+    @abstractmethod
+    def get_scalar_asset_spot_value(self, asset, field, dt, data_frequency):
+        """
+        Public API method that returns a scalar value representing the value
+        of the desired asset's field at either the given dt.
+
+        Parameters
+        ----------
+        assets : Asset
+            The asset or assets whose data is desired. This cannot be
+            an arbitrary AssetConvertible.
+        field : {'open', 'high', 'low', 'close', 'volume',
+                 'price', 'last_traded'}
+            The desired field of the asset.
+        dt : pd.Timestamp
+            The timestamp for the desired value.
+        data_frequency : str
+            The frequency of the data to query; i.e. whether the data is
+            'daily' or 'minute' bars
+
+        Returns
+        -------
+        value : float, int, or pd.Timestamp
+            The spot value of ``field`` for ``asset`` The return type is based
+            on the ``field`` requested. If the field is one of 'open', 'high',
+            'low', 'close', or 'price', the value will be a float. If the
+            ``field`` is 'volume' the value will be a int. If the ``field`` is
+            'last_traded' the value will be a Timestamp.
+        """
+
+        raise NotImplementedError('get_scalar_asset_spot_value')
+
+    @abstractmethod
+    def get_spot_value(self, assets, field, dt, data_frequency):
+        """
+        Public API method that returns a scalar value representing the value
+        of the desired asset's field at either the given dt.
+
+        Parameters
+        ----------
+        assets : Asset, ContinuousFuture, or iterable of same.
+            The asset or assets whose data is desired.
+        field : {'open', 'high', 'low', 'close', 'volume',
+                 'price', 'last_traded'}
+            The desired field of the asset.
+        dt : pd.Timestamp
+            The timestamp for the desired value.
+        data_frequency : str
+            The frequency of the data to query; i.e. whether the data is
+            'daily' or 'minute' bars
+
+        Returns
+        -------
+        value : float, int, or pd.Timestamp
+            The spot value of ``field`` for ``asset`` The return type is based
+            on the ``field`` requested. If the field is one of 'open', 'high',
+            'low', 'close', or 'price', the value will be a float. If the
+            ``field`` is 'volume' the value will be a int. If the ``field`` is
+            'last_traded' the value will be a Timestamp.
+        """
+
+        raise NotImplementedError('get_spot_value')
+
+    @abstractmethod
+    def _get_minute_window_data(self, assets, field, minutes_for_window):
+        """
+        Internal method that gets a window of adjusted minute data for an asset
+        and specified date range.  Used to support the history API method for
+        minute bars.
+
+        Missing bars are filled with NaN.
+
+        Parameters
+        ----------
+        assets : iterable[Asset]
+            The assets whose data is desired.
+
+        field: string
+            The specific field to return.  "open", "high", "close_price", etc.
+
+        minutes_for_window: pd.DateTimeIndex
+            The list of minutes representing the desired window.  Each minute
+            is a pd.Timestamp.
+
+        Returns
+        -------
+        A numpy array with requested values.
+        """
+
+        raise NotImplementedError('_get_minute_window_data')
+
+    @abstractmethod
+    def _get_history_daily_window_data(self,
+                                       assets,
+                                       days_for_window,
+                                       end_dt,
+                                       field_to_use,
+                                       data_frequency):
+
+        raise NotImplementedError('_get_history_daily_window_data')
+
+
+log = Logger('HistoricDataPortal')
 
 BASE_FIELDS = frozenset([
     "open",
@@ -97,7 +206,7 @@ _DEF_M_HIST_PREFETCH = DEFAULT_MINUTE_HISTORY_PREFETCH
 _DEF_D_HIST_PREFETCH = DEFAULT_DAILY_HISTORY_PREFETCH
 
 
-class DataPortal(object):
+class HistoricDataPortal(DataPortal):
     """Interface to all of the data that a zipline simulation needs.
 
     This is used by the simulation runner to answer questions about the data,
@@ -1423,3 +1532,8 @@ class DataPortal(object):
     @property
     def adjustment_reader(self):
         return self._adjustment_reader
+
+
+@register(DataPortal, 'default')
+def historic_data_portal():
+    return HistoricDataPortal

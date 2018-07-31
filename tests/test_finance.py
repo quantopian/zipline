@@ -33,7 +33,7 @@ from zipline.finance.metrics import MetricsTracker, load as load_metrics_set
 from zipline.finance.trading import SimulationParameters
 from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.data.minute_bars import BcolzMinuteBarReader
-from zipline.data.data_portal import DataPortal
+from zipline.data import HistoricDataPortal
 from zipline.data.us_equity_pricing import BcolzDailyBarWriter
 from zipline.finance.slippage import FixedSlippage, FixedBasisPointsSlippage
 from zipline.finance.asset_restrictions import NoRestrictions
@@ -222,7 +222,7 @@ class FinanceTestCase(zf.WithAssetFinder,
 
                 equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
 
-                data_portal = DataPortal(
+                data_portal = HistoricDataPortal(
                     self.asset_finder, self.trading_calendar,
                     first_trading_day=equity_minute_reader.first_trading_day,
                     equity_minute_reader=equity_minute_reader,
@@ -253,7 +253,7 @@ class FinanceTestCase(zf.WithAssetFinder,
 
                 equity_daily_reader = BcolzDailyBarReader(path)
 
-                data_portal = DataPortal(
+                data_portal = HistoricDataPortal(
                     self.asset_finder, self.trading_calendar,
                     first_trading_day=equity_daily_reader.first_trading_day,
                     equity_daily_reader=equity_daily_reader,

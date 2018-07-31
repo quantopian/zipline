@@ -14,9 +14,9 @@ import six
 from toolz import concatv
 from trading_calendars import get_calendar
 
-from zipline.data import bundles
+from zipline.data import bundles, DataPortal
 from zipline.data.loader import load_market_data
-from zipline.data.data_portal import DataPortal
+from zipline.data import HistoricDataPortal
 from zipline.finance import metrics
 from zipline.finance.trading import SimulationParameters
 from zipline.pipeline.data import USEquityPricing
@@ -73,6 +73,7 @@ def _run(handle_data,
          local_namespace,
          environ,
          blotter,
+         data_portal,
          benchmark_returns):
     """Run a backtest for the given algorithm.
 
@@ -146,15 +147,6 @@ def _run(handle_data,
     first_trading_day = \
         bundle_data.equity_minute_bar_reader.first_trading_day
 
-    data = DataPortal(
-        bundle_data.asset_finder,
-        trading_calendar=trading_calendar,
-        first_trading_day=first_trading_day,
-        equity_minute_reader=bundle_data.equity_minute_bar_reader,
-        equity_daily_reader=bundle_data.equity_daily_bar_reader,
-        adjustment_reader=bundle_data.adjustment_reader,
-    )
-
     pipeline_loader = USEquityPricingLoader(
         bundle_data.equity_daily_bar_reader,
         bundle_data.adjustment_reader,
@@ -178,6 +170,24 @@ def _run(handle_data,
             blotter = load(Blotter, blotter)
         except ValueError as e:
             raise _RunAlgoError(str(e))
+
+    if isinstance(data_portal, six.string_types):
+        if data_portal == 'default':
+            data = HistoricDataPortal(
+                bundle_data.asset_finder,
+                trading_calendar=trading_calendar,
+                first_trading_day=first_trading_day,
+                equity_minute_reader=bundle_data.equity_minute_bar_reader,
+                equity_daily_reader=bundle_data.equity_daily_bar_reader,
+                adjustment_reader=bundle_data.adjustment_reader,
+            )
+        else:
+            try:
+                data = load(DataPortal, data_portal)
+            except ValueError as e:
+                raise _RunAlgoError(str(e))
+    else:
+        data = data_portal
 
     perf = TradingAlgorithm(
         namespace=namespace,
@@ -285,7 +295,8 @@ def run_algorithm(start,
                   extensions=(),
                   strict_extensions=True,
                   environ=os.environ,
-                  blotter='default'):
+                  blotter='default',
+                  dataportal='default'):
     """
     Run a trading algorithm.
 
@@ -377,5 +388,6 @@ def run_algorithm(start,
         local_namespace=False,
         environ=environ,
         blotter=blotter,
+        data_portal=dataportal,
         benchmark_returns=benchmark_returns,
     )
