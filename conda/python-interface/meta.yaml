@@ -23,12 +23,12 @@ requirements:
     - setuptools
     - six
     - typing >=3.5.2
-    - funcsigs >=1.0.2
+    - funcsigs >=1.0.2    [py<30]
   run:
     - python
     - six
     - typing >=3.5.2
-    - funcsigs >=1.0.2
+    - funcsigs >=1.0.2    [py<30]
 
 test:
   imports:
