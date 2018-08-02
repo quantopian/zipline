@@ -2,7 +2,6 @@ import click
 import os
 import sys
 import warnings
-
 try:
     from pygments import highlight
     from pygments.lexers import PythonLexer
@@ -18,6 +17,7 @@ from zipline.data import bundles
 from zipline.data.loader import load_market_data
 from zipline.data.data_portal import DataPortal
 from zipline.finance import metrics
+from zipline.pipeline import PipelineDispatcher
 from zipline.finance.trading import SimulationParameters
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders import USEquityPricingLoader
@@ -72,6 +72,7 @@ def _run(handle_data,
          metrics_set,
          local_namespace,
          environ,
+         pipeline_dispatcher,
          blotter,
          benchmark_returns):
     """Run a backtest for the given algorithm.
@@ -155,16 +156,14 @@ def _run(handle_data,
         adjustment_reader=bundle_data.adjustment_reader,
     )
 
-    pipeline_loader = USEquityPricingLoader(
-        bundle_data.equity_daily_bar_reader,
-        bundle_data.adjustment_reader,
-    )
-
-    def choose_loader(column):
-        if column in USEquityPricing.columns:
-            return pipeline_loader
-        raise ValueError(
-            "No PipelineLoader registered for column %s." % column
+    if pipeline_dispatcher is None:
+        # create the default dispatcher
+        pipeline_loader = USEquityPricingLoader(
+            bundle_data.equity_daily_bar_reader,
+            bundle_data.adjustment_reader,
+        )
+        pipeline_dispatcher = PipelineDispatcher(
+            {USEquityPricing: pipeline_loader}
         )
 
     if isinstance(metrics_set, six.string_types):
@@ -181,8 +180,8 @@ def _run(handle_data,
 
     perf = TradingAlgorithm(
         namespace=namespace,
+        get_pipeline_loader=pipeline_dispatcher,
         data_portal=data,
-        get_pipeline_loader=choose_loader,
         trading_calendar=trading_calendar,
         sim_params=SimulationParameters(
             start_session=start,
@@ -225,7 +224,7 @@ def load_extensions(default, extensions, strict, environ, reload=False):
     ----------
     default : bool
         Load the default exension (~/.zipline/extension.py)?
-    extension : iterable[str]
+    extensions : iterable[str]
         The paths to the extensions to load. If the path ends in ``.py`` it is
         treated as a script and executed. If it does not end in ``.py`` it is
         treated as a module to be imported.
@@ -285,6 +284,7 @@ def run_algorithm(start,
                   extensions=(),
                   strict_extensions=True,
                   environ=os.environ,
+                  pipeline_dispatcher=None,
                   blotter='default'):
     """
     Run a trading algorithm.
@@ -338,6 +338,9 @@ def run_algorithm(start,
     environ : mapping[str -> str], optional
         The os environment to use. Many extensions use this to get parameters.
         This defaults to ``os.environ``.
+    pipeline_dispatcher : PipelineDispatcher, optional
+        The pipeline dispatcher to use, which should contains any column-to-
+        loader associations necessary to run the trading algorithm
     blotter : str or zipline.finance.blotter.Blotter, optional
         Blotter to use with this algorithm. If passed as a string, we look for
         a blotter construction function registered with
@@ -376,6 +379,7 @@ def run_algorithm(start,
         metrics_set=metrics_set,
         local_namespace=False,
         environ=environ,
+        pipeline_dispatcher=pipeline_dispatcher,
         blotter=blotter,
         benchmark_returns=benchmark_returns,
     )

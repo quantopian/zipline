@@ -9,6 +9,7 @@ from .term import Term
 from .graph import ExecutionPlan, TermGraph
 from .pipeline import Pipeline
 from .loaders import USEquityPricingLoader
+from .dispatcher import PipelineDispatcher
 
 
 def engine_from_files(daily_bar_path,
@@ -60,4 +61,5 @@ __all__ = (
     'SimplePipelineEngine',
     'Term',
     'TermGraph',
+    'PipelineDispatcher',
 )
