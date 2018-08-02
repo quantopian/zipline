@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from enum import Enum
+from enum import IntEnum
 import numpy as np
 import pandas as pd
 from interface import Interface, implements
@@ -32,7 +32,7 @@ _nanos_in_minute = np.int64(60000000000)
 NANOS_IN_MINUTE = _nanos_in_minute
 
 
-class SessionEvt(Enum):
+class SessionEvt(IntEnum):
     BAR = 0
     SESSION_START = 1
     SESSION_END = 2
