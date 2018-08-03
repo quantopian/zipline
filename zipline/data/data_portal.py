@@ -65,8 +65,6 @@ from zipline.utils.pandas_utils import (
 )
 from zipline.errors import HistoryWindowStartsBeforeData
 
-from qexec.sources.live_data_portal import LiveMinuteBarReader
-
 log = Logger('DataPortal')
 
 BASE_FIELDS = frozenset([
@@ -152,14 +150,12 @@ class DataPortal(object):
                  last_available_minute=None,
                  _is_live=False,
                  _live_day=None,
-                 _db=None,
-                 _require_primary=False,
                  minute_history_prefetch_length=_DEF_M_HIST_PREFETCH,
                  daily_history_prefetch_length=_DEF_D_HIST_PREFETCH):
 
-        if _is_live and not all([_live_day, _db, _require_primary]):
-            raise ValueError("_live_day, _db, and _require_primary must be "
-                             "defined for a live data portal")
+        if _is_live and _live_day is None:
+            raise ValueError("_live_day must be defined for a "
+                             "live data portal")
         self._is_live = _is_live
         self._live_day = _live_day
         self._live_market_open = \
@@ -272,21 +268,9 @@ class DataPortal(object):
             'daily': _dispatch_session_reader,
         }
 
-        if _is_live:
-            agg_minute_reader = LiveMinuteBarReader(
-                self.trading_calendar,
-                self._live_day,
-                self._pricing_readers['minute'],
-                _db,
-                self._get_minute_window_data,
-                _require_primary,
-            )
-        else:
-            agg_minute_reader = _dispatch_minute_reader
-
         self._daily_aggregator = DailyHistoryAggregator(
             self.trading_calendar.schedule.market_open,
-            agg_minute_reader,
+            _dispatch_minute_reader,
             self.trading_calendar
         )
         self._history_loader = DailyHistoryLoader(
