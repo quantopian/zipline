@@ -153,15 +153,17 @@ class DataPortal(object):
                  minute_history_prefetch_length=_DEF_M_HIST_PREFETCH,
                  daily_history_prefetch_length=_DEF_D_HIST_PREFETCH):
 
+        self.trading_calendar = trading_calendar
+
         if _is_live and _live_day is None:
             raise ValueError("_live_day must be defined for a "
                              "live data portal")
         self._is_live = _is_live
         self._live_day = _live_day
         self._live_market_open = \
-            self.trading_calendar.open_and_close_for_session(self._live_day)[0]
-
-        self.trading_calendar = trading_calendar
+            self.trading_calendar.open_and_close_for_session(
+                self._live_day
+            )[0] if self._is_live else None
 
         self.asset_finder = asset_finder
 
