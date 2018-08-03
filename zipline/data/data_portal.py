@@ -941,8 +941,8 @@ class DataPortal(object):
                 days_for_window[0:-1]
             )
 
-            # see if there have been any adjustments on midnight of the live day,
-            # i.e. between the prev day and the live day
+            # see if there have been any adjustments on midnight of
+            # the live day, i.e. between the prev day and the live day
             if self._is_live and len(days_for_window) > 1:
                 adjustments = self.get_adjustments(
                     assets,
