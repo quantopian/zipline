@@ -504,10 +504,10 @@ class DataPortal(object):
                 asset,
                 field,
                 dt,
-                data_frequency,
+                'minute',
             )
 
-    def get_spot_value(self, assets, field, dt, data_frequency):
+    def get_spot_value(self, assets, field, dt, data_frequency='minute'):
         """
         Public API method that returns a scalar value representing the value
         of the desired asset's field at either the given dt.
