@@ -1168,10 +1168,9 @@ class DataPortal(object):
         """
         if not self._is_live or minutes_for_window[-1] < self._live_day:
             # entire window is in the past
-            return self._minute_history_loader.history(assets,
-                                                       minutes_for_window,
-                                                       field,
-                                                       False)
+            return self._minute_history_loader.history(
+                assets, minutes_for_window, field, False
+            )
         elif minutes_for_window[0] > self._live_day:
             # entire window is live
             today_data = np.zeros((len(minutes_for_window), len(assets)))
@@ -1196,7 +1195,9 @@ class DataPortal(object):
             today_minutes = minutes_for_window[open_idx:]
 
             old_data = \
-                self._minute_history_loader.history(assets, field, old_minutes)
+                self._minute_history_loader.history(
+                    assets, old_minutes, field, False
+                )
 
             # there might have been adjustments at the midnight of the live day
             # if so, apply them
