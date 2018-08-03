@@ -65,6 +65,7 @@ from zipline.utils.pandas_utils import (
 )
 from zipline.errors import HistoryWindowStartsBeforeData
 
+from qexec.sources.live_data_portal import LiveMinuteBarReader
 
 log = Logger('DataPortal')
 
@@ -149,8 +150,20 @@ class DataPortal(object):
                  adjustment_reader=None,
                  last_available_session=None,
                  last_available_minute=None,
+                 _is_live=False,
+                 _live_day=None,
+                 _db=None,
+                 _require_primary=False,
                  minute_history_prefetch_length=_DEF_M_HIST_PREFETCH,
                  daily_history_prefetch_length=_DEF_D_HIST_PREFETCH):
+
+        if _is_live and not all([_live_day, _db, _require_primary]):
+            raise ValueError("_live_day, _db, and _require_primary must be "
+                             "defined for a live data portal")
+        self._is_live = _is_live
+        self._live_day = _live_day
+        self._live_market_open = \
+            self.trading_calendar.open_and_close_for_session(self._live_day)[0]
 
         self.trading_calendar = trading_calendar
 
@@ -259,9 +272,21 @@ class DataPortal(object):
             'daily': _dispatch_session_reader,
         }
 
+        if _is_live:
+            agg_minute_reader = LiveMinuteBarReader(
+                self.trading_calendar,
+                self._live_day,
+                self._pricing_readers['minute'],
+                _db,
+                self._get_minute_window_data,
+                _require_primary,
+            )
+        else:
+            agg_minute_reader = _dispatch_minute_reader
+
         self._daily_aggregator = DailyHistoryAggregator(
             self.trading_calendar.schedule.market_open,
-            _dispatch_minute_reader,
+            agg_minute_reader,
             self.trading_calendar
         )
         self._history_loader = DailyHistoryLoader(
@@ -319,7 +344,11 @@ class DataPortal(object):
             )
 
     def _reindex_extra_source(self, df, source_date_index):
-        return df.reindex(index=source_date_index, method='ffill')
+        if self._is_live:
+            # Don't ffill for live trading
+            return df.reindex(index=source_date_index)
+        else:
+            return df.reindex(index=source_date_index, method='ffill')
 
     def handle_extra_source(self, source_df, sim_params):
         """
@@ -403,8 +432,16 @@ class DataPortal(object):
 
         If there is a trade on the dt, the answer is dt provided.
         """
-        return self._get_pricing_reader(data_frequency).get_last_traded_dt(
-            asset, dt)
+        if not self._is_live or dt <= self._live_day:
+            return self._get_pricing_reader(data_frequency).get_last_traded_dt(
+                asset, dt)
+        else:
+            if data_frequency != 'minute':
+                raise ValueError("Live data portals only support minute data")
+
+            return self._daily_aggregator._minute_reader.get_last_traded_dt(
+                asset, dt
+            )
 
     @staticmethod
     def _is_extra_source(asset, field, map):
@@ -434,43 +471,55 @@ class DataPortal(object):
                                 field,
                                 dt,
                                 data_frequency):
-        if self._is_extra_source(
-                asset, field, self._augmented_sources_map):
-            return self._get_fetcher_value(asset, field, dt)
 
-        if field not in BASE_FIELDS:
-            raise KeyError("Invalid column: " + str(field))
+        if not self._is_live or dt < self._live_day:
+            if self._is_extra_source(
+                    asset, field, self._augmented_sources_map):
+                return self._get_fetcher_value(asset, field, dt)
 
-        if dt < asset.start_date or \
-                (data_frequency == "daily" and
-                    session_label > asset.end_date) or \
-                (data_frequency == "minute" and
-                 session_label > asset.end_date):
-            if field == "volume":
-                return 0
-            elif field == "contract":
-                return None
-            elif field != "last_traded":
-                return np.NaN
+            if field not in BASE_FIELDS:
+                raise KeyError("Invalid column: " + str(field))
 
-        if data_frequency == "daily":
-            if field == "contract":
-                return self._get_current_contract(asset, session_label)
+            if dt < asset.start_date or \
+                    (data_frequency == "daily" and
+                        session_label > asset.end_date) or \
+                    (data_frequency == "minute" and
+                     session_label > asset.end_date):
+                if field == "volume":
+                    return 0
+                elif field == "contract":
+                    return None
+                elif field != "last_traded":
+                    return np.NaN
+
+            if data_frequency == "daily":
+                if field == "contract":
+                    return self._get_current_contract(asset, session_label)
+                else:
+                    return self._get_daily_spot_value(
+                        asset, field, session_label,
+                    )
             else:
-                return self._get_daily_spot_value(
-                    asset, field, session_label,
-                )
+                if field == "last_traded":
+                    return self.get_last_traded_dt(asset, dt, 'minute')
+                elif field == "price":
+                    return self._get_minute_spot_value(
+                        asset, "close", dt, ffill=True,
+                    )
+                elif field == "contract":
+                    return self._get_current_contract(asset, dt)
+                else:
+                    return self._get_minute_spot_value(asset, field, dt)
         else:
-            if field == "last_traded":
-                return self.get_last_traded_dt(asset, dt, 'minute')
-            elif field == "price":
-                return self._get_minute_spot_value(
-                    asset, "close", dt, ffill=True,
-                )
-            elif field == "contract":
-                return self._get_current_contract(asset, dt)
-            else:
-                return self._get_minute_spot_value(asset, field, dt)
+            if data_frequency != 'minute':
+                raise ValueError("Live data portals only support minute data")
+
+            return self.get_scalar_asset_spot_value(
+                asset,
+                field,
+                dt,
+                data_frequency,
+            )
 
     def get_spot_value(self, assets, field, dt, data_frequency):
         """
@@ -536,6 +585,14 @@ class DataPortal(object):
                 for asset in assets
             ]
 
+    def _get_live_value(self, asset, field, dt):
+        if not self._is_live:
+            raise ValueError("Data portal does not support live trading")
+
+        return self._daily_aggregator._minute_reader._get_live_value(
+            asset, field, dt
+        )
+
     def get_scalar_asset_spot_value(self, asset, field, dt, data_frequency):
         """
         Public API method that returns a scalar value representing the value
@@ -564,13 +621,61 @@ class DataPortal(object):
             ``field`` is 'volume' the value will be a int. If the ``field`` is
             'last_traded' the value will be a Timestamp.
         """
-        return self._get_single_asset_value(
-            self.trading_calendar.minute_to_session_label(dt),
-            asset,
-            field,
-            dt,
-            data_frequency,
-        )
+        if not self._is_live or dt < self._live_day:
+            return self._get_single_asset_value(
+                self.trading_calendar.minute_to_session_label(dt),
+                asset,
+                field,
+                dt,
+                data_frequency,
+            )
+
+        if data_frequency != 'minute':
+            raise ValueError("Live data portals only support minute data")
+
+        if self._is_extra_source(
+                asset, field, self._augmented_sources_map):
+            return self._get_fetcher_value(asset, field, dt)
+
+        if field not in BASE_FIELDS:
+            raise KeyError("Invalid field: " + str(field))
+
+        if field == "last_traded":
+            return self.get_last_traded_dt(asset, dt, "minute")
+
+        live_result = self._get_live_value(asset, field, dt)
+
+        if live_result == 0 or np.isnan(live_result):
+            if field == "volume":
+                # don't forward-fill volume
+                return 0
+            elif field != "price":
+                return np.nan
+
+            # looking for price, and didn't get it.  to the bcolz we go.
+            previous_session_label = \
+                self.trading_calendar.previous_session_label(
+                    self.trading_calendar.minute_to_session_label(dt)
+                )
+
+            previous_day_close = \
+                self.trading_calendar.open_and_close_for_session(
+                    previous_session_label
+                )[1]
+
+            # get the data from bcolz minute, ffilled
+            historical_dt = self.get_last_traded_dt(
+                asset, previous_day_close, "minute"
+            )
+            if historical_dt is pd.NaT:
+                return np.nan
+
+            adjusted_historical_value = self.get_adjusted_value(
+                asset, "close", historical_dt, dt, "minute"
+            )
+
+            return adjusted_historical_value
+        return live_result
 
     def get_adjustments(self, assets, field, dt, perspective_dt):
         """
@@ -836,6 +941,19 @@ class DataPortal(object):
                 days_for_window[0:-1]
             )
 
+            # see if there have been any adjustments on midnight of the live day,
+            # i.e. between the prev day and the live day
+            if self._is_live and len(days_for_window) > 1:
+                adjustments = self.get_adjustments(
+                    assets,
+                    field_to_use,
+                    self._live_day - self.trading_calendar.day,
+                    self._live_day,
+                )
+
+                if len(adjustments) > 0:
+                    daily_data *= adjustments
+
             if field_to_use == 'open':
                 minute_value = self._daily_aggregator.opens(
                     assets, end_dt)
@@ -1039,6 +1157,11 @@ class DataPortal(object):
         and specified date range.  Used to support the history API method for
         minute bars.
 
+        This method splits minutes_for_window up into everything before the
+        live day, and uses the base impl to fulfill that query.  Uses live
+        data to fulfill all the minutes from the live day, then combines the
+        results.
+
         Missing bars are filled with NaN.
 
         Parameters
@@ -1057,10 +1180,61 @@ class DataPortal(object):
         -------
         A numpy array with requested values.
         """
-        return self._minute_history_loader.history(assets,
-                                                   minutes_for_window,
-                                                   field,
-                                                   False)
+        if not self._is_live or minutes_for_window[-1] < self._live_day:
+            # entire window is in the past
+            return self._minute_history_loader.history(assets,
+                                                       minutes_for_window,
+                                                       field,
+                                                       False)
+        elif minutes_for_window[0] > self._live_day:
+            # entire window is live
+            today_data = np.zeros((len(minutes_for_window), len(assets)))
+
+            # get today's data.  no adjustments needed.
+            # get the data in reverse order, to minimize database queries
+            # (since if we get the latest point first, it'll fetch all
+            # the previous ones too)
+            for i, asset in enumerate(assets):
+                idx = len(minutes_for_window) - 1
+                while idx >= 0:
+                    today_data[idx, i] = self._get_live_value(
+                        asset, field, minutes_for_window[idx]
+                    )
+
+                    idx -= 1
+
+            return today_data
+        else:
+            open_idx = minutes_for_window.searchsorted(self._live_market_open)
+            old_minutes = minutes_for_window[0:open_idx]
+            today_minutes = minutes_for_window[open_idx:]
+
+            old_data = \
+                self._minute_history_loader.history(assets, field, old_minutes)
+
+            # there might have been adjustments at the midnight of the live day
+            # if so, apply them
+            if len(old_minutes) > 0:
+                adjustments = self.get_adjustments(
+                    assets, field, old_minutes[-1], self._live_day
+                )
+
+                if len(adjustments) > 0:
+                    old_data = old_data * adjustments
+
+            today_data = np.zeros((len(today_minutes), len(assets)))
+
+            for i, asset in enumerate(assets):
+                # get today's data.  no adjustments needed.
+                idx = len(today_minutes) - 1
+                while idx >= 0:
+                    today_data[idx, i] = self._get_live_value(
+                        asset, field, today_minutes[idx]
+                    )
+
+                    idx -= 1
+
+            return np.concatenate([old_data, today_data])
 
     def _get_daily_window_data(self,
                                assets,
