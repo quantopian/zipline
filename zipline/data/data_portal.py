@@ -908,7 +908,8 @@ class DataPortal(object):
                                        end_dt,
                                        field_to_use,
                                        data_frequency):
-        if data_frequency == 'daily' and not self._is_live:
+        if data_frequency == 'daily' and \
+                (not self._is_live or days_for_window[-1] < self._live_day):
             # two cases where we use daily data for the whole range:
             # 1) the history window ends at midnight utc.
             # 2) the last desired day of the window is after the
