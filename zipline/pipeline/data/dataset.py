@@ -130,7 +130,13 @@ class BoundColumn(LoadableTerm):
     mask = AssetExists()
     window_safe = True
 
-    def __new__(cls, dtype, missing_value, dataset, name, doc, metadata):
+    def __new__(cls,
+                dtype,
+                missing_value,
+                dataset,
+                name,
+                doc,
+                metadata):
         return super(BoundColumn, cls).__new__(
             cls,
             domain=dataset.domain,
@@ -158,6 +164,28 @@ class BoundColumn(LoadableTerm):
             name,
             doc,
             frozenset(sorted(metadata.items(), key=first)),
+        )
+
+    def specialize(self, domain):
+        """Specialize ``self`` to a concrete domain.
+        """
+        if self.domain == domain:
+            return self
+        elif self.domain is not NotSpecified:
+            raise ValueError(
+                "Can't specialize {} to domain {} because it already "
+                "has domain {}.".format(
+                    self, domain, self.domain,
+                )
+            )
+
+        return type(self)(
+            dtype=self.dtype,
+            missing_value=self.missing_value,
+            dataset=self._dataset.specialize(domain),
+            name=self._name,
+            doc=self.__doc__,
+            metadata=self._metadata,
         )
 
     @property
@@ -248,7 +276,57 @@ class DataSetMeta(type):
                 column_names.add(maybe_colname)
 
         newtype._column_names = frozenset(column_names)
+        newtype._domain_specializations = {}
+
         return newtype
+
+    def specialize(self, domain):
+        """
+        Specialize a generic DataSet to a concrete domain.
+
+        Parameters
+        ----------
+        domain : zipline.pipeline.domain.Domain
+            Domain to which we should generate a specialization.
+
+        Returns
+        -------
+        specialized : DataSetMeta
+            A new DataSet subclass with the same columns as ``self``, but
+            specialized to ``domain``.
+        """
+        # TODO_SS: Should this be an error?
+        # We're already the specialization to this domain, so just return self.
+        if domain == self.domain:
+            return self
+        elif self.domain is not NotSpecified:
+            raise ValueError(
+                "Can't specialize {dataset} with domain "
+                "{current} to new domain {new}.".format(
+                    dataset=self.__name__,
+                    current=self.domain,
+                    new=domain,
+                )
+            )
+
+        # Memoize new specializations.
+        try:
+            return self._domain_specializations[domain]
+        except KeyError:
+            new_type = self._create_specialization(domain)
+            self._domain_specializations[domain] = new_type
+            return new_type
+
+    def _create_specialization(self, domain):
+        assert self.domain is NotSpecified, \
+            "Can't specialize non-generic dataset!"
+
+        # Create a new subclass of ``self`` with the given domain whose name is
+        # our name prefixed with domain.country_code.
+        name = '_'.join((self.__name__, domain.country_code))
+        bases = (self,)
+        dict_ = {'domain': domain}
+        return DataSetMeta(name, bases, dict_)
 
     @property
     def columns(self):
@@ -260,7 +338,13 @@ class DataSetMeta(type):
         return id(self) < id(other)
 
     def __repr__(self):
-        return '<DataSet: %r>' % self.__name__
+        if self.domain is NotSpecified:
+            return '<DataSet: {!r}>'.format(self.__name__)
+        else:
+            return '<DataSet: {!r}, domain={}>'.format(
+                self.__name__,
+                self.domain,
+            )
 
 
 class DataSet(with_metaclass(DataSetMeta, object)):
@@ -316,5 +400,5 @@ class DataSet(with_metaclass(DataSetMeta, object)):
     numeric. Doing so enables the use of `NaN` as a natural missing value,
     which has useful propagation semantics.
     """
-    domain = None
+    domain = NotSpecified
     ndim = 2
