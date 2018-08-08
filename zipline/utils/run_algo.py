@@ -202,7 +202,7 @@ def _run(handle_data,
         ),
         metrics_set=metrics_set,
         blotter=blotter,
-        clock_class=clock,
+        clock=clock,
         benchmark_returns=benchmark_returns,
         **{
             'initialize': initialize,
@@ -295,7 +295,8 @@ def run_algorithm(start,
                   extensions=(),
                   strict_extensions=True,
                   environ=os.environ,
-                  blotter='default'):
+                  blotter='default',
+                  clock='default'):
     """
     Run a trading algorithm.
 
@@ -354,6 +355,12 @@ def run_algorithm(start,
         ``zipline.extensions.register`` and call it with no parameters.
         Default is a :class:`zipline.finance.blotter.SimulationBlotter` that
         never cancels orders.
+    clock : str or type (subtype of zipline.gens.clock.Clock), optional
+        Clock to use with this algorithm. If passed as a string, we look for
+        a blotter construction function registered with
+        ``zipline.extensions.register`` and call it with our default
+        parameters. The default resolves to our
+        :class:`zipline.gens.clock.MinuteSimulationClock`.
 
     Returns
     -------
@@ -387,5 +394,6 @@ def run_algorithm(start,
         local_namespace=False,
         environ=environ,
         blotter=blotter,
+        clock=clock,
         benchmark_returns=benchmark_returns,
     )

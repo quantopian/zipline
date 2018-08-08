@@ -223,8 +223,7 @@ class TradingAlgorithm(object):
                  trading_calendar=None,
                  metrics_set=None,
                  blotter=None,
-                 blotter_class=None,
-                 clock_class=None,
+                 clock=None,
                  cancel_policy=None,
                  benchmark_sid=None,
                  benchmark_returns=None,
@@ -308,14 +307,12 @@ class TradingAlgorithm(object):
             cleanup=clear_dataframe_indexer_caches
         )
 
-        if blotter is not None:
-            self.blotter = blotter
-        else:
-            cancel_policy = cancel_policy or NeverCancel()
-            blotter_class = blotter_class or SimulationBlotter
-            self.blotter = blotter_class(cancel_policy=cancel_policy)
+        cancel_policy = cancel_policy or NeverCancel()
+        self.blotter = (blotter or SimulationBlotter)(
+            cancel_policy=cancel_policy
+        )
 
-        self._clock_class = clock_class or MinuteSimulationClock
+        self._clock_class = clock or MinuteSimulationClock
 
         # The symbol lookup date specifies the date to use when resolving
         # symbols to sids, and can be set using set_symbol_lookup_date()
