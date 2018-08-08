@@ -3,6 +3,8 @@ import os
 import sys
 import warnings
 
+from zipline.gens.clock import Clock
+
 try:
     from pygments import highlight
     from pygments.lexers import PythonLexer
@@ -73,6 +75,7 @@ def _run(handle_data,
          local_namespace,
          environ,
          blotter,
+         clock,
          benchmark_returns):
     """Run a backtest for the given algorithm.
 
@@ -179,6 +182,12 @@ def _run(handle_data,
         except ValueError as e:
             raise _RunAlgoError(str(e))
 
+    if isinstance(clock, six.string_types):
+        try:
+            clock = load(Clock, clock)
+        except ValueError as e:
+            raise _RunAlgoError(str(e))
+
     perf = TradingAlgorithm(
         namespace=namespace,
         data_portal=data,
@@ -193,6 +202,7 @@ def _run(handle_data,
         ),
         metrics_set=metrics_set,
         blotter=blotter,
+        clock_class=clock,
         benchmark_returns=benchmark_returns,
         **{
             'initialize': initialize,

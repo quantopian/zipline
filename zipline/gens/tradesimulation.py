@@ -15,17 +15,19 @@
 from contextlib2 import ExitStack
 from copy import copy
 from logbook import Logger, Processor
+import pandas as pd
+from six import viewkeys
 from zipline.finance.order import ORDER_STATUS
 from zipline.protocol import BarData
 from zipline.utils.api_support import ZiplineAPI
-from six import viewkeys
 
 from zipline.gens.clock import (
     BAR,
     SESSION_START,
     SESSION_END,
     MINUTE_END,
-    BEFORE_TRADING_START_BAR
+    BEFORE_TRADING_START_BAR,
+    SessionEvent,
 )
 
 log = Logger('Trade Simulation')
@@ -200,7 +202,14 @@ class AlgorithmSimulator(object):
                 def calculate_minute_capital_changes(dt):
                     return []
 
-            for dt, action in self.clock:
+            for event in self.clock:
+                # We have to make some assertions here because there's no
+                # other way to validate the (possibly custom) generator
+                # being used.
+                assert(len(event) == 2 and isinstance(event[0], pd.Timestamp)
+                       and isinstance(event[1], SessionEvent))
+
+                dt, action = event
                 if action == BAR:
                     for capital_change_packet in every_bar(dt):
                         yield capital_change_packet

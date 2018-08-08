@@ -1,5 +1,5 @@
 #
-# Copyright 2015 Quantopian, Inc.
+# Copyright 2018 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +25,12 @@ from zipline.extensions import extensible, register
 class Clock(Interface):
 
     def __iter__(self):
+        """
+        A clock's __iter__ method must yield tuples of length 2, where the
+        first element is a pandas Timestamp, and the second element is an
+        integer (typically part of an IntEnum) representing an event. This
+        requirement will be checked at runtime.
+        """
         raise NotImplementedError('__iter__ must be implemented')
 
 
@@ -32,7 +38,7 @@ _nanos_in_minute = np.int64(60000000000)
 NANOS_IN_MINUTE = _nanos_in_minute
 
 
-class SessionEvt(IntEnum):
+class SessionEvent(IntEnum):
     BAR = 0
     SESSION_START = 1
     SESSION_END = 2
@@ -40,13 +46,14 @@ class SessionEvt(IntEnum):
     BEFORE_TRADING_START_BAR = 4
 
 
-BAR = SessionEvt.BAR
-SESSION_START = SessionEvt.SESSION_START
-SESSION_END = SessionEvt.SESSION_END
-MINUTE_END = SessionEvt.MINUTE_END
-BEFORE_TRADING_START_BAR = SessionEvt.BEFORE_TRADING_START_BAR
+BAR = SessionEvent.BAR
+SESSION_START = SessionEvent.SESSION_START
+SESSION_END = SessionEvent.SESSION_END
+MINUTE_END = SessionEvent.MINUTE_END
+BEFORE_TRADING_START_BAR = SessionEvent.BEFORE_TRADING_START_BAR
 
 
+@register(Clock, 'default')
 class MinuteSimulationClock(implements(Clock)):
 
     def __init__(self,
@@ -89,8 +96,3 @@ class MinuteSimulationClock(implements(Clock)):
                 counter += pd.Timedelta(_nanos_in_minute)
 
             yield market_close, SESSION_END
-
-
-@register(Clock, 'default')
-def func():
-    return MinuteSimulationClock

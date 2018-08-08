@@ -1,3 +1,4 @@
+from functools import partial
 import re
 import six
 from toolz import curry
@@ -107,7 +108,7 @@ class Registry(object):
         self.interface = interface
         self._factories = {}
 
-    def load(self, name):
+    def load(self, name, *args, **kwargs):
         """Construct an object from a registered factory.
 
         Parameters
@@ -116,7 +117,7 @@ class Registry(object):
             Name with which the factory was registered.
         """
         try:
-            return self._factories[name]()
+            return partial(self._factories[name], *args, **kwargs)
         except KeyError:
             raise ValueError(
                 "no %s factory registered under name %r, options are: %r" %
@@ -176,7 +177,7 @@ def get_registry(interface):
         raise ValueError("class specified is not an extendable type")
 
 
-def load(interface, name):
+def load(interface, name, *args, **kwargs):
     """
     Retrieves a custom class whose name is given.
 
@@ -192,7 +193,7 @@ def load(interface, name):
     obj : object
         An instance of the desired class.
     """
-    return get_registry(interface).load(name)
+    return get_registry(interface).load(name, *args, **kwargs)
 
 
 @curry
@@ -207,8 +208,7 @@ def register(interface, name, factory):
     name : str
         The name of the subclass
     factory : type
-        The class to register, which must be a subclass of the
-        abstract base class in self.interface
+        The class to register, which is typically a subclass of the interface
     """
 
     return get_registry(interface).register(name, factory)
