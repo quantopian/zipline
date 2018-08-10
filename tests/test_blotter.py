@@ -32,7 +32,7 @@ from zipline.finance.slippage import (
     FixedSlippage,
     VolumeShareSlippage,
 )
-from zipline.gens.clock import BAR, SESSION_END
+from zipline.gens.clock import SessionEvent
 from zipline.testing.fixtures import (
     WithCreateBarData,
     WithDataPortal,
@@ -166,11 +166,11 @@ class BlotterTestCase(WithCreateBarData,
         self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
         self.assertEqual(blotter.new_orders[1].status, ORDER_STATUS.OPEN)
 
-        blotter.execute_cancel_policy(BAR)
+        blotter.execute_cancel_policy(SessionEvent.BAR)
         self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
         self.assertEqual(blotter.new_orders[1].status, ORDER_STATUS.OPEN)
 
-        blotter.execute_cancel_policy(SESSION_END)
+        blotter.execute_cancel_policy(SessionEvent.SESSION_END)
         for order_id in order_ids:
             order = blotter.orders[order_id]
             self.assertEqual(order.status, ORDER_STATUS.CANCELLED)
@@ -183,10 +183,10 @@ class BlotterTestCase(WithCreateBarData,
         self.assertEqual(len(blotter.new_orders), 1)
         self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
 
-        blotter.execute_cancel_policy(BAR)
+        blotter.execute_cancel_policy(SessionEvent.BAR)
         self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
 
-        blotter.execute_cancel_policy(SESSION_END)
+        blotter.execute_cancel_policy(SessionEvent.SESSION_END)
         self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
 
     def test_order_rejection(self):

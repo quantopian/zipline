@@ -21,14 +21,7 @@ from zipline.finance.order import ORDER_STATUS
 from zipline.protocol import BarData
 from zipline.utils.api_support import ZiplineAPI
 
-from zipline.gens.clock import (
-    BAR,
-    SESSION_START,
-    SESSION_END,
-    MINUTE_END,
-    BEFORE_TRADING_START_BAR,
-    SessionEvent,
-)
+from zipline.gens.clock import SessionEvent
 
 log = Logger('Trade Simulation')
 
@@ -188,7 +181,7 @@ class AlgorithmSimulator(object):
 
             if algo.data_frequency == 'minute':
                 def execute_order_cancellation_policy():
-                    algo.blotter.execute_cancel_policy(SESSION_END)
+                    algo.blotter.execute_cancel_policy(SessionEvent.SESSION_END)
 
                 def calculate_minute_capital_changes(dt):
                     # process any capital changes that came between the last
@@ -210,13 +203,13 @@ class AlgorithmSimulator(object):
                        and isinstance(event[1], SessionEvent))
 
                 dt, action = event
-                if action == BAR:
+                if action == SessionEvent.BAR:
                     for capital_change_packet in every_bar(dt):
                         yield capital_change_packet
-                elif action == SESSION_START:
+                elif action == SessionEvent.SESSION_START:
                     for capital_change_packet in once_a_day(dt):
                         yield capital_change_packet
-                elif action == SESSION_END:
+                elif action == SessionEvent.SESSION_END:
                     # End of the session.
                     positions = metrics_tracker.positions
                     position_assets = algo.asset_finder.retrieve_all(positions)
@@ -226,11 +219,11 @@ class AlgorithmSimulator(object):
                     algo.validate_account_controls()
 
                     yield self._get_daily_message(dt, algo, metrics_tracker)
-                elif action == BEFORE_TRADING_START_BAR:
+                elif action == SessionEvent.BEFORE_TRADING_START_BAR:
                     self.simulation_dt = dt
                     algo.on_dt_changed(dt)
                     algo.before_trading_start(self.current_data)
-                elif action == MINUTE_END:
+                elif action == SessionEvent.MINUTE_END:
                     minute_msg = self._get_minute_message(
                         dt,
                         algo,

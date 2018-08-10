@@ -6,10 +6,7 @@ from trading_calendars.utils.pandas_utils import days_at_time
 
 from zipline.gens.clock import (
     MinuteSimulationClock,
-    SESSION_START,
-    BEFORE_TRADING_START_BAR,
-    BAR,
-    SESSION_END
+    SessionEvent,
 )
 
 
@@ -44,11 +41,19 @@ class TestClock(TestCase):
 
             self.assertEqual(393, len(events))
 
-            self.assertEqual(events[0], (session_label, SESSION_START))
-            self.assertEqual(events[1], (bts_dt, BEFORE_TRADING_START_BAR))
+            self.assertEqual(
+                events[0], (session_label, SessionEvent.SESSION_START)
+            )
+            self.assertEqual(
+                events[1], (bts_dt, SessionEvent.BEFORE_TRADING_START_BAR)
+            )
             for i in range(2, 392):
-                self.assertEqual(events[i], (minutes[i - 2], BAR))
-            self.assertEqual(events[392], (minutes[-1], SESSION_END))
+                self.assertEqual(
+                    events[i], (minutes[i - 2], SessionEvent.BAR)
+                )
+            self.assertEqual(
+                events[392], (minutes[-1], SessionEvent.SESSION_END)
+            )
 
         _check_session_bts_first(
             self.sessions[0],
@@ -104,20 +109,28 @@ class TestClock(TestCase):
 
             self.assertEqual(393, len(events))
 
-            self.assertEqual(events[0], (session_label, SESSION_START))
+            self.assertEqual(
+                events[0], (session_label, SessionEvent.SESSION_START)
+            )
 
             for i in range(1, bts_idx):
-                self.assertEqual(events[i], (minutes[i - 1], BAR))
+                self.assertEqual(
+                    events[i], (minutes[i - 1], SessionEvent.BAR)
+                )
 
             self.assertEqual(
                 events[bts_idx],
-                (bts_dt, BEFORE_TRADING_START_BAR)
+                (bts_dt, SessionEvent.BEFORE_TRADING_START_BAR)
             )
 
             for i in range(bts_idx + 1, 391):
-                self.assertEqual(events[i], (minutes[i - 2], BAR))
+                self.assertEqual(
+                    events[i], (minutes[i - 2], SessionEvent.BAR)
+                )
 
-            self.assertEqual(events[392], (minutes[-1], SESSION_END))
+            self.assertEqual(
+                events[392], (minutes[-1], SessionEvent.SESSION_END)
+            )
 
         clock = MinuteSimulationClock(
             self.sessions,
@@ -166,12 +179,18 @@ class TestClock(TestCase):
             minutes = self.nyse_calendar.minutes_for_session(session_label)
 
             self.assertEqual(392, len(events))
-            self.assertEqual(events[0], (session_label, SESSION_START))
+            self.assertEqual(
+                events[0], (session_label, SessionEvent.SESSION_START)
+            )
 
             for i in range(1, 391):
-                self.assertEqual(events[i], (minutes[i - 1], BAR))
+                self.assertEqual(
+                    events[i], (minutes[i - 1], SessionEvent.BAR)
+                )
 
-            self.assertEqual(events[-1], (minutes[389], SESSION_END))
+            self.assertEqual(
+                events[-1], (minutes[389], SessionEvent.SESSION_END)
+            )
 
         for i in range(0, 2):
             _check_session_bts_after(

@@ -15,7 +15,7 @@
 
 import pandas as pd
 
-from zipline.gens.clock import BEFORE_TRADING_START_BAR
+from zipline.gens.clock import SessionEvent
 
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.finance import metrics
@@ -89,7 +89,7 @@ class BeforeTradingStartsOnlyClock(object):
         self.bts_minute = bts_minute
 
     def __iter__(self):
-        yield self.bts_minute, BEFORE_TRADING_START_BAR
+        yield self.bts_minute, SessionEvent.BEFORE_TRADING_START_BAR
 
 
 class TestBeforeTradingStartSimulationDt(zf.WithMakeAlgo, zf.ZiplineTestCase):

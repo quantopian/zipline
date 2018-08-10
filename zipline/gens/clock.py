@@ -46,13 +46,6 @@ class SessionEvent(IntEnum):
     BEFORE_TRADING_START_BAR = 4
 
 
-BAR = SessionEvent.BAR
-SESSION_START = SessionEvent.SESSION_START
-SESSION_END = SessionEvent.SESSION_END
-MINUTE_END = SessionEvent.MINUTE_END
-BEFORE_TRADING_START_BAR = SessionEvent.BEFORE_TRADING_START_BAR
-
-
 @register(Clock, 'default')
 class MinuteSimulationClock(implements(Clock)):
 
@@ -81,18 +74,19 @@ class MinuteSimulationClock(implements(Clock)):
             market_close = pd.Timestamp(market_close, tz='UTC')
             bts_minute = pd.Timestamp(bts_minute, tz='UTC')
 
-            yield pd.Timestamp(session_nano, tz='UTC'), SESSION_START
+            yield pd.Timestamp(session_nano, tz='UTC'), \
+                SessionEvent.SESSION_START
 
             if bts_minute < counter:
-                yield bts_minute, BEFORE_TRADING_START_BAR
+                yield bts_minute, SessionEvent.BEFORE_TRADING_START_BAR
 
             while counter <= market_close:
                 if counter == bts_minute:
-                    yield counter, BEFORE_TRADING_START_BAR
-                yield counter, BAR
+                    yield counter, SessionEvent.BEFORE_TRADING_START_BAR
+                yield counter, SessionEvent.BAR
                 if self.minute_emission:
-                    yield counter, MINUTE_END
+                    yield counter, SessionEvent.MINUTE_END
 
                 counter += pd.Timedelta(_nanos_in_minute)
 
-            yield market_close, SESSION_END
+            yield market_close, SessionEvent.SESSION_END

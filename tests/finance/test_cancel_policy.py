@@ -15,20 +15,17 @@
 from unittest import TestCase
 
 from zipline.finance.cancel_policy import NeverCancel, EODCancel
-from zipline.gens.clock import (
-    BAR,
-    SESSION_END
-)
+from zipline.gens.clock import SessionEvent
 
 
 class CancelPolicyTestCase(TestCase):
 
     def test_eod_cancel(self):
         cancel_policy = EODCancel()
-        self.assertTrue(cancel_policy.should_cancel(SESSION_END))
-        self.assertFalse(cancel_policy.should_cancel(BAR))
+        self.assertTrue(cancel_policy.should_cancel(SessionEvent.SESSION_END))
+        self.assertFalse(cancel_policy.should_cancel(SessionEvent.BAR))
 
     def test_never_cancel(self):
         cancel_policy = NeverCancel()
-        self.assertFalse(cancel_policy.should_cancel(SESSION_END))
-        self.assertFalse(cancel_policy.should_cancel(BAR))
+        self.assertFalse(cancel_policy.should_cancel(SessionEvent.SESSION_END))
+        self.assertFalse(cancel_policy.should_cancel(SessionEvent.BAR))
