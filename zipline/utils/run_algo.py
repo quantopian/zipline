@@ -3,6 +3,7 @@ import os
 import sys
 import warnings
 
+from zipline.finance.cancel_policy import NeverCancel
 from zipline.gens.clock import Clock
 
 try:
@@ -76,6 +77,7 @@ def _run(handle_data,
          environ,
          blotter,
          clock,
+         cancel_policy,
          benchmark_returns):
     """Run a backtest for the given algorithm.
 
@@ -178,7 +180,9 @@ def _run(handle_data,
 
     if isinstance(blotter, six.string_types):
         try:
-            blotter = load(Blotter, blotter)
+            blotter = load(Blotter, blotter)(
+                cancel_policy=(cancel_policy or NeverCancel())
+            )
         except ValueError as e:
             raise _RunAlgoError(str(e))
 
@@ -203,6 +207,7 @@ def _run(handle_data,
         metrics_set=metrics_set,
         blotter=blotter,
         clock=clock,
+        cancel_policy=cancel_policy,
         benchmark_returns=benchmark_returns,
         **{
             'initialize': initialize,
@@ -296,7 +301,8 @@ def run_algorithm(start,
                   strict_extensions=True,
                   environ=os.environ,
                   blotter='default',
-                  clock='default'):
+                  clock='default',
+                  cancel_policy=NeverCancel()):
     """
     Run a trading algorithm.
 
@@ -361,6 +367,8 @@ def run_algorithm(start,
         ``zipline.extensions.register`` and call it with our default
         parameters. The default resolves to our
         :class:`zipline.gens.clock.MinuteSimulationClock`.
+    cancel_policy : CancelPolicy
+        The cancellation policy to use.
 
     Returns
     -------
@@ -395,5 +403,6 @@ def run_algorithm(start,
         environ=environ,
         blotter=blotter,
         clock=clock,
+        cancel_policy=cancel_policy,
         benchmark_returns=benchmark_returns,
     )

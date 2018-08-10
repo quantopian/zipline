@@ -308,10 +308,12 @@ class TradingAlgorithm(object):
         )
 
         cancel_policy = cancel_policy or NeverCancel()
+        # We're expecting a blotter instance here
         self.blotter = SimulationBlotter(
             cancel_policy=cancel_policy
-        ) if blotter is None else blotter()
+        ) if blotter is None else blotter
 
+        # We're expecting a clock type here
         self._clock_class = clock or MinuteSimulationClock
 
         # The symbol lookup date specifies the date to use when resolving

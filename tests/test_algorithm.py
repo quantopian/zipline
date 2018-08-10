@@ -34,7 +34,6 @@ from pandas.core.common import PerformanceWarning
 from trading_calendars import get_calendar, register_calendar
 
 import zipline.api
-from zipline import Blotter
 from zipline.api import FixedSlippage
 from zipline.assets import Equity, Future, Asset
 from zipline.assets.continuous_futures import ContinuousFuture
@@ -55,7 +54,6 @@ from zipline.errors import (
     UnsupportedDatetimeFormat,
     ZeroCapitalError
 )
-from zipline.extensions import load
 
 from zipline.finance.commission import PerShare, PerTrade
 from zipline.finance.execution import LimitOrder
@@ -79,6 +77,7 @@ from zipline.testing import (
     str_to_seconds,
     to_utc,
 )
+from zipline.testing import RecordBatchBlotter
 import zipline.testing.fixtures as zf
 from zipline.test_algorithms import (
     access_account_in_init,
@@ -1653,6 +1652,7 @@ def handle_data(context, data):
     def test_batch_market_order_matches_multiple_manual_orders(self):
         share_counts = pd.Series([50, 100])
 
+        multi_blotter = RecordBatchBlotter()
         multi_test_algo = self.make_algo(
             script=dedent("""\
                 from collections import OrderedDict
@@ -1674,11 +1674,12 @@ def handle_data(context, data):
                         context.placed = True
 
             """).format(share_counts=list(share_counts)),
-            blotter=load(Blotter, 'record_batch'),
+            blotter=multi_blotter,
         )
         multi_stats = multi_test_algo.run()
-        self.assertFalse(multi_test_algo.blotter.order_batch_called)
+        self.assertFalse(multi_blotter.order_batch_called)
 
+        batch_blotter = RecordBatchBlotter()
         batch_test_algo = self.make_algo(
             script=dedent("""\
                 import pandas as pd
@@ -1703,10 +1704,10 @@ def handle_data(context, data):
                         context.placed = True
 
             """).format(share_counts=list(share_counts)),
-            blotter=load(Blotter, 'record_batch'),
+            blotter=batch_blotter,
         )
         batch_stats = batch_test_algo.run()
-        self.assertTrue(batch_test_algo.blotter.order_batch_called)
+        self.assertTrue(batch_blotter.order_batch_called)
 
         for stats in (multi_stats, batch_stats):
             stats.orders = stats.orders.apply(
@@ -1720,6 +1721,7 @@ def handle_data(context, data):
     def test_batch_market_order_filters_null_orders(self):
         share_counts = [50, 0]
 
+        batch_blotter = RecordBatchBlotter()
         batch_test_algo = self.make_algo(
             script=dedent("""\
                 import pandas as pd
@@ -1743,10 +1745,10 @@ def handle_data(context, data):
                         context.placed = True
 
             """).format(share_counts=share_counts),
-            blotter=load(Blotter, 'record_batch'),
+            blotter=batch_blotter,
         )
         batch_test_algo.run()
-        self.assertTrue(batch_test_algo.blotter.order_batch_called)
+        self.assertTrue(batch_blotter.order_batch_called)
 
     def test_order_dead_asset(self):
         # after asset 0 is dead

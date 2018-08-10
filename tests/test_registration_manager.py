@@ -1,5 +1,3 @@
-from functools import partial
-
 from zipline.extensions import Registry
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import assert_raises_str, assert_true
@@ -46,8 +44,7 @@ class RegistrationManagerTestCase(ZiplineTestCase):
                 "Class ProperDummyInterface wasn't properly registered under"
                 "name 'ayy-lmao'"
             )
-            self.assertIsInstance(rm.load('ayy-lmao'), partial)
-            self.assertIsInstance(rm.load('ayy-lmao')(), ProperDummyInterface)
+            self.assertEqual(rm.load('ayy-lmao'), ProperDummyInterface)
 
         # Check that we successfully registered.
         check_registered()
@@ -91,8 +88,7 @@ class RegistrationManagerTestCase(ZiplineTestCase):
                 "Class ProperDummyInterface wasn't properly registered under"
                 "name 'ayy-lmao'"
             )
-            self.assertIsInstance(rm.load('ayy-lmao'), partial)
-            self.assertIsInstance(rm.load('ayy-lmao')(), ProperDummyInterface)
+            self.assertEqual(rm.load('ayy-lmao'), ProperDummyInterface)
 
         # Check that we successfully registered.
         check_registered()
