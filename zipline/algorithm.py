@@ -308,9 +308,9 @@ class TradingAlgorithm(object):
         )
 
         cancel_policy = cancel_policy or NeverCancel()
-        self.blotter = (blotter or SimulationBlotter)(
+        self.blotter = SimulationBlotter(
             cancel_policy=cancel_policy
-        )
+        ) if blotter is None else blotter()
 
         self._clock_class = clock or MinuteSimulationClock
 

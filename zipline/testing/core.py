@@ -26,9 +26,11 @@ from sqlalchemy import create_engine
 from testfixtures import TempDirectory
 from toolz import concat, curry
 from trading_calendars import get_calendar
+from zipline import Blotter
 
 from zipline.assets import AssetFinder, AssetDBWriter
 from zipline.assets.synthetic import make_simple_equity_info
+from zipline.extensions import register
 from zipline.utils.compat import wraps
 from zipline.data.data_portal import DataPortal
 from zipline.data.loader import get_benchmark_filename, INDEX_MAPPING
@@ -1524,6 +1526,7 @@ def ensure_doctest(f, name=None):
     return f
 
 
+@register(Blotter, 'record_batch')
 class RecordBatchBlotter(SimulationBlotter):
     """Blotter that tracks how its batch_order method was called.
     """
