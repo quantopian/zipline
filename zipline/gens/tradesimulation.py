@@ -181,7 +181,9 @@ class AlgorithmSimulator(object):
 
             if algo.data_frequency == 'minute':
                 def execute_order_cancellation_policy():
-                    algo.blotter.execute_cancel_policy(SessionEvent.SESSION_END)
+                    algo.blotter.execute_cancel_policy(
+                        SessionEvent.SESSION_END
+                    )
 
                 def calculate_minute_capital_changes(dt):
                     # process any capital changes that came between the last
