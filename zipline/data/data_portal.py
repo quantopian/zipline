@@ -575,7 +575,7 @@ class DataPortal(object):
         if not self._is_live:
             raise ValueError("Data portal does not support live trading")
 
-        return self._daily_aggregator._minute_reader._get_live_value(
+        return self._pricing_readers['minute'].get_live_value(
             asset, field, dt
         )
 

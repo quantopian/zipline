@@ -96,6 +96,11 @@ class AssetDispatchBarReader(with_metaclass(ABCMeta)):
         r = self._readers[type(asset)]
         return r.get_value(asset, dt, field)
 
+    # Should only be called by a live data portal!
+    def get_live_value(self, asset, field, dt):
+        r = self._readers[type(asset)]
+        return r._get_live_value(asset, field, dt)
+
     def get_last_traded_dt(self, asset, dt):
         r = self._readers[type(asset)]
         return r.get_last_traded_dt(asset, dt)
