@@ -308,7 +308,7 @@ class MultipleSymbolsFound(ZiplineError):
     """
     msg = """
 Multiple symbols with the name '{symbol}' found. Use the
-as_of_date' argument to to specify when the date symbol-lookup
+as_of_date' argument to specify when the date symbol-lookup
 should be valid.
 
 Possible options: {options}
