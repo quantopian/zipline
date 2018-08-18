@@ -19,7 +19,7 @@ logger = Logger(__name__)
 logger.handlers.append(handler)
 
 
-def csvdir_equities(tframes=None, csvdir=None):
+def mongodir_equities(tframes=None, csvdir=None):
     """
     Generate an ingest function for custom data bundle
     This function can be used in ~/.zipline/extension.py
@@ -54,10 +54,10 @@ def csvdir_equities(tframes=None, csvdir=None):
                 '/full/path/to/the/csvdir/directory'))
     """
 
-    return CSVDIRBundle(tframes, csvdir).ingest
+    return  MONGODIRBundle(tframes, csvdir).ingest
 
 
-class CSVDIRBundle:
+class MONGODIRBundle:
     """
     Wrapper class to call csvdir_bundle with provided
     list of time frames and a path to the csvdir directory
@@ -80,7 +80,7 @@ class CSVDIRBundle:
                show_progress,
                output_dir):
 
-        csvdir_bundle(environ,
+        mongodir_bundle(environ,
                       asset_db_writer,
                       minute_bar_writer,
                       daily_bar_writer,
@@ -95,8 +95,8 @@ class CSVDIRBundle:
                       self.csvdir)
 
 
-@bundles.register("csvdir")
-def csvdir_bundle(environ,
+@bundles.register("mongodir")
+def mongodir_bundle(environ,
                   asset_db_writer,
                   minute_bar_writer,
                   daily_bar_writer,
@@ -237,4 +237,4 @@ def _pricing_iter(csvdir, symbols, metadata, divs_splits, show_progress):
             yield sid, dfr
 
 
-
+register_calendar_alias("CSVDIR", "NYSE")
