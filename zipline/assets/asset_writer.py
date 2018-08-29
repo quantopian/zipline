@@ -770,15 +770,7 @@ class AssetDBWriter(object):
             chunk_size=chunk_size,
         )
 
-    def _write_df_to_table(
-        self,
-        tbl,
-        df,
-        txn,
-        chunk_size,
-        idx=True,
-        idx_label=None,
-    ):
+    def _write_df_to_table(self, tbl, df, txn, chunk_size):
         df = df.copy()
         for column, dtype in df.dtypes.iteritems():
             if dtype.kind == 'M':
@@ -787,12 +779,8 @@ class AssetDBWriter(object):
         df.to_sql(
             tbl.name,
             txn.connection,
-            index=idx,
-            index_label=(
-                idx_label
-                if idx_label is not None else
-                first(tbl.primary_key.columns).name
-            ),
+            index=True,
+            index_label=first(tbl.primary_key.columns).name,
             if_exists='append',
             chunksize=chunk_size,
         )
