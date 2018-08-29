@@ -658,7 +658,7 @@ class AssetFinder(object):
         return sa.select(inner.c).group_by(inner.c.sid)
 
     def _lookup_most_recent_symbols(self, sids):
-        symbols = {
+        return {
             row.sid: {c: row[c] for c in symbol_columns}
             for row in concat(
                 self.engine.execute(
@@ -671,13 +671,6 @@ class AssetFinder(object):
             )
         }
 
-        if len(symbols) != len(sids):
-            raise EquitiesNotFound(
-                sids=set(sids) - set(symbols),
-                plural=True,
-            )
-        return symbols
-
     def _retrieve_asset_dicts(self, sids, asset_tbl, querying_equities):
         if not sids:
             return
@@ -688,7 +681,7 @@ class AssetFinder(object):
                        symbols=self._lookup_most_recent_symbols(sids)):
                 d = dict(row)
                 d['exchange_info'] = exchanges[d.pop('exchange')]
-                return merge(d, symbols[row['sid']])
+                return merge(d, symbols.get(row['sid'], {}))
         else:
             def mkdict(row, exchanges=self.exchange_info):
                 d = dict(row)
@@ -1478,6 +1471,7 @@ class AssetFinder(object):
             )
         else:
             buf = np.array([], dtype='f8')
+
         lifetimes = np.recarray(
             buf=buf,
             shape=(len(buf),),

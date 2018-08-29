@@ -62,6 +62,15 @@ symbol_columns = frozenset({
 mapping_columns = symbol_columns | {'start_date', 'end_date'}
 
 
+_index_columns = {
+    'equities': 'sid',
+    'equity_supplementary_mappings': 'sid',
+    'futures': 'sid',
+    'exchanges': 'exchange',
+    'root_symbols': 'root_symbol',
+}
+
+
 def _default_none(df, column):
     return None
 
@@ -82,6 +91,10 @@ _equities_defaults = {
     # the full exchange name
     'exchange': _no_default,
 }
+
+# the defaults for ``equities`` in ``write_direct``
+_direct_equities_defaults = _equities_defaults.copy()
+del _direct_equities_defaults['symbol']
 
 # Default values for the futures DataFrame
 _futures_defaults = {
@@ -107,7 +120,6 @@ _exchanges_defaults = {
 
 # Default values for the root_symbols DataFrame
 _root_symbols_defaults = {
-    'root_symbol_id': _default_none,
     'sector': _default_none,
     'description': _default_none,
     'exchange': _default_none,
@@ -115,13 +127,21 @@ _root_symbols_defaults = {
 
 # Default values for the equity_supplementary_mappings DataFrame
 _equity_supplementary_mappings_defaults = {
-    'sid': _default_none,
     'value': _default_none,
     'field': _default_none,
     'start_date': lambda df, col: 0,
     'end_date': lambda df, col: np.iinfo(np.int64).max,
 }
 
+# Default values for the equity_symbol_mappings DataFrame
+_equity_symbol_mappings_defaults = {
+    'sid': _no_default,
+    'company_symbol': _default_none,
+    'share_class_symbol': _default_none,
+    'symbol': _default_none,
+    'start_date': lambda df, col: 0,
+    'end_date': lambda df, col: np.iinfo(np.int64).max,
+}
 
 # Fuzzy symbol delimiters that may break up a company symbol and share class
 _delimited_symbol_delimiters_regex = re.compile(r'[./\-_]')
@@ -225,25 +245,11 @@ def _format_range(r):
     )
 
 
-def _split_symbol_mappings(df, exchanges):
-    """Split out the symbol: sid mappings from the raw data.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        The dataframe with multiple rows for each symbol: sid pair.
-
-    Returns
-    -------
-    asset_info : pd.DataFrame
-        The asset info with one row per asset.
-    symbol_mappings : pd.DataFrame
-        The dataframe of just symbol: sid mappings. The index will be
-        the sid, then there will be three columns: symbol, start_date, and
-        end_date.
-    """
-    mappings = df[list(mapping_columns)].copy()
-    mappings['country_code'] = exchanges['country_code'][df['exchange']].values
+def _check_symbol_mappings(df, exchanges, asset_exchange):
+    mappings = df.set_index('sid')[list(mapping_columns)].copy()
+    mappings['country_code'] = exchanges['country_code'][
+        asset_exchange[df['sid']]
+    ].values
     ambigious = {}
 
     def check_intersections(persymbol):
@@ -283,9 +289,32 @@ def _split_symbol_mappings(df, exchanges):
                 ),
             )
         )
+
+
+def _split_symbol_mappings(df, exchanges):
+    """Split out the symbol: sid mappings from the raw data.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The dataframe with multiple rows for each symbol: sid pair.
+
+    Returns
+    -------
+    asset_info : pd.DataFrame
+        The asset info with one row per asset.
+    symbol_mappings : pd.DataFrame
+        The dataframe of just symbol: sid mappings. The index will be
+        the sid, then there will be three columns: symbol, start_date, and
+        end_date.
+    """
+    mappings = df[list(mapping_columns)]
+    mappings['sid'] = mappings.index
+    mappings.reset_index(drop=True, inplace=True)
+    _check_symbol_mappings(mappings, exchanges, df['exchange'])
     return (
         df.groupby(level=0).apply(_check_asset_group),
-        df[list(mapping_columns)],
+        mappings,
     )
 
 
@@ -378,6 +407,214 @@ class AssetDBWriter(object):
     @preprocess(engine=coerce_string_to_eng(require_exists=False))
     def __init__(self, engine):
         self.engine = engine
+
+    def _real_write(self,
+                    equities,
+                    equity_symbol_mappings,
+                    equity_supplementary_mappings,
+                    futures,
+                    exchanges,
+                    root_symbols,
+                    chunk_size):
+        with self.engine.begin() as conn:
+            # Create SQL tables if they do not exist.
+            self.init_db(conn)
+
+            if exchanges is not None:
+                self._write_df_to_table(
+                    exchanges_table,
+                    exchanges,
+                    conn,
+                    chunk_size,
+                )
+
+            if root_symbols is not None:
+                self._write_df_to_table(
+                    futures_root_symbols,
+                    root_symbols,
+                    conn,
+                    chunk_size,
+                )
+
+            if equity_supplementary_mappings is not None:
+                self._write_df_to_table(
+                    equity_supplementary_mappings_table,
+                    equity_supplementary_mappings,
+                    conn,
+                    chunk_size,
+                )
+
+            if futures is not None:
+                self._write_assets(
+                    'future',
+                    futures,
+                    conn,
+                    chunk_size,
+                )
+
+            if equities is not None:
+                self._write_assets(
+                    'equity',
+                    equities,
+                    conn,
+                    chunk_size,
+                    mapping_data=equity_symbol_mappings,
+                )
+
+    def write_direct(self,
+                     equities=None,
+                     equity_symbol_mappings=None,
+                     equity_supplementary_mappings=None,
+                     futures=None,
+                     exchanges=None,
+                     root_symbols=None,
+                     chunk_size=DEFAULT_CHUNK_SIZE):
+        """Write asset metadata to a sqlite database in the format that it is
+        stored in the assets db.
+
+        Parameters
+        ----------
+        equities : pd.DataFrame, optional
+            The equity metadata. The columns for this dataframe are:
+
+              symbol : str
+                  The ticker symbol for this equity.
+              asset_name : str
+                  The full name for this asset.
+              start_date : datetime
+                  The date when this asset was created.
+              end_date : datetime, optional
+                  The last date we have trade data for this asset.
+              first_traded : datetime, optional
+                  The first date we have trade data for this asset.
+              auto_close_date : datetime, optional
+                  The date on which to close any positions in this asset.
+              exchange : str
+                  The exchange where this asset is traded.
+
+            The index of this dataframe should contain the sids.
+        futures : pd.DataFrame, optional
+            The future contract metadata. The columns for this dataframe are:
+
+              symbol : str
+                  The ticker symbol for this futures contract.
+              root_symbol : str
+                  The root symbol, or the symbol with the expiration stripped
+                  out.
+              asset_name : str
+                  The full name for this asset.
+              start_date : datetime, optional
+                  The date when this asset was created.
+              end_date : datetime, optional
+                  The last date we have trade data for this asset.
+              first_traded : datetime, optional
+                  The first date we have trade data for this asset.
+              exchange : str
+                  The exchange where this asset is traded.
+              notice_date : datetime
+                  The date when the owner of the contract may be forced
+                  to take physical delivery of the contract's asset.
+              expiration_date : datetime
+                  The date when the contract expires.
+              auto_close_date : datetime
+                  The date when the broker will automatically close any
+                  positions in this contract.
+              tick_size : float
+                  The minimum price movement of the contract.
+              multiplier: float
+                  The amount of the underlying asset represented by this
+                  contract.
+        exchanges : pd.DataFrame, optional
+            The exchanges where assets can be traded. The columns of this
+            dataframe are:
+
+              exchange : str
+                  The full name of the exchange.
+              canonical_name : str
+                  The canonical name of the exchange.
+              country_code : str
+                  The ISO 3166 alpha-2 country code of the exchange.
+        root_symbols : pd.DataFrame, optional
+            The root symbols for the futures contracts. The columns for this
+            dataframe are:
+
+              root_symbol : str
+                  The root symbol name.
+              root_symbol_id : int
+                  The unique id for this root symbol.
+              sector : string, optional
+                  The sector of this root symbol.
+              description : string, optional
+                  A short description of this root symbol.
+              exchange : str
+                  The exchange where this root symbol is traded.
+        equity_supplementary_mappings : pd.DataFrame, optional
+            Additional mappings from values of abitrary type to assets.
+        chunk_size : int, optional
+            The amount of rows to write to the SQLite table at once.
+            This defaults to the default number of bind params in sqlite.
+            If you have compiled sqlite3 with more bind or less params you may
+            want to pass that value here.
+
+        """
+        if equities is not None:
+            equities = _generate_output_dataframe(
+                equities,
+                _direct_equities_defaults,
+            )
+            if equity_symbol_mappings is None:
+                raise ValueError(
+                    'equities provided with no symbol mapping data',
+                )
+
+            equity_symbol_mappings = _generate_output_dataframe(
+                equity_symbol_mappings,
+                _equity_symbol_mappings_defaults,
+            )
+            _check_symbol_mappings(
+                equity_symbol_mappings,
+                exchanges,
+                equities['exchange'],
+            )
+
+        if equity_supplementary_mappings is not None:
+            equity_supplementary_mappings = _generate_output_dataframe(
+                equity_supplementary_mappings,
+                _equity_supplementary_mappings_defaults,
+            )
+
+        if futures is not None:
+            futures = _generate_output_dataframe(_futures_defaults, futures)
+
+        if exchanges is not None:
+            exchanges = _generate_output_dataframe(
+                exchanges.set_index('exchange'),
+                _exchanges_defaults,
+            )
+
+        if root_symbols is not None:
+            root_symbols = _generate_output_dataframe(
+                root_symbols,
+                _root_symbols_defaults,
+            )
+
+        # Check whether identifier columns have been provided.
+        # If they have, set the index to this column.
+        # If not, assume the index already cotains the identifier information.
+        for name, id_col in _index_columns.items():
+            df = locals()[name]
+            if df is not None and id_col in df.columns:
+                df.set_index(id_col, inplace=True)
+
+        self._real_write(
+            equities=equities,
+            equity_symbol_mappings=equity_symbol_mappings,
+            equity_supplementary_mappings=equity_supplementary_mappings,
+            futures=futures,
+            exchanges=exchanges,
+            root_symbols=root_symbols,
+            chunk_size=chunk_size,
+        )
 
     def write(self,
               equities=None,
@@ -487,60 +724,26 @@ class AssetDBWriter(object):
                     'exchange': pd.concat(exchange_names).unique(),
                 })
 
-        with self.engine.begin() as conn:
-            # Ensure that the foreign key constraints are enforced on inserts.
-            # The ``foreign_keys`` pragma only applies to a given connection,
-            # not the whole database.
-            # conn.execute('PRAGMA foreign_keys = ON')
-
-            # Create SQL tables if they do not exist.
-            self.init_db(conn)
-
-            # Get the data to add to SQL.
-            data = self._load_data(
-                equities if equities is not None else pd.DataFrame(),
-                futures if futures is not None else pd.DataFrame(),
-                exchanges if exchanges is not None else pd.DataFrame(),
-                root_symbols if root_symbols is not None else pd.DataFrame(),
-                (
-                    equity_supplementary_mappings
-                    if equity_supplementary_mappings is not None
-                    else pd.DataFrame()
-                ),
-            )
-            # Write the data to SQL.
-            self._write_df_to_table(
-                exchanges_table,
-                data.exchanges,
-                conn,
-                chunk_size,
-            )
-            self._write_df_to_table(
-                futures_root_symbols,
-                data.root_symbols,
-                conn,
-                chunk_size,
-            )
-            self._write_df_to_table(
-                equity_supplementary_mappings_table,
-                data.equity_supplementary_mappings,
-                conn,
-                chunk_size,
-                idx=False,
-            )
-            self._write_assets(
-                'future',
-                data.futures,
-                conn,
-                chunk_size,
-            )
-            self._write_assets(
-                'equity',
-                data.equities,
-                conn,
-                chunk_size,
-                mapping_data=data.equities_mappings,
-            )
+        data = self._load_data(
+            equities if equities is not None else pd.DataFrame(),
+            futures if futures is not None else pd.DataFrame(),
+            exchanges if exchanges is not None else pd.DataFrame(),
+            root_symbols if root_symbols is not None else pd.DataFrame(),
+            (
+                equity_supplementary_mappings
+                if equity_supplementary_mappings is not None
+                else pd.DataFrame()
+            ),
+        )
+        self._real_write(
+            equities=data.equities,
+            equity_symbol_mappings=data.equities_mappings,
+            equity_supplementary_mappings=data.equity_supplementary_mappings,
+            futures=data.futures,
+            root_symbols=data.root_symbols,
+            exchanges=data.exchanges,
+            chunk_size=chunk_size,
+        )
 
     def _write_df_to_table(
         self,
@@ -551,6 +754,11 @@ class AssetDBWriter(object):
         idx=True,
         idx_label=None,
     ):
+        df = df.copy()
+        for column, dtype in df.dtypes.iteritems():
+            if dtype.kind == 'M':
+                df[column] = _dt_to_epoch_ns(df[column])
+
         df.to_sql(
             tbl.name,
             txn.connection,
@@ -585,7 +793,6 @@ class AssetDBWriter(object):
                 mapping_data,
                 txn,
                 chunk_size,
-                idx_label='sid',
             )
 
         else:
@@ -721,14 +928,12 @@ class AssetDBWriter(object):
 
         return mappings_output
 
-    def _load_data(
-        self,
-        equities,
-        futures,
-        exchanges,
-        root_symbols,
-        equity_supplementary_mappings,
-    ):
+    def _load_data(self,
+                   equities,
+                   futures,
+                   exchanges,
+                   root_symbols,
+                   equity_supplementary_mappings):
         """
         Returns a standard set of pandas.DataFrames:
         equities, futures, exchanges, root_symbols
@@ -736,11 +941,9 @@ class AssetDBWriter(object):
         # Check whether identifier columns have been provided.
         # If they have, set the index to this column.
         # If not, assume the index already cotains the identifier information.
-        for df, id_col in [(equities, 'sid'),
-                           (futures, 'sid'),
-                           (exchanges, 'exchange'),
-                           (root_symbols, 'root_symbol')]:
-            if id_col in df.columns:
+        for name, id_col in _index_columns.items():
+            df = locals().get(name)
+            if df is not None and id_col in df.columns:
                 df.set_index(id_col, inplace=True)
 
         futures_output = self._normalize_futures(futures)
