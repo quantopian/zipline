@@ -71,6 +71,30 @@ _index_columns = {
 }
 
 
+def _normalize_index_columns_in_place(equities,
+                                      equity_supplementary_mappings,
+                                      futures,
+                                      exchanges,
+                                      root_symbols):
+    """
+    Update dataframes in place to set indentifier columns as indices.
+
+    For each input frame, if the frame has a column with the same name as its
+    associated index column, set that column as the index.
+
+    Otherwise, assume the index already contains identifiers.
+
+    If frames are passed as None, they're ignored.
+    """
+    for frame, column_name in ((equities, 'sid'),
+                               (equity_supplementary_mappings, 'sid'),
+                               (futures, 'sid'),
+                               (exchanges, 'exchange'),
+                               (root_symbols, 'root_symbol')):
+        if frame is not None and column_name in frame:
+            frame.set_index(column_name, inplace=True)
+
+
 def _default_none(df, column):
     return None
 
@@ -598,13 +622,14 @@ class AssetDBWriter(object):
                 _root_symbols_defaults,
             )
 
-        # Check whether identifier columns have been provided.
-        # If they have, set the index to this column.
-        # If not, assume the index already cotains the identifier information.
-        for name, id_col in _index_columns.items():
-            df = locals()[name]
-            if df is not None and id_col in df.columns:
-                df.set_index(id_col, inplace=True)
+        # Set named identifier columns as indices, if provided.
+        _normalize_index_columns_in_place(
+            equities=equities,
+            equity_supplementary_mappings=equity_supplementary_mappings,
+            futures=futures,
+            exchanges=exchanges,
+            root_symbols=root_symbols,
+        )
 
         self._real_write(
             equities=equities,
@@ -938,13 +963,14 @@ class AssetDBWriter(object):
         Returns a standard set of pandas.DataFrames:
         equities, futures, exchanges, root_symbols
         """
-        # Check whether identifier columns have been provided.
-        # If they have, set the index to this column.
-        # If not, assume the index already cotains the identifier information.
-        for name, id_col in _index_columns.items():
-            df = locals().get(name)
-            if df is not None and id_col in df.columns:
-                df.set_index(id_col, inplace=True)
+        # Set named identifier columns as indices, if provided.
+        _normalize_index_columns_in_place(
+            equities=equities,
+            equity_supplementary_mappings=equity_supplementary_mappings,
+            futures=futures,
+            exchanges=exchanges,
+            root_symbols=root_symbols,
+        )
 
         futures_output = self._normalize_futures(futures)
 
