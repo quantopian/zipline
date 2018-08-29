@@ -45,6 +45,7 @@ from six.moves import zip_longest
 from toolz import dissoc, keyfilter
 import toolz.curried.operator as op
 
+from zipline.assets import Asset
 from zipline.dispatch import dispatch
 from zipline.lib.adjustment import Adjustment
 from zipline.lib.labelarray import LabelArray
@@ -670,6 +671,15 @@ def assert_timestamp_and_datetime_equal(result,
         )
     )
 
+    if isinstance(result, pd.Timestamp) and isinstance(expected, pd.Timestamp):
+        assert_equal(
+            result.tz,
+            expected.tz,
+            path=path + ('.tz',),
+            msg=msg,
+            **kwargs
+        )
+
     result = pd.Timestamp(result)
     expected = pd.Timestamp(expected)
     if compare_nat_equal and pd.isnull(result) and pd.isnull(expected):
@@ -706,6 +716,26 @@ def assert_slice_equal(result, expected, path=(), msg=''):
         _fmt_msg(msg),
         '\n'.join(filter(None, diffs)),
         _fmt_path(path),
+    )
+
+
+@assert_equal.register(Asset, Asset)
+def assert_asset_equal(result, expected, path=(), msg='', **kwargs):
+    if type(result) is not type(expected):
+        raise AssertionError(
+            '%sresult type differs from expected type: %s is not %s\n%2',
+            _fmt_msg(msg),
+            type(result).__name__,
+            type(expected).__name__,
+            _fmt_path(path),
+        )
+
+    assert_equal(
+        result.to_dict(),
+        expected.to_dict(),
+        path=path + ('.to_dict()',),
+        msg=msg,
+        **kwargs
     )
 
 
