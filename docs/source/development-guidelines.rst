@@ -36,11 +36,18 @@ The following section assumes you already have virtualenvwrapper and pip install
    $ pip install -r ./etc/requirements_dev.txt
    $ pip install -r ./etc/requirements_blaze.txt 
 
-Finally, you can build the C extensions by running:
+You can build the C extensions by running:
 
 .. code-block:: bash
 
    $ python setup.py build_ext --inplace
+
+In case you want to install the package locally and use ``zipline`` wrapper script:
+
+.. code-block:: bash
+
+   $ pip install -e .
+   $ zipline --help
 
 To finish, make sure `tests`__ pass.
 
