@@ -43,6 +43,7 @@ from zipline.assets import (
     AssetDBWriter,
     AssetFinder,
 )
+from zipline.assets.assets import OwnershipPeriod
 from zipline.assets.synthetic import (
     make_commodity_future_info,
     make_rotating_equity_info,
@@ -2309,7 +2310,7 @@ class TestWriteDirect(WithTmpDir, ZiplineTestCase):
         equity_supplementary_mappings = pd.DataFrame({
             'sid': [0, 1],
             'field': ['QSIP', 'QSIP'],
-            'value': [hash('AYY'), hash('LMAO')],
+            'value': [str(hash(s)) for s in ['AYY', 'LMAO']],
         })
         exchanges = pd.DataFrame({
             'exchange': ['NYSE', 'TSE'],
@@ -2360,3 +2361,24 @@ class TestWriteDirect(WithTmpDir, ZiplineTestCase):
             'TSE': ExchangeInfo('TSE', 'TSE', 'JP'),
         }
         assert_equal(exchange_info, expected_exchange_info)
+
+        supplementary_map = reader.equity_supplementary_map
+        expected_supplementary_map = {
+            ('QSIP', str(hash('AYY'))): (
+                OwnershipPeriod(
+                    start=pd.Timestamp(0, tz='UTC'),
+                    end=pd.Timestamp.max.tz_localize('UTC'),
+                    sid=0,
+                    value=str(hash('AYY')),
+                ),
+            ),
+            ('QSIP', str(hash('LMAO'))): (
+                OwnershipPeriod(
+                    start=pd.Timestamp(0, tz='UTC'),
+                    end=pd.Timestamp.max.tz_localize('UTC'),
+                    sid=1,
+                    value=str(hash('LMAO')),
+                ),
+            ),
+        }
+        assert_equal(supplementary_map, expected_supplementary_map)
