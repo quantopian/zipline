@@ -270,6 +270,23 @@ def _format_range(r):
 
 
 def _check_symbol_mappings(df, exchanges, asset_exchange):
+    """Check that there are no cases where multiple symbols resolve to the same
+    asset at the same time in the same country.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The equity symbol mappings table.
+    exchanges : pd.DataFrame
+        The exchanges table.
+    asset_exchange : pd.Series
+        A series that maps sids to the exchange the asset is in.
+
+    Raises
+    ------
+    ValueError
+        Raised when there are ambiguous symbol mappings.
+    """
     mappings = df.set_index('sid')[list(mapping_columns)].copy()
     mappings['country_code'] = exchanges['country_code'][
         asset_exchange[df['sid']]
@@ -322,6 +339,8 @@ def _split_symbol_mappings(df, exchanges):
     ----------
     df : pd.DataFrame
         The dataframe with multiple rows for each symbol: sid pair.
+    exchanges : pd.DataFrame
+        The exchanges table.
 
     Returns
     -------
