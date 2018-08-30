@@ -43,7 +43,7 @@ mistune==0.7
 
 # Required by tornado
 backports.ssl-match-hostname==3.4.0.2;python_version<'3.0'
-certifi==2018.4.16
+certifi==2018.8.24
 
 # matplotlib dependencies:
 tornado==4.2.1
