@@ -681,6 +681,8 @@ class AssetFinder(object):
                        symbols=self._lookup_most_recent_symbols(sids)):
                 d = dict(row)
                 d['exchange_info'] = exchanges[d.pop('exchange')]
+                # we are not required to have a symbol for every asset, if
+                # we don't have any symbols we will just use the empty string
                 return merge(d, symbols.get(row['sid'], {}))
         else:
             def mkdict(row, exchanges=self.exchange_info):
