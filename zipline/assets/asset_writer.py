@@ -354,7 +354,13 @@ def _split_symbol_mappings(df, exchanges):
     mappings = df[list(mapping_columns)]
     mappings['sid'] = mappings.index
     mappings.reset_index(drop=True, inplace=True)
-    _check_symbol_mappings(mappings, exchanges, df['exchange'])
+
+    asset_exchange = df[['exchange']]
+    asset_exchange['sid'] = df.index
+    asset_exchange.drop_duplicates(inplace=True)
+    asset_exchange = asset_exchange['exchange']
+
+    _check_symbol_mappings(mappings, exchanges, asset_exchange)
     return (
         df.groupby(level=0).apply(_check_asset_group),
         mappings,
