@@ -723,7 +723,7 @@ def assert_slice_equal(result, expected, path=(), msg=''):
 def assert_asset_equal(result, expected, path=(), msg='', **kwargs):
     if type(result) is not type(expected):
         raise AssertionError(
-            '%sresult type differs from expected type: %s is not %s\n%2',
+            '%sresult type differs from expected type: %s is not %s\n%s',
             _fmt_msg(msg),
             type(result).__name__,
             type(expected).__name__,
