@@ -158,7 +158,7 @@ def winsorise_uint32(df, invalid_data_behavior, column, *columns):
                 stacklevel=3,  # one extra frame for `expect_element`
             )
 
-    df[mask] = 0
+    df = df.where(~mask, other=0)
     return df
 
 
