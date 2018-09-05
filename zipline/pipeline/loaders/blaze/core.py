@@ -177,19 +177,10 @@ from zipline.pipeline.common import (
 )
 from zipline.pipeline.data.dataset import DataSet, Column
 from zipline.pipeline.domain import GENERIC
-from zipline.pipeline.loaders.utils import (
-    check_data_query_args,
-    normalize_data_query_bounds,
-)
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.lib.adjusted_array import can_represent_dtype
-from zipline.utils.input_validation import (
-    expect_element,
-    ensure_timezone,
-    optionally,
-)
+from zipline.utils.input_validation import expect_element
 from zipline.utils.pool import SequentialPool
-from zipline.utils.preprocess import preprocess
 from ._core import (  # noqa
     adjusted_arrays_from_rows_with_assets,
     adjusted_arrays_from_rows_without_assets,
@@ -767,10 +758,6 @@ class BlazeLoader(object):
         An initial mapping of datasets to ``ExprData`` objects.
         NOTE: Further mutations to this map will not be reflected by this
         object.
-    data_query_time : time, optional
-        The time to use for the data query cutoff.
-    data_query_tz : tzinfo or str, optional
-        The timezeone to use for the data query cutoff.
     pool : Pool, optional
         The pool to use to run blaze queries concurrently. This object must
         support ``imap_unordered``, ``apply`` and ``apply_async`` methods.
@@ -789,16 +776,7 @@ class BlazeLoader(object):
     :class:`zipline.utils.pool.SequentialPool`
     :class:`multiprocessing.Pool`
     """
-    @preprocess(data_query_tz=optionally(ensure_timezone))
-    def __init__(self,
-                 dsmap=None,
-                 data_query_time=None,
-                 data_query_tz=None,
-                 pool=SequentialPool()):
-        check_data_query_args(data_query_time, data_query_tz)
-        self._data_query_time = data_query_time
-        self._data_query_tz = data_query_tz
-
+    def __init__(self, dsmap=None, pool=SequentialPool()):
         # explicitly public
         self.pool = pool
 
@@ -898,14 +876,28 @@ class BlazeLoader(object):
         )
 
     def load_adjusted_array(self, domain, columns, dates, sids, mask):
+        data_query_cutoff_times = domain.data_query_cutoff_for_sessions(
+            dates,
+        )
         return merge(
             self.pool.imap_unordered(
-                partial(self._load_dataset, dates, sids, mask),
+                partial(
+                    self._load_dataset,
+                    dates,
+                    data_query_cutoff_times,
+                    sids,
+                    mask,
+                ),
                 itervalues(groupby(getitem(self._table_expressions), columns)),
             ),
         )
 
-    def _load_dataset(self, dates, assets, mask, columns):
+    def _load_dataset(self,
+                      dates,
+                      data_query_cutoff_times,
+                      assets,
+                      mask,
+                      columns):
         try:
             (expr_data,) = {self._table_expressions[c] for c in columns}
         except ValueError:
@@ -922,14 +914,7 @@ class BlazeLoader(object):
         requested_columns = set(map(getname, columns))
         colnames = sorted(added_query_fields | requested_columns)
 
-        data_query_time = self._data_query_time
-        data_query_tz = self._data_query_tz
-        lower_dt, upper_dt = normalize_data_query_bounds(
-            dates[0],
-            dates[-1],
-            data_query_time,
-            data_query_tz,
-        )
+        lower_dt, upper_dt = data_query_cutoff_times[[0, -1]]
 
         def collect_expr(e, lower):
             """Materialize the expression as a dataframe.
@@ -991,8 +976,7 @@ class BlazeLoader(object):
         if have_sids:
             return adjusted_arrays_from_rows_with_assets(
                 dates,
-                data_query_time,
-                data_query_tz,
+                data_query_cutoff_times,
                 assets,
                 columns,
                 all_rows,
@@ -1000,8 +984,7 @@ class BlazeLoader(object):
         else:
             return adjusted_arrays_from_rows_without_assets(
                 dates,
-                data_query_time,
-                data_query_tz,
+                data_query_cutoff_times,
                 columns,
                 all_rows,
             )

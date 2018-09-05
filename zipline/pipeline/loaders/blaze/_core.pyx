@@ -547,8 +547,7 @@ cpdef getname(object column):
 
 
 cdef arrays_from_rows(DatetimeIndex_t dates,
-                      object data_query_time,
-                      object data_query_tz,
+                      DatetimeIndex_t data_query_cutoff_times,
                       object assets,
                       np.ndarray[np.int64_t] sids,
                       list columns,
@@ -556,15 +555,10 @@ cdef arrays_from_rows(DatetimeIndex_t dates,
                       AsArrayKind array_kind):
     cdef dict column_ixs = dict(zip(assets, range(len(assets))))
 
-    if data_query_time is not None:
-        ts_dates = days_at_time(dates, data_query_time, data_query_tz)
-    else:
-        ts_dates = dates
-
     # We use searchsorted right here to be exclusive on the data query time.
     # This means that if a data_query_time = 8:45, and a timestamp is exactly
     # 8:45, we would mark that the data point became available the next day.
-    cdef np.ndarray[np.int64_t] ts_ixs = ts_dates.searchsorted(
+    cdef np.ndarray[np.int64_t] ts_ixs = data_query_cutoff_times.searchsorted(
         all_rows[TS_FIELD_NAME].values,
         'right',
     )
@@ -612,16 +606,14 @@ cdef arrays_from_rows(DatetimeIndex_t dates,
 
 
 cdef arrays_from_rows_with_assets(DatetimeIndex_t dates,
-                                  object data_query_time,
-                                  object data_query_tz,
+                                  DatetimeIndex_t data_query_cutoff_times,
                                   object assets,
                                   list columns,
                                   object all_rows,
                                   AsArrayKind array_kind):
     return arrays_from_rows[AsArrayKind](
         dates,
-        data_query_time,
-        data_query_tz,
+        data_query_cutoff_times,
         assets,
         all_rows[SID_FIELD_NAME].values.astype('int64', copy=False),
         columns,
@@ -631,8 +623,7 @@ cdef arrays_from_rows_with_assets(DatetimeIndex_t dates,
 
 
 cdef arrays_from_rows_without_assets(DatetimeIndex_t dates,
-                                     object data_query_time,
-                                     object data_query_tz,
+                                     DatetimeIndex_t data_query_cutoff_times,
                                      list columns,
                                      object all_rows,
                                      AsArrayKind array_kind):
@@ -641,8 +632,7 @@ cdef arrays_from_rows_without_assets(DatetimeIndex_t dates,
     # desired shape of (len(dates), 1) without much cost.
     return arrays_from_rows[AsArrayKind](
         dates,
-        data_query_time,
-        data_query_tz,
+        data_query_cutoff_times,
         [0],  # pass just sid 0
         np.ndarray(
             (len(all_rows),),
@@ -659,8 +649,7 @@ cdef arrays_from_rows_without_assets(DatetimeIndex_t dates,
 
 
 cpdef adjusted_arrays_from_rows_with_assets(DatetimeIndex_t dates,
-                                            object data_query_time,
-                                            object data_query_tz,
+                                            DatetimeIndex_t data_query_cutoff_times,
                                             object assets,
                                             list columns,
                                             object all_rows):
@@ -670,11 +659,9 @@ cpdef adjusted_arrays_from_rows_with_assets(DatetimeIndex_t dates,
     ----------
     dates : pd.DatetimeIndex
         The trading days requested by the pipeline engine.
-    data_query_time : datetime.time or None
-        The time of day when the data is being queried. If None,
-        midnight UTC will be used.
-    data_query_tz : pytz.Timezone or None
-        The timezone for the data_query_time.
+    data_query_cutoff_times : pd.DatetimeIndex
+        The datetime when data should no longer be considered available for
+        a session.
     assets : iterable[int]
         The assets in the order requested.
     columns : list[BoundColumn]
@@ -690,8 +677,7 @@ cpdef adjusted_arrays_from_rows_with_assets(DatetimeIndex_t dates,
     """
     return arrays_from_rows_with_assets[AsAdjustedArray](
         dates,
-        data_query_time,
-        data_query_tz,
+        data_query_cutoff_times,
         assets,
         columns,
         all_rows,
@@ -700,8 +686,7 @@ cpdef adjusted_arrays_from_rows_with_assets(DatetimeIndex_t dates,
 
 
 cpdef adjusted_arrays_from_rows_without_assets(DatetimeIndex_t dates,
-                                               object data_query_time,
-                                               object data_query_tz,
+                                               DatetimeIndex_t data_query_cutoff_times,
                                                list columns,
                                                object all_rows):
     """Construct the adjusted array objects from the input rows.
@@ -710,11 +695,9 @@ cpdef adjusted_arrays_from_rows_without_assets(DatetimeIndex_t dates,
     ----------
     dates : pd.DatetimeIndex
         The trading days requested by the pipeline engine.
-    data_query_time : datetime.time or None
-        The time of day when the data is being queried. If None,
-        midnight UTC will be used.
-    data_query_tz : pytz.Timezone or None
-        The timezone for the data_query_time.
+    data_query_cutoff_times : pd.DatetimeIndex
+        The datetime when data should no longer be considered available for
+        a session.
     columns : list[BoundColumn]
         The columns being loaded.
     all_rows : pd.DataFrame
@@ -728,8 +711,7 @@ cpdef adjusted_arrays_from_rows_without_assets(DatetimeIndex_t dates,
     """
     return arrays_from_rows_without_assets[AsAdjustedArray](
         dates,
-        data_query_time,
-        data_query_tz,
+        data_query_cutoff_times,
         columns,
         all_rows,
         AsAdjustedArray(),
@@ -737,8 +719,7 @@ cpdef adjusted_arrays_from_rows_without_assets(DatetimeIndex_t dates,
 
 
 cpdef baseline_arrays_from_rows_with_assets(DatetimeIndex_t dates,
-                                            object data_query_time,
-                                            object data_query_tz,
+                                            DatetimeIndex_t data_query_cutoff_times,
                                             object assets,
                                             list columns,
                                             object all_rows):
@@ -748,11 +729,9 @@ cpdef baseline_arrays_from_rows_with_assets(DatetimeIndex_t dates,
     ----------
     dates : pd.DatetimeIndex
         The trading days requested by the pipeline engine.
-    data_query_time : datetime.time or None
-        The time of day when the data is being queried. If None,
-        midnight UTC will be used.
-    data_query_tz : pytz.Timezone or None
-        The timezone for the data_query_time.
+    data_query_cutoff_times : pd.DatetimeIndex
+        The datetime when data should no longer be considered available for
+        a session.
     assets : iterable[int]
         The assets in the order requested.
     columns : list[BoundColumn]
@@ -768,8 +747,7 @@ cpdef baseline_arrays_from_rows_with_assets(DatetimeIndex_t dates,
     """
     return arrays_from_rows_with_assets[AsBaselineArray](
         dates,
-        data_query_time,
-        data_query_tz,
+        data_query_cutoff_times,
         assets,
         columns,
         all_rows,
@@ -778,8 +756,7 @@ cpdef baseline_arrays_from_rows_with_assets(DatetimeIndex_t dates,
 
 
 cpdef baseline_arrays_from_rows_without_assets(DatetimeIndex_t dates,
-                                               object data_query_time,
-                                               object data_query_tz,
+                                               DatetimeIndex_t data_query_cutoff_times,
                                                list columns,
                                                object all_rows):
     """Construct the baseline arrays from the input rows.
@@ -788,11 +765,9 @@ cpdef baseline_arrays_from_rows_without_assets(DatetimeIndex_t dates,
     ----------
     dates : pd.DatetimeIndex
         The trading days requested by the pipeline engine.
-    data_query_time : datetime.time or None
-        The time of day when the data is being queried. If None,
-        midnight UTC will be used.
-    data_query_tz : pytz.Timezone or None
-        The timezone for the data_query_time.
+    data_query_cutoff_times : pd.DatetimeIndex
+        The datetime when data should no longer be considered available for
+        a session.
     columns : list[BoundColumn]
         The columns being loaded.
     all_rows : pd.DataFrame
@@ -806,8 +781,7 @@ cpdef baseline_arrays_from_rows_without_assets(DatetimeIndex_t dates,
     """
     return arrays_from_rows_without_assets[AsBaselineArray](
         dates,
-        data_query_time,
-        data_query_tz,
+        data_query_cutoff_times,
         columns,
         all_rows,
         AsBaselineArray(),
