@@ -16,6 +16,7 @@ import numpy as np
 from numpy.testing.utils import assert_array_almost_equal
 from odo import odo
 import pandas as pd
+import pytz
 from toolz import keymap, valmap, concatv
 from toolz.curried import operator as op
 
@@ -131,10 +132,15 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             timestamp: datetime,
         }""")
 
-    def create_domain(self, sessions):
+    def create_domain(self,
+                      sessions,
+                      data_query_time=time(0, 0),
+                      data_query_date_offset=0):
         return EquitySessionDomain(
             sessions,
             country_code=self.ASSET_FINDER_COUNTRY_CODE,
+            data_query_time=data_query_time,
+            data_query_date_offset=data_query_date_offset,
         )
 
     def test_tabular(self):
@@ -879,14 +885,17 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         ).tz_convert('utc').tz_localize(None)
         df.ix[3:5, 'timestamp'] = pd.Timestamp('2014-01-01 13:45')
         expr = bz.data(df, name='expr', dshape=self.dshape)
-        loader = BlazeLoader(data_query_time=time(8, 45), data_query_tz='EST')
+        loader = BlazeLoader()
         ds = from_blaze(
             expr,
             loader=loader,
             no_deltas_rule='ignore',
             no_checkpoints_rule='ignore',
             missing_values=self.missing_values,
-            domain=self.create_domain(self.dates),
+            domain=self.create_domain(
+                self.dates,
+                data_query_time=time(8, 45, tzinfo=pytz.timezone('EST')),
+            ),
         )
         p = Pipeline()
         p.add(ds.value.latest, 'value')
@@ -2147,14 +2156,21 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 compute_fn=op.itemgetter(-1),
             )
 
-    def test_checkpoints_macro(self):
+    @parameter_space(checkpoints_ts_fuzz_minutes=range(-5, 5))
+    def test_checkpoints_macro(self, checkpoints_ts_fuzz_minutes):
         ffilled_value = 0.0
 
         checkpoints_ts = pd.Timestamp('2014-01-02')
         checkpoints = pd.DataFrame({
             'value': [ffilled_value],
             'asof_date': checkpoints_ts,
-            'timestamp': checkpoints_ts,
+            'timestamp': (
+                checkpoints_ts +
+                # Fuzz the checkpoints timestamp a little so that it doesn't
+                # align with the data query time. This should not affect the
+                # correctness of the output.
+                pd.Timedelta(minutes=checkpoints_ts_fuzz_minutes)
+            ),
         })
 
         self._test_checkpoints_macro(checkpoints, ffilled_value)
@@ -2250,7 +2266,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 compute_fn=op.itemgetter(-1),
             )
 
-    def test_checkpoints(self):
+    @parameter_space(checkpoints_ts_fuzz_minutes=range(-5, 5))
+    def test_checkpoints(self, checkpoints_ts_fuzz_minutes):
         nassets = len(simple_asset_info)
         ffilled_values = (np.arange(nassets, dtype=np.float64) + 1) * 10
         dates = pd.Index([pd.Timestamp('2014-01-01')] * nassets)
@@ -2258,7 +2275,13 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             'sid': simple_asset_info.index,
             'value': ffilled_values,
             'asof_date': dates,
-            'timestamp': dates + pd.Timedelta(days=1),
+            'timestamp': (
+                dates +
+                # Fuzz the checkpoints timestamp a little so that it doesn't
+                # align with the data query time. This should not affect the
+                # correctness of the output.
+                pd.Timedelta(days=1, minutes=checkpoints_ts_fuzz_minutes)
+            ),
         })
 
         self._test_checkpoints(checkpoints, ffilled_values)
