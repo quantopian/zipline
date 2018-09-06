@@ -2319,7 +2319,7 @@ class TestWrite(WithInstanceTmpDir, ZiplineTestCase):
                     # Change the exchange with each mapping period. We don't
                     # currently support point in time exchange information,
                     # so we just take the most recent by end date.
-                    'exchange': 'EXCHANGE-%d' % n,
+                    'exchange': 'EXCHANGE-%d-%d' % (sid, n),
                 }
                 for n, date in enumerate(dates)
                 for sid in sids
@@ -2330,8 +2330,8 @@ class TestWrite(WithInstanceTmpDir, ZiplineTestCase):
         reader = self.new_asset_finder()
         equities = reader.retrieve_all(reader.sids)
 
-        expected_exchange = 'EXCHANGE-%d' % (len(dates) - 1)
         for eq in equities:
+            expected_exchange = 'EXCHANGE-%d-%d' % (eq.sid, len(dates) - 1)
             assert_equal(eq.exchange, expected_exchange)
 
     def test_write_direct(self):
