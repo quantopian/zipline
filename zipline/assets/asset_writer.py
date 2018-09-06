@@ -289,7 +289,7 @@ def _check_symbol_mappings(df, exchanges, asset_exchange):
     """
     mappings = df.set_index('sid')[list(mapping_columns)].copy()
     mappings['country_code'] = exchanges['country_code'][
-        asset_exchange[df['sid']]
+        asset_exchange.loc[df['sid']]
     ].values
     ambigious = {}
 
@@ -355,10 +355,10 @@ def _split_symbol_mappings(df, exchanges):
     mappings['sid'] = mappings.index
     mappings.reset_index(drop=True, inplace=True)
 
-    asset_exchange = df[['exchange']]
-    asset_exchange['sid'] = df.index
-    asset_exchange.drop_duplicates(inplace=True)
-    asset_exchange = asset_exchange['exchange']
+    # take the most recent sid->exchange mapping based on end date
+    asset_exchange = df[
+        ['exchange', 'end_date']
+    ].sort_values('end_date').groupby(level=0)['exchange'].nth(-1)
 
     _check_symbol_mappings(mappings, exchanges, asset_exchange)
     return (
