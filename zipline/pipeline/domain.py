@@ -125,7 +125,10 @@ class EquityCalendarDomain(Domain):
         Name of the calendar, to be looked by by trading_calendar.get_calendar.
     data_query_offset : datetime.timedelta
          The offset from market open when data should no longer be considered
-         available for a session.
+         available for a session. For example, a ``data_query_offset`` of
+         ``-datetime.timedelta(minutes=45)`` means that the data must have
+         been available at least 45 minutes prior to market open for it to
+         appear in the pipeline input for the given session.
     """
     @expect_types(
         country_code=str,
@@ -138,7 +141,11 @@ class EquityCalendarDomain(Domain):
                  data_query_offset=-datetime.timedelta(minutes=45)):
         self._country_code = country_code
         self._calendar_name = calendar_name
-        self._data_query_offset = data_query_offset
+        self._data_query_offset = (
+            # add one minute because `open_time` is actually the open minute
+            # label which is one minute _after_ market open...
+            data_query_offset - datetime.timedelta(minutes=1)
+        )
         if data_query_offset >= datetime.timedelta(0):
             raise ValueError(
                 'data must be ready before market open (offset must be < 0)',
@@ -168,7 +175,7 @@ class EquityCalendarDomain(Domain):
                 ),
             )
 
-        return opens + self.data_query_offset
+        return pd.DatetimeIndex(opens + self._data_query_offset)
 
     def __repr__(self):
         return "EquityCalendarDomain({!r}, {!r})".format(
@@ -265,7 +272,8 @@ class EquitySessionDomain(Domain):
         a session.
     data_query_date_offset : int, optional
         The number of days to add to the session label before applying the
-        ``data_query_time``.
+        ``data_query_time``. This can be used to express that the cutoff time
+        for a session falls on a different calendar day from the session label.
     """
     @expect_types(
         sessions=pd.DatetimeIndex,
@@ -298,4 +306,4 @@ class EquitySessionDomain(Domain):
             self._data_query_time,
             self._data_query_time.tzinfo or 'UTC',
             self._data_query_date_offset,
-        )
+        ).tz_convert('UTC').tz_localize(None)
