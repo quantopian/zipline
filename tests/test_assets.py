@@ -89,6 +89,7 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
     WithTradingCalendars,
     WithTmpDir,
+    WithInstanceTmpDir,
 )
 from zipline.utils.range import range
 
@@ -2289,11 +2290,51 @@ class TestExchangeInfo(ZiplineTestCase):
             assert_equal(asset.exchange_info, expected_exchange_info)
 
 
-class TestWriteDirect(WithTmpDir, ZiplineTestCase):
-    def test_write_direct(self):
-        path = os.path.join(self.tmpdir.path, 'assets.db')
-        writer = AssetDBWriter(path)
+class TestWrite(WithInstanceTmpDir, ZiplineTestCase):
+    def init_instance_fixtures(self):
+        super(TestWrite, self).init_instance_fixtures()
+        self.assets_db_path = path = os.path.join(
+            self.instance_tmpdir.path,
+            'assets.db',
+        )
+        self.writer = AssetDBWriter(path)
 
+    def new_asset_finder(self):
+        return AssetFinder(self.assets_db_path)
+
+    def test_write_multiple_exchanges(self):
+        # Incrementing by two so that start and end dates for each
+        # generated Asset don't overlap (each Asset's end_date is the
+        # day after its start date).
+        dates = pd.date_range('2013-01-01', freq='2D', periods=5, tz='UTC')
+        sids = list(range(5))
+        df = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': sid,
+                    'symbol':  str(sid),
+                    'start_date': date.value,
+                    'end_date': (date + timedelta(days=1)).value,
+
+                    # Change the exchange with each mapping period. We don't
+                    # currently support point in time exchange information,
+                    # so we just take the most recent by end date.
+                    'exchange': 'EXCHANGE-%d' % n,
+                }
+                for n, date in enumerate(dates)
+                for sid in sids
+            ]
+        )
+        self.writer.write(equities=df)
+
+        reader = self.new_asset_finder()
+        equities = reader.retrieve_all(reader.sids)
+
+        expected_exchange = 'EXCHANGE-%d' % (len(dates) - 1)
+        for eq in equities:
+            assert_equal(eq.exchange, expected_exchange)
+
+    def test_write_direct(self):
         # don't include anything with a default to test that those work.
         equities = pd.DataFrame({
             'sid': [0, 1],
@@ -2317,14 +2358,14 @@ class TestWriteDirect(WithTmpDir, ZiplineTestCase):
             'country_code': ['US', 'JP'],
         })
 
-        writer.write_direct(
+        self.writer.write_direct(
             equities=equities,
             equity_symbol_mappings=equity_symbol_mappings,
             equity_supplementary_mappings=equity_supplementary_mappings,
             exchanges=exchanges,
         )
 
-        reader = AssetFinder(path)
+        reader = self.new_asset_finder()
 
         equities = reader.retrieve_all(reader.sids)
         expected_equities = [
