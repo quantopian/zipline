@@ -163,10 +163,10 @@ class EquityCalendarDomain(Domain):
         return self.calendar.all_sessions
 
     def data_query_cutoff_for_sessions(self, sessions):
-        try:
-            opens = self.calendar.opens.loc[sessions]
-        except KeyError:
-            missing_days = sessions[~sessions.isin(self.calendar.opens.index)]
+        opens = self.calendar.opens.loc[sessions]
+        missing_mask = pd.isnull(opens)
+        if missing_mask.any():
+            missing_days = sessions[missing_mask.values]
             raise ValueError(
                 'cannot resolve data query time for sessions that are not on'
                 ' the %s calendar:\n%s' % (
@@ -175,7 +175,7 @@ class EquityCalendarDomain(Domain):
                 ),
             )
 
-        return pd.DatetimeIndex(opens + self._data_query_offset)
+        return pd.DatetimeIndex(opens + self._data_query_offset, tz='UTC')
 
     def __repr__(self):
         return "EquityCalendarDomain({!r}, {!r})".format(
@@ -302,8 +302,8 @@ class EquitySessionDomain(Domain):
 
     def data_query_cutoff_for_sessions(self, sessions):
         return days_at_time(
-            sessions.tz_localize('UTC'),
+            sessions,
             self._data_query_time,
             self._data_query_time.tzinfo or 'UTC',
             self._data_query_date_offset,
-        ).tz_convert('UTC').tz_localize(None)
+        )
