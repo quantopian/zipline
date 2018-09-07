@@ -306,7 +306,7 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
             expected_cutoff_time,
             domain.calendar.tz,
             expected_cutoff_date_offset,
-        ).tz_localize(None)
+        )
         actual = domain.data_query_cutoff_for_sessions(sessions)
 
         assert_equal(actual, expected)
@@ -351,7 +351,7 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
 
     @parameter_space(domain=(US_EQUITIES, CA_EQUITIES, GB_EQUITIES))
     def test_equity_calendar_not_aligned(self, domain):
-        valid_sessions = domain.all_sessions()[:50].tz_localize(None)
+        valid_sessions = domain.all_sessions()[:50]
         sessions = pd.date_range(valid_sessions[0], valid_sessions[-1])
         invalid_sessions = sessions[~sessions.isin(valid_sessions)]
         self.assertGreater(
@@ -388,7 +388,7 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
     ))
     def test_equity_session_domain(self, parameters):
         time, date_offset, expected_timedelta = parameters
-        sessions = pd.date_range('2000-01-01', '2000-06-01')
+        sessions = pd.date_range('2000-01-01', '2000-06-01', tz='UTC')
 
         domain = EquitySessionDomain(
             sessions,
