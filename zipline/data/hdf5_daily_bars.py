@@ -68,9 +68,8 @@ class HDF5DailyBarWriter(object):
         self._filename = filename
         self._date_chunk_size = date_chunk_size
 
-    @property
-    def _h5_file(self):
-        return h5py.File(self._filename, 'a')
+    def _h5_file(self, mode):
+        return h5py.File(self._filename, mode)
 
     def write(self, country_code, frame):
         """
@@ -81,7 +80,7 @@ class HDF5DailyBarWriter(object):
         frame : pd.DataFrame
             A dataframe of OHLCV data with a (sids, dates) index.
         """
-        with self._h5_file as h5_file:
+        with self._h5_file(mode='a') as h5_file:
             country_group = h5_file.create_group(country_code)
 
             data_group = country_group.create_group(DATA)
@@ -127,6 +126,8 @@ class HDF5DailyBarWriter(object):
                     'Writing dataset {} to file {}',
                     dataset.name, self._filename
                 )
+
+        return self._h5_file(mode='r')
 
 
 def convert_price_with_scaling_factor(a, scaling_factor):
