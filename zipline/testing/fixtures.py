@@ -48,6 +48,10 @@ from ..data.data_portal import (
     DEFAULT_MINUTE_HISTORY_PREFETCH,
     DEFAULT_DAILY_HISTORY_PREFETCH,
 )
+from ..data.hdf5_daily_bars import (
+    HDF5DailyBarReader,
+    HDF5DailyBarWriter,
+)
 from ..data.loader import (
     get_benchmark_filename,
 )
@@ -1126,6 +1130,78 @@ def _trading_days_for_minute_bars(calendar,
         )[0]
 
     return calendar.sessions_in_range(first_session, end_date)
+
+
+class WithHDF5EquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
+    """
+    ZiplineTestCase mixin providing cls.hdf5_daily_bar_path and
+    cls.hdf5_equity_daily_bar_reader class level fixtures.
+
+    After init_class_fixtures has been called:
+    - `cls.hdf5_daily_bar_path` is populated with
+      `cls.tmpdir.getpath(cls.HDF5_DAILY_BAR_PATH)`.
+    - The file at `cls.hdf5_daily_bar_path` is populated with data returned
+      from `cls.make_equity_daily_bar_data`. By default this calls
+      :func:`zipline.pipeline.loaders.synthetic.make_equity_daily_bar_data`.
+    - `cls.hdf5_equity_daily_bar_reader` is a daily bar reader pointing
+      to the file that was just written to.
+
+    Attributes
+    ----------
+    HDF5_DAILY_BAR_PATH : str
+        The path inside the tmpdir where this will be written.
+    EQUITY_DAILY_BAR_LOOKBACK_DAYS : int
+        The number of days of data to add before the first day. This is used
+        when a test needs to use history, in which case this should be set to
+        the largest history window that will be
+        requested.
+    EQUITY_DAILY_BAR_USE_FULL_CALENDAR : bool
+        If this flag is set the ``equity_daily_bar_days`` will be the full
+        set of trading days from the trading environment. This flag overrides
+        ``EQUITY_DAILY_BAR_LOOKBACK_DAYS``.
+    EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE : bool
+        If this flag is set, `make_equity_daily_bar_data` will read data from
+        the minute bar reader defined by a `WithBcolzEquityMinuteBarReader`.
+
+    Methods
+    -------
+    make_hdf5_daily_bar_path() -> string
+        A class method that returns the path for the rootdir of the daily
+        bars ctable. By default this is a subdirectory HDF5_DAILY_BAR_PATH in
+        the shared temp directory.
+
+    See Also
+    --------
+    WithDataPortal
+    zipline.testing.create_daily_bar_data
+    """
+    HDF5_DAILY_BAR_PATH = 'daily_equity_pricing.h5'
+    EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = False
+
+    @classmethod
+    def make_hdf5_daily_bar_path(cls):
+        return cls.tmpdir.getpath(cls.HDF5_DAILY_BAR_PATH)
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(WithHDF5EquityDailyBarReader, cls).init_class_fixtures()
+
+        cls.hdf5_daily_bar_path = p = cls.make_hdf5_daily_bar_path()
+
+        frame = pd.concat([
+            (df.reset_index()
+               .rename(columns={'index': 'date'})
+               .assign(sid=sid)
+               .set_index(['sid', 'date']))
+            for sid, df in cls.make_equity_daily_bar_data()
+        ])
+
+        f = HDF5DailyBarWriter(p, date_chunk_size=30).write('US', frame)
+
+        cls.hdf5_equity_daily_bar_reader = HDF5DailyBarReader(
+            f=f,
+            calendar=cls.trading_calendar,
+        )
 
 
 class WithEquityMinuteBarData(WithAssetFinder, WithTradingCalendars):
