@@ -19,12 +19,8 @@ from zipline.pipeline.loaders.earnings_estimates import (
     required_estimates_fields,
     metadata_columns,
     PreviousSplitAdjustedEarningsEstimatesLoader,
-    NextSplitAdjustedEarningsEstimatesLoader)
-from zipline.pipeline.loaders.utils import (
-    check_data_query_args,
+    NextSplitAdjustedEarningsEstimatesLoader,
 )
-from zipline.utils.input_validation import ensure_timezone, optionally
-from zipline.utils.preprocess import preprocess
 
 
 class BlazeEstimatesLoader(implements(PipelineLoader)):
@@ -41,10 +37,6 @@ class BlazeEstimatesLoader(implements(PipelineLoader)):
         Mapping from the loadable terms of ``expr`` to actual data resources.
     odo_kwargs : dict, optional
         Extra keyword arguments to pass to odo when executing the expression.
-    data_query_time : time, optional
-        The time to use for the data query cutoff.
-    data_query_tz : tzinfo or str
-        The timezeone to use for the data query cutoff.
     checkpoints : Expr, optional
         The expression representing checkpointed data to be used for faster
         forward-filling of data from `expr`.
@@ -76,14 +68,11 @@ class BlazeEstimatesLoader(implements(PipelineLoader)):
         EVENT_DATE_FIELD_NAME=EVENT_DATE_FIELD_NAME,
     )
 
-    @preprocess(data_query_tz=optionally(ensure_timezone))
     def __init__(self,
                  expr,
                  columns,
                  resources=None,
                  odo_kwargs=None,
-                 data_query_time=None,
-                 data_query_tz=None,
                  checkpoints=None):
 
         dshape = expr.dshape
@@ -101,9 +90,6 @@ class BlazeEstimatesLoader(implements(PipelineLoader)):
         )
         self._columns = columns
         self._odo_kwargs = odo_kwargs if odo_kwargs is not None else {}
-        check_data_query_args(data_query_time, data_query_tz)
-        self._data_query_time = data_query_time
-        self._data_query_tz = data_query_tz
         self._checkpoints = checkpoints
 
     def load_adjusted_array(self, domain, columns, dates, sids, mask):
@@ -114,8 +100,6 @@ class BlazeEstimatesLoader(implements(PipelineLoader)):
         raw = load_raw_data(
             sids,
             dates,
-            self._data_query_time,
-            self._data_query_tz,
             self._expr[sorted(metadata_columns.union(requested_column_names))],
             self._odo_kwargs,
             checkpoints=self._checkpoints,
@@ -171,9 +155,7 @@ class BlazeSplitAdjustedEstimatesLoader(BlazeEstimatesLoader):
 
         raw = load_raw_data(
             sids,
-            dates,
-            self._data_query_time,
-            self._data_query_tz,
+            domain.data_query_cutoff_for_sessions(dates),
             self._expr[sorted(metadata_columns.union(requested_column_names))],
             self._odo_kwargs,
             checkpoints=self._checkpoints,

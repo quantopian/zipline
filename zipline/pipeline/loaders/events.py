@@ -145,31 +145,38 @@ class EventsLoader(implements(PipelineLoader)):
         groups = groupby(next_or_previous, requested_columns)
         return groups.get('next', ()), groups.get('previous', ())
 
-    def next_event_indexer(self, dates, sids):
+    def next_event_indexer(self, dates, data_query_cutoff, sids):
         return next_event_indexer(
             dates,
+            data_query_cutoff,
             sids,
             self.events[EVENT_DATE_FIELD_NAME],
             self.events[TS_FIELD_NAME],
             self.events[SID_FIELD_NAME],
         )
 
-    def previous_event_indexer(self, dates, sids):
+    def previous_event_indexer(self, data_query_time, sids):
         return previous_event_indexer(
-            dates,
+            data_query_time,
             sids,
             self.events[EVENT_DATE_FIELD_NAME],
             self.events[TS_FIELD_NAME],
             self.events[SID_FIELD_NAME],
         )
 
-    def load_next_events(self, domain, columns, dates, sids, mask):
+    def load_next_events(self,
+                         domain,
+                         columns,
+                         dates,
+                         data_query_time,
+                         sids,
+                         mask):
         if not columns:
             return {}
 
         return self._load_events(
             name_map=self.next_value_columns,
-            indexer=self.next_event_indexer(dates, sids),
+            indexer=self.next_event_indexer(dates, data_query_time, sids),
             domain=domain,
             columns=columns,
             dates=dates,
@@ -177,13 +184,19 @@ class EventsLoader(implements(PipelineLoader)):
             mask=mask,
         )
 
-    def load_previous_events(self, domain, columns, dates, sids, mask):
+    def load_previous_events(self,
+                             domain,
+                             columns,
+                             dates,
+                             data_query_time,
+                             sids,
+                             mask):
         if not columns:
             return {}
 
         return self._load_events(
             name_map=self.previous_value_columns,
-            indexer=self.previous_event_indexer(dates, sids),
+            indexer=self.previous_event_indexer(data_query_time, sids),
             domain=domain,
             columns=columns,
             dates=dates,
@@ -199,7 +212,6 @@ class EventsLoader(implements(PipelineLoader)):
                      dates,
                      sids,
                      mask):
-
         def to_frame(array):
             return pd.DataFrame(array, index=dates, columns=sids)
 
@@ -217,7 +229,9 @@ class EventsLoader(implements(PipelineLoader)):
                 # with -1 for missing values, which fails if there are no
                 # events at all.
                 raw = np.full(
-                    (len(dates), len(sids)), c.missing_value, dtype=c.dtype
+                    (len(dates), len(sids)),
+                    c.missing_value,
+                    dtype=c.dtype,
                 )
             else:
                 # Slot event values into sid/date locations using `indexer`.
@@ -232,13 +246,14 @@ class EventsLoader(implements(PipelineLoader)):
             # Delegate the actual array formatting logic to a DataFrameLoader.
             loader = DataFrameLoader(c, to_frame(raw), adjustments=None)
             out[c] = loader.load_adjusted_array(
-                domain, [c], dates, sids, mask
+                domain, [c], dates, sids, mask,
             )[c]
         return out
 
     def load_adjusted_array(self, domain, columns, dates, sids, mask):
+        data_query = domain.data_query_cutoff_for_sessions(dates)
         n, p = self.split_next_and_previous_event_columns(columns)
         return merge(
-            self.load_next_events(domain, n, dates, sids, mask),
-            self.load_previous_events(domain, p, dates, sids, mask),
+            self.load_next_events(domain, n, dates, data_query, sids, mask),
+            self.load_previous_events(domain, p, dates, data_query, sids, mask)
         )

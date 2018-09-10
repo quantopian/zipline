@@ -1,15 +1,9 @@
-from zipline.pipeline.common import SID_FIELD_NAME, TS_FIELD_NAME
+from zipline.pipeline.common import SID_FIELD_NAME
 from zipline.pipeline.loaders.blaze.core import ffill_query_in_range
-from zipline.pipeline.loaders.utils import (
-    normalize_data_query_bounds,
-    normalize_timestamp_to_query_time,
-)
 
 
 def load_raw_data(assets,
-                  dates,
-                  data_query_time,
-                  data_query_tz,
+                  data_query_cutoff_times,
                   expr,
                   odo_kwargs,
                   checkpoints=None):
@@ -22,13 +16,9 @@ def load_raw_data(assets,
     ----------
     assets : pd.int64index
         the assets to load data for.
-    dates : pd.datetimeindex
-        the simulation dates to load data for.
-    data_query_time : datetime.time
-        the time used as cutoff for new information.
-    data_query_tz : tzinfo
-        the timezone to normalize your dates to before comparing against
-        `time`.
+    data_query_cutoff_times : pd.DatetimeIndex
+        The datetime when data should no longer be considered available for
+        a session.
     expr : expr
         the expression representing the data to load.
     odo_kwargs : dict
@@ -42,12 +32,7 @@ def load_raw_data(assets,
         The result of computing expr and materializing the result as a
         dataframe.
     """
-    lower_dt, upper_dt = normalize_data_query_bounds(
-        dates[0],
-        dates[-1],
-        data_query_time,
-        data_query_tz,
-    )
+    lower_dt, upper_dt = data_query_cutoff_times[[0, -1]]
     raw = ffill_query_in_range(
         expr,
         lower_dt,
@@ -60,12 +45,4 @@ def load_raw_data(assets,
         sids[~sids.isin(assets)].index,
         inplace=True
     )
-    if data_query_time is not None:
-        normalize_timestamp_to_query_time(
-            raw,
-            data_query_time,
-            data_query_tz,
-            inplace=True,
-            ts_field=TS_FIELD_NAME,
-        )
     return raw
