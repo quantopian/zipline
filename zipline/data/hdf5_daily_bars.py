@@ -1,9 +1,14 @@
 from functools import partial
 
-import pandas as pd
+import h5py
+import logbook
 import numpy as np
+import pandas as pd
 
 from zipline.data.session_bars import SessionBarReader
+
+
+log = logbook.Logger('HDF5DailyBars')
 
 
 DATA = 'data'
@@ -19,6 +24,109 @@ VOLUME = 'volume'
 
 DAY = 'day'
 SID = 'sid'
+
+
+scaling_factors = {
+    # Retain 3 decimal places for prices.
+    OPEN: 1000,
+    HIGH: 1000,
+    LOW: 1000,
+    CLOSE: 1000,
+    # Volume is expected to be a whole integer.
+    VOLUME: 1,
+}
+
+
+def coerce_to_uint32(a, field):
+    """
+    Returns a copy of the array as uint32, applying a scaling factor to
+    maintain precision if necessary.
+    """
+    return (a * scaling_factors[field]).astype('uint32')
+
+
+class HDF5DailyBarWriter(object):
+    """
+    Class capable of writing daily OHLCV data to disk in a format that
+    can be read efficiently by HDF5DailyBarReader.
+
+    Parameters
+    ----------
+    filename : str
+        The location at which we should write our output.
+    date_chunk_size : int
+        The number of days per chunk in the HDF5 file. If this is
+        greater than the number of days in the data, the chunksize will
+        match the actual number of days.
+
+    See Also
+    --------
+    zipline.data.hdf5_daily_bars.HDF5DailyBarReader
+    """
+
+    def __init__(self, filename, date_chunk_size, driver=None):
+        self._filename = filename
+        self._date_chunk_size = date_chunk_size
+
+    @property
+    def _h5_file(self):
+        return h5py.File(self._filename, 'a')
+
+    def write(self, country_code, frame):
+        """
+        Parameters
+        ----------
+        country_code : str
+            The ISO 3166 alpha-2 country code where the exchange is located.
+        frame : pd.DataFrame
+            A dataframe of OHLCV data with a (sids, dates) index.
+        """
+        with self._h5_file as h5_file:
+            country_group = h5_file.create_group(country_code)
+
+            data_group = country_group.create_group(DATA)
+            index_group = country_group.create_group(INDEX)
+
+            # Sort rows by sid, then by date.
+            frame = frame.sort_index()
+
+            sids = frame.index.levels[0].values
+            index_group.create_dataset(SID, data=sids)
+
+            # h5py does not support datetimes, so they need to be stored
+            # as integers.
+            days = frame.index.levels[1].astype(np.int64)
+            index_group.create_dataset(DAY, data=days)
+
+            log.debug(
+                'Wrote {} group to file {}',
+                index_group.name,
+                self._filename,
+            )
+
+            for field in (OPEN, HIGH, LOW, CLOSE, VOLUME):
+                data = coerce_to_uint32(
+                    frame[field].unstack().fillna(0).values,
+                    field,
+                )
+
+                dataset = data_group.create_dataset(
+                    field,
+                    compression='lzf',
+                    shuffle=True,
+                    data=data,
+                    chunks=(
+                        len(sids),
+                        min(self._date_chunk_size, len(days))
+                    ),
+                )
+
+                dataset.attrs['scaling_factor'] = scaling_factors[field]
+
+                log.debug(
+                    'Writing dataset {} to file {}',
+                    dataset.name, self._filename
+                )
 
 
 def convert_price_with_scaling_factor(a, scaling_factor):

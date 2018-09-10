@@ -51,6 +51,9 @@ numexpr==2.6.1
 # On disk storage format for pipeline data.
 bcolz==0.12.1
 
+# On disk storage format for pricing data.
+h5py==2.7.1
+
 # Command line interface helper
 click==4.0.0
 
