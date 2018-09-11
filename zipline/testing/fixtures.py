@@ -1150,6 +1150,8 @@ class WithHDF5EquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
     ----------
     HDF5_DAILY_BAR_PATH : str
         The path inside the tmpdir where this will be written.
+    HDF5_DAILY_BAR_COUNTRY_CODE : str
+        The ISO 3166 alpha-2 country code for the country to write/read.
     EQUITY_DAILY_BAR_LOOKBACK_DAYS : int
         The number of days of data to add before the first day. This is used
         when a test needs to use history, in which case this should be set to
@@ -1176,6 +1178,7 @@ class WithHDF5EquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
     zipline.testing.create_daily_bar_data
     """
     HDF5_DAILY_BAR_PATH = 'daily_equity_pricing.h5'
+    HDF5_DAILY_BAR_COUNTRY_CODE = 'US'
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = False
 
     @classmethod
@@ -1196,11 +1199,13 @@ class WithHDF5EquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
             for sid, df in cls.make_equity_daily_bar_data()
         ])
 
-        f = HDF5DailyBarWriter(p, date_chunk_size=30).write('US', frame)
+        f = HDF5DailyBarWriter(p, date_chunk_size=30).write(
+            cls.HDF5_DAILY_BAR_COUNTRY_CODE,
+            frame,
+        )
 
         cls.hdf5_equity_daily_bar_reader = HDF5DailyBarReader(
-            f=f,
-            calendar=cls.trading_calendar,
+            country_group=f[cls.HDF5_DAILY_BAR_COUNTRY_CODE],
         )
 
 
