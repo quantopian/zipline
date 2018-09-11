@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 from zipline.data.session_bars import SessionBarReader
+from zipline.utils.memoize import lazyval
 
 
 log = logbook.Logger('HDF5DailyBars')
@@ -76,7 +77,7 @@ class HDF5DailyBarWriter(object):
         Parameters
         ----------
         country_code : str
-            The ISO 3166 alpha-2 country code where the exchange is located.
+            The ISO 3166 alpha-2 country code for this country.
         frame : pd.DataFrame
             A dataframe of OHLCV data with a (sids, dates) index.
         """
@@ -138,51 +139,32 @@ def convert_price_with_scaling_factor(a, scaling_factor):
 
 
 class HDF5DailyBarReader(SessionBarReader):
+    """
+    Parameters
+    ---------
+    country_group : h5py.Group
+        The group for a single country in an HDF5 daily pricing file.
+    """
 
-    def __init__(self, f, calendar):
-        self._file = f
-        self._calendar = calendar
+    def __init__(self, country_group):
+        self._country_group = country_group
 
         self._postprocessors = {
-            country_code: {
-                OPEN: partial(
-                    convert_price_with_scaling_factor,
-                    scaling_factor=self._read_scaling_factor(
-                        country_code,
-                        OPEN,
-                    )
-                ),
-                HIGH: partial(
-                    convert_price_with_scaling_factor,
-                    scaling_factor=self._read_scaling_factor(
-                        country_code,
-                        HIGH,
-                    )
-                ),
-                LOW: partial(
-                    convert_price_with_scaling_factor,
-                    scaling_factor=self._read_scaling_factor(
-                        country_code,
-                        LOW,
-                    )
-                ),
-                CLOSE: partial(
-                    convert_price_with_scaling_factor,
-                    scaling_factor=self._read_scaling_factor(
-                        country_code,
-                        CLOSE,
-                    )
-                ),
-                VOLUME: lambda a: a,
-            }
-            for country_code in self._file
+            OPEN: partial(convert_price_with_scaling_factor,
+                          scaling_factor=self._read_scaling_factor(OPEN)),
+            HIGH: partial(convert_price_with_scaling_factor,
+                          scaling_factor=self._read_scaling_factor(HIGH)),
+            LOW: partial(convert_price_with_scaling_factor,
+                         scaling_factor=self._read_scaling_factor(LOW)),
+            CLOSE: partial(convert_price_with_scaling_factor,
+                           scaling_factor=self._read_scaling_factor(CLOSE)),
+            VOLUME: lambda a: a,
         }
 
-    def _read_scaling_factor(self, country_code, field):
-        return self._file[country_code][DATA][field].attrs[SCALING_FACTOR]
+    def _read_scaling_factor(self, field):
+        return self._country_group[DATA][field].attrs[SCALING_FACTOR]
 
     def load_raw_arrays(self,
-                        country_code,
                         columns,
                         start_date,
                         end_date,
@@ -190,8 +172,6 @@ class HDF5DailyBarReader(SessionBarReader):
         """
         Parameters
         ----------
-        country_code : str
-            The ISO 3166 alpha-2 country code where the exchange is located.
         columns : list of str
            'open', 'high', 'low', 'close', or 'volume'
         start_dt: Timestamp
@@ -211,60 +191,54 @@ class HDF5DailyBarReader(SessionBarReader):
         start = start_date.asm8
         end = end_date.asm8
 
-        sid_selector = self._sids(country_code).searchsorted(assets)
+        sid_selector = self._sids.searchsorted(assets)
 
-        date_slice = self._compute_date_range_slice(country_code, start, end)
+        date_slice = self._compute_date_range_slice(start, end)
         nrows = date_slice.stop - date_slice.start
         out = []
         for column in columns:
-            dataset = self._file[country_code][DATA][column]
+            dataset = self._country_group[DATA][column]
             ncols = dataset.shape[0]
             shape = (ncols, nrows)
             buf = np.full(shape, 0, dtype=np.uint32)
             dataset.read_direct(buf, np.s_[:, date_slice.start:date_slice.stop])  # noqa
             buf = buf[sid_selector].T
-            out.append(self._postprocessors[country_code][column](buf))
+            out.append(self._postprocessors[column](buf))
 
         return out
 
-    def _compute_date_range_slice(self, country_code, start_date, end_date):
-        dates = self._dates(country_code)
-
+    def _compute_date_range_slice(self, start_date, end_date):
         # Get the index of the start of dates for ``start_date``.
-        start_ix = dates.searchsorted(start_date)
+        start_ix = self._dates.searchsorted(start_date)
 
         # Get the index of the start of the first date **after** end_date.
-        end_ix = dates.searchsorted(end_date, side='right')
+        end_ix = self._dates.searchsorted(end_date, side='right')
 
         return slice(start_ix, end_ix)
 
-    def _requested_dates(self, country_code, start_date, end_date):
-        dates = self._dates(country_code)
+    def _requested_dates(self, start_date, end_date):
+        start_ix = self._dates.searchsorted(start_date)
+        end_ix = self._dates.searchsorted(end_date, side='right')
+        return self._dates[start_ix:end_ix]
 
-        start_ix = dates.searchsorted(start_date)
-        end_ix = dates.searchsorted(end_date, side='right')
-        return dates[start_ix:end_ix]
+    @lazyval
+    def _dates(self):
+        return self._country_group[INDEX][DAY][:].astype('datetime64[ns]')
 
-    def _dates(self, country_code):
-        return self._file[country_code][INDEX][DAY][:].astype('datetime64[ns]')
-
-    def _sids(self, country_code):
-        sids = self._file[country_code][INDEX][SID][:]
+    @lazyval
+    def _sids(self):
+        sids = self._country_group[INDEX][SID][:]
         return sids.astype(int)
 
-    def last_available_dt(self, country_code):
+    @property
+    def last_available_dt(self):
         """
-        Parameters
-        ----------
-        country_code : str
-            The ISO 3166 alpha-2 country code where the exchange is located.
-
         Returns
         -------
         dt : pd.Timestamp
             The last session for which the reader can provide data.
         """
-        return pd.Timestamp(self._dates(country_code)[-1], tz='UTC')
+        return pd.Timestamp(self._dates[-1], tz='UTC')
 
     @property
     def trading_calendar(self):
@@ -272,47 +246,38 @@ class HDF5DailyBarReader(SessionBarReader):
         Returns the zipline.utils.calendar.trading_calendar used to read
         the data.  Can be None (if the writer didn't specify it).
         """
-        return self._calendar
 
-    def first_trading_day(self, country_code):
+        # TODO: Write this as an attr on the country group, which can be
+        #       read to reconstruct the calendar here.
+        return None
+
+    def first_trading_day(self):
         """
-        Parameters
-        ----------
-        country_code : str
-            The ISO 3166 alpha-2 country code where the exchange is located.
-
         Returns
         -------
         dt : pd.Timestamp
             The first trading day (session) for which the reader can provide
             data.
         """
-        return pd.Timestamp(self._dates(country_code)[0], tz='UTC')
+        return pd.Timestamp(self._dates[0], tz='UTC')
 
     @property
-    def sessions(self, country_code):
+    def sessions(self):
         """
-        Parameters
-        ----------
-        country_code : str
-            The ISO 3166 alpha-2 country code where the exchange is located.
-
         Returns
         -------
         sessions : DatetimeIndex
            All session labels (unionining the range for all assets) which the
            reader can provide.
         """
-        return pd.to_datetime(self._dates(country_code), utc=True)
+        return pd.to_datetime(self._dates, utc=True)
 
-    def get_value(self, country_code, sid, dt, field):
+    def get_value(self, sid, dt, field):
         """
         Retrieve the value at the given coordinates.
 
         Parameters
         ----------
-        country_code : str
-            The ISO 3166 alpha-2 country code where the exchange is located.
         sid : int
             The asset identifier.
         dt : pd.Timestamp
@@ -332,11 +297,11 @@ class HDF5DailyBarReader(SessionBarReader):
             If the given dt is not a valid market minute (in minute mode) or
             session (in daily mode) according to this reader's tradingcalendar.
         """
-        sid_ix = self._sids(country_code).searchsorted(sid)
-        dt_ix = self._dates(country_code).searchsorted(dt.asm8)
+        sid_ix = self._sids.searchsorted(sid)
+        dt_ix = self._dates.searchsorted(dt.asm8)
 
-        return self._postprocessors[country_code][field](
-            self._file[country_code][DATA][field][sid_ix, dt_ix]
+        return self._postprocessors[field](
+            self._country_group[DATA][field][sid_ix, dt_ix]
         )
 
     def get_last_traded_dt(self, asset, dt):
