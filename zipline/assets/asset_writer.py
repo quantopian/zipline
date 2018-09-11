@@ -352,7 +352,8 @@ def _split_symbol_mappings(df, exchanges):
         end_date.
     """
     mappings = df[list(mapping_columns)]
-    mappings['sid'] = mappings.index
+    with pd.option_context('mode.chained_assignment', None):
+        mappings['sid'] = mappings.index
     mappings.reset_index(drop=True, inplace=True)
 
     # take the most recent sid->exchange mapping based on end date
