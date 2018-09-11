@@ -4,6 +4,7 @@ import h5py
 import logbook
 import numpy as np
 import pandas as pd
+from six.moves import reduce
 
 from zipline.data.session_bars import SessionBarReader
 from zipline.utils.memoize import lazyval
@@ -146,7 +147,8 @@ class HDF5DailyBarReader(SessionBarReader):
         The group for a single country in an HDF5 daily pricing file.
     """
 
-    def __init__(self, country_group):
+    def __init__(self, country_code, country_group):
+        self.country_code = country_code
         self._country_group = country_group
 
         self._postprocessors = {
@@ -191,7 +193,7 @@ class HDF5DailyBarReader(SessionBarReader):
         start = start_date.asm8
         end = end_date.asm8
 
-        sid_selector = self._sids.searchsorted(assets)
+        sid_selector = self.sids.searchsorted(assets)
 
         date_slice = self._compute_date_range_slice(start, end)
         nrows = date_slice.stop - date_slice.start
@@ -209,24 +211,24 @@ class HDF5DailyBarReader(SessionBarReader):
 
     def _compute_date_range_slice(self, start_date, end_date):
         # Get the index of the start of dates for ``start_date``.
-        start_ix = self._dates.searchsorted(start_date)
+        start_ix = self.dates.searchsorted(start_date)
 
         # Get the index of the start of the first date **after** end_date.
-        end_ix = self._dates.searchsorted(end_date, side='right')
+        end_ix = self.dates.searchsorted(end_date, side='right')
 
         return slice(start_ix, end_ix)
 
-    def _requested_dates(self, start_date, end_date):
-        start_ix = self._dates.searchsorted(start_date)
-        end_ix = self._dates.searchsorted(end_date, side='right')
-        return self._dates[start_ix:end_ix]
+    def _requesteddates(self, start_date, end_date):
+        start_ix = self.dates.searchsorted(start_date)
+        end_ix = self.dates.searchsorted(end_date, side='right')
+        return self.dates[start_ix:end_ix]
 
     @lazyval
-    def _dates(self):
+    def dates(self):
         return self._country_group[INDEX][DAY][:].astype('datetime64[ns]')
 
     @lazyval
-    def _sids(self):
+    def sids(self):
         sids = self._country_group[INDEX][SID][:]
         return sids.astype(int)
 
@@ -238,7 +240,7 @@ class HDF5DailyBarReader(SessionBarReader):
         dt : pd.Timestamp
             The last session for which the reader can provide data.
         """
-        return pd.Timestamp(self._dates[-1], tz='UTC')
+        return pd.Timestamp(self.dates[-1], tz='UTC')
 
     @property
     def trading_calendar(self):
@@ -251,6 +253,7 @@ class HDF5DailyBarReader(SessionBarReader):
         #       read to reconstruct the calendar here.
         return None
 
+    @property
     def first_trading_day(self):
         """
         Returns
@@ -259,7 +262,7 @@ class HDF5DailyBarReader(SessionBarReader):
             The first trading day (session) for which the reader can provide
             data.
         """
-        return pd.Timestamp(self._dates[0], tz='UTC')
+        return pd.Timestamp(self.dates[0], tz='UTC')
 
     @property
     def sessions(self):
@@ -270,7 +273,7 @@ class HDF5DailyBarReader(SessionBarReader):
            All session labels (unionining the range for all assets) which the
            reader can provide.
         """
-        return pd.to_datetime(self._dates, utc=True)
+        return pd.to_datetime(self.dates, utc=True)
 
     def get_value(self, sid, dt, field):
         """
@@ -297,12 +300,179 @@ class HDF5DailyBarReader(SessionBarReader):
             If the given dt is not a valid market minute (in minute mode) or
             session (in daily mode) according to this reader's tradingcalendar.
         """
-        sid_ix = self._sids.searchsorted(sid)
-        dt_ix = self._dates.searchsorted(dt.asm8)
+        sid_ix = self.sids.searchsorted(sid)
+        dt_ix = self.dates.searchsorted(dt.asm8)
 
         return self._postprocessors[field](
             self._country_group[DATA][field][sid_ix, dt_ix]
         )
+
+    def get_last_traded_dt(self, asset, dt):
+        """
+        Get the latest minute on or before ``dt`` in which ``asset`` traded.
+
+        If there are no trades on or before ``dt``, returns ``pd.NaT``.
+
+        Parameters
+        ----------
+        asset : zipline.asset.Asset
+            The asset for which to get the last traded minute.
+        dt : pd.Timestamp
+            The minute at which to start searching for the last traded minute.
+
+        Returns
+        -------
+        last_traded : pd.Timestamp
+            The dt of the last trade for the given asset, using the input
+            dt as a vantage point.
+        """
+        pass
+
+
+class MultiCountryHDF5DailyBarReader(SessionBarReader):
+    """
+    Parameters
+    ---------
+    readers : list[HDF5DailyBarReader]
+        A list of single country HDF5DailyBarReader instances.
+    """
+
+    def __init__(self, readers):
+        self._readers = {reader.country_code: reader for reader in readers}
+        self._country_map = pd.concat([
+            pd.Series(index=reader.sids, data=reader.country_code)
+            for reader in readers
+        ])
+
+    def _country_code_for_assets(self, assets):
+        country_codes = self._country_map[assets]
+
+        if country_codes.isnull().any():
+            raise ValueError(
+                'Assets not contained in daily pricing file: {}'.format(
+                    list(country_codes[country_codes.isnull()].index)
+                )
+            )
+
+        unique_country_codes = country_codes.unique()
+
+        if len(unique_country_codes) > 1:
+            raise ValueError()
+
+        return np.asscalar(unique_country_codes)
+
+    def load_raw_arrays(self,
+                        columns,
+                        start_date,
+                        end_date,
+                        assets):
+        """
+        Parameters
+        ----------
+        columns : list of str
+           'open', 'high', 'low', 'close', or 'volume'
+        start_dt: Timestamp
+           Beginning of the window range.
+        end_dt: Timestamp
+           End of the window range.
+        sids : list of int
+           The asset identifiers in the window.
+
+        Returns
+        -------
+        list of np.ndarray
+            A list with an entry per field of ndarrays with shape
+            (minutes in range, sids) with a dtype of float64, containing the
+            values for the respective field over start and end dt range.
+        """
+        country_code = self._country_code_for_assets(assets)
+
+        return self._readers[country_code].load_raw_arrays(
+            columns,
+            start_date,
+            end_date,
+            assets,
+        )
+
+    @property
+    def last_available_dt(self):
+        """
+        Returns
+        -------
+        dt : pd.Timestamp
+            The last session for which the reader can provide data.
+        """
+        return pd.Timestamp(
+            max(reader.dates[-1] for reader in self._readers.values()),
+            tz='UTC',
+        )
+
+    @property
+    def trading_calendar(self):
+        """
+        Returns the zipline.utils.calendar.trading_calendar used to read
+        the data.  Can be None (if the writer didn't specify it).
+        """
+        return None
+
+    @property
+    def first_trading_day(self):
+        """
+        Returns
+        -------
+        dt : pd.Timestamp
+            The first trading day (session) for which the reader can provide
+            data.
+        """
+        return pd.Timestamp(
+            min(reader.dates[0] for reader in self._readers.values()),
+            tz='UTC',
+        )
+
+    @property
+    def sessions(self):
+        """
+        Returns
+        -------
+        sessions : DatetimeIndex
+           All session labels (unionining the range for all assets) which the
+           reader can provide.
+        """
+        return pd.to_datetime(
+            reduce(
+                np.union1d,
+                (reader.dates for reader in self.readers.values()),
+            ),
+            utc=True,
+        )
+
+    def get_value(self, sid, dt, field):
+        """
+        Retrieve the value at the given coordinates.
+
+        Parameters
+        ----------
+        sid : int
+            The asset identifier.
+        dt : pd.Timestamp
+            The timestamp for the desired data point.
+        field : string
+            The OHLVC name for the desired data point.
+
+        Returns
+        -------
+        value : float|int
+            The value at the given coordinates, ``float`` for OHLC, ``int``
+            for 'volume'.
+
+        Raises
+        ------
+        NoDataOnDate
+            If the given dt is not a valid market minute (in minute mode) or
+            session (in daily mode) according to this reader's tradingcalendar.
+        """
+        country_code = self._country_code_for_assets([sid])
+        return self._readers[country_code].get_value(sid, dt, field)
 
     def get_last_traded_dt(self, asset, dt):
         """
