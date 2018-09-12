@@ -395,7 +395,9 @@ class BcolzDailyBarWriterMissingDataTestCase(WithAssetFinder,
 
     @classmethod
     def make_equity_info(cls):
-        return EQUITY_INFO.loc[EQUITY_INFO.index == cls.MISSING_DATA_SID]
+        return (
+            EQUITY_INFO.loc[EQUITY_INFO.index == cls.MISSING_DATA_SID].copy()
+        )
 
     def test_missing_values_assertion(self):
         sessions = self.trading_calendar.sessions_in_range(
