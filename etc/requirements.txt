@@ -56,7 +56,7 @@ click==4.0.0
 
 # FUNctional programming utilities
 toolz==0.8.2
-multipledispatch==0.4.8
+multipledispatch==0.6.0
 
 # for alembic
 MarkupSafe==0.23
