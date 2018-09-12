@@ -36,6 +36,10 @@ from zipline.data.bcolz_daily_bars import (
     BcolzDailyBarReader,
     BcolzDailyBarWriter,
 )
+from zipline.data.hdf5_daily_bars import (
+    HDF5DailyBarReader,
+    HDF5DailyBarWriter,
+)
 from zipline.pipeline.loaders.synthetic import (
     OHLCV,
     asset_start,
@@ -48,6 +52,8 @@ from zipline.testing import seconds_to_timestamp
 from zipline.testing.fixtures import (
     WithAssetFinder,
     WithBcolzEquityDailyBarReader,
+    WithEquityDailyBarData,
+    WithHDF5EquityDailyBarReader,
     WithTmpDir,
     WithTradingCalendars,
     ZiplineTestCase,
@@ -86,9 +92,17 @@ EQUITY_INFO['exchange'] = 'TEST'
 TEST_QUERY_ASSETS = EQUITY_INFO.index
 
 
-class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, ZiplineTestCase):
+class _DailyBarsTestCase(WithEquityDailyBarData, ZiplineTestCase):
     EQUITY_DAILY_BAR_START_DATE = TEST_CALENDAR_START
     EQUITY_DAILY_BAR_END_DATE = TEST_CALENDAR_STOP
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(_DailyBarsTestCase, cls).init_class_fixtures()
+        cls.sessions = cls.trading_calendar.sessions_in_range(
+            cls.trading_calendar.minute_to_session_label(TEST_CALENDAR_START),
+            cls.trading_calendar.minute_to_session_label(TEST_CALENDAR_STOP)
+        )
 
     @classmethod
     def make_equity_info(cls):
@@ -99,14 +113,6 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, ZiplineTestCase):
         return make_bar_data(
             EQUITY_INFO,
             cls.equity_daily_bar_days,
-        )
-
-    @classmethod
-    def init_class_fixtures(cls):
-        super(BcolzDailyBarTestCase, cls).init_class_fixtures()
-        cls.sessions = cls.trading_calendar.sessions_in_range(
-            cls.trading_calendar.minute_to_session_label(TEST_CALENDAR_START),
-            cls.trading_calendar.minute_to_session_label(TEST_CALENDAR_STOP)
         )
 
     @property
@@ -126,86 +132,14 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, ZiplineTestCase):
         start, end = self.asset_start(asset_id), self.asset_end(asset_id)
         return self.trading_days_between(start, end)
 
-    def test_write_ohlcv_content(self):
-        result = self.bcolz_daily_bar_ctable
-        for column in OHLCV:
-            idx = 0
-            data = result[column][:]
-            multiplier = 1 if column == 'volume' else 1000
-            for asset_id in self.assets:
-                for date in self.dates_for_asset(asset_id):
-                    self.assertEqual(
-                        expected_bar_value(
-                            asset_id,
-                            date,
-                            column
-                        ) * multiplier,
-                        data[idx],
-                    )
-                    idx += 1
-            self.assertEqual(idx, len(data))
-
-    def test_write_day_and_id(self):
-        result = self.bcolz_daily_bar_ctable
-        idx = 0
-        ids = result['id']
-        days = result['day']
-        for asset_id in self.assets:
-            for date in self.dates_for_asset(asset_id):
-                self.assertEqual(ids[idx], asset_id)
-                self.assertEqual(date, seconds_to_timestamp(days[idx]))
-                idx += 1
-
-    def test_write_attrs(self):
-        result = self.bcolz_daily_bar_ctable
-        expected_first_row = {
-            '1': 0,
-            '2': 5,   # Asset 1 has 5 trading days.
-            '3': 12,  # Asset 2 has 7 trading days.
-            '4': 33,  # Asset 3 has 21 trading days.
-            '5': 44,  # Asset 4 has 11 trading days.
-            '6': 49,  # Asset 5 has 5 trading days.
-        }
-        expected_last_row = {
-            '1': 4,
-            '2': 11,
-            '3': 32,
-            '4': 43,
-            '5': 48,
-            '6': 57,    # Asset 6 has 9 trading days.
-        }
-        expected_calendar_offset = {
-            '1': 0,   # Starts on 6-01, 1st trading day of month.
-            '2': 15,  # Starts on 6-22, 16th trading day of month.
-            '3': 1,   # Starts on 6-02, 2nd trading day of month.
-            '4': 0,   # Starts on 6-01, 1st trading day of month.
-            '5': 9,   # Starts on 6-12, 10th trading day of month.
-            '6': 10,  # Starts on 6-15, 11th trading day of month.
-        }
-        self.assertEqual(result.attrs['first_row'], expected_first_row)
-        self.assertEqual(result.attrs['last_row'], expected_last_row)
-        self.assertEqual(
-            result.attrs['calendar_offset'],
-            expected_calendar_offset,
-        )
-        cal = get_calendar(result.attrs['calendar_name'])
-        first_session = Timestamp(result.attrs['start_session_ns'], tz='UTC')
-        end_session = Timestamp(result.attrs['end_session_ns'], tz='UTC')
-        sessions = cal.sessions_in_range(first_session, end_session)
-
-        assert_index_equal(
-            self.sessions,
-            sessions
-        )
-
     def test_read_first_trading_day(self):
         self.assertEqual(
-            self.bcolz_equity_daily_bar_reader.first_trading_day,
+            self.daily_bar_reader.first_trading_day,
             self.sessions[0],
         )
 
     def _check_read_results(self, columns, assets, start_date, end_date):
-        results = self.bcolz_equity_daily_bar_reader.load_raw_arrays(
+        results = self.daily_bar_reader.load_raw_arrays(
             columns,
             start_date,
             end_date,
@@ -293,7 +227,8 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, ZiplineTestCase):
             )
 
     def test_unadjusted_get_value(self):
-        reader = self.bcolz_equity_daily_bar_reader
+        reader = self.daily_bar_reader
+
         # At beginning
         price = reader.get_value(1, Timestamp('2015-06-01', tz='UTC'),
                                  'close')
@@ -318,6 +253,86 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, ZiplineTestCase):
         volume = reader.get_value(1, Timestamp('2015-06-02', tz='UTC'),
                                   'volume')
         self.assertEqual(109631, volume)
+
+
+class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
+    @classmethod
+    def init_class_fixtures(cls):
+        super(BcolzDailyBarTestCase, cls).init_class_fixtures()
+
+        cls.daily_bar_reader = cls.bcolz_equity_daily_bar_reader
+
+    def test_write_ohlcv_content(self):
+        result = self.bcolz_daily_bar_ctable
+        for column in OHLCV:
+            idx = 0
+            data = result[column][:]
+            multiplier = 1 if column == 'volume' else 1000
+            for asset_id in self.assets:
+                for date in self.dates_for_asset(asset_id):
+                    self.assertEqual(
+                        expected_bar_value(
+                            asset_id,
+                            date,
+                            column
+                        ) * multiplier,
+                        data[idx],
+                    )
+                    idx += 1
+            self.assertEqual(idx, len(data))
+
+    def test_write_day_and_id(self):
+        result = self.bcolz_daily_bar_ctable
+        idx = 0
+        ids = result['id']
+        days = result['day']
+        for asset_id in self.assets:
+            for date in self.dates_for_asset(asset_id):
+                self.assertEqual(ids[idx], asset_id)
+                self.assertEqual(date, seconds_to_timestamp(days[idx]))
+                idx += 1
+
+    def test_write_attrs(self):
+        result = self.bcolz_daily_bar_ctable
+        expected_first_row = {
+            '1': 0,
+            '2': 5,   # Asset 1 has 5 trading days.
+            '3': 12,  # Asset 2 has 7 trading days.
+            '4': 33,  # Asset 3 has 21 trading days.
+            '5': 44,  # Asset 4 has 11 trading days.
+            '6': 49,  # Asset 5 has 5 trading days.
+        }
+        expected_last_row = {
+            '1': 4,
+            '2': 11,
+            '3': 32,
+            '4': 43,
+            '5': 48,
+            '6': 57,    # Asset 6 has 9 trading days.
+        }
+        expected_calendar_offset = {
+            '1': 0,   # Starts on 6-01, 1st trading day of month.
+            '2': 15,  # Starts on 6-22, 16th trading day of month.
+            '3': 1,   # Starts on 6-02, 2nd trading day of month.
+            '4': 0,   # Starts on 6-01, 1st trading day of month.
+            '5': 9,   # Starts on 6-12, 10th trading day of month.
+            '6': 10,  # Starts on 6-15, 11th trading day of month.
+        }
+        self.assertEqual(result.attrs['first_row'], expected_first_row)
+        self.assertEqual(result.attrs['last_row'], expected_last_row)
+        self.assertEqual(
+            result.attrs['calendar_offset'],
+            expected_calendar_offset,
+        )
+        cal = get_calendar(result.attrs['calendar_name'])
+        first_session = Timestamp(result.attrs['start_session_ns'], tz='UTC')
+        end_session = Timestamp(result.attrs['end_session_ns'], tz='UTC')
+        sessions = cal.sessions_in_range(first_session, end_session)
+
+        assert_index_equal(
+            self.sessions,
+            sessions
+        )
 
     def test_unadjusted_get_value_no_data(self):
         table = self.bcolz_daily_bar_ctable
@@ -409,3 +424,11 @@ class BcolzDailyBarWriterMissingDataTestCase(WithAssetFinder,
         )
         with self.assertRaisesRegexp(AssertionError, expected_msg):
             writer.write(bar_data)
+
+
+class HDF5DailyBarTestCase(WithHDF5EquityDailyBarReader, _DailyBarsTestCase):
+    @classmethod
+    def init_class_fixtures(cls):
+        super(HDF5DailyBarTestCase, cls).init_class_fixtures()
+
+        cls.daily_bar_reader = cls.hdf5_equity_daily_bar_reader
