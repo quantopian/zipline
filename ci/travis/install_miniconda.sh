@@ -6,7 +6,7 @@ else
     MINICONDA_OS=Linux
 fi
 
-MINICONDA_SH="$HOME/.cache/miniconda/${CONDA_ROOT_PYTHON_VERSION:0:1}-4.3.30-$MINICONDA_OS"
+MINICONDA_SH="$HOME/.cache/miniconda/${CONDA_ROOT_PYTHON_VERSION:0:1}-4.3.30-$MINICONDA_OS.sh"
 
 if [ ! -f "$MINICONDA_SH" ]; then
     wget "https://repo.continuum.io/miniconda/Miniconda${CONDA_ROOT_PYTHON_VERSION:0:1}-4.3.30-$MINICONDA_OS-x86_64.sh" -O miniconda.sh
