@@ -40,6 +40,7 @@ cache:
   directories:
     - $HOME/.cache/.pip/
     - $HOME/.cache/miniconda/
+    - $HOME/.cache/conda_pkgs/
 
 before_install:
   - CONDA_PKGS_DIRS="$HOME/.cache/conda_pkgs/"
