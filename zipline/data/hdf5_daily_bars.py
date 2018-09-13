@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from six.moves import reduce
 
+from zipline.data.bar_reader import NoDataBeforeDate, NoDataAfterDate
 from zipline.data.session_bars import SessionBarReader
 from zipline.utils.memoize import lazyval
 
@@ -15,6 +16,7 @@ log = logbook.Logger('HDF5DailyBars')
 
 DATA = 'data'
 INDEX = 'index'
+LIFETIMES = 'lifetimes'
 
 SCALING_FACTOR = 'scaling_factor'
 
@@ -26,6 +28,9 @@ VOLUME = 'volume'
 
 DAY = 'day'
 SID = 'sid'
+
+START_DATE = 'start_date'
+END_DATE = 'end_date'
 
 
 scaling_factors = {
@@ -87,10 +92,12 @@ class HDF5DailyBarWriter(object):
 
             data_group = country_group.create_group(DATA)
             index_group = country_group.create_group(INDEX)
+            lifetimes_group = country_group.create_group(LIFETIMES)
 
             # Sort rows by sid, then by date.
             frame = frame.sort_index()
 
+            # Write sid and date indices.
             sids = frame.index.levels[0].values
             index_group.create_dataset(SID, data=sids)
 
@@ -104,6 +111,12 @@ class HDF5DailyBarWriter(object):
                 index_group.name,
                 self._filename,
             )
+
+            # Write start and end dates for each sid.
+            start_date_ixs, end_date_ixs = compute_asset_lifetimes(frame)
+
+            lifetimes_group.create_dataset(START_DATE, data=start_date_ixs)
+            lifetimes_group.create_dataset(END_DATE, data=end_date_ixs)
 
             for field in (OPEN, HIGH, LOW, CLOSE, VOLUME):
                 data = coerce_to_uint32(
@@ -130,6 +143,29 @@ class HDF5DailyBarWriter(object):
                 )
 
         return self._h5_file(mode='r')
+
+
+def compute_asset_lifetimes(frame):
+    """
+    Parameters
+    ----------
+    frame : pd.DataFrame
+        A dataframe of OHLCV data with a (sids, dates) index, as passed
+        to write().
+
+    Returns
+    -------
+    start_date_ixs : np.array[int64]
+        The index of the first date with non-nan values, for each sid.
+    end_date_ixs : np.array[int64]
+        The index of the last date with non-nan values, for each sid.
+    """
+    is_null_matrix = frame[CLOSE].unstack().isnull().values
+
+    start_date_ixs = is_null_matrix.argmin(axis=1)
+    end_date_ixs = is_null_matrix[::-1].argmin(axis=1)
+
+    return start_date_ixs, end_date_ixs
 
 
 def convert_price_with_scaling_factor(a, scaling_factor):
@@ -232,6 +268,14 @@ class HDF5DailyBarReader(SessionBarReader):
         sids = self._country_group[INDEX][SID][:]
         return sids.astype(int)
 
+    @lazyval
+    def asset_start_dates(self):
+        return self.dates[self._country_group[LIFETIMES][START_DATE][:]]
+
+    @lazyval
+    def asset_end_dates(self):
+        return self.dates[self._country_group[LIFETIMES][END_DATE][:]]
+
     @property
     def last_available_dt(self):
         """
@@ -303,9 +347,22 @@ class HDF5DailyBarReader(SessionBarReader):
         sid_ix = self.sids.searchsorted(sid)
         dt_ix = self.dates.searchsorted(dt.asm8)
 
-        return self._postprocessors[field](
+        value = self._postprocessors[field](
             self._country_group[DATA][field][sid_ix, dt_ix]
         )
+
+        # When the value is nan, this dt may be outside the asset's lifetime.
+        # If that's the case, the proper NoDataOnDate exception is raised.
+        # Otherwise (when there's just a hole in the middle of the data), the
+        # nan is returned.
+        if np.isnan(value):
+            if dt.asm8 < self.asset_start_dates[sid_ix]:
+                raise NoDataBeforeDate()
+
+            if dt.asm8 > self.asset_start_dates[sid_ix]:
+                raise NoDataAfterDate()
+
+        return value
 
     def get_last_traded_dt(self, asset, dt):
         """
