@@ -18,8 +18,11 @@ import re
 from nose_parameterized import parameterized
 from numpy import (
     arange,
+    array,
     datetime64,
+    float64,
     nan,
+    uint32,
 )
 from pandas import (
     DataFrame,
@@ -33,8 +36,12 @@ from zipline.data.bcolz_daily_bars import (
     BcolzDailyBarWriter,
 )
 from zipline.data.hdf5_daily_bars import (
-    HDF5DailyBarReader,
-    HDF5DailyBarWriter,
+    CLOSE,
+    HIGH,
+    LOW,
+    OPEN,
+    VOLUME,
+    coerce_to_uint32,
 )
 from zipline.pipeline.loaders.synthetic import (
     OHLCV,
@@ -431,3 +438,18 @@ class HDF5DailyBarTestCase(WithHDF5EquityDailyBarReader, _DailyBarsTestCase):
         super(HDF5DailyBarTestCase, cls).init_class_fixtures()
 
         cls.daily_bar_reader = cls.hdf5_equity_daily_bar_reader
+
+    @parameterized.expand([
+        (OPEN, array([1, 1000, 100000, 100500, 1000005], dtype=uint32)),
+        (HIGH, array([1, 1000, 100000, 100500, 1000005], dtype=uint32)),
+        (LOW, array([1, 1000, 100000, 100500, 1000005], dtype=uint32)),
+        (CLOSE, array([1, 1000, 100000, 100500, 1000005], dtype=uint32)),
+        (VOLUME, array([0, 1, 100, 100, 1000], dtype=uint32)),
+    ])
+    def test_coerce_to_uint32_price(self, field, expected):
+        coerced = coerce_to_uint32(
+            array([0.001, 1, 100, 100.5, 1000.005], dtype=float64),
+            field,
+        )
+
+        assert_equal(coerced, expected)
