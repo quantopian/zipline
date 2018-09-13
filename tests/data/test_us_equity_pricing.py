@@ -21,14 +21,10 @@ from numpy import (
     datetime64,
     nan,
 )
-from numpy.testing import (
-    assert_array_equal,
-)
 from pandas import (
     DataFrame,
     Timestamp,
 )
-from pandas.util.testing import assert_index_equal
 from trading_calendars import get_calendar
 
 from zipline.data.bar_reader import NoDataBeforeDate, NoDataAfterDate
@@ -58,6 +54,7 @@ from zipline.testing.fixtures import (
     WithTradingCalendars,
     ZiplineTestCase,
 )
+from zipline.testing.predicates import assert_equal
 
 TEST_CALENDAR_START = Timestamp('2015-06-01', tz='UTC')
 TEST_CALENDAR_STOP = Timestamp('2015-06-30', tz='UTC')
@@ -147,7 +144,7 @@ class _DailyBarsTestCase(WithEquityDailyBarData, ZiplineTestCase):
         )
         dates = self.trading_days_between(start_date, end_date)
         for column, result in zip(columns, results):
-            assert_array_equal(
+            assert_equal(
                 result,
                 expected_bar_values_2d(
                     dates,
@@ -329,7 +326,7 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
         end_session = Timestamp(result.attrs['end_session_ns'], tz='UTC')
         sessions = cal.sessions_in_range(first_session, end_session)
 
-        assert_index_equal(
+        assert_equal(
             self.sessions,
             sessions
         )
@@ -361,7 +358,7 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
             reader._spot_col('close')[zero_ix] = 0
 
             close = reader.get_value(zero_sid, zero_day, 'close')
-            assert_array_equal(nan, close)
+            assert_equal(nan, close)
         finally:
             reader._spot_col('close')[zero_ix] = old
 
