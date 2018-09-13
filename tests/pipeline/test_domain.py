@@ -309,7 +309,7 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
         )
         actual = domain.data_query_cutoff_for_sessions(sessions)
 
-        assert_equal(actual, expected)
+        assert_equal(actual, expected, check_names=False)
 
     def test_equity_calendar_domain(self):
         # test the defaults
