@@ -93,7 +93,7 @@ before_script:
   - pip freeze | sort
 script:
   - flake8 zipline tests
-  - nosetests --with-coverage
+  # - nosetests --with-coverage
   # deactive env to get access to anaconda command
   - source deactivate
 
