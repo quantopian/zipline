@@ -52,6 +52,42 @@ def coerce_to_uint32(a, field):
     return (a * scaling_factors[field]).astype('uint32')
 
 
+def days_and_sids_for_frames(frames):
+    """
+    Returns the date index and sid columns shared by a list of dataframes,
+    ensuring they all match.
+
+    Parameters
+    ----------
+    frames : list[pd.DataFrame]
+        A list of dataframes indexed by day, with a column per sid.
+
+    Returns
+    -------
+    days : np.array[datetime64[ns]]
+        The days in these dataframes.
+    sids : np.array[int64]
+        The sids in these dataframes.
+
+    Raises
+    ------
+    ValueError
+        If the dataframes passed are not all indexed by the same days
+        and sids.
+    """
+    frame_0 = frames[0]
+
+    # Ensure the indices and columns all match.
+    for frame_1 in frames[1:]:
+        if not frame_0.index.equals(frame_1.index):
+            raise ValueError('Frames have mistmatched days.')
+
+        if not frame_0.columns.equals(frame_1.columns):
+            raise ValueError('Frames have mismatched sids.')
+
+    return frame_0.index.values, frame_0.columns.values
+
+
 class HDF5DailyBarWriter(object):
     """
     Class capable of writing daily OHLCV data to disk in a format that
@@ -95,16 +131,14 @@ class HDF5DailyBarWriter(object):
             index_group = country_group.create_group(INDEX)
             lifetimes_group = country_group.create_group(LIFETIMES)
 
-            close_frame = frames[CLOSE].T
+            days, sids = days_and_sids_for_frames(list(frames.values()))
 
             # Write sid and date indices.
-            sids = close_frame.index.values
             index_group.create_dataset(SID, data=sids)
 
             # h5py does not support datetimes, so they need to be stored
             # as integers.
-            days = close_frame.columns.values.astype(np.int64)
-            index_group.create_dataset(DAY, data=days)
+            index_group.create_dataset(DAY, data=days.astype(np.int64))
 
             log.debug(
                 'Wrote {} group to file {}',
@@ -113,6 +147,7 @@ class HDF5DailyBarWriter(object):
             )
 
             # Write start and end dates for each sid.
+            close_frame = frames[CLOSE].T
             start_date_ixs, end_date_ixs = compute_asset_lifetimes(close_frame)
 
             lifetimes_group.create_dataset(START_DATE, data=start_date_ixs)
