@@ -24,7 +24,7 @@ import pytz
 from trading_calendars import get_calendar
 
 from zipline.country import CountryCode
-from zipline.utils.input_validation import expect_types
+from zipline.utils.input_validation import expect_types, optional
 from zipline.utils.memoize import lazyval
 from zipline.utils.pandas_utils import days_at_time
 
@@ -279,6 +279,8 @@ class EquitySessionDomain(Domain):
     @expect_types(
         sessions=pd.DatetimeIndex,
         country_code=str,
+        data_query_time=optional(datetime.time),
+        data_query_date_offset=int,
         __funcname='EquitySessionDomain',
     )
     def __init__(self,
@@ -291,6 +293,10 @@ class EquitySessionDomain(Domain):
 
         if data_query_time is None:
             data_query_time = datetime.time(0, 0, tzinfo=pytz.timezone('UTC'))
+
+        if data_query_time.tzinfo is None:
+            raise ValueError("data_query_time cannot be tz-naive")
+
         self._data_query_time = data_query_time
         self._data_query_date_offset = data_query_date_offset
 
@@ -305,6 +311,6 @@ class EquitySessionDomain(Domain):
         return days_at_time(
             sessions,
             self._data_query_time,
-            self._data_query_time.tzinfo or 'UTC',
+            self._data_query_time.tzinfo,
             self._data_query_date_offset,
         )
