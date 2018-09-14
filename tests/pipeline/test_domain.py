@@ -1,3 +1,4 @@
+from collections import namedtuple
 import datetime
 from textwrap import dedent
 
@@ -369,35 +370,63 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
         ) % (domain.calendar.name, invalid_sessions)
         assert_messages_equal(str(e.exception), expected_msg)
 
+    Case = namedtuple('Case', 'time date_offset expected_timedelta')
+
     @parameter_space(parameters=(
-        (datetime.time(8, 45), 0, datetime.timedelta(hours=8, minutes=45)),
-        (datetime.time(5, 0), 0, datetime.timedelta(hours=5)),
-        (
-            datetime.time(8, 45, tzinfo=pytz.timezone('Asia/Tokyo')),
-            0,
-            (
-                datetime.timedelta(hours=8, minutes=45) -
-                datetime.timedelta(hours=9)
-            ),
+        Case(
+            time=datetime.time(8, 45, tzinfo=pytz.utc),
+            date_offset=0,
+            expected_timedelta=datetime.timedelta(hours=8, minutes=45),
         ),
-        (
-            datetime.time(23, 30),
-            -1,
-            -datetime.timedelta(minutes=30),
+        Case(
+            time=datetime.time(5, 0, tzinfo=pytz.utc),
+            date_offset=0,
+            expected_timedelta=datetime.timedelta(hours=5),
         ),
+        Case(
+            time=datetime.time(8, 45, tzinfo=pytz.timezone('Asia/Tokyo')),
+            date_offset=0,
+            # We should get 11:45 UTC, which is 8:45 in Tokyo time,
+            # because Tokyo is 9 hours ahead of UTC.
+            expected_timedelta=-datetime.timedelta(minutes=15)
+        ),
+        Case(
+            time=datetime.time(23, 30, tzinfo=pytz.utc),
+            date_offset=-1,
+            # 23:30 on the previous day should be equivalent to rolling back by
+            # 30 minutes.
+            expected_timedelta=-datetime.timedelta(minutes=30),
+        ),
+        Case(
+            time=datetime.time(23, 30, tzinfo=pytz.timezone('US/Eastern')),
+            date_offset=-1,
+            # 23:30 on the previous day in US/Eastern is equivalent to rolling
+            # back 24 hours (to the previous day), then rolling forward 4 or 5
+            # hours depending on daylight savings, then rolling forward 23:30,
+            # so the net is:
+            # -24 + 5 + 23:30 = 4:30 until April 4th
+            # -24 + 4 + 23:30 = 3:30 from April 4th on.
+            expected_timedelta=pd.TimedeltaIndex(
+                ['4 hours 30 minutes'] * 93 + ['3 hours 30 minutes'] * 60,
+            )
+        )
     ))
     def test_equity_session_domain(self, parameters):
         time, date_offset, expected_timedelta = parameters
-        sessions = pd.date_range('2000-01-01', '2000-06-01', tz='UTC')
+        naive_sessions = pd.date_range('2000-01-01', '2000-06-01')
+        utc_sessions = naive_sessions.tz_localize('UTC')
 
         domain = EquitySessionDomain(
-            sessions,
+            utc_sessions,
             CountryCode.UNITED_STATES,
             data_query_time=time,
             data_query_date_offset=date_offset,
         )
 
-        expected = sessions + expected_timedelta
-        actual = domain.data_query_cutoff_for_sessions(sessions)
+        # Adding and localizing the naive_sessions here because pandas 18
+        # crashes when adding a tz-aware DatetimeIndex and a
+        # TimedeltaIndex. :sadpanda:.
+        expected = (naive_sessions + expected_timedelta).tz_localize('utc')
+        actual = domain.data_query_cutoff_for_sessions(utc_sessions)
 
         assert_equal(expected, actual)
