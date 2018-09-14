@@ -26,6 +26,8 @@ LOW = 'low'
 CLOSE = 'close'
 VOLUME = 'volume'
 
+FIELDS = (OPEN, HIGH, LOW, CLOSE, VOLUME)
+
 DAY = 'day'
 SID = 'sid'
 
@@ -106,7 +108,6 @@ class HDF5DailyBarWriter(object):
     --------
     zipline.data.hdf5_daily_bars.HDF5DailyBarReader
     """
-
     def __init__(self, filename, date_chunk_size, driver=None):
         self._filename = filename
         self._date_chunk_size = date_chunk_size
@@ -147,13 +148,12 @@ class HDF5DailyBarWriter(object):
             )
 
             # Write start and end dates for each sid.
-            close_frame = frames[CLOSE].T
-            start_date_ixs, end_date_ixs = compute_asset_lifetimes(close_frame)
+            start_date_ixs, end_date_ixs = compute_asset_lifetimes(frames)
 
             lifetimes_group.create_dataset(START_DATE, data=start_date_ixs)
             lifetimes_group.create_dataset(END_DATE, data=end_date_ixs)
 
-            for field in (OPEN, HIGH, LOW, CLOSE, VOLUME):
+            for field in FIELDS:
                 frame = frames[field]
 
                 # Sort rows by increasing sid, and columns by increasing date.
@@ -203,19 +203,19 @@ class HDF5DailyBarWriter(object):
 
         frames = {
             field: ohlcv_frame[field].unstack()
-            for field in (OPEN, HIGH, LOW, CLOSE, VOLUME)
+            for field in FIELDS
         }
 
         return self.write(country_code, frames)
 
 
-def compute_asset_lifetimes(frame):
+def compute_asset_lifetimes(frames):
     """
     Parameters
     ----------
-    frame : pd.DataFrame
-        A dataframe of OHLCV data with a (sids, dates) index, as passed
-        to write().
+    frames : dict[str, pd.DataFrame]
+        A dict mapping each OHLCV field to a dataframe with a row for
+        each date and a column for each sid, as passed to write().
 
     Returns
     -------
@@ -224,10 +224,15 @@ def compute_asset_lifetimes(frame):
     end_date_ixs : np.array[int64]
         The index of the last date with non-nan values, for each sid.
     """
-    is_null_matrix = frame.isnull().values
+    # Build a 2D array (dates x sids), where an entry is True if all
+    # fields are nan for the given day and sid.
+    is_null_matrix = reduce(
+        np.logical_and,
+        [frames[field].isnull().values for field in FIELDS],
+    )
 
-    start_date_ixs = is_null_matrix.argmin(axis=1)
-    end_date_ixs = is_null_matrix[::-1].argmin(axis=1)
+    start_date_ixs = is_null_matrix.argmin(axis=0)
+    end_date_ixs = is_null_matrix[::-1].argmin(axis=0)
 
     return start_date_ixs, end_date_ixs
 
