@@ -67,7 +67,8 @@ class IDomain(Interface):
         Returns
         -------
         data_query_cutoff : pd.DatetimeIndex
-            The sessions at the given data query time.
+            Timestamp of the last minute for which data should be considered
+            "available" on each session.
         """
 
 
