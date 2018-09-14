@@ -78,14 +78,15 @@ class HDF5DailyBarWriter(object):
     def _h5_file(self, mode):
         return h5py.File(self._filename, mode)
 
-    def write(self, country_code, frame):
+    def write(self, country_code, frames):
         """
         Parameters
         ----------
         country_code : str
             The ISO 3166 alpha-2 country code for this country.
-        frame : pd.DataFrame
-            A dataframe of OHLCV data with a (sids, dates) index.
+        frames : dict[str, pd.DataFrame]
+            A dict mapping each OHLCV field to a dataframe with a row
+            for each date and a column for each sid.
         """
         with self._h5_file(mode='a') as h5_file:
             country_group = h5_file.create_group(country_code)
@@ -94,16 +95,15 @@ class HDF5DailyBarWriter(object):
             index_group = country_group.create_group(INDEX)
             lifetimes_group = country_group.create_group(LIFETIMES)
 
-            # Sort rows by sid, then by date.
-            frame = frame.sort_index()
+            close_frame = frames[CLOSE].T
 
             # Write sid and date indices.
-            sids = frame.index.levels[0].values
+            sids = close_frame.index.values
             index_group.create_dataset(SID, data=sids)
 
             # h5py does not support datetimes, so they need to be stored
             # as integers.
-            days = frame.index.levels[1].astype(np.int64)
+            days = close_frame.columns.values.astype(np.int64)
             index_group.create_dataset(DAY, data=days)
 
             log.debug(
@@ -113,14 +113,20 @@ class HDF5DailyBarWriter(object):
             )
 
             # Write start and end dates for each sid.
-            start_date_ixs, end_date_ixs = compute_asset_lifetimes(frame)
+            start_date_ixs, end_date_ixs = compute_asset_lifetimes(close_frame)
 
             lifetimes_group.create_dataset(START_DATE, data=start_date_ixs)
             lifetimes_group.create_dataset(END_DATE, data=end_date_ixs)
 
             for field in (OPEN, HIGH, LOW, CLOSE, VOLUME):
+                frame = frames[field]
+
+                # Sort rows by increasing sid, and columns by increasing date.
+                frame.sort_index(inplace=True)
+                frame.sort_index(axis='columns', inplace=True)
+
                 data = coerce_to_uint32(
-                    frame[field].unstack().fillna(0).values,
+                    frame.T.fillna(0).values,
                     field,
                 )
 
@@ -144,6 +150,29 @@ class HDF5DailyBarWriter(object):
 
         return self._h5_file(mode='r')
 
+    def write_from_sid_df_pairs(self, country_code, iterable):
+        """
+        Parameters
+        ----------
+        country_code : str
+            The ISO 3166 alpha-2 country code for this country.
+        frames : iterable[(int, pd.DataFrame)]
+            An iterable of (asset id, dataframe) tuples, where each
+            dataframe contains OHLCV data with a row for each date and a
+            column for each asset.
+        """
+        ohlcv_frame = pd.concat([df for sid, df in iterable])
+
+        # Add id to the index, so the frame is indexed by (date, id).
+        ohlcv_frame.set_index('id', append=True, inplace=True)
+
+        frames = {
+            field: ohlcv_frame[field].unstack()
+            for field in (OPEN, HIGH, LOW, CLOSE, VOLUME)
+        }
+
+        return self.write(country_code, frames)
+
 
 def compute_asset_lifetimes(frame):
     """
@@ -160,7 +189,7 @@ def compute_asset_lifetimes(frame):
     end_date_ixs : np.array[int64]
         The index of the last date with non-nan values, for each sid.
     """
-    is_null_matrix = frame[CLOSE].unstack().isnull().values
+    is_null_matrix = frame.isnull().values
 
     start_date_ixs = is_null_matrix.argmin(axis=1)
     end_date_ixs = is_null_matrix[::-1].argmin(axis=1)
