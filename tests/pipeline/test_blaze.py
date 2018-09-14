@@ -122,7 +122,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
 
     def create_domain(self,
                       sessions,
-                      data_query_time=time(0, 0),
+                      data_query_time=time(0, 0, tzinfo=pytz.utc),
                       data_query_date_offset=0):
         if sessions.tz is None:
             sessions = sessions.tz_localize('UTC')
