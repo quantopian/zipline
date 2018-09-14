@@ -361,10 +361,9 @@ class HDF5DailyBarReader(SessionBarReader):
         Returns the zipline.utils.calendar.trading_calendar used to read
         the data.  Can be None (if the writer didn't specify it).
         """
-
-        # TODO: Write this as an attr on the country group, which can be
-        #       read to reconstruct the calendar here.
-        return None
+        raise NotImplementedError(
+            'HDF5 pricing does not yet support trading calendars.'
+        )
 
     @property
     def first_trading_day(self):
@@ -539,7 +538,9 @@ class MultiCountryHDF5DailyBarReader(SessionBarReader):
         Returns the zipline.utils.calendar.trading_calendar used to read
         the data.  Can be None (if the writer didn't specify it).
         """
-        return None
+        raise NotImplementedError(
+            'HDF5 pricing does not yet support trading calendars.'
+        )
 
     @property
     def first_trading_day(self):
