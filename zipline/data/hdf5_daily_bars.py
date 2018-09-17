@@ -4,6 +4,7 @@ import h5py
 import logbook
 import numpy as np
 import pandas as pd
+from six import iteritems
 from six.moves import reduce
 
 from zipline.data.bar_reader import NoDataBeforeDate, NoDataAfterDate
@@ -254,9 +255,7 @@ class HDF5DailyBarReader(SessionBarReader):
     country_group : h5py.Group
         The group for a single country in an HDF5 daily pricing file.
     """
-
-    def __init__(self, country_code, country_group):
-        self.country_code = country_code
+    def __init__(self, country_group):
         self._country_group = country_group
 
         self._postprocessors = {
@@ -272,8 +271,28 @@ class HDF5DailyBarReader(SessionBarReader):
         }
 
     @classmethod
-    def from_path(cls, country_code, path):
-        return cls(country_code, h5py.File(path)[country_code])
+    def from_file(cls, h5_file, country_code):
+        """
+        Parameters
+        ----------
+        h5_file : h5py.File
+            An HDF5 daily pricing file.
+        country_code : str
+            The ISO 3166 alpha-2 country code for the country to read.
+        """
+        return cls(h5_file[country_code])
+
+    @classmethod
+    def from_path(cls, path, country_code):
+        """
+        Parameters
+        ----------
+        path : str
+            The path to an HDF5 daily pricing file.
+        country_code : str
+            The ISO 3166 alpha-2 country code for the country to read.
+        """
+        return cls.from_file(h5py.File(path), country_code)
 
     def _read_scaling_factor(self, field):
         return self._country_group[DATA][field].attrs[SCALING_FACTOR]
@@ -456,31 +475,20 @@ class HDF5DailyBarReader(SessionBarReader):
         pass
 
 
-class MultiCountryHDF5DailyBarReader(SessionBarReader):
+class MultiCountryDailyBarReader(SessionBarReader):
     """
     Parameters
     ---------
-    readers : list[HDF5DailyBarReader]
-        A list of single country HDF5DailyBarReader instances.
+    readers : dict[str -> SessionBarReader]
+        A dict mapping country codes to SessionBarReader instances to
+        service each country.
     """
-
     def __init__(self, readers):
-        self._readers = {reader.country_code: reader for reader in readers}
+        self._readers = readers
         self._country_map = pd.concat([
-            pd.Series(index=reader.sids, data=reader.country_code)
-            for reader in readers
+            pd.Series(index=reader.sids, data=country_code)
+            for country_code, reader in iteritems(readers)
         ])
-
-    @classmethod
-    def from_file(cls, h5_file):
-        return cls([
-            HDF5DailyBarReader(country_code, h5_file[country_code])
-            for country_code in h5_file
-        ])
-
-    @classmethod
-    def from_path(cls, path):
-        return cls.from_file(h5py.File(path))
 
     def _country_code_for_assets(self, assets):
         country_codes = self._country_map[assets]
