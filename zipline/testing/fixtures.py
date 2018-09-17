@@ -49,7 +49,6 @@ from ..data.data_portal import (
     DEFAULT_DAILY_HISTORY_PREFETCH,
 )
 from ..data.hdf5_daily_bars import (
-    HDF5DailyBarReader,
     HDF5DailyBarWriter,
     MultiCountryHDF5DailyBarReader,
 )
@@ -1197,12 +1196,9 @@ class WithHDF5EquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
             cls.make_equity_daily_bar_data(),
         )
 
-        cls.hdf5_equity_daily_bar_reader = MultiCountryHDF5DailyBarReader([
-            HDF5DailyBarReader(
-                country_code=cls.HDF5_DAILY_BAR_COUNTRY_CODE,
-                country_group=f[cls.HDF5_DAILY_BAR_COUNTRY_CODE],
-            )
-        ])
+        cls.hdf5_equity_daily_bar_reader = (
+            MultiCountryHDF5DailyBarReader.from_file(f)
+        )
 
 
 class WithEquityMinuteBarData(WithAssetFinder, WithTradingCalendars):

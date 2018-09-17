@@ -469,6 +469,17 @@ class MultiCountryHDF5DailyBarReader(SessionBarReader):
             for reader in readers
         ])
 
+    @classmethod
+    def from_file(cls, h5_file):
+        return cls([
+            HDF5DailyBarReader(country_code, h5_file[country_code])
+            for country_code in h5_file
+        ])
+
+    @classmethod
+    def from_path(cls, path):
+        return cls.from_file(h5py.File(path))
+
     def _country_code_for_assets(self, assets):
         country_codes = self._country_map[assets]
 
