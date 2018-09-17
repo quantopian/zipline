@@ -26,6 +26,7 @@ from numpy import (
 )
 from pandas import (
     DataFrame,
+    NaT,
     Timestamp,
 )
 from trading_calendars import get_calendar
@@ -264,6 +265,44 @@ class _DailyBarsTestCase(WithEquityDailyBarData, ZiplineTestCase):
         # after
         with self.assertRaises(NoDataAfterDate):
             reader.get_value(4, Timestamp('2015-06-16', tz='UTC'), 'close')
+
+    def test_get_last_traded_dt(self):
+        for sid in self.assets:
+            assert_equal(
+                self.daily_bar_reader.get_last_traded_dt(
+                    self.asset_finder.retrieve_asset(sid),
+                    self.EQUITY_DAILY_BAR_END_DATE,
+                ),
+                self.asset_end(sid),
+            )
+
+            # If an asset is alive by ``mid_date``, its "last trade" dt
+            # is either the end date for the asset, or ``mid_date`` if
+            # the asset is *still* alive at that point. Otherwise, it
+            # is pd.NaT.
+            mid_date = Timestamp('2015-06-15', tz='UTC')
+            if self.asset_start(sid) <= mid_date:
+                expected = min(self.asset_end(sid), mid_date)
+            else:
+                expected = NaT
+
+            assert_equal(
+                self.daily_bar_reader.get_last_traded_dt(
+                    self.asset_finder.retrieve_asset(sid),
+                    mid_date,
+                ),
+                expected,
+            )
+
+            # If the dt passed comes before any of the assets
+            # start trading, the "last traded" dt for each is pd.NaT.
+            assert_equal(
+                self.daily_bar_reader.get_last_traded_dt(
+                    self.asset_finder.retrieve_asset(sid),
+                    Timestamp(0, tz='UTC'),
+                ),
+                NaT,
+            )
 
 
 class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):

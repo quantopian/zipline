@@ -472,7 +472,19 @@ class HDF5DailyBarReader(SessionBarReader):
             The dt of the last trade for the given asset, using the input
             dt as a vantage point.
         """
-        pass
+        sid_ix = self.sids.searchsorted(asset.sid)
+        # Used to get a slice of all dates up to and including ``dt``.
+        dt_limit_ix = self.dates.searchsorted(dt.asm8, side='right')
+
+        # Get the indices of all dates with nonzero volume.
+        nonzero_volume_ixs = np.ravel(
+            np.nonzero(self._country_group[DATA][VOLUME][sid_ix, :dt_limit_ix])
+        )
+
+        if len(nonzero_volume_ixs) == 0:
+            return pd.NaT
+
+        return pd.Timestamp(self.dates[nonzero_volume_ixs][-1], tz='UTC')
 
 
 class MultiCountryDailyBarReader(SessionBarReader):
@@ -644,4 +656,13 @@ class MultiCountryDailyBarReader(SessionBarReader):
             The dt of the last trade for the given asset, using the input
             dt as a vantage point.
         """
-        pass
+        dts = [
+            reader.get_last_traded_dt(asset, dt)
+            for reader in self._readers.values()
+            if dt is not pd.NaT
+        ]
+
+        if len(dts) == 0:
+            return pd.NaT
+
+        return max(dts)
