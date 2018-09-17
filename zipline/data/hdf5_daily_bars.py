@@ -108,7 +108,7 @@ class HDF5DailyBarWriter(object):
     --------
     zipline.data.hdf5_daily_bars.HDF5DailyBarReader
     """
-    def __init__(self, filename, date_chunk_size, driver=None):
+    def __init__(self, filename, date_chunk_size):
         self._filename = filename
         self._date_chunk_size = date_chunk_size
 
@@ -116,14 +116,16 @@ class HDF5DailyBarWriter(object):
         return h5py.File(self._filename, mode)
 
     def write(self, country_code, frames):
-        """
+        """Write the OHLCV data for one country to the HDF5 file.
+
         Parameters
         ----------
         country_code : str
             The ISO 3166 alpha-2 country code for this country.
         frames : dict[str, pd.DataFrame]
             A dict mapping each OHLCV field to a dataframe with a row
-            for each date and a column for each sid.
+            for each date and a column for each sid. The dataframes need
+            to have the same index and columns.
         """
         with self._h5_file(mode='a') as h5_file:
             country_group = h5_file.create_group(country_code)
@@ -132,6 +134,8 @@ class HDF5DailyBarWriter(object):
             index_group = country_group.create_group(INDEX)
             lifetimes_group = country_group.create_group(LIFETIMES)
 
+            # Note that this functions validates that all of the frames
+            # share the same days and sids.
             days, sids = days_and_sids_for_frames(list(frames.values()))
 
             # Write sid and date indices.
@@ -185,18 +189,17 @@ class HDF5DailyBarWriter(object):
 
         return self._h5_file(mode='r')
 
-    def write_from_sid_df_pairs(self, country_code, iterable):
+    def write_from_sid_df_pairs(self, country_code, data):
         """
         Parameters
         ----------
         country_code : str
             The ISO 3166 alpha-2 country code for this country.
-        frames : iterable[(int, pd.DataFrame)]
-            An iterable of (asset id, dataframe) tuples, where each
-            dataframe contains OHLCV data with a row for each date and a
-            column for each asset.
+        data : iterable[tuple[int, pandas.DataFrame]]
+            The data chunks to write. Each chunk should be a tuple of
+            sid and the data for that asset.
         """
-        ohlcv_frame = pd.concat([df for sid, df in iterable])
+        ohlcv_frame = pd.concat([df for sid, df in data])
 
         # Add id to the index, so the frame is indexed by (date, id).
         ohlcv_frame.set_index('id', append=True, inplace=True)
@@ -268,6 +271,10 @@ class HDF5DailyBarReader(SessionBarReader):
             VOLUME: lambda a: a,
         }
 
+    @classmethod
+    def from_path(cls, country_code, path):
+        return cls(country_code, h5py.File(path)[country_code])
+
     def _read_scaling_factor(self, field):
         return self._country_group[DATA][field].attrs[SCALING_FACTOR]
 
@@ -281,11 +288,11 @@ class HDF5DailyBarReader(SessionBarReader):
         ----------
         columns : list of str
            'open', 'high', 'low', 'close', or 'volume'
-        start_dt: Timestamp
+        start_date: Timestamp
            Beginning of the window range.
-        end_dt: Timestamp
+        end_date: Timestamp
            End of the window range.
-        sids : list of int
+        assets : list of int
            The asset identifiers in the window.
 
         Returns
@@ -322,11 +329,6 @@ class HDF5DailyBarReader(SessionBarReader):
         end_ix = self.dates.searchsorted(end_date, side='right')
 
         return slice(start_ix, end_ix)
-
-    def _requesteddates(self, start_date, end_date):
-        start_ix = self.dates.searchsorted(start_date)
-        end_ix = self.dates.searchsorted(end_date, side='right')
-        return self.dates[start_ix:end_ix]
 
     @lazyval
     def dates(self):
@@ -376,13 +378,13 @@ class HDF5DailyBarReader(SessionBarReader):
         """
         return pd.Timestamp(self.dates[0], tz='UTC')
 
-    @property
+    @lazyval
     def sessions(self):
         """
         Returns
         -------
         sessions : DatetimeIndex
-           All session labels (unionining the range for all assets) which the
+           All session labels (unioning the range for all assets) which the
            reader can provide.
         """
         return pd.to_datetime(self.dates, utc=True)
@@ -493,7 +495,12 @@ class MultiCountryHDF5DailyBarReader(SessionBarReader):
         unique_country_codes = country_codes.unique()
 
         if len(unique_country_codes) > 1:
-            raise ValueError()
+            raise NotImplementedError(
+                (
+                    'Assets were requested from multiple countries ({}),'
+                    ' but multi-country reads are not yet supported.'
+                ).format(list(unique_country_codes))
+            )
 
         return np.asscalar(unique_country_codes)
 
@@ -507,11 +514,11 @@ class MultiCountryHDF5DailyBarReader(SessionBarReader):
         ----------
         columns : list of str
            'open', 'high', 'low', 'close', or 'volume'
-        start_dt: Timestamp
+        start_date: Timestamp
            Beginning of the window range.
-        end_dt: Timestamp
+        end_date: Timestamp
            End of the window range.
-        sids : list of int
+        assets : list of int
            The asset identifiers in the window.
 
         Returns
@@ -538,9 +545,8 @@ class MultiCountryHDF5DailyBarReader(SessionBarReader):
         dt : pd.Timestamp
             The last session for which the reader can provide data.
         """
-        return pd.Timestamp(
-            max(reader.dates[-1] for reader in self._readers.values()),
-            tz='UTC',
+        return max(
+            reader.last_available_dt for reader in self._readers.values()
         )
 
     @property
@@ -562,9 +568,8 @@ class MultiCountryHDF5DailyBarReader(SessionBarReader):
             The first trading day (session) for which the reader can provide
             data.
         """
-        return pd.Timestamp(
-            min(reader.dates[0] for reader in self._readers.values()),
-            tz='UTC',
+        return min(
+            reader.first_trading_day for reader in self._readers.values()
         )
 
     @property
@@ -573,7 +578,7 @@ class MultiCountryHDF5DailyBarReader(SessionBarReader):
         Returns
         -------
         sessions : DatetimeIndex
-           All session labels (unionining the range for all assets) which the
+           All session labels (unioning the range for all assets) which the
            reader can provide.
         """
         return pd.to_datetime(
