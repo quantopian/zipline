@@ -49,8 +49,9 @@ from ..data.data_portal import (
     DEFAULT_DAILY_HISTORY_PREFETCH,
 )
 from ..data.hdf5_daily_bars import (
+    HDF5DailyBarReader,
     HDF5DailyBarWriter,
-    MultiCountryHDF5DailyBarReader,
+    MultiCountryDailyBarReader,
 )
 from ..data.loader import (
     get_benchmark_filename,
@@ -1197,7 +1198,10 @@ class WithHDF5EquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
         )
 
         cls.hdf5_equity_daily_bar_reader = (
-            MultiCountryHDF5DailyBarReader.from_file(f)
+            MultiCountryDailyBarReader({
+                country_code: HDF5DailyBarReader.from_file(f, country_code)
+                for country_code in f
+            })
         )
 
 
