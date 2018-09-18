@@ -36,7 +36,7 @@ START_DATE = 'start_date'
 END_DATE = 'end_date'
 
 
-scaling_factors = {
+DEFAULT_SCALING_FACTORS = {
     # Retain 3 decimal places for prices.
     OPEN: 1000,
     HIGH: 1000,
@@ -47,12 +47,12 @@ scaling_factors = {
 }
 
 
-def coerce_to_uint32(a, field):
+def coerce_to_uint32(a, field, scaling_factor):
     """
     Returns a copy of the array as uint32, applying a scaling factor to
-    maintain precision if necessary.
+    maintain precision if supplied.
     """
-    return (a * scaling_factors[field]).astype('uint32')
+    return (a * scaling_factor).astype('uint32')
 
 
 def days_and_sids_for_frames(frames):
@@ -116,7 +116,7 @@ class HDF5DailyBarWriter(object):
     def _h5_file(self, mode):
         return h5py.File(self._filename, mode)
 
-    def write(self, country_code, frames):
+    def write(self, country_code, frames, scaling_factors=None):
         """Write the OHLCV data for one country to the HDF5 file.
 
         Parameters
@@ -127,7 +127,18 @@ class HDF5DailyBarWriter(object):
             A dict mapping each OHLCV field to a dataframe with a row
             for each date and a column for each sid. The dataframes need
             to have the same index and columns.
+        scaling_factors : dict[str, float], optional
+            A dict mapping each OHLCV field to a scaling factor, which
+            is applied (as a multiplier) to the values of field to
+            efficiently store them as uint32, while maintaining desired
+            precision. These factors are written to the file as metadata,
+            which is consumed by the reader to adjust back to the original
+            float values. Default is None, in which case
+            DEFAULT_SCALING_FACTORS is used.
         """
+        if scaling_factors is None:
+            scaling_factors = DEFAULT_SCALING_FACTORS
+
         with self._h5_file(mode='a') as h5_file:
             country_group = h5_file.create_group(country_code)
 
@@ -168,6 +179,7 @@ class HDF5DailyBarWriter(object):
                 data = coerce_to_uint32(
                     frame.T.fillna(0).values,
                     field,
+                    scaling_factors[field],
                 )
 
                 dataset = data_group.create_dataset(
@@ -181,7 +193,7 @@ class HDF5DailyBarWriter(object):
                     ),
                 )
 
-                dataset.attrs['scaling_factor'] = scaling_factors[field]
+                dataset.attrs[SCALING_FACTOR] = scaling_factors[field]
 
                 log.debug(
                     'Writing dataset {} to file {}',
@@ -190,7 +202,10 @@ class HDF5DailyBarWriter(object):
 
         return self._h5_file(mode='r')
 
-    def write_from_sid_df_pairs(self, country_code, data):
+    def write_from_sid_df_pairs(self,
+                                country_code,
+                                data,
+                                scaling_factors=None):
         """
         Parameters
         ----------
@@ -199,6 +214,14 @@ class HDF5DailyBarWriter(object):
         data : iterable[tuple[int, pandas.DataFrame]]
             The data chunks to write. Each chunk should be a tuple of
             sid and the data for that asset.
+        scaling_factors : dict[str, float], optional
+            A dict mapping each OHLCV field to a scaling factor, which
+            is applied (as a multiplier) to the values of field to
+            efficiently store them as uint32, while maintaining desired
+            precision. These factors are written to the file as metadata,
+            which is consumed by the reader to adjust back to the original
+            float values. Default is None, in which case
+            DEFAULT_SCALING_FACTORS is used.
         """
         ohlcv_frame = pd.concat([df for sid, df in data])
 
@@ -210,7 +233,7 @@ class HDF5DailyBarWriter(object):
             for field in FIELDS
         }
 
-        return self.write(country_code, frames)
+        return self.write(country_code, frames, scaling_factors)
 
 
 def compute_asset_lifetimes(frames):
