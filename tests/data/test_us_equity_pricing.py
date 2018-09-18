@@ -35,6 +35,7 @@ from zipline.data.bar_reader import NoDataBeforeDate, NoDataAfterDate
 from zipline.data.bcolz_daily_bars import BcolzDailyBarWriter
 from zipline.data.hdf5_daily_bars import (
     CLOSE,
+    DEFAULT_SCALING_FACTORS,
     HIGH,
     LOW,
     OPEN,
@@ -485,6 +486,7 @@ class HDF5DailyBarTestCase(WithHDF5EquityDailyBarReader, _DailyBarsTestCase):
         coerced = coerce_to_uint32(
             array([0.001, 1, 100, 100.5, 1000.005], dtype=float64),
             field,
+            DEFAULT_SCALING_FACTORS[field],
         )
 
         assert_equal(coerced, expected)
