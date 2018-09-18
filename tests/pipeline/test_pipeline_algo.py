@@ -83,7 +83,6 @@ def rolling_vwap(df, length):
 
 
 class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
-    sids = 1, 2, 3
     START_DATE = pd.Timestamp('2014-01-01', tz='utc')
     END_DATE = pd.Timestamp('2014-02-01', tz='utc')
     dates = date_range(START_DATE, END_DATE, freq=get_calendar("NYSE").day,
@@ -130,12 +129,12 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
     @classmethod
     def make_equity_daily_bar_data(cls, country_code, sids):
         cls.closes = DataFrame(
-            {sid: arange(1, len(cls.dates) + 1) * sid for sid in cls.sids},
+            {sid: arange(1, len(cls.dates) + 1) * sid for sid in sids},
             index=cls.dates,
             dtype=float,
         )
         cls.volumes = cls.closes * 1000
-        for sid in cls.sids:
+        for sid in sids:
             yield sid, DataFrame(
                 {
                     'open': cls.closes[sid].values,
@@ -152,7 +151,7 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
         super(ClosesAndVolumes, cls).init_class_fixtures()
         cls.first_asset_start = min(cls.equity_info.start_date)
         cls.last_asset_end = max(cls.equity_info.end_date)
-        cls.assets = cls.asset_finder.retrieve_all(cls.sids)
+        cls.assets = cls.asset_finder.retrieve_all(cls.asset_finder.sids)
 
         cls.trading_day = cls.trading_calendar.day
 

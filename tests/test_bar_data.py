@@ -865,7 +865,7 @@ class TestDailyBarData(WithCreateBarData,
     )
     CREATE_BARDATA_DATA_FREQUENCY = 'daily'
 
-    sids = ASSET_FINDER_EQUITY_SIDS = set(range(1, 9))
+    ASSET_FINDER_EQUITY_SIDS = set(range(1, 9))
 
     SPLIT_ASSET_SID = 3
     ILLIQUID_SPLIT_ASSET_SID = 4
@@ -954,7 +954,7 @@ class TestDailyBarData(WithCreateBarData,
 
     @classmethod
     def make_equity_daily_bar_data(cls, country_code, sids):
-        for sid in cls.sids:
+        for sid in sids:
             asset = cls.asset_finder.retrieve_asset(sid)
             yield sid, create_daily_df_for_asset(
                 cls.trading_calendar,
