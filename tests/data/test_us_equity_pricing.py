@@ -114,7 +114,7 @@ class _DailyBarsTestCase(WithEquityDailyBarData, ZiplineTestCase):
     @classmethod
     def make_equity_daily_bar_data(cls, country_code, sids):
         return make_bar_data(
-            EQUITY_INFO.loc[sids],
+            EQUITY_INFO.loc[list(sids)],
             cls.equity_daily_bar_days,
         )
 

@@ -1521,6 +1521,10 @@ class AssetFinder(object):
 
         return pd.DataFrame(mask, index=dates, columns=lifetimes.sid)
 
+    def equity_sids_for_country_code(self, country_code):
+        sids = self._compute_asset_lifetimes([country_code]).sid
+        return tuple(sids.tolist())
+
 
 class AssetConvertible(with_metaclass(ABCMeta)):
     """
