@@ -953,7 +953,7 @@ class TestDailyBarData(WithCreateBarData,
         return MockDailyBarReader()
 
     @classmethod
-    def make_equity_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls, country_code, sids):
         for sid in cls.sids:
             asset = cls.asset_finder.retrieve_asset(sid)
             yield sid, create_daily_df_for_asset(

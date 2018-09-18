@@ -921,7 +921,7 @@ class SyntheticBcolzTestCase(zf.WithAdjustmentReader,
         return DataFrame({'exchange': ['NYSE'], 'country_code': ['US']})
 
     @classmethod
-    def make_equity_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls, country_code, sids):
         return make_bar_data(
             cls.equity_info,
             cls.equity_daily_bar_days,

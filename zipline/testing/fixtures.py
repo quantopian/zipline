@@ -760,6 +760,9 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
         If this flag is set, `make_equity_daily_bar_data` will read data from
         the minute bars defined by `WithEquityMinuteBarData`.
         The current default is `False`, but could be `True` in the future.
+    EQUITY_DAILY_BAR_COUNTRY_CODES : tuple
+        The countres to create data for. By default this is populated
+        with all of the countries present in the asset finder.
 
     Methods
     -------
@@ -778,6 +781,7 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
     EQUITY_DAILY_BAR_START_DATE = alias('START_DATE')
     EQUITY_DAILY_BAR_END_DATE = alias('END_DATE')
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = None
+    EQUITY_DAILY_BAR_COUNTRY_CODES = None
 
     @classproperty
     def EQUITY_DAILY_BAR_LOOKBACK_DAYS(cls):
@@ -801,7 +805,7 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
                 cls.trading_calendars[Equity])
 
     @classmethod
-    def make_equity_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls, country_code, sids):
         # Requires a WithEquityMinuteBarData to come before in the MRO.
         # Resample that data so that daily and minute bar data are aligned.
         if cls.EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE:
@@ -836,6 +840,11 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
         )
 
         cls.equity_daily_bar_days = days
+
+        if cls.EQUITY_DAILY_BAR_COUNTRY_CODES is None:
+            cls.EQUITY_DAILY_BAR_COUNTRY_CODES = tuple(
+                cls.asset_finder.symbol_ownership_maps_by_country_code.keys()
+            )
 
 
 class WithFutureDailyBarData(WithAssetFinder, WithTradingCalendars):
@@ -985,6 +994,7 @@ class WithBcolzEquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
     """
     BCOLZ_DAILY_BAR_PATH = 'daily_equity_pricing.bcolz'
     BCOLZ_DAILY_BAR_READ_ALL_THRESHOLD = None
+    BCOLZ_DAILY_BAR_COUNTRY_CODE = None
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = False
     # allows WithBcolzEquityDailyBarReaderFromCSVs to call the
     # `write_csvs`method without needing to reimplement `init_class_fixtures`
@@ -1001,15 +1011,31 @@ class WithBcolzEquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
     def init_class_fixtures(cls):
         super(WithBcolzEquityDailyBarReader, cls).init_class_fixtures()
 
+        if cls.BCOLZ_DAILY_BAR_COUNTRY_CODE is None:
+            cls.BCOLZ_DAILY_BAR_COUNTRY_CODE = (
+                cls.EQUITY_DAILY_BAR_COUNTRY_CODES[0]
+            )
+
         cls.bcolz_daily_bar_path = p = cls.make_bcolz_daily_bar_rootdir_path()
         days = cls.equity_daily_bar_days
+
+        sids = [
+            sid for sid in cls.asset_finder.equities_sids
+            if (
+                cls.asset_finder.retrieve_asset(sid).country_code
+                == cls.BCOLZ_DAILY_BAR_COUNTRY_CODE
+            )
+        ]
 
         trading_calendar = cls.trading_calendars[Equity]
         cls.bcolz_daily_bar_ctable = t = getattr(
             BcolzDailyBarWriter(p, trading_calendar, days[0], days[-1]),
             cls._write_method_name,
         )(
-            cls.make_equity_daily_bar_data(),
+            cls.make_equity_daily_bar_data(
+                country_code=cls.BCOLZ_DAILY_BAR_COUNTRY_CODE,
+                sids=sids,
+            ),
             invalid_data_behavior=cls.INVALID_DATA_BEHAVIOR
         )
 
@@ -1179,7 +1205,7 @@ class WithHDF5EquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
     zipline.testing.create_daily_bar_data
     """
     HDF5_DAILY_BAR_PATH = 'daily_equity_pricing.h5'
-    HDF5_DAILY_BAR_COUNTRY_CODE = 'US'
+    HDF5_DAILY_BAR_COUNTRY_CODES = alias('EQUITY_DAILY_BAR_COUNTRY_CODES')
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = False
 
     @classmethod
@@ -1192,10 +1218,21 @@ class WithHDF5EquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
 
         cls.hdf5_daily_bar_path = p = cls.make_hdf5_daily_bar_path()
 
-        f = HDF5DailyBarWriter(p, date_chunk_size=30).write_from_sid_df_pairs(
-            cls.HDF5_DAILY_BAR_COUNTRY_CODE,
-            cls.make_equity_daily_bar_data(),
-        )
+        writer = HDF5DailyBarWriter(p, date_chunk_size=30)
+
+        for country_code in cls.HDF5_DAILY_BAR_COUNTRY_CODES:
+            sids = [
+                sid for sid in cls.asset_finder.equities_sids
+                if (
+                    cls.asset_finder.retrieve_asset(sid).country_code
+                    == country_code
+                )
+            ]
+
+            f = writer.write_from_sid_df_pairs(
+                country_code,
+                cls.make_equity_daily_bar_data(country_code, sids),
+            )
 
         cls.hdf5_equity_daily_bar_reader = (
             MultiCountryDailyBarReader({

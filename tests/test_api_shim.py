@@ -148,7 +148,7 @@ class TestAPIShim(WithCreateBarData,
             )
 
     @classmethod
-    def make_equity_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls, country_code, sids):
         for sid in cls.sids:
             yield sid, create_daily_df_for_asset(
                 cls.trading_calendar,
