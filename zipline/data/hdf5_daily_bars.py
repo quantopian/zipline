@@ -1,3 +1,71 @@
+"""
+Reader and writer for the HDF5 daily pricing file format.
+
+At the top level, the file is keyed by country (to support regional
+files containing multiple countries).
+
+###
+
+Within each country, there are 3 subgroups:
+
+1) /data
+     /open
+     /high
+     /low
+     /close
+     /volume
+
+Each field (OHLCV) is stored in a dataset as a 2d array, with a row per
+sid and a column per session.
+
+2) /index
+     /sid
+     /day
+
+Contains two datasets, the index of sids (aligned to the rows of the
+OHLCV 2D arrays) and index of sessions (aligned to the columns of the
+OHLCV 2D arrays) to use for lookups.
+
+3) /lifetimes
+     /start_date
+     /end_date
+
+Contains two datasets, start_date and end_date, defining the lifetime
+for each asset, aligned to the sids index.
+
+###
+
+Sample layout of the full file with multiple countries:
+
+    /US
+      /data
+        /open
+        /high
+        /low
+        /close
+        /volume
+      /index
+        /sid
+        /day
+      /lifetimes
+        /start_date
+        /end_date
+    /CA
+      /data
+        /open
+        /high
+        /low
+        /close
+        /volume
+      /index
+        /sid
+        /day
+      /lifetimes
+        /start_date
+        /end_date
+"""
+
+
 from functools import partial
 
 import h5py
