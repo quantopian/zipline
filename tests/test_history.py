@@ -1671,7 +1671,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
     CREATE_BARDATA_DATA_FREQUENCY = 'daily'
 
     @classmethod
-    def make_equity_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls, country_code, sids):
         yield 1, cls.create_df_for_asset(
             cls.START_DATE,
             pd.Timestamp('2016-01-30', tz='UTC')

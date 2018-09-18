@@ -78,7 +78,7 @@ class AssetDispatchSessionBarTestCase(WithBcolzEquityDailyBarReader,
         }, index=m_opens)
 
     @classmethod
-    def make_equity_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls, country_code, sids):
         sessions = cls.trading_sessions['NYSE']
         yield 1, DataFrame({
             'open': [100.5, 101.5, nan],

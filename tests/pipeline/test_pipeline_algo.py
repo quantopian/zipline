@@ -128,7 +128,7 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
         return DataFrame({'exchange': ['NYSE'], 'country_code': ['US']})
 
     @classmethod
-    def make_equity_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls, country_code, sids):
         cls.closes = DataFrame(
             {sid: arange(1, len(cls.dates) + 1) * sid for sid in cls.sids},
             index=cls.dates,
@@ -452,7 +452,7 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
     ASSET_FINDER_COUNTRY_CODE = 'US'
 
     @classmethod
-    def make_equity_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls, country_code, sids):
         resources = {
             cls.AAPL: join(TEST_RESOURCE_PATH, 'AAPL.csv'),
             cls.MSFT: join(TEST_RESOURCE_PATH, 'MSFT.csv'),
