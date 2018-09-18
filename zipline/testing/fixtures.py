@@ -793,6 +793,10 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
         else:
             return 0
 
+    @classproperty
+    def EQUITY_DAILY_BAR_COUNTRY_CODES(cls):
+        return tuple(cls.asset_finder.symbol_ownership_maps_by_country_code)
+
     @classmethod
     def _make_equity_daily_bar_from_minute(cls):
         assert issubclass(cls, WithEquityMinuteBarData), \
@@ -806,6 +810,23 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
 
     @classmethod
     def make_equity_daily_bar_data(cls, country_code, sids):
+        """
+        Parameters
+        ----------
+        country_code : str
+            An ISO 3166 alpha-2 country code. Data should be created for
+            this country.
+        sids : tuple[int]
+            The sids to include in the data.
+
+        Yields
+        ------
+        (int, pd.DataFrame)
+            A sid, dataframe pair to be passed to a daily bar writer.
+            The dataframe should be indexed by date, with columns of
+            ('open', 'high', 'low', 'close', 'volume', 'day', & 'id').
+        """
+
         # Requires a WithEquityMinuteBarData to come before in the MRO.
         # Resample that data so that daily and minute bar data are aligned.
         if cls.EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE:
@@ -840,11 +861,6 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
         )
 
         cls.equity_daily_bar_days = days
-
-        if cls.EQUITY_DAILY_BAR_COUNTRY_CODES is None:
-            cls.EQUITY_DAILY_BAR_COUNTRY_CODES = tuple(
-                cls.asset_finder.symbol_ownership_maps_by_country_code.keys()
-            )
 
 
 class WithFutureDailyBarData(WithAssetFinder, WithTradingCalendars):
@@ -1003,6 +1019,10 @@ class WithBcolzEquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
     # options are: 'warn', 'raise', 'ignore'
     INVALID_DATA_BEHAVIOR = 'warn'
 
+    @classproperty
+    def BCOLZ_DAILY_BAR_COUNTRY_CODE(cls):
+        return cls.EQUITY_DAILY_BAR_COUNTRY_CODES[0]
+
     @classmethod
     def make_bcolz_daily_bar_rootdir_path(cls):
         return cls.tmpdir.makedir(cls.BCOLZ_DAILY_BAR_PATH)
@@ -1011,21 +1031,12 @@ class WithBcolzEquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
     def init_class_fixtures(cls):
         super(WithBcolzEquityDailyBarReader, cls).init_class_fixtures()
 
-        if cls.BCOLZ_DAILY_BAR_COUNTRY_CODE is None:
-            cls.BCOLZ_DAILY_BAR_COUNTRY_CODE = (
-                cls.EQUITY_DAILY_BAR_COUNTRY_CODES[0]
-            )
-
         cls.bcolz_daily_bar_path = p = cls.make_bcolz_daily_bar_rootdir_path()
-        days = cls.equity_daily_bar_days
 
-        sids = [
-            sid for sid in cls.asset_finder.equities_sids
-            if (
-                cls.asset_finder.retrieve_asset(sid).country_code
-                == cls.BCOLZ_DAILY_BAR_COUNTRY_CODE
-            )
-        ]
+        days = cls.equity_daily_bar_days
+        sids = cls.asset_finder.equity_sids_for_country_code(
+            cls.BCOLZ_DAILY_BAR_COUNTRY_CODE
+        )
 
         trading_calendar = cls.trading_calendars[Equity]
         cls.bcolz_daily_bar_ctable = t = getattr(
@@ -1221,17 +1232,14 @@ class WithHDF5EquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
         writer = HDF5DailyBarWriter(p, date_chunk_size=30)
 
         for country_code in cls.HDF5_DAILY_BAR_COUNTRY_CODES:
-            sids = [
-                sid for sid in cls.asset_finder.equities_sids
-                if (
-                    cls.asset_finder.retrieve_asset(sid).country_code
-                    == country_code
-                )
-            ]
+            sids = cls.asset_finder.equity_sids_for_country_code(country_code)
 
             f = writer.write_from_sid_df_pairs(
                 country_code,
-                cls.make_equity_daily_bar_data(country_code, sids),
+                cls.make_equity_daily_bar_data(
+                    country_code=country_code,
+                    sids=sids,
+                ),
             )
 
         cls.hdf5_equity_daily_bar_reader = (
