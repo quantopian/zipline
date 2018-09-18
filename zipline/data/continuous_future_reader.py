@@ -189,7 +189,7 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
         Returns
         -------
         sessions : DatetimeIndex
-           All session labels (unionining the range for all assets) which the
+           All session labels (unioning the range for all assets) which the
            reader can provide.
         """
         return self._bar_reader.sessions
