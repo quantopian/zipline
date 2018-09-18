@@ -253,8 +253,7 @@ def compute_asset_lifetimes(frames):
     """
     # Build a 2D array (dates x sids), where an entry is True if all
     # fields are nan for the given day and sid.
-    is_null_matrix = reduce(
-        np.logical_and,
+    is_null_matrix = np.logical_and.reduce(
         [frames[field].isnull().values for field in FIELDS],
     )
 
