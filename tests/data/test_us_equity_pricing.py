@@ -124,7 +124,8 @@ class _DailyBarsTestCase(WithEquityDailyBarData, ZiplineTestCase):
     EQUITY_DAILY_BAR_START_DATE = TEST_CALENDAR_START
     EQUITY_DAILY_BAR_END_DATE = TEST_CALENDAR_STOP
 
-    DAILY_BARS_TEST_QUERY_COUNTRY = 'US'
+    # The country under which these tests should be run.
+    DAILY_BARS_TEST_QUERY_COUNTRY_CODE = 'US'
 
     @classmethod
     def init_class_fixtures(cls):
@@ -156,8 +157,8 @@ class _DailyBarsTestCase(WithEquityDailyBarData, ZiplineTestCase):
     @property
     def assets(self):
         return list(
-            self.asset_finder.equity_sids_for_country_code(
-                self.DAILY_BARS_TEST_QUERY_COUNTRY
+            self.asset_finder.equities_sids_for_country_code(
+                self.DAILY_BARS_TEST_QUERY_COUNTRY_CODE
             )
         )
 
@@ -536,7 +537,7 @@ class HDF5DailyBarUSTestCase(WithHDF5EquityMultiCountryDailyBarReader,
 
 class HDF5DailyBarCanadaTestCase(WithHDF5EquityMultiCountryDailyBarReader,
                                  _DailyBarsTestCase):
-    DAILY_BARS_TEST_QUERY_COUNTRY = 'CA'
+    DAILY_BARS_TEST_QUERY_COUNTRY_CODE = 'CA'
 
     @classmethod
     def init_class_fixtures(cls):
