@@ -781,7 +781,6 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
     EQUITY_DAILY_BAR_START_DATE = alias('START_DATE')
     EQUITY_DAILY_BAR_END_DATE = alias('END_DATE')
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = None
-    EQUITY_DAILY_BAR_COUNTRY_CODES = None
 
     @classproperty
     def EQUITY_DAILY_BAR_LOOKBACK_DAYS(cls):
@@ -1170,7 +1169,9 @@ def _trading_days_for_minute_bars(calendar,
     return calendar.sessions_in_range(first_session, end_date)
 
 
-class WithHDF5EquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
+class WithHDF5EquityMultiCountryDailyBarReader(WithEquityDailyBarData,
+                                               WithTmpDir):
+
     """
     ZiplineTestCase mixin providing cls.hdf5_daily_bar_path and
     cls.hdf5_equity_daily_bar_reader class level fixtures.
@@ -1225,7 +1226,10 @@ class WithHDF5EquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithHDF5EquityDailyBarReader, cls).init_class_fixtures()
+        super(
+            WithHDF5EquityMultiCountryDailyBarReader,
+            cls,
+        ).init_class_fixtures()
 
         cls.hdf5_daily_bar_path = p = cls.make_hdf5_daily_bar_path()
 
@@ -1242,11 +1246,13 @@ class WithHDF5EquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
                 ),
             )
 
-        cls.hdf5_equity_daily_bar_reader = (
-            MultiCountryDailyBarReader({
-                country_code: HDF5DailyBarReader.from_file(f, country_code)
-                for country_code in f
-            })
+        cls.single_country_hdf5_equity_daily_bar_readers = {
+            country_code: HDF5DailyBarReader.from_file(f, country_code)
+            for country_code in f
+        }
+
+        cls.hdf5_equity_daily_bar_reader = MultiCountryDailyBarReader(
+            cls.single_country_hdf5_equity_daily_bar_readers
         )
 
 

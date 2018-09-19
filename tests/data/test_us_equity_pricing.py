@@ -25,6 +25,7 @@ from numpy import (
     uint32,
 )
 from pandas import (
+    concat,
     DataFrame,
     NaT,
     Timestamp,
@@ -55,7 +56,7 @@ from zipline.testing.fixtures import (
     WithAssetFinder,
     WithBcolzEquityDailyBarReader,
     WithEquityDailyBarData,
-    WithHDF5EquityDailyBarReader,
+    WithHDF5EquityMultiCountryDailyBarReader,
     WithTmpDir,
     WithTradingCalendars,
     ZiplineTestCase,
@@ -69,7 +70,7 @@ TEST_QUERY_START = Timestamp('2015-06-10', tz='UTC')
 TEST_QUERY_STOP = Timestamp('2015-06-19', tz='UTC')
 
 # One asset for each of the cases enumerated in load_raw_arrays_from_bcolz.
-EQUITY_INFO = DataFrame(
+us_info = DataFrame(
     [
         # 1) The equity's trades start and end before query.
         {'start_date': '2015-06-01', 'end_date': '2015-06-05'},
@@ -89,8 +90,32 @@ EQUITY_INFO = DataFrame(
     index=arange(1, 7),
     columns=['start_date', 'end_date'],
 ).astype(datetime64)
+us_info['exchange'] = 'NYSE'
+
+ca_info = DataFrame(
+    [
+        # 1) The equity's trades start and end before query.
+        {'start_date': '2015-06-01', 'end_date': '2015-06-05'},
+        # 2) The equity's trades start and end after query.
+        {'start_date': '2015-06-22', 'end_date': '2015-06-30'},
+        # 3) The equity's data covers all dates in range.
+        {'start_date': '2015-06-02', 'end_date': '2015-06-30'},
+        # 4) The equity's trades start before the query start, but stop
+        #    before the query end.
+        {'start_date': '2015-06-01', 'end_date': '2015-06-15'},
+        # 5) The equity's trades start and end during the query.
+        {'start_date': '2015-06-12', 'end_date': '2015-06-18'},
+        # 6) The equity's trades start during the query, but extend through
+        #    the whole query.
+        {'start_date': '2015-06-15', 'end_date': '2015-06-25'},
+    ],
+    index=arange(7, 13),
+    columns=['start_date', 'end_date'],
+).astype(datetime64)
+ca_info['exchange'] = 'TSX'
+
+EQUITY_INFO = concat([us_info, ca_info])
 EQUITY_INFO['symbol'] = [chr(ord('A') + n) for n in range(len(EQUITY_INFO))]
-EQUITY_INFO['exchange'] = 'TEST'
 
 TEST_QUERY_ASSETS = EQUITY_INFO.index
 
@@ -99,9 +124,12 @@ class _DailyBarsTestCase(WithEquityDailyBarData, ZiplineTestCase):
     EQUITY_DAILY_BAR_START_DATE = TEST_CALENDAR_START
     EQUITY_DAILY_BAR_END_DATE = TEST_CALENDAR_STOP
 
+    DAILY_BARS_TEST_QUERY_COUNTRY = 'US'
+
     @classmethod
     def init_class_fixtures(cls):
         super(_DailyBarsTestCase, cls).init_class_fixtures()
+
         cls.sessions = cls.trading_calendar.sessions_in_range(
             cls.trading_calendar.minute_to_session_label(TEST_CALENDAR_START),
             cls.trading_calendar.minute_to_session_label(TEST_CALENDAR_STOP)
@@ -112,6 +140,13 @@ class _DailyBarsTestCase(WithEquityDailyBarData, ZiplineTestCase):
         return EQUITY_INFO
 
     @classmethod
+    def make_exchanges_info(cls, *args, **kwargs):
+        return DataFrame({
+            'exchange': ['NYSE', 'TSX'],
+            'country_code': ['US', 'CA']
+        })
+
+    @classmethod
     def make_equity_daily_bar_data(cls, country_code, sids):
         return make_bar_data(
             EQUITY_INFO.loc[list(sids)],
@@ -120,7 +155,11 @@ class _DailyBarsTestCase(WithEquityDailyBarData, ZiplineTestCase):
 
     @property
     def assets(self):
-        return EQUITY_INFO.index
+        return list(
+            self.asset_finder.equity_sids_for_country_code(
+                self.DAILY_BARS_TEST_QUERY_COUNTRY
+            )
+        )
 
     def trading_days_between(self, start, end):
         return self.sessions[self.sessions.slice_indexer(start, end)]
@@ -154,7 +193,7 @@ class _DailyBarsTestCase(WithEquityDailyBarData, ZiplineTestCase):
                 result,
                 expected_bar_values_2d(
                     dates,
-                    EQUITY_INFO,
+                    EQUITY_INFO.loc[assets],
                     column,
                 )
             )
@@ -307,6 +346,8 @@ class _DailyBarsTestCase(WithEquityDailyBarData, ZiplineTestCase):
 
 
 class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
+    EQUITY_DAILY_BAR_COUNTRY_CODES = ['US']
+
     @classmethod
     def init_class_fixtures(cls):
         super(BcolzDailyBarTestCase, cls).init_class_fixtures()
@@ -468,10 +509,11 @@ class BcolzDailyBarWriterMissingDataTestCase(WithAssetFinder,
             writer.write(bar_data)
 
 
-class HDF5DailyBarTestCase(WithHDF5EquityDailyBarReader, _DailyBarsTestCase):
+class HDF5DailyBarUSTestCase(WithHDF5EquityMultiCountryDailyBarReader,
+                             _DailyBarsTestCase):
     @classmethod
     def init_class_fixtures(cls):
-        super(HDF5DailyBarTestCase, cls).init_class_fixtures()
+        super(HDF5DailyBarUSTestCase, cls).init_class_fixtures()
 
         cls.daily_bar_reader = cls.hdf5_equity_daily_bar_reader
 
@@ -490,3 +532,14 @@ class HDF5DailyBarTestCase(WithHDF5EquityDailyBarReader, _DailyBarsTestCase):
         )
 
         assert_equal(coerced, expected)
+
+
+class HDF5DailyBarCanadaTestCase(WithHDF5EquityMultiCountryDailyBarReader,
+                                 _DailyBarsTestCase):
+    DAILY_BARS_TEST_QUERY_COUNTRY = 'CA'
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(HDF5DailyBarCanadaTestCase, cls).init_class_fixtures()
+
+        cls.daily_bar_reader = cls.hdf5_equity_daily_bar_reader
