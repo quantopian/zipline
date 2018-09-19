@@ -181,7 +181,7 @@ class HDF5DailyBarWriter(object):
         self._filename = filename
         self._date_chunk_size = date_chunk_size
 
-    def _h5_file(self, mode):
+    def h5_file(self, mode):
         return h5py.File(self._filename, mode)
 
     def write(self, country_code, frames, scaling_factors=None):
@@ -207,7 +207,7 @@ class HDF5DailyBarWriter(object):
         if scaling_factors is None:
             scaling_factors = DEFAULT_SCALING_FACTORS
 
-        with self._h5_file(mode='a') as h5_file:
+        with self.h5_file(mode='a') as h5_file:
             country_group = h5_file.create_group(country_code)
 
             data_group = country_group.create_group(DATA)
@@ -267,8 +267,6 @@ class HDF5DailyBarWriter(object):
                     'Writing dataset {} to file {}',
                     dataset.name, self._filename
                 )
-
-        return self._h5_file(mode='r')
 
     def write_from_sid_df_pairs(self,
                                 country_code,

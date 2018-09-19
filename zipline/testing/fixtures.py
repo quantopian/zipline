@@ -1238,13 +1238,17 @@ class WithHDF5EquityMultiCountryDailyBarReader(WithEquityDailyBarData,
         for country_code in cls.HDF5_DAILY_BAR_COUNTRY_CODES:
             sids = cls.asset_finder.equity_sids_for_country_code(country_code)
 
-            f = writer.write_from_sid_df_pairs(
+            writer.write_from_sid_df_pairs(
                 country_code,
                 cls.make_equity_daily_bar_data(
                     country_code=country_code,
                     sids=sids,
                 ),
             )
+
+        # Use the h5 file through a class level context manager, so the
+        # file is properly closed when the test case exits.
+        f = cls.enter_class_context(writer.h5_file(mode='r'))
 
         cls.single_country_hdf5_equity_daily_bar_readers = {
             country_code: HDF5DailyBarReader.from_file(f, country_code)
