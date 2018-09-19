@@ -746,13 +746,5 @@ class MultiCountryDailyBarReader(SessionBarReader):
             The dt of the last trade for the given asset, using the input
             dt as a vantage point.
         """
-        dts = [
-            reader.get_last_traded_dt(asset, dt)
-            for reader in self._readers.values()
-            if dt is not pd.NaT
-        ]
-
-        if len(dts) == 0:
-            return pd.NaT
-
-        return max(dts)
+        country_code = self._country_code_for_assets([asset.sid])
+        return self._readers[country_code].get_last_traded_dt(asset, dt)
