@@ -359,6 +359,10 @@ class AssetFinder(object):
             group_key=lambda row: sid_to_country_code[row.sid],
         )
 
+    @lazyval
+    def country_codes(self):
+        return tuple(self.symbol_ownership_maps_by_country_code)
+
     @staticmethod
     def _fuzzify_symbol_ownership_map(ownership_map):
         fuzzy_mappings = {}
@@ -1521,7 +1525,19 @@ class AssetFinder(object):
 
         return pd.DataFrame(mask, index=dates, columns=lifetimes.sid)
 
-    def equity_sids_for_country_code(self, country_code):
+    def equities_sids_for_country_code(self, country_code):
+        """Return all of the sids for a given country.
+
+        Parameters
+        ----------
+        country_code : str
+            An ISO 3166 alpha-2 country code.
+
+        Returns
+        -------
+        tuple[int]
+            The sids whose exchanges are in this country.
+        """
         sids = self._compute_asset_lifetimes([country_code]).sid
         return tuple(sids.tolist())
 

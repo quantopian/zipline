@@ -794,7 +794,7 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
 
     @classproperty
     def EQUITY_DAILY_BAR_COUNTRY_CODES(cls):
-        return tuple(cls.asset_finder.symbol_ownership_maps_by_country_code)
+        return cls.asset_finder.country_codes
 
     @classmethod
     def _make_equity_daily_bar_from_minute(cls):
@@ -1033,7 +1033,7 @@ class WithBcolzEquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
         cls.bcolz_daily_bar_path = p = cls.make_bcolz_daily_bar_rootdir_path()
 
         days = cls.equity_daily_bar_days
-        sids = cls.asset_finder.equity_sids_for_country_code(
+        sids = cls.asset_finder.equities_sids_for_country_code(
             cls.BCOLZ_DAILY_BAR_COUNTRY_CODE
         )
 
@@ -1191,18 +1191,6 @@ class WithHDF5EquityMultiCountryDailyBarReader(WithEquityDailyBarData,
         The path inside the tmpdir where this will be written.
     HDF5_DAILY_BAR_COUNTRY_CODE : str
         The ISO 3166 alpha-2 country code for the country to write/read.
-    EQUITY_DAILY_BAR_LOOKBACK_DAYS : int
-        The number of days of data to add before the first day. This is used
-        when a test needs to use history, in which case this should be set to
-        the largest history window that will be
-        requested.
-    EQUITY_DAILY_BAR_USE_FULL_CALENDAR : bool
-        If this flag is set the ``equity_daily_bar_days`` will be the full
-        set of trading days from the trading environment. This flag overrides
-        ``EQUITY_DAILY_BAR_LOOKBACK_DAYS``.
-    EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE : bool
-        If this flag is set, `make_equity_daily_bar_data` will read data from
-        the minute bar reader defined by a `WithBcolzEquityMinuteBarReader`.
 
     Methods
     -------
@@ -1218,7 +1206,7 @@ class WithHDF5EquityMultiCountryDailyBarReader(WithEquityDailyBarData,
     """
     HDF5_DAILY_BAR_PATH = 'daily_equity_pricing.h5'
     HDF5_DAILY_BAR_COUNTRY_CODES = alias('EQUITY_DAILY_BAR_COUNTRY_CODES')
-    EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = False
+    HDF5_DAILY_BAR_DATE_CHUNK_SIZE = 30
 
     @classmethod
     def make_hdf5_daily_bar_path(cls):
@@ -1233,10 +1221,15 @@ class WithHDF5EquityMultiCountryDailyBarReader(WithEquityDailyBarData,
 
         cls.hdf5_daily_bar_path = p = cls.make_hdf5_daily_bar_path()
 
-        writer = HDF5DailyBarWriter(p, date_chunk_size=30)
+        writer = HDF5DailyBarWriter(
+            p,
+            date_chunk_size=cls.HDF5_DAILY_BAR_DATE_CHUNK_SIZE,
+        )
 
         for country_code in cls.HDF5_DAILY_BAR_COUNTRY_CODES:
-            sids = cls.asset_finder.equity_sids_for_country_code(country_code)
+            sids = (
+                cls.asset_finder.equities_sids_for_country_code(country_code)
+            )
 
             writer.write_from_sid_df_pairs(
                 country_code,

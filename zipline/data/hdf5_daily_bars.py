@@ -78,6 +78,7 @@ from six.moves import reduce
 from zipline.data.bar_reader import NoDataBeforeDate, NoDataAfterDate
 from zipline.data.session_bars import SessionBarReader
 from zipline.utils.memoize import lazyval
+from zipline.utils.pandas_utils import check_indexes_all_same
 
 
 log = logbook.Logger('HDF5DailyBars')
@@ -146,17 +147,18 @@ def days_and_sids_for_frames(frames):
         If the dataframes passed are not all indexed by the same days
         and sids.
     """
-    frame_0 = frames[0]
 
     # Ensure the indices and columns all match.
-    for frame_1 in frames[1:]:
-        if not frame_0.index.equals(frame_1.index):
-            raise ValueError('Frames have mistmatched days.')
+    check_indexes_all_same(
+        [frame.index for frame in frames],
+        message='Frames have mistmatched days.',
+    )
+    check_indexes_all_same(
+        [frame.columns for frame in frames],
+        message='Frames have mismatched sids.',
+    )
 
-        if not frame_0.columns.equals(frame_1.columns):
-            raise ValueError('Frames have mismatched sids.')
-
-    return frame_0.index.values, frame_0.columns.values
+    return frames[0].index.values, frames[0].columns.values
 
 
 class HDF5DailyBarWriter(object):
@@ -413,18 +415,27 @@ class HDF5DailyBarReader(SessionBarReader):
         end = end_date.asm8
 
         sid_selector = self.sids.searchsorted(assets)
-
         date_slice = self._compute_date_range_slice(start, end)
+
         nrows = date_slice.stop - date_slice.start
+        ncols = len(assets)
+
+        buf = np.zeros((ncols, nrows), dtype=np.uint32)
+
         out = []
         for column in columns:
+            # Zero the buffer to prepare it to receive new data.
+            buf.fill(0)
+
             dataset = self._country_group[DATA][column]
-            ncols = dataset.shape[0]
-            shape = (ncols, nrows)
-            buf = np.full(shape, 0, dtype=np.uint32)
+
             dataset.read_direct(buf, np.s_[:, date_slice.start:date_slice.stop])  # noqa
-            buf = buf[sid_selector].T
-            out.append(self._postprocessors[column](buf))
+
+            out.append(
+                self._postprocessors[column](
+                    buf[sid_selector].T
+                )
+            )
 
         return out
 
