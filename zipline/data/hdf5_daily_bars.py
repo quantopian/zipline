@@ -15,8 +15,11 @@ Within each country, there are 3 subgroups:
      /close
      /volume
 
-Each field (OHLCV) is stored in a dataset as a 2d array, with a row per
-sid and a column per session.
+Each field (OHLCV) is stored in a dataset as a 2D array, with a row per
+sid and a column per session. This differs from the more standard
+orientation of dates x sids, because it allows each compressed block to
+contain contiguous values for the same sid, which allows for better
+compression.
 
 2) /index
      /sid
@@ -554,22 +557,22 @@ class HDF5DailyBarReader(SessionBarReader):
 
     def get_last_traded_dt(self, asset, dt):
         """
-        Get the latest minute on or before ``dt`` in which ``asset`` traded.
+        Get the latest day on or before ``dt`` in which ``asset`` traded.
 
         If there are no trades on or before ``dt``, returns ``pd.NaT``.
 
         Parameters
         ----------
         asset : zipline.asset.Asset
-            The asset for which to get the last traded minute.
+            The asset for which to get the last traded day.
         dt : pd.Timestamp
-            The minute at which to start searching for the last traded minute.
+            The dt at which to start searching for the last traded day.
 
         Returns
         -------
         last_traded : pd.Timestamp
-            The dt of the last trade for the given asset, using the input
-            dt as a vantage point.
+            The day of the last trade for the given asset, using the
+            input dt as a vantage point.
         """
         sid_ix = self.sids.searchsorted(asset.sid)
         # Used to get a slice of all dates up to and including ``dt``.
@@ -738,22 +741,22 @@ class MultiCountryDailyBarReader(SessionBarReader):
 
     def get_last_traded_dt(self, asset, dt):
         """
-        Get the latest minute on or before ``dt`` in which ``asset`` traded.
+        Get the latest day on or before ``dt`` in which ``asset`` traded.
 
         If there are no trades on or before ``dt``, returns ``pd.NaT``.
 
         Parameters
         ----------
         asset : zipline.asset.Asset
-            The asset for which to get the last traded minute.
+            The asset for which to get the last traded day.
         dt : pd.Timestamp
-            The minute at which to start searching for the last traded minute.
+            The dt at which to start searching for the last traded day.
 
         Returns
         -------
         last_traded : pd.Timestamp
-            The dt of the last trade for the given asset, using the input
-            dt as a vantage point.
+            The day of the last trade for the given asset, using the
+            input dt as a vantage point.
         """
         country_code = self._country_code_for_assets([asset.sid])
         return self._readers[country_code].get_last_traded_dt(asset, dt)
