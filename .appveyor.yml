@@ -20,7 +20,7 @@ environment:
 
     PYTHON_ARCH: "64"
     PANDAS_VERSION: "0.18.1"
-    NUMPY_VERSION: "1.11.1"
+    NUMPY_VERSION: "1.11.3"
     SCIPY_VERSION: "0.17.1"
 
   matrix:
@@ -91,8 +91,10 @@ install:
 
   - ps: $env:BCOLZ_VERSION=(sls "bcolz==(.*)" .\etc\requirements.txt -ca).matches.groups[1].value
   - ps: $env:NUMEXPR_VERSION=(sls "numexpr==(.*)" .\etc\requirements.txt -ca).matches.groups[1].value
+  - ps: $env:PYTABLES_VERSION=(sls "tables==(.*)" .\etc\requirements.txt -ca).matches.groups[1].value
+  - ps: $env:H5PY_VERSION=(sls "h5py==(.*)" .\etc\requirements.txt -ca).matches.groups[1].value
   - ps: $env:TALIB_VERSION=(sls "TA-Lib==(.*)" .\etc\requirements_talib.txt -ca).matches.groups[1].value
-  - conda create -n testenv --yes -q --use-local pip python=%PYTHON_VERSION% numpy=%NUMPY_VERSION% pandas=%PANDAS_VERSION% scipy=%SCIPY_VERSION% ta-lib=%TALIB_VERSION% bcolz=%BCOLZ_VERSION% numexpr=%NUMEXPR_VERSION% -c quantopian -c https://conda.anaconda.org/quantopian/label/ci
+  - conda create -n testenv --yes -q --use-local pip python=%PYTHON_VERSION% numpy=%NUMPY_VERSION% pandas=%PANDAS_VERSION% scipy=%SCIPY_VERSION% ta-lib=%TALIB_VERSION% bcolz=%BCOLZ_VERSION% numexpr=%NUMEXPR_VERSION% pytables=%PYTABLES_VERSION% h5py=%H5PY_VERSION% -c quantopian -c https://conda.anaconda.org/quantopian/label/ci
   - activate testenv
   - SET CACHE_DIR=%LOCALAPPDATA%\pip\Cache\pip_np%CONDA_NPY%py%CONDA_PY%
   # pip on windows complains
