@@ -981,8 +981,19 @@ def subtest(iterator, *_names):
 
 
 class MockDailyBarReader(object):
+    def __init__(self, dates):
+        self.sessions = pd.DatetimeIndex(dates)
+
+    def load_raw_arrays(self, columns, start, stop, sids):
+        dates = self.sessions
+        output_dates = dates[(dates >= start) & (dates <= stop)]
+        return [
+            np.full((len(output_dates), len(sids)), 100.0)
+            for _ in columns
+        ]
+
     def get_value(self, col, sid, dt):
-        return 100
+        return 100.0
 
 
 def create_mock_adjustment_data(splits=None, dividends=None, mergers=None):
@@ -1002,15 +1013,6 @@ def create_mock_adjustment_data(splits=None, dividends=None, mergers=None):
         dividends = pd.DataFrame(dividends)
 
     return splits, mergers, dividends
-
-
-def create_mock_adjustments(tempdir, days, splits=None, dividends=None,
-                            mergers=None):
-    path = tempdir.getpath("test_adjustments.db")
-    SQLiteAdjustmentWriter(path, MockDailyBarReader(), days).write(
-        *create_mock_adjustment_data(splits, dividends, mergers)
-    )
-    return path
 
 
 def assert_timestamp_equal(left, right, compare_nat_equal=True, msg=""):

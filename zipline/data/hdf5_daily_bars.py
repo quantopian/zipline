@@ -457,8 +457,7 @@ class HDF5DailyBarReader(SessionBarReader):
 
     @lazyval
     def sids(self):
-        sids = self._country_group[INDEX][SID][:]
-        return sids.astype(int)
+        return self._country_group[INDEX][SID][:].astype('int64', copy=False)
 
     @lazyval
     def asset_start_dates(self):

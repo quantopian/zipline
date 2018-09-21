@@ -283,7 +283,9 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
 
     @classmethod
     def make_adjustment_writer_equity_daily_bar_reader(cls):
-        return MockDailyBarReader()
+        return MockDailyBarReader(
+            dates=cls.calendar_days_between(cls.START_DATE, cls.END_DATE),
+        )
 
     @classmethod
     def make_equity_daily_bar_data(cls, country_code, sids):
@@ -310,14 +312,15 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
                 self.assertGreaterEqual(eff_date, asset_start)
                 self.assertLessEqual(eff_date, asset_end)
 
-    def calendar_days_between(self, start_date, end_date, shift=0):
-        slice_ = self.equity_daily_bar_days.slice_indexer(start_date, end_date)
+    @classmethod
+    def calendar_days_between(cls, start_date, end_date, shift=0):
+        slice_ = cls.equity_daily_bar_days.slice_indexer(start_date, end_date)
         start = slice_.start + shift
         stop = slice_.stop + shift
         if start < 0:
             raise KeyError(start_date, shift)
 
-        return self.equity_daily_bar_days[start:stop]
+        return cls.equity_daily_bar_days[start:stop]
 
     def expected_adjustments(self, start_date, end_date):
         price_adjustments = {}

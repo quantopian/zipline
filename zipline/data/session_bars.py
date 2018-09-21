@@ -33,4 +33,3 @@ class SessionBarReader(BarReader):
            All session labels (unioning the range for all assets) which the
            reader can provide.
         """
-        pass
