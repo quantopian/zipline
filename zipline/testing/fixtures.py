@@ -1221,15 +1221,12 @@ class WithHDF5EquityMultiCountryDailyBarReader(WithEquityDailyBarData,
 
         cls.hdf5_daily_bar_path = p = cls.make_hdf5_daily_bar_path()
 
-        writer = HDF5DailyBarWriter(
-            p,
-            date_chunk_size=cls.HDF5_DAILY_BAR_DATE_CHUNK_SIZE,
-        )
+        chunksize = cls.HDF5_DAILY_BAR_DATE_CHUNK_SIZE
+        writer = HDF5DailyBarWriter(p, chunksize)
 
+        asset_finder = cls.asset_finder
         for country_code in cls.HDF5_DAILY_BAR_COUNTRY_CODES:
-            sids = (
-                cls.asset_finder.equities_sids_for_country_code(country_code)
-            )
+            sids = asset_finder.equities_sids_for_country_code(country_code)
 
             writer.write_from_sid_df_pairs(
                 country_code,
