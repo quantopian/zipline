@@ -384,20 +384,20 @@ class SQLiteAdjustmentWriter(object):
         non_nan_ratio_mask = ~np.isnan(ratio)
         for ix in np.flatnonzero(~non_nan_ratio_mask):
             log.warn(
-                "Couldn't compute ratio for dividend "
-                " sid={sid}, ex_date={ex_date!s}, amount={amount}",
+                "Couldn't compute ratio for dividend"
+                " sid={sid}, ex_date={ex_date:%Y-%m-%d}, amount={amount:.3f}",
                 sid=input_sids[ix],
-                ex_date=dates[date_ix[ix]],
+                ex_date=pd.Timestamp(dates[date_ix[ix]]),
                 amount=amount[ix],
             )
 
         positive_ratio_mask = ratio > 0
-        for ix in np.flatnonzero(~positive_ratio_mask):
+        for ix in np.flatnonzero(~positive_ratio_mask & non_nan_ratio_mask):
             log.warn(
-                "Negative dividend ratio for dividend "
-                " sid={sid}, ex_date={ex_date!s}, amount={amount}",
+                "Negative dividend ratio for dividend"
+                " sid={sid}, ex_date={ex_date:%Y-%m-%d}, amount={amount:.3f}",
                 sid=input_sids[ix],
-                ex_date=dates[date_ix[ix]],
+                ex_date=pd.Timestamp(dates[date_ix[ix]]),
                 amount=amount[ix],
             )
 
