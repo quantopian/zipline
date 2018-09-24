@@ -16,6 +16,7 @@ from sys import maxsize
 import re
 
 from nose_parameterized import parameterized
+import numpy as np
 from numpy import (
     arange,
     array,
@@ -57,6 +58,7 @@ from zipline.testing.fixtures import (
     WithBcolzEquityDailyBarReader,
     WithEquityDailyBarData,
     WithHDF5EquityMultiCountryDailyBarReader,
+    WithSeededRandomState,
     WithTmpDir,
     WithTradingCalendars,
     ZiplineTestCase,
@@ -120,7 +122,9 @@ EQUITY_INFO['symbol'] = [chr(ord('A') + n) for n in range(len(EQUITY_INFO))]
 TEST_QUERY_ASSETS = EQUITY_INFO.index
 
 
-class _DailyBarsTestCase(WithEquityDailyBarData, ZiplineTestCase):
+class _DailyBarsTestCase(WithEquityDailyBarData,
+                         WithSeededRandomState,
+                         ZiplineTestCase):
     EQUITY_DAILY_BAR_START_DATE = TEST_CALENDAR_START
     EQUITY_DAILY_BAR_END_DATE = TEST_CALENDAR_STOP
 
@@ -212,6 +216,18 @@ class _DailyBarsTestCase(WithEquityDailyBarData, ZiplineTestCase):
             TEST_QUERY_START,
             TEST_QUERY_STOP,
         )
+
+        assets_array = np.array(self.assets)
+        for _ in range(5):
+            assets = assets_array.copy()
+            self.rand.shuffle(assets)
+            assets = assets[:np.random.randint(1, len(assets))]
+            self._check_read_results(
+                columns,
+                assets,
+                TEST_QUERY_START,
+                TEST_QUERY_STOP,
+            )
 
     def test_start_on_asset_start(self):
         """

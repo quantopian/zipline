@@ -5,6 +5,7 @@ import warnings
 
 from contextlib2 import ExitStack
 from logbook import NullHandler, Logger
+import numpy as np
 import pandas as pd
 from six import with_metaclass, iteritems, itervalues
 import responses
@@ -1976,3 +1977,11 @@ class WithWerror(object):
 
 
 register_calendar_alias("TEST", "NYSE")
+
+
+class WithSeededRandomState(object):
+    RANDOM_SEED = np.array(list('lmao'), dtype='S1').view('i4').item()
+
+    def init_instance_fixtures(self):
+        super(WithSeededRandomState, self).init_instance_fixtures()
+        self.rand = np.random.RandomState(self.RANDOM_SEED)
