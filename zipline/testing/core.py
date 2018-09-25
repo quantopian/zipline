@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractmethod, abstractproperty
 from contextlib import contextmanager
 import gzip
-from inspect import getargspec
 from itertools import (
     combinations,
     count,
@@ -30,7 +29,7 @@ from trading_calendars import get_calendar
 
 from zipline.assets import AssetFinder, AssetDBWriter
 from zipline.assets.synthetic import make_simple_equity_info
-from zipline.utils.compat import wraps
+from zipline.utils.compat import getargspec, wraps
 from zipline.data.data_portal import DataPortal
 from zipline.data.loader import get_benchmark_filename, INDEX_MAPPING
 from zipline.data.minute_bars import (
