@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 import datetime
 from functools import partial
-import inspect
 import re
 
 from nose.tools import (  # noqa
@@ -50,7 +49,7 @@ from zipline.dispatch import dispatch
 from zipline.lib.adjustment import Adjustment
 from zipline.lib.labelarray import LabelArray
 from zipline.testing.core import ensure_doctest
-from zipline.utils.compat import mappingproxy
+from zipline.utils.compat import getargspec, mappingproxy
 from zipline.utils.functional import dzip_exact, instance
 from zipline.utils.math_utils import tolerant_equals
 
@@ -148,7 +147,7 @@ def keywords(func):
         return keywords(func.__init__)
     elif isinstance(func, partial):
         return keywords(func.func)
-    return inspect.getargspec(func).args
+    return getargspec(func).args
 
 
 def filter_kwargs(f, kwargs):

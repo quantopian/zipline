@@ -3,13 +3,12 @@ Utilities for validating inputs to user-facing API functions.
 """
 from textwrap import dedent
 from types import CodeType
-from inspect import getargspec
 from uuid import uuid4
 
 from toolz.curried.operator import getitem
 from six import viewkeys, exec_, PY3
 
-from zipline.utils.compat import wraps
+from zipline.utils.compat import getargspec, wraps
 
 
 _code_argorder = (

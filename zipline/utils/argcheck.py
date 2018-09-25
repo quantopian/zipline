@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import namedtuple
-import inspect
 from itertools import chain
 from six.moves import map, zip_longest
 
 from zipline.errors import ZiplineError
+from zipline.utils.compat import getargspec
 
 
 Argspec = namedtuple('Argspec', ['args', 'starargs', 'kwargs'])
@@ -103,7 +103,7 @@ class Argument(namedtuple('Argument', ['name', 'default'])):
         This returns a namedtuple called Argspec that has three fields named:
         args, starargs, and kwargs.
         """
-        args, varargs, keywords, defaults = inspect.getargspec(callable_)
+        args, varargs, keywords, defaults = getargspec(callable_)
         defaults = list(defaults or [])
 
         if getattr(callable_, '__self__', None) is not None:

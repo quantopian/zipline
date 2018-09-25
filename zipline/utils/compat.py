@@ -1,4 +1,5 @@
 import functools
+import inspect
 from operator import methodcaller
 import sys
 
@@ -79,6 +80,9 @@ if PY2:
 
     values_as_list = methodcaller('values')
 
+    # This is deprecated in python 3.6+.
+    getargspec = inspect.getargspec
+
 else:
     from types import MappingProxyType as mappingproxy
     from math import ceil
@@ -102,6 +106,15 @@ else:
         in Python 2.
         """
         return list(dictionary.values())
+
+    def getargspec(f):
+        full_argspec = inspect.getfullargspec(f)
+        return inspect.ArgSpec(
+            args=full_argspec.args,
+            varargs=full_argspec.varargs,
+            keywords=full_argspec.varkw,
+            defaults=full_argspec.defaults,
+        )
 
 
 unicode = type(u'')
