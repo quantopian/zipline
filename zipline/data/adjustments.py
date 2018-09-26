@@ -10,7 +10,6 @@ from pandas import Timestamp
 import six
 import sqlite3
 
-from zipline.data.bar_reader import NoDataOnDate
 from zipline.utils.input_validation import preprocess
 from zipline.utils.numpy_utils import (
     float64_dtype,
