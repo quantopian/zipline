@@ -931,28 +931,6 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                 self.assertTrue(issubclass(warning.category,
                                            DeprecationWarning))
 
-    def test_map_identifier_index_to_sids(self):
-        # Build an empty finder and some Assets
-        dt = pd.Timestamp('2014-01-01', tz='UTC')
-        finder = self.asset_finder
-        exchange_info = ExchangeInfo("TEST FULL", "TEST", "??")
-        asset1 = Equity(1, symbol="AAPL", exchange_info=exchange_info)
-        asset2 = Equity(2, symbol="GOOG", exchange_info=exchange_info)
-        asset200 = Future(200, symbol="CLK15", exchange_info=exchange_info)
-        asset201 = Future(201, symbol="CLM15", exchange_info=exchange_info)
-
-        # Check for correct mapping and types
-        pre_map = [asset1, asset2, asset200, asset201]
-        post_map = finder.map_identifier_index_to_sids(pre_map, dt)
-        self.assertListEqual([1, 2, 200, 201], post_map)
-        for sid in post_map:
-            self.assertIsInstance(sid, integer_types)
-
-        # Change order and check mapping again
-        pre_map = [asset201, asset2, asset200, asset1]
-        post_map = finder.map_identifier_index_to_sids(pre_map, dt)
-        self.assertListEqual([201, 2, 200, 1], post_map)
-
     def test_compute_lifetimes(self):
         assets_per_exchange = 4
         trading_day = self.trading_calendar.day
