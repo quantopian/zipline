@@ -689,6 +689,7 @@ def assert_timestamp_and_datetime_equal(result,
         result,
         expected,
         path=path,
+        msg=msg,
         **kwargs
     )
 
