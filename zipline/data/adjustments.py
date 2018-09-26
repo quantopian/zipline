@@ -476,12 +476,6 @@ class SQLiteAdjustmentWriter(object):
         dividend_ratios = self.calc_dividend_ratios(dividends)
         self.write_frame('dividends', dividend_ratios)
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc_info):
-        self.close()
-
     def write(self,
               splits=None,
               mergers=None,
