@@ -328,8 +328,12 @@ def compute_asset_lifetimes(frames):
         [frames[field].isnull().values for field in FIELDS],
     )
 
+    # Offset of the first null from the start of the input.
     start_date_ixs = is_null_matrix.argmin(axis=0)
-    end_date_ixs = is_null_matrix[::-1].argmin(axis=0)
+    # Offset of the *last null from the **end** of the input.
+    end_offsets = is_null_matrix[::-1].argmin(axis=0)
+    # Offset of the last null from the start of the input
+    end_date_ixs = is_null_matrix.shape[0] - end_offsets - 1
 
     return start_date_ixs, end_date_ixs
 
@@ -462,10 +466,12 @@ class HDF5DailyBarReader(SessionBarReader):
 
     @lazyval
     def asset_start_dates(self):
+        # TODO: This needs test coverage.
         return self.dates[self._country_group[LIFETIMES][START_DATE][:]]
 
     @lazyval
     def asset_end_dates(self):
+        # TODO: This needs test coverage.
         return self.dates[self._country_group[LIFETIMES][END_DATE][:]]
 
     @property
@@ -550,7 +556,8 @@ class HDF5DailyBarReader(SessionBarReader):
             if dt.asm8 < self.asset_start_dates[sid_ix]:
                 raise NoDataBeforeDate()
 
-            if dt.asm8 > self.asset_start_dates[sid_ix]:
+            if dt.asm8 > self.asset_end_dates[sid_ix]:
+                # TODO: This needs test coverage.
                 raise NoDataAfterDate()
 
         return value
