@@ -1281,13 +1281,18 @@ class AssetFinder(object):
         """
         if isinstance(obj, (Asset, ContinuousFuture)):
             matches.append(obj)
-        elif isinstance(obj, Integral):
+            return
+
+        if isinstance(obj, Integral):
             try:
                 result = self.retrieve_asset(int(obj))
                 matches.append(result)
             except SidsNotFound:
                 missing.append(obj)
-        elif isinstance(obj, string_types):
+            finally:
+                return
+
+        if isinstance(obj, string_types):
             # Try to look up as an equity first.
             try:
                 matches.append(
@@ -1299,17 +1304,16 @@ class AssetFinder(object):
                 )
                 return
             except SymbolNotFound:
-                pass
-            # Fall back to lookup as a Future
-            try:
-                # TODO: Support country_code for future_symbols?
-                matches.append(self.lookup_future_symbol(obj))
-            except SymbolNotFound:
-                missing.append(obj)
-        else:
-            raise NotAssetConvertible(
-                "Input was %s, not AssetConvertible." % obj
-            )
+                # Fall back to lookup as a Future
+                try:
+                    # TODO: Support country_code for future_symbols?
+                    matches.append(self.lookup_future_symbol(obj))
+                except SymbolNotFound:
+                    missing.append(obj)
+            finally:
+                return
+
+        raise NotAssetConvertible("Input was %s, not AssetConvertible." % obj)
 
     def lookup_generic(self, obj, as_of_date, country_code):
         """
