@@ -103,6 +103,15 @@ class SQLiteAdjustmentReader(object):
                                        'record_date')
         }
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        self.close()
+
+    def close(self):
+        return self.conn.close()
+
     def load_adjustments(self, columns, dates, assets):
         return load_adjustments_from_sqlite(
             self.conn,
@@ -257,6 +266,15 @@ class SQLiteAdjustmentWriter(object):
 
         self._equity_daily_bar_reader = equity_daily_bar_reader
         self._calendar = calendar
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        self.close()
+
+    def close(self):
+        self.conn.close()
 
     def _write(self, tablename, expected_dtypes, frame):
         if frame is None or frame.empty:
@@ -584,6 +602,3 @@ class SQLiteAdjustmentWriter(object):
             "CREATE INDEX stock_dividends_payouts_ex_date "
             "ON stock_dividend_payouts(ex_date)"
         )
-
-    def close(self):
-        self.conn.close()

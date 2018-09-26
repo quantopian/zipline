@@ -30,17 +30,18 @@ class TestSQLiteAdjustementsWriter(WithTradingCalendars,
         self.db_path = self.instance_tmpdir.getpath('adjustments.db')
 
     def writer(self, session_bar_reader):
-        return SQLiteAdjustmentWriter(
-            self.db_path,
-            session_bar_reader,
-            calendar=self.trading_calendar,
-            overwrite=True,
+        return self.enter_instance_context(
+            SQLiteAdjustmentWriter(
+                self.db_path,
+                session_bar_reader,
+                calendar=self.trading_calendar,
+                overwrite=True,
+            ),
         )
 
     def component_dataframes(self):
-        return SQLiteAdjustmentReader(self.db_path).unpack_db_to_component_dfs(
-            convert_dates=True,
-        )
+        with SQLiteAdjustmentReader(self.db_path) as r:
+            return r.unpack_db_to_component_dfs(convert_dates=True)
 
     def empty_in_memory_reader(self, dates, sids):
         nan_frame = pd.DataFrame(
