@@ -96,6 +96,7 @@ from zipline.utils.range import range
 
 Case = namedtuple('Case', 'finder inputs as_of country_code expected')
 
+minute = pd.Timedelta(minutes=1)
 
 
 def build_lookup_generic_cases():
@@ -219,8 +220,16 @@ def build_lookup_generic_cases():
 
         # Duplicated US equity symbol with resolution date.
         for country in ('US', None):
+            # On or before dupe_new_start, we should get dupe_old.
             yield case('DUPLICATED_IN_US', dupe_old_start, country, dupe_old)
+            yield case(
+                'DUPLICATED_IN_US', dupe_new_start - minute, country, dupe_old,
+            )
+            # After that, we should get dupe_new.
             yield case('DUPLICATED_IN_US', dupe_new_start, country, dupe_new)
+            yield case(
+                'DUPLICATED_IN_US', dupe_new_start + minute, country, dupe_new,
+            )
 
         # Unique symbol, disambiguated by country, with or without resolution
         # date.
