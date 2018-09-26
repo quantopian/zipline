@@ -112,7 +112,7 @@ def build_lookup_generic_cases():
 
     equities = pd.DataFrame.from_records(
         [
-            # These sids are duplicated within the US, but have different
+            # These symbols are duplicated within the US, but have different
             # lifetimes.
             {
                 'sid': 0,
