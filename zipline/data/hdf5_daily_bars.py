@@ -481,12 +481,10 @@ class HDF5DailyBarReader(SessionBarReader):
 
     @lazyval
     def asset_start_dates(self):
-        # TODO: This needs test coverage.
         return self.dates[self._country_group[LIFETIMES][START_DATE][:]]
 
     @lazyval
     def asset_end_dates(self):
-        # TODO: This needs test coverage.
         return self.dates[self._country_group[LIFETIMES][END_DATE][:]]
 
     @property

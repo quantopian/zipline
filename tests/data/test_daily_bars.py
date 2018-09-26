@@ -63,7 +63,7 @@ from zipline.testing.fixtures import (
     WithTradingCalendars,
     ZiplineTestCase,
 )
-from zipline.testing.predicates import assert_equal
+from zipline.testing.predicates import assert_equal, assert_sequence_equal
 
 TEST_CALENDAR_START = Timestamp('2015-06-01', tz='UTC')
 TEST_CALENDAR_STOP = Timestamp('2015-06-30', tz='UTC')
@@ -526,8 +526,46 @@ class BcolzDailyBarWriterMissingDataTestCase(WithAssetFinder,
             writer.write(bar_data)
 
 
+class _HDF5DailyBarTestCase(_DailyBarsTestCase):
+    def test_asset_end_dates(self):
+        single_country_reader = (
+            self.single_country_hdf5_equity_daily_bar_readers[
+                self.DAILY_BARS_TEST_QUERY_COUNTRY_CODE
+            ]
+        )
+
+        assert_sequence_equal(single_country_reader.sids, self.assets)
+
+        for ix, sid in enumerate(single_country_reader.sids):
+            assert_equal(
+                single_country_reader.asset_end_dates[ix],
+                self.asset_end(sid).asm8,
+                msg=(
+                    'asset_end_dates value for sid={} differs from expected'
+                ).format(sid)
+            )
+
+    def test_asset_start_dates(self):
+        single_country_reader = (
+            self.single_country_hdf5_equity_daily_bar_readers[
+                self.DAILY_BARS_TEST_QUERY_COUNTRY_CODE
+            ]
+        )
+
+        assert_sequence_equal(single_country_reader.sids, self.assets)
+
+        for ix, sid in enumerate(single_country_reader.sids):
+            assert_equal(
+                single_country_reader.asset_start_dates[ix],
+                self.asset_start(sid).asm8,
+                msg=(
+                    'asset_start_dates value for sid={} differs from expected'
+                ).format(sid)
+            )
+
+
 class HDF5DailyBarUSTestCase(WithHDF5EquityMultiCountryDailyBarReader,
-                             _DailyBarsTestCase):
+                             _HDF5DailyBarTestCase):
     @classmethod
     def init_class_fixtures(cls):
         super(HDF5DailyBarUSTestCase, cls).init_class_fixtures()
@@ -552,7 +590,7 @@ class HDF5DailyBarUSTestCase(WithHDF5EquityMultiCountryDailyBarReader,
 
 
 class HDF5DailyBarCanadaTestCase(WithHDF5EquityMultiCountryDailyBarReader,
-                                 _DailyBarsTestCase):
+                                 _HDF5DailyBarTestCase):
     DAILY_BARS_TEST_QUERY_COUNTRY_CODE = 'CA'
 
     @classmethod
