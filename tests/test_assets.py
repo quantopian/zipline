@@ -213,7 +213,7 @@ def build_lookup_generic_cases():
 
         for asset in list(equities) + [fof14, cf]:
             # Looking up an asset object directly should yield itself.
-            yield case(asset, None, None, asset, )
+            yield case(asset, None, None, asset)
             # Looking up an asset by sid should yield the asset.
             yield case(asset.sid, None, None, asset)
 
