@@ -436,17 +436,6 @@ must contain both or one of 'sid' or 'symbol'.
 """.strip()
 
 
-class MapAssetIdentifierIndexError(ZiplineError):
-    """
-    Raised when AssetMetaData.map_identifier_index_to_sids() is called on an
-    index of invalid objects.
-    """
-    msg = """
-AssetFinder can not map an index with values of type {obj}. Asset indices of
-DataFrames or Panels must be integer sids, string symbols, or Asset objects.
-""".strip()
-
-
 class SidAssignmentError(ZiplineError):
     """
     Raised when an AssetFinder tries to build an Asset that does not have a sid

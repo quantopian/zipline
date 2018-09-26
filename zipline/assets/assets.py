@@ -1379,52 +1379,6 @@ class AssetFinder(object):
                 self._lookup_generic_scalar(obj, as_of_date, matches, missing)
         return matches, missing
 
-    def map_identifier_index_to_sids(self, index, as_of_date):
-        """
-        This method is for use in sanitizing a user's DataFrame or Panel
-        inputs.
-
-        Takes the given index of identifiers, checks their types, builds assets
-        if necessary, and returns a list of the sids that correspond to the
-        input index.
-
-        Parameters
-        ----------
-        index : Iterable
-            An iterable containing ints, strings, or Assets
-        as_of_date : pandas.Timestamp
-            A date to be used to resolve any dual-mapped symbols
-
-        Returns
-        -------
-        List
-            A list of integer sids corresponding to the input index
-        """
-        # This method assumes that the type of the objects in the index is
-        # consistent and can, therefore, be taken from the first identifier
-        first_identifier = index[0]
-
-        # Ensure that input is AssetConvertible (integer, string, or Asset)
-        if not isinstance(first_identifier, AssetConvertible):
-            raise MapAssetIdentifierIndexError(obj=first_identifier)
-
-        # If sids are provided, no mapping is necessary
-        if isinstance(first_identifier, Integral):
-            return index
-
-        # Look up all Assets for mapping
-        matches = []
-        missing = []
-        for identifier in index:
-            self._lookup_generic_scalar(identifier, as_of_date,
-                                        matches, missing)
-
-        if missing:
-            raise ValueError("Missing assets for identifiers: %s" % missing)
-
-        # Return a list of the sids of the found assets
-        return [asset.sid for asset in matches]
-
     def _compute_asset_lifetimes(self, country_codes):
         """
         Compute and cache a recarray of asset lifetimes.
