@@ -97,6 +97,7 @@ from zipline.utils.range import range
 Case = namedtuple('Case', 'finder inputs as_of country_code expected')
 
 
+
 def build_lookup_generic_cases():
     """
     Generate test cases for the type of asset finder specific by
@@ -195,8 +196,7 @@ def build_lookup_generic_cases():
     with temp_db as assets_db:
         finder = AssetFinder(assets_db)
 
-        def case(inputs, as_of, country, expected):
-            return Case(finder, inputs, as_of, country, expected)
+        case = partial(Case, finder)
 
         equities = finder.retrieve_all(range(5))
         dupe_old, dupe_new, unique, dupe_us, dupe_ca = equities
@@ -251,13 +251,13 @@ def build_lookup_generic_cases():
         yield case(
             inputs=('DUPLICATED_IN_US', 'UNIQUE', 'DUPLICATED_GLOBALLY'),
             as_of=dupe_old_start,
-            country='US',
+            country_code='US',
             expected=[dupe_old, unique, dupe_us],
         )
         yield case(
             inputs=['DUPLICATED_GLOBALLY'],
             as_of=dupe_new_start,
-            country='CA',
+            country_code='CA',
             expected=[dupe_ca],
         )
 
@@ -272,7 +272,7 @@ def build_lookup_generic_cases():
                 dupe_ca,                # dupe_ca
             ),
             as_of=dupe_old_start,
-            country='US',
+            country_code='US',
             expected=[dupe_old, dupe_new, unique, unique, dupe_us, dupe_ca],
         )
 
@@ -281,7 +281,7 @@ def build_lookup_generic_cases():
         yield case(
             inputs=['FOF14', 'DUPLICATED_IN_US', 'DUPLICATED_GLOBALLY'],
             as_of=dupe_new_start,
-            country='US',
+            country_code='US',
             expected=[fof14, dupe_new, dupe_us],
         )
 
@@ -290,7 +290,7 @@ def build_lookup_generic_cases():
         yield case(
             [cf, 'DUPLICATED_IN_US', 'DUPLICATED_GLOBALLY'],
             as_of=dupe_new_start,
-            country='US',
+            country_code='US',
             expected=[cf, dupe_new, dupe_us],
         )
 
