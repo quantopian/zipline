@@ -421,7 +421,7 @@ class HDF5DailyBarReader(SessionBarReader):
         date_slice = self._compute_date_range_slice(start, end)
 
         nrows = date_slice.stop - date_slice.start
-        ncols = len(assets)
+        ncols = len(self.sids)
 
         buf = np.zeros((ncols, nrows), dtype=np.uint32)
 
@@ -432,7 +432,10 @@ class HDF5DailyBarReader(SessionBarReader):
 
             dataset = self._country_group[DATA][column]
 
-            dataset.read_direct(buf, np.s_[:, date_slice.start:date_slice.stop])  # noqa
+            dataset.read_direct(
+                buf,
+                np.s_[:, date_slice.start:date_slice.stop],
+            )
 
             out.append(
                 self._postprocessors[column](
@@ -457,8 +460,7 @@ class HDF5DailyBarReader(SessionBarReader):
 
     @lazyval
     def sids(self):
-        sids = self._country_group[INDEX][SID][:]
-        return sids.astype(int)
+        return self._country_group[INDEX][SID][:].astype('int64', copy=False)
 
     @lazyval
     def asset_start_dates(self):

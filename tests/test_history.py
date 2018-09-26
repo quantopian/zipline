@@ -234,7 +234,12 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
 
     @classmethod
     def make_adjustment_writer_equity_daily_bar_reader(cls):
-        return MockDailyBarReader()
+        return MockDailyBarReader(
+            dates=cls.trading_calendar.sessions_in_range(
+                cls.TRADING_START_DT,
+                cls.TRADING_END_DT,
+            ),
+        )
 
     def verify_regular_dt(self, idx, dt, mode, fields=None, assets=None):
         if mode == 'daily':

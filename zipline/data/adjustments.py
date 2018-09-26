@@ -10,12 +10,12 @@ from pandas import Timestamp
 import six
 import sqlite3
 
-from zipline.data.bar_reader import NoDataOnDate
 from zipline.utils.input_validation import preprocess
 from zipline.utils.numpy_utils import (
     float64_dtype,
     int64_dtype,
     uint32_dtype,
+    uint64_dtype,
 )
 from zipline.utils.sqlite_utils import group_into_chunks, coerce_string_to_conn
 from ._adjustments import load_adjustments_from_sqlite
@@ -102,6 +102,15 @@ class SQLiteAdjustmentReader(object):
             'stock_dividend_payouts': ('declared_date', 'ex_date', 'pay_date',
                                        'record_date')
         }
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        self.close()
+
+    def close(self):
+        return self.conn.close()
 
     def load_adjustments(self, columns, dates, assets):
         return load_adjustments_from_sqlite(
@@ -258,6 +267,15 @@ class SQLiteAdjustmentWriter(object):
         self._equity_daily_bar_reader = equity_daily_bar_reader
         self._calendar = calendar
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        self.close()
+
+    def close(self):
+        self.conn.close()
+
     def _write(self, tablename, expected_dtypes, frame):
         if frame is None or frame.empty:
             # keeping the dtypes correct for empty frames is not easy
@@ -349,72 +367,62 @@ class SQLiteAdjustmentWriter(object):
             return pd.DataFrame(np.array(
                 [],
                 dtype=[
-                    ('sid', uint32_dtype),
+                    ('sid', uint64_dtype),
                     ('effective_date', uint32_dtype),
                     ('ratio', float64_dtype),
                 ],
             ))
-        ex_dates = dividends.ex_date.values
 
-        sids = dividends.sid.values
-        amounts = dividends.amount.values
+        pricing_reader = self._equity_daily_bar_reader
+        input_sids = dividends.sid.values
+        unique_sids, sids_ix = np.unique(input_sids, return_inverse=True)
+        dates = pricing_reader.sessions.values
 
-        ratios = np.full(len(amounts), np.nan)
+        close, = pricing_reader.load_raw_arrays(
+            ['close'],
+            pd.Timestamp(dates[0], tz='UTC'),
+            pd.Timestamp(dates[-1], tz='UTC'),
+            unique_sids,
+        )
+        date_ix = np.searchsorted(dates, dividends.ex_date.values)
+        mask = date_ix > 0
 
-        equity_daily_bar_reader = self._equity_daily_bar_reader
+        date_ix = date_ix[mask]
+        sids_ix = sids_ix[mask]
+        input_dates = dividends.ex_date.values[mask]
 
-        effective_dates = np.full(len(amounts), -1, dtype=int64_dtype)
+        # subtract one day to get the close on the day prior to the merger
+        previous_close = close[date_ix - 1, sids_ix]
+        input_sids = input_sids[mask]
 
-        calendar = self._calendar
+        amount = dividends.amount.values[mask]
+        ratio = 1.0 - amount / previous_close
 
-        # Calculate locs against a tz-naive cal, as the ex_dates are tz-
-        # naive.
-        #
-        # TODO: A better approach here would be to localize ex_date to
-        # the tz of the calendar, but currently get_indexer does not
-        # preserve tz of the target when method='bfill', which throws
-        # off the comparison.
-        tz_naive_calendar = calendar.tz_localize(None)
-        day_locs = tz_naive_calendar.get_indexer(ex_dates, method='bfill')
+        non_nan_ratio_mask = ~np.isnan(ratio)
+        for ix in np.flatnonzero(~non_nan_ratio_mask):
+            log.warn(
+                "Couldn't compute ratio for dividend"
+                " sid={sid}, ex_date={ex_date:%Y-%m-%d}, amount={amount:.3f}",
+                sid=input_sids[ix],
+                ex_date=pd.Timestamp(dates[date_ix[ix]]),
+                amount=amount[ix],
+            )
 
-        isnull = pd.isnull
+        positive_ratio_mask = ratio > 0
+        for ix in np.flatnonzero(~positive_ratio_mask & non_nan_ratio_mask):
+            log.warn(
+                "Dividend ratio <= 0 for dividend"
+                " sid={sid}, ex_date={ex_date:%Y-%m-%d}, amount={amount:.3f}",
+                sid=input_sids[ix],
+                ex_date=pd.Timestamp(dates[date_ix[ix]]),
+                amount=amount[ix],
+            )
 
-        for i, amount in enumerate(amounts):
-            sid = sids[i]
-            ex_date = ex_dates[i]
-            day_loc = day_locs[i]
-
-            prev_close_date = calendar[day_loc - 1]
-
-            try:
-                prev_close = equity_daily_bar_reader.get_value(
-                    sid, prev_close_date, 'close')
-                if not isnull(prev_close):
-                    ratio = 1.0 - amount / prev_close
-                    ratios[i] = ratio
-                    # only assign effective_date when data is found
-                    effective_dates[i] = ex_date
-            except NoDataOnDate:
-                log.warn("Couldn't compute ratio for dividend %s" % {
-                    'sid': sid,
-                    'ex_date': ex_date,
-                    'amount': amount,
-                })
-                continue
-
-        # Create a mask to filter out indices in the effective_date, sid, and
-        # ratio vectors for which a ratio was not calculable.
-        effective_mask = effective_dates != -1
-        effective_dates = effective_dates[effective_mask]
-        effective_dates = effective_dates.astype('datetime64[ns]').\
-            astype('datetime64[s]').astype(uint32_dtype)
-        sids = sids[effective_mask]
-        ratios = ratios[effective_mask]
-
+        valid_ratio_mask = non_nan_ratio_mask & positive_ratio_mask
         return pd.DataFrame({
-            'sid': sids,
-            'effective_date': effective_dates,
-            'ratio': ratios,
+            'sid': input_sids[valid_ratio_mask],
+            'effective_date': input_dates[valid_ratio_mask],
+            'ratio': ratio[valid_ratio_mask],
         })
 
     def _write_dividends(self, dividends):
@@ -467,12 +475,6 @@ class SQLiteAdjustmentWriter(object):
         # Second from the dividend payouts, calculate ratios.
         dividend_ratios = self.calc_dividend_ratios(dividends)
         self.write_frame('dividends', dividend_ratios)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc_info):
-        self.close()
 
     def write(self,
               splits=None,
@@ -594,6 +596,3 @@ class SQLiteAdjustmentWriter(object):
             "CREATE INDEX stock_dividends_payouts_ex_date "
             "ON stock_dividend_payouts(ex_date)"
         )
-
-    def close(self):
-        self.conn.close()
