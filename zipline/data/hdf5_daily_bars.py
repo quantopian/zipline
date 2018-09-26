@@ -126,7 +126,7 @@ def coerce_to_uint32(a, field, scaling_factor):
     Returns a copy of the array as uint32, applying a scaling factor to
     maintain precision if supplied.
     """
-    return (a * scaling_factor).astype('uint32')
+    return (a * scaling_factor).round().astype('uint32')
 
 
 def days_and_sids_for_frames(frames):
