@@ -211,9 +211,6 @@ def build_lookup_generic_cases():
 
         all_assets = list(equities) + [fof14, cf]
 
-        dupe_old_start = dupe_old.start_date
-        dupe_new_start = dupe_new.start_date
-
         for asset in list(equities) + [fof14, cf]:
             # Looking up an asset object directly should yield itself.
             yield case(asset, None, None, asset, )
