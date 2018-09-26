@@ -1279,39 +1279,40 @@ class AssetFinder(object):
         On success, append to matches.
         On failure, append to missing.
         """
+        result = self._lookup_generic_scalar_helper(
+            obj, as_of_date, country_code,
+        )
+        if result is not None:
+            matches.append(result)
+        else:
+            missing.append(obj)
+
+    def _lookup_generic_scalar_helper(self, obj, as_of_date, country_code):
+
         if isinstance(obj, (Asset, ContinuousFuture)):
-            matches.append(obj)
-            return
+            return obj
 
         if isinstance(obj, Integral):
             try:
-                result = self.retrieve_asset(int(obj))
-                matches.append(result)
+                return self.retrieve_asset(int(obj))
             except SidsNotFound:
-                missing.append(obj)
-            finally:
-                return
+                return None
 
         if isinstance(obj, string_types):
             # Try to look up as an equity first.
             try:
-                matches.append(
-                    self.lookup_symbol(
-                        symbol=obj,
-                        as_of_date=as_of_date,
-                        country_code=country_code
-                    ),
+                return self.lookup_symbol(
+                    symbol=obj,
+                    as_of_date=as_of_date,
+                    country_code=country_code
                 )
-                return
             except SymbolNotFound:
                 # Fall back to lookup as a Future
                 try:
                     # TODO: Support country_code for future_symbols?
-                    matches.append(self.lookup_future_symbol(obj))
+                    return self.lookup_future_symbol(obj)
                 except SymbolNotFound:
-                    missing.append(obj)
-            finally:
-                return
+                    return None
 
         raise NotAssetConvertible("Input was %s, not AssetConvertible." % obj)
 
