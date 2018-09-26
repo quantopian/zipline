@@ -986,6 +986,11 @@ class MockDailyBarReader(object):
 
     def load_raw_arrays(self, columns, start, stop, sids):
         dates = self.sessions
+        if start < dates[0]:
+            raise ValueError('start date is out of bounds for this reader')
+        if stop > dates[-1]:
+            raise ValueError('stop date is out of bounds for this reader')
+
         output_dates = dates[(dates >= start) & (dates <= stop)]
         return [
             np.full((len(output_dates), len(sids)), 100.0)
