@@ -86,6 +86,8 @@ from zipline.utils.pandas_utils import check_indexes_all_same
 
 log = logbook.Logger('HDF5DailyBars')
 
+VERSION = 0
+
 
 DATA = 'data'
 INDEX = 'index'
@@ -213,6 +215,9 @@ class HDF5DailyBarWriter(object):
             scaling_factors = DEFAULT_SCALING_FACTORS
 
         with self.h5_file(mode='a') as h5_file:
+            # ensure that the file version has been written
+            h5_file.attrs['version'] = VERSION
+
             country_group = h5_file.create_group(country_code)
 
             data_group = country_group.create_group(DATA)
@@ -373,6 +378,14 @@ class HDF5DailyBarReader(SessionBarReader):
         country_code : str
             The ISO 3166 alpha-2 country code for the country to read.
         """
+        if h5_file.attrs['version'] != VERSION:
+            raise ValueError(
+                'mismatched version: file is of version %s, expected %s' % (
+                    h5_file.attrs['version'],
+                    VERSION,
+                ),
+            )
+
         return cls(h5_file[country_code])
 
     @classmethod
