@@ -9,6 +9,7 @@ from numpy import (
     float64,
     full,
     iinfo,
+    nan,
     uint32,
 )
 from numpy.random import RandomState
@@ -223,7 +224,7 @@ def asset_end(asset_info, asset):
     return ret
 
 
-def make_bar_data(asset_info, calendar):
+def make_bar_data(asset_info, calendar, holes=None):
     """
 
     For a given asset/date/column combination, we generate a corresponding raw
@@ -250,6 +251,9 @@ def make_bar_data(asset_info, calendar):
         DataFrame with asset_id as index and 'start_date'/'end_date' columns.
     calendar : pd.DatetimeIndex
         The trading calendar to use.
+    holes : dict[int -> tuple[pd.Timestamps]]
+        A dict mapping asset ids to the tuple of dates that should have
+        no data for that asset in the output.
 
     Yields
     ------
@@ -299,6 +303,11 @@ def make_bar_data(asset_info, calendar):
             columns=US_EQUITY_PRICING_BCOLZ_COLUMNS,
         )
 
+        if holes is not None and asset_id in holes:
+            for dt in holes[asset_id]:
+                frame.loc[dt, OHLC] = nan
+                frame.loc[dt, ['volume']] = 0
+
         frame['day'] = nanos_to_seconds(datetimes.asi8)
         frame['id'] = asset_id
         return frame
@@ -320,13 +329,13 @@ def expected_bar_value(asset_id, date, colname):
     return from_asset + from_colname + from_date
 
 
-def expected_bar_values_2d(dates, asset_info, colname):
+def expected_bar_values_2d(dates, asset_info, colname, holes=None):
     """
     Return an 2D array containing cls.expected_value(asset_id, date,
     colname) for each date/asset pair in the inputs.
 
-    Values before/after an assets lifetime are filled with 0 for volume and
-    NaN for price columns.
+    Values before/after an assets lifetime, as well as the locs defined,
+    in `holes` are filled with 0 for volume and NaN for price columns.
     """
     if colname == 'volume':
         dtype = uint32
@@ -345,6 +354,12 @@ def expected_bar_values_2d(dates, asset_info, colname):
             # No value expected for dates outside the asset's start/end
             # date.
             if not (start <= date <= end):
+                continue
+            if (
+                holes is not None and
+                asset in holes and
+                date in holes[asset]
+            ):
                 continue
             data[i, j] = expected_bar_value(asset, date, colname)
     return data

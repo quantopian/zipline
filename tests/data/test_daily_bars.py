@@ -119,6 +119,8 @@ EQUITY_INFO['symbol'] = [chr(ord('A') + n) for n in range(len(EQUITY_INFO))]
 
 TEST_QUERY_ASSETS = EQUITY_INFO.index
 
+HOLES = {3: (Timestamp('2015-06-17', tz='UTC'),)}
+
 
 class _DailyBarsTestCase(WithEquityDailyBarData, ZiplineTestCase):
     EQUITY_DAILY_BAR_START_DATE = TEST_CALENDAR_START
@@ -152,6 +154,7 @@ class _DailyBarsTestCase(WithEquityDailyBarData, ZiplineTestCase):
         return make_bar_data(
             EQUITY_INFO.loc[list(sids)],
             cls.equity_daily_bar_days,
+            holes=HOLES,
         )
 
     @property
@@ -196,6 +199,7 @@ class _DailyBarsTestCase(WithEquityDailyBarData, ZiplineTestCase):
                     dates,
                     EQUITY_INFO.loc[assets],
                     column,
+                    holes=HOLES,
                 )
             )
 
@@ -299,11 +303,26 @@ class _DailyBarsTestCase(WithEquityDailyBarData, ZiplineTestCase):
 
     def test_unadjusted_get_value_no_data(self):
         reader = self.daily_bar_reader
-        # before
+
+        # Attempting to get data for an asset before its start date
+        # should raise NoDataBeforeDate.
         with self.assertRaises(NoDataBeforeDate):
             reader.get_value(2, Timestamp('2015-06-08', tz='UTC'), 'close')
 
-        # after
+        # Retrieving data for dates with no data, but within an asset's
+        # lifetime, should not raise an exception. nan is returned for
+        # OHLC fields, and 0 is returned for volume.
+        assert_equal(
+            reader.get_value(3, Timestamp('2015-06-17', tz='UTC'), 'close'),
+            nan,
+        )
+        assert_equal(
+            reader.get_value(3, Timestamp('2015-06-17', tz='UTC'), 'volume'),
+            0.0,
+        )
+
+        # Attempting to get data for an asset after its end date
+        # should raise NoDataAfterDate.
         with self.assertRaises(NoDataAfterDate):
             reader.get_value(4, Timestamp('2015-06-16', tz='UTC'), 'close')
 
@@ -363,14 +382,17 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
             multiplier = 1 if column == 'volume' else 1000
             for asset_id in self.assets:
                 for date in self.dates_for_asset(asset_id):
-                    self.assertEqual(
-                        expected_bar_value(
+                    if asset_id in HOLES and date in HOLES[asset_id]:
+                        expected = 0
+                    else:
+                        expected = expected_bar_value(
                             asset_id,
                             date,
-                            column
-                        ) * multiplier,
-                        data[idx],
-                    )
+                            column,
+                        ) * multiplier
+
+                    self.assertEqual(data[idx], expected)
+
                     idx += 1
             self.assertEqual(idx, len(data))
 
@@ -426,26 +448,6 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
             self.sessions,
             sessions
         )
-
-    def test_unadjusted_get_value_empty_value(self):
-        reader = self.bcolz_equity_daily_bar_reader
-
-        # A sid, day and corresponding index into which to overwrite a zero.
-        zero_sid = 1
-        zero_day = Timestamp('2015-06-02', tz='UTC')
-        zero_ix = reader.sid_day_index(zero_sid, zero_day)
-
-        old = reader._spot_col('close')[zero_ix]
-        try:
-            # Write a zero into the synthetic pricing data at the day and sid,
-            # so that a read should now return -1.
-            # This a little hacky, in lieu of changing the synthetic data set.
-            reader._spot_col('close')[zero_ix] = 0
-
-            close = reader.get_value(zero_sid, zero_day, 'close')
-            assert_equal(nan, close)
-        finally:
-            reader._spot_col('close')[zero_ix] = old
 
 
 class BcolzDailyBarAlwaysReadAllTestCase(BcolzDailyBarTestCase):

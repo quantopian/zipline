@@ -555,7 +555,6 @@ class HDF5DailyBarReader(SessionBarReader):
                 raise NoDataBeforeDate()
 
             if dt.asm8 > self.asset_end_dates[sid_ix]:
-                # TODO: This needs test coverage.
                 raise NoDataAfterDate()
 
         return value
