@@ -979,6 +979,55 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         self.assertEqual(missing[0], 'FAKE')
         self.assertEqual(missing[1], 'REAL_BUT_IN_THE_FUTURE')
 
+    def test_lookup_generic_multiple_symbols_across_countries(self):
+        data = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': 0,
+                    'symbol': 'real',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange': 'US_EXCHANGE',
+                },
+                {
+                    'sid': 1,
+                    'symbol': 'real',
+                    'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
+                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange': 'CA_EXCHANGE',
+                },
+            ]
+        )
+        exchanges = pd.DataFrame.from_records([
+            {'exchange': 'US_EXCHANGE', 'country_code': 'US'},
+            {'exchange': 'CA_EXCHANGE', 'country_code': 'CA'},
+        ])
+
+        self.write_assets(equities=data, exchanges=exchanges)
+
+        with self.assertRaises(MultipleSymbolsFound):
+            self.asset_finder.lookup_generic(
+                'real',
+                as_of_date=pd.Timestamp('2014-1-1', tz='UTC'),
+                country_code=None,
+            )
+
+        matches, missing = self.asset_finder.lookup_generic(
+            'real',
+            as_of_date=pd.Timestamp('2014-1-1', tz='UTC'),
+            country_code='US',
+        )
+        self.assertEqual([matches], [self.asset_finder.retrieve_asset(0)])
+        self.assertEqual(missing, [])
+
+        matches, missing = self.asset_finder.lookup_generic(
+            'real',
+            as_of_date=pd.Timestamp('2014-1-1', tz='UTC'),
+            country_code='CA',
+        )
+        self.assertEqual([matches], [self.asset_finder.retrieve_asset(1)])
+        self.assertEqual(missing, [])
+
     def test_security_dates_warning(self):
 
         # Build an asset with an end_date
