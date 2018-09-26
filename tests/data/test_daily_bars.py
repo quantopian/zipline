@@ -78,7 +78,8 @@ us_info = DataFrame(
         {'start_date': '2015-06-01', 'end_date': '2015-06-05'},
         # 2) The equity's trades start and end after query.
         {'start_date': '2015-06-22', 'end_date': '2015-06-30'},
-        # 3) The equity's data covers all dates in range.
+        # 3) The equity's data covers all dates in range (but we define
+        #    a hole for it on 2015-06-17).
         {'start_date': '2015-06-02', 'end_date': '2015-06-30'},
         # 4) The equity's trades start before the query start, but stop
         #    before the query end.

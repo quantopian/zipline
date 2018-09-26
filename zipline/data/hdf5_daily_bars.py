@@ -335,7 +335,7 @@ def compute_asset_lifetimes(frames):
 
     # Offset of the first null from the start of the input.
     start_date_ixs = is_null_matrix.argmin(axis=0)
-    # Offset of the *last null from the **end** of the input.
+    # Offset of the last null from the **end** of the input.
     end_offsets = is_null_matrix[::-1].argmin(axis=0)
     # Offset of the last null from the start of the input
     end_date_ixs = is_null_matrix.shape[0] - end_offsets - 1

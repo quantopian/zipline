@@ -251,9 +251,9 @@ def make_bar_data(asset_info, calendar, holes=None):
         DataFrame with asset_id as index and 'start_date'/'end_date' columns.
     calendar : pd.DatetimeIndex
         The trading calendar to use.
-    holes : dict[int -> tuple[pd.Timestamps]]
+    holes : dict[int -> tuple[pd.Timestamps]], optional
         A dict mapping asset ids to the tuple of dates that should have
-        no data for that asset in the output.
+        no data for that asset in the output. Default is no holes.
 
     Yields
     ------
