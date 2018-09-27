@@ -47,7 +47,7 @@ from zipline.pipeline.loaders.synthetic import (
     OHLCV,
     asset_start,
     asset_end,
-    expected_bar_value,
+    expected_bar_value_with_holes,
     expected_bar_values_2d,
     make_bar_data,
 )
@@ -383,17 +383,16 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
             multiplier = 1 if column == 'volume' else 1000
             for asset_id in self.assets:
                 for date in self.dates_for_asset(asset_id):
-                    if asset_id in HOLES and date in HOLES[asset_id]:
-                        expected = 0
-                    else:
-                        expected = expected_bar_value(
-                            asset_id,
-                            date,
-                            column,
-                        ) * multiplier
-
-                    self.assertEqual(data[idx], expected)
-
+                    self.assertEqual(
+                        data[idx],
+                        expected_bar_value_with_holes(
+                            asset_id=asset_id,
+                            date=date,
+                            colname=column,
+                            holes=HOLES,
+                            missing_value=0,
+                        ) * multiplier,
+                    )
                     idx += 1
             self.assertEqual(idx, len(data))
 

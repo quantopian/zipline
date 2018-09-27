@@ -329,6 +329,18 @@ def expected_bar_value(asset_id, date, colname):
     return from_asset + from_colname + from_date
 
 
+def expected_bar_value_with_holes(asset_id,
+                                  date,
+                                  colname,
+                                  holes,
+                                  missing_value):
+    # Explicit holes are filled with the missing value.
+    if asset_id in holes and date in holes[asset_id]:
+        return missing_value
+
+    return expected_bar_value(asset_id, date, colname)
+
+
 def expected_bar_values_2d(dates, asset_info, colname, holes=None):
     """
     Return an 2D array containing cls.expected_value(asset_id, date,
@@ -355,13 +367,19 @@ def expected_bar_values_2d(dates, asset_info, colname, holes=None):
             # date.
             if not (start <= date <= end):
                 continue
-            if (
-                holes is not None and
-                asset in holes and
-                date in holes[asset]
-            ):
-                continue
-            data[i, j] = expected_bar_value(asset, date, colname)
+
+            if holes is not None:
+                expected = expected_bar_value_with_holes(
+                    asset,
+                    date,
+                    colname,
+                    holes,
+                    missing,
+                )
+            else:
+                expected = expected_bar_value(asset, date, colname)
+
+            data[i, j] = expected
     return data
 
 
