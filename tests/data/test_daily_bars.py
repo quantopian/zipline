@@ -36,6 +36,7 @@ from zipline.data.bar_reader import (
     NoDataAfterDate,
     NoDataBeforeDate,
     NoDataForSid,
+    NoDataOnDate,
 )
 from zipline.data.bcolz_daily_bars import BcolzDailyBarWriter
 from zipline.data.hdf5_daily_bars import (
@@ -585,6 +586,32 @@ class _HDF5DailyBarTestCase(_DailyBarsTestCase):
                 TEST_QUERY_START,
                 'close',
             )
+
+    def test_invalid_date(self):
+        INVALID_DATES = (
+            # Before the start of the daily bars.
+            self.trading_calendar.previous_session_label(TEST_CALENDAR_START),
+            # A Sunday.
+            Timestamp('2015-06-07', tz='UTC'),
+            # After the end of the daily bars.
+            self.trading_calendar.next_session_label(TEST_CALENDAR_STOP),
+        )
+
+        for invalid_date in INVALID_DATES:
+            with self.assertRaises(NoDataOnDate):
+                self.daily_bar_reader.load_raw_arrays(
+                    OHLCV,
+                    invalid_date,
+                    TEST_QUERY_STOP,
+                    self.assets,
+                )
+
+            with self.assertRaises(NoDataOnDate):
+                self.daily_bar_reader.get_value(
+                    self.assets[0],
+                    invalid_date,
+                    'close',
+                )
 
 
 class HDF5DailyBarUSTestCase(WithHDF5EquityMultiCountryDailyBarReader,
