@@ -78,7 +78,11 @@ import pandas as pd
 from six import iteritems
 from six.moves import reduce
 
-from zipline.data.bar_reader import NoDataBeforeDate, NoDataAfterDate
+from zipline.data.bar_reader import (
+    NoDataAfterDate,
+    NoDataBeforeDate,
+    NoDataForSid,
+)
 from zipline.data.session_bars import SessionBarReader
 from zipline.utils.memoize import lazyval
 from zipline.utils.pandas_utils import check_indexes_all_same
@@ -626,7 +630,7 @@ class MultiCountryDailyBarReader(SessionBarReader):
         country_codes = self._country_map[assets]
 
         if country_codes.isnull().any():
-            raise ValueError(
+            raise NoDataForSid(
                 'Assets not contained in daily pricing file: {}'.format(
                     list(country_codes[country_codes.isnull()].index)
                 )

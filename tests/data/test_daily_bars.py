@@ -32,7 +32,11 @@ from pandas import (
 )
 from trading_calendars import get_calendar
 
-from zipline.data.bar_reader import NoDataBeforeDate, NoDataAfterDate
+from zipline.data.bar_reader import (
+    NoDataAfterDate,
+    NoDataBeforeDate,
+    NoDataForSid,
+)
 from zipline.data.bcolz_daily_bars import BcolzDailyBarWriter
 from zipline.data.hdf5_daily_bars import (
     CLOSE,
@@ -562,6 +566,24 @@ class _HDF5DailyBarTestCase(_DailyBarsTestCase):
                 msg=(
                     'asset_start_dates value for sid={} differs from expected'
                 ).format(sid)
+            )
+
+    def test_invalid_sid(self):
+        INVALID_SID = 100
+
+        with self.assertRaises(NoDataForSid):
+            self.daily_bar_reader.load_raw_arrays(
+                OHLCV,
+                TEST_QUERY_START,
+                TEST_QUERY_STOP,
+                [INVALID_SID],
+            )
+
+        with self.assertRaises(NoDataForSid):
+            self.daily_bar_reader.get_value(
+                INVALID_SID,
+                TEST_QUERY_START,
+                'close',
             )
 
 
