@@ -121,7 +121,7 @@ DEFAULT_SCALING_FACTORS = {
 }
 
 
-def coerce_to_uint32(a, field, scaling_factor):
+def coerce_to_uint32(a, scaling_factor):
     """
     Returns a copy of the array as uint32, applying a scaling factor to
     maintain precision if supplied.
@@ -256,7 +256,6 @@ class HDF5DailyBarWriter(object):
 
                 data = coerce_to_uint32(
                     frame.T.fillna(0).values,
-                    field,
                     scaling_factors[field],
                 )
 

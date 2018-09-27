@@ -585,7 +585,6 @@ class HDF5DailyBarUSTestCase(WithHDF5EquityMultiCountryDailyBarReader,
         # shouldn't truncate and be off by an entire cent
         coerced = coerce_to_uint32(
             array([0.001, 1, 100, 100.5, 1000.005, 130.23], dtype=float64),
-            field,
             DEFAULT_SCALING_FACTORS[field],
         )
 
