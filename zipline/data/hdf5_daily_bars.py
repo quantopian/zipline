@@ -82,6 +82,7 @@ from zipline.data.bar_reader import (
     NoDataAfterDate,
     NoDataBeforeDate,
     NoDataForSid,
+    NoDataOnDate,
 )
 from zipline.data.session_bars import SessionBarReader
 from zipline.utils.memoize import lazyval
@@ -434,6 +435,9 @@ class HDF5DailyBarReader(SessionBarReader):
             (minutes in range, sids) with a dtype of float64, containing the
             values for the respective field over start and end dt range.
         """
+        self._validate_timestamp(start_date)
+        self._validate_timestamp(end_date)
+
         start = start_date.asm8
         end = end_date.asm8
 
@@ -473,6 +477,10 @@ class HDF5DailyBarReader(SessionBarReader):
         end_ix = self.dates.searchsorted(end_date, side='right')
 
         return slice(start_ix, end_ix)
+
+    def _validate_timestamp(self, ts):
+        if ts.asm8 not in self.dates:
+            raise NoDataOnDate()
 
     @lazyval
     def dates(self):
@@ -557,6 +565,8 @@ class HDF5DailyBarReader(SessionBarReader):
             If the given dt is not a valid market minute (in minute mode) or
             session (in daily mode) according to this reader's tradingcalendar.
         """
+        self._validate_timestamp(dt)
+
         sid_ix = self.sids.searchsorted(sid)
         dt_ix = self.dates.searchsorted(dt.asm8)
 
