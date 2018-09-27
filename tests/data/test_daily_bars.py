@@ -533,18 +533,18 @@ class BcolzDailyBarWriterMissingDataTestCase(WithAssetFinder,
 
 
 class _HDF5DailyBarTestCase(_DailyBarsTestCase):
+    @property
+    def single_country_reader(self):
+        return self.single_country_hdf5_equity_daily_bar_readers[
+            self.DAILY_BARS_TEST_QUERY_COUNTRY_CODE
+        ]
+
     def test_asset_end_dates(self):
-        single_country_reader = (
-            self.single_country_hdf5_equity_daily_bar_readers[
-                self.DAILY_BARS_TEST_QUERY_COUNTRY_CODE
-            ]
-        )
+        assert_sequence_equal(self.single_country_reader.sids, self.assets)
 
-        assert_sequence_equal(single_country_reader.sids, self.assets)
-
-        for ix, sid in enumerate(single_country_reader.sids):
+        for ix, sid in enumerate(self.single_country_reader.sids):
             assert_equal(
-                single_country_reader.asset_end_dates[ix],
+                self.single_country_reader.asset_end_dates[ix],
                 self.asset_end(sid).asm8,
                 msg=(
                     'asset_end_dates value for sid={} differs from expected'
@@ -552,17 +552,11 @@ class _HDF5DailyBarTestCase(_DailyBarsTestCase):
             )
 
     def test_asset_start_dates(self):
-        single_country_reader = (
-            self.single_country_hdf5_equity_daily_bar_readers[
-                self.DAILY_BARS_TEST_QUERY_COUNTRY_CODE
-            ]
-        )
+        assert_sequence_equal(self.single_country_reader.sids, self.assets)
 
-        assert_sequence_equal(single_country_reader.sids, self.assets)
-
-        for ix, sid in enumerate(single_country_reader.sids):
+        for ix, sid in enumerate(self.single_country_reader.sids):
             assert_equal(
-                single_country_reader.asset_start_dates[ix],
+                self.single_country_reader.asset_start_dates[ix],
                 self.asset_start(sid).asm8,
                 msg=(
                     'asset_start_dates value for sid={} differs from expected'
@@ -582,6 +576,24 @@ class _HDF5DailyBarTestCase(_DailyBarsTestCase):
 
         with self.assertRaises(NoDataForSid):
             self.daily_bar_reader.get_value(
+                INVALID_SID,
+                TEST_QUERY_START,
+                'close',
+            )
+
+    def test_invalid_sid_single_country(self):
+        INVALID_SID = 100
+
+        with self.assertRaises(NoDataForSid):
+            self.single_country_reader.load_raw_arrays(
+                OHLCV,
+                TEST_QUERY_START,
+                TEST_QUERY_STOP,
+                [INVALID_SID],
+            )
+
+        with self.assertRaises(NoDataForSid):
+            self.single_country_reader.get_value(
                 INVALID_SID,
                 TEST_QUERY_START,
                 'close',
