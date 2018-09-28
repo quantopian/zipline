@@ -75,7 +75,7 @@ import h5py
 import logbook
 import numpy as np
 import pandas as pd
-from six import iteritems
+from six import iteritems, raise_from
 from six.moves import reduce
 
 from zipline.data.bar_reader import (
@@ -656,13 +656,16 @@ class MultiCountryDailyBarReader(SessionBarReader):
         ])
 
     def _country_code_for_assets(self, assets):
-        country_codes = self._country_map[assets]
-
-        if country_codes.isnull().any():
-            raise NoDataForSid(
-                'Assets not contained in daily pricing file: {}'.format(
-                    list(country_codes[country_codes.isnull()].index)
-                )
+        try:
+            country_codes = self._country_map.loc[assets]
+        except KeyError as exc:
+            raise_from(
+                NoDataForSid(
+                    'Assets not contained in daily pricing file: {}'.format(
+                        set(assets) - set(self._country_map)
+                    )
+                ),
+                exc
             )
 
         unique_country_codes = country_codes.unique()
