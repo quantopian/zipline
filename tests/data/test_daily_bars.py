@@ -20,7 +20,6 @@ import numpy as np
 from numpy import (
     arange,
     array,
-    datetime64,
     float64,
     nan,
 )
@@ -99,7 +98,7 @@ us_info = DataFrame(
     ],
     index=arange(1, 7),
     columns=['start_date', 'end_date'],
-).astype(datetime64)
+).astype('datetime64[ns]')
 us_info['exchange'] = 'NYSE'
 
 ca_info = DataFrame(
@@ -121,7 +120,7 @@ ca_info = DataFrame(
     ],
     index=arange(7, 13),
     columns=['start_date', 'end_date'],
-).astype(datetime64)
+).astype('datetime64[ns]')
 ca_info['exchange'] = 'TSX'
 
 EQUITY_INFO = concat([us_info, ca_info])
