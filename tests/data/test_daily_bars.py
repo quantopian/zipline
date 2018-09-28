@@ -30,6 +30,8 @@ from pandas import (
     NaT,
     Timestamp,
 )
+from six import iteritems
+from toolz import merge
 from trading_calendars import get_calendar
 
 from zipline.data.bar_reader import (
@@ -68,6 +70,7 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
 )
 from zipline.testing.predicates import assert_equal, assert_sequence_equal
+from zipline.utils.classproperty import classproperty
 
 TEST_CALENDAR_START = Timestamp('2015-06-01', tz='UTC')
 TEST_CALENDAR_STOP = Timestamp('2015-06-30', tz='UTC')
@@ -101,18 +104,18 @@ us_info['exchange'] = 'NYSE'
 
 ca_info = DataFrame(
     [
-        # 1) The equity's trades start and end before query.
+        # 7) The equity's trades start and end before query.
         {'start_date': '2015-06-01', 'end_date': '2015-06-05'},
-        # 2) The equity's trades start and end after query.
+        # 8) The equity's trades start and end after query.
         {'start_date': '2015-06-22', 'end_date': '2015-06-30'},
-        # 3) The equity's data covers all dates in range.
+        # 9) The equity's data covers all dates in range.
         {'start_date': '2015-06-02', 'end_date': '2015-06-30'},
-        # 4) The equity's trades start before the query start, but stop
+        # 10) The equity's trades start before the query start, but stop
         #    before the query end.
         {'start_date': '2015-06-01', 'end_date': '2015-06-15'},
-        # 5) The equity's trades start and end during the query.
+        # 11) The equity's trades start and end during the query.
         {'start_date': '2015-06-12', 'end_date': '2015-06-18'},
-        # 6) The equity's trades start during the query, but extend through
+        # 12) The equity's trades start during the query, but extend through
         #    the whole query.
         {'start_date': '2015-06-15', 'end_date': '2015-06-25'},
     ],
@@ -126,7 +129,10 @@ EQUITY_INFO['symbol'] = [chr(ord('A') + n) for n in range(len(EQUITY_INFO))]
 
 TEST_QUERY_ASSETS = EQUITY_INFO.index
 
-HOLES = {3: (Timestamp('2015-06-17', tz='UTC'),)}
+HOLES = {
+    'US': {3: (Timestamp('2015-06-17', tz='UTC'),)},
+    'CA': {9: (Timestamp('2015-06-17', tz='UTC'),)},
+}
 
 
 class _DailyBarsTestCase(WithEquityDailyBarData,
@@ -160,11 +166,16 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
 
     @classmethod
     def make_equity_daily_bar_data(cls, country_code, sids):
+        # Create the data for all countries.
         return make_bar_data(
             EQUITY_INFO.loc[list(sids)],
             cls.equity_daily_bar_days,
-            holes=HOLES,
+            holes=merge(HOLES.values()),
         )
+
+    @classproperty
+    def holes(cls):
+        return HOLES[cls.DAILY_BARS_TEST_QUERY_COUNTRY_CODE]
 
     @property
     def assets(self):
@@ -208,7 +219,7 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
                     dates,
                     EQUITY_INFO.loc[assets],
                     column,
-                    holes=HOLES,
+                    holes=self.holes,
                 )
             )
 
@@ -295,57 +306,122 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
             )
 
     def test_unadjusted_get_value(self):
+        """Test get_value() on both a price field (CLOSE) and VOLUME."""
         reader = self.daily_bar_reader
 
-        # At beginning
-        price = reader.get_value(1, Timestamp('2015-06-01', tz='UTC'),
-                                 'close')
-        # Synthetic writes price for date.
-        self.assertEqual(108630.0, price)
+        def make_failure_msg(asset, date, field):
+            return "Unexpected value for sid={}; date={}; field={}.".format(
+                asset,
+                date.date(),
+                field
+            )
 
-        # Middle
-        price = reader.get_value(1, Timestamp('2015-06-02', tz='UTC'),
-                                 'close')
-        self.assertEqual(108631.0, price)
-        # End
-        price = reader.get_value(1, Timestamp('2015-06-05', tz='UTC'),
-                                 'close')
-        self.assertEqual(108634.0, price)
+        for asset in self.assets:
+            # Dates to check.
+            asset_start = self.asset_start(asset)
 
-        # Another sid at beginning.
-        price = reader.get_value(2, Timestamp('2015-06-22', tz='UTC'),
-                                 'close')
-        self.assertEqual(208651.0, price)
+            asset_dates = self.dates_for_asset(asset)
+            asset_middle = asset_dates[len(asset_dates) // 2]
 
-        # Ensure that volume does not have float adjustment applied.
-        volume = reader.get_value(1, Timestamp('2015-06-02', tz='UTC'),
-                                  'volume')
-        self.assertEqual(109631, volume)
+            asset_end = self.asset_end(asset)
+
+            # At beginning
+            assert_equal(
+                reader.get_value(asset, asset_start, CLOSE),
+                expected_bar_value_with_holes(
+                    asset_id=asset,
+                    date=asset_start,
+                    colname=CLOSE,
+                    holes=self.holes,
+                    missing_value=nan,
+                ),
+                msg=make_failure_msg(asset, asset_start, CLOSE),
+            )
+
+            # Middle
+            assert_equal(
+                reader.get_value(asset, asset_middle, CLOSE),
+                expected_bar_value_with_holes(
+                    asset_id=asset,
+                    date=asset_middle,
+                    colname=CLOSE,
+                    holes=self.holes,
+                    missing_value=nan,
+                ),
+                msg=make_failure_msg(asset, asset_middle, CLOSE),
+            )
+
+            # End
+            assert_equal(
+                reader.get_value(asset, asset_end, CLOSE),
+                expected_bar_value_with_holes(
+                    asset_id=asset,
+                    date=asset_end,
+                    colname=CLOSE,
+                    holes=self.holes,
+                    missing_value=nan,
+                ),
+                msg=make_failure_msg(asset, asset_end, CLOSE),
+            )
+
+            # Ensure that volume does not have float adjustment applied.
+            assert_equal(
+                reader.get_value(asset, asset_start, VOLUME),
+                expected_bar_value_with_holes(
+                    asset_id=asset,
+                    date=asset_start,
+                    colname=VOLUME,
+                    holes=self.holes,
+                    missing_value=0,
+                ),
+                msg=make_failure_msg(asset, asset_start, VOLUME),
+            )
 
     def test_unadjusted_get_value_no_data(self):
+        """Test behavior of get_value() around missing data."""
         reader = self.daily_bar_reader
 
-        # Attempting to get data for an asset before its start date
-        # should raise NoDataBeforeDate.
-        with self.assertRaises(NoDataBeforeDate):
-            reader.get_value(2, Timestamp('2015-06-08', tz='UTC'), 'close')
+        for asset in self.assets:
+            before_start = self.trading_calendar.previous_session_label(
+                self.asset_start(asset)
+            )
+            after_end = self.trading_calendar.next_session_label(
+                self.asset_end(asset)
+            )
 
-        # Retrieving data for dates with no data, but within an asset's
-        # lifetime, should not raise an exception. nan is returned for
-        # OHLC fields, and 0 is returned for volume.
-        assert_equal(
-            reader.get_value(3, Timestamp('2015-06-17', tz='UTC'), 'close'),
-            nan,
-        )
-        assert_equal(
-            reader.get_value(3, Timestamp('2015-06-17', tz='UTC'), 'volume'),
-            0.0,
-        )
+            # Attempting to get data for an asset before its start date
+            # should raise NoDataBeforeDate.
+            if TEST_CALENDAR_START <= before_start <= TEST_CALENDAR_STOP:
+                with self.assertRaises(NoDataBeforeDate):
+                    reader.get_value(asset, before_start, CLOSE)
 
-        # Attempting to get data for an asset after its end date
-        # should raise NoDataAfterDate.
-        with self.assertRaises(NoDataAfterDate):
-            reader.get_value(4, Timestamp('2015-06-16', tz='UTC'), 'close')
+            # Attempting to get data for an asset after its end date
+            # should raise NoDataAfterDate.
+            if TEST_CALENDAR_START <= after_end <= TEST_CALENDAR_STOP:
+                with self.assertRaises(NoDataAfterDate):
+                    reader.get_value(asset, after_end, CLOSE)
+
+        # Retrieving data for "holes" (dates with no data, but within
+        # an  asset's lifetime) should not raise an exception. nan is
+        # returned for OHLC fields, and 0 is returned for volume.
+        for asset, dates in iteritems(self.holes):
+            for date in dates:
+                assert_equal(
+                    reader.get_value(asset, date, CLOSE),
+                    nan,
+                    msg=(
+                        "Expected a hole for sid={}; date={}, but got a"
+                        " non-nan value for close."
+                    ).format(asset, date.date())
+                )
+                assert_equal(
+                    reader.get_value(asset, date, VOLUME),
+                    0.0,
+                    msg=(
+                        "Expected a hole for sid={}; date={}, but got a"
+                        " non-zero value for volume."
+                    ).format(asset, date.date())
+                )
 
     def test_get_last_traded_dt(self):
         for sid in self.assets:
@@ -409,7 +485,7 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
                             asset_id=asset_id,
                             date=date,
                             colname=column,
-                            holes=HOLES,
+                            holes=self.holes,
                             missing_value=0,
                         ) * multiplier,
                     )
@@ -654,6 +730,7 @@ class HDF5DailyBarUSTestCase(WithHDF5EquityMultiCountryDailyBarReader,
 
 class HDF5DailyBarCanadaTestCase(WithHDF5EquityMultiCountryDailyBarReader,
                                  _HDF5DailyBarTestCase):
+    TRADING_CALENDAR_PRIMARY_CAL = 'TSX'
     DAILY_BARS_TEST_QUERY_COUNTRY_CODE = 'CA'
 
     @classmethod
