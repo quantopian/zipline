@@ -2383,8 +2383,4 @@ class TradingAlgorithm(object):
 
 
 # Map from calendar name to default domain for that calendar.
-_DEFAULT_DOMAINS = {
-    'NYSE': domain.US_EQUITIES,
-    'TSX': domain.CA_EQUITIES,
-    'LSE': domain.GB_EQUITIES,
-}
+_DEFAULT_DOMAINS = {d.calendar_name: d for d in domain.BUILT_IN_DOMAINS}
