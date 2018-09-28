@@ -608,7 +608,14 @@ class BcolzDailyBarWriterMissingDataTestCase(WithAssetFinder,
             writer.write(bar_data)
 
 
-class _HDF5DailyBarTestCase(_DailyBarsTestCase):
+class _HDF5DailyBarTestCase(WithHDF5EquityMultiCountryDailyBarReader,
+                            _DailyBarsTestCase):
+    @classmethod
+    def init_class_fixtures(cls):
+        super(_HDF5DailyBarTestCase, cls).init_class_fixtures()
+
+        cls.daily_bar_reader = cls.hdf5_equity_daily_bar_reader
+
     @property
     def single_country_reader(self):
         return self.single_country_hdf5_equity_daily_bar_readers[
@@ -702,13 +709,17 @@ class _HDF5DailyBarTestCase(_DailyBarsTestCase):
                 )
 
 
-class HDF5DailyBarUSTestCase(WithHDF5EquityMultiCountryDailyBarReader,
-                             _HDF5DailyBarTestCase):
-    @classmethod
-    def init_class_fixtures(cls):
-        super(HDF5DailyBarUSTestCase, cls).init_class_fixtures()
+class HDF5DailyBarUSTestCase(_HDF5DailyBarTestCase):
+    DAILY_BARS_TEST_QUERY_COUNTRY_CODE = 'US'
 
-        cls.daily_bar_reader = cls.hdf5_equity_daily_bar_reader
+
+class HDF5DailyBarCanadaTestCase(_HDF5DailyBarTestCase):
+    TRADING_CALENDAR_PRIMARY_CAL = 'TSX'
+    DAILY_BARS_TEST_QUERY_COUNTRY_CODE = 'CA'
+
+
+class TestCoerceToUint32Price(ZiplineTestCase):
+    """Test the coerce_to_uint32() function used by the HDF5DailyBarWriter."""
 
     @parameterized.expand([
         (OPEN, array([1, 1000, 100000, 100500, 1000005, 130230], dtype='u4')),
@@ -726,15 +737,3 @@ class HDF5DailyBarUSTestCase(WithHDF5EquityMultiCountryDailyBarReader,
         )
 
         assert_equal(coerced, expected)
-
-
-class HDF5DailyBarCanadaTestCase(WithHDF5EquityMultiCountryDailyBarReader,
-                                 _HDF5DailyBarTestCase):
-    TRADING_CALENDAR_PRIMARY_CAL = 'TSX'
-    DAILY_BARS_TEST_QUERY_COUNTRY_CODE = 'CA'
-
-    @classmethod
-    def init_class_fixtures(cls):
-        super(HDF5DailyBarCanadaTestCase, cls).init_class_fixtures()
-
-        cls.daily_bar_reader = cls.hdf5_equity_daily_bar_reader
