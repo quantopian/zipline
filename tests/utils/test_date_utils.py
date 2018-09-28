@@ -18,7 +18,7 @@ class TestDateUtils(ZiplineTestCase):
     @classmethod
     def init_class_fixtures(cls):
         super(TestDateUtils, cls).init_class_fixtures()
-        cls.calendar = get_calendar('NYSE')
+        cls.calendar = get_calendar('XNYS')
 
     @parameterized.expand([
         (None, [(T('2017-01-03'), T('2017-01-31'))]),

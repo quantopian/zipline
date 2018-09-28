@@ -63,7 +63,7 @@ class ContinuousFuturesTestCase(zf.WithCreateBarData,
         return pd.DataFrame({
             'root_symbol': ['FO', 'BZ', 'MA', 'DF'],
             'root_symbol_id': [1, 2, 3, 4],
-            'exchange': ['CME', 'CME', 'CME', 'CME']})
+            'exchange': ['CMES', 'CMES', 'CMES', 'CMES']})
 
     @classmethod
     def make_futures_info(self):
@@ -116,7 +116,7 @@ class ContinuousFuturesTestCase(zf.WithCreateBarData,
                                 Timestamp('2022-02-26', tz='UTC')],
             'tick_size': [0.001] * 7,
             'multiplier': [1000.0] * 7,
-            'exchange': ['CME'] * 7,
+            'exchange': ['CMES'] * 7,
         })
 
         # BZ is set up to test chain predicates, for futures such as PL which
@@ -143,7 +143,7 @@ class ContinuousFuturesTestCase(zf.WithCreateBarData,
                                 Timestamp('2016-03-09', tz='UTC')],
             'tick_size': [0.001] * 3,
             'multiplier': [1000.0] * 3,
-            'exchange': ['CME'] * 3,
+            'exchange': ['CMES'] * 3,
         })
 
         # MA is set up to test a contract which is has no active volume.
@@ -169,7 +169,7 @@ class ContinuousFuturesTestCase(zf.WithCreateBarData,
                                 Timestamp('2016-04-13', tz='UTC')],
             'tick_size': [0.001] * 3,
             'multiplier': [1000.0] * 3,
-            'exchange': ['CME'] * 3,
+            'exchange': ['CMES'] * 3,
         })
 
         # DF is set up to have a double volume flip between the 'F' and 'G'
@@ -197,7 +197,7 @@ class ContinuousFuturesTestCase(zf.WithCreateBarData,
                                 Timestamp('2016-04-20', tz='UTC')],
             'tick_size': [0.001] * 3,
             'multiplier': [1000.0] * 3,
-            'exchange': ['CME'] * 3,
+            'exchange': ['CMES'] * 3,
         })
 
         return pd.concat([fo_frame, bz_frame, ma_frame, df_frame])
@@ -1315,7 +1315,7 @@ class RollFinderTestCase(zf.WithBcolzFutureDailyBarReader,
                     'start_date': cls.START_DATE,
                     'end_date': cls.first_end_date,
                     'auto_close_date': cls.first_end_date - two_days,
-                    'exchange': 'CME',
+                    'exchange': 'CMES',
                 },
                 1001: {
                     'symbol': 'CLG17',
@@ -1323,7 +1323,7 @@ class RollFinderTestCase(zf.WithBcolzFutureDailyBarReader,
                     'start_date': cls.START_DATE,
                     'end_date': cls.second_end_date,
                     'auto_close_date': cls.second_end_date - two_days,
-                    'exchange': 'CME',
+                    'exchange': 'CMES',
                 },
                 1002: {
                     'symbol': 'CLH17',
@@ -1331,7 +1331,7 @@ class RollFinderTestCase(zf.WithBcolzFutureDailyBarReader,
                     'start_date': cls.START_DATE,
                     'end_date': cls.third_end_date,
                     'auto_close_date': cls.third_auto_close_date,
-                    'exchange': 'CME',
+                    'exchange': 'CMES',
                 },
                 1003: {
                     'symbol': 'CLJ17',
@@ -1339,7 +1339,7 @@ class RollFinderTestCase(zf.WithBcolzFutureDailyBarReader,
                     'start_date': cls.fourth_start_date,
                     'end_date': cls.fourth_end_date,
                     'auto_close_date': cls.fourth_auto_close_date,
-                    'exchange': 'CME',
+                    'exchange': 'CMES',
                 },
                 1004: {
                     'symbol': 'CLK17',
@@ -1347,7 +1347,7 @@ class RollFinderTestCase(zf.WithBcolzFutureDailyBarReader,
                     'start_date': cls.fifth_start_date,
                     'end_date': cls.fifth_end_date,
                     'auto_close_date': cls.fifth_auto_close_date,
-                    'exchange': 'CME',
+                    'exchange': 'CMES',
                 },
                 1005: {
                     'symbol': 'CLM17',
@@ -1355,7 +1355,7 @@ class RollFinderTestCase(zf.WithBcolzFutureDailyBarReader,
                     'start_date': cls.last_start_date,
                     'end_date': cls.END_DATE,
                     'auto_close_date': cls.END_DATE + two_days,
-                    'exchange': 'CME',
+                    'exchange': 'CMES',
                 },
                 1006: {
                     'symbol': 'CLN17',
@@ -1363,7 +1363,7 @@ class RollFinderTestCase(zf.WithBcolzFutureDailyBarReader,
                     'start_date': cls.last_start_date,
                     'end_date': cls.END_DATE,
                     'auto_close_date': cls.END_DATE + two_days,
-                    'exchange': 'CME',
+                    'exchange': 'CMES',
                 },
                 2000: {
                     # Using a placeholder month of 'A' to mean this is the
@@ -1373,7 +1373,7 @@ class RollFinderTestCase(zf.WithBcolzFutureDailyBarReader,
                     'start_date': cls.START_DATE,
                     'end_date': cls.END_DATE + end_buffer_days,
                     'auto_close_date': cls.END_DATE + two_days,
-                    'exchange': 'CME',
+                    'exchange': 'CMES',
                 },
                 2001: {
                     # Using a placeholder month of 'B' to mean this is the
@@ -1383,7 +1383,7 @@ class RollFinderTestCase(zf.WithBcolzFutureDailyBarReader,
                     'start_date': cls.START_DATE,
                     'end_date': cls.END_DATE + end_buffer_days,
                     'auto_close_date': cls.END_DATE + end_buffer_days,
-                    'exchange': 'CME',
+                    'exchange': 'CMES',
                 },
             },
             orient='index',
@@ -1631,7 +1631,7 @@ class OrderedContractsTestCase(zf.WithAssetFinder, zf.ZiplineTestCase):
         return pd.DataFrame({
             'root_symbol': ['FO', 'BA', 'BZ'],
             'root_symbol_id': [1, 2, 3],
-            'exchange': ['CME', 'CME', 'CME']})
+            'exchange': ['CMES', 'CMES', 'CMES']})
 
     @classmethod
     def make_futures_info(self):
@@ -1649,7 +1649,7 @@ class OrderedContractsTestCase(zf.WithAssetFinder, zf.ZiplineTestCase):
                 '2016-01-01', periods=4, tz="UTC"),
             'tick_size': [0.001] * 4,
             'multiplier': [1000.0] * 4,
-            'exchange': ['CME'] * 4,
+            'exchange': ['CMES'] * 4,
         })
         # BA is set up to test a quarterly roll, to test Eurodollar-like
         # behavior
@@ -1668,7 +1668,7 @@ class OrderedContractsTestCase(zf.WithAssetFinder, zf.ZiplineTestCase):
                 '2016-01-01', periods=3, tz="UTC"),
             'tick_size': [0.001] * 3,
             'multiplier': [1000.0] * 3,
-            'exchange': ['CME'] * 3,
+            'exchange': ['CMES'] * 3,
         })
         # BZ is set up to test the case where the first contract in a chain has
         # an auto close date before its start date. It also tests the case
@@ -1705,7 +1705,7 @@ class OrderedContractsTestCase(zf.WithAssetFinder, zf.ZiplineTestCase):
             ],
             'tick_size': [0.001] * 4,
             'multiplier': [1000.0] * 4,
-            'exchange': ['CME'] * 4,
+            'exchange': ['CMES'] * 4,
         })
 
         return pd.concat([fo_frame, ba_frame, bz_frame])

@@ -454,9 +454,9 @@ cdef class BarData:
         calendar, then this condition always returns True.
         - If there are market minutes in the simulation calendar outside of
         this asset's exchange's trading hours (for example, if the simulation
-        is running on the CME calendar but the asset is MSFT, which trades on
+        is running on the CMES calendar but the asset is MSFT, which trades on
         the NYSE), during those minutes, this condition will return false
-        (for example, 3:15 am Eastern on a weekday, during which the CME is
+        (for example, 3:15 am Eastern on a weekday, during which the CMES is
         open but the NYSE is closed).
 
         Parameters

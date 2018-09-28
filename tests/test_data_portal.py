@@ -60,7 +60,7 @@ class DataPortalTestBase(WithDataPortal,
         return pd.DataFrame({
             'root_symbol': ['BAR', 'BUZ'],
             'root_symbol_id': [1, 2],
-            'exchange': ['CME', 'CME'],
+            'exchange': ['CMES', 'CMES'],
         })
 
     @classmethod
@@ -77,7 +77,7 @@ class DataPortalTestBase(WithDataPortal,
             'expiration_date': [cls.END_DATE, cls.END_DATE],
             'tick_size': [0.01, 0.0001],
             'multiplier': [500, 50000],
-            'exchange': ['CME', 'CME'],
+            'exchange': ['CMES', 'CMES'],
         })
 
     @classmethod

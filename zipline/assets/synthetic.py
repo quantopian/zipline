@@ -5,7 +5,7 @@ import pandas as pd
 from pandas.tseries.offsets import MonthBegin
 from six import iteritems
 
-from .futures import CME_CODE_TO_MONTH
+from .futures import CMES_CODE_TO_MONTH
 
 
 def make_rotating_equity_info(num_assets,
@@ -203,7 +203,7 @@ def make_future_info(first_sid,
     month_codes : dict[str -> [1..12]], optional
         Dictionary of month codes for which to create contracts.  Entries
         should be strings mapped to values from 1 (January) to 12 (December).
-        Default is zipline.futures.CME_CODE_TO_MONTH
+        Default is zipline.futures.CMES_CODE_TO_MONTH
     multiplier : int
         The contract multiplier.
 
@@ -213,7 +213,7 @@ def make_future_info(first_sid,
         DataFrame of futures data suitable for passing to an AssetDBWriter.
     """
     if month_codes is None:
-        month_codes = CME_CODE_TO_MONTH
+        month_codes = CMES_CODE_TO_MONTH
 
     year_strs = list(map(str, years))
     years = [pd.Timestamp(s, tz='UTC') for s in year_strs]
@@ -264,7 +264,7 @@ def make_commodity_future_info(first_sid,
     month_codes : dict[str -> [1..12]], optional
         Dictionary of month codes for which to create contracts.  Entries
         should be strings mapped to values from 1 (January) to 12 (December).
-        Default is zipline.futures.CME_CODE_TO_MONTH
+        Default is zipline.futures.CMES_CODE_TO_MONTH
     multiplier : int
         The contract multiplier.
 

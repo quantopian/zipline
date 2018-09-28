@@ -124,7 +124,7 @@ class BundleCoreTestCase(WithInstanceTmpDir,
         assert_true(called[0])
 
     def test_ingest(self):
-        calendar = get_calendar('NYSE')
+        calendar = get_calendar('XNYS')
         sessions = calendar.sessions_in_range(self.START_DATE, self.END_DATE)
         minutes = calendar.minutes_for_sessions_in_range(
             self.START_DATE, self.END_DATE,

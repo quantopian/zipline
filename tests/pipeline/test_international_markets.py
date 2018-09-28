@@ -39,9 +39,9 @@ class WithInternationalDailyBarData(zf.WithAssetFinder):
     DAILY_BAR_LOOKBACK_DAYS = 0
 
     INTERNATIONAL_PRICING_STARTING_PRICES = {
-        'NYSE': 100,
-        'TSX': 50,
-        'LSE': 25,
+        'XNYS': 100,  # NYSE
+        'XTSE': 50,   # Toronto Stock Exchange
+        'XLON': 25,   # London Stock Exchange
     }
 
     @classmethod
@@ -108,15 +108,15 @@ class WithInternationalPricingPipelineEngine(WithInternationalDailyBarData):
         adjustments = NullAdjustmentReader()
         cls.loaders = {
             GB_EQUITIES: EquityPricingLoader(
-                cls.daily_bar_readers['LSE'],
+                cls.daily_bar_readers['XLON'],
                 adjustments,
             ),
             US_EQUITIES: EquityPricingLoader(
-                cls.daily_bar_readers['NYSE'],
+                cls.daily_bar_readers['XNYS'],
                 adjustments,
             ),
             CA_EQUITIES: EquityPricingLoader(
-                cls.daily_bar_readers['TSX'],
+                cls.daily_bar_readers['XTSE'],
                 adjustments,
             )
         }
@@ -139,9 +139,9 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
     END_DATE = T('2014-02-06')  # Chosen to match the asset setup data below.
 
     EXCHANGE_INFO = pd.DataFrame.from_records([
-        {'exchange': 'NYSE', 'country_code': 'US'},
-        {'exchange': 'TSX', 'country_code': 'CA'},
-        {'exchange': 'LSE', 'country_code': 'GB'},
+        {'exchange': 'XNYS', 'country_code': 'US'},
+        {'exchange': 'XTSE', 'country_code': 'CA'},
+        {'exchange': 'XLON', 'country_code': 'GB'},
     ])
 
     @classmethod
@@ -252,7 +252,7 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
             'volume': USEquityPricing.volume.latest,
         })
 
-        sessions = self.daily_bar_sessions['NYSE']
+        sessions = self.daily_bar_sessions['XNYS']
         self.assert_identical_results(
             pipeline_specialized,
             dataset_specialized,
