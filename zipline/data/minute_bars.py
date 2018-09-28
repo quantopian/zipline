@@ -131,10 +131,10 @@ def convert_cols(cols, scale_factor, sid, invalid_data_behavior):
         If 'warn', logs a warning and filters out incompatible values.
         If 'ignore', silently filters out incompatible values.
     """
-    scaled_opens = np.nan_to_num(cols['open']) * scale_factor
-    scaled_highs = np.nan_to_num(cols['high']) * scale_factor
-    scaled_lows = np.nan_to_num(cols['low']) * scale_factor
-    scaled_closes = np.nan_to_num(cols['close']) * scale_factor
+    scaled_opens = (np.nan_to_num(cols['open']) * scale_factor).round()
+    scaled_highs = (np.nan_to_num(cols['high']) * scale_factor).round()
+    scaled_lows = (np.nan_to_num(cols['low']) * scale_factor).round()
+    scaled_closes = (np.nan_to_num(cols['close']) * scale_factor).round()
 
     exclude_mask = np.zeros_like(scaled_opens, dtype=bool)
 

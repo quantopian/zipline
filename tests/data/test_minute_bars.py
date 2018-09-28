@@ -142,6 +142,38 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
 
         self.assertEquals(50.0, volume_price)
 
+    def test_precision_after_scaling(self):
+        '''For numbers that don't have an exact float representation,
+        assert that scaling the value does not cause a loss in precision.
+        '''
+        minute = self.market_opens[self.test_calendar_start]
+        sid = 1
+        data = DataFrame(
+            data={
+                'open': [130.23],
+                'high': [130.23],
+                'low': [130.23],
+                'close': [130.23],
+                'volume': [1000]
+            },
+            index=[minute])
+        self.writer.write_sid(sid, data)
+
+        open_price = self.reader.get_value(sid, minute, 'open')
+        self.assertEquals(130.23, open_price)
+
+        high_price = self.reader.get_value(sid, minute, 'high')
+        self.assertEquals(130.23, high_price)
+
+        low_price = self.reader.get_value(sid, minute, 'low')
+        self.assertEquals(130.23, low_price)
+
+        close_price = self.reader.get_value(sid, minute, 'close')
+        self.assertEquals(130.23, close_price)
+
+        volume_price = self.reader.get_value(sid, minute, 'volume')
+        self.assertEquals(1000, volume_price)
+
     def test_write_one_ohlcv_with_ratios(self):
         minute = self.market_opens[self.test_calendar_start]
         sid = 1

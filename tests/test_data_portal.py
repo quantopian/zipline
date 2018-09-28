@@ -406,7 +406,7 @@ class DataPortalTestBase(WithDataPortal,
         day = calendar.day
         dividend_date = self.trading_days[2]
 
-        prev_day_price = 1.005
+        prev_day_price = 1.006
         dividend_amount = 0.5  # see self.make_dividends_data
         ratio = 1.0 - dividend_amount / prev_day_price
 
@@ -541,10 +541,10 @@ class DataPortalTestBase(WithDataPortal,
 
         # Equity prices should be floored to three decimal places.
         expected_equity_values = {
-            'open': 1.005,
-            'high': 1.005,
+            'open': 1.006,
+            'high': 1.006,
             'low': 1.005,
-            'close': 1.005,
+            'close': 1.006,
             'volume': expected_equity_volume,
         }
         # Futures prices should be rounded to four decimal places.

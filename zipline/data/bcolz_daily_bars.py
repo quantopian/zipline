@@ -365,7 +365,7 @@ class BcolzDailyBarWriter(object):
             return raw_data
 
         winsorise_uint32(raw_data, invalid_data_behavior, 'volume', *OHLC)
-        processed = (raw_data[list(OHLC)] * 1000).astype('uint32')
+        processed = (raw_data[list(OHLC)] * 1000).round().astype('uint32')
         dates = raw_data.index.values.astype('datetime64[s]')
         check_uint32_safe(dates.max().view(np.int64), 'day')
         processed['day'] = dates.astype('uint32')
