@@ -493,8 +493,14 @@ class HDF5DailyBarReader(SessionBarReader):
             If one or more of the provided asset identifiers are not
             contained in the daily bars.
         """
-        if not np.in1d(assets, self.sids).all():
-            raise NoDataForSid()
+        missing_sids = np.setdiff1d(assets, self.sids)
+
+        if len(missing_sids):
+            raise NoDataForSid(
+                'Assets not contained in daily pricing file: {}'.format(
+                    missing_sids
+                )
+            )
 
     def _validate_timestamp(self, ts):
         if ts.asm8 not in self.dates:
