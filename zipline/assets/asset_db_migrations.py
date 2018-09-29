@@ -526,3 +526,28 @@ def _downgrade_v7(op):
         sa.Column('multiplier', sa.Float),
         sa.Column('tick_size', sa.Float),
     )
+
+    # Delete equity_symbol_mappings records that no longer refer to valid sids.
+    op.execute(
+        """
+        DELETE FROM
+            equity_symbol_mappings
+        WHERE
+            sid NOT IN (SELECT sid FROM equities);
+        """
+    )
+
+    # Delete asset_router records that no longer refer to valid sids.
+    op.execute(
+        """
+        DELETE FROM
+            asset_router
+        WHERE
+            sid
+            NOT IN (
+                SELECT sid FROM equities
+                UNION
+                SELECT sid FROM futures_contracts
+            );
+        """
+    )
