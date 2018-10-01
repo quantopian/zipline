@@ -418,7 +418,7 @@ def handle_data(context, data):
         self.run_algorithm(initialize=initialize, handle_data=handle_data)
 
     def test_schedule_function_custom_cal(self):
-        # run a simulation on the CME cal, and schedule a function
+        # run a simulation on the CMES cal, and schedule a function
         # using the NYSE cal
         algotext = """
 from zipline.api import (
@@ -453,7 +453,7 @@ def log_nyse_close(context, data):
         algo = self.make_algo(
             script=algotext,
             sim_params=self.make_simparams(
-                trading_calendar=get_calendar("CME"),
+                trading_calendar=get_calendar("CMES"),
             )
         )
         algo.run()
@@ -479,7 +479,7 @@ def log_nyse_close(context, data):
             from trading_calendars import get_calendar
 
             def initialize(context):
-                schedule_function(func=my_func, calendar=get_calendar('NYSE'))
+                schedule_function(func=my_func, calendar=get_calendar('XNYS'))
 
             def my_func(context, data):
                 pass
@@ -489,7 +489,7 @@ def log_nyse_close(context, data):
         algo = self.make_algo(
             script=erroring_algotext,
             sim_params=self.make_simparams(
-                trading_calendar=get_calendar("CME"),
+                trading_calendar=get_calendar("CMES"),
             ),
         )
 
@@ -845,7 +845,7 @@ class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
                     'start_date': cls.START_DATE,
                     'end_date': cls.END_DATE,
                     'auto_close_date': cls.END_DATE + cls.trading_calendar.day,
-                    'exchange': 'CME',
+                    'exchange': 'CMES',
                     'multiplier': 100,
                 },
             },

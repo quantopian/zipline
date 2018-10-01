@@ -126,7 +126,7 @@ def _run(handle_data,
             click.echo(algotext)
 
     if trading_calendar is None:
-        trading_calendar = get_calendar('NYSE')
+        trading_calendar = get_calendar('XNYS')
 
     # date parameter validation
     if trading_calendar.session_distance(start, end) < 1:

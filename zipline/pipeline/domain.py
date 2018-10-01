@@ -141,7 +141,7 @@ class EquityCalendarDomain(Domain):
                  calendar_name,
                  data_query_offset=-datetime.timedelta(minutes=45)):
         self._country_code = country_code
-        self._calendar_name = calendar_name
+        self.calendar_name = calendar_name
         self._data_query_offset = (
             # add one minute because `open_time` is actually the open minute
             # label which is one minute _after_ market open...
@@ -158,7 +158,7 @@ class EquityCalendarDomain(Domain):
 
     @lazyval
     def calendar(self):
-        return get_calendar(self._calendar_name)
+        return get_calendar(self.calendar_name)
 
     def all_sessions(self):
         return self.calendar.all_sessions
@@ -180,13 +180,33 @@ class EquityCalendarDomain(Domain):
 
     def __repr__(self):
         return "EquityCalendarDomain({!r}, {!r})".format(
-            self.country_code, self._calendar_name,
+            self.country_code, self.calendar_name,
         )
 
 
-US_EQUITIES = EquityCalendarDomain(CountryCode.UNITED_STATES, 'NYSE')
-CA_EQUITIES = EquityCalendarDomain(CountryCode.CANADA, 'TSX')
-GB_EQUITIES = EquityCalendarDomain(CountryCode.UNITED_KINGDOM, 'LSE')
+BE_EQUITIES = EquityCalendarDomain(CountryCode.BELGIUM, 'XBRU')
+CA_EQUITIES = EquityCalendarDomain(CountryCode.CANADA, 'XTSE')
+CH_EQUITIES = EquityCalendarDomain(CountryCode.SWITZERLAND, 'XSWX')
+DE_EQUITIES = EquityCalendarDomain(CountryCode.GERMANY, 'XFRA')
+FR_EQUITIES = EquityCalendarDomain(CountryCode.FRANCE, 'XPAR')
+GB_EQUITIES = EquityCalendarDomain(CountryCode.UNITED_KINGDOM, 'XLON')
+JP_EQUITIES = EquityCalendarDomain(CountryCode.JAPAN, 'XTKS')
+NL_EQUITIES = EquityCalendarDomain(CountryCode.NETHERLANDS, 'XAMS')
+PT_EQUITIES = EquityCalendarDomain(CountryCode.PORTUGAL, 'XLIS')
+US_EQUITIES = EquityCalendarDomain(CountryCode.UNITED_STATES, 'XNYS')
+
+BUILT_IN_DOMAINS = [
+    BE_EQUITIES,
+    CA_EQUITIES,
+    CH_EQUITIES,
+    DE_EQUITIES,
+    FR_EQUITIES,
+    GB_EQUITIES,
+    JP_EQUITIES,
+    NL_EQUITIES,
+    PT_EQUITIES,
+    US_EQUITIES,
+]
 
 
 def infer_domain(terms):

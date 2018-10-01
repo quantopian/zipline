@@ -14,5 +14,5 @@
 # limitations under the License.
 
 # http://www.cmegroup.com/product-codes-listing/month-codes.html
-CME_CODE_TO_MONTH = dict(zip('FGHJKMNQUVXZ', range(1, 13)))
-MONTH_TO_CME_CODE = dict(zip(range(1, 13), 'FGHJKMNQUVXZ'))
+CMES_CODE_TO_MONTH = dict(zip('FGHJKMNQUVXZ', range(1, 13)))
+MONTH_TO_CMES_CODE = dict(zip(range(1, 13), 'FGHJKMNQUVXZ'))

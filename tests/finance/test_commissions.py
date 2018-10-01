@@ -35,7 +35,7 @@ class CommissionUnitTests(WithAssetFinder, ZiplineTestCase):
             'notice_date': [cls.END_DATE, cls.END_DATE],
             'expiration_date': [cls.END_DATE, cls.END_DATE],
             'multiplier': [500, 500],
-            'exchange': ['CME', 'CME'],
+            'exchange': ['CMES', 'CMES'],
         })
 
     def generate_order_and_txns(self, sid, order_amount, fill_amounts):
@@ -337,7 +337,7 @@ class CommissionAlgorithmTests(WithMakeAlgo, ZiplineTestCase):
             'notice_date': [cls.END_DATE, cls.END_DATE],
             'expiration_date': [cls.END_DATE, cls.END_DATE],
             'multiplier': [500, 500],
-            'exchange': ['CME', 'CME'],
+            'exchange': ['CMES', 'CMES'],
         })
 
     @classmethod

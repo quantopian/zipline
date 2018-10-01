@@ -768,7 +768,7 @@ class TestMinuteBarDataFuturesCalendar(WithCreateBarData,
                     'notice_date': pd.Timestamp('2016-01-22', tz='UTC'),
                     'expiration_date': pd.Timestamp('2016-02-22', tz='UTC'),
                     'auto_close_date': pd.Timestamp('2016-01-20', tz='UTC'),
-                    'exchange': 'CME',
+                    'exchange': 'CMES',
                 },
             },
             orient='index',
@@ -777,7 +777,7 @@ class TestMinuteBarDataFuturesCalendar(WithCreateBarData,
     @classmethod
     def init_class_fixtures(cls):
         super(TestMinuteBarDataFuturesCalendar, cls).init_class_fixtures()
-        cls.trading_calendar = get_calendar('CME')
+        cls.trading_calendar = get_calendar('CMES')
 
     def test_can_trade_multiple_exchange_closed(self):
         nyse_asset = self.asset_finder.retrieve_asset(1)
@@ -819,7 +819,7 @@ class TestMinuteBarDataFuturesCalendar(WithCreateBarData,
         ]
 
         for info in minutes_to_check:
-            # use the CME calendar, which covers 24 hours
+            # use the CMES calendar, which covers 24 hours
             bar_data = self.create_bardata(
                 simulation_dt_func=lambda: info[0],
             )

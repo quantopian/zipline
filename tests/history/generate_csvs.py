@@ -28,7 +28,7 @@ def generate_daily_test_data(first_day,
                              multipliers_list,
                              path):
 
-    cal = get_calendar('NYSE')
+    cal = get_calendar('XNYS')
     days = cal.days_in_range(first_day, last_day)
 
     days_count = len(days)
@@ -109,7 +109,7 @@ def generate_minute_test_data(first_day,
         first_day, last_day)
     minutes_count = len(full_minutes)
 
-    cal = get_calendar('NYSE')
+    cal = get_calendar('XNYS')
     minutes = cal.minutes_for_sessions_in_range(
         first_day, last_day
     )

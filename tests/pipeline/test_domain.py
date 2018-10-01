@@ -11,10 +11,18 @@ from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.domain import (
     AmbiguousDomain,
+    BUILT_IN_DOMAINS,
+    BE_EQUITIES,
     CA_EQUITIES,
+    CH_EQUITIES,
+    DE_EQUITIES,
+    FR_EQUITIES,
+    GB_EQUITIES,
     GENERIC,
     infer_domain,
-    GB_EQUITIES,
+    JP_EQUITIES,
+    NL_EQUITIES,
+    PT_EQUITIES,
     US_EQUITIES,
     EquityCalendarDomain,
     EquitySessionDomain,
@@ -76,7 +84,7 @@ class MixedGenericsTestCase(zf.WithSeededRandomPipelineEngine,
 
 class SpecializeTestCase(zf.ZiplineTestCase):
 
-    @parameter_space(domain=[US_EQUITIES, CA_EQUITIES, GB_EQUITIES])
+    @parameter_space(domain=BUILT_IN_DOMAINS)
     def test_specialize(self, domain):
         class MyData(DataSet):
             col1 = Column(dtype=float)
@@ -122,7 +130,7 @@ class SpecializeTestCase(zf.ZiplineTestCase):
         do_checks(MyData, ['col1', 'col2', 'col3'])
         do_checks(MyDataSubclass, ['col1', 'col2', 'col3', 'col4'])
 
-    @parameter_space(domain=[US_EQUITIES, CA_EQUITIES, GB_EQUITIES])
+    @parameter_space(domain=BUILT_IN_DOMAINS)
     def test_unspecialize(self, domain):
 
         class MyData(DataSet):
@@ -154,7 +162,7 @@ class SpecializeTestCase(zf.ZiplineTestCase):
         do_checks(MyData, ['col1', 'col2', 'col3'])
         do_checks(MyDataSubclass, ['col1', 'col2', 'col3', 'col4'])
 
-    @parameter_space(domain_param=[US_EQUITIES, CA_EQUITIES])
+    @parameter_space(domain_param=[BE_EQUITIES, CA_EQUITIES, CH_EQUITIES])
     def test_specialized_root(self, domain_param):
         different_domain = GB_EQUITIES
 
@@ -279,13 +287,14 @@ class InferDomainTestCase(zf.ZiplineTestCase):
 
     def test_ambiguous_domain_repr(self):
         err = AmbiguousDomain([CA_EQUITIES, GB_EQUITIES, US_EQUITIES])
+
         result = str(err)
         expected = dedent(
             """\
             Found terms with conflicting domains:
-              - EquityCalendarDomain('CA', 'TSX')
-              - EquityCalendarDomain('GB', 'LSE')
-              - EquityCalendarDomain('US', 'NYSE')"""
+              - EquityCalendarDomain('CA', 'XTSE')
+              - EquityCalendarDomain('GB', 'XLON')
+              - EquityCalendarDomain('US', 'XNYS')"""
         )
         assert_messages_equal(result, expected)
 
@@ -312,17 +321,33 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
 
         assert_equal(actual, expected, check_names=False)
 
-    def test_equity_calendar_domain(self):
+    def test_built_in_equity_calendar_domain_defaults(self):
         # test the defaults
-        self._test_equity_calendar_domain(US_EQUITIES, datetime.time(8, 45))
-        self._test_equity_calendar_domain(CA_EQUITIES, datetime.time(8, 45))
-        self._test_equity_calendar_domain(GB_EQUITIES, datetime.time(7, 15))
+        expected_cutoff_times = {
+            BE_EQUITIES: datetime.time(8, 15),
+            CA_EQUITIES: datetime.time(8, 45),
+            CH_EQUITIES: datetime.time(8, 15),
+            DE_EQUITIES: datetime.time(8, 15),
+            FR_EQUITIES: datetime.time(8, 15),
+            GB_EQUITIES: datetime.time(7, 15),
+            JP_EQUITIES: datetime.time(8, 15),
+            NL_EQUITIES: datetime.time(8, 15),
+            PT_EQUITIES: datetime.time(7, 15),
+            US_EQUITIES: datetime.time(8, 45),
+        }
 
+        # make sure we are not missing any domains in this test
+        self.assertEqual(set(expected_cutoff_times), set(BUILT_IN_DOMAINS))
+
+        for domain, expected_cutoff_time in expected_cutoff_times.items():
+            self._test_equity_calendar_domain(domain, expected_cutoff_time)
+
+    def test_equity_calendar_domain(self):
         # test non-default time
         self._test_equity_calendar_domain(
             EquityCalendarDomain(
                 CountryCode.UNITED_STATES,
-                'NYSE',
+                'XNYS',
                 data_query_offset=-datetime.timedelta(hours=2, minutes=30),
             ),
             datetime.time(7, 0),
@@ -332,7 +357,7 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
         self._test_equity_calendar_domain(
             EquityCalendarDomain(
                 CountryCode.UNITED_STATES,
-                'NYSE',
+                'XNYS',
                 data_query_offset=-datetime.timedelta(hours=10),
             ),
             datetime.time(23, 30),
@@ -343,14 +368,14 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
         self._test_equity_calendar_domain(
             EquityCalendarDomain(
                 CountryCode.UNITED_STATES,
-                'NYSE',
+                'XNYS',
                 data_query_offset=-datetime.timedelta(hours=24 * 6 + 10),
             ),
             datetime.time(23, 30),
             expected_cutoff_date_offset=-7,
         )
 
-    @parameter_space(domain=(US_EQUITIES, CA_EQUITIES, GB_EQUITIES))
+    @parameter_space(domain=BUILT_IN_DOMAINS)
     def test_equity_calendar_not_aligned(self, domain):
         valid_sessions = domain.all_sessions()[:50]
         sessions = pd.date_range(valid_sessions[0], valid_sessions[-1])

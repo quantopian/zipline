@@ -297,7 +297,7 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
         for future_sid in cls.ASSET_FINDER_FUTURE_SIDS:
             future_dict[future_sid] = {
                 'multiplier': 1000,
-                'exchange': 'CME',
+                'exchange': 'CMES',
                 'root_symbol': "ABC"
             }
 
@@ -583,7 +583,7 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
         for future_sid in cls.ASSET_FINDER_FUTURE_SIDS:
             future_dict[future_sid] = {
                 'multiplier': 1000,
-                'exchange': 'CME',
+                'exchange': 'CMES',
                 'root_symbol': "ABC"
             }
 
