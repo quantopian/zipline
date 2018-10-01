@@ -38,7 +38,6 @@ from toolz import (
     sliding_window,
     valmap,
 )
-from toolz.curried import operator as op
 
 from zipline.errors import (
     EquitiesNotFound,
@@ -620,19 +619,30 @@ class AssetFinder(object):
         row per group which gives us the most recently active symbol for all
         of the sids.
         """
-        symbol_cols = self.equity_symbol_mappings.c
-        inner = sa.select(
-            (symbol_cols.sid,) +
-            tuple(map(
-                op.getitem(symbol_cols),
-                symbol_columns,
-            )),
+        cols = self.equity_symbol_mappings.c
+
+        # These are the columns we actually want.
+        data_cols = (cols.sid,) + tuple(cols[name] for name in symbol_columns)
+
+        # Also select the max of end_date so that all non-grouped fields take
+        # on the value associated with the max end_date. The SQLite docs say
+        # this:
+        #
+        # When the min() or max() aggregate functions are used in an aggregate
+        # query, all bare columns in the result set take values from the input
+        # row which also contains the minimum or maximum. Only the built-in
+        # min() and max() functions work this way.
+        #
+        # See https://www.sqlite.org/lang_select.html#resultset, for more info.
+        to_select = data_cols + (sa.func.max(cols.end_date),)
+
+        return sa.select(
+            to_select,
         ).where(
-            symbol_cols.sid.in_(map(int, sid_group)),
-        ).order_by(
-            symbol_cols.end_date.asc(),
+            cols.sid.in_(map(int, sid_group))
+        ).group_by(
+            cols.sid,
         )
-        return sa.select(inner.c).group_by(inner.c.sid)
 
     def _lookup_most_recent_symbols(self, sids):
         return {
