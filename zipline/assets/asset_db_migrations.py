@@ -325,22 +325,15 @@ def _downgrade_v5(op):
         from
             equities
         inner join
-            -- Nested select here to take the most recently held ticker
-            -- for each sid. The group by with no aggregation function will
-            -- take the last element in the group, so we first order by
-            -- the end date ascending to ensure that the groupby takes
-            -- the last ticker.
+            -- Select the last held symbol for each equity sid from the
+            -- symbol_mappings table. Selecting max(end_date) causes
+            -- SQLite to take the other values from the same row that contained
+            -- the max end_date. See https://www.sqlite.org/lang_select.html#resultset.  # noqa
             (select
-                 *
+                 sid, symbol, company_symbol, share_class_symbol, max(end_date)
              from
-                 (select
-                      *
-                  from
-                      equity_symbol_mappings
-                  order by
-                      equity_symbol_mappings.end_date asc)
-             group by
-                 sid) sym
+                 equity_symbol_mappings
+             group by sid) as 'sym'
         on
             equities.sid == sym.sid
         """,
