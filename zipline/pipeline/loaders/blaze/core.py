@@ -1041,7 +1041,7 @@ def get_materialized_checkpoints(checkpoints, colnames, lower_dt, odo_kwargs):
     if checkpoints is not None:
         ts = checkpoints[TS_FIELD_NAME]
         checkpoints_ts = odo(
-            ts[ts <= lower_dt].max(),
+            ts[ts < lower_dt].max(),
             pd.Timestamp,
             **odo_kwargs
         )
