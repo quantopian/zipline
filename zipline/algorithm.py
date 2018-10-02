@@ -793,6 +793,7 @@ class TradingAlgorithm(object):
                   mask=True,
                   symbol_column=None,
                   special_params_checker=None,
+                  country_code=None,
                   **kwargs):
         """Fetch a csv from a remote url and register the data so that it is
         queryable from the ``data`` object.
@@ -828,6 +829,8 @@ class TradingAlgorithm(object):
             argument is the name of the column in the preprocessed dataframe
             containing the symbols. This will be used along with the date
             information to map the sids in the asset finder.
+        country_code : str, optional
+            Country code to use to disambiguate symbol lookups.
         **kwargs
             Forwarded to :func:`pandas.read_csv`.
 
@@ -836,6 +839,10 @@ class TradingAlgorithm(object):
         csv_data_source : zipline.sources.requests_csv.PandasRequestsCSV
             A requests source that will pull data from the url specified.
         """
+        if country_code is None:
+            country_code = self.default_fetch_csv_country_code(
+                self.trading_calendar,
+            )
 
         # Show all the logs every time fetcher is used.
         csv_data_source = PandasRequestsCSV(
@@ -853,6 +860,7 @@ class TradingAlgorithm(object):
             mask,
             symbol_column,
             data_frequency=self.data_frequency,
+            country_code=country_code,
             special_params_checker=special_params_checker,
             **kwargs
         )
@@ -2367,6 +2375,12 @@ class TradingAlgorithm(object):
         """
         return _DEFAULT_DOMAINS.get(calendar.name, domain.GENERIC)
 
+    @staticmethod
+    def default_fetch_csv_country_code(calendar):
+        """
+        """
+        return _DEFAULT_FETCH_CSV_COUNTRY_CODES.get(calendar.name)
+
     ##################
     # End Pipeline API
     ##################
@@ -2384,3 +2398,9 @@ class TradingAlgorithm(object):
 
 # Map from calendar name to default domain for that calendar.
 _DEFAULT_DOMAINS = {d.calendar_name: d for d in domain.BUILT_IN_DOMAINS}
+# Map from calendar name to default country code for that calendar.
+_DEFAULT_FETCH_CSV_COUNTRY_CODES = {
+    d.calendar_name: d.country_code for d in domain.BUILT_IN_DOMAINS
+}
+# Include us_futures, which doesn't have a pipeline domain.
+_DEFAULT_FETCH_CSV_COUNTRY_CODES['us_futures'] = 'US'

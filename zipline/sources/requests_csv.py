@@ -157,6 +157,7 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
                  mask,
                  symbol_column,
                  data_frequency,
+                 country_code,
                  **kwargs):
 
         self.start_date = start_date
@@ -167,6 +168,7 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
         self.mask = mask
         self.symbol_column = symbol_column or "symbol"
         self.data_frequency = data_frequency
+        self.country_code = country_code
 
         invalid_kwargs = set(kwargs) - ALLOWED_READ_CSV_KWARGS
         if invalid_kwargs:
@@ -272,7 +274,11 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
             return numpy.nan
 
         try:
-            return self.finder.lookup_symbol(uppered, as_of_date=None)
+            return self.finder.lookup_symbol(
+                uppered,
+                as_of_date=None,
+                country_code=self.country_code,
+            )
         except MultipleSymbolsFound:
             # Fill conflicted entries with zeros to mark that they need to be
             # resolved by date.
@@ -342,6 +348,7 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
                         # Replacing tzinfo here is necessary because of the
                         # timezone metadata bug described below.
                         row['dt'].replace(tzinfo=pytz.utc),
+                        country_code=self.country_code,
 
                         # It's possible that no asset comes back here if our
                         # lookup date is from before any asset held the
@@ -470,6 +477,7 @@ class PandasRequestsCSV(PandasCSV):
                  mask,
                  symbol_column,
                  data_frequency,
+                 country_code,
                  special_params_checker=None,
                  **kwargs):
 
@@ -503,6 +511,7 @@ class PandasRequestsCSV(PandasCSV):
             mask,
             symbol_column,
             data_frequency,
+            country_code=country_code,
             **remaining_kwargs
         )
 

@@ -61,47 +61,54 @@ class FetcherTestCase(WithResponses,
                     'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
                     'end_date': pd.Timestamp('2007-01-01', tz='UTC'),
                     'symbol': 'AAPL',
-                    'asset_type': 'equity',
                     'exchange': 'nasdaq'
                 },
                 3766: {
                     'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
                     'end_date': pd.Timestamp('2007-01-01', tz='UTC'),
                     'symbol': 'IBM',
-                    'asset_type': 'equity',
                     'exchange': 'nasdaq'
                 },
                 5061: {
                     'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
                     'end_date': pd.Timestamp('2007-01-01', tz='UTC'),
                     'symbol': 'MSFT',
-                    'asset_type': 'equity',
                     'exchange': 'nasdaq'
                 },
                 14848: {
                     'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
                     'end_date': pd.Timestamp('2007-01-01', tz='UTC'),
                     'symbol': 'YHOO',
-                    'asset_type': 'equity',
                     'exchange': 'nasdaq'
                 },
                 25317: {
                     'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
                     'end_date': pd.Timestamp('2007-01-01', tz='UTC'),
                     'symbol': 'DELL',
-                    'asset_type': 'equity',
                     'exchange': 'nasdaq'
                 },
                 13: {
                     'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
                     'end_date': pd.Timestamp('2010-01-01', tz='UTC'),
                     'symbol': 'NFLX',
-                    'asset_type': 'equity',
                     'exchange': 'nasdaq'
+                },
+                9999999: {
+                    'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
+                    'end_date': pd.Timestamp('2007-01-01', tz='UTC'),
+                    'symbol': 'AAPL',
+                    'exchange': 'non_us_exchange'
                 }
             },
             orient='index',
         )
+
+    @classmethod
+    def make_exchanges_info(cls, *args, **kwargs):
+        return pd.DataFrame.from_records([
+            {'exchange': 'nasdaq', 'country_code': 'US'},
+            {'exchange': 'non_us_exchange', 'country_code': 'CA'},
+        ])
 
     def run_algo(self, code, sim_params=None):
         if sim_params is None:
@@ -603,7 +610,7 @@ def initialize(context):
                date_column = 'Settlement Date',
                date_format = '%m/%d/%y')
     context.nflx = symbol('NFLX')
-    context.aapl = symbol('AAPL')
+    context.aapl = symbol('AAPL', country_code='US')
 
 def handle_data(context, data):
     assert np.isnan(data.current(context.nflx, 'invalid_column'))
