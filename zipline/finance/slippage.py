@@ -343,7 +343,7 @@ class MarketImpactBase(SlippageModel):
         current_volume : Volume of the asset being ordered for the current bar.
         txn_volume : Number of shares/contracts being ordered.
         mean_volume : Trailing ADV of the asset.
-        volatility : Annualized daily volatility of volume.
+        volatility : Annualized daily volatility of returns.
 
         Return
         ------
