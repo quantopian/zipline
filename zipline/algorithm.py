@@ -2378,6 +2378,11 @@ class TradingAlgorithm(object):
     @staticmethod
     def default_fetch_csv_country_code(calendar):
         """
+        Get a default country_code to use for fetch_csv symbol lookups.
+
+        This will be used to disambiguate symbol lookups for fetch_csv calls if
+        our asset db contains entries with the same ticker spread across
+        multiple
         """
         return _DEFAULT_FETCH_CSV_COUNTRY_CODES.get(calendar.name)
 
