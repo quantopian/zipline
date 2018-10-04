@@ -404,7 +404,7 @@ class SQLiteAdjustmentWriter(object):
                 "Couldn't compute ratio for dividend"
                 " sid={sid}, ex_date={ex_date:%Y-%m-%d}, amount={amount:.3f}",
                 sid=input_sids[ix],
-                ex_date=pd.Timestamp(dates[date_ix[ix]]),
+                ex_date=pd.Timestamp(input_dates[ix]),
                 amount=amount[ix],
             )
 
@@ -414,7 +414,7 @@ class SQLiteAdjustmentWriter(object):
                 "Dividend ratio <= 0 for dividend"
                 " sid={sid}, ex_date={ex_date:%Y-%m-%d}, amount={amount:.3f}",
                 sid=input_sids[ix],
-                ex_date=pd.Timestamp(dates[date_ix[ix]]),
+                ex_date=pd.Timestamp(input_dates[ix]),
                 amount=amount[ix],
             )
 
