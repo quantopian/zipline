@@ -6,6 +6,7 @@ import warnings
 
 from contextlib2 import ExitStack
 import click
+from logbook import Logger
 import pandas as pd
 from trading_calendars import get_calendar
 from toolz import curry, complement, take
@@ -31,6 +32,8 @@ from zipline.utils.compat import mappingproxy
 from zipline.utils.input_validation import ensure_timestamp, optionally
 import zipline.utils.paths as pth
 from zipline.utils.preprocess import preprocess
+
+log = Logger(__name__)
 
 
 def asset_db_path(bundle_name, timestr, environ=None, db_version=None):
@@ -610,6 +613,7 @@ def _make_bundle_core():
         cleaned = set()
         for run in all_runs:
             if should_clean(run):
+                log.info("Cleaning %s." % run)
                 path = pth.data_path([name, run], environ=environ)
                 shutil.rmtree(path)
                 cleaned.add(path)
