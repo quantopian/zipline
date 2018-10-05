@@ -83,22 +83,30 @@ class TestSQLiteAdjustementsWriter(WithTradingCalendars,
             first_date_ix:first_date_ix + 3
         ]
 
+        before_pricing_data = \
+            (dates[0] - self.trading_calendar.day).tz_convert(None)
+        one_day_past_pricing_data = \
+            (dates[-1] + self.trading_calendar.day).tz_convert(None)
+        ten_days_past_pricing_data = \
+            (dates[-1] + self.trading_calendar.day * 10).tz_convert(None)
+
         def T(n):
             return dates[n].tz_convert(None)
 
         close = pd.DataFrame(
             [[10.0, 0.5,   30.0],   # noqa
              [ 9.5, 0.4, np.nan],   # noqa
-             [15.0, 0.6,   35.0]],  # noqa
+             [15.0, 0.6,   np.nan]],  # noqa
             columns=[0, 1, 2],
             index=dates,
         )
 
         dividends = pd.DataFrame(
             [
-                # ex_date of 0 means that we cannot get the previous day's
+                # ex_date of >=0 means that we cannot get the previous day's
                 # close, so we should not expect to see this dividend in the
                 # output
+                [0, before_pricing_data, 10],
                 [0, T(0), 10],
 
                 # previous price was 0.4, meaning the dividend amount
@@ -119,7 +127,13 @@ class TestSQLiteAdjustementsWriter(WithTradingCalendars,
                 [0, T(1), 0.5],
 
                 # previous price was 0.4, expected ratio is 0.9
-                [1, T(2), 0.04]
+                [1, T(2), 0.04],
+
+                # we shouldn't crash in the process of warning/dropping this
+                # row even though it is past the range of `dates`
+                [2, one_day_past_pricing_data, 0.1],
+                [2, ten_days_past_pricing_data, 0.1],
+
             ],
             columns=['sid', 'ex_date', 'amount'],
         )
@@ -166,6 +180,14 @@ class TestSQLiteAdjustementsWriter(WithTradingCalendars,
         self.assertTrue(self.log_handler.has_warning(
             "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-18,"
             " amount=10.000",
+        ))
+        self.assertTrue(self.log_handler.has_warning(
+            "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-19,"
+            " amount=0.100",
+        ))
+        self.assertTrue(self.log_handler.has_warning(
+            "Couldn't compute ratio for dividend sid=2, ex_date=1990-11-01,"
+            " amount=0.100",
         ))
         self.assertTrue(self.log_handler.has_warning(
             'Dividend ratio <= 0 for dividend sid=1, ex_date=1990-10-17,'
