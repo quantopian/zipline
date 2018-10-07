@@ -75,7 +75,7 @@ import h5py
 import logbook
 import numpy as np
 import pandas as pd
-from six import iteritems, raise_from
+from six import iteritems, raise_from, viewkeys
 from six.moves import reduce
 
 from zipline.data.bar_reader import (
@@ -379,6 +379,8 @@ class HDF5DailyBarReader(SessionBarReader):
     @classmethod
     def from_file(cls, h5_file, country_code):
         """
+        Construct from an h5py.File and a country code.
+
         Parameters
         ----------
         h5_file : h5py.File
@@ -399,6 +401,8 @@ class HDF5DailyBarReader(SessionBarReader):
     @classmethod
     def from_path(cls, path, country_code):
         """
+        Construct from a file path and a country code.
+
         Parameters
         ----------
         path : str
@@ -660,6 +664,36 @@ class MultiCountryDailyBarReader(SessionBarReader):
             pd.Series(index=reader.sids, data=country_code)
             for country_code, reader in iteritems(readers)
         ])
+
+    @classmethod
+    def from_file(cls, h5_file):
+        """
+        Construct from an h5py.File.
+
+        Parameters
+        ----------
+        h5_file : h5py.File
+            An HDF5 daily pricing file.
+        """
+        return cls({country: h5_file[country] for country in h5_file.keys()})
+
+    @classmethod
+    def from_path(cls, path):
+        """
+        Construct from a file path.
+
+        Parameters
+        ----------
+        path : str
+            Path to an HDF5 daily pricing file.
+        """
+        return cls.from_file(h5py.File(path))
+
+    @property
+    def countries(self):
+        """A set-like object of the country codes supplied by this reader.
+        """
+        return viewkeys(self._readers)
 
     def _country_code_for_assets(self, assets):
         try:
