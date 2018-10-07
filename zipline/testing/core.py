@@ -42,7 +42,6 @@ from zipline.data.bcolz_daily_bars import (
     BcolzDailyBarReader,
     BcolzDailyBarWriter,
 )
-from zipline.data.hdf5_daily_bars import HDF5DailyBarWriter
 from zipline.finance.blotter import SimulationBlotter
 from zipline.finance.order import ORDER_STATUS
 from zipline.lib.labelarray import LabelArray
