@@ -1206,7 +1206,8 @@ class WithWriteHDF5DailyBars(WithEquityDailyBarData,
         -------
         written : h5py.File
              A read-only h5py.File pointing at the written data. The returned
-             file is registered to be closed automatically during class teardown.
+             file is registered to be closed automatically during class
+             teardown.
         """
         writer = HDF5DailyBarWriter(path, cls.HDF5_DAILY_BAR_CHUNK_SIZE)
         write_hdf5_daily_bars(
@@ -1218,7 +1219,6 @@ class WithWriteHDF5DailyBars(WithEquityDailyBarData,
 
         # Open the file and mark it for closure during teardown.
         return cls.enter_class_context(writer.h5_file(mode='r'))
-
 
 
 class WithHDF5EquityMultiCountryDailyBarReader(WithWriteHDF5DailyBars):
