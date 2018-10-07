@@ -42,6 +42,7 @@ from zipline.data.bcolz_daily_bars import (
     BcolzDailyBarReader,
     BcolzDailyBarWriter,
 )
+from zipline.data.hdf5_daily_bars import HDF5DailyBarWriter
 from zipline.finance.blotter import SimulationBlotter
 from zipline.finance.order import ORDER_STATUS
 from zipline.lib.labelarray import LabelArray
@@ -1774,3 +1775,16 @@ def create_simple_domain(start, end, country_code):
     """Create a new pipeline domain with a simple date_range index.
     """
     return EquitySessionDomain(pd.date_range(start, end), country_code)
+
+
+def write_hdf5_daily_bars(writer,
+                          asset_finder,
+                          country_codes,
+                          generate_data):
+    """Write an HDF5 file of pricing data using an HDF5DailyBarWriter.
+    """
+    asset_finder = asset_finder
+    for country_code in country_codes:
+        sids = asset_finder.equities_sids_for_country_code(country_code)
+        data_generator = generate_data(country_code=country_code, sids=sids)
+        writer.write_from_sid_df_pairs(country_code, data_generator)
