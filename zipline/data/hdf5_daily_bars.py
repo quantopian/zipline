@@ -303,10 +303,14 @@ class HDF5DailyBarWriter(object):
             float values. Default is None, in which case
             DEFAULT_SCALING_FACTORS is used.
         """
-        ohlcv_frame = pd.concat([df for sid, df in data])
+        sids, frames = zip(*data)
+        ohlcv_frame = pd.concat(frames)
+
+        # Repeat each sid for each row in its corresponding frame.
+        sid_ix = np.repeat(sids, [len(f) for f in frames])
 
         # Add id to the index, so the frame is indexed by (date, id).
-        ohlcv_frame.set_index('id', append=True, inplace=True)
+        ohlcv_frame.set_index(sid_ix, append=True, inplace=True)
 
         frames = {
             field: ohlcv_frame[field].unstack()
