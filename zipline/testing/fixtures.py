@@ -27,7 +27,7 @@ from zipline.pipeline.domain import GENERIC, US_EQUITIES
 from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.protocol import BarData
-from zipline.utils.paths import ensure_directory
+from zipline.utils.paths import ensure_directory, ensure_directory_containing
 from .core import (
     create_daily_bar_data,
     create_minute_bar_data,
@@ -1209,6 +1209,7 @@ class WithWriteHDF5DailyBars(WithEquityDailyBarData,
              file is registered to be closed automatically during class
              teardown.
         """
+        ensure_directory_containing(path)
         writer = HDF5DailyBarWriter(path, cls.HDF5_DAILY_BAR_CHUNK_SIZE)
         write_hdf5_daily_bars(
             writer,
