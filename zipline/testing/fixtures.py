@@ -485,6 +485,7 @@ class WithAssetFinder(WithDefaultDateBounds):
         return list(cls.assets_by_calendar)
 
 
+# TODO_SS: The API here doesn't make sense in a multi-country test scenario.
 class WithTradingCalendars(object):
     """
     ZiplineTestCase mixin providing cls.trading_calendar,
@@ -1168,6 +1169,8 @@ def _trading_days_for_minute_bars(calendar,
     return calendar.sessions_in_range(first_session, end_date)
 
 
+# TODO_SS: This currently doesn't define any relationship between country_code
+#          and calendar, which would be useful downstream.
 class WithWriteHDF5DailyBars(WithEquityDailyBarData,
                              WithTmpDir):
     """
