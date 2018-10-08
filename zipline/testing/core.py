@@ -1787,3 +1787,14 @@ def write_hdf5_daily_bars(writer,
         sids = asset_finder.equities_sids_for_country_code(country_code)
         data_generator = generate_data(country_code=country_code, sids=sids)
         writer.write_from_sid_df_pairs(country_code, data_generator)
+
+
+def exchange_info_for_domains(domains):
+    """
+    Build an exchange_info suitable for passing to an AssetFinder from a list
+    of EquityCalendarDomain.
+    """
+    return pd.DataFrame.from_records([
+        {'exchange': domain.calendar.name, 'country_code': domain.country_code}
+        for domain in domains
+    ])
