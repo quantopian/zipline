@@ -420,7 +420,6 @@ def _make_bundle_core():
                         wd.getpath(*adjustment_db_relative(
                             name, timestr, environ=environ)),
                         BcolzDailyBarReader(daily_bars_path),
-                        calendar.all_sessions,
                         overwrite=True,
                     )
                 )
