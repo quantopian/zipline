@@ -679,7 +679,10 @@ class MultiCountryDailyBarReader(SessionBarReader):
         h5_file : h5py.File
             An HDF5 daily pricing file.
         """
-        return cls({country: h5_file[country] for country in h5_file.keys()})
+        return cls({
+            country: HDF5DailyBarReader(h5_file[country])
+            for country in h5_file.keys()
+        })
 
     @classmethod
     def from_path(cls, path):
