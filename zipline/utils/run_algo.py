@@ -2,6 +2,7 @@ import click
 import os
 import sys
 import warnings
+from logbook import NullHandler
 
 try:
     from pygments import highlight
@@ -237,6 +238,7 @@ def load_extensions(default, extensions, strict, environ, reload=False):
     reload : bool, optional
         Reload any extensions that have already been loaded.
     """
+
     if default:
         default_extension_path = pth.default_extension(environ=environ)
         pth.ensure_file(default_extension_path)
@@ -252,7 +254,8 @@ def load_extensions(default, extensions, strict, environ, reload=False):
             if ext.endswith('.py'):
                 with open(ext) as f:
                     ns = {}
-                    six.exec_(compile(f.read(), ext, 'exec'), ns, ns)
+                    with NullHandler.applicationbound():
+                        six.exec_(compile(f.read(), ext, 'exec'), ns, ns)
             else:
                 __import__(ext)
         except Exception as e:
