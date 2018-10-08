@@ -833,10 +833,7 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
         if cls.EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE:
             return cls._make_equity_daily_bar_from_minute()
         else:
-            return create_daily_bar_data(
-                cls.equity_daily_bar_days,
-                cls.asset_finder.equities_sids,
-            )
+            return create_daily_bar_data(cls.equity_daily_bar_days, sids)
 
     @classmethod
     def init_class_fixtures(cls):
