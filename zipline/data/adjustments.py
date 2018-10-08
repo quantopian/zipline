@@ -234,7 +234,7 @@ class SQLiteAdjustmentWriter(object):
     ----------
     conn_or_path : str or sqlite3.Connection
         A handle to the target sqlite database.
-    equity_daily_bar_reader : BcolzDailyBarReader
+    equity_daily_bar_reader : SessionBarReader
         Daily bar reader to use for dividend writes.
     overwrite : bool, optional, default=False
         If True and conn_or_path is a string, remove any existing files at the
@@ -245,11 +245,7 @@ class SQLiteAdjustmentWriter(object):
     zipline.data.adjustments.SQLiteAdjustmentReader
     """
 
-    def __init__(self,
-                 conn_or_path,
-                 equity_daily_bar_reader,
-                 calendar,
-                 overwrite=False):
+    def __init__(self, conn_or_path, equity_daily_bar_reader, overwrite=False):
         if isinstance(conn_or_path, sqlite3.Connection):
             self.conn = conn_or_path
         elif isinstance(conn_or_path, six.string_types):
@@ -265,7 +261,6 @@ class SQLiteAdjustmentWriter(object):
             raise TypeError("Unknown connection type %s" % type(conn_or_path))
 
         self._equity_daily_bar_reader = equity_daily_bar_reader
-        self._calendar = calendar
 
     def __enter__(self):
         return self

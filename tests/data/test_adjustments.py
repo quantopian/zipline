@@ -34,7 +34,6 @@ class TestSQLiteAdjustementsWriter(WithTradingCalendars,
             SQLiteAdjustmentWriter(
                 self.db_path,
                 session_bar_reader,
-                calendar=self.trading_calendar,
                 overwrite=True,
             ),
         )

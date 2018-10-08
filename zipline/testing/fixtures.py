@@ -1646,7 +1646,6 @@ class WithAdjustmentReader(WithBcolzEquityDailyBarReader):
         return SQLiteAdjustmentWriter(
             conn,
             cls.make_adjustment_writer_equity_daily_bar_reader(),
-            cls.equity_daily_bar_days,
         )
 
     @classmethod
