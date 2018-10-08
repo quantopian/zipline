@@ -680,7 +680,7 @@ class MultiCountryDailyBarReader(SessionBarReader):
             An HDF5 daily pricing file.
         """
         return cls({
-            country: HDF5DailyBarReader(h5_file[country])
+            country: HDF5DailyBarReader.from_file(h5_file, country)
             for country in h5_file.keys()
         })
 
