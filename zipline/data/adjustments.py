@@ -556,43 +556,44 @@ class SQLiteAdjustmentWriter(object):
         self.write_frame('splits', splits)
         self.write_frame('mergers', mergers)
         self.write_dividend_data(dividends, stock_dividends)
+        # Use IF NOT EXISTS here to allow multiple writes if desired.
         self.conn.execute(
-            "CREATE INDEX splits_sids "
+            "CREATE INDEX IF NOT EXISTS splits_sids "
             "ON splits(sid)"
         )
         self.conn.execute(
-            "CREATE INDEX splits_effective_date "
+            "CREATE INDEX IF NOT EXISTS splits_effective_date "
             "ON splits(effective_date)"
         )
         self.conn.execute(
-            "CREATE INDEX mergers_sids "
+            "CREATE INDEX IF NOT EXISTS mergers_sids "
             "ON mergers(sid)"
         )
         self.conn.execute(
-            "CREATE INDEX mergers_effective_date "
+            "CREATE INDEX IF NOT EXISTS mergers_effective_date "
             "ON mergers(effective_date)"
         )
         self.conn.execute(
-            "CREATE INDEX dividends_sid "
+            "CREATE INDEX IF NOT EXISTS dividends_sid "
             "ON dividends(sid)"
         )
         self.conn.execute(
-            "CREATE INDEX dividends_effective_date "
+            "CREATE INDEX IF NOT EXISTS dividends_effective_date "
             "ON dividends(effective_date)"
         )
         self.conn.execute(
-            "CREATE INDEX dividend_payouts_sid "
+            "CREATE INDEX IF NOT EXISTS dividend_payouts_sid "
             "ON dividend_payouts(sid)"
         )
         self.conn.execute(
-            "CREATE INDEX dividends_payouts_ex_date "
+            "CREATE INDEX IF NOT EXISTS dividends_payouts_ex_date "
             "ON dividend_payouts(ex_date)"
         )
         self.conn.execute(
-            "CREATE INDEX stock_dividend_payouts_sid "
+            "CREATE INDEX IF NOT EXISTS stock_dividend_payouts_sid "
             "ON stock_dividend_payouts(sid)"
         )
         self.conn.execute(
-            "CREATE INDEX stock_dividends_payouts_ex_date "
+            "CREATE INDEX IF NOT EXISTS stock_dividends_payouts_ex_date "
             "ON stock_dividend_payouts(ex_date)"
         )
