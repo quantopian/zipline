@@ -570,9 +570,9 @@ class BcolzDailyBarReader(SessionBarReader):
         )
 
     def load_raw_arrays(self, columns, start_date, end_date, assets):
-        # Assumes that the given dates are actually in calendar.
-        start_idx = self.sessions.get_loc(start_date)
-        end_idx = self.sessions.get_loc(end_date)
+        start_idx = self._load_raw_arrays_date_to_index(start_date)
+        end_idx = self._load_raw_arrays_date_to_index(end_date)
+
         first_rows, last_rows, offsets = self._compute_slices(
             start_idx,
             end_idx,
@@ -588,6 +588,12 @@ class BcolzDailyBarReader(SessionBarReader):
             offsets,
             read_all,
         )
+
+    def _load_raw_arrays_date_to_index(self, date):
+        try:
+            return self.sessions.get_loc(date)
+        except KeyError:
+            raise NoDataOnDate(date)
 
     def _spot_col(self, colname):
         """
