@@ -157,6 +157,10 @@ def days_and_sids_for_frames(frames):
         If the dataframes passed are not all indexed by the same days
         and sids.
     """
+    if not frames:
+        days = np.array([], dtype='datetime64[ns]')
+        sids = np.array([], dtype='int64')
+        return days, sids
 
     # Ensure the indices and columns all match.
     check_indexes_all_same(
@@ -252,6 +256,12 @@ class HDF5DailyBarWriter(object):
             lifetimes_group.create_dataset(START_DATE, data=start_date_ixs)
             lifetimes_group.create_dataset(END_DATE, data=end_date_ixs)
 
+            if len(sids):
+                chunks = (len(sids), min(self._date_chunk_size, len(days)))
+            else:
+                # No chunks if our data is empty.
+                chunks = None
+
             for field in FIELDS:
                 frame = frames[field]
 
@@ -269,10 +279,7 @@ class HDF5DailyBarWriter(object):
                     compression='lzf',
                     shuffle=True,
                     data=data,
-                    chunks=(
-                        len(sids),
-                        min(self._date_chunk_size, len(days))
-                    ),
+                    chunks=chunks,
                 )
 
                 dataset.attrs[SCALING_FACTOR] = scaling_factors[field]
@@ -303,6 +310,19 @@ class HDF5DailyBarWriter(object):
             float values. Default is None, in which case
             DEFAULT_SCALING_FACTORS is used.
         """
+        data = list(data)
+        if not data:
+            empty_frame = pd.DataFrame(
+                data=None,
+                index=np.array([], dtype='datetime64[ns]'),
+                columns=np.array([], dtype='int64'),
+            )
+            return self.write(
+                country_code,
+                {f: empty_frame.copy() for f in FIELDS},
+                scaling_factors,
+            )
+
         sids, frames = zip(*data)
         ohlcv_frame = pd.concat(frames)
 
@@ -340,6 +360,9 @@ def compute_asset_lifetimes(frames):
     is_null_matrix = np.logical_and.reduce(
         [frames[field].isnull().values for field in FIELDS],
     )
+    if not is_null_matrix.size:
+        empty = np.array([], dtype='int64')
+        return empty, empty.copy()
 
     # Offset of the first null from the start of the input.
     start_date_ixs = is_null_matrix.argmin(axis=0)
