@@ -512,7 +512,7 @@ class HDF5DailyBarReader(SessionBarReader):
 
     def _validate_timestamp(self, ts):
         if ts.asm8 not in self.dates:
-            raise NoDataOnDate()
+            raise NoDataOnDate(ts)
 
     @lazyval
     def dates(self):
