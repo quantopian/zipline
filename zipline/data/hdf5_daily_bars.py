@@ -830,7 +830,7 @@ class MultiCountryDailyBarReader(SessionBarReader):
         return pd.to_datetime(
             reduce(
                 np.union1d,
-                (reader.dates for reader in self.readers.values()),
+                (reader.dates for reader in self._readers.values()),
             ),
             utc=True,
         )
