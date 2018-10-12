@@ -259,7 +259,7 @@ class HDF5DailyBarWriter(object):
             if len(sids):
                 chunks = (len(sids), min(self._date_chunk_size, len(days)))
             else:
-                # No chunks if our data is empty.
+                # h5py crashes if we provide chunks for empty data.
                 chunks = None
 
             for field in FIELDS:
