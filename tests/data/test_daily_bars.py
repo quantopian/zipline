@@ -203,6 +203,9 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
             self.sessions[0],
         )
 
+    def test_sessions(self):
+        assert_equal(self.daily_bar_reader.sessions, self.sessions)
+
     def _check_read_results(self, columns, assets, start_date, end_date):
         results = self.daily_bar_reader.load_raw_arrays(
             columns,
