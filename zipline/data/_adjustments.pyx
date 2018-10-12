@@ -22,7 +22,7 @@ from numpy import (
     uint32,
     zeros,
 )
-from numpy cimport int64_t, ndarray
+from numpy cimport float64_t, int64_t, ndarray
 from pandas import Timestamp
 
 ctypedef object Timestamp_t
@@ -209,8 +209,8 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,  # sqlite3.Connection
     cdef:
         int i
         int dt
-        int sid
-        double ratio
+        int64_t sid
+        float64_t ratio
         int eff_date
         int date_loc
         Py_ssize_t asset_ix

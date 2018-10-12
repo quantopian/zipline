@@ -8,6 +8,7 @@ from operator import add, sub
 from unittest import skipIf
 
 from nose_parameterized import parameterized
+import numpy as np
 from numpy import (
     arange,
     array,
@@ -786,10 +787,16 @@ class ConstantInputTestCase(WithConstantInputs,
                                                   Loader2DataSet.col2)})
 
 
+# Use very large sids that don't fit in that doesn't fit in an int32 as a
+# regression test against bugs with 32 bit integer overflow in the adjustment
+# reader.
+HUGE_SID = np.iinfo('int32').max + 1
+
+
 class FrameInputTestCase(zf.WithAssetFinder,
                          zf.WithTradingCalendars,
                          zf.ZiplineTestCase):
-    asset_ids = ASSET_FINDER_EQUITY_SIDS = 1, 2, 3
+    asset_ids = ASSET_FINDER_EQUITY_SIDS = range(HUGE_SID, HUGE_SID + 3)
     start = START_DATE = Timestamp('2015-01-01', tz='utc')
     end = END_DATE = Timestamp('2015-01-31', tz='utc')
     ASSET_FINDER_COUNTRY_CODE = 'US'
