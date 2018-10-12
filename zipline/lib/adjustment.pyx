@@ -171,7 +171,7 @@ cpdef make_adjustment_from_labels(DatetimeIndex_t dates_index,
                                   Int64Index_t assets_index,
                                   Timestamp_t start_date,
                                   Timestamp_t end_date,
-                                  int asset_id,
+                                  np.int64_t asset_id,
                                   AdjustmentKind adjustment_kind,
                                   object value):
     """
@@ -193,7 +193,7 @@ cpdef tuple get_adjustment_locs(DatetimeIndex_t dates_index,
                                 Int64Index_t assets_index,
                                 Timestamp_t start_date,
                                 Timestamp_t end_date,
-                                int asset_id):
+                                np.int64_t asset_id):
     """
     Compute indices suitable for passing to an Adjustment constructor.
 
@@ -236,7 +236,7 @@ cpdef _from_assets_and_dates(cls,
                              Int64Index_t assets_index,
                              Timestamp_t start_date,
                              Timestamp_t end_date,
-                             int asset_id,
+                             np.int64_t asset_id,
                              object value):
     """
     Helper for constructing an Adjustment instance from coordinates in
