@@ -1193,7 +1193,7 @@ class WithWriteHDF5DailyBars(WithEquityDailyBarData,
     @classmethod
     def write_hdf5_daily_bars(cls, path, country_codes):
         """
-        Write an HDF5 pricing data using an HDF5DailyBarWriter.
+        Write HDF5 pricing data using an HDF5DailyBarWriter.
 
         Parameters
         ----------
