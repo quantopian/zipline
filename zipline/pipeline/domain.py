@@ -184,26 +184,38 @@ class EquityCalendarDomain(Domain):
         )
 
 
+AT_EQUITIES = EquityCalendarDomain(CountryCode.AUSTRIA, 'XWBO')
+AU_EQUITIES = EquityCalendarDomain(CountryCode.AUSTRALIA, 'XASX')
 BE_EQUITIES = EquityCalendarDomain(CountryCode.BELGIUM, 'XBRU')
 CA_EQUITIES = EquityCalendarDomain(CountryCode.CANADA, 'XTSE')
 CH_EQUITIES = EquityCalendarDomain(CountryCode.SWITZERLAND, 'XSWX')
 DE_EQUITIES = EquityCalendarDomain(CountryCode.GERMANY, 'XFRA')
+ES_EQUITIES = EquityCalendarDomain(CountryCode.SPAIN, 'XMAD')
 FR_EQUITIES = EquityCalendarDomain(CountryCode.FRANCE, 'XPAR')
 GB_EQUITIES = EquityCalendarDomain(CountryCode.UNITED_KINGDOM, 'XLON')
+HK_EQUITIES = EquityCalendarDomain(CountryCode.HONG_KONG, 'XHKG')
+IT_EQUITIES = EquityCalendarDomain(CountryCode.ITALY, 'XMIL')
 JP_EQUITIES = EquityCalendarDomain(CountryCode.JAPAN, 'XTKS')
 NL_EQUITIES = EquityCalendarDomain(CountryCode.NETHERLANDS, 'XAMS')
+NZ_EQUITIES = EquityCalendarDomain(CountryCode.NEW_ZEALAND, 'XNZE')
 PT_EQUITIES = EquityCalendarDomain(CountryCode.PORTUGAL, 'XLIS')
 US_EQUITIES = EquityCalendarDomain(CountryCode.UNITED_STATES, 'XNYS')
 
 BUILT_IN_DOMAINS = [
+    AT_EQUITIES,
+    AU_EQUITIES,
     BE_EQUITIES,
     CA_EQUITIES,
     CH_EQUITIES,
     DE_EQUITIES,
+    ES_EQUITIES,
     FR_EQUITIES,
     GB_EQUITIES,
+    HK_EQUITIES,
+    IT_EQUITIES,
     JP_EQUITIES,
     NL_EQUITIES,
+    NZ_EQUITIES,
     PT_EQUITIES,
     US_EQUITIES,
 ]

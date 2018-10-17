@@ -1,8 +1,8 @@
 {% set name = "trading-calendars" %}
-{% set version = "1.2.0" %}
+{% set version = "1.3.1" %}
 {% set file_ext = "tar.gz" %}
 {% set hash_type = "sha256" %}
-{% set hash_value = "1253507ee48f6e5fabf7687393b92b6df174a9f2994066e6675db19e9e556b4b" %}
+{% set hash_value = "95463a259452cd8f2e051b88d3206f734f403278df8ba741f4e3bedb5011749d" %}
 
 package:
   name: '{{ name|lower }}'
