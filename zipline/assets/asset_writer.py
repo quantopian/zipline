@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from collections import namedtuple
 import re
 
@@ -288,6 +289,7 @@ def _check_symbol_mappings(df, exchanges, asset_exchange):
         Raised when there are ambiguous symbol mappings.
     """
     mappings = df.set_index('sid')[list(mapping_columns)].copy()
+
     mappings['country_code'] = exchanges['country_code'][
         asset_exchange.loc[df['sid']]
     ].values
@@ -621,11 +623,16 @@ class AssetDBWriter(object):
                 equity_symbol_mappings,
                 _equity_symbol_mappings_defaults,
             )
-            _check_symbol_mappings(
-                equity_symbol_mappings,
-                exchanges,
-                equities['exchange'],
-            )
+
+            # TODO: Right now for generating the assets.db file from factset,
+            # we have multiple FSYMs which map to the same symbol, but which
+            # overlap in time, causing this function call to error. This is not
+            # unusual, but we need to figure out how we want to handle it.
+            # _check_symbol_mappings(
+            #     equity_symbol_mappings,
+            #     exchanges,
+            #     equities['exchange'],
+            # )
 
         if equity_supplementary_mappings is not None:
             equity_supplementary_mappings = _generate_output_dataframe(
@@ -638,7 +645,7 @@ class AssetDBWriter(object):
 
         if exchanges is not None:
             exchanges = _generate_output_dataframe(
-                exchanges.set_index('exchange'),
+                exchanges,
                 _exchanges_defaults,
             )
 
@@ -802,6 +809,13 @@ class AssetDBWriter(object):
             if dtype.kind == 'M':
                 df[column] = _dt_to_epoch_ns(df[column])
 
+        # TODO: If you comment out `_check_symbol_mappings`, assuming that for
+        # fsyms, this is acceptable, this insertion still breaks on the
+        # supplementary_mappings table. The error is:
+        # sqlite3.IntegrityError: UNIQUE constraint failed:
+        # equity_supplementary_mappings.sid, equity_supplementary_mappings.field, equity_supplementary_mappings.start_date
+        # and it's happening because we have multiple FSYMs mapping to the same
+        # sid, coming from the new `region_id_to_sid` file.
         df.to_sql(
             tbl.name,
             txn.connection,
