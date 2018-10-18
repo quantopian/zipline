@@ -11,21 +11,27 @@ from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.domain import (
     AmbiguousDomain,
-    BUILT_IN_DOMAINS,
+    AT_EQUITIES,
+    AU_EQUITIES,
     BE_EQUITIES,
+    BUILT_IN_DOMAINS,
     CA_EQUITIES,
     CH_EQUITIES,
     DE_EQUITIES,
+    EquityCalendarDomain,
+    EquitySessionDomain,
+    ES_EQUITIES,
     FR_EQUITIES,
     GB_EQUITIES,
     GENERIC,
+    HK_EQUITIES,
     infer_domain,
+    IT_EQUITIES,
     JP_EQUITIES,
     NL_EQUITIES,
+    NZ_EQUITIES,
     PT_EQUITIES,
     US_EQUITIES,
-    EquityCalendarDomain,
-    EquitySessionDomain,
 )
 from zipline.pipeline.factors import CustomFactor
 import zipline.testing.fixtures as zf
@@ -324,14 +330,20 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
     def test_built_in_equity_calendar_domain_defaults(self):
         # test the defaults
         expected_cutoff_times = {
+            AT_EQUITIES: datetime.time(8, 15),
+            AU_EQUITIES: datetime.time(9, 15),
             BE_EQUITIES: datetime.time(8, 15),
             CA_EQUITIES: datetime.time(8, 45),
             CH_EQUITIES: datetime.time(8, 15),
             DE_EQUITIES: datetime.time(8, 15),
+            ES_EQUITIES: datetime.time(8, 15),
             FR_EQUITIES: datetime.time(8, 15),
             GB_EQUITIES: datetime.time(7, 15),
+            HK_EQUITIES: datetime.time(9, 15),
+            IT_EQUITIES: datetime.time(8, 15),
             JP_EQUITIES: datetime.time(8, 15),
             NL_EQUITIES: datetime.time(8, 15),
+            NZ_EQUITIES: datetime.time(9, 15),
             PT_EQUITIES: datetime.time(7, 15),
             US_EQUITIES: datetime.time(8, 45),
         }
