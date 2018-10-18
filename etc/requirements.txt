@@ -1,5 +1,5 @@
 # Incompatible with earlier PIP versions
-pip>=7.1.0
+pip>=10.0.0
 # bcolz fails to install if this is not in the build_requires.
 setuptools>18.0
 
