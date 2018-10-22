@@ -910,11 +910,12 @@ class SyntheticBcolzTestCase(zf.WithAdjustmentReader,
     first_asset_start = Timestamp('2015-04-01', tz='UTC')
     START_DATE = Timestamp('2015-01-01', tz='utc')
     END_DATE = Timestamp('2015-08-01', tz='utc')
+    ASSET_FINDER_EQUITY_SIDS = list(range(6))
 
     @classmethod
     def make_equity_info(cls):
         cls.equity_info = ret = make_rotating_equity_info(
-            num_assets=6,
+            sids=cls.ASSET_FINDER_EQUITY_SIDS,
             first_start=cls.first_asset_start,
             frequency=cls.trading_calendar.day,
             periods_between_starts=4,

@@ -4,11 +4,13 @@ from string import ascii_uppercase
 import pandas as pd
 from pandas.tseries.offsets import MonthBegin
 from six import iteritems
+from toolz import merge
+from trading_calendars import get_calendar
 
 from .futures import CMES_CODE_TO_MONTH
 
 
-def make_rotating_equity_info(num_assets,
+def make_rotating_equity_info(sids,
                               first_start,
                               frequency,
                               periods_between_starts,
@@ -38,6 +40,7 @@ def make_rotating_equity_info(num_assets,
     info : pd.DataFrame
         DataFrame representing newly-created assets.
     """
+    num_assets = len(sids)
     return pd.DataFrame(
         {
             'symbol': [chr(ord('A') + i) for i in range(num_assets)],
@@ -55,7 +58,7 @@ def make_rotating_equity_info(num_assets,
             ),
             'exchange': exchange,
         },
-        index=range(num_assets),
+        index=sids,
     )
 
 
@@ -117,12 +120,13 @@ def make_simple_equity_info(sids,
     )
 
 
-def make_jagged_equity_info(num_assets,
+def make_jagged_equity_info(sids,
                             start_date,
                             first_end,
                             frequency,
                             periods_between_ends,
-                            auto_close_delta):
+                            auto_close_delta,
+                            exchange='TEST'):
     """
     Create a DataFrame representing assets that all begin at the same start
     date, but have cascading end dates.
@@ -146,6 +150,7 @@ def make_jagged_equity_info(num_assets,
     info : pd.DataFrame
         DataFrame representing newly-created assets.
     """
+    num_assets = len(sids)
     frame = pd.DataFrame(
         {
             'symbol': [chr(ord('A') + i) for i in range(num_assets)],
@@ -155,9 +160,9 @@ def make_jagged_equity_info(num_assets,
                 freq=(periods_between_ends * frequency),
                 periods=num_assets,
             ),
-            'exchange': 'TEST',
+            'exchange': exchange,
         },
-        index=range(num_assets),
+        index=sids,
     )
 
     # Explicitly pass None to disable setting the auto_close_date column.
@@ -165,6 +170,61 @@ def make_jagged_equity_info(num_assets,
         frame['auto_close_date'] = frame['end_date'] + auto_close_delta
 
     return frame
+
+
+def make_multi_exchange_equity_info(factory,
+                                    exchange_sids,
+                                    exchange_kwargs=None,
+                                    **common_kwargs):
+    """
+    Create an "equity_info" DataFrame for multiple exchanges by calling an
+    existing factory function for each exchange and concatting the results.
+
+    Parameters
+    ----------
+    factory : function
+        Function to use to create equity info for each exchange.
+    exchange_sids : dict[str -> list[sids]]
+        Map from exchange to list of sids to be created for that exchange.
+    exchange_kwargs : dict[str -> dict], optional
+        Map from exchange to additional kwargs to be passed for that exchange.
+    **common_kwargs
+        Additional keyword-arguments are forwarded to ``factory``.
+
+    Returns
+    -------
+    info : pd.DataFrame
+        DataFrame representing newly-created assets.
+    """
+    if exchange_kwargs is None:
+        exchange_kwargs = {e: {} for e in exchange_sids}
+    else:
+        assert exchange_kwargs.keys() == exchange_sids.keys()
+
+    # When using frequency-based factories, use each calendar's trading
+    # calendar for frequency by default.
+    provide_default_frequency = (
+        'frequency' not in common_kwargs
+        and factory in (make_rotating_equity_info, make_jagged_equity_info)
+    )
+    if provide_default_frequency:
+        for e, kw in iteritems(exchange_kwargs):
+            kw.setdefault('frequency', get_calendar(e).day)
+
+    frame_per_exchange = [
+        factory(
+            sids=sids,
+            exchange=e,
+            **merge(common_kwargs, exchange_kwargs[e])
+        )
+        for e, sids in iteritems(exchange_sids)
+    ]
+
+    result = pd.concat(frame_per_exchange)
+    if not result.index.is_unique:
+        raise AssertionError("Duplicate sids: {}".format(result.index))
+
+    return result
 
 
 def make_future_info(first_sid,

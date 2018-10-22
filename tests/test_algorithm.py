@@ -3723,7 +3723,7 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
         #   1 2015-01-05 2015-01-09      2015-01-13
         #   2 2015-01-05 2015-01-13      2015-01-15
         cls.asset_info = make_jagged_equity_info(
-            num_assets=3,
+            sids=list(range(3)),
             start_date=cls.test_days[0],
             first_end=cls.first_asset_expiration,
             frequency=cls.trading_calendar.day,
@@ -4071,7 +4071,7 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
         #   1 2015-01-05 2015-01-09      2015-01-13
         #   2 2015-01-05 2015-01-13      2015-01-15
         cls.asset_info = make_jagged_equity_info(
-            num_assets=3,
+            sids=list(range(3)),
             start_date=cls.test_days[0],
             first_end=cls.first_asset_expiration,
             frequency=cls.trading_calendar.day,

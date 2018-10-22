@@ -1056,19 +1056,22 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         equities = pd.concat(
             [
                 make_rotating_equity_info(
-                    num_assets=assets_per_exchange,
+                    sids=range(
+                        i * assets_per_exchange,
+                        (i + 1) * assets_per_exchange,
+                    ),
                     first_start=first_start,
                     frequency=trading_day,
                     periods_between_starts=3,
                     asset_lifetime=5,
                     exchange=exchange,
                 )
-                for exchange in (
+                for i, exchange in enumerate((
                     'US_EXCHANGE_1',
                     'US_EXCHANGE_2',
                     'CA_EXCHANGE',
                     'JP_EXCHANGE',
-                )
+                ))
             ],
             ignore_index=True,
         )
@@ -1076,7 +1079,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         equities['symbol'] = list(string.ascii_uppercase[:len(equities)])
 
         # shuffle up the sids so they are not contiguous per exchange
-        sids = np.arange(len(equities))
+        sids = equities.index.values[:]
         np.random.RandomState(1337).shuffle(sids)
         equities.index = sids
         permute_sid = dict(zip(sids, range(len(sids)))).__getitem__
