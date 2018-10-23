@@ -67,10 +67,10 @@ def get_treasury_data(start_date, end_date):
         "&from="  # An unbounded query is ~2x faster than specifying dates.
         "&to="
         "&filetype=csv"
-        "&label=include"
+        "&label=omit"
         "&layout=seriescolumn"
         "&type=package",
-        skiprows=5,  # First 5 rows are useless headers.
+        skiprows=1,  # First 5 rows are useless headers.
         parse_dates=['Time Period'],
         na_values=['ND'],  # Presumably this stands for "No Data".
         index_col=0,
