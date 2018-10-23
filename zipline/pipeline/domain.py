@@ -187,6 +187,7 @@ class EquityCalendarDomain(Domain):
 AT_EQUITIES = EquityCalendarDomain(CountryCode.AUSTRIA, 'XWBO')
 AU_EQUITIES = EquityCalendarDomain(CountryCode.AUSTRALIA, 'XASX')
 BE_EQUITIES = EquityCalendarDomain(CountryCode.BELGIUM, 'XBRU')
+BR_EQUITIES = EquityCalendarDomain(CountryCode.BRAZIL, 'BVMF')
 CA_EQUITIES = EquityCalendarDomain(CountryCode.CANADA, 'XTSE')
 CH_EQUITIES = EquityCalendarDomain(CountryCode.SWITZERLAND, 'XSWX')
 DE_EQUITIES = EquityCalendarDomain(CountryCode.GERMANY, 'XFRA')
@@ -210,6 +211,7 @@ BUILT_IN_DOMAINS = [
     AT_EQUITIES,
     AU_EQUITIES,
     BE_EQUITIES,
+    BR_EQUITIES,
     CA_EQUITIES,
     CH_EQUITIES,
     DE_EQUITIES,
