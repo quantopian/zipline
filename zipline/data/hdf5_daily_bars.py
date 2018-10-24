@@ -75,7 +75,7 @@ import h5py
 import logbook
 import numpy as np
 import pandas as pd
-from six import iteritems, raise_from, viewkeys
+from six import iteritems, viewkeys
 from six.moves import reduce
 
 from zipline.data.bar_reader import (
@@ -466,40 +466,61 @@ class HDF5DailyBarReader(SessionBarReader):
             (minutes in range, sids) with a dtype of float64, containing the
             values for the respective field over start and end dt range.
         """
-        self._validate_assets(assets)
         self._validate_timestamp(start_date)
         self._validate_timestamp(end_date)
 
         start = start_date.asm8
         end = end_date.asm8
 
-        sid_selector = self.sids.searchsorted(assets)
+        sid_selector, out_buf_indexer = self._make_sid_indexers(assets)
+
         date_slice = self._compute_date_range_slice(start, end)
 
-        nrows = date_slice.stop - date_slice.start
-        ncols = len(self.sids)
+        n_dates = date_slice.stop - date_slice.start
+        n_valid_sids = len(self.sids)
+        n_query_sids = len(assets)
 
-        buf = np.zeros((ncols, nrows), dtype=np.uint32)
+        read_buf = np.zeros((n_valid_sids, n_dates), dtype=np.uint32)
 
         out = []
         for column in columns:
             # Zero the buffer to prepare it to receive new data.
-            buf.fill(0)
+            read_buf.fill(0)
 
             dataset = self._country_group[DATA][column]
 
             dataset.read_direct(
-                buf,
-                np.s_[:, date_slice.start:date_slice.stop],
+                read_buf,
+                np.s_[:, date_slice],
             )
+
+            out_buf = np.zeros((n_query_sids, n_dates), dtype=np.uint32)
+            out_buf[out_buf_indexer] = read_buf[sid_selector]
 
             out.append(
                 self._postprocessors[column](
-                    buf[sid_selector].T
+                    out_buf.T
                 )
             )
 
         return out
+
+    def _make_sid_indexers(self, assets):
+        """
+        Given the assets that have been queried, returns two indexers:
+
+          (1) Indexer to select the requested sids from the data read
+              out of the h5 file.
+          (2) Indexer to slot the data for those sids into the output
+              array, which may contain gaps (for invalid sids).
+        """
+
+        assets = np.array(assets)
+
+        valid_assets_mask = np.in1d(assets, self.sids)
+        sid_selector = self.sids.searchsorted(assets[valid_assets_mask])
+
+        return sid_selector, valid_assets_mask
 
     def _compute_date_range_slice(self, start_date, end_date):
         # Get the index of the start of dates for ``start_date``.
@@ -726,21 +747,17 @@ class MultiCountryDailyBarReader(SessionBarReader):
         return viewkeys(self._readers)
 
     def _country_code_for_assets(self, assets):
-        try:
-            country_codes = self._country_map.loc[assets]
-        except KeyError as exc:
-            raise_from(
-                NoDataForSid(
-                    'Assets not contained in daily pricing file: {}'.format(
-                        set(assets) - set(self._country_map)
-                    )
-                ),
-                exc
-            )
+        country_codes = self._country_map.get(assets)
 
-        unique_country_codes = country_codes.unique()
+        if country_codes is not None:
+            unique_country_codes = country_codes.dropna().unique()
+            num_countries = len(unique_country_codes)
+        else:
+            num_countries = 0
 
-        if len(unique_country_codes) > 1:
+        if num_countries == 0:
+            return self._country_map.iloc[0]
+        elif num_countries > 1:
             raise NotImplementedError(
                 (
                     'Assets were requested from multiple countries ({}),'
