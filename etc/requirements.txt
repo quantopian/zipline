@@ -8,7 +8,7 @@ Logbook==0.12.5
 
 # Scientific Libraries
 
-pytz==2016.4
+pytz==2018.6
 numpy==1.11.3
 
 # for pandas-datareader
