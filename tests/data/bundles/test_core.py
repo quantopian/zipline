@@ -199,7 +199,7 @@ class BundleCoreTestCase(WithInstanceTmpDir,
         for actual_column, colname in zip(actual, columns):
             assert_equal(
                 actual_column,
-                expected_bar_values_2d(minutes, equities, colname),
+                expected_bar_values_2d(minutes, sids, equities, colname),
                 msg=colname,
             )
 
@@ -212,7 +212,7 @@ class BundleCoreTestCase(WithInstanceTmpDir,
         for actual_column, colname in zip(actual, columns):
             assert_equal(
                 actual_column,
-                expected_bar_values_2d(sessions, equities, colname),
+                expected_bar_values_2d(sessions, sids, equities, colname),
                 msg=colname,
             )
         adjustments_for_cols = bundle.adjustment_reader.load_adjustments(

@@ -1005,6 +1005,7 @@ class SyntheticBcolzTestCase(zf.WithAdjustmentReader,
         expected_raw = DataFrame(
             expected_bar_values_2d(
                 dates - self.trading_calendar.day,
+                asset_ids,
                 self.equity_info,
                 'close',
             ),

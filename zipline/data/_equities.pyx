@@ -19,6 +19,7 @@ from cpython cimport bool
 from numpy import (
     array,
     float64,
+    full,
     intp,
     uint32,
     zeros,
@@ -87,9 +88,9 @@ cpdef _compute_row_slices(dict asset_starts_absolute,
         intp_t nassets = len(requested_assets)
 
         # For each sid, we need to compute the following:
-        ndarray[dtype=intp_t, ndim=1] first_row_a = zeros(nassets, dtype=intp)
-        ndarray[dtype=intp_t, ndim=1] last_row_a = zeros(nassets, dtype=intp)
-        ndarray[dtype=intp_t, ndim=1] offset_a = zeros(nassets, dtype=intp)
+        ndarray[dtype=intp_t, ndim=1] first_row_a = full(nassets, -1, dtype=intp)
+        ndarray[dtype=intp_t, ndim=1] last_row_a = full(nassets, -1, dtype=intp)
+        ndarray[dtype=intp_t, ndim=1] offset_a = full(nassets, -1, dtype=intp)
 
         # Loop variables.
         intp_t i
@@ -100,7 +101,12 @@ cpdef _compute_row_slices(dict asset_starts_absolute,
         intp_t asset_end_calendar
 
     for i, asset in enumerate(requested_assets):
-        asset_start_data = asset_starts_absolute[asset]
+        try:
+            asset_start_data = asset_starts_absolute[asset]
+        except KeyError:
+            # This is an unknown asset, leave its slot empty.
+            continue
+
         asset_end_data = asset_ends_absolute[asset]
         asset_start_calendar = asset_starts_calendar[asset]
         asset_end_calendar = (
@@ -191,8 +197,13 @@ cpdef _read_bcolz_data(ctable_t table,
 
             for asset in range(nassets):
                 first_row = first_rows[asset]
+                if first_row == -1:
+                    # This is an unknown asset, leave its slot empty.
+                    continue
+
                 last_row = last_rows[asset]
                 offset = offsets[asset]
+
                 if first_row <= last_row:
                     outbuf[offset:offset + (last_row + 1 - first_row), asset] =\
                         raw_data[first_row:last_row + 1]

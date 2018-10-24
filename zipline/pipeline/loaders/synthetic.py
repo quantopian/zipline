@@ -341,13 +341,20 @@ def expected_bar_value_with_holes(asset_id,
     return expected_bar_value(asset_id, date, colname)
 
 
-def expected_bar_values_2d(dates, asset_info, colname, holes=None):
+def expected_bar_values_2d(dates,
+                           assets,
+                           asset_info,
+                           colname,
+                           holes=None):
     """
     Return an 2D array containing cls.expected_value(asset_id, date,
     colname) for each date/asset pair in the inputs.
 
-    Values before/after an assets lifetime, as well as the locs defined,
-    in `holes` are filled with 0 for volume and NaN for price columns.
+    Missing locs are filled with 0 for volume and NaN for price columns:
+
+        - Values before/after an assets lifetime.
+        - Values for asset_ids not contained in asset_info.
+        - Locs defined in `holes`.
     """
     if colname == 'volume':
         dtype = uint32
@@ -356,10 +363,12 @@ def expected_bar_values_2d(dates, asset_info, colname, holes=None):
         dtype = float64
         missing = float('nan')
 
-    assets = asset_info.index
-
     data = full((len(dates), len(assets)), missing, dtype=dtype)
     for j, asset in enumerate(assets):
+        # Use missing values when asset_id is not contained in asset_info.
+        if asset not in asset_info.index:
+            continue
+
         start = asset_start(asset_info, asset)
         end = asset_end(asset_info, asset)
         for i, date in enumerate(dates):
