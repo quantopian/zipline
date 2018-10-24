@@ -190,15 +190,20 @@ BE_EQUITIES = EquityCalendarDomain(CountryCode.BELGIUM, 'XBRU')
 CA_EQUITIES = EquityCalendarDomain(CountryCode.CANADA, 'XTSE')
 CH_EQUITIES = EquityCalendarDomain(CountryCode.SWITZERLAND, 'XSWX')
 DE_EQUITIES = EquityCalendarDomain(CountryCode.GERMANY, 'XFRA')
+DK_EQUITIES = EquityCalendarDomain(CountryCode.DENMARK, 'XCSE')
 ES_EQUITIES = EquityCalendarDomain(CountryCode.SPAIN, 'XMAD')
+FI_EQUITIES = EquityCalendarDomain(CountryCode.FINLAND, 'XHEL')
 FR_EQUITIES = EquityCalendarDomain(CountryCode.FRANCE, 'XPAR')
 GB_EQUITIES = EquityCalendarDomain(CountryCode.UNITED_KINGDOM, 'XLON')
 HK_EQUITIES = EquityCalendarDomain(CountryCode.HONG_KONG, 'XHKG')
+IE_EQUITIES = EquityCalendarDomain(CountryCode.IRELAND, 'XDUB')
 IT_EQUITIES = EquityCalendarDomain(CountryCode.ITALY, 'XMIL')
 JP_EQUITIES = EquityCalendarDomain(CountryCode.JAPAN, 'XTKS')
 NL_EQUITIES = EquityCalendarDomain(CountryCode.NETHERLANDS, 'XAMS')
+NO_EQUITIES = EquityCalendarDomain(CountryCode.NORWAY, 'XOSL')
 NZ_EQUITIES = EquityCalendarDomain(CountryCode.NEW_ZEALAND, 'XNZE')
 PT_EQUITIES = EquityCalendarDomain(CountryCode.PORTUGAL, 'XLIS')
+SE_EQUITIES = EquityCalendarDomain(CountryCode.SWEDEN, 'XSTO')
 US_EQUITIES = EquityCalendarDomain(CountryCode.UNITED_STATES, 'XNYS')
 
 BUILT_IN_DOMAINS = [
@@ -208,15 +213,20 @@ BUILT_IN_DOMAINS = [
     CA_EQUITIES,
     CH_EQUITIES,
     DE_EQUITIES,
+    DK_EQUITIES,
     ES_EQUITIES,
+    FI_EQUITIES,
     FR_EQUITIES,
     GB_EQUITIES,
     HK_EQUITIES,
+    IE_EQUITIES,
     IT_EQUITIES,
     JP_EQUITIES,
     NL_EQUITIES,
+    NO_EQUITIES,
     NZ_EQUITIES,
     PT_EQUITIES,
+    SE_EQUITIES,
     US_EQUITIES,
 ]
 
