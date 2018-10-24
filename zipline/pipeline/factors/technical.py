@@ -48,14 +48,14 @@ class RSI(CustomFactor, SingleInputMixin):
 
     **Default Window Length**: 15
     """
-    window_length = 15
-    inputs = (EquityPricing.close,)
+    window_length = 14
+    inputs = [EquityPricing.close]
     window_safe = True
 
     def compute(self, today, assets, out, closes):
         diffs = diff(closes, axis=0)
-        ups = nanmean(clip(diffs, 0, inf), axis=0)
-        downs = abs(nanmean(clip(diffs, -inf, 0), axis=0))
+        ups = nanmean(diffs[diffs > 0])
+        downs = abs(nanmean(diffs[diffs < 0]))
         return evaluate(
             "100 - (100 / (1 + (ups / downs)))",
             local_dict={'ups': ups, 'downs': downs},
