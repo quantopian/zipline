@@ -13,6 +13,7 @@ class CountryCode(object):
     AUSTRALIA = code('AUSTRALIA')
     AUSTRIA = code('AUSTRIA')
     BELGIUM = code('BELGIUM')
+    BRAZIL = code('BRAZIL')
     CANADA = code('CANADA')
     DENMARK = code('DENMARK')
     FINLAND = code('FINLAND')
