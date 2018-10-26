@@ -213,6 +213,10 @@ cpdef _read_bcolz_data(ctable_t table,
 
             for asset in range(nassets):
                 first_row = first_rows[asset]
+                if first_row == -1:
+                    # This is an unknown asset, leave its slot empty.
+                    continue
+
                 last_row = last_rows[asset]
                 offset = offsets[asset]
                 out_start = offset
