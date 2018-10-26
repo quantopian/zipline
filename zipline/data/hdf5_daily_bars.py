@@ -501,7 +501,7 @@ class HDF5DailyBarReader(SessionBarReader):
             # Fill the mutable portion of our buffer with data from the file.
             dataset.read_direct(
                 mutable_buf,
-                np.s_[:, date_slice.start:date_slice.stop],
+                np.s_[:, date_slice],
             )
 
             # Select data from the **full buffer**. Unknown assets will pull
@@ -749,6 +749,8 @@ class MultiCountryDailyBarReader(SessionBarReader):
     def _country_code_for_assets(self, assets):
         country_codes = self._country_map.get(assets)
 
+        # In some versions of pandas (observed in 0.22), Series.get()
+        # returns None if none of the labels are in the index.
         if country_codes is not None:
             unique_country_codes = country_codes.dropna().unique()
             num_countries = len(unique_country_codes)
