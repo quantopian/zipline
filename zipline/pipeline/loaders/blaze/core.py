@@ -240,6 +240,13 @@ class NonPipelineField(InvalidField):
     )
 
 
+class NoDataFound(Exception):
+    """Exception clqss indicating that no data sources returned rows for a
+    given set of checkpoint, deltas, and base exprs.
+    """
+    pass
+
+
 _new_names = ('BlazeDataSet_%d' % n for n in count())
 
 
@@ -545,7 +552,7 @@ def from_blaze(expr,
         scope for ``bz.compute``.
     odo_kwargs : dict, optional
         The keyword arguments to pass to odo when evaluating the expressions.
-    domain : zipline.pipeline.domain.Domain
+    domain : zipline.pipeline.domain.Domain or iter[Domain]
         Domain of the dataset to be created.
     missing_values : dict[str -> any], optional
         A dict mapping column names to missing values for those columns.
@@ -570,6 +577,17 @@ def from_blaze(expr,
         is passed, a ``BoundColumn`` on the dataset that would be constructed
         from passing the parent is returned.
     """
+
+    # If a user passes in more than one domain, we want the namespace to be
+    # the generic dataset, which knows how to load from multiple domains.
+    try:
+        iter(domain)
+        namespace_domain = GENERIC
+        domains = domain
+    except TypeError:
+        namespace_domain = domain
+        domains = [domain]
+
     if 'auto' in {deltas, checkpoints}:
         invalid_nodes = tuple(filter(is_invalid_deltas_node, expr._subterms()))
         if invalid_nodes:
@@ -675,20 +693,39 @@ def from_blaze(expr,
     # Create or retrieve the Pipeline API dataset.
     if missing_values is None:
         missing_values = {}
-    ds = new_dataset(dataset_expr, frozenset(missing_values.items()), domain)
-
-    # Register our new dataset with the loader.
-    (loader if loader is not None else global_loader).register_dataset(
-        ds,
-        bind_expression_to_resources(dataset_expr, resources),
-        bind_expression_to_resources(deltas, resources)
-        if deltas is not None else
-        None,
-        bind_expression_to_resources(checkpoints, resources)
-        if checkpoints is not None else
-        None,
-        odo_kwargs=odo_kwargs,
+    ds = new_dataset(
+        dataset_expr,
+        frozenset(missing_values.items()),
+        namespace_domain
     )
+
+    def filter_by_domain(domain, expr):
+        if u'country_code' in expr.fields:
+            return expr[expr.country_code == domain.country_code]
+        return expr
+
+    for domain in domains:
+        # Register our new dataset with the loader.
+        (loader if loader is not None else global_loader).register_dataset(
+            ds.specialize(domain),
+            bind_expression_to_resources(
+                filter_by_domain(domain, dataset_expr),
+                resources
+            ),
+            bind_expression_to_resources(
+                filter_by_domain(domain, deltas),
+                resources
+            )
+            if deltas is not None else
+            None,
+            bind_expression_to_resources(
+                filter_by_domain(domain, checkpoints),
+                resources
+            )
+            if checkpoints is not None else
+            None,
+            odo_kwargs=odo_kwargs,
+        )
     if single_column is not None:
         # We were passed a single column, extract and return it.
         return getattr(ds, single_column)
@@ -956,17 +993,26 @@ class BlazeLoader(object):
             None
         )
 
-        all_rows = pd.concat(
-            filter(
-                lambda df: df is not None, (
-                    materialized_checkpoints,
-                    materialized_expr_deferred.get(),
-                    materialized_deltas,
+        try:
+
+            all_rows = pd.concat(
+                filter(
+                    lambda df: df is not None and not df.empty, (
+                        materialized_checkpoints,
+                        materialized_expr_deferred.get(),
+                        materialized_deltas,
+                    ),
                 ),
-            ),
-            ignore_index=True,
-            copy=False,
-        )
+                ignore_index=True,
+                copy=False,
+            )
+        except ValueError:
+            # TODO: This is an utterly useless message, because we have no clue
+            # what dataset we are here. Fix this along with the rest of it.
+            raise NoDataFound(
+                "No data was returned for dataset with the given domain."
+            )
+
 
         all_rows[TS_FIELD_NAME] = all_rows[TS_FIELD_NAME].astype(
             'datetime64[ns]',
