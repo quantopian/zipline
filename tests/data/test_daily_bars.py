@@ -334,21 +334,21 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
             end_date=TEST_QUERY_STOP,
         )
 
-    def test_read_only_unknown_sids(self):
-        """
-        Test a query where all sids are unknown.
-        """
-
+    @parameterized.expand([
         # Query for only even sids, only odd ids are valid.
-        query_assets = [2, 4, 800]
-
-        columns = ['close', 'volume']
-        self._check_read_results(
-            columns,
-            query_assets,
-            start_date=TEST_QUERY_START,
-            end_date=TEST_QUERY_STOP,
-        )
+        ([],),
+        ([2],),
+        ([2, 4, 800],),
+    ])
+    def test_read_only_unknown_sids(self, query_assets):
+        columns = [CLOSE, VOLUME]
+        with self.assertRaises(ValueError):
+            self.daily_bar_reader.load_raw_arrays(
+                columns,
+                TEST_QUERY_START,
+                TEST_QUERY_STOP,
+                query_assets,
+            )
 
     def test_unadjusted_get_value(self):
         """Test get_value() on both a price field (CLOSE) and VOLUME."""

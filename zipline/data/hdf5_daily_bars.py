@@ -758,7 +758,7 @@ class MultiCountryDailyBarReader(SessionBarReader):
             num_countries = 0
 
         if num_countries == 0:
-            return self._country_map.iloc[0]
+            raise ValueError('At least one valid asset id is required.')
         elif num_countries > 1:
             raise NotImplementedError(
                 (
