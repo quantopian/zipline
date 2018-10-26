@@ -479,18 +479,17 @@ class HDF5DailyBarReader(SessionBarReader):
         # We'll use that space to provide "data" for entries in ``assets`` that
         # are unknown to us.
         full_buf = np.zeros((len(self.sids) + 1, n_dates), dtype=np.uint32)
-
         # We'll only read values into this portion of the read buf.
         mutable_buf = full_buf[:-1]
 
         # Indexer that converts an array aligned to self.sids (which is what we
-        # pull from the h5 file) into an array aligned to assets.
+        # pull from the h5 file) into an array aligned to ``assets``.
         #
         # Unknown assets will have an index of -1, which means they'll always
         # pull from the last row of the read buffer. We allocated an extra
         # empty row above so that these lookups will cause us to fill our
         # output buffer with "null" values.
-        sid_selector = self._make_sid_indexers(assets)
+        sid_selector = self._make_sid_selector(assets)
 
         out = []
         for column in columns:
@@ -511,17 +510,11 @@ class HDF5DailyBarReader(SessionBarReader):
 
         return out
 
-    def _make_sid_indexers(self, assets):
+    def _make_sid_selector(self, assets):
         """
-        Build an indexer that maps an array parallel with ``self.sids`` to an
-        array parallel with ``assets``.
-
-        Given the assets that have been queried, returns two indexers:
-
-          (1) Indexer to select the requested sids from the data read
-              out of the h5 file.
-          (2) Indexer to slot the data for those sids into the output
-              array, which may contain gaps (for invalid sids).
+        Retursn an indexer that converts an array aligned to self.sids
+        (which is what we pull from the h5 file) into an array aligned
+        to ``assets``.
         """
         assets = np.array(assets)
         sid_selector = self.sids.searchsorted(assets)
