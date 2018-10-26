@@ -75,7 +75,7 @@ import h5py
 import logbook
 import numpy as np
 import pandas as pd
-from six import iteritems, viewkeys
+from six import iteritems, raise_from, viewkeys
 from six.moves import reduce
 
 from zipline.data.bar_reader import (
@@ -878,8 +878,18 @@ class MultiCountryDailyBarReader(SessionBarReader):
         NoDataOnDate
             If the given dt is not a valid market minute (in minute mode) or
             session (in daily mode) according to this reader's tradingcalendar.
+        NoDataForSid
+            If the given sid is not valid.
         """
-        country_code = self._country_code_for_assets([sid])
+        try:
+            country_code = self._country_code_for_assets([sid])
+        except ValueError as exc:
+            raise_from(
+                NoDataForSid(
+                    'Asset not contained in daily pricing file: {}'.format(sid)
+                ),
+                exc
+            )
         return self._readers[country_code].get_value(sid, dt, field)
 
     def get_last_traded_dt(self, asset, dt):
