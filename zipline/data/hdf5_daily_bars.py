@@ -748,17 +748,23 @@ class MultiCountryDailyBarReader(SessionBarReader):
         return viewkeys(self._readers)
 
     def _country_code_for_assets(self, assets):
-        unique_country_codes = self._country_map.get(assets).dropna().unique()
+        country_codes = self._country_map.get(assets)
 
-        if len(unique_country_codes) > 1:
+        if country_codes is not None:
+            unique_country_codes = country_codes.dropna().unique()
+            num_countries = len(unique_country_codes)
+        else:
+            num_countries = 0
+
+        if num_countries == 0:
+            return self._country_map.iloc[0]
+        elif num_countries > 1:
             raise NotImplementedError(
                 (
                     'Assets were requested from multiple countries ({}),'
                     ' but multi-country reads are not yet supported.'
                 ).format(list(unique_country_codes))
             )
-        elif len(unique_country_codes) == 0:
-            return self._country_map.iloc[0]
 
         return np.asscalar(unique_country_codes)
 
