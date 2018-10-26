@@ -30,6 +30,7 @@ from pandas import (
     Timestamp,
 )
 from six import iteritems
+from six.moves import range
 from toolz import merge
 from trading_calendars import get_calendar
 
@@ -321,7 +322,7 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
         #   INVALID VALID INVALID VALID ... VALID INVALID
         query_assets = (
             [self.assets[-1] + 1] +
-            range(self.assets[0], self.assets[-1] + 1) +
+            list(range(self.assets[0], self.assets[-1] + 1)) +
             [self.assets[-1] + 3]
         )
 
