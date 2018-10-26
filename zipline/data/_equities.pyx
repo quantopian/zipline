@@ -51,34 +51,33 @@ cpdef _compute_row_slices(dict asset_starts_absolute,
     """
     Core indexing functionality for loading raw data from bcolz.
 
-    Parameters
-    ----------
-    asset_starts_absolute : dict
-        Dictionary containing the index of the first row of each asset in the
-        bcolz file from which we will query.
-
-    asset_ends_absolute : dict
-        Dictionary containing the index of the last row of each asset in the
-        bcolz file from which we will query.
-
-    asset_starts_calendar : dict
-        Dictionary containing the index of in our calendar corresponding to the
-        start date of each asset
-
-    query_start : intp
-    query_end : intp
-        Start and end indices in our calendar of the dates for which we're
-        querying.
-
-    requested_assets : pandas.Int64Index
-        The assets for which we want to load data.
-
     For each asset in requested assets, computes three values:
+
     1.) The index in the raw bcolz data of first row to load.
     2.) The index in the raw bcolz data of the last row to load.
     3.) The index in the dates of our query corresponding to the first row for
         each asset. This is non-zero iff the asset's lifetime begins partway
         through the requested query dates.
+
+    Values for unknown sids will be populated with a value of -1.
+
+    Parameters
+    ----------
+    asset_starts_absolute : dict
+        Dictionary containing the index of the first row of each asset in the
+        bcolz file from which we will query.
+    asset_ends_absolute : dict
+        Dictionary containing the index of the last row of each asset in the
+        bcolz file from which we will query.
+    asset_starts_calendar : dict
+        Dictionary containing the index of in our calendar corresponding to the
+        start date of each asset
+    query_start : intp
+        Start index in our calendar of the dates for which we're querying.
+    query_end : intp
+        End index in our calendar of the dates for which we're querying.
+    requested_assets : pandas.Int64Index
+        The assets for which we want to load data.
 
     Returns
     -------
