@@ -100,11 +100,11 @@ cpdef _compute_row_slices(dict asset_starts_absolute,
         intp_t asset_end_calendar
 
     for i, asset in enumerate(requested_assets):
-        try:
-            asset_start_data = asset_starts_absolute[asset]
-        except KeyError:
+        if asset not in asset_starts_absolute:
             # This is an unknown asset, leave its slot empty.
             continue
+        else:
+            asset_start_data = asset_starts_absolute[asset]
 
         asset_end_data = asset_ends_absolute[asset]
         asset_start_calendar = asset_starts_calendar[asset]
