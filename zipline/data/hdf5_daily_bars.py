@@ -477,30 +477,29 @@ class HDF5DailyBarReader(SessionBarReader):
         date_slice = self._compute_date_range_slice(start, end)
 
         n_dates = date_slice.stop - date_slice.start
-        n_query_sids = len(assets)
         n_valid_sids = len(self.sids)
+        n_query_sids = len(assets)
 
         read_buf = np.zeros((n_valid_sids, n_dates), dtype=np.uint32)
-        out_buf = np.zeros((n_query_sids, n_dates), dtype=np.uint32)
 
         out = []
         for column in columns:
-            # Zero the buffers to prepare to receive new data.
+            # Zero the buffer to prepare it to receive new data.
             read_buf.fill(0)
-            out_buf.fill(0)
 
             dataset = self._country_group[DATA][column]
 
             dataset.read_direct(
                 read_buf,
-                np.s_[:, date_slice.start:date_slice.stop],
+                np.s_[:, date_slice],
             )
 
+            out_buf = np.zeros((n_query_sids, n_dates), dtype=np.uint32)
             out_buf[out_buf_indexer] = read_buf[sid_selector]
 
             out.append(
                 self._postprocessors[column](
-                    out_buf.T.copy()
+                    out_buf.T
                 )
             )
 

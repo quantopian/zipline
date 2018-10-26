@@ -352,7 +352,7 @@ def expected_bar_values_2d(dates,
 
     Missing locs are filled with 0 for volume and NaN for price columns:
 
-        - Values before/after an assets lifetime.
+        - Values before/after an asset's lifetime.
         - Values for asset_ids not contained in asset_info.
         - Locs defined in `holes`.
     """

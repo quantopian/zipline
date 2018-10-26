@@ -564,7 +564,7 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
             '5': 32,
             '7': 43,
             '9': 48,
-            '11': 57,    # Asset 6 has 9 trading days.
+            '11': 57,    # Asset 11 has 9 trading days.
         }
         expected_calendar_offset = {
             '1': 0,    # Starts on 6-01, 1st trading day of month.
