@@ -315,6 +315,33 @@ Possible options: {options}
     """.strip()
 
 
+class MultipleSymbolsFoundForFuzzySymbol(ZiplineError):
+    """
+    Raised when a fuzzy symbol lookup is not resolvable without additional
+    information.
+    """
+    msg = dedent("""\
+        Multiple symbols were found fuzzy matching the name '{symbol}'. Use
+        the as_of_date and/or country_code arguments to to specify the date
+        and country for the symbol-lookup.
+
+        Possible options: {options}
+    """)
+
+
+class SameSymbolUsedAcrossCountries(ZiplineError):
+    """
+    Raised when a symbol() call contains a symbol that is used in more than
+    one country and is thus not resolvable without a country_code.
+    """
+    msg = dedent("""\
+        The symbol '{symbol}' is used in more than one country. Use the
+        country_code' argument to to specify the country.
+
+        Possible options: {options}
+    """)
+
+
 class SymbolNotFound(ZiplineError):
     """
     Raised when a symbol() call contains a non-existant symbol.
