@@ -819,7 +819,7 @@ class AssetFinder(object):
             if len(owners) == 1:
                 return self.retrieve_asset(owners[0].sid)
 
-            options = {self._retrieve_asset(owner.sid) for owner in owners}
+            options = {self.retrieve_asset(owner.sid) for owner in owners}
 
             if multi_country:
                 country_codes = set(map(attrgetter('country_code'), options))
