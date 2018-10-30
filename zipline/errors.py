@@ -315,7 +315,7 @@ Possible options: {options}
     """.strip()
 
 
-class MultipleSymbolsFoundForFuzzySymbol(ZiplineError):
+class MultipleSymbolsFoundForFuzzySymbol(MultipleSymbolsFound):
     """
     Raised when a fuzzy symbol lookup is not resolvable without additional
     information.
@@ -329,7 +329,7 @@ class MultipleSymbolsFoundForFuzzySymbol(ZiplineError):
     """)
 
 
-class SameSymbolUsedAcrossCountries(ZiplineError):
+class SameSymbolUsedAcrossCountries(MultipleSymbolsFound):
     """
     Raised when a symbol() call contains a symbol that is used in more than
     one country and is thus not resolvable without a country_code.
