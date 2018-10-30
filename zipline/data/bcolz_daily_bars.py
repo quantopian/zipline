@@ -570,9 +570,6 @@ class BcolzDailyBarReader(SessionBarReader):
         )
 
     def load_raw_arrays(self, columns, start_date, end_date, assets):
-        if not any(asset in self._calendar_offsets for asset in assets):
-            raise ValueError('At least one valid asset id is required.')
-
         start_idx = self._load_raw_arrays_date_to_index(start_date)
         end_idx = self._load_raw_arrays_date_to_index(end_date)
 
