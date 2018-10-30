@@ -512,9 +512,20 @@ class HDF5DailyBarReader(SessionBarReader):
 
     def _make_sid_selector(self, assets):
         """
-        Retursn an indexer that converts an array aligned to self.sids
-        (which is what we pull from the h5 file) into an array aligned
-        to ``assets``.
+        Build an indexer mapping ``self.sids`` to ``assets``.
+
+        Parameters
+        ----------
+        assets : list[int]
+            List of assets requested by a caller of ``load_raw_arrays``.
+
+        Returns
+        -------
+        index : np.array[int64]
+            Index array containing the index in ``self.sids`` for each location
+            in ``assets``. Entries in ``assets`` for which we don't have a sid
+            will contain -1. It is caller's responsibility to handle these
+            values correctly.
         """
         assets = np.array(assets)
         sid_selector = self.sids.searchsorted(assets)
