@@ -99,13 +99,18 @@ cpdef _compute_row_slices(dict asset_starts_absolute,
         intp_t asset_start_calendar
         intp_t asset_end_calendar
 
+        # Flag to check whether we should raise an error because we don't know
+        # about any of the requested sids.
+        uint8_t any_hits = 0
+
     for i, asset in enumerate(requested_assets):
         if asset not in asset_starts_absolute:
             # This is an unknown asset, leave its slot empty.
             continue
-        else:
-            asset_start_data = asset_starts_absolute[asset]
 
+        any_hits = 1
+
+        asset_start_data = asset_starts_absolute[asset]
         asset_end_data = asset_ends_absolute[asset]
         asset_start_calendar = asset_starts_calendar[asset]
         asset_end_calendar = (
@@ -130,6 +135,9 @@ cpdef _compute_row_slices(dict asset_starts_absolute,
         # Otherwise, offset by the number of rows in the query in which the
         # asset did not yet exist.
         offset_a[i] = max(0, asset_start_calendar - query_start)
+
+    if not any_hits:
+        raise ValueError('At least one valid asset id is required.')
 
     return first_row_a, last_row_a, offset_a
 
