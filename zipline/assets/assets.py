@@ -888,7 +888,7 @@ class AssetFinder(object):
                 # there was only one exact match
                 return options[0]
 
-            # there are more than one exact match for this fuzzy symbol
+             # there is more than one exact match for this fuzzy symbol
             raise MultipleSymbolsFoundForFuzzySymbol(
                 symbol=symbol,
                 options=self.retrieve_all(owner.sid for owner in owners),
