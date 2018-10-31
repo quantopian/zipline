@@ -17,6 +17,7 @@ from zipline.pipeline.domain import (
     BR_EQUITIES,
     BUILT_IN_DOMAINS,
     CA_EQUITIES,
+    CN_EQUITIES,
     CH_EQUITIES,
     DE_EQUITIES,
     DK_EQUITIES,
@@ -29,6 +30,7 @@ from zipline.pipeline.domain import (
     GENERIC,
     HK_EQUITIES,
     IE_EQUITIES,
+    IN_EQUITIES,
     infer_domain,
     IT_EQUITIES,
     JP_EQUITIES,
@@ -37,6 +39,7 @@ from zipline.pipeline.domain import (
     NZ_EQUITIES,
     PT_EQUITIES,
     SE_EQUITIES,
+    SG_EQUITIES,
     US_EQUITIES,
 )
 from zipline.pipeline.factors import CustomFactor
@@ -342,6 +345,7 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
             BR_EQUITIES: datetime.time(9, 15),
             CA_EQUITIES: datetime.time(8, 45),
             CH_EQUITIES: datetime.time(8, 15),
+            CN_EQUITIES: datetime.time(8, 45),
             DE_EQUITIES: datetime.time(8, 15),
             DK_EQUITIES: datetime.time(8, 15),
             ES_EQUITIES: datetime.time(8, 15),
@@ -350,6 +354,7 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
             GB_EQUITIES: datetime.time(7, 15),
             HK_EQUITIES: datetime.time(9, 15),
             IE_EQUITIES: datetime.time(7, 15),
+            IN_EQUITIES: datetime.time(8, 30),
             IT_EQUITIES: datetime.time(8, 15),
             JP_EQUITIES: datetime.time(8, 15),
             NL_EQUITIES: datetime.time(8, 15),
@@ -357,6 +362,7 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
             NZ_EQUITIES: datetime.time(9, 15),
             PT_EQUITIES: datetime.time(7, 15),
             SE_EQUITIES: datetime.time(8, 15),
+            SG_EQUITIES: datetime.time(8, 15),
             US_EQUITIES: datetime.time(8, 45),
         }
 
