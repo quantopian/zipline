@@ -479,3 +479,30 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
         actual = domain.data_query_cutoff_for_sessions(utc_sessions)
 
         assert_equal(expected, actual)
+
+
+class AdjustDateTestCase(zf.ZiplineTestCase):
+
+    def test_adjust_date(self):
+        #     January 2017
+        # Su Mo Tu We Th Fr Sa
+        #  1  2  3  4  5  6  7
+
+        # the first three days of the year are holidays on the Tokyo exchange,
+        # so the first trading day should be the fourth
+        self.assertEqual(
+            JP_EQUITIES.adjust_date('01-01-2017'),
+            pd.Timestamp('01-04-2017', tz='UTC'),
+        )
+
+        # in US exchanges, the first trading day after 1/1 is the 3rd
+        self.assertEqual(
+            US_EQUITIES.adjust_date('01-01-2017'),
+            pd.Timestamp('01-03-2017', tz='UTC'),
+        )
+
+        # passing a valid trading day to adjust_date should return that day
+        self.assertEqual(
+            JP_EQUITIES.adjust_date('01-04-2017'),
+            pd.Timestamp('01-04-2017', tz='UTC'),
+        )

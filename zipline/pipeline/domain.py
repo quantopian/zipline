@@ -17,7 +17,7 @@ Currently, this means that a domain defines two things:
 import datetime
 from textwrap import dedent
 
-from interface import implements, Interface
+from interface import default, implements, Interface
 import pandas as pd
 import pytz
 
@@ -70,6 +70,27 @@ class IDomain(Interface):
             Timestamp of the last minute for which data should be considered
             "available" on each session.
         """
+
+    @default
+    def adjust_date(self, dt):
+        """
+        Given a date, align it to the calendar of the pipeline's domain.
+
+        Parameters
+        ----------
+        dt : pd.Timestamp
+
+        Returns
+        -------
+        pd.Timestamp
+        """
+        dt = pd.Timestamp(dt, tz='UTC')
+
+        if self.calendar.is_session(dt):
+            return dt
+
+        trading_days = self.all_sessions()
+        return trading_days[trading_days.searchsorted(dt)]
 
 
 Domain = implements(IDomain)

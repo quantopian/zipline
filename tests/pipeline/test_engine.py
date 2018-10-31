@@ -47,7 +47,12 @@ from zipline.pipeline.data import (
     Column, DataSet, EquityPricing, USEquityPricing,
 )
 from zipline.pipeline.data.testing import TestingDataSet
-from zipline.pipeline.domain import US_EQUITIES, EquitySessionDomain
+from zipline.pipeline.domain import (
+    EquitySessionDomain,
+    GENERIC,
+    JP_EQUITIES,
+    US_EQUITIES,
+)
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.factors import (
     AverageDollarVolume,
@@ -1562,3 +1567,43 @@ class MaximumRegressionTest(zf.WithSeededRandomPipelineEngine,
                         .reset_index(level=1, drop=True))
 
         assert_equal(groupby_max, pipeline_max)
+
+
+class ResolveDomainTestCase(zf.ZiplineTestCase):
+
+    def test_resolve_domain(self):
+        engine_generic = SimplePipelineEngine(
+            None, None, default_domain=GENERIC
+        )
+        engine_jp = SimplePipelineEngine(
+            None, None, default_domain=JP_EQUITIES
+        )
+
+        pipe_generic = Pipeline()
+        pipe_us = Pipeline(domain=US_EQUITIES)
+
+        # the engine should resolve a pipeline that already has a domain
+        # to that domain
+        self.assertIs(
+            engine_jp.resolve_domain(pipe_us),
+            US_EQUITIES
+        )
+
+        # the engine should resolve a pipeline without a domain to the engine's
+        # default
+        self.assertIs(
+            engine_jp.resolve_domain(pipe_generic),
+            JP_EQUITIES
+        )
+
+        # a generic engine should resolve to the pipeline's domain
+        # if it has one
+        self.assertIs(
+            engine_generic.resolve_domain(pipe_us),
+            US_EQUITIES
+        )
+
+        # an engine with a default of GENERIC should raise a ValueError when
+        # trying to infer a pipeline whose domain is also GENERIC
+        with self.assertRaises(ValueError):
+            engine_generic.resolve_domain(pipe_generic)
