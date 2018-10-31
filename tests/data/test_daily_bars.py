@@ -30,13 +30,13 @@ from pandas import (
     Timestamp,
 )
 from six import iteritems
+from six.moves import range
 from toolz import merge
 from trading_calendars import get_calendar
 
 from zipline.data.bar_reader import (
     NoDataAfterDate,
     NoDataBeforeDate,
-    NoDataForSid,
     NoDataOnDate,
 )
 from zipline.data.bcolz_daily_bars import BcolzDailyBarWriter
@@ -77,60 +77,62 @@ TEST_CALENDAR_STOP = Timestamp('2015-06-30', tz='UTC')
 TEST_QUERY_START = Timestamp('2015-06-10', tz='UTC')
 TEST_QUERY_STOP = Timestamp('2015-06-19', tz='UTC')
 
-# One asset for each of the cases enumerated in load_raw_arrays_from_bcolz.
+# NOTE: All sids here are odd, so we can test querying for unknown sids
+#       with evens.
 us_info = DataFrame(
     [
         # 1) The equity's trades start and end before query.
         {'start_date': '2015-06-01', 'end_date': '2015-06-05'},
-        # 2) The equity's trades start and end after query.
+        # 3) The equity's trades start and end after query.
         {'start_date': '2015-06-22', 'end_date': '2015-06-30'},
-        # 3) The equity's data covers all dates in range (but we define
+        # 5) The equity's data covers all dates in range (but we define
         #    a hole for it on 2015-06-17).
         {'start_date': '2015-06-02', 'end_date': '2015-06-30'},
-        # 4) The equity's trades start before the query start, but stop
+        # 7) The equity's trades start before the query start, but stop
         #    before the query end.
         {'start_date': '2015-06-01', 'end_date': '2015-06-15'},
-        # 5) The equity's trades start and end during the query.
+        # 9) The equity's trades start and end during the query.
         {'start_date': '2015-06-12', 'end_date': '2015-06-18'},
-        # 6) The equity's trades start during the query, but extend through
+        # 11) The equity's trades start during the query, but extend through
         #    the whole query.
         {'start_date': '2015-06-15', 'end_date': '2015-06-25'},
     ],
-    index=arange(1, 7),
+    index=arange(1, 12, step=2),
     columns=['start_date', 'end_date'],
 ).astype('datetime64[ns]')
 us_info['exchange'] = 'NYSE'
 
 ca_info = DataFrame(
     [
-        # 7) The equity's trades start and end before query.
+        # 13) The equity's trades start and end before query.
         {'start_date': '2015-06-01', 'end_date': '2015-06-05'},
-        # 8) The equity's trades start and end after query.
+        # 15) The equity's trades start and end after query.
         {'start_date': '2015-06-22', 'end_date': '2015-06-30'},
-        # 9) The equity's data covers all dates in range.
+        # 17) The equity's data covers all dates in range.
         {'start_date': '2015-06-02', 'end_date': '2015-06-30'},
-        # 10) The equity's trades start before the query start, but stop
+        # 19) The equity's trades start before the query start, but stop
         #    before the query end.
         {'start_date': '2015-06-01', 'end_date': '2015-06-15'},
-        # 11) The equity's trades start and end during the query.
+        # 21) The equity's trades start and end during the query.
         {'start_date': '2015-06-12', 'end_date': '2015-06-18'},
-        # 12) The equity's trades start during the query, but extend through
+        # 23) The equity's trades start during the query, but extend through
         #    the whole query.
         {'start_date': '2015-06-15', 'end_date': '2015-06-25'},
     ],
-    index=arange(7, 13),
+    index=arange(13, 24, step=2),
     columns=['start_date', 'end_date'],
 ).astype('datetime64[ns]')
 ca_info['exchange'] = 'TSX'
 
 EQUITY_INFO = concat([us_info, ca_info])
-EQUITY_INFO['symbol'] = [chr(ord('A') + n) for n in range(len(EQUITY_INFO))]
+EQUITY_INFO['symbol'] = [chr(ord('A') + x) for x in range(len(EQUITY_INFO))]
 
 TEST_QUERY_ASSETS = EQUITY_INFO.index
+assert (TEST_QUERY_ASSETS % 2 == 1).all(), 'All sids should be odd.'
 
 HOLES = {
-    'US': {3: (Timestamp('2015-06-17', tz='UTC'),)},
-    'CA': {9: (Timestamp('2015-06-17', tz='UTC'),)},
+    'US': {5: (Timestamp('2015-06-17', tz='UTC'),)},
+    'CA': {17: (Timestamp('2015-06-17', tz='UTC'),)},
 }
 
 
@@ -219,7 +221,8 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
                 result,
                 expected_bar_values_2d(
                     dates,
-                    EQUITY_INFO.loc[assets],
+                    assets,
+                    EQUITY_INFO.loc[self.assets],
                     column,
                     holes=self.holes,
                 )
@@ -298,13 +301,53 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
         Test loading with queries that end on the last day of each asset's
         lifetime.
         """
-        columns = ['close', 'volume']
+        columns = [CLOSE, VOLUME]
         for asset in self.assets:
             self._check_read_results(
                 columns,
                 self.assets,
                 start_date=self.sessions[0],
                 end_date=self.asset_end(asset),
+            )
+
+    def test_read_known_and_unknown_sids(self):
+        """
+        Test a query with some known sids mixed in with unknown sids.
+        """
+
+        # Construct a list of alternating valid and invalid query sids,
+        # bookended by invalid sids.
+        #
+        # E.g.
+        #   INVALID VALID INVALID VALID ... VALID INVALID
+        query_assets = (
+            [self.assets[-1] + 1] +
+            list(range(self.assets[0], self.assets[-1] + 1)) +
+            [self.assets[-1] + 3]
+        )
+
+        columns = [CLOSE, VOLUME]
+        self._check_read_results(
+            columns,
+            query_assets,
+            start_date=TEST_QUERY_START,
+            end_date=TEST_QUERY_STOP,
+        )
+
+    @parameterized.expand([
+        # Query for only even sids, only odd ids are valid.
+        ([],),
+        ([2],),
+        ([2, 4, 800],),
+    ])
+    def test_read_only_unknown_sids(self, query_assets):
+        columns = [CLOSE, VOLUME]
+        with self.assertRaises(ValueError):
+            self.daily_bar_reader.load_raw_arrays(
+                columns,
+                TEST_QUERY_START,
+                TEST_QUERY_STOP,
+                query_assets,
             )
 
     def test_unadjusted_get_value(self):
@@ -509,27 +552,27 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
         result = self.bcolz_daily_bar_ctable
         expected_first_row = {
             '1': 0,
-            '2': 5,   # Asset 1 has 5 trading days.
-            '3': 12,  # Asset 2 has 7 trading days.
-            '4': 33,  # Asset 3 has 21 trading days.
-            '5': 44,  # Asset 4 has 11 trading days.
-            '6': 49,  # Asset 5 has 5 trading days.
+            '3': 5,    # Asset 1 has 5 trading days.
+            '5': 12,   # Asset 3 has 7 trading days.
+            '7': 33,   # Asset 5 has 21 trading days.
+            '9': 44,   # Asset 7 has 11 trading days.
+            '11': 49,  # Asset 9 has 5 trading days.
         }
         expected_last_row = {
             '1': 4,
-            '2': 11,
-            '3': 32,
-            '4': 43,
-            '5': 48,
-            '6': 57,    # Asset 6 has 9 trading days.
+            '3': 11,
+            '5': 32,
+            '7': 43,
+            '9': 48,
+            '11': 57,    # Asset 11 has 9 trading days.
         }
         expected_calendar_offset = {
-            '1': 0,   # Starts on 6-01, 1st trading day of month.
-            '2': 15,  # Starts on 6-22, 16th trading day of month.
-            '3': 1,   # Starts on 6-02, 2nd trading day of month.
-            '4': 0,   # Starts on 6-01, 1st trading day of month.
-            '5': 9,   # Starts on 6-12, 10th trading day of month.
-            '6': 10,  # Starts on 6-15, 11th trading day of month.
+            '1': 0,    # Starts on 6-01, 1st trading day of month.
+            '3': 15,   # Starts on 6-22, 16th trading day of month.
+            '5': 1,    # Starts on 6-02, 2nd trading day of month.
+            '7': 0,    # Starts on 6-01, 1st trading day of month.
+            '9': 9,    # Starts on 6-12, 10th trading day of month.
+            '11': 10,  # Starts on 6-15, 11th trading day of month.
         }
         self.assertEqual(result.attrs['first_row'], expected_first_row)
         self.assertEqual(result.attrs['last_row'], expected_last_row)
@@ -570,8 +613,8 @@ class BcolzDailyBarWriterMissingDataTestCase(WithAssetFinder,
                                              WithTmpDir,
                                              WithTradingCalendars,
                                              ZiplineTestCase):
-    # Sid 3 is active from 2015-06-02 to 2015-06-30.
-    MISSING_DATA_SID = 3
+    # Sid 5 is active from 2015-06-02 to 2015-06-30.
+    MISSING_DATA_SID = 5
     # Leave out data for a day in the middle of the query range.
     MISSING_DATA_DAY = Timestamp('2015-06-15', tz='UTC')
 
@@ -646,42 +689,6 @@ class _HDF5DailyBarTestCase(WithHDF5EquityMultiCountryDailyBarReader,
                 msg=(
                     'asset_start_dates value for sid={} differs from expected'
                 ).format(sid)
-            )
-
-    def test_invalid_sid(self):
-        INVALID_SID = 100
-
-        with self.assertRaises(NoDataForSid):
-            self.daily_bar_reader.load_raw_arrays(
-                OHLCV,
-                TEST_QUERY_START,
-                TEST_QUERY_STOP,
-                [INVALID_SID],
-            )
-
-        with self.assertRaises(NoDataForSid):
-            self.daily_bar_reader.get_value(
-                INVALID_SID,
-                TEST_QUERY_START,
-                'close',
-            )
-
-    def test_invalid_sid_single_country(self):
-        INVALID_SID = 100
-
-        with self.assertRaises(NoDataForSid):
-            self.single_country_reader.load_raw_arrays(
-                OHLCV,
-                TEST_QUERY_START,
-                TEST_QUERY_STOP,
-                [INVALID_SID],
-            )
-
-        with self.assertRaises(NoDataForSid):
-            self.single_country_reader.get_value(
-                INVALID_SID,
-                TEST_QUERY_START,
-                'close',
             )
 
     def test_invalid_date(self):

@@ -466,40 +466,72 @@ class HDF5DailyBarReader(SessionBarReader):
             (minutes in range, sids) with a dtype of float64, containing the
             values for the respective field over start and end dt range.
         """
-        self._validate_assets(assets)
         self._validate_timestamp(start_date)
         self._validate_timestamp(end_date)
 
         start = start_date.asm8
         end = end_date.asm8
-
-        sid_selector = self.sids.searchsorted(assets)
         date_slice = self._compute_date_range_slice(start, end)
+        n_dates = date_slice.stop - date_slice.start
 
-        nrows = date_slice.stop - date_slice.start
-        ncols = len(self.sids)
+        # Create a buffer into which we'll read data from the h5 file.
+        # Allocate an extra row of space that will always contain null values.
+        # We'll use that space to provide "data" for entries in ``assets`` that
+        # are unknown to us.
+        full_buf = np.zeros((len(self.sids) + 1, n_dates), dtype=np.uint32)
+        # We'll only read values into this portion of the read buf.
+        mutable_buf = full_buf[:-1]
 
-        buf = np.zeros((ncols, nrows), dtype=np.uint32)
+        # Indexer that converts an array aligned to self.sids (which is what we
+        # pull from the h5 file) into an array aligned to ``assets``.
+        #
+        # Unknown assets will have an index of -1, which means they'll always
+        # pull from the last row of the read buffer. We allocated an extra
+        # empty row above so that these lookups will cause us to fill our
+        # output buffer with "null" values.
+        sid_selector = self._make_sid_selector(assets)
 
         out = []
         for column in columns:
-            # Zero the buffer to prepare it to receive new data.
-            buf.fill(0)
+            # Zero the buffer to prepare to receive new data.
+            mutable_buf.fill(0)
 
             dataset = self._country_group[DATA][column]
 
+            # Fill the mutable portion of our buffer with data from the file.
             dataset.read_direct(
-                buf,
-                np.s_[:, date_slice.start:date_slice.stop],
+                mutable_buf,
+                np.s_[:, date_slice],
             )
 
-            out.append(
-                self._postprocessors[column](
-                    buf[sid_selector].T
-                )
-            )
+            # Select data from the **full buffer**. Unknown assets will pull
+            # from the last row, which is always empty.
+            out.append(self._postprocessors[column](full_buf[sid_selector].T))
 
         return out
+
+    def _make_sid_selector(self, assets):
+        """
+        Build an indexer mapping ``self.sids`` to ``assets``.
+
+        Parameters
+        ----------
+        assets : list[int]
+            List of assets requested by a caller of ``load_raw_arrays``.
+
+        Returns
+        -------
+        index : np.array[int64]
+            Index array containing the index in ``self.sids`` for each location
+            in ``assets``. Entries in ``assets`` for which we don't have a sid
+            will contain -1. It is caller's responsibility to handle these
+            values correctly.
+        """
+        assets = np.array(assets)
+        sid_selector = self.sids.searchsorted(assets)
+        unknown = np.in1d(assets, self.sids, invert=True)
+        sid_selector[unknown] = -1
+        return sid_selector
 
     def _compute_date_range_slice(self, start_date, end_date):
         # Get the index of the start of dates for ``start_date``.
@@ -726,21 +758,19 @@ class MultiCountryDailyBarReader(SessionBarReader):
         return viewkeys(self._readers)
 
     def _country_code_for_assets(self, assets):
-        try:
-            country_codes = self._country_map.loc[assets]
-        except KeyError as exc:
-            raise_from(
-                NoDataForSid(
-                    'Assets not contained in daily pricing file: {}'.format(
-                        set(assets) - set(self._country_map)
-                    )
-                ),
-                exc
-            )
+        country_codes = self._country_map.get(assets)
 
-        unique_country_codes = country_codes.unique()
+        # In some versions of pandas (observed in 0.22), Series.get()
+        # returns None if none of the labels are in the index.
+        if country_codes is not None:
+            unique_country_codes = country_codes.dropna().unique()
+            num_countries = len(unique_country_codes)
+        else:
+            num_countries = 0
 
-        if len(unique_country_codes) > 1:
+        if num_countries == 0:
+            raise ValueError('At least one valid asset id is required.')
+        elif num_countries > 1:
             raise NotImplementedError(
                 (
                     'Assets were requested from multiple countries ({}),'
@@ -859,8 +889,18 @@ class MultiCountryDailyBarReader(SessionBarReader):
         NoDataOnDate
             If the given dt is not a valid market minute (in minute mode) or
             session (in daily mode) according to this reader's tradingcalendar.
+        NoDataForSid
+            If the given sid is not valid.
         """
-        country_code = self._country_code_for_assets([sid])
+        try:
+            country_code = self._country_code_for_assets([sid])
+        except ValueError as exc:
+            raise_from(
+                NoDataForSid(
+                    'Asset not contained in daily pricing file: {}'.format(sid)
+                ),
+                exc
+            )
         return self._readers[country_code].get_value(sid, dt, field)
 
     def get_last_traded_dt(self, asset, dt):

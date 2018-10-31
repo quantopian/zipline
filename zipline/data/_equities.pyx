@@ -19,6 +19,7 @@ from cpython cimport bool
 from numpy import (
     array,
     float64,
+    full,
     intp,
     uint32,
     zeros,
@@ -50,34 +51,33 @@ cpdef _compute_row_slices(dict asset_starts_absolute,
     """
     Core indexing functionality for loading raw data from bcolz.
 
-    Parameters
-    ----------
-    asset_starts_absolute : dict
-        Dictionary containing the index of the first row of each asset in the
-        bcolz file from which we will query.
-
-    asset_ends_absolute : dict
-        Dictionary containing the index of the last row of each asset in the
-        bcolz file from which we will query.
-
-    asset_starts_calendar : dict
-        Dictionary containing the index of in our calendar corresponding to the
-        start date of each asset
-
-    query_start : intp
-    query_end : intp
-        Start and end indices in our calendar of the dates for which we're
-        querying.
-
-    requested_assets : pandas.Int64Index
-        The assets for which we want to load data.
-
     For each asset in requested assets, computes three values:
+
     1.) The index in the raw bcolz data of first row to load.
     2.) The index in the raw bcolz data of the last row to load.
     3.) The index in the dates of our query corresponding to the first row for
         each asset. This is non-zero iff the asset's lifetime begins partway
         through the requested query dates.
+
+    Values for unknown sids will be populated with a value of -1.
+
+    Parameters
+    ----------
+    asset_starts_absolute : dict
+        Dictionary containing the index of the first row of each asset in the
+        bcolz file from which we will query.
+    asset_ends_absolute : dict
+        Dictionary containing the index of the last row of each asset in the
+        bcolz file from which we will query.
+    asset_starts_calendar : dict
+        Dictionary containing the index of in our calendar corresponding to the
+        start date of each asset
+    query_start : intp
+        Start index in our calendar of the dates for which we're querying.
+    query_end : intp
+        End index in our calendar of the dates for which we're querying.
+    requested_assets : pandas.Int64Index
+        The assets for which we want to load data.
 
     Returns
     -------
@@ -87,9 +87,9 @@ cpdef _compute_row_slices(dict asset_starts_absolute,
         intp_t nassets = len(requested_assets)
 
         # For each sid, we need to compute the following:
-        ndarray[dtype=intp_t, ndim=1] first_row_a = zeros(nassets, dtype=intp)
-        ndarray[dtype=intp_t, ndim=1] last_row_a = zeros(nassets, dtype=intp)
-        ndarray[dtype=intp_t, ndim=1] offset_a = zeros(nassets, dtype=intp)
+        ndarray[dtype=intp_t, ndim=1] first_row_a = full(nassets, -1, dtype=intp)
+        ndarray[dtype=intp_t, ndim=1] last_row_a = full(nassets, -1, dtype=intp)
+        ndarray[dtype=intp_t, ndim=1] offset_a = full(nassets, -1, dtype=intp)
 
         # Loop variables.
         intp_t i
@@ -99,7 +99,17 @@ cpdef _compute_row_slices(dict asset_starts_absolute,
         intp_t asset_start_calendar
         intp_t asset_end_calendar
 
+        # Flag to check whether we should raise an error because we don't know
+        # about any of the requested sids.
+        uint8_t any_hits = 0
+
     for i, asset in enumerate(requested_assets):
+        if asset not in asset_starts_absolute:
+            # This is an unknown asset, leave its slot empty.
+            continue
+
+        any_hits = 1
+
         asset_start_data = asset_starts_absolute[asset]
         asset_end_data = asset_ends_absolute[asset]
         asset_start_calendar = asset_starts_calendar[asset]
@@ -125,6 +135,9 @@ cpdef _compute_row_slices(dict asset_starts_absolute,
         # Otherwise, offset by the number of rows in the query in which the
         # asset did not yet exist.
         offset_a[i] = max(0, asset_start_calendar - query_start)
+
+    if not any_hits:
+        raise ValueError('At least one valid asset id is required.')
 
     return first_row_a, last_row_a, offset_a
 
@@ -191,8 +204,13 @@ cpdef _read_bcolz_data(ctable_t table,
 
             for asset in range(nassets):
                 first_row = first_rows[asset]
+                if first_row == -1:
+                    # This is an unknown asset, leave its slot empty.
+                    continue
+
                 last_row = last_rows[asset]
                 offset = offsets[asset]
+
                 if first_row <= last_row:
                     outbuf[offset:offset + (last_row + 1 - first_row), asset] =\
                         raw_data[first_row:last_row + 1]
@@ -203,6 +221,10 @@ cpdef _read_bcolz_data(ctable_t table,
 
             for asset in range(nassets):
                 first_row = first_rows[asset]
+                if first_row == -1:
+                    # This is an unknown asset, leave its slot empty.
+                    continue
+
                 last_row = last_rows[asset]
                 offset = offsets[asset]
                 out_start = offset

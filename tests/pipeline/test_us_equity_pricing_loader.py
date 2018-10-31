@@ -491,11 +491,13 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
 
         expected_baseline_closes = expected_bar_values_2d(
             shifted_query_days,
+            self.sids,
             self.asset_info,
             'close',
         )
         expected_baseline_volumes = expected_bar_values_2d(
             shifted_query_days,
+            self.sids,
             self.asset_info,
             'volume',
         )
@@ -569,11 +571,13 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
 
         expected_baseline_highs = expected_bar_values_2d(
             shifted_query_days,
+            self.sids,
             self.asset_info,
             'high',
         )
         expected_baseline_volumes = expected_bar_values_2d(
             shifted_query_days,
+            self.sids,
             self.asset_info,
             'volume',
         )
