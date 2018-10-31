@@ -303,7 +303,7 @@ class SimplePipelineEngine(PipelineEngine):
 
             )
 
-        domain = self._resolve_domain(pipeline)
+        domain = self.resolve_domain(pipeline)
 
         graph = pipeline.to_execution_plan(
             domain, self._root_mask_term, start_date, end_date,
@@ -337,7 +337,7 @@ class SimplePipelineEngine(PipelineEngine):
 
     @copydoc(PipelineEngine.run_chunked_pipeline)
     def run_chunked_pipeline(self, pipeline, start_date, end_date, chunksize):
-        domain = self._resolve_domain(pipeline)
+        domain = self.resolve_domain(pipeline)
         ranges = compute_date_range_chunks(
             domain.all_sessions(),
             start_date,
@@ -751,7 +751,7 @@ class SimplePipelineEngine(PipelineEngine):
                     )
                 )
 
-    def _resolve_domain(self, pipeline):
+    def resolve_domain(self, pipeline):
         """Resolve a concrete domain for ``pipeline``.
         """
         domain = pipeline.domain(default=self._default_domain)
