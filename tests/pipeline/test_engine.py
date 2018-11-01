@@ -1575,8 +1575,16 @@ class ResolveDomainTestCase(zf.ZiplineTestCase):
     def test_resolve_domain(self):
         # we need to pass a get_loader and an asset_finder to construct
         # SimplePipelineEngine, but do not expect to use them
-        get_loader = NamedExplodingObject('get_loader')
-        asset_finder = NamedExplodingObject('asset_finder')
+        get_loader = NamedExplodingObject(
+            'self._get_loader',
+            'SimplePipelineEngine does not currently depend on get_loader '
+            'at construction time. Update this test if it now does.'
+        )
+        asset_finder = NamedExplodingObject(
+            'self._finder',
+            'SimplePipelineEngine does not currently depend on asset_finder '
+            'at construction time. Update this test if it now does.'
+        )
 
         engine_generic = SimplePipelineEngine(
             get_loader, asset_finder, default_domain=GENERIC
