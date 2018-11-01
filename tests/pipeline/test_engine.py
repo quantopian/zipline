@@ -86,6 +86,7 @@ from zipline.testing import (
     product_upper_triangle,
 )
 import zipline.testing.fixtures as zf
+from zipline.utils.exploding_object import NamedExplodingObject
 from zipline.testing.core import create_simple_domain
 from zipline.testing.predicates import assert_equal
 from zipline.utils.memoize import lazyval
@@ -1572,11 +1573,16 @@ class MaximumRegressionTest(zf.WithSeededRandomPipelineEngine,
 class ResolveDomainTestCase(zf.ZiplineTestCase):
 
     def test_resolve_domain(self):
+        # we need to pass a get_loader and an asset_finder to construct
+        # SimplePipelineEngine, but do not expect to use them
+        get_loader = NamedExplodingObject('get_loader')
+        asset_finder = NamedExplodingObject('asset_finder')
+
         engine_generic = SimplePipelineEngine(
-            None, None, default_domain=GENERIC
+            get_loader, asset_finder, default_domain=GENERIC
         )
         engine_jp = SimplePipelineEngine(
-            None, None, default_domain=JP_EQUITIES
+            get_loader, asset_finder, default_domain=JP_EQUITIES
         )
 
         pipe_generic = Pipeline()
