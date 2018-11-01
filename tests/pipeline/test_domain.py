@@ -506,3 +506,40 @@ class RollForwardTestCase(zf.ZiplineTestCase):
             JP_EQUITIES.roll_forward('2017-01-04'),
             pd.Timestamp('2017-01-04', tz='UTC'),
         )
+
+        # requesting a session beyond the last session raises an IndexError
+        day_after_last_session = \
+            JP_EQUITIES.calendar.last_session + pd.Timedelta(days=1)
+
+        with self.assertRaises(IndexError) as ie:
+            JP_EQUITIES.roll_forward(day_after_last_session)
+
+        self.assertEqual(
+            str(ie.exception),
+            "Could not roll forward 2019-11-02 because it is the last "
+            "session for EquityCalendarDomain('JP', 'XTKS')"
+        )
+
+        # test that a roll_forward works with an EquitySessionDomain,
+        # not just calendar domains
+        sessions = pd.DatetimeIndex(
+            ['2000-01-01',
+             '2000-02-01',
+             '2000-04-01',
+             '2000-06-01'],
+            tz='UTC'
+        )
+
+        session_domain = EquitySessionDomain(
+            sessions, CountryCode.UNITED_STATES
+        )
+
+        self.assertEqual(
+            session_domain.roll_forward('2000-02-01'),
+            pd.Timestamp('2000-02-01', tz='UTC'),
+        )
+
+        self.assertEqual(
+            session_domain.roll_forward('2000-02-02'),
+            pd.Timestamp('2000-04-01', tz='UTC'),
+        )
