@@ -86,11 +86,16 @@ class IDomain(Interface):
         """
         dt = pd.Timestamp(dt, tz='UTC')
 
-        if self.calendar.is_session(dt):
-            return dt
-
         trading_days = self.all_sessions()
-        return trading_days[trading_days.searchsorted(dt)]
+        if dt in trading_days:
+            return dt
+        try:
+            return trading_days[trading_days.searchsorted(dt)]
+        except IndexError:
+            raise IndexError(
+                "Could not roll forward {} because it is the last session for "
+                "{}".format(dt.date(), self)
+            )
 
 
 Domain = implements(IDomain)
