@@ -1607,3 +1607,11 @@ class ResolveDomainTestCase(zf.ZiplineTestCase):
         # trying to infer a pipeline whose domain is also GENERIC
         with self.assertRaises(ValueError):
             engine_generic.resolve_domain(pipe_generic)
+
+        # infer domain from the column if the pipeline and engine have
+        # a GENERIC domain
+        pipe = Pipeline({'close': USEquityPricing.close.latest})
+        self.assertIs(
+            engine_generic.resolve_domain(pipe),
+            US_EQUITIES,
+        )

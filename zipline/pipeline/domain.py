@@ -72,7 +72,7 @@ class IDomain(Interface):
         """
 
     @default
-    def adjust_date(self, dt):
+    def roll_forward(self, dt):
         """
         Given a date, align it to the calendar of the pipeline's domain.
 

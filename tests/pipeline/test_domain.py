@@ -481,9 +481,9 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
         assert_equal(expected, actual)
 
 
-class AdjustDateTestCase(zf.ZiplineTestCase):
+class RollForwardTestCase(zf.ZiplineTestCase):
 
-    def test_adjust_date(self):
+    def test_roll_forward(self):
         #     January 2017
         # Su Mo Tu We Th Fr Sa
         #  1  2  3  4  5  6  7
@@ -491,18 +491,18 @@ class AdjustDateTestCase(zf.ZiplineTestCase):
         # the first three days of the year are holidays on the Tokyo exchange,
         # so the first trading day should be the fourth
         self.assertEqual(
-            JP_EQUITIES.adjust_date('01-01-2017'),
-            pd.Timestamp('01-04-2017', tz='UTC'),
+            JP_EQUITIES.roll_forward('2017-01-01'),
+            pd.Timestamp('2017-01-04', tz='UTC'),
         )
 
         # in US exchanges, the first trading day after 1/1 is the 3rd
         self.assertEqual(
-            US_EQUITIES.adjust_date('01-01-2017'),
-            pd.Timestamp('01-03-2017', tz='UTC'),
+            US_EQUITIES.roll_forward('2017-01-01'),
+            pd.Timestamp('2017-01-03', tz='UTC'),
         )
 
-        # passing a valid trading day to adjust_date should return that day
+        # passing a valid trading day to roll_forward should return that day
         self.assertEqual(
-            JP_EQUITIES.adjust_date('01-04-2017'),
-            pd.Timestamp('01-04-2017', tz='UTC'),
+            JP_EQUITIES.roll_forward('2017-01-04'),
+            pd.Timestamp('2017-01-04', tz='UTC'),
         )
