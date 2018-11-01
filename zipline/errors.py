@@ -338,7 +338,7 @@ class SameSymbolUsedAcrossCountries(MultipleSymbolsFound):
         The symbol '{symbol}' is used in more than one country. Use the
         country_code argument to to specify the country.
 
-        Possible options: {options}
+        Possible options by country: {options}
     """)
 
 

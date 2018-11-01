@@ -822,11 +822,12 @@ class AssetFinder(object):
             options = {self.retrieve_asset(owner.sid) for owner in owners}
 
             if multi_country:
-                country_codes = set(map(attrgetter('country_code'), options))
+                country_codes = map(attrgetter('country_code'), options)
 
-                if len(country_codes) > 1:
+                if len(set(country_codes)) > 1:
                     raise SameSymbolUsedAcrossCountries(
-                        symbol=symbol, options=options
+                        symbol=symbol,
+                        options=dict(zip(country_codes, options))
                     )
 
             # more than one equity has held this ticker, this
@@ -834,6 +835,7 @@ class AssetFinder(object):
             raise MultipleSymbolsFound(symbol=symbol, options=options)
 
         options = []
+        country_codes = []
         for start, end, sid, _ in owners:
             if start <= as_of_date < end:
                 # find the equity that owned it on the given asof date
@@ -845,6 +847,7 @@ class AssetFinder(object):
                     return asset
                 else:
                     options.append(asset)
+                    country_codes.append(asset.country_code)
 
         if not options:
             # no equity held the ticker on the given asof date
@@ -856,7 +859,10 @@ class AssetFinder(object):
 
         # if there's more than one option given the asof date, a country code
         # must be passed to resolve the symbol to an asset
-        raise SameSymbolUsedAcrossCountries(symbol=symbol, options=options)
+        raise SameSymbolUsedAcrossCountries(
+            symbol=symbol,
+            options=dict(zip(country_codes, options))
+        )
 
     def _lookup_symbol_fuzzy(self,
                              ownership_map,
