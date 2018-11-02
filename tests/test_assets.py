@@ -66,10 +66,12 @@ from zipline.errors import (
     EquitiesNotFound,
     FutureContractsNotFound,
     MultipleSymbolsFound,
+    MultipleSymbolsFoundForFuzzySymbol,
     MultipleValuesFoundForField,
     MultipleValuesFoundForSid,
     NoValueForSid,
     AssetDBVersionError,
+    SameSymbolUsedAcrossCountries,
     SidsNotFound,
     SymbolNotFound,
     AssetDBImpossibleDowngrade,
@@ -1005,10 +1007,19 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
 
         self.write_assets(equities=data, exchanges=exchanges)
 
-        with self.assertRaises(MultipleSymbolsFound):
+        # looking up a symbol shared by two assets across countries should
+        # raise a SameSymbolUsedAcrossCountries if a country code is not passed
+        with self.assertRaises(SameSymbolUsedAcrossCountries):
             self.asset_finder.lookup_generic(
                 'real',
                 as_of_date=pd.Timestamp('2014-1-1', tz='UTC'),
+                country_code=None,
+            )
+
+        with self.assertRaises(SameSymbolUsedAcrossCountries):
+            self.asset_finder.lookup_generic(
+                'real',
+                as_of_date=None,
                 country_code=None,
             )
 
@@ -1610,7 +1621,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
             # Adding an unnecessary delimiter shouldn't matter.
             for delimiter in '-', '/', '_', '.':
                 ticker = 'TEST%sA' % delimiter
-                with self.assertRaises(MultipleSymbolsFound):
+                with self.assertRaises(SameSymbolUsedAcrossCountries):
                     finder.lookup_symbol(ticker, as_of)
 
                 for n in range(num_assets):
@@ -1663,11 +1674,16 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
                     country_code=self.country_code(n),
                 )
 
-        with self.assertRaises(MultipleSymbolsFound):
+        with self.assertRaises(MultipleSymbolsFoundForFuzzySymbol):
             finder.lookup_symbol('PRTYHRD', None, fuzzy=True)
 
-        with self.assertRaises(MultipleSymbolsFound):
+        with self.assertRaises(MultipleSymbolsFoundForFuzzySymbol):
             finder.lookup_symbol('PRTYHRD', dt, fuzzy=True)
+
+        # if more than one asset is fuzzy matched within the same country,
+        # raise an error
+        with self.assertRaises(MultipleSymbolsFoundForFuzzySymbol):
+            finder.lookup_symbol('BRK.A', None, country_code='AA', fuzzy=True)
 
         def check_sid(expected_sid, ticker, country_code):
             params = (
@@ -1677,7 +1693,12 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
                 {'as_of_date': dt, 'fuzzy': True},
             )
             for extra_params in params:
-                with self.assertRaises(MultipleSymbolsFound):
+                if 'fuzzy' in extra_params:
+                    expected_error = MultipleSymbolsFoundForFuzzySymbol
+                else:
+                    expected_error = SameSymbolUsedAcrossCountries
+
+                with self.assertRaises(expected_error):
                     finder.lookup_symbol(ticker, **extra_params)
 
                 self.assertEqual(
@@ -1762,7 +1783,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
                                             expected_symbol,
                                             expected_name):
             # ensure this is ambiguous across all countries
-            with self.assertRaises(MultipleSymbolsFound):
+            with self.assertRaises(SameSymbolUsedAcrossCountries):
                 finder.lookup_symbol(symbol, as_of_date)
 
             for n in range(num_countries):
@@ -1885,7 +1906,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
                         country_code=self.country_code(n),
                     )
 
-            with self.assertRaises(MultipleSymbolsFound):
+            with self.assertRaises(SameSymbolUsedAcrossCountries):
                 finder.lookup_symbol('EXISTING', None)
 
             for n in range(num_countries):
@@ -1899,7 +1920,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
             for i, date in enumerate(dates):
                 # Verify that we correctly resolve multiple symbols using
                 # the supplied date
-                with self.assertRaises(MultipleSymbolsFound):
+                with self.assertRaises(SameSymbolUsedAcrossCountries):
                     finder.lookup_symbol('EXISTING', date)
 
                 for n in range(num_countries):
@@ -2021,7 +2042,6 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
                     'end_date': date.max.value,
                     'exchange': 'EXCHANGE %d' % n,
                 },
-
             ]
             for n in range(num_countries)
         ))
@@ -2034,7 +2054,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
         self.write_assets(equities=df, exchanges=exchanges)
         finder = self.asset_finder
 
-        with self.assertRaises(MultipleSymbolsFound):
+        with self.assertRaises(MultipleSymbolsFoundForFuzzySymbol):
             finder.lookup_symbol(
                 'FOO/B',
                 date + timedelta(days=90),

@@ -43,10 +43,12 @@ from zipline.errors import (
     EquitiesNotFound,
     FutureContractsNotFound,
     MultipleSymbolsFound,
+    MultipleSymbolsFoundForFuzzySymbol,
     MultipleValuesFoundForField,
     MultipleValuesFoundForSid,
     NoValueForSid,
     ValueNotFoundForField,
+    SameSymbolUsedAcrossCountries,
     SidsNotFound,
     SymbolNotFound,
 )
@@ -812,39 +814,55 @@ class AssetFinder(object):
             raise SymbolNotFound(symbol=symbol)
 
         if not as_of_date:
-            if len(owners) > 1:
-                # more than one equity has held this ticker, this is ambigious
-                # without the date
-                raise MultipleSymbolsFound(
-                    symbol=symbol,
-                    options=set(map(
-                        compose(self.retrieve_asset, attrgetter('sid')),
-                        owners,
-                    )),
-                )
-
             # exactly one equity has ever held this symbol, we may resolve
             # without the date
-            return self.retrieve_asset(owners[0].sid)
+            if len(owners) == 1:
+                return self.retrieve_asset(owners[0].sid)
+
+            options = {self.retrieve_asset(owner.sid) for owner in owners}
+
+            if multi_country:
+                country_codes = map(attrgetter('country_code'), options)
+
+                if len(set(country_codes)) > 1:
+                    raise SameSymbolUsedAcrossCountries(
+                        symbol=symbol,
+                        options=dict(zip(country_codes, options))
+                    )
+
+            # more than one equity has held this ticker, this
+            # is ambiguous without the date
+            raise MultipleSymbolsFound(symbol=symbol, options=options)
 
         options = []
+        country_codes = []
         for start, end, sid, _ in owners:
             if start <= as_of_date < end:
                 # find the equity that owned it on the given asof date
                 asset = self.retrieve_asset(sid)
+
+                # if this asset owned the symbol on this asof date and we are
+                # only searching one country, return that asset
                 if not multi_country:
                     return asset
                 else:
                     options.append(asset)
-
-        if len(options) == 1:
-            return options[0]
+                    country_codes.append(asset.country_code)
 
         if not options:
             # no equity held the ticker on the given asof date
             raise SymbolNotFound(symbol=symbol)
 
-        raise MultipleSymbolsFound(symbol=symbol, options=options)
+        # if there is one valid option given the asof date, return that option
+        if len(options) == 1:
+            return options[0]
+
+        # if there's more than one option given the asof date, a country code
+        # must be passed to resolve the symbol to an asset
+        raise SameSymbolUsedAcrossCountries(
+            symbol=symbol,
+            options=dict(zip(country_codes, options))
+        )
 
     def _lookup_symbol_fuzzy(self,
                              ownership_map,
@@ -875,8 +893,8 @@ class AssetFinder(object):
                 # there was only one exact match
                 return options[0]
 
-            # there are more than one exact match for this fuzzy symbol
-            raise MultipleSymbolsFound(
+            # there is more than one exact match for this fuzzy symbol
+            raise MultipleSymbolsFoundForFuzzySymbol(
                 symbol=symbol,
                 options=self.retrieve_all(owner.sid for owner in owners),
             )
@@ -915,7 +933,7 @@ class AssetFinder(object):
 
         # multiple equities held tickers matching the fuzzy ticker but
         # there are no exact matches
-        raise MultipleSymbolsFound(
+        raise MultipleSymbolsFoundForFuzzySymbol(
             symbol=symbol,
             options=self.retrieve_all(owner.sid for owner in owners),
         )
