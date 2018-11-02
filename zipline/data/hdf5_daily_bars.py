@@ -1,71 +1,88 @@
 """
-Reader and writer for the HDF5 daily pricing file format.
-
+HDF5 Pricing File Format
+------------------------
 At the top level, the file is keyed by country (to support regional
 files containing multiple countries).
 
-###
-
 Within each country, there are 3 subgroups:
 
-1) /data
-     /open
-     /high
-     /low
-     /close
-     /volume
-
+``/data``
+^^^^^^^^^
 Each field (OHLCV) is stored in a dataset as a 2D array, with a row per
 sid and a column per session. This differs from the more standard
 orientation of dates x sids, because it allows each compressed block to
 contain contiguous values for the same sid, which allows for better
 compression.
 
-2) /index
-     /sid
-     /day
+.. code-block:: none
 
+   /data
+     /open
+     /high
+     /low
+     /close
+     /volume
+
+``/index``
+^^^^^^^^^^
 Contains two datasets, the index of sids (aligned to the rows of the
 OHLCV 2D arrays) and index of sessions (aligned to the columns of the
 OHLCV 2D arrays) to use for lookups.
 
-3) /lifetimes
-     /start_date
-     /end_date
+.. code-block:: none
 
+   /index
+     /sid
+     /day
+
+``/lifetimes``
+^^^^^^^^^^^^^^
 Contains two datasets, start_date and end_date, defining the lifetime
 for each asset, aligned to the sids index.
 
-###
+.. code-block:: none
 
-Sample layout of the full file with multiple countries:
+   /lifetimes
+     /start_date
+     /end_date
 
-    /US
-      /data
-        /open
-        /high
-        /low
-        /close
-        /volume
-      /index
-        /sid
-        /day
-      /lifetimes
-        /start_date
-        /end_date
-    /CA
-      /data
-        /open
-        /high
-        /low
-        /close
-        /volume
-      /index
-        /sid
-        /day
-      /lifetimes
-        /start_date
-        /end_date
+Example
+^^^^^^^
+Sample layout of the full file with multiple countries.
+
+.. code-block:: none
+
+   |- /US
+   |  |- /data
+   |  |  |- /open
+   |  |  |- /high
+   |  |  |- /low
+   |  |  |- /close
+   |  |  |- /volume
+   |  |
+   |  |- /index
+   |  |  |- /sid
+   |  |  |- /day
+   |  |
+   |  |- /lifetimes
+   |     |- /start_date
+   |     |- /end_date
+   |
+   |- /CA
+      |- /data
+      |  |- /open
+      |  |- /high
+      |  |- /low
+      |  |- /close
+      |  |- /volume
+      |
+      |- /index
+      |  |- /sid
+      |  |- /day
+      |
+      |- /lifetimes
+         |- /start_date
+         |- /end_date
 """
 
 
