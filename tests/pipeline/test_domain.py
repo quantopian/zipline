@@ -485,3 +485,78 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
         actual = domain.data_query_cutoff_for_sessions(utc_sessions)
 
         assert_equal(expected, actual)
+
+
+class RollForwardTestCase(zf.ZiplineTestCase):
+
+    def test_roll_forward(self):
+        #     January 2017
+        # Su Mo Tu We Th Fr Sa
+        #  1  2  3  4  5  6  7
+
+        # the first three days of the year are holidays on the Tokyo exchange,
+        # so the first trading day should be the fourth
+        self.assertEqual(
+            JP_EQUITIES.roll_forward('2017-01-01'),
+            pd.Timestamp('2017-01-04', tz='UTC'),
+        )
+
+        # in US exchanges, the first trading day after 1/1 is the 3rd
+        self.assertEqual(
+            US_EQUITIES.roll_forward('2017-01-01'),
+            pd.Timestamp('2017-01-03', tz='UTC'),
+        )
+
+        # passing a valid trading day to roll_forward should return that day
+        self.assertEqual(
+            JP_EQUITIES.roll_forward('2017-01-04'),
+            pd.Timestamp('2017-01-04', tz='UTC'),
+        )
+
+        # passing a date before the first session should return the
+        # first session
+        before_first_session = \
+            JP_EQUITIES.calendar.first_session - pd.Timedelta(days=20)
+
+        self.assertEqual(
+            JP_EQUITIES.roll_forward(before_first_session),
+            JP_EQUITIES.calendar.first_session
+        )
+
+        # requesting a session beyond the last session raises an ValueError
+        after_last_session = \
+            JP_EQUITIES.calendar.last_session + pd.Timedelta(days=20)
+
+        with self.assertRaises(ValueError) as ve:
+            JP_EQUITIES.roll_forward(after_last_session)
+
+        self.assertEqual(
+            str(ve.exception),
+            "Date 2019-11-21 was past the last session for domain "
+            "EquityCalendarDomain('JP', 'XTKS'). The last session for "
+            "this domain is 2019-11-01."
+        )
+
+        # test that a roll_forward works with an EquitySessionDomain,
+        # not just calendar domains
+        sessions = pd.DatetimeIndex(
+            ['2000-01-01',
+             '2000-02-01',
+             '2000-04-01',
+             '2000-06-01'],
+            tz='UTC'
+        )
+
+        session_domain = EquitySessionDomain(
+            sessions, CountryCode.UNITED_STATES
+        )
+
+        self.assertEqual(
+            session_domain.roll_forward('2000-02-01'),
+            pd.Timestamp('2000-02-01', tz='UTC'),
+        )
+
+        self.assertEqual(
+            session_domain.roll_forward('2000-02-02'),
+            pd.Timestamp('2000-04-01', tz='UTC'),
+        )

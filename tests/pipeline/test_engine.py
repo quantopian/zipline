@@ -47,7 +47,12 @@ from zipline.pipeline.data import (
     Column, DataSet, EquityPricing, USEquityPricing,
 )
 from zipline.pipeline.data.testing import TestingDataSet
-from zipline.pipeline.domain import US_EQUITIES, EquitySessionDomain
+from zipline.pipeline.domain import (
+    EquitySessionDomain,
+    GENERIC,
+    JP_EQUITIES,
+    US_EQUITIES,
+)
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.factors import (
     AverageDollarVolume,
@@ -81,6 +86,7 @@ from zipline.testing import (
     product_upper_triangle,
 )
 import zipline.testing.fixtures as zf
+from zipline.utils.exploding_object import NamedExplodingObject
 from zipline.testing.core import create_simple_domain
 from zipline.testing.predicates import assert_equal
 from zipline.utils.memoize import lazyval
@@ -1562,3 +1568,64 @@ class MaximumRegressionTest(zf.WithSeededRandomPipelineEngine,
                         .reset_index(level=1, drop=True))
 
         assert_equal(groupby_max, pipeline_max)
+
+
+class ResolveDomainTestCase(zf.ZiplineTestCase):
+
+    def test_resolve_domain(self):
+        # we need to pass a get_loader and an asset_finder to construct
+        # SimplePipelineEngine, but do not expect to use them
+        get_loader = NamedExplodingObject(
+            'self._get_loader',
+            'SimplePipelineEngine does not currently depend on get_loader '
+            'at construction time. Update this test if it now does.'
+        )
+        asset_finder = NamedExplodingObject(
+            'self._finder',
+            'SimplePipelineEngine does not currently depend on asset_finder '
+            'at construction time. Update this test if it now does.'
+        )
+
+        engine_generic = SimplePipelineEngine(
+            get_loader, asset_finder, default_domain=GENERIC
+        )
+        engine_jp = SimplePipelineEngine(
+            get_loader, asset_finder, default_domain=JP_EQUITIES
+        )
+
+        pipe_generic = Pipeline()
+        pipe_us = Pipeline(domain=US_EQUITIES)
+
+        # the engine should resolve a pipeline that already has a domain
+        # to that domain
+        self.assertIs(
+            engine_jp.resolve_domain(pipe_us),
+            US_EQUITIES
+        )
+
+        # the engine should resolve a pipeline without a domain to the engine's
+        # default
+        self.assertIs(
+            engine_jp.resolve_domain(pipe_generic),
+            JP_EQUITIES
+        )
+
+        # a generic engine should resolve to the pipeline's domain
+        # if it has one
+        self.assertIs(
+            engine_generic.resolve_domain(pipe_us),
+            US_EQUITIES
+        )
+
+        # an engine with a default of GENERIC should raise a ValueError when
+        # trying to infer a pipeline whose domain is also GENERIC
+        with self.assertRaises(ValueError):
+            engine_generic.resolve_domain(pipe_generic)
+
+        # infer domain from the column if the pipeline and engine have
+        # a GENERIC domain
+        pipe = Pipeline({'close': USEquityPricing.close.latest})
+        self.assertIs(
+            engine_generic.resolve_domain(pipe),
+            US_EQUITIES,
+        )
