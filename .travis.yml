@@ -24,17 +24,17 @@ matrix:
   exclude:
     - python: 2.7
       env: NEW_PANDAS=1
-  include:
-    # Workaround Travis OSX not natively supporting Python.
-    - os: osx
-      language: generic
-      env: TRAVIS_PYTHON_VERSION=2.7 OLD_PANDAS=1
-    - os: osx
-      language: generic
-      env: TRAVIS_PYTHON_VERSION=3.5 OLD_PANDAS=1
-    - os: osx
-      language: generic
-      env: TRAVIS_PYTHON_VERSION=3.5 NEW_PANDAS=1
+#  include:
+#    # Workaround Travis OSX not natively supporting Python.
+#    - os: osx
+#      language: generic
+#      env: TRAVIS_PYTHON_VERSION=2.7 OLD_PANDAS=1
+#    - os: osx
+#      language: generic
+#      env: TRAVIS_PYTHON_VERSION=3.5 OLD_PANDAS=1
+#    - os: osx
+#      language: generic
+#      env: TRAVIS_PYTHON_VERSION=3.5 NEW_PANDAS=1
 
 cache:
   directories:
