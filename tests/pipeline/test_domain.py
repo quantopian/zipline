@@ -532,9 +532,12 @@ class RollForwardTestCase(zf.ZiplineTestCase):
 
         self.assertEqual(
             str(ve.exception),
-            "Date 2019-11-21 was past the last session for domain "
+            "Date {} was past the last session for domain "
             "EquityCalendarDomain('JP', 'XTKS'). The last session for "
-            "this domain is 2019-11-01."
+            "this domain is {}.".format(
+                after_last_session.date(),
+                JP_EQUITIES.calendar.last_session.date(),
+            )
         )
 
         # test that a roll_forward works with an EquitySessionDomain,
