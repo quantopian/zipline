@@ -1,0 +1,23 @@
+# Testing
+coverage>=4.0.3
+nose>=1.3.7
+nose-parameterized>=0.5.0
+nose-ignore-docstring>=0.2
+nose-timer>=0.5.0
+
+mock>=2.0.0
+
+# Temp Directories for testing
+testfixtures>=4.1.2
+
+# Linting
+flake8>=3.3.0
+
+# Algo examples
+matplotlib>=1.5.3
+
+# For mocking out requests fetches
+responses>=0.9.0
+
+# Compilation of pinned requirements
+pip-tools>=4.3.0
