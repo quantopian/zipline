@@ -165,25 +165,6 @@ def _filter_requirements(lines_iter, filter_names=None,
         yield line
 
 
-REQ_UPPER_BOUNDS = {
-    'bcolz': '<1',
-    'pandas': '<=0.22',
-    'networkx': '<2.0',
-}
-
-
-def _with_bounds(req):
-    try:
-        req, lower = req.split('==')
-    except ValueError:
-        return req
-    else:
-        with_bounds = [req, '>=', lower]
-        upper = REQ_UPPER_BOUNDS.get(req)
-        if upper:
-            with_bounds.extend([',', upper])
-        return ''.join(with_bounds)
-
 
 REQ_PATTERN = re.compile(
     r"(?P<name>[^=<>]+)(?P<comp>[<=>]{1,2})(?P<spec>[^;]+)"
@@ -215,22 +196,15 @@ def _conda_format(req):
 
 
 def read_requirements(path,
-                      strict_bounds,
                       conda_format=False,
                       filter_names=None):
     """
     Read a requirements.txt file, expressed as a path relative to Zipline root.
-
-    Returns requirements with the pinned versions as lower bounds
-    if `strict_bounds` is falsey.
     """
     real_path = join(dirname(abspath(__file__)), path)
     with open(real_path) as f:
         reqs = _filter_requirements(f.readlines(), filter_names=filter_names,
                                     filter_sys_version=not conda_format)
-
-        if not strict_bounds:
-            reqs = map(_with_bounds, reqs)
 
         if conda_format:
             reqs = map(_conda_format, reqs)
@@ -238,16 +212,13 @@ def read_requirements(path,
         return list(reqs)
 
 
-def install_requires(strict_bounds=False, conda_format=False):
-    return read_requirements('etc/requirements.txt',
-                             strict_bounds=strict_bounds,
-                             conda_format=conda_format)
+def install_requires(conda_format=False):
+    return read_requirements('etc/requirements.in', conda_format=conda_format)
 
 
 def extras_requires(conda_format=False):
     extras = {
-        extra: read_requirements('etc/requirements_{0}.txt'.format(extra),
-                                 strict_bounds=True,
+        extra: read_requirements('etc/requirements_{0}.in'.format(extra),
                                  conda_format=conda_format)
         for extra in ('dev', 'talib')
     }
@@ -256,11 +227,10 @@ def extras_requires(conda_format=False):
     return extras
 
 
-def setup_requirements(requirements_path, module_names, strict_bounds,
+def setup_requirements(requirements_path, module_names,
                        conda_format=False):
     module_names = set(module_names)
     module_lines = read_requirements(requirements_path,
-                                     strict_bounds=strict_bounds,
                                      conda_format=conda_format,
                                      filter_names=module_names)
 
@@ -276,9 +246,8 @@ conda_build = os.path.basename(sys.argv[0]) in ('conda-build',  # unix
                                                 'conda-build-script.py')  # win
 
 setup_requires = setup_requirements(
-    'etc/requirements.txt',
+    'etc/requirements_build.in',
     ('Cython', 'numpy'),
-    strict_bounds=conda_build,
     conda_format=conda_build,
 )
 

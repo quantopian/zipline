@@ -18,5 +18,5 @@ if [ -n "$PANDAS_DATAREADER_VERSION" ]; then
     sed_inplace "s/pandas-datareader==.*/pandas-datareader==$PANDAS_DATAREADER_VERSION/" etc/requirements.txt
 fi
 if [ -n "$DASK_VERSION" ]; then
-    sed_inplace "s/dask\[dataframe\]==.*/dask\[dataframe\]==$DASK_VERSION/" etc/requirements_blaze.txt
+    sed_inplace "s/dask\[dataframe\]==.*/dask\[dataframe\]==$DASK_VERSION/" etc/requirements.txt
 fi

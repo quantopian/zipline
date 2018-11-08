@@ -12,7 +12,6 @@ conda-build you should be able to:
 ```bash
 conda build ta-lib
 conda build logbook
-conda build cyordereddict
 conda build zipline
 ```
 
