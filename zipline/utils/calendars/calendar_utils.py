@@ -32,6 +32,7 @@ _default_calendar_aliases = {
     'NYMEX': 'CME',
     'ICEUS': 'ICE',
     'NYFE': 'ICE',
+    'XNYS': 'NYSE',
 }
 default_calendar_names = sorted(_default_calendar_factories.keys())
 
