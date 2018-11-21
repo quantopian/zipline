@@ -31,6 +31,7 @@ class CountryCode(object):
     NORWAY = code('NORWAY')
     PORTUGAL = code('PORTUGAL')
     SINGAPORE = code('SINGAPORE')
+    SOUTH_KOREA = code('KOREA, REPUBLIC OF')
     SPAIN = code('SPAIN')
     SWEDEN = code('SWEDEN')
     SWITZERLAND = code('SWITZERLAND')
