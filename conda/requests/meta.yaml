@@ -1,0 +1,76 @@
+{% set name = "requests" %}
+{% set version = "2.20.1" %}
+{% set file_ext = "tar.gz" %}
+{% set hash_type = "sha256" %}
+{% set hash_value = "ea881206e59f41dbd0bd445437d792e43906703fff75ca8ff43ccdb11f33f263" %}
+
+package:
+  name: '{{ name|lower }}'
+  version: '{{ version }}'
+
+source:
+  fn: '{{ name }}-{{ version }}.{{ file_ext }}'
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.{{ file_ext }}
+  '{{ hash_type }}': '{{ hash_value }}'
+
+build:
+  number: 0
+  script: python setup.py install --single-version-externally-managed --record=record.txt
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - chardet >=3.0.2,<3.1.0
+    - idna >=2.5,<2.8
+    - urllib3 >=1.21.1,<1.25
+    - certifi >=2017.4.17
+  run:
+    - python
+    - chardet >=3.0.2,<3.1.0
+    - idna >=2.5,<2.8
+    - urllib3 >=1.21.1,<1.25
+    - certifi >=2017.4.17
+
+test:
+  imports:
+    - requests
+  requires:
+    - pysocks >=1.5.6,!=1.5.7
+    - pytest >=2.8.0
+    - pytest-cov
+    - pytest-httpbin ==0.0.7
+    - pytest-mock
+    - pytest-xdist
+
+about:
+  home: http://python-requests.org
+  license: Apache Software License
+  license_family: APACHE
+  license_file: ''
+  summary: Python HTTP for Humans.
+  description: "Requests: HTTP for Humans\u2122\n==========================\n\n[![image](https://img.shields.io/pypi/v/requests.svg)](https://pypi.org/project/requests/)\n[![image](https://img.shields.io/pypi/l/requests.svg)](https://pypi.org/project/requests/)\n\
+    [![image](https://img.shields.io/pypi/pyversions/requests.svg)](https://pypi.org/project/requests/)\n[![codecov.io](https://codecov.io/github/requests/requests/coverage.svg?branch=master)](https://codecov.io/github/requests/requests)\n\
+    [![image](https://img.shields.io/github/contributors/requests/requests.svg)](https://github.com/requests/requests/graphs/contributors)\n[![image](https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg)](https://saythanks.io/to/kennethreitz)\n\
+    \n**If you're interested in financially supporting Kenneth Reitz open source, consider [visiting this link](https://cash.me/$KennethReitz). Your support helps tremendously with sustainability of motivation,\
+    \ as Open Source is no longer part of my day job.**\n\nRequests is the only *Non-GMO* HTTP library for Python, safe for human\nconsumption.\n\n![image](https://farm5.staticflickr.com/4317/35198386374_1939af3de6_k_d.jpg)\n\
+    \nBehold, the power of Requests:\n\n``` {.sourceCode .python}\n>>> r = requests.get('https://api.github.com/user', auth=('user', 'pass'))\n>>> r.status_code\n200\n>>> r.headers['content-type']\n'application/json;\
+    \ charset=utf8'\n>>> r.encoding\n'utf-8'\n>>> r.text\nu'{\"type\":\"User\"...'\n>>> r.json()\n{u'disk_usage': 368627, u'private_gists': 484, ...}\n```\n\nSee [the similar code, sans Requests](https://gist.github.com/973705).\n\
+    \n[![image](https://raw.githubusercontent.com/requests/requests/master/docs/_static/requests-logo-small.png)](http://docs.python-requests.org/)\n\nRequests allows you to send *organic, grass-fed* HTTP/1.1\
+    \ requests,\nwithout the need for manual labor. There's no need to manually add query\nstrings to your URLs, or to form-encode your POST data. Keep-alive and\nHTTP connection pooling are 100% automatic,\
+    \ thanks to\n[urllib3](https://github.com/shazow/urllib3).\n\nBesides, all the cool kids are doing it. Requests is one of the most\ndownloaded Python packages of all time, pulling in over 11,000,000\n\
+    downloads every month. You don't want to be left out!\n\nFeature Support\n---------------\n\nRequests is ready for today's web.\n\n-   International Domains and URLs\n-   Keep-Alive & Connection Pooling\n\
+      -   Sessions with Cookie Persistence\n-   Browser-style SSL Verification\n-   Basic/Digest Authentication\n-   Elegant Key/Value Cookies\n-   Automatic Decompression\n-   Automatic Content Decoding\n\
+      -   Unicode Response Bodies\n-   Multipart File Uploads\n-   HTTP(S) Proxy Support\n-   Connection Timeouts\n-   Streaming Downloads\n-   `.netrc` Support\n-   Chunked Requests\n\nRequests officially\
+    \ supports Python 2.7 & 3.4\u20133.7, and runs great on\nPyPy.\n\nInstallation\n------------\n\nTo install Requests, simply use [pipenv](http://pipenv.org/) (or pip, of\ncourse):\n\n``` {.sourceCode\
+    \ .bash}\n$ pipenv install requests\n\u2728\uD83C\uDF70\u2728\n```\n\nSatisfaction guaranteed.\n\nDocumentation\n-------------\n\nFantastic documentation is available at\n<http://docs.python-requests.org/>,\
+    \ for a limited time only.\n\nHow to Contribute\n-----------------\n\n1.  Check for open issues or open a fresh issue to start a discussion\n    around a feature idea or a bug. There is a [Contributor\n\
+    \    Friendly](https://github.com/requests/requests/issues?direction=desc&labels=Contributor+Friendly&page=1&sort=updated&state=open)\n    tag for issues that should be ideal for people who are not\
+    \ very\n    familiar with the codebase yet.\n2.  Fork [the repository](https://github.com/requests/requests) on\n    GitHub to start making your changes to the **master** branch (or\n    branch off\
+    \ of it).\n3.  Write a test which shows that the bug was fixed or that the feature\n    works as expected.\n4.  Send a pull request and bug the maintainer until it gets merged and\n    published. :)\
+    \ Make sure to add yourself to\n    [AUTHORS](https://github.com/requests/requests/blob/master/AUTHORS.rst).\n\n\n\n"
+  doc_url: ''
+  dev_url: ''
+
+extra:
+  recipe-maintainers: ''
