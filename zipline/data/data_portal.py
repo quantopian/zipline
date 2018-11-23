@@ -684,7 +684,8 @@ class DataPortal(object):
 
         if isinstance(asset, Equity):
             ratio = self.get_adjustments(asset, field, dt, perspective_dt)[0]
-            spot_value *= ratio
+            if field != 'last_traded':
+                spot_value *= ratio
 
         return spot_value
 
