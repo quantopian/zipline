@@ -140,8 +140,10 @@ HurricaneSandyClosings = date_range(
 # - President Richard Nixon - April 27, 1994
 # - President Ronald W. Reagan - June 11, 2004
 # - President Gerald R. Ford - Jan 2, 2007
+# - President George H.W. Bush - Dec 5, 2018
 USNationalDaysofMourning = [
     Timestamp('1994-04-27', tz='UTC'),
     Timestamp('2004-06-11', tz='UTC'),
     Timestamp('2007-01-02', tz='UTC'),
+    Timestamp('2018-12-05', tz='UTC'),
 ]
