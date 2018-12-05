@@ -14,6 +14,12 @@ numpy==1.11.3
 # for pandas-datareader
 requests-file==1.4.1
 
+# for requests
+certifi==2018.8.24
+chardet==3.0.4
+idna==2.7
+urllib3==1.23
+
 # scipy and pandas are required for statsmodels,
 # statsmodels in turn is required for some pandas packages
 scipy==0.17.1
