@@ -94,7 +94,9 @@ install:
   - ps: $env:PYTABLES_VERSION=(sls "tables==(.*)" .\etc\requirements.txt -ca).matches.groups[1].value
   - ps: $env:H5PY_VERSION=(sls "h5py==(.*)" .\etc\requirements.txt -ca).matches.groups[1].value
   - ps: $env:TALIB_VERSION=(sls "TA-Lib==(.*)" .\etc\requirements_talib.txt -ca).matches.groups[1].value
-  # conda install `certifi` but its a dependency of `requests`, so read from requirements so versions do not diverege. 
+  # We conda install certifi at the pinned exact version because it is a transitive dependency of zipline via requests and uses distutils for packaging. 
+  # Since conda installs latest certifi by default, we would fail to uninstall that new version when trying to install the pinned version using pip later in the build:
+  # "Cannot uninstall 'certifi'. It is a distutils installed project and thus we cannot accurately determine which files belong to it which would lead to only a partial uninstall."
   - ps: $env:CERTIFI_VERSION=(sls "certifi==(.*)" .\etc\requirements.txt -ca).matches.groups[1].value
   - conda create -n testenv --yes -q --use-local pip python=%PYTHON_VERSION% numpy=%NUMPY_VERSION% pandas=%PANDAS_VERSION% scipy=%SCIPY_VERSION% ta-lib=%TALIB_VERSION% bcolz=%BCOLZ_VERSION% numexpr=%NUMEXPR_VERSION% pytables=%PYTABLES_VERSION% h5py=%H5PY_VERSION% certifi=%CERTIFI_VERSION% -c quantopian -c https://conda.anaconda.org/quantopian/label/ci
   - activate testenv
