@@ -1,5 +1,5 @@
 #
-# Copyright 2016 Quantopian, Inc.
+# Copyright 2019 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -486,7 +486,8 @@ class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
         sessions = self.cal.all_sessions
         return set(
             pd.Series(data=sessions)
-            .groupby([sessions.year, sessions.weekofyear])
+            # Group by ISO year (0) and week (1)
+            .groupby(sessions.map(lambda x: x.isocalendar()[0:2]))
             .nth(self.td_delta)
             .astype(np.int64)
         )
