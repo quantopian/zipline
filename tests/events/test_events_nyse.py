@@ -145,7 +145,7 @@ class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
         self.assertEquals(expected, results)
 
     @parameterized.expand([('week_start',), ('week_end',)])
-    def test_week_and_time_composed_rule(self, taype):
+    def test_week_and_time_composed_rule(self, type):
         week_rule = NthTradingDayOfWeek(0) if type == 'week_start' else \
             NDaysBeforeLastTradingDayOfWeek(4)
         time_rule = AfterOpen(minutes=60)
