@@ -86,6 +86,8 @@ trading-calendars==1.6.1
 
 # Interface definitions.
 python-interface==1.5.1
+funcsigs==1.0.2
+typing==3.6.2
 
 # Country Codes
 iso3166==0.9
