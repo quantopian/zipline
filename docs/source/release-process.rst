@@ -145,7 +145,7 @@ create a new virtualenv, ``cd`` into a clean directory and then run:
 
 .. code-block:: bash
 
-   $ pip install --extra-index-url https://testpypi.python.org/pypi zipline
+   $ pip install --extra-index-url https://test.pypi.org/simple zipline
    $ python -c 'import zipline;print(zipline.__version__)'
 
 
@@ -156,7 +156,7 @@ Now that we have tested locally and on PyPI test, it is time to upload to PyPI:
 
 .. code-block:: bash
 
-   $ python setup.py sdist upload
+   $ twine upload dist/zipline-<version-number>.tar.gz
 
 ``bdist``
 ^^^^^^^^^
