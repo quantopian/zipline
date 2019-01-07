@@ -37,7 +37,7 @@ configparser==3.5.0;python_version<"3.2"
 pyandoc==0.0.1
 docopt==0.6.2
 numpydoc==0.5
-mistune==0.7
+mistune==0.8.4
 
 # Example scripts that are run during unit tests use the following:
 
