@@ -156,7 +156,7 @@ Now that we have tested locally and on PyPI test, it is time to upload to PyPI:
 
 .. code-block:: bash
 
-   $ python setup.py sdist upload
+   $ twine upload dist/zipline-<version-number>.tar.gz
 
 ``bdist``
 ^^^^^^^^^
