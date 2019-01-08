@@ -86,7 +86,7 @@ def get_treasury_data(start_date, end_date):
 def dataconverter(s):
     try:
         return float(s) / 100
-    except:
+    except Exception:
         return np.nan
 
 
