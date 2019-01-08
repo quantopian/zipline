@@ -893,7 +893,7 @@ class SubTestFailures(AssertionError):
             '\n    '.join((
                 ', '.join('%s=%r' % item for item in scope.items()),
                 self._format_exc(exc_info),
-            )) for scope, exc_info in self.failures,
+            )) for scope, exc_info in self.failures
         )
 
 
