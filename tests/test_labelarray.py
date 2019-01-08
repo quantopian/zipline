@@ -300,8 +300,8 @@ class LabelArrayTestCase(ZiplineTestCase):
 
         Test that all unfuncs fail.
         """
-        l = LabelArray(self.strs, '')
-        ints = np.arange(len(l))
+        labels = LabelArray(self.strs, '')
+        ints = np.arange(len(labels))
 
         with warnings.catch_warnings():
             # Some ufuncs return NotImplemented, but warn that they will fail
@@ -323,9 +323,9 @@ class LabelArrayTestCase(ZiplineTestCase):
                 # accepting an int array.
                 try:
                     if func.nin == 1:
-                        ret = func(l)
+                        ret = func(labels)
                     elif func.nin == 2:
-                        ret = func(l, ints)
+                        ret = func(labels, ints)
                     else:
                         self.fail("Who added a ternary ufunc !?!")
                 except TypeError:
