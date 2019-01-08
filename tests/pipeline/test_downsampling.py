@@ -199,7 +199,7 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
         for i in range(0, 30, 5):
             with self.assertRaisesRegexp(
                 NoFurtherDataError,
-                '\s*Insufficient data to compute Pipeline'
+                r'\s*Insufficient data to compute Pipeline'
             ):
                 self.check_extra_row_calculations(
                     downsampled_terms,
