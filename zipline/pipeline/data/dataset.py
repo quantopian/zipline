@@ -247,7 +247,8 @@ class BoundColumn(LoadableTerm):
 
     def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
-        return "BoundColumn:\l  Dataset: {}\l  Column: {}\l".format(
+        # Graphviz interprets `\l` as "divide label into lines, left-justified"
+        return "BoundColumn:\\l  Dataset: {}\\l  Column: {}\\l".format(
             self.dataset.__name__,
             self.name
         )
