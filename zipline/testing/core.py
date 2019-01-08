@@ -1451,7 +1451,7 @@ class _TmpBarReader(with_metaclass(ABCMeta, tmp_dir)):
                 self._data,
             )
             return self._reader_cls(tmpdir.path)
-        except:
+        except BaseException:  # Clean up even on KeyboardInterrupt
             self.__exit__(None, None, None)
             raise
 
