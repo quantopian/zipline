@@ -168,7 +168,7 @@ class VolumeRollFinder(RollFinder):
         self.session_reader = session_reader
 
     def _active_contract(self, oc, front, back, dt):
-        """
+        r"""
         Return the active contract based on the previous trading day's volume.
 
         In the rare case that a double volume switch occurs we treat the first

@@ -221,7 +221,8 @@ class CustomTermMixin(object):
 
     def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
-        return type(self).__name__ + ':\l  window_length: %d\l' % \
+        # Graphviz interprets `\l` as "divide label into lines, left-justified"
+        return type(self).__name__ + ':\\l  window_length: %d\\l' % \
             self.window_length
 
 

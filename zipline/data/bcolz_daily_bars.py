@@ -660,7 +660,7 @@ class BcolzDailyBarReader(SessionBarReader):
         """
         try:
             day_loc = self.sessions.get_loc(day)
-        except:
+        except Exception:
             raise NoDataOnDate("day={0} is outside of calendar={1}".format(
                 day, self.sessions))
         offset = day_loc - self._calendar_offsets[sid]

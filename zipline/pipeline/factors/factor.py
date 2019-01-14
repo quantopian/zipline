@@ -1412,7 +1412,8 @@ class Rank(SingleInputMixin, Factor):
         )
 
     def graph_repr(self):
-        return "Rank:\l  method: {!r}\l  mask: {}\l".format(
+        # Graphviz interprets `\l` as "divide label into lines, left-justified"
+        return "Rank:\\l  method: {!r}\\l  mask: {}\\l".format(
             self._method,
             type(self.mask).__name__,
         )

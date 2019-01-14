@@ -332,6 +332,7 @@ class NumericalExpression(ComputableTerm):
         final = re.sub(r"[-+]?\d*\.\d+",
                        lambda x: format(float(x.group(0)), '.2E'),
                        self._expr)
-        return "Expression:\l  {}\l".format(
+        # Graphviz interprets `\l` as "divide label into lines, left-justified"
+        return "Expression:\\l  {}\\l".format(
             final,
         )
