@@ -2,6 +2,7 @@ from collections import namedtuple
 import datetime
 from textwrap import dedent
 
+import numpy as np
 import pandas as pd
 import pytz
 
@@ -380,7 +381,7 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
             EquityCalendarDomain(
                 CountryCode.UNITED_STATES,
                 'XNYS',
-                data_query_offset=-datetime.timedelta(hours=2, minutes=30),
+                data_query_offset=-np.timedelta64(2 * 60 + 30, 'm'),
             ),
             datetime.time(7, 0),
         )
@@ -390,7 +391,7 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
             EquityCalendarDomain(
                 CountryCode.UNITED_STATES,
                 'XNYS',
-                data_query_offset=-datetime.timedelta(hours=10),
+                data_query_offset=-np.timedelta64(10, 'h'),
             ),
             datetime.time(23, 30),
             expected_cutoff_date_offset=-1,
@@ -401,7 +402,7 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
             EquityCalendarDomain(
                 CountryCode.UNITED_STATES,
                 'XNYS',
-                data_query_offset=-datetime.timedelta(hours=24 * 6 + 10),
+                data_query_offset=-np.timedelta64(24 * 6 + 10, 'h'),
             ),
             datetime.time(23, 30),
             expected_cutoff_date_offset=-7,
