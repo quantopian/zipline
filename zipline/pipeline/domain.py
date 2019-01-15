@@ -156,7 +156,7 @@ class EquityCalendarDomain(Domain):
     data_query_offset : np.timedelta64
          The offset from market open when data should no longer be considered
          available for a session. For example, a ``data_query_offset`` of
-         ``-datetime.timedelta(minutes=45)`` means that the data must have
+         ``-np.timedelta64(45, 'm')`` means that the data must have
          been available at least 45 minutes prior to market open for it to
          appear in the pipeline input for the given session.
     """
