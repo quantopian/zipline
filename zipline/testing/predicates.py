@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from contextlib import contextmanager
 import datetime
 from functools import partial
@@ -488,6 +489,16 @@ def asssert_mappingproxy_equal(result, expected, path=(), msg='', **kwargs):
 
     if failures:
         raise AssertionError('\n'.join(failures))
+
+
+@assert_equal.register(OrderedDict, OrderedDict)
+def assert_ordereddict_equal(result, expected, path=(), **kwargs):
+    assert_sequence_equal(
+        result.items(),
+        expected.items(),
+        path=path + ('.items()',),
+        **kwargs
+    )
 
 
 @assert_equal.register(list, list)
