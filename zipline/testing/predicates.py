@@ -258,6 +258,27 @@ def assert_is_subclass(subcls, cls, msg=''):
     )
 
 
+def assert_is_not_subclass(not_subcls, cls, msg=''):
+    """Assert that ``not_subcls`` is not a subclass of ``cls``.
+
+    Parameters
+    ----------
+    not_subcls : type
+        The type to check.
+    cls : type
+        The type to check ``not_subcls`` against.
+    msg : str, optional
+        An extra assertion message to print if this fails.
+    """
+    assert not issubclass(not_subcls, cls), (
+        '%s is a subclass of %s\n%s' % (
+            _safe_cls_name(not_subcls),
+            _safe_cls_name(cls),
+            msg,
+        )
+    )
+
+
 def assert_regex(result, expected, msg=''):
     """Assert that ``expected`` matches the result.
 
