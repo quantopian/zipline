@@ -521,14 +521,17 @@ class AccessedOnMultiDimensionalDataSet(AttributeError):
         self.column_name = column_name
 
     def __str__(self):
+        # NOTE: when ``aggregate`` is added, remember to update this message
         return dedent(
             """\
-            Attempted to access column from a MultiDimensionalDataSet.
-            You must first slice the dataset along the extra dimensions like:
+            Attempted to access column {c} from multi-dimensional dataset {d}:
 
-                %s.slice(...).%s
-            """
-        ) % (self.dataset_name, self.column_name)
+            To work with multi-dimensional datasets, you must first choose a
+            slice using the ``slice`` method:
+
+                {d}.slice(...).{c}
+            """.format(c=self.column_name, d=self.dataset_name)
+        )
 
 
 class _MultiDimensionalDataSetColumn(object):
@@ -595,6 +598,12 @@ class MultiDimensionalDataSetMeta(abc.ABCMeta):
         # each type gets a unique cache
         self._slice_cache = {}
         return self
+
+    def __repr__(self):
+        return '<MultiDimensionalDataSet: %r, extra_dims=%r>' % (
+            self.__name__,
+            list(self.extra_dims),
+        )
 
 
 _base = with_metaclass(
@@ -672,12 +681,12 @@ class MultiDimensionalDataSet(_base):
 
     _SliceType = MultiDimensionalDataSetSlice
 
-    @abc.abstractproperty
-    def extra_dims(self):
-        raise NotImplementedError(
-            'extra_dims must be specified as a sequence of tuples of dimension'
-            ' name and the set of values on the given dimension',
-        )
+    @type.__call__
+    class extra_dims(object):
+        __isabstractmethod__ = True
+
+        def __get__(self, instance, owner):
+            return []
 
     @classmethod
     def _canonical_key(cls, args, kwargs):
