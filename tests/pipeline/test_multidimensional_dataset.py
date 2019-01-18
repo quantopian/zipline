@@ -244,10 +244,7 @@ class TestMultiDimensionalDataSet(ZiplineTestCase):
         assert_is_subclass(Child, Parent)
         assert_equal(Child.extra_dims, Parent.extra_dims)
 
-        ParentSlice = Parent.slice(dim_0='a', dim_1='d')
         ChildSlice = Child.slice(dim_0='a', dim_1='d')
-
-        assert_is_not_subclass(ChildSlice, ParentSlice)
 
         expected_child_slice_columns = frozenset({
             ChildSlice.column_0,
