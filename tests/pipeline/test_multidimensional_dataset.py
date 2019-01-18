@@ -21,6 +21,31 @@ from zipline.testing.predicates import (
 
 
 class TestMultiDimensionalDataSet(ZiplineTestCase):
+    def test_repr(self):
+        class MD1(MultiDimensionalDataSet):
+            extra_dims = [('dim_0', [])]
+
+        expected_repr = (
+            "<MultiDimensionalDataSet: 'MD1', extra_dims=['dim_0']>"
+        )
+        assert_equal(repr(MD1), expected_repr)
+
+        class MD2(MultiDimensionalDataSet):
+            extra_dims = [('dim_0', []), ('dim_1', [])]
+
+        expected_repr = (
+            "<MultiDimensionalDataSet: 'MD2', extra_dims=['dim_0', 'dim_1']>"
+        )
+        assert_equal(repr(MD2), expected_repr)
+
+        class MD3(MultiDimensionalDataSet):
+            extra_dims = [('dim_1', []), ('dim_0', [])]
+
+        expected_repr = (
+            "<MultiDimensionalDataSet: 'MD3', extra_dims=['dim_1', 'dim_0']>"
+        )
+        assert_equal(repr(MD3), expected_repr)
+
     def test_cache(self):
         class MD1(MultiDimensionalDataSet):
             extra_dims = [('dim_0', ['a', 'b', 'c'])]
@@ -270,12 +295,14 @@ class TestMultiDimensionalDataSet(ZiplineTestCase):
         def make_expected_msg(ds, attr):
             return dedent(
                 """\
-                Attempted to access column from a MultiDimensionalDataSet.
-                You must first slice the dataset along the extra dimensions like:
+                Attempted to access column {c} from multi-dimensional dataset {d}:
 
-                    %s.slice(...).%s
-                """,  # noqa
-            ) % (ds, attr)
+                To work with multi-dimensional datasets, you must first choose a
+                slice using the ``slice`` method:
+
+                    {d}.slice(...).{c}
+                """.format(c=attr, d=ds),  # noqa
+            )
 
         expected_msg = make_expected_msg('Parent', 'column_0')
         with assert_raises_str(AttributeError, expected_msg):
