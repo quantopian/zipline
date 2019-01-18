@@ -560,6 +560,10 @@ class MultiDimensionalDataSetMeta(abc.ABCMeta):
         columns = {}
         for k, v in dict_.items():
             if isinstance(v, Column):
+                # capture all the columns off the MultiDimensionalDataSet class
+                # and replace them with a descriptor that will raise a helpful
+                # error message. The columns will get added to the BaseSlice
+                # for this type.
                 columns[k] = v
                 dict_[k] = _MultiDimensionalDataSetColumn(k)
 
@@ -651,7 +655,7 @@ class MultiDimensionalDataSet(_base):
            column_0 = Column('f8')
            column_1 = Column('?')
 
-    This represents a table with the following columns:
+    This dataset might represent a table with the following columns:
 
     ::
 
