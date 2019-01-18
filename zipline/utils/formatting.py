@@ -43,3 +43,24 @@ def plural(singular, plural, seq):
         return singular
 
     return plural
+
+
+def bulleted_list(items, indent=0, bullet_type='-'):
+    """Format a bulleted list of values.
+
+    Parameters
+    ----------
+    items : sequence
+        The items to make a list.
+    indent : int, optional
+        The number of spaces to add before each bullet.
+    bullet_type : str, optional
+        The bullet type to use.
+
+    Returns
+    -------
+    formatted_list : str
+        The formatted list as a single string.
+    """
+    format_string = ' ' * indent + bullet_type + ' {}'
+    return "\n".join(map(format_string.format, items))
