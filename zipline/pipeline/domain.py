@@ -24,6 +24,7 @@ import pytz
 from trading_calendars import get_calendar
 
 from zipline.country import CountryCode
+from zipline.utils.formatting import bulleted_list
 from zipline.utils.input_validation import expect_types, optional
 from zipline.utils.memoize import lazyval
 from zipline.utils.pandas_utils import days_at_time
@@ -312,12 +313,6 @@ def infer_domain(terms):
         raise AmbiguousDomain(sorted(domains, key=repr))
 
 
-def bulleted_list(items):
-    """Format a bulleted list of values.
-    """
-    return "\n".join(map("  - {}".format, items))
-
-
 # This would be better if we provided more context for which domains came from
 # which terms.
 class AmbiguousDomain(Exception):
@@ -334,7 +329,9 @@ class AmbiguousDomain(Exception):
         self.domains = domains
 
     def __str__(self):
-        return self._TEMPLATE.format(domains=bulleted_list(self.domains))
+        return self._TEMPLATE.format(
+            domains=bulleted_list(self.domains, indent=2),
+        )
 
 
 class EquitySessionDomain(Domain):
