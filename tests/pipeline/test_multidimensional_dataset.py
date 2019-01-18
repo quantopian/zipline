@@ -15,7 +15,6 @@ from zipline.testing.predicates import (
     assert_equal,
     assert_is,
     assert_is_not,
-    assert_is_not_subclass,
     assert_is_subclass,
     assert_raises_str,
 )
