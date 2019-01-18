@@ -51,6 +51,7 @@ from zipline.lib.adjustment import Adjustment
 from zipline.lib.labelarray import LabelArray
 from zipline.testing.core import ensure_doctest
 from zipline.utils.compat import getargspec, mappingproxy
+from zipline.utils.formatting import s
 from zipline.utils.functional import dzip_exact, instance
 from zipline.utils.math_utils import tolerant_equals
 
@@ -173,25 +174,6 @@ def filter_kwargs(f, kwargs):
     Taken from odo.utils
     """
     return keyfilter(op.contains(keywords(f)), kwargs)
-
-
-def _s(word, seq, suffix='s'):
-    """Adds a suffix to ``word`` if some sequence has anything other than
-    exactly one element.
-
-    word : str
-        The string to add the suffix to.
-    seq : sequence
-        The sequence to check the length of.
-    suffix : str, optional.
-        The suffix to add to ``word``
-
-    Returns
-    -------
-    maybe_plural : str
-        ``word`` with ``suffix`` added if ``len(seq) != 1``.
-    """
-    return word + (suffix if len(seq) != 1 else '')
 
 
 def _fmt_path(path):
@@ -432,17 +414,17 @@ def _check_sets(result, expected, msg, path, type_):
     if result != expected:
         if result > expected:
             diff = result - expected
-            msg = 'extra %s in result: %r' % (_s(type_, diff), diff)
+            msg = 'extra %s in result: %r' % (s(type_, diff), diff)
         elif result < expected:
             diff = expected - result
-            msg = 'result is missing %s: %r' % (_s(type_, diff), diff)
+            msg = 'result is missing %s: %r' % (s(type_, diff), diff)
         else:
             in_result = result - expected
             in_expected = expected - result
             msg = '%s only in result: %s\n%s only in expected: %s' % (
-                _s(type_, in_result),
+                s(type_, in_result),
                 in_result,
-                _s(type_, in_expected),
+                s(type_, in_expected),
                 in_expected,
             )
         raise AssertionError(
