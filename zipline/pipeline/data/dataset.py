@@ -21,6 +21,7 @@ from zipline.pipeline.term import (
     LoadableTerm,
     validate_dtype,
 )
+from zipline.utils.formatting import s, plural
 from zipline.utils.input_validation import ensure_dtype, expect_types
 from zipline.utils.numpy_utils import NoDefaultMissingValue
 from zipline.utils.preprocess import preprocess
@@ -648,8 +649,8 @@ class MultiDimensionalDataSet(_base):
       sid :: int64
       asof_date :: datetime64[ns]
       timestamp :: datetime64[ns]
-      dimension_0 :: {'a', 'b', 'c'}
-      dimension_1 :: {'d', 'e', 'f'}
+      dimension_0 :: str
+      dimension_1 :: str
       column_0 :: float64
       column_1 :: bool
 
@@ -685,21 +686,23 @@ class MultiDimensionalDataSet(_base):
         if not set(kwargs) <= dimensions_set:
             extra = sorted(set(kwargs) - dimensions_set)
             raise TypeError(
-                '%s does not have the following dimension%s: %s' % (
+                '%s does not have the following %s: %s\n'
+                'Valid dimensions are: %s' % (
                     cls.__name__,
-                    's' if len(extra) > 1 else '',
+                    s('dimension', extra),
                     ', '.join(extra),
+                    ', '.join(extra_dims),
                 ),
             )
 
         if len(args) > len(extra_dims):
             raise TypeError(
-                '%s has %d extra dimension%s but %d %s given' % (
+                '%s has %d extra %s but %d %s given' % (
                     cls.__name__,
                     len(extra_dims),
-                    's' if len(extra_dims) > 1 else '',
+                    s('dimension', extra_dims),
                     len(args),
-                    'were' if len(args) != 1 else 'was',
+                    plural('was', 'were', args),
                 ),
             )
 
@@ -724,8 +727,9 @@ class MultiDimensionalDataSet(_base):
         if missing:
             missing = sorted(missing)
             raise TypeError(
-                'no coordinate provided for the following dimension%s: %s' % (
-                    's' if len(missing) > 1 else '',
+                'no coordinate provided to %s for the following %s: %s' % (
+                    cls.__name__,
+                    s('dimension', missing),
                     ', '.join(missing),
                 ),
             )
@@ -735,7 +739,11 @@ class MultiDimensionalDataSet(_base):
         for key, value in coords.items():
             if value not in cls.extra_dims[key]:
                 raise ValueError(
-                    '%r is not a value along the %s dimension' % (value, key),
+                    '%r is not a value along the %s dimension of %s' % (
+                        value,
+                        key,
+                        cls.__name__,
+                    ),
                 )
 
         return coords, tuple(coords.items())

@@ -138,14 +138,15 @@ class TestMultiDimensionalDataSet(ZiplineTestCase):
         # insufficient positional
         expect_slice_fails(
             expected_msg=(
-                'no coordinate provided for the following dimensions:'
+                'no coordinate provided to MD for the following dimensions:'
                 ' dim_0, dim_1'
             ),
         )
         expect_slice_fails(
             'a',
             expected_msg=(
-                'no coordinate provided for the following dimension: dim_1'
+                'no coordinate provided to MD for the following dimension:'
+                ' dim_1'
             ),
         )
 
@@ -158,22 +159,32 @@ class TestMultiDimensionalDataSet(ZiplineTestCase):
         # mismatched keys
         expect_slice_fails(
             dim_2='??',
-            expected_msg='MD does not have the following dimension: dim_2',
+            expected_msg=(
+                'MD does not have the following dimension: dim_2\n'
+                'Valid dimensions are: dim_0, dim_1'
+            ),
         )
         expect_slice_fails(
             dim_1='??', dim_2='??',
-            expected_msg='MD does not have the following dimension: dim_2',
+            expected_msg=(
+                'MD does not have the following dimension: dim_2\n'
+                'Valid dimensions are: dim_0, dim_1'
+            ),
         )
         expect_slice_fails(
             dim_0='??', dim_1='??', dim_2='??',
-            expected_msg='MD does not have the following dimension: dim_2',
+            expected_msg=(
+                'MD does not have the following dimension: dim_2\n'
+                'Valid dimensions are: dim_0, dim_1'
+            ),
         )
 
         # the extra keyword dims should be sorted
         expect_slice_fails(
             dim_3='??', dim_2='??',
             expected_msg=(
-                'MD does not have the following dimensions: dim_2, dim_3'
+                'MD does not have the following dimensions: dim_2, dim_3\n'
+                'Valid dimensions are: dim_0, dim_1'
             ),
         )
 
@@ -192,20 +203,28 @@ class TestMultiDimensionalDataSet(ZiplineTestCase):
 
         expect_slice_fails(
             'not-in-0', 'c',
-            expected_msg="'not-in-0' is not a value along the dim_0 dimension",
+            expected_msg=(
+                "'not-in-0' is not a value along the dim_0 dimension of MD"
+            ),
         )
         expect_slice_fails(
             dim_0='not-in-0', dim_1='c',
-            expected_msg="'not-in-0' is not a value along the dim_0 dimension",
+            expected_msg=(
+                "'not-in-0' is not a value along the dim_0 dimension of MD"
+            ),
         )
 
         expect_slice_fails(
             'a', 'not-in-1',
-            expected_msg="'not-in-1' is not a value along the dim_1 dimension",
+            expected_msg=(
+                "'not-in-1' is not a value along the dim_1 dimension of MD"
+            ),
         )
         expect_slice_fails(
             dim_0='a', dim_1='not-in-1',
-            expected_msg="'not-in-1' is not a value along the dim_1 dimension",
+            expected_msg=(
+                "'not-in-1' is not a value along the dim_1 dimension of MD"
+            ),
         )
 
     def test_inheritence(self):
