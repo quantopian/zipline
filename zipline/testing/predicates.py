@@ -424,9 +424,9 @@ def _check_sets(result, expected, msg, path, type_):
                 in_expected,
             )
         raise AssertionError(
-            '%s%ss do not match\n%s' % (
-                _fmt_msg(msg),
+            '%ss do not match\n%s%s' % (
                 type_,
+                _fmt_msg(msg),
                 _fmt_path(path),
             ),
         )
@@ -456,7 +456,7 @@ def assert_dict_equal(result, expected, path=(), msg='', **kwargs):
             failures.append(str(e))
 
     if failures:
-        raise AssertionError('\n'.join(failures))
+        raise AssertionError('\n===\n'.join(failures))
 
 
 @assert_equal.register(mappingproxy, mappingproxy)
