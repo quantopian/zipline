@@ -3,9 +3,10 @@
 import numpy as np
 import pandas as pd
 
-from trading_calendars import get_calendar
-
-from zipline.assets.synthetic import make_rotating_equity_info
+from zipline.assets.synthetic import (
+    make_rotating_equity_info,
+    make_multi_exchange_equity_info,
+)
 from zipline.data.in_memory_daily_bars import InMemoryDailyBarReader
 from zipline.pipeline.domain import (
     CA_EQUITIES,
@@ -18,7 +19,10 @@ from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.loaders.equity_pricing_loader import EquityPricingLoader
 from zipline.pipeline.loaders.synthetic import NullAdjustmentReader
 from zipline.testing.predicates import assert_equal
-from zipline.testing.core import parameter_space, random_tick_prices
+from zipline.testing.core import (
+    parameter_space,
+    random_tick_prices,
+)
 
 import zipline.testing.fixtures as zf
 
@@ -146,29 +150,26 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
 
     @classmethod
     def make_equity_info(cls):
-        out = pd.concat(
-            [
-                # 15 assets on each exchange. Each asset lives for 5 days.
-                # A new asset starts each day.
-                make_rotating_equity_info(
-                    num_assets=20,
-                    first_start=cls.START_DATE,
-                    frequency=get_calendar(exchange).day,
-                    periods_between_starts=1,
-                    # NOTE: The asset_lifetime parameter name is a bit
-                    #       misleading. It determines the number of trading
-                    #       days between each asset's start_date and end_date,
-                    #       so assets created with this method actual "live"
-                    #       for (asset_lifetime + 1) days. But, since pipeline
-                    #       doesn't show you an asset the day it IPOs, this
-                    #       number matches the number of days that each asset
-                    #       should appear in a pipeline output.
-                    asset_lifetime=5,
-                    exchange=exchange,
-                )
-                for exchange in cls.EXCHANGE_INFO.exchange
-            ],
-            ignore_index=True,
+        # - 20 assets on each exchange.
+        # - Each asset lives for 5 days.
+        # - A new asset starts each day.
+        out = make_multi_exchange_equity_info(
+            factory=make_rotating_equity_info,
+            exchange_sids={
+                'XNYS': range(20),
+                'XTSE': range(20, 40),
+                'XLON': range(40, 60),
+            },
+            first_start=cls.START_DATE,
+            periods_between_starts=1,
+            # NOTE: The asset_lifetime parameter name is a bit misleading. It
+            #       determines the number of trading days between each asset's
+            #       start_date and end_date, so assets created with this method
+            #       actual "live" for (asset_lifetime + 1) days. But, since
+            #       pipeline doesn't show you an asset the day it IPOs, this
+            #       number matches the number of days that each asset should
+            #       appear in a pipeline output.
+            asset_lifetime=5,
         )
         assert_equal(out.end_date.max(), cls.END_DATE)
         return out
@@ -211,7 +212,7 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
         expected_dates = sessions[-17:-9]
 
         for col in pipe.columns:
-            # result_date should look like this:
+            # result_data should look like this:
             #
             #     E     F     G     H     I     J     K     L     M     N     O     P # noqa
             # 24.17 25.17 26.17 27.17 28.17   NaN   NaN   NaN   NaN   NaN   NaN   NaN # noqa
