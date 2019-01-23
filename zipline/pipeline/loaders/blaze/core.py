@@ -180,6 +180,7 @@ from zipline.pipeline.domain import GENERIC
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.lib.adjusted_array import can_represent_dtype
 from zipline.utils.input_validation import expect_element
+from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning
 from zipline.utils.pool import SequentialPool
 from ._core import (  # noqa
     adjusted_arrays_from_rows_with_assets,
@@ -956,17 +957,22 @@ class BlazeLoader(object):
             None
         )
 
-        all_rows = pd.concat(
-            filter(
-                lambda df: df is not None, (
-                    materialized_checkpoints,
-                    materialized_expr_deferred.get(),
-                    materialized_deltas,
+        # If the rows that come back from the blaze backend are constructed
+        # from LabelArrays with Nones in the categories, pandas
+        # complains. Ignore those warnings for now until we have a story for
+        # updating our categorical missing values to NaN.
+        with ignore_pandas_nan_categorical_warning():
+            all_rows = pd.concat(
+                filter(
+                    lambda df: df is not None, (
+                        materialized_checkpoints,
+                        materialized_expr_deferred.get(),
+                        materialized_deltas,
+                    ),
                 ),
-            ),
-            ignore_index=True,
-            copy=False,
-        )
+                ignore_index=True,
+                copy=False,
+            )
 
         all_rows[TS_FIELD_NAME] = all_rows[TS_FIELD_NAME].astype(
             'datetime64[ns]',
