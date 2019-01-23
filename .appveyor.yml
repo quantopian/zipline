@@ -98,7 +98,7 @@ install:
   # Since conda installs latest certifi by default, we would fail to uninstall that new version when trying to install the pinned version using pip later in the build:
   # "Cannot uninstall 'certifi'. It is a distutils installed project and thus we cannot accurately determine which files belong to it which would lead to only a partial uninstall."
   - ps: $env:CERTIFI_VERSION=(sls "certifi==(.*)" .\etc\requirements.txt -ca).matches.groups[1].value
-  - conda create -n testenv --yes -q --use-local pip=18.1 python=%PYTHON_VERSION% numpy=%NUMPY_VERSION% pandas=%PANDAS_VERSION% scipy=%SCIPY_VERSION% ta-lib=%TALIB_VERSION% bcolz=%BCOLZ_VERSION% numexpr=%NUMEXPR_VERSION% pytables=%PYTABLES_VERSION% h5py=%H5PY_VERSION% certifi=%CERTIFI_VERSION% -c quantopian -c https://conda.anaconda.org/quantopian/label/ci
+  - conda create -n testenv --yes -q --use-local "pip<19" python=%PYTHON_VERSION% numpy=%NUMPY_VERSION% pandas=%PANDAS_VERSION% scipy=%SCIPY_VERSION% ta-lib=%TALIB_VERSION% bcolz=%BCOLZ_VERSION% numexpr=%NUMEXPR_VERSION% pytables=%PYTABLES_VERSION% h5py=%H5PY_VERSION% certifi=%CERTIFI_VERSION% -c quantopian -c https://conda.anaconda.org/quantopian/label/ci
   - activate testenv
   - SET CACHE_DIR=%LOCALAPPDATA%\pip\Cache\pip_np%CONDA_NPY%py%CONDA_PY%
   # pip on windows complains
