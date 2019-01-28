@@ -1194,7 +1194,7 @@ def parameter_space(__fail_fast=_FAIL_FAST_DEFAULT, **params):
         if unspecified:
             raise AssertionError(
                 "Function arguments %s were not "
-                "supplied to parameter_space()." % extra
+                "supplied to parameter_space()." % unspecified
             )
 
         def make_param_sets():
