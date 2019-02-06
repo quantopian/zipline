@@ -17,6 +17,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.viewcode',
     'sphinx.ext.todo',
+    'sphinx_sitemap',
 ]
 
 
@@ -63,6 +64,8 @@ if not on_rtd:  # only import and set the theme if we're building docs locally
 
 # The name of the Pygments (syntax highlighting) style to use.
 highlight_language = 'python'
+
+html_baseurl = 'https://www.zipline.io/'
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
