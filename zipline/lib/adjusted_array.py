@@ -13,6 +13,7 @@ from numpy import (
     uint32,
     uint8,
 )
+from six import iteritems
 from zipline.errors import (
     WindowLengthNotPositive,
     WindowLengthTooLong,
@@ -164,7 +165,7 @@ class AdjustedArray(object):
         self.adjustments = adjustments
         self.missing_value = missing_value
 
-    @lazyval
+    @property
     def data(self):
         """
         The data stored in this array.
@@ -236,6 +237,25 @@ class AdjustedArray(object):
             data=self.data,
             adjustments=self.adjustments,
         )
+
+    def update_labels(self, func):
+        """
+        Map a function over baseline and adjustment values in place.
+
+        Note that the baseline data values must be a LabelArray.
+        """
+        if not isinstance(self.data, LabelArray):
+            raise TypeError(
+                'update_labels only supported if data is of type LabelArray.'
+            )
+
+        # Map the baseline values.
+        self._data = self._data.map(func)
+
+        # Map each of the adjustments.
+        for _, row_adjustments in iteritems(self.adjustments):
+            for adjustment in row_adjustments:
+                adjustment.value = func(adjustment.value)
 
 
 def ensure_adjusted_array(ndarray_or_adjusted_array, missing_value):
