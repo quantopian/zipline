@@ -2415,6 +2415,38 @@ class MiscTestCase(ZiplineTestCase):
             " checkpoints='checkpoints', odo_kwargs={'a': 'b'})",
         )
 
+    def test_exprdata_eq(self):
+        dshape = 'var * {sid: int64, asof_date: datetime, value: float64}'
+        base_expr = bz.symbol('base', dshape)
+        checkpoints_expr = bz.symbol('checkpoints', dshape)
+
+        odo_kwargs = {'a': 1, 'b': 2}
+
+        actual = ExprData(
+            expr=base_expr,
+            deltas=None,
+            checkpoints=checkpoints_expr,
+            odo_kwargs=odo_kwargs,
+        )
+        same = ExprData(
+            expr=base_expr,
+            deltas=None,
+            checkpoints=checkpoints_expr,
+            odo_kwargs=odo_kwargs,
+        )
+        self.assertEqual(actual, same)
+
+        different_obs = [
+            actual._replace(expr=bz.symbol('not base', dshape)),
+            actual._replace(expr=bz.symbol('not deltas', dshape)),
+            actual._replace(checkpoints=bz.symbol('not checkpoints', dshape)),
+            actual._replace(checkpoints=None),
+            actual._replace(odo_kwargs={k: ~v for k, v in odo_kwargs.items()}),
+        ]
+
+        for different in different_obs:
+            self.assertNotEqual(actual, different)
+
     def test_blaze_loader_lookup_failure(self):
         class D(DataSet):
             c = Column(dtype='float64')
