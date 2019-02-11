@@ -729,25 +729,42 @@ class ExprData(_expr_data_base):
             expr,
             deltas,
             checkpoints,
-            odo_kwargs or {},
+            frozenset((odo_kwargs or {}).items()),
         )
 
     def __repr__(self):
         # If the expressions have _resources() then the repr will
         # drive computation so we take the str here.
-        cls = type(self)
-        return super(ExprData, cls).__repr__(cls(
+        return repr(_expr_data_base(
             str(self.expr),
             str(self.deltas),
             str(self.checkpoints),
-            self.odo_kwargs,
+            dict(self.odo_kwargs),
         ))
 
+    @staticmethod
+    def _expr_eq(a, b):
+        return a is b is None or a.isidentical(b)
+
     def __hash__(self):
-        return id(self)
+        return super(ExprData, self).__hash__()
 
     def __eq__(self, other):
-        return self is other
+        if not isinstance(other, ExprData):
+            return NotImplemented
+
+        return (
+            self._expr_eq(self.expr, other.expr) and
+            self._expr_eq(self.deltas, other.deltas) and
+            self._expr_eq(self.checkpoints, other.checkpoints) and
+            self.odo_kwargs == other.odo_kwargs
+        )
+
+    def __ne__(self, other):
+        # note: ``tuple`` (inherited from ``namedtuple``) adds a ``__ne__``,
+        # but we want to rely on ``__eq__` to use ``isidentical`` to compare
+        # expressions
+        return not (self == other)
 
 
 class BlazeLoader(object):
@@ -907,6 +924,7 @@ class BlazeLoader(object):
             )
 
         expr, deltas, checkpoints, odo_kwargs = expr_data
+        odo_kwargs = dict(odo_kwargs)
 
         have_sids = (first(columns).dataset.ndim == 2)
         added_query_fields = {AD_FIELD_NAME, TS_FIELD_NAME} | (
