@@ -707,3 +707,41 @@ last_col=0, value=4.000000)]}
         )
         got = adj_array.inspect()
         self.assertEqual(expected, got)
+
+    def test_update_labels(self):
+        data = array([
+            ['aaa', 'bbb', 'ccc'],
+            ['ddd', 'eee', 'fff'],
+            ['ggg', 'hhh', 'iii'],
+            ['jjj', 'kkk', 'lll'],
+            ['mmm', 'nnn', 'ooo'],
+        ])
+        label_array = LabelArray(data, missing_value='')
+
+        adj_array = AdjustedArray(
+            data=label_array,
+            adjustments={4: [ObjectOverwrite(2, 3, 0, 0, 'ppp')]},
+            missing_value='',
+        )
+
+        expected_data = array([
+            ['aaa-foo', 'bbb-foo', 'ccc-foo'],
+            ['ddd-foo', 'eee-foo', 'fff-foo'],
+            ['ggg-foo', 'hhh-foo', 'iii-foo'],
+            ['jjj-foo', 'kkk-foo', 'lll-foo'],
+            ['mmm-foo', 'nnn-foo', 'ooo-foo'],
+        ])
+        expected_label_array = LabelArray(expected_data, missing_value='')
+
+        expected_adj_array = AdjustedArray(
+            data=expected_label_array,
+            adjustments={4: [ObjectOverwrite(2, 3, 0, 0, 'ppp-foo')]},
+            missing_value='',
+        )
+
+        adj_array.update_labels(lambda x: x + '-foo')
+
+        # Check that the mapped AdjustedArray has the expected baseline
+        # values and adjustment values.
+        check_arrays(adj_array.data, expected_adj_array.data)
+        self.assertEqual(adj_array.adjustments, expected_adj_array.adjustments)
