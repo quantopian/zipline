@@ -729,7 +729,7 @@ class ExprData(_expr_data_base):
             expr,
             deltas,
             checkpoints,
-            frozenset((odo_kwargs or {}).items()),
+            odo_kwargs or {},
         )
 
     def __repr__(self):
@@ -739,7 +739,7 @@ class ExprData(_expr_data_base):
             str(self.expr),
             str(self.deltas),
             str(self.checkpoints),
-            dict(self.odo_kwargs),
+            self.odo_kwargs,
         ))
 
     @staticmethod
@@ -747,7 +747,9 @@ class ExprData(_expr_data_base):
         return a is b is None or a.isidentical(b)
 
     def __hash__(self):
-        return super(ExprData, self).__hash__()
+        return hash(
+            (self.expr, self.deltas, self.checkpoints, id(self.odo_kwargs))
+        )
 
     def __eq__(self, other):
         if not isinstance(other, ExprData):
@@ -757,7 +759,7 @@ class ExprData(_expr_data_base):
             self._expr_eq(self.expr, other.expr) and
             self._expr_eq(self.deltas, other.deltas) and
             self._expr_eq(self.checkpoints, other.checkpoints) and
-            self.odo_kwargs == other.odo_kwargs
+            self.odo_kwargs is other.odo_kwargs
         )
 
     def __ne__(self, other):
@@ -924,7 +926,6 @@ class BlazeLoader(object):
             )
 
         expr, deltas, checkpoints, odo_kwargs = expr_data
-        odo_kwargs = dict(odo_kwargs)
 
         have_sids = (first(columns).dataset.ndim == 2)
         added_query_fields = {AD_FIELD_NAME, TS_FIELD_NAME} | (
