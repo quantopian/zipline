@@ -2411,8 +2411,8 @@ class MiscTestCase(ZiplineTestCase):
                 checkpoints=BadRepr('checkpoints'),
                 odo_kwargs={'a': 'b'},
             )),
-            "ExprData(expr='expr', deltas='deltas',"
-            " checkpoints='checkpoints', odo_kwargs={'a': 'b'})",
+            "ExprData(expr=expr, deltas=deltas,"
+            " checkpoints=checkpoints, odo_kwargs={'a': 'b'})",
         )
 
     def test_exprdata_eq(self):
@@ -2420,7 +2420,8 @@ class MiscTestCase(ZiplineTestCase):
         base_expr = bz.symbol('base', dshape)
         checkpoints_expr = bz.symbol('checkpoints', dshape)
 
-        odo_kwargs = {'a': 1, 'b': 2}
+        # use a nested dict to emulate real call sites
+        odo_kwargs = {'a': {'c': 1, 'd': 2}, 'b': {'e': 3, 'f': 4}}
 
         actual = ExprData(
             expr=base_expr,
@@ -2435,17 +2436,34 @@ class MiscTestCase(ZiplineTestCase):
             odo_kwargs=odo_kwargs,
         )
         self.assertEqual(actual, same)
+        self.assertEqual(hash(actual), hash(same))
 
         different_obs = [
-            actual._replace(expr=bz.symbol('not base', dshape)),
-            actual._replace(expr=bz.symbol('not deltas', dshape)),
-            actual._replace(checkpoints=bz.symbol('not checkpoints', dshape)),
-            actual._replace(checkpoints=None),
-            actual._replace(odo_kwargs={k: ~v for k, v in odo_kwargs.items()}),
+            actual.replace(expr=bz.symbol('not base', dshape)),
+            actual.replace(expr=bz.symbol('not deltas', dshape)),
+            actual.replace(checkpoints=bz.symbol('not checkpoints', dshape)),
+            actual.replace(checkpoints=None),
+            actual.replace(odo_kwargs={
+                # invert the leaf values
+                ok: {ik: ~iv for ik, iv in ov.items()}
+                for ok, ov in odo_kwargs.items()
+            }),
         ]
 
         for different in different_obs:
             self.assertNotEqual(actual, different)
+
+        actual_with_none_odo_kwargs = actual.replace(odo_kwargs=None)
+        same_with_none_odo_kwargs = same.replace(odo_kwargs=None)
+
+        self.assertEqual(
+            actual_with_none_odo_kwargs,
+            same_with_none_odo_kwargs,
+        )
+        self.assertEqual(
+            hash(actual_with_none_odo_kwargs),
+            hash(same_with_none_odo_kwargs),
+        )
 
     def test_blaze_loader_lookup_failure(self):
         class D(DataSet):
