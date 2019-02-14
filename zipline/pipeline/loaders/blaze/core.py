@@ -138,7 +138,6 @@ www.quantopian.com/help#pipeline-api
 from __future__ import division, absolute_import
 
 from abc import ABCMeta, abstractproperty
-from collections import namedtuple
 from functools import partial
 from itertools import count
 import warnings
@@ -699,12 +698,7 @@ def from_blaze(expr,
 getdataset = op.attrgetter('dataset')
 
 
-_expr_data_base = namedtuple(
-    'ExprData', 'expr deltas checkpoints odo_kwargs'
-)
-
-
-class ExprData(_expr_data_base):
+class ExprData(object):
     """A pair of expressions and data resources. The expressions will be
     computed using the resources as the starting scope.
 
@@ -719,37 +713,66 @@ class ExprData(_expr_data_base):
     odo_kwargs : dict, optional
         The keyword arguments to forward to the odo calls internally.
     """
-    def __new__(cls,
-                expr,
-                deltas=None,
-                checkpoints=None,
-                odo_kwargs=None):
-        return super(ExprData, cls).__new__(
-            cls,
-            expr,
-            deltas,
-            checkpoints,
-            odo_kwargs or {},
-        )
+    def __init__(self,
+                 expr,
+                 deltas=None,
+                 checkpoints=None,
+                 odo_kwargs=None):
+        self.expr = expr
+        self.deltas = deltas
+        self.checkpoints = checkpoints
+        self._odo_kwargs = odo_kwargs
+
+    def replace(self, **kwargs):
+        base_kwargs = {
+            'expr': self.expr,
+            'deltas': self.deltas,
+            'checkpoints': self.checkpoints,
+            'odo_kwargs': self._odo_kwargs,
+        }
+        invalid_kwargs = set(kwargs) - set(base_kwargs)
+        if invalid_kwargs:
+            raise TypeError('invalid param(s): %s' % sorted(invalid_kwargs))
+
+        base_kwargs.update(kwargs)
+        return type(self)(**base_kwargs)
+
+    def __iter__(self):
+        yield self.expr
+        yield self.deltas
+        yield self.checkpoints
+        yield self.odo_kwargs
+
+    @property
+    def odo_kwargs(self):
+        out = self._odo_kwargs
+        if out is None:
+            out = {}
+        return out
 
     def __repr__(self):
         # If the expressions have _resources() then the repr will
         # drive computation so we take the str here.
-        return repr(_expr_data_base(
-            str(self.expr),
-            str(self.deltas),
-            str(self.checkpoints),
-            self.odo_kwargs,
-        ))
+        return (
+            'ExprData(expr=%s, deltas=%s, checkpoints=%s, odo_kwargs=%r)' % (
+                self.expr,
+                self.deltas,
+                self.checkpoints,
+                self.odo_kwargs,
+            )
+        )
 
     @staticmethod
     def _expr_eq(a, b):
         return a is b is None or a.isidentical(b)
 
     def __hash__(self):
-        return hash(
-            (self.expr, self.deltas, self.checkpoints, id(self.odo_kwargs))
-        )
+        return hash((
+            self.expr,
+            self.deltas,
+            self.checkpoints,
+            id(self._odo_kwargs),
+        ))
 
     def __eq__(self, other):
         if not isinstance(other, ExprData):
@@ -759,14 +782,8 @@ class ExprData(_expr_data_base):
             self._expr_eq(self.expr, other.expr) and
             self._expr_eq(self.deltas, other.deltas) and
             self._expr_eq(self.checkpoints, other.checkpoints) and
-            self.odo_kwargs is other.odo_kwargs
+            self._odo_kwargs is other._odo_kwargs
         )
-
-    def __ne__(self, other):
-        # note: ``tuple`` (inherited from ``namedtuple``) adds a ``__ne__``,
-        # but we want to rely on ``__eq__` to use ``isidentical`` to compare
-        # expressions
-        return not (self == other)
 
 
 class BlazeLoader(object):
