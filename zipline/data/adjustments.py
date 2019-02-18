@@ -197,33 +197,39 @@ class SQLiteAdjustmentReader(object):
             version of the table, where all date columns have been coerced back
             from int to datetime.
         """
-
-        def _get_df_from_table(table_name, date_cols):
-
-            # Dates are stored in second resolution as ints in adj.db tables.
-            # Need to specifically convert them as UTC, not local time.
-            kwargs = (
-                {'parse_dates': {col: {'unit': 's', 'utc': True}
-                                 for col in date_cols}
-                 }
-                if convert_dates
-                else {}
-            )
-
-            return pd.read_sql(
-                'select * from "{}"'.format(table_name),
-                self.conn,
-                index_col='index',
-                **kwargs
-            ).rename_axis(None)
-
         return {
-            t_name: _get_df_from_table(
-                t_name,
-                date_cols
-            )
-            for t_name, date_cols in self._datetime_int_cols.items()
+            t_name: self.get_df_from_table(t_name, convert_dates)
+            for t_name in self._datetime_int_cols
         }
+
+    def get_df_from_table(self, table_name, convert_dates=False):
+        try:
+            date_cols = self._datetime_int_cols[table_name]
+        except KeyError:
+            raise ValueError(
+                "Requested table %s not found.\n"
+                "Available tables: %s\n" % (
+                    table_name,
+                    self._datetime_int_cols.keys(),
+                )
+            )
+
+        # Dates are stored in second resolution as ints in adj.db tables.
+        # Need to specifically convert them as UTC, not local time.
+        kwargs = (
+            {'parse_dates': {col: {'unit': 's', 'utc': True}
+                             for col in date_cols}
+             }
+            if convert_dates
+            else {}
+        )
+
+        return pd.read_sql(
+            'select * from "{}"'.format(table_name),
+            self.conn,
+            index_col='index',
+            **kwargs
+        ).rename_axis(None)
 
 
 class SQLiteAdjustmentWriter(object):
