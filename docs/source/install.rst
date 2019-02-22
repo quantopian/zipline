@@ -60,9 +60,7 @@ On `Arch Linux`_, you can acquire the additional dependencies via ``pacman``:
 
    $ pacman -S lapack gcc gcc-fortran pkg-config
 
-There are also AUR packages available for installing `Python 3.4
-<https://aur.archlinux.org/packages/python34/>`_ (Arch's default python is now
-3.5, but Zipline only currently supports 3.4), and `ta-lib
+There are also AUR packages available for installing `ta-lib
 <https://aur.archlinux.org/packages/ta-lib/>`_, an optional Zipline dependency.
 Python 2 is also installable via:
 
