@@ -1200,16 +1200,23 @@ def parameter_space(__fail_fast=_FAIL_FAST_DEFAULT, **params):
         def make_param_sets():
             return product(*(params[name] for name in argnames))
 
+        def clean_f(self, *args, **kwargs):
+            try:
+                f(self, *args, **kwargs)
+            finally:
+                self.tearDown()
+                self.setUp()
+
         if __fail_fast:
             @wraps(f)
             def wrapped(self):
                 for args in make_param_sets():
-                    f(self, *args)
+                    clean_f(self, *args)
             return wrapped
         else:
             @wraps(f)
             def wrapped(*args, **kwargs):
-                subtest(make_param_sets(), *argnames)(f)(*args, **kwargs)
+                subtest(make_param_sets(), *argnames)(clean_f)(*args, **kwargs)
 
         return wrapped
 
