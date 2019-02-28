@@ -24,6 +24,7 @@ from os.path import (
     join,
 )
 from distutils.version import StrictVersion
+from functools import partial
 from setuptools import (
     Extension,
     find_packages,
@@ -33,94 +34,76 @@ from setuptools import (
 import versioneer
 
 
-class LazyBuildExtCommandClass(dict):
-    """
-    Lazy command class that defers operations requiring Cython and numpy until
-    they've actually been downloaded and installed by setup_requires.
-    """
-    def __contains__(self, key):
-        return (
-            key == 'build_ext'
-            or super(LazyBuildExtCommandClass, self).__contains__(key)
+conda_build = os.path.basename(sys.argv[0]) in ('conda-build',  # unix
+                                                'conda-build-script.py')  # win
+
+if conda_build:
+    # If conda-build is running this, then we're currently expanding the jinja
+    # template in conda/zipline/meta.yaml, not actually installing. We don't
+    # have numpy or Cython yet, but luckily we only need the names from
+    # install_requires and build_requires.
+    ext_modules = []
+else:
+    try:
+        import Cython  # noqa
+    except ImportError:
+        raise Exception("Install Cython before zipline.")
+
+    try:
+        import numpy as np
+    except ImportError:
+        raise Exception("Install numpy before zipline.")
+
+    NumpyExtension = partial(Extension, include_dirs=[np.get_include()])
+
+    def window_specialization(typename):
+        """Make an extension for an AdjustedArrayWindow specialization."""
+        return NumpyExtension(
+            'zipline.lib._{name}window'.format(name=typename),
+            ['zipline/lib/_{name}window.pyx'.format(name=typename)],
+            depends=['zipline/lib/_windowtemplate.pxi'],
         )
 
-    def __setitem__(self, key, value):
-        if key == 'build_ext':
-            raise AssertionError("build_ext overridden!")
-        super(LazyBuildExtCommandClass, self).__setitem__(key, value)
-
-    def __getitem__(self, key):
-        if key != 'build_ext':
-            return super(LazyBuildExtCommandClass, self).__getitem__(key)
-
-        from Cython.Distutils import build_ext as cython_build_ext
-        import numpy
-
-        # Cython_build_ext isn't a new-style class in Py2.
-        class build_ext(cython_build_ext, object):
-            """
-            Custom build_ext command that lazily adds numpy's include_dir to
-            extensions.
-            """
-            def build_extensions(self):
-                """
-                Lazily append numpy's include directory to Extension includes.
-
-                This is done here rather than at module scope because setup.py
-                may be run before numpy has been installed, in which case
-                importing numpy and calling `numpy.get_include()` will fail.
-                """
-                numpy_incl = numpy.get_include()
-                for ext in self.extensions:
-                    ext.include_dirs.append(numpy_incl)
-
-                super(build_ext, self).build_extensions()
-        return build_ext
-
-
-def window_specialization(typename):
-    """Make an extension for an AdjustedArrayWindow specialization."""
-    return Extension(
-        'zipline.lib._{name}window'.format(name=typename),
-        ['zipline/lib/_{name}window.pyx'.format(name=typename)],
-        depends=['zipline/lib/_windowtemplate.pxi'],
-    )
-
-
-ext_modules = [
-    Extension('zipline.assets._assets', ['zipline/assets/_assets.pyx']),
-    Extension('zipline.assets.continuous_futures',
-              ['zipline/assets/continuous_futures.pyx']),
-    Extension('zipline.lib.adjustment', ['zipline/lib/adjustment.pyx']),
-    Extension('zipline.lib._factorize', ['zipline/lib/_factorize.pyx']),
-    window_specialization('float64'),
-    window_specialization('int64'),
-    window_specialization('int64'),
-    window_specialization('uint8'),
-    window_specialization('label'),
-    Extension('zipline.lib.rank', ['zipline/lib/rank.pyx']),
-    Extension('zipline.data._equities', ['zipline/data/_equities.pyx']),
-    Extension('zipline.data._adjustments', ['zipline/data/_adjustments.pyx']),
-    Extension('zipline._protocol', ['zipline/_protocol.pyx']),
-    Extension(
-        'zipline.finance._finance_ext',
-        ['zipline/finance/_finance_ext.pyx'],
-    ),
-    Extension('zipline.gens.sim_engine', ['zipline/gens/sim_engine.pyx']),
-    Extension(
-        'zipline.data._minute_bar_internal',
-        ['zipline/data/_minute_bar_internal.pyx']
-    ),
-    Extension(
-        'zipline.data._resample',
-        ['zipline/data/_resample.pyx']
-    ),
-    Extension(
-        'zipline.pipeline.loaders.blaze._core',
-        ['zipline/pipeline/loaders/blaze/_core.pyx'],
-        depends=['zipline/lib/adjustment.pxd'],
-    ),
-]
+    ext_modules = [
+        NumpyExtension('zipline.assets._assets',
+                       ['zipline/assets/_assets.pyx']),
+        NumpyExtension('zipline.assets.continuous_futures',
+                       ['zipline/assets/continuous_futures.pyx']),
+        NumpyExtension('zipline.lib.adjustment',
+                       ['zipline/lib/adjustment.pyx']),
+        NumpyExtension('zipline.lib._factorize',
+                       ['zipline/lib/_factorize.pyx']),
+        window_specialization('float64'),
+        window_specialization('int64'),
+        window_specialization('int64'),
+        window_specialization('uint8'),
+        window_specialization('label'),
+        NumpyExtension('zipline.lib.rank', ['zipline/lib/rank.pyx']),
+        NumpyExtension('zipline.data._equities',
+                       ['zipline/data/_equities.pyx']),
+        NumpyExtension('zipline.data._adjustments',
+                       ['zipline/data/_adjustments.pyx']),
+        NumpyExtension('zipline._protocol', ['zipline/_protocol.pyx']),
+        NumpyExtension(
+            'zipline.finance._finance_ext',
+            ['zipline/finance/_finance_ext.pyx'],
+        ),
+        NumpyExtension('zipline.gens.sim_engine',
+                       ['zipline/gens/sim_engine.pyx']),
+        NumpyExtension(
+            'zipline.data._minute_bar_internal',
+            ['zipline/data/_minute_bar_internal.pyx']
+        ),
+        NumpyExtension(
+            'zipline.data._resample',
+            ['zipline/data/_resample.pyx']
+        ),
+        NumpyExtension(
+            'zipline.pipeline.loaders.blaze._core',
+            ['zipline/pipeline/loaders/blaze/_core.pyx'],
+            depends=['zipline/lib/adjustment.pxd'],
+        ),
+    ]
 
 
 STR_TO_CMP = {
@@ -272,9 +255,6 @@ def setup_requirements(requirements_path, module_names, strict_bounds,
     return module_lines
 
 
-conda_build = os.path.basename(sys.argv[0]) in ('conda-build',  # unix
-                                                'conda-build-script.py')  # win
-
 setup_requires = setup_requirements(
     'etc/requirements.txt',
     ('Cython', 'numpy'),
@@ -282,15 +262,16 @@ setup_requires = setup_requirements(
     conda_format=conda_build,
 )
 
-conditional_arguments = {
-    'setup_requires' if not conda_build else 'build_requires': setup_requires,
-}
+conditional_arguments = (
+    {'build_requires': setup_requires} if conda_build else {}
+)
+
 
 setup(
     name='zipline',
     url="http://zipline.io",
     version=versioneer.get_version(),
-    cmdclass=LazyBuildExtCommandClass(versioneer.get_cmdclass()),
+    cmdclass=versioneer.get_cmdclass(),
     description='A backtester for financial algorithms.',
     entry_points={
         'console_scripts': [

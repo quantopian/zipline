@@ -23,8 +23,17 @@ single tool to install Python and non-Python dependencies, or if you're already
 using `Anaconda <http://continuum.io/downloads>`_ as your Python distribution,
 you can skip to the :ref:`Installing with Conda <conda>` section.
 
+Since building Zipline's C extensions requires numpy's CPython C API as well as
+`Cython <http://cython.org/>`_, pip install these before pip installing zipline
+itself:
+
+.. code-block:: bash
+
+   $ pip install numpy Cython
+
+
 Once you've installed the necessary additional dependencies (see below for
-your particular platform), you should be able to simply run
+your particular platform), you should be able to simply run:
 
 .. code-block:: bash
 
@@ -126,10 +135,10 @@ channel:
 
 Managing ``conda`` environments
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-It is recommended to install Zipline in an isolated ``conda`` environment. 
-Installing Zipline in ``conda`` environments will not interfere your default 
-Python deployment or site-packages, which will prevent any possible conflict 
-with your global libraries. For more information on ``conda`` environment, see 
+It is recommended to install Zipline in an isolated ``conda`` environment.
+Installing Zipline in ``conda`` environments will not interfere your default
+Python deployment or site-packages, which will prevent any possible conflict
+with your global libraries. For more information on ``conda`` environment, see
 the `Conda User Guide <https://conda.io/docs/user-guide/tasks/manage-environments.html>`_
 
 Assuming ``conda`` has been set up, you can create a ``conda`` environment:
@@ -148,7 +157,7 @@ Assuming ``conda`` has been set up, you can create a ``conda`` environment:
 
 
 Now you have set up an isolated environment called ``env_zipline``, a sandbox-like
-structure to install Zipline. Then you should activate the conda environment 
+structure to install Zipline. Then you should activate the conda environment
 by using the command
 
 .. code-block:: bash
