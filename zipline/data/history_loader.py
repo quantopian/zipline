@@ -45,7 +45,7 @@ class HistoryCompatibleUSEquityAdjustmentReader(object):
     def __init__(self, adjustment_reader):
         self._adjustments_reader = adjustment_reader
 
-    def load_adjustments(self, columns, dts, assets):
+    def load_pricing_adjustments(self, columns, dts, assets):
         """
         Returns
         -------
@@ -169,7 +169,7 @@ class ContinuousFutureAdjustmentReader(object):
         self._roll_finders = roll_finders
         self._frequency = frequency
 
-    def load_adjustments(self, columns, dts, assets):
+    def load_pricing_adjustments(self, columns, dts, assets):
         """
         Returns
         -------
@@ -446,7 +446,7 @@ class HistoryLoader(with_metaclass(ABCMeta)):
                 except KeyError:
                     adj_reader = None
                 if adj_reader is not None:
-                    adjs = adj_reader.load_adjustments(
+                    adjs = adj_reader.load_pricing_adjustments(
                         [field], adj_dts, [asset])[0]
                 else:
                     adjs = {}

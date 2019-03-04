@@ -371,7 +371,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
             TEST_QUERY_STOP,
         )
 
-        adjustments = self.adjustment_reader.load_adjustments(
+        adjustments = self.adjustment_reader.load_pricing_adjustments(
             [c.name for c in columns],
             query_days,
             self.sids,
@@ -468,7 +468,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
             shift=-1,
         )
 
-        adjustments = adjustment_reader.load_adjustments(
+        adjustments = adjustment_reader.load_pricing_adjustments(
             [c.name for c in columns],
             query_days,
             self.sids,

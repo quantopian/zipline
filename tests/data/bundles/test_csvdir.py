@@ -122,10 +122,10 @@ class CSVDIRBundleTestCase(ZiplineTestCase):
         )
         assert_equal(actual, expected_pricing, array_decimal=2)
 
-        adjustments_for_cols = bundle.adjustment_reader.load_adjustments(
+        adjs_for_cols = bundle.adjustment_reader.load_pricing_adjustments(
             self.columns,
             sessions,
             pd.Index(sids),
         )
-        assert_equal([sorted(adj.keys()) for adj in adjustments_for_cols],
+        assert_equal([sorted(adj.keys()) for adj in adjs_for_cols],
                      expected_adjustments)
