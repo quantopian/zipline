@@ -322,13 +322,13 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
 
         return cls.equity_daily_bar_days[start:stop]
 
-    def expected_adjustments(self, start_date, end_date):
+    def expected_adjustments(self, start_date, end_date, tables):
         price_adjustments = {}
         volume_adjustments = {}
         query_days = self.calendar_days_between(start_date, end_date)
         start_loc = query_days.get_loc(start_date)
 
-        for table in SPLITS, MERGERS, DIVIDENDS_EXPECTED:
+        for table in tables:
             for eff_date_secs, ratio, sid in table.itertuples(index=False):
                 eff_date = Timestamp(eff_date_secs, unit='s', tz='UTC')
 
@@ -364,28 +364,35 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
                     )
         return price_adjustments, volume_adjustments
 
-    def test_load_adjustments_from_sqlite(self):
-        columns = [USEquityPricing.close, USEquityPricing.volume]
+    @parameterized([
+        (SPLITS, MERGERS, DIVIDENDS_EXPECTED),
+        (SPLITS, MERGERS, None),
+    ])
+    def test_load_adjustments(self, tables):
         query_days = self.calendar_days_between(
             TEST_QUERY_START,
             TEST_QUERY_STOP,
         )
 
-        adjustments = self.adjustment_reader.load_pricing_adjustments(
-            [c.name for c in columns],
+        price_adjs, volume_adjs = self.adjustment_reader.load_adjustments(
             query_days,
             self.sids,
+            should_include_splits=tables[0] is not None,
+            should_include_mergers=tables[1] is not None,
+            should_include_dividends=tables[2] is not None,
         )
 
-        close_adjustments = adjustments[0]
-        volume_adjustments = adjustments[1]
+        expected_price_adjustments, expected_volume_adjustments = \
+            self.expected_adjustments(
+                TEST_QUERY_START,
+                TEST_QUERY_STOP,
+                [table for table in tables if table is not None],
+            )
 
-        expected_close_adjustments, expected_volume_adjustments = \
-            self.expected_adjustments(TEST_QUERY_START, TEST_QUERY_STOP)
-        for key in expected_close_adjustments:
-            close_adjustment = close_adjustments[key]
-            for j, adj in enumerate(close_adjustment):
-                expected = expected_close_adjustments[key][j]
+        for key in expected_price_adjustments:
+            price_adjustment = price_adjs[key]
+            for j, adj in enumerate(price_adjustment):
+                expected = expected_price_adjustments[key][j]
                 self.assertEqual(adj.first_row, expected.first_row)
                 self.assertEqual(adj.last_row, expected.last_row)
                 self.assertEqual(adj.first_col, expected.first_col)
@@ -393,7 +400,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
                 assert_allclose(adj.value, expected.value)
 
         for key in expected_volume_adjustments:
-            volume_adjustment = volume_adjustments[key]
+            volume_adjustment = volume_adjs[key]
             for j, adj in enumerate(volume_adjustment):
                 expected = expected_volume_adjustments[key][j]
                 self.assertEqual(adj.first_row, expected.first_row)
