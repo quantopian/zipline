@@ -762,6 +762,19 @@ class MultiDimensionalDataSet(_base):
         return coords, tuple(coords.items())
 
     @classmethod
+    def _make_dataset(cls, coords):
+        """Construct a new dataset given the coordinates.
+        """
+        class Slice(cls._SliceType):
+            extra_coords = coords
+
+        Slice.__name__ = '%s.slice(%s)' % (
+            cls.__name__,
+            ', '.join('%s=%r' % item for item in coords.items()),
+        )
+        return Slice
+
+    @classmethod
     def slice(cls, *args, **kwargs):
         """Take a slice of a multi-dimensional dataset to produce a dataset
         indexed by asset and date.
@@ -788,12 +801,6 @@ class MultiDimensionalDataSet(_base):
         except KeyError:
             pass
 
-        class Slice(cls._SliceType):
-            extra_coords = coords
-
-        Slice.__name__ = '%s.slice(%s)' % (
-            cls.__name__,
-            ', '.join('%s=%r' % item for item in coords.items()),
-        )
+        Slice = cls._make_dataset(coords)
         cls._slice_cache[hash_key] = Slice
         return Slice
