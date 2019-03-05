@@ -270,18 +270,12 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,
         asset_ix = asset_ixs[sid]
 
         price_adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
-        try:
-            price_adjustments[date_loc].append(price_adj)
-        except KeyError:
-            price_adjustments[date_loc] = [price_adj]
+        price_adjustments.setdefault(date_loc, []).append(price_adj)
 
         volume_adj = Float64Multiply(
             0, date_loc, asset_ix, asset_ix, 1.0 / ratio
         )
-        try:
-            volume_adjustments[date_loc].append(volume_adj)
-        except KeyError:
-            volume_adjustments[date_loc] = [volume_adj]
+        volume_adjustments.setdefault(date_loc, []).append(volume_adj)
 
     # mergers affect prices only
     for sid, ratio, eff_date in mergers:
@@ -295,10 +289,7 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,
         asset_ix = asset_ixs[sid]
 
         price_adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
-        try:
-            price_adjustments[date_loc].append(price_adj)
-        except KeyError:
-            price_adjustments[date_loc] = [price_adj]
+        price_adjustments.setdefault(date_loc, []).append(price_adj)
 
     # dividends affect prices only
     for sid, ratio, eff_date in dividends:
@@ -312,10 +303,7 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,
         asset_ix = asset_ixs[sid]
 
         price_adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
-        try:
-            price_adjustments[date_loc].append(price_adj)
-        except KeyError:
-            price_adjustments[date_loc] = [price_adj]
+        price_adjustments.setdefault(date_loc, []).append(price_adj)
 
     return price_adjustments, volume_adjustments
 
