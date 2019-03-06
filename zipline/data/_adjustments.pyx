@@ -164,7 +164,8 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,
                                    Int64Index_t assets,
                                    bool should_include_splits,
                                    bool should_include_mergers,
-                                   bool should_include_dividends):
+                                   bool should_include_dividends,
+                                   str adjustment_type):
     """
     Load a dictionary of Adjustment objects from adjustments_db.
 
@@ -183,13 +184,33 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,
         Whether merger adjustments should be included.
     should_include_dividends : bool
         Whether dividend adjustments should be included.
+    adjustment_type : str
+        Whether price adjustments, volume adjustments, or both, should be
+        included in the output.
 
     Returns
     -------
-    adjustments : tuple[dict[int -> Adjustment]]
-        A tuple of price and volume adjustment mappings from index to
-        adjustment objects to apply at that index.
+    adjustments : dict[str -> dict[int -> Adjustment]]
+        A dictionary containing price and/or volume adjustment mappings from
+        index to adjustment objects to apply at that index.
     """
+
+    if not (adjustment_type == 'P' or
+            adjustment_type == 'V' or
+            adjustment_type == 'all'):
+        raise ValueError(
+            "%s is not a valid adjustment type.\n"
+            "Valid adjustment types are 'P', 'V', and 'all'.\n" % (
+                adjustment_type,
+            )
+        )
+
+    cdef bool should_include_price_adjustments = (
+        adjustment_type == 'all' or adjustment_type == 'P'
+    )
+    cdef bool should_include_volume_adjustments = (
+        adjustment_type == 'all' or adjustment_type == 'V'
+    )
 
     cdef int start_date = timedelta_to_integral_seconds(dates[0] - EPOCH)
     cdef int end_date = timedelta_to_integral_seconds(dates[-1] - EPOCH)
@@ -239,6 +260,7 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,
 
     cdef dict price_adjustments = {}
     cdef dict volume_adjustments = {}
+    cdef dict result = {}
     cdef dict asset_ixs = {}  # Cache sid lookups here.
     cdef dict date_ixs = {}
     cdef:
@@ -269,43 +291,50 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,
             asset_ixs[sid] = assets.get_loc(sid)
         asset_ix = asset_ixs[sid]
 
-        price_adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
-        price_adjustments.setdefault(date_loc, []).append(price_adj)
+        if should_include_price_adjustments:
+            price_adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
+            price_adjustments.setdefault(date_loc, []).append(price_adj)
 
-        volume_adj = Float64Multiply(
-            0, date_loc, asset_ix, asset_ix, 1.0 / ratio
-        )
-        volume_adjustments.setdefault(date_loc, []).append(volume_adj)
+        if should_include_volume_adjustments:
+            volume_adj = Float64Multiply(
+                0, date_loc, asset_ix, asset_ix, 1.0 / ratio
+            )
+            volume_adjustments.setdefault(date_loc, []).append(volume_adj)
 
-    # mergers affect prices only
-    for sid, ratio, eff_date in mergers:
-        if eff_date < start_date:
-            continue
+    # mergers and dividends affect prices only
+    if should_include_price_adjustments:
+        for sid, ratio, eff_date in mergers:
+            if eff_date < start_date:
+                continue
 
-        date_loc = _lookup_dt(date_ixs, eff_date, _dates_seconds)
+            date_loc = _lookup_dt(date_ixs, eff_date, _dates_seconds)
 
-        if not PyDict_Contains(asset_ixs, sid):
-            asset_ixs[sid] = assets.get_loc(sid)
-        asset_ix = asset_ixs[sid]
+            if not PyDict_Contains(asset_ixs, sid):
+                asset_ixs[sid] = assets.get_loc(sid)
+            asset_ix = asset_ixs[sid]
 
-        price_adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
-        price_adjustments.setdefault(date_loc, []).append(price_adj)
+            price_adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
+            price_adjustments.setdefault(date_loc, []).append(price_adj)
 
-    # dividends affect prices only
-    for sid, ratio, eff_date in dividends:
-        if eff_date < start_date:
-            continue
+        for sid, ratio, eff_date in dividends:
+            if eff_date < start_date:
+                continue
 
-        date_loc = _lookup_dt(date_ixs, eff_date, _dates_seconds)
+            date_loc = _lookup_dt(date_ixs, eff_date, _dates_seconds)
 
-        if not PyDict_Contains(asset_ixs, sid):
-            asset_ixs[sid] = assets.get_loc(sid)
-        asset_ix = asset_ixs[sid]
+            if not PyDict_Contains(asset_ixs, sid):
+                asset_ixs[sid] = assets.get_loc(sid)
+            asset_ix = asset_ixs[sid]
 
-        price_adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
-        price_adjustments.setdefault(date_loc, []).append(price_adj)
+            price_adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
+            price_adjustments.setdefault(date_loc, []).append(price_adj)
 
-    return price_adjustments, volume_adjustments
+    if should_include_price_adjustments:
+        result['price_adjustments'] = price_adjustments
+    if should_include_volume_adjustments:
+        result['volume_adjustments'] = volume_adjustments
+
+    return result
 
 
 cdef _lookup_dt(dict dt_cache,

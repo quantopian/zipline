@@ -322,9 +322,21 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
 
         return cls.equity_daily_bar_days[start:stop]
 
-    def expected_adjustments(self, start_date, end_date, tables):
+    def expected_adjustments(self,
+                             start_date,
+                             end_date,
+                             tables,
+                             adjustment_type):
         price_adjustments = {}
         volume_adjustments = {}
+
+        should_include_price_adjustments = (
+            adjustment_type == 'all' or adjustment_type == 'P'
+        )
+        should_include_volume_adjustments = (
+            adjustment_type == 'all' or adjustment_type == 'V'
+        )
+
         query_days = self.calendar_days_between(start_date, end_date)
         start_loc = query_days.get_loc(start_date)
 
@@ -342,17 +354,18 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
                 # Pricing adjustments should be applied on the date
                 # corresponding to the effective date of the input data. They
                 # should affect all rows **before** the effective date.
-                price_adjustments.setdefault(delta, []).append(
-                    Float64Multiply(
-                        first_row=0,
-                        last_row=delta,
-                        first_col=sid - 1,
-                        last_col=sid - 1,
-                        value=ratio,
+                if should_include_price_adjustments:
+                    price_adjustments.setdefault(delta, []).append(
+                        Float64Multiply(
+                            first_row=0,
+                            last_row=delta,
+                            first_col=sid - 1,
+                            last_col=sid - 1,
+                            value=ratio,
+                        )
                     )
-                )
                 # Volume is *inversely* affected by *splits only*.
-                if table is SPLITS:
+                if table is SPLITS and should_include_volume_adjustments:
                     volume_adjustments.setdefault(delta, []).append(
                         Float64Multiply(
                             first_row=0,
@@ -362,52 +375,70 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
                             value=1.0 / ratio,
                         )
                     )
-        return price_adjustments, volume_adjustments
+
+        output = {}
+        if should_include_price_adjustments:
+            output['price_adjustments'] = price_adjustments
+        if should_include_volume_adjustments:
+            output['volume_adjustments'] = volume_adjustments
+
+        return output
 
     @parameterized([
-        (SPLITS, MERGERS, DIVIDENDS_EXPECTED),
-        (SPLITS, MERGERS, None),
+        ([SPLITS, MERGERS, DIVIDENDS_EXPECTED], 'all'),
+        ([SPLITS, MERGERS, DIVIDENDS_EXPECTED], 'P'),
+        ([SPLITS, MERGERS, DIVIDENDS_EXPECTED], 'V'),
+        ([SPLITS, MERGERS, None], 'all'),
+        ([SPLITS, MERGERS, None], 'P'),
     ])
-    def test_load_adjustments(self, tables):
+    def test_load_adjustments(self, tables, adjustment_type):
         query_days = self.calendar_days_between(
             TEST_QUERY_START,
             TEST_QUERY_STOP,
         )
 
-        price_adjs, volume_adjs = self.adjustment_reader.load_adjustments(
+        adjustments = self.adjustment_reader.load_adjustments(
             query_days,
             self.sids,
             should_include_splits=tables[0] is not None,
             should_include_mergers=tables[1] is not None,
             should_include_dividends=tables[2] is not None,
+            adjustment_type=adjustment_type,
+        )
+        expected_adjustments = self.expected_adjustments(
+            TEST_QUERY_START,
+            TEST_QUERY_STOP,
+            [table for table in tables if table is not None],
+            adjustment_type,
         )
 
-        expected_price_adjustments, expected_volume_adjustments = \
-            self.expected_adjustments(
-                TEST_QUERY_START,
-                TEST_QUERY_STOP,
-                [table for table in tables if table is not None],
-            )
+        if adjustment_type == 'all' or adjustment_type == 'P':
+            expected_price_adjustments = expected_adjustments[
+                'price_adjustments'
+            ]
+            for key in expected_price_adjustments:
+                price_adjustment = adjustments['price_adjustments'][key]
+                for j, adj in enumerate(price_adjustment):
+                    expected = expected_price_adjustments[key][j]
+                    self.assertEqual(adj.first_row, expected.first_row)
+                    self.assertEqual(adj.last_row, expected.last_row)
+                    self.assertEqual(adj.first_col, expected.first_col)
+                    self.assertEqual(adj.last_col, expected.last_col)
+                    assert_allclose(adj.value, expected.value)
 
-        for key in expected_price_adjustments:
-            price_adjustment = price_adjs[key]
-            for j, adj in enumerate(price_adjustment):
-                expected = expected_price_adjustments[key][j]
-                self.assertEqual(adj.first_row, expected.first_row)
-                self.assertEqual(adj.last_row, expected.last_row)
-                self.assertEqual(adj.first_col, expected.first_col)
-                self.assertEqual(adj.last_col, expected.last_col)
-                assert_allclose(adj.value, expected.value)
-
-        for key in expected_volume_adjustments:
-            volume_adjustment = volume_adjs[key]
-            for j, adj in enumerate(volume_adjustment):
-                expected = expected_volume_adjustments[key][j]
-                self.assertEqual(adj.first_row, expected.first_row)
-                self.assertEqual(adj.last_row, expected.last_row)
-                self.assertEqual(adj.first_col, expected.first_col)
-                self.assertEqual(adj.last_col, expected.last_col)
-                assert_allclose(adj.value, expected.value)
+        if adjustment_type == 'all' or adjustment_type == 'V':
+            expected_volume_adjustments = expected_adjustments[
+                'volume_adjustments'
+            ]
+            for key in expected_volume_adjustments:
+                volume_adjustment = adjustments['volume_adjustments'][key]
+                for j, adj in enumerate(volume_adjustment):
+                    expected = expected_volume_adjustments[key][j]
+                    self.assertEqual(adj.first_row, expected.first_row)
+                    self.assertEqual(adj.last_row, expected.last_row)
+                    self.assertEqual(adj.first_col, expected.first_col)
+                    self.assertEqual(adj.last_col, expected.last_col)
+                    assert_allclose(adj.value, expected.value)
 
     @parameterized([(True,), (False,)])
     def test_load_adjustments_to_df(self, convert_dts):
