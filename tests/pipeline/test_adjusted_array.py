@@ -745,3 +745,42 @@ last_col=0, value=4.000000)]}
         # values and adjustment values.
         check_arrays(adj_array.data, expected_adj_array.data)
         self.assertEqual(adj_array.adjustments, expected_adj_array.adjustments)
+
+    @parameterized.expand([
+        # Append new adjustment to back of the list if index already contains
+        # adjustments.
+        (
+            True,
+            {
+                1: [Float64Multiply(0, 3, 0, 0, 4.0),
+                    Float64Overwrite(2, 3, 0, 0, 1.0)],
+                3: [Float64Multiply(0, 3, 0, 0, 4.0)],
+            },
+        ),
+        # Append new adjustment to front of the list if index already contains
+        # adjustments.
+        (
+            False,
+            {
+                1: [Float64Overwrite(2, 3, 0, 0, 1.0),
+                    Float64Multiply(0, 3, 0, 0, 4.0)],
+                3: [Float64Multiply(0, 3, 0, 0, 4.0)],
+            },
+        )
+    ])
+    def test_append_adjustments(self, append_back, expected_adjustments):
+        adjustments = {
+            1: [Float64Multiply(0, 3, 0, 0, 4.0)],
+        }
+        adjustments_to_append = {
+            1: [Float64Overwrite(2, 3, 0, 0, 1.0)],
+            3: [Float64Multiply(0, 3, 0, 0, 4.0)],
+        }
+
+        data = arange(30, dtype=float).reshape(6, 5)
+        adjusted_array = AdjustedArray(data, adjustments, float('nan'))
+
+        adjusted_array.append_adjustments(
+            adjustments_to_append, append_back=append_back
+        )
+        self.assertEqual(adjusted_array.adjustments, expected_adjustments)

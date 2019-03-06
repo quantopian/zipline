@@ -165,6 +165,17 @@ class AdjustedArray(object):
         self.adjustments = adjustments
         self.missing_value = missing_value
 
+    def append_adjustments(self, adjustments_to_append, append_back=True):
+        for index, adjustments in iteritems(adjustments_to_append):
+            if index not in self.adjustments:
+                self.adjustments[index] = adjustments
+            elif append_back:
+                self.adjustments[index].extend(adjustments)
+            else:
+                new_adjustments = list(adjustments)
+                new_adjustments.extend(self.adjustments[index])
+                self.adjustments[index] = new_adjustments
+
     @property
     def data(self):
         """
