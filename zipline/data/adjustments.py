@@ -112,13 +112,72 @@ class SQLiteAdjustmentReader(object):
     def close(self):
         return self.conn.close()
 
-    def load_adjustments(self, columns, dates, assets):
+    def load_adjustments(self,
+                         dates,
+                         assets,
+                         should_include_splits,
+                         should_include_mergers,
+                         should_include_dividends,
+                         adjustment_type):
+        """
+        Load collection of Adjustment objects from underlying adjustments db.
+
+        Parameters
+        ----------
+        dates : pd.DatetimeIndex
+            Dates for which adjustments are needed.
+        assets : pd.Int64Index
+            Assets for which adjustments are needed.
+        should_include_splits : bool
+            Whether split adjustments should be included.
+        should_include_mergers : bool
+            Whether merger adjustments should be included.
+        should_include_dividends : bool
+            Whether dividend adjustments should be included.
+        adjustment_type : str
+            Whether price adjustments, volume adjustments, or both, should be
+            included in the output.
+
+        Returns
+        -------
+        adjustments : dict[str -> dict[int -> Adjustment]]
+            A dictionary containing price and/or volume adjustment mappings
+            from index to adjustment objects to apply at that index.
+        """
         return load_adjustments_from_sqlite(
             self.conn,
-            list(columns),
             dates,
             assets,
+            should_include_splits,
+            should_include_mergers,
+            should_include_dividends,
+            adjustment_type,
         )
+
+    def load_pricing_adjustments(self, columns, dates, assets):
+        if 'volume' not in set(columns):
+            adjustment_type = 'price'
+        elif len(set(columns)) == 1:
+            adjustment_type = 'volume'
+        else:
+            adjustment_type = 'all'
+
+        adjustments = self.load_adjustments(
+            dates,
+            assets,
+            should_include_splits=True,
+            should_include_mergers=True,
+            should_include_dividends=True,
+            adjustment_type=adjustment_type,
+        )
+        price_adjustments = adjustments.get('price')
+        volume_adjustments = adjustments.get('volume')
+
+        return [
+            volume_adjustments if column == 'volume'
+            else price_adjustments
+            for column in columns
+        ]
 
     def get_adjustments_for_sid(self, table_name, sid):
         t = (sid,)

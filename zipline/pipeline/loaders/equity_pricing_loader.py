@@ -53,7 +53,7 @@ class EquityPricingLoader(implements(PipelineLoader)):
             end_date,
             sids,
         )
-        adjustments = self.adjustments_reader.load_adjustments(
+        adjustments = self.adjustments_reader.load_pricing_adjustments(
             colnames,
             dates,
             sids,
