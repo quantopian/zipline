@@ -156,12 +156,11 @@ class SQLiteAdjustmentReader(object):
 
     def load_pricing_adjustments(self, columns, dates, assets):
         if 'volume' not in set(columns):
-            adjustment_type = 'P'
+            adjustment_type = 'price'
+        elif len(set(columns)) == 1:
+            adjustment_type = 'volume'
         else:
-            if len(set(columns)) == 1:
-                adjustment_type = 'V'
-            else:
-                adjustment_type = 'all'
+            adjustment_type = 'all'
 
         adjustments = self.load_adjustments(
             dates,
@@ -171,8 +170,8 @@ class SQLiteAdjustmentReader(object):
             should_include_dividends=True,
             adjustment_type=adjustment_type,
         )
-        price_adjustments = adjustments.get('price_adjustments')
-        volume_adjustments = adjustments.get('volume_adjustments')
+        price_adjustments = adjustments.get('price')
+        volume_adjustments = adjustments.get('volume')
 
         return [
             volume_adjustments if column == 'volume'

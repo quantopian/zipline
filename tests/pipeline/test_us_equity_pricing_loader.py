@@ -331,10 +331,10 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
         volume_adjustments = {}
 
         should_include_price_adjustments = (
-            adjustment_type == 'all' or adjustment_type == 'P'
+            adjustment_type == 'all' or adjustment_type == 'price'
         )
         should_include_volume_adjustments = (
-            adjustment_type == 'all' or adjustment_type == 'V'
+            adjustment_type == 'all' or adjustment_type == 'volume'
         )
 
         query_days = self.calendar_days_between(start_date, end_date)
@@ -386,10 +386,10 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
 
     @parameterized([
         ([SPLITS, MERGERS, DIVIDENDS_EXPECTED], 'all'),
-        ([SPLITS, MERGERS, DIVIDENDS_EXPECTED], 'P'),
-        ([SPLITS, MERGERS, DIVIDENDS_EXPECTED], 'V'),
+        ([SPLITS, MERGERS, DIVIDENDS_EXPECTED], 'price'),
+        ([SPLITS, MERGERS, DIVIDENDS_EXPECTED], 'volume'),
         ([SPLITS, MERGERS, None], 'all'),
-        ([SPLITS, MERGERS, None], 'P'),
+        ([SPLITS, MERGERS, None], 'price'),
     ])
     def test_load_adjustments(self, tables, adjustment_type):
         query_days = self.calendar_days_between(
@@ -412,12 +412,10 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
             adjustment_type,
         )
 
-        if adjustment_type == 'all' or adjustment_type == 'P':
-            expected_price_adjustments = expected_adjustments[
-                'price_adjustments'
-            ]
+        if adjustment_type == 'all' or adjustment_type == 'price':
+            expected_price_adjustments = expected_adjustments['price']
             for key in expected_price_adjustments:
-                price_adjustment = adjustments['price_adjustments'][key]
+                price_adjustment = adjustments['price'][key]
                 for j, adj in enumerate(price_adjustment):
                     expected = expected_price_adjustments[key][j]
                     self.assertEqual(adj.first_row, expected.first_row)
@@ -426,12 +424,10 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
                     self.assertEqual(adj.last_col, expected.last_col)
                     assert_allclose(adj.value, expected.value)
 
-        if adjustment_type == 'all' or adjustment_type == 'V':
-            expected_volume_adjustments = expected_adjustments[
-                'volume_adjustments'
-            ]
+        if adjustment_type == 'all' or adjustment_type == 'volume':
+            expected_volume_adjustments = expected_adjustments['volume']
             for key in expected_volume_adjustments:
-                volume_adjustment = adjustments['volume_adjustments'][key]
+                volume_adjustment = adjustments['volume'][key]
                 for j, adj in enumerate(volume_adjustment):
                     expected = expected_volume_adjustments[key][j]
                     self.assertEqual(adj.first_row, expected.first_row)

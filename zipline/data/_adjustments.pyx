@@ -18,6 +18,7 @@ from cpython cimport (
     PySet_Add,
 )
 
+from itertools import chain
 from numpy import (
     int64,
     uint32,
@@ -195,22 +196,26 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,
         index to adjustment objects to apply at that index.
     """
 
-    if not (adjustment_type == 'P' or
-            adjustment_type == 'V' or
+    if not (adjustment_type == 'price' or
+            adjustment_type == 'volume' or
             adjustment_type == 'all'):
         raise ValueError(
             "%s is not a valid adjustment type.\n"
-            "Valid adjustment types are 'P', 'V', and 'all'.\n" % (
+            "Valid adjustment types are 'price', 'volume', and 'all'.\n" % (
                 adjustment_type,
             )
         )
 
     cdef bool should_include_price_adjustments = (
-        adjustment_type == 'all' or adjustment_type == 'P'
+        adjustment_type == 'all' or adjustment_type == 'price'
     )
     cdef bool should_include_volume_adjustments = (
-        adjustment_type == 'all' or adjustment_type == 'V'
+        adjustment_type == 'all' or adjustment_type == 'volume'
     )
+
+    if not should_include_price_adjustments:
+        should_include_mergers = False
+        should_include_dividends = False
 
     cdef int start_date = timedelta_to_integral_seconds(dates[0] - EPOCH)
     cdef int end_date = timedelta_to_integral_seconds(dates[-1] - EPOCH)
@@ -302,37 +307,23 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,
             volume_adjustments.setdefault(date_loc, []).append(volume_adj)
 
     # mergers and dividends affect prices only
-    if should_include_price_adjustments:
-        for sid, ratio, eff_date in mergers:
-            if eff_date < start_date:
-                continue
+    for sid, ratio, eff_date in chain(mergers, dividends):
+        if eff_date < start_date:
+            continue
 
-            date_loc = _lookup_dt(date_ixs, eff_date, _dates_seconds)
+        date_loc = _lookup_dt(date_ixs, eff_date, _dates_seconds)
 
-            if not PyDict_Contains(asset_ixs, sid):
-                asset_ixs[sid] = assets.get_loc(sid)
-            asset_ix = asset_ixs[sid]
+        if not PyDict_Contains(asset_ixs, sid):
+            asset_ixs[sid] = assets.get_loc(sid)
+        asset_ix = asset_ixs[sid]
 
-            price_adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
-            price_adjustments.setdefault(date_loc, []).append(price_adj)
-
-        for sid, ratio, eff_date in dividends:
-            if eff_date < start_date:
-                continue
-
-            date_loc = _lookup_dt(date_ixs, eff_date, _dates_seconds)
-
-            if not PyDict_Contains(asset_ixs, sid):
-                asset_ixs[sid] = assets.get_loc(sid)
-            asset_ix = asset_ixs[sid]
-
-            price_adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
-            price_adjustments.setdefault(date_loc, []).append(price_adj)
+        price_adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
+        price_adjustments.setdefault(date_loc, []).append(price_adj)
 
     if should_include_price_adjustments:
-        result['price_adjustments'] = price_adjustments
+        result['price'] = price_adjustments
     if should_include_volume_adjustments:
-        result['volume_adjustments'] = volume_adjustments
+        result['volume'] = volume_adjustments
 
     return result
 
