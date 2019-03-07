@@ -375,6 +375,18 @@ class LabelArray(ndarray):
             value_categories = value.categories
             if compare_arrays(self_categories, value_categories):
                 return super(LabelArray, self).__setitem__(indexer, value)
+            elif (self.missing_value == value.missing_value and
+                  set(value.categories) <= set(self.categories)):
+                rhs = LabelArray.from_codes_and_metadata(
+                    *factorize_strings_known_categories(
+                        value.as_string_array().ravel(),
+                        list(self.categories),
+                        self.missing_value,
+                        False,
+                    ),
+                    missing_value=self.missing_value
+                ).reshape(value.shape)
+                super(LabelArray, self).__setitem__(indexer, rhs)
             else:
                 raise CategoryMismatch(self_categories, value_categories)
         else:
