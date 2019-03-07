@@ -1,5 +1,5 @@
 from textwrap import dedent
-
+from functools import partial
 from numpy import (
     bool_,
     dtype,
@@ -14,6 +14,7 @@ from numpy import (
     uint8,
 )
 from six import iteritems
+from toolz import merge_with
 from zipline.errors import (
     WindowLengthNotPositive,
     WindowLengthTooLong,
@@ -165,16 +166,45 @@ class AdjustedArray(object):
         self.adjustments = adjustments
         self.missing_value = missing_value
 
-    def append_adjustments(self, adjustments_to_append, append_back=True):
-        for index, adjustments in iteritems(adjustments_to_append):
-            if index not in self.adjustments:
-                self.adjustments[index] = adjustments
-            elif append_back:
-                self.adjustments[index].extend(adjustments)
-            else:
-                new_adjustments = list(adjustments)
-                new_adjustments.extend(self.adjustments[index])
-                self.adjustments[index] = new_adjustments
+    def append_adjustments(self, adjustments_to_append, append_back):
+        """
+        Adds ``adjustments_to_append`` to existing adjustments, handling
+        index collisions according to ``append_back``.
+
+        Parameters
+        ----------
+        adjustments_to_append : dict[int -> list[Adjustment]]
+            The mapping of row indices to lists of adjustments that should be
+            appended to existing adjustments.
+        append_back : bool
+            If `True` collisions will be resolved by appending new adjustment
+            list at the end of existing adjustments. They will be appended at
+            the front otherwise.
+        """
+        self.adjustments = merge_with(
+            partial(self._merge_adjustments, append_back=append_back),
+            self.adjustments,
+            adjustments_to_append,
+        )
+
+    def _merge_adjustments(self, adjustment_lists, append_back):
+        """
+        Handles index collisions when merging adjustments.
+
+        Notes
+        -----
+        ``adjustment_lists`` will contain at most two lists of adjustments (in
+        case of index collision), and at least one (no collision).
+        """
+        if len(adjustment_lists) == 1:
+            return adjustment_lists[0]
+        elif append_back:
+            adjustment_lists[0].extend(adjustment_lists[1])
+            return adjustment_lists[0]
+        else:
+            new_adjustments = list(adjustment_lists[1])
+            new_adjustments.extend(adjustment_lists[0])
+            return new_adjustments
 
     @property
     def data(self):
