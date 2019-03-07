@@ -188,6 +188,22 @@ cdef class Datetime641DArrayOverwrite(ArrayAdjustment):
     cpdef mutate(self, np.int64_t[:, :] data)
 
 
+cdef class Object1DArrayOverwrite(ArrayAdjustment):
+    """
+    An adjustment that overwrites subarrays with a value for each subarray.
+    """
+    cdef public object values
+    cpdef mutate(self, object data)
+
+
+cdef class Boolean1DArrayOverwrite(ArrayAdjustment):
+    """
+    An adjustment that overwrites subarrays with a value for each subarray.
+    """
+    cdef public np.uint8_t[:] values
+    cpdef mutate(self, np.uint8_t[:, :] data)
+
+
 cdef class Float64Add(Float64Adjustment):
     """
     An adjustment that adds a float.

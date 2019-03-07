@@ -598,6 +598,91 @@ cdef class Datetime641DArrayOverwrite(ArrayAdjustment):
         )
 
 
+cdef class Object1DArrayOverwrite(ArrayAdjustment):
+    def __init__(self,
+                 int64_t first_row,
+                 int64_t last_row,
+                 int64_t first_col,
+                 int64_t last_col,
+                 object values):
+        super(Object1DArrayOverwrite, self).__init__(
+            first_row=first_row,
+            last_row=last_row,
+            first_col=first_col,
+            last_col=last_col,
+        )
+        if last_row + 1 - first_row != len(values):
+            raise ValueError(
+                "Mismatch: got %d values for rows starting at index %d and "
+                "ending at index %d." % (len(values), first_row, last_row)
+            )
+        self.values = values[:, None]
+
+    cpdef mutate(self, object data):
+        # data is an object here because this is intended to be used with a
+        # `zipline.lib.LabelArray`.
+
+        data[
+            self.first_row:self.last_row + 1,
+            self.first_col:self.last_col + 1,
+        ] = self.values
+
+
+
+cdef class Boolean1DArrayOverwrite(ArrayAdjustment):
+    def __init__(self,
+                 int64_t first_row,
+                 int64_t last_row,
+                 int64_t first_col,
+                 int64_t last_col,
+                 object values):
+        if values.dtype.kind != 'b':
+            raise TypeError('dtype is not bool, got: %r' % values.dtype)
+
+        super(Boolean1DArrayOverwrite, self).__init__(
+            first_row=first_row,
+            last_row=last_row,
+            first_col=first_col,
+            last_col=last_col,
+        )
+
+        if last_row + 1 - first_row != len(values):
+            raise ValueError(
+                "Mismatch: got %d values for rows starting at index %d and "
+                "ending at index %d." % (len(values), first_row, last_row)
+            )
+        self.values = values.view('uint8')
+
+    cpdef mutate(self, np.uint8_t[:, :] data):
+        cdef Py_ssize_t i, row, col
+        cdef np.uint8_t[:] values = self.values
+        for col in range(self.first_col, self.last_col + 1):
+            for i, row in enumerate(range(self.first_row, self.last_row + 1)):
+                data[row, col] = values[i]
+
+    def __repr__(self):
+        return (
+            "%s(first_row=%d, last_row=%d,"
+            " first_col=%d, last_col=%d, value=%r)" % (
+                type(self).__name__,
+                self.first_row,
+                self.last_row,
+                self.first_col,
+                self.last_col,
+                self.value.view('?'),
+            )
+        )
+
+    def __reduce__(self):
+        return type(self), (
+            self.first_row,
+            self.last_row,
+            self.first_col,
+            self.last_col,
+            self.value.view('?'),
+        )
+
+
 cdef class Float64Add(Float64Adjustment):
     """
     An adjustment that adds a float.
