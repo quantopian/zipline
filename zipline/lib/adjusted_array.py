@@ -136,6 +136,46 @@ def _normalize_array(data, missing_value):
         )
 
 
+def _merge_simple(adjustment_lists, front_idx, back_idx):
+    """
+    Merge lists of new and existing adjustments for a given index by appending
+    or prepending new adjustments to existing adjustments.
+
+    Notes
+    -----
+    This method is meant to be used with ``toolz.merge_with`` to merge
+    adjustment mappings. In case of a collision ``adjustment_lists`` contains
+    two lists, existing adjustments at index 0 and new adjustments at index 1.
+    When there are no collisions, ``adjustment_lists`` contains a single list.
+
+    Parameters
+    ----------
+    adjustment_lists : list[list[Adjustment]]
+        List(s) of new and/or existing adjustments for a given index.
+    front_idx : int
+        Index of list in ``adjustment_lists`` that should be used as baseline
+        in case of a collision.
+    back_idx : int
+        Index of list in ``adjustment_lists`` that should extend baseline list
+        in case of a collision.
+
+    Returns
+    -------
+    adjustments : list[Adjustment]
+        List of merged adjustments for a given index.
+    """
+    if len(adjustment_lists) == 1:
+        return list(adjustment_lists[0])
+    else:
+        return adjustment_lists[front_idx] + adjustment_lists[back_idx]
+
+
+_merge_methods = {
+    'append': partial(_merge_simple, front_idx=0, back_idx=1),
+    'prepend': partial(_merge_simple, front_idx=1, back_idx=0),
+}
+
+
 class AdjustedArray(object):
     """
     An array that can be iterated with a variable-length window, and which can
@@ -166,45 +206,34 @@ class AdjustedArray(object):
         self.adjustments = adjustments
         self.missing_value = missing_value
 
-    def append_adjustments(self, adjustments_to_append, append_back):
+    def update_adjustments(self, adjustments, method):
         """
-        Adds ``adjustments_to_append`` to existing adjustments, handling
-        index collisions according to ``append_back``.
+        Merge ``adjustments`` with existing adjustments, handling index
+        collisions according to ``method``.
 
         Parameters
         ----------
-        adjustments_to_append : dict[int -> list[Adjustment]]
+        adjustments : dict[int -> list[Adjustment]]
             The mapping of row indices to lists of adjustments that should be
             appended to existing adjustments.
-        append_back : bool
-            If `True` collisions will be resolved by appending new adjustment
-            list at the end of existing adjustments. They will be appended at
-            the front otherwise.
+        method : {'append', 'prepend'}
+            How to handle index collisions. If 'append', new adjustments will
+            be applied after previously-existing adjustments. If 'prepend', new
+            adjustments will be applied before previously-existing adjustments.
         """
+        try:
+            merge_func = _merge_methods[method]
+        except KeyError:
+            raise ValueError(
+                "Invalid merge method %s\n"
+                "Valid methods are: %s" % (method, ', '.join(_merge_methods))
+            )
+
         self.adjustments = merge_with(
-            partial(self._merge_adjustments, append_back=append_back),
+            merge_func,
             self.adjustments,
-            adjustments_to_append,
+            adjustments,
         )
-
-    def _merge_adjustments(self, adjustment_lists, append_back):
-        """
-        Handles index collisions when merging adjustments.
-
-        Notes
-        -----
-        ``adjustment_lists`` will contain at most two lists of adjustments (in
-        case of index collision), and at least one (no collision).
-        """
-        if len(adjustment_lists) == 1:
-            return adjustment_lists[0]
-        elif append_back:
-            adjustment_lists[0].extend(adjustment_lists[1])
-            return adjustment_lists[0]
-        else:
-            new_adjustments = list(adjustment_lists[1])
-            new_adjustments.extend(adjustment_lists[0])
-            return new_adjustments
 
     @property
     def data(self):

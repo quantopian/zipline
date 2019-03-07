@@ -746,41 +746,62 @@ last_col=0, value=4.000000)]}
         check_arrays(adj_array.data, expected_adj_array.data)
         self.assertEqual(adj_array.adjustments, expected_adj_array.adjustments)
 
-    @parameterized.expand([
-        # Append new adjustment to back of the list if index already contains
-        # adjustments.
-        (
-            True,
-            {
-                1: [Float64Multiply(0, 3, 0, 0, 4.0),
-                    Float64Overwrite(2, 3, 0, 0, 1.0)],
-                3: [Float64Multiply(0, 3, 0, 0, 4.0)],
-            },
-        ),
-        # Append new adjustment to front of the list if index already contains
-        # adjustments.
-        (
-            False,
-            {
-                1: [Float64Overwrite(2, 3, 0, 0, 1.0),
-                    Float64Multiply(0, 3, 0, 0, 4.0)],
-                3: [Float64Multiply(0, 3, 0, 0, 4.0)],
-            },
-        )
-    ])
-    def test_append_adjustments(self, append_back, expected_adjustments):
-        adjustments = {
-            1: [Float64Multiply(0, 3, 0, 0, 4.0)],
-        }
-        adjustments_to_append = {
-            1: [Float64Overwrite(2, 3, 0, 0, 1.0)],
-            3: [Float64Multiply(0, 3, 0, 0, 4.0)],
-        }
+    A = Float64Multiply(0, 4, 1, 1, 0.5)
+    B = Float64Overwrite(3, 3, 4, 4, 4.2)
+    C = Float64Multiply(0, 2, 0, 0, 0.14)
+    D = Float64Overwrite(0, 3, 0, 0, 4.0)
+    E = Float64Overwrite(0, 0, 1, 1, 3.7)
+    F = Float64Multiply(0, 4, 3, 3, 10.0)
+    G = Float64Overwrite(5, 5, 4, 4, 1.7)
+    H = Float64Multiply(0, 4, 2, 2, 0.99)
+    S = Float64Multiply(0, 1, 4, 4, 5.06)
 
-        data = arange(30, dtype=float).reshape(6, 5)
-        adjusted_array = AdjustedArray(data, adjustments, float('nan'))
+    @parameterized.expand([(
+        # Initial adjustments
+        {
+            1: [A, B],
+            2: [C],
+            4: [D],
+        },
 
-        adjusted_array.append_adjustments(
-            adjustments_to_append, append_back=append_back
-        )
-        self.assertEqual(adjusted_array.adjustments, expected_adjustments)
+        # Adjustments to add
+        {
+            1: [E],
+            2: [F, G],
+            3: [H, S],
+        },
+
+        # Expected adjustments with 'append'
+        {
+            1: [A, B, E],
+            2: [C, F, G],
+            3: [H, S],
+            4: [D],
+        },
+
+        # Expected adjustments with 'prepend'
+        {
+            1: [E, A, B],
+            2: [F, G, C],
+            3: [H, S],
+            4: [D],
+        },
+    )])
+    def test_update_adjustments(self,
+                                initial_adjustments,
+                                adjustments_to_add,
+                                expected_adjustments_with_append,
+                                expected_adjustments_with_prepend):
+        methods = ['append', 'prepend']
+        expected_outputs = [
+            expected_adjustments_with_append, expected_adjustments_with_prepend
+        ]
+
+        for method, expected_output in zip(methods, expected_outputs):
+            data = arange(30, dtype=float).reshape(6, 5)
+            adjusted_array = AdjustedArray(
+                data, initial_adjustments, float('nan')
+            )
+
+            adjusted_array.update_adjustments(adjustments_to_add, method)
+            self.assertEqual(adjusted_array.adjustments, expected_output)
