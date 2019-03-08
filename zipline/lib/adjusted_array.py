@@ -1,5 +1,5 @@
 from textwrap import dedent
-
+from functools import partial
 from numpy import (
     bool_,
     dtype,
@@ -14,6 +14,7 @@ from numpy import (
     uint8,
 )
 from six import iteritems
+from toolz import merge_with
 from zipline.errors import (
     WindowLengthNotPositive,
     WindowLengthTooLong,
@@ -135,6 +136,46 @@ def _normalize_array(data, missing_value):
         )
 
 
+def _merge_simple(adjustment_lists, front_idx, back_idx):
+    """
+    Merge lists of new and existing adjustments for a given index by appending
+    or prepending new adjustments to existing adjustments.
+
+    Notes
+    -----
+    This method is meant to be used with ``toolz.merge_with`` to merge
+    adjustment mappings. In case of a collision ``adjustment_lists`` contains
+    two lists, existing adjustments at index 0 and new adjustments at index 1.
+    When there are no collisions, ``adjustment_lists`` contains a single list.
+
+    Parameters
+    ----------
+    adjustment_lists : list[list[Adjustment]]
+        List(s) of new and/or existing adjustments for a given index.
+    front_idx : int
+        Index of list in ``adjustment_lists`` that should be used as baseline
+        in case of a collision.
+    back_idx : int
+        Index of list in ``adjustment_lists`` that should extend baseline list
+        in case of a collision.
+
+    Returns
+    -------
+    adjustments : list[Adjustment]
+        List of merged adjustments for a given index.
+    """
+    if len(adjustment_lists) == 1:
+        return list(adjustment_lists[0])
+    else:
+        return adjustment_lists[front_idx] + adjustment_lists[back_idx]
+
+
+_merge_methods = {
+    'append': partial(_merge_simple, front_idx=0, back_idx=1),
+    'prepend': partial(_merge_simple, front_idx=1, back_idx=0),
+}
+
+
 class AdjustedArray(object):
     """
     An array that can be iterated with a variable-length window, and which can
@@ -164,6 +205,35 @@ class AdjustedArray(object):
 
         self.adjustments = adjustments
         self.missing_value = missing_value
+
+    def update_adjustments(self, adjustments, method):
+        """
+        Merge ``adjustments`` with existing adjustments, handling index
+        collisions according to ``method``.
+
+        Parameters
+        ----------
+        adjustments : dict[int -> list[Adjustment]]
+            The mapping of row indices to lists of adjustments that should be
+            appended to existing adjustments.
+        method : {'append', 'prepend'}
+            How to handle index collisions. If 'append', new adjustments will
+            be applied after previously-existing adjustments. If 'prepend', new
+            adjustments will be applied before previously-existing adjustments.
+        """
+        try:
+            merge_func = _merge_methods[method]
+        except KeyError:
+            raise ValueError(
+                "Invalid merge method %s\n"
+                "Valid methods are: %s" % (method, ', '.join(_merge_methods))
+            )
+
+        self.adjustments = merge_with(
+            merge_func,
+            self.adjustments,
+            adjustments,
+        )
 
     @property
     def data(self):
