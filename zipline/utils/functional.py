@@ -1,4 +1,5 @@
 from functools import reduce
+from operator import itemgetter
 from pprint import pformat
 
 from six import viewkeys, iteritems
@@ -406,3 +407,14 @@ def invert(d):
         except KeyError:
             out[v] = {k}
     return out
+
+
+def keysorted(d):
+    """Get the items from a dict, sorted by key.
+
+    Example
+    -------
+    >>> keysorted({'c': 1, 'b': 2, 'a': 3})
+    [('a', 3), ('b', 2), ('c', 1)]
+    """
+    return sorted(iteritems(d), key=itemgetter(0))
