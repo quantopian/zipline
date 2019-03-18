@@ -10,13 +10,16 @@ from pandas import Timestamp
 import six
 import sqlite3
 
+from zipline.utils.functional import keysorted
 from zipline.utils.input_validation import preprocess
 from zipline.utils.numpy_utils import (
+    datetime64ns_dtype,
     float64_dtype,
     int64_dtype,
     uint32_dtype,
     uint64_dtype,
 )
+from zipline.utils.pandas_utils import empty_dataframe
 from zipline.utils.sqlite_utils import group_into_chunks, coerce_string_to_conn
 from ._adjustments import load_adjustments_from_sqlite
 
@@ -86,22 +89,28 @@ class SQLiteAdjustmentReader(object):
     --------
     :class:`zipline.data.adjustments.SQLiteAdjustmentWriter`
     """
+    _datetime_int_cols = {
+        'splits': ('effective_date',),
+        'mergers': ('effective_date',),
+        'dividends': ('effective_date',),
+        'dividend_payouts': (
+            'declared_date', 'ex_date', 'pay_date', 'record_date',
+        ),
+        'stock_dividend_payouts': (
+            'declared_date', 'ex_date', 'pay_date', 'record_date',
+        )
+    }
+    _raw_table_dtypes = {
+        'splits': SQLITE_ADJUSTMENT_COLUMN_DTYPES,
+        'mergers': SQLITE_ADJUSTMENT_COLUMN_DTYPES,
+        'dividends': SQLITE_ADJUSTMENT_COLUMN_DTYPES,
+        'dividend_payouts': SQLITE_DIVIDEND_PAYOUT_COLUMN_DTYPES,
+        'stock_dividend_payouts': SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMN_DTYPES,
+    }
 
     @preprocess(conn=coerce_string_to_conn(require_exists=True))
     def __init__(self, conn):
         self.conn = conn
-
-        # Given the tables in the adjustments.db file, dict which knows which
-        # col names contain dates that have been coerced into ints.
-        self._datetime_int_cols = {
-            'dividend_payouts': ('declared_date', 'ex_date', 'pay_date',
-                                 'record_date'),
-            'dividends': ('effective_date',),
-            'mergers': ('effective_date',),
-            'splits': ('effective_date',),
-            'stock_dividend_payouts': ('declared_date', 'ex_date', 'pay_date',
-                                       'record_date')
-        }
 
     def __enter__(self):
         return self
@@ -283,12 +292,29 @@ class SQLiteAdjustmentReader(object):
             else {}
         )
 
-        return pd.read_sql(
+        result = pd.read_sql(
             'select * from "{}"'.format(table_name),
             self.conn,
             index_col='index',
             **kwargs
         ).rename_axis(None)
+
+        if not len(result):
+            dtypes = self._df_dtypes(table_name, convert_dates)
+            return empty_dataframe(*keysorted(dtypes))
+
+        return result
+
+    def _df_dtypes(self, table_name, convert_dates):
+        """Get dtypes to use when unpacking sqlite tables as dataframes.
+        """
+        out = self._raw_table_dtypes[table_name]
+        if convert_dates:
+            out = out.copy()
+            for date_column in self._datetime_int_cols[table_name]:
+                out[date_column] = datetime64ns_dtype
+
+        return out
 
 
 class SQLiteAdjustmentWriter(object):
