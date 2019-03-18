@@ -74,6 +74,16 @@ SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMN_DTYPES = {
 }
 
 
+def specialize_any_integer(d):
+    out = {}
+    for k, v in six.iteritems(d):
+        if v is any_integer:
+            out[k] = int64_dtype
+        else:
+            out[k] = v
+    return out
+
+
 class SQLiteAdjustmentReader(object):
     """
     Loads adjustments based on corporate actions from a SQLite database.
@@ -101,11 +111,19 @@ class SQLiteAdjustmentReader(object):
         )
     }
     _raw_table_dtypes = {
-        'splits': SQLITE_ADJUSTMENT_COLUMN_DTYPES,
-        'mergers': SQLITE_ADJUSTMENT_COLUMN_DTYPES,
-        'dividends': SQLITE_ADJUSTMENT_COLUMN_DTYPES,
-        'dividend_payouts': SQLITE_DIVIDEND_PAYOUT_COLUMN_DTYPES,
-        'stock_dividend_payouts': SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMN_DTYPES,
+        # We use any_integer above to be lenient in accepting different dtypes
+        # from users. For our outputs, however, we always want to return the
+        # same types, and any_integer turns into int32 on some numpy windows
+        # builds, so specify int64 explicitly here.
+        'splits': specialize_any_integer(SQLITE_ADJUSTMENT_COLUMN_DTYPES),
+        'mergers': specialize_any_integer(SQLITE_ADJUSTMENT_COLUMN_DTYPES),
+        'dividends': specialize_any_integer(SQLITE_ADJUSTMENT_COLUMN_DTYPES),
+        'dividend_payouts': specialize_any_integer(
+            SQLITE_DIVIDEND_PAYOUT_COLUMN_DTYPES,
+        ),
+        'stock_dividend_payouts': specialize_any_integer(
+            SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMN_DTYPES,
+        ),
     }
 
     @preprocess(conn=coerce_string_to_conn(require_exists=True))
