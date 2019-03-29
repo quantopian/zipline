@@ -1,5 +1,5 @@
 .. image:: https://media.quantopian.com/logos/open_source/zipline-logo-03_.png
-    :target: http://www.zipline.io
+    :target: https://www.zipline.io
     :width: 212px
     :align: center
     :alt: Zipline
@@ -19,8 +19,8 @@ community-centered, hosted platform for building and executing trading
 strategies.
 
 - `Join our Community! <https://groups.google.com/forum/#!forum/zipline>`_
-- `Documentation <http://www.zipline.io>`_
-- Want to Contribute? See our `Development Guidelines <http://zipline.io/development-guidelines.html>`_
+- `Documentation <https://www.zipline.io>`_
+- Want to Contribute? See our `Development Guidelines <https://www.zipline.io/development-guidelines>`_
 
 Features
 ========
@@ -60,14 +60,14 @@ There are two reasons for the additional complexity:
    In order to build the C extensions, ``pip`` needs access to the CPython
    header files for your Python installation.
 
-2. Zipline depends on `numpy <http://www.numpy.org/>`_, the core library for
+2. Zipline depends on `numpy <https://www.numpy.org/>`_, the core library for
    numerical array computing in Python.  Numpy depends on having the `LAPACK
-   <http://www.netlib.org/lapack>`_ linear algebra routines available.
+   <https://www.netlib.org/lapack/>`_ linear algebra routines available.
 
 Because LAPACK and the CPython headers are binary dependencies, the correct way
 to install them varies from platform to platform.  On Linux, users generally
 acquire these dependencies via a package manager like ``apt``, ``yum``, or
-``pacman``.  On OSX, `Homebrew <http://www.brew.sh>`_ is a popular choice
+``pacman``.  On OSX, `Homebrew <https://brew.sh/>`_ is a popular choice
 providing similar functionality.
 
 See the full `Zipline Install Documentation`_ for more information on acquiring
@@ -77,7 +77,7 @@ conda
 -----
 
 Another way to install Zipline is via the ``conda`` package manager, which
-comes as part of `Anaconda <http://continuum.io/downloads>`_ or can be
+comes as part of `Anaconda <https://www.anaconda.com/distribution/>`_ or can be
 installed via ``pip install conda``.
 
 Once set up, you can install Zipline from our ``Quantopian`` channel:
@@ -100,7 +100,7 @@ Currently supported platforms include:
 Quickstart
 ==========
 
-See our `getting started tutorial <http://www.zipline.io/beginner-tutorial.html>`_.
+See our `getting started tutorial <https://www.zipline.io/beginner-tutorial>`_.
 
 The following code implements a simple dual moving average algorithm.
 
@@ -161,7 +161,7 @@ If you find a bug, feel free to `open an issue <https://github.com/quantopian/zi
 Contributing
 ============
 
-All contributions, bug reports, bug fixes, documentation improvements, enhancements, and ideas are welcome. Details on how to set up a development environment can be found in our `development guidelines <http://zipline.io/development-guidelines.html>`_.
+All contributions, bug reports, bug fixes, documentation improvements, enhancements, and ideas are welcome. Details on how to set up a development environment can be found in our `development guidelines <https://www.zipline.io/development-guidelines>`_.
 
 If you are looking to start working with the Zipline codebase, navigate to the GitHub `issues` tab and start looking through interesting issues. Sometimes there are issues labeled as `Beginner Friendly <https://github.com/quantopian/zipline/issues?q=is%3Aissue+is%3Aopen+label%3A%22Beginner+Friendly%22>`_ or `Help Wanted <https://github.com/quantopian/zipline/issues?q=is%3Aissue+is%3Aopen+label%3A%22Help+Wanted%22>`_.
 
@@ -180,4 +180,4 @@ Feel free to ask questions on the `mailing list <https://groups.google.com/forum
 .. |Coverage Status| image:: https://coveralls.io/repos/quantopian/zipline/badge.png
    :target: https://coveralls.io/r/quantopian/zipline
 
-.. _`Zipline Install Documentation` : http://www.zipline.io/install.html
+.. _`Zipline Install Documentation` : https://www.zipline.io/install
