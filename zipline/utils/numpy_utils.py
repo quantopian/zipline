@@ -498,7 +498,7 @@ def changed_locations(a, include_first):
 
 def compare_datetime_arrays(x, y):
     """
-    Compare datetime64 ndarrays in a NaT-aware fashion.
+    Compare datetime64 ndarrays, treating NaT values as equal.
     """
 
     return array_equal(x.view('int64'), y.view('int64'))
