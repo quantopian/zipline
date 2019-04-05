@@ -11,6 +11,7 @@ from warnings import (
 
 import numpy as np
 from numpy import (
+    array_equal,
     broadcast,
     busday_count,
     datetime64,
@@ -493,3 +494,11 @@ def changed_locations(a, include_first):
         return indices
 
     return hstack([[0], indices])
+
+
+def compare_datetime_arrays(x, y):
+    """
+    Compare datetime64 ndarrays, treating NaT values as equal.
+    """
+
+    return array_equal(x.view('int64'), y.view('int64'))

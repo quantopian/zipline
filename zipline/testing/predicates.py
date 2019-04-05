@@ -54,6 +54,7 @@ from zipline.utils.compat import getargspec, mappingproxy
 from zipline.utils.formatting import s
 from zipline.utils.functional import dzip_exact, instance
 from zipline.utils.math_utils import tolerant_equals
+from zipline.utils.numpy_utils import compare_datetime_arrays
 
 
 @instance
@@ -547,11 +548,29 @@ def assert_array_equal(result,
                        array_verbose=True,
                        array_decimal=None,
                        **kwargs):
-    f = (
-        np.testing.assert_array_equal
-        if array_decimal is None else
-        partial(np.testing.assert_array_almost_equal, decimal=array_decimal)
-    )
+    result_dtype = result.dtype
+    expected_dtype = expected.dtype
+
+    if result_dtype.kind in 'mM' and expected_dtype.kind in 'mM':
+        assert result_dtype == expected_dtype, (
+            "\nType mismatch:\n\n"
+            "result dtype: %s\n"
+            "expected dtype: %s\n%s"
+            % (result_dtype, expected_dtype, _fmt_path(path))
+        )
+        f = partial(
+            np.testing.utils.assert_array_compare,
+            compare_datetime_arrays,
+            header='Arrays are not equal',
+        )
+    elif array_decimal is not None:
+        f = partial(
+            np.testing.assert_array_almost_equal,
+            decimal=array_decimal,
+        )
+    else:
+        f = np.testing.assert_array_equal
+
     try:
         f(
             result,
