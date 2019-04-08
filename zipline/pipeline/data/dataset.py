@@ -25,6 +25,7 @@ from zipline.utils.formatting import s, plural
 from zipline.utils.input_validation import ensure_dtype, expect_types
 from zipline.utils.numpy_utils import NoDefaultMissingValue
 from zipline.utils.preprocess import preprocess
+from zipline.utils.string_formatting import bulleted_list
 
 
 IsSpecialization = sentinel('IsSpecialization')
@@ -496,6 +497,47 @@ class DataSet(with_metaclass(DataSetMeta, object)):
     """
     domain = GENERIC
     ndim = 2
+
+    @classmethod
+    def get_column(cls, name):
+        """Look up a column by name.
+
+        Parameters
+        ----------
+        name : str
+            Name of the column to look up.
+
+        Returns
+        -------
+        column : zipline.pipeline.data.BoundColumn
+            Column with the given name.
+
+        Raises
+        ------
+        AttributeError
+            If no column with the given name exists.
+        """
+        clsdict = vars(cls)
+        try:
+            maybe_column = clsdict[name]
+            if not isinstance(maybe_column, _BoundColumnDescr):
+                raise KeyError(name)
+        except KeyError:
+            raise AttributeError(
+                "{dset} has no column {colname!r}:\n\n"
+                "Possible choices are:\n"
+                "{choices}".format(
+                    dset=cls.qualname,
+                    colname=name,
+                    choices=bulleted_list(
+                        sorted(cls._column_names),
+                        max_count=10,
+                    ),
+                )
+            )
+
+        # Resolve column descriptor into a BoundColumn.
+        return maybe_column.__get__(None, cls)
 
 
 # This attribute is set by DataSetMeta to mark that a class is the root of a
