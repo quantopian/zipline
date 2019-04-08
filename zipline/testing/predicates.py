@@ -280,6 +280,15 @@ def assert_regex(result, expected, msg=''):
 
 
 @contextmanager
+def _assert_raises_helper(do_check, exc_type, msg):
+    try:
+        yield
+    except exc_type as e:
+        do_check(e)
+    else:
+        raise AssertionError('%s%s was not raised' % (_fmt_msg(msg), e))
+
+
 def assert_raises_regex(exc, pattern, msg=''):
     """Assert that some exception is raised in a context and that the message
     matches some pattern.
@@ -293,14 +302,16 @@ def assert_raises_regex(exc, pattern, msg=''):
     msg : str, optional
         An extra assertion message to print if this fails.
     """
-    try:
-        yield
-    except exc as e:
+    def check_exception(e):
         assert re.search(pattern, str(e)), (
             '%s%r not found in %r' % (_fmt_msg(msg), pattern, str(e))
         )
-    else:
-        raise AssertionError('%s%s was not raised' % (_fmt_msg(msg), exc))
+
+    return _assert_raises_helper(
+        do_check=check_exception,
+        exc_type=exc,
+        msg=msg,
+    )
 
 
 def assert_raises_str(exc, expected_str, msg=''):
@@ -316,7 +327,15 @@ def assert_raises_str(exc, expected_str, msg=''):
     msg : str, optional
         An extra assertion message to print if this fails.
     """
-    return assert_raises_regex(exc, '^%s$' % re.escape(expected_str), msg=msg)
+    def check_exception(e):
+        result = str(e)
+        assert_messages_equal(result, expected_str, msg=msg)
+
+    return _assert_raises_helper(
+        check_exception,
+        exc_type=exc,
+        msg=msg,
+    )
 
 
 def make_assert_equal_assertion_error(assertion_message, path, msg):
@@ -778,7 +797,7 @@ def assert_isidentical(result, expected, msg=''):
     )
 
 
-def assert_messages_equal(result, expected):
+def assert_messages_equal(result, expected, msg=''):
     """Assertion helper for comparing very long strings (e.g. error messages).
     """
     # The arg here is "keepends" which keeps trailing newlines (which
@@ -791,9 +810,9 @@ def assert_messages_equal(result, expected):
         if ll != rl:
             col = index_of_first_difference(ll, rl)
             raise AssertionError(
-                "Messages differ on line {line}, col {col}:"
+                "{msg}Messages differ on line {line}, col {col}:"
                 "\n{ll!r}\n!=\n{rl!r}".format(
-                    line=line, col=col, ll=ll, rl=rl
+                    msg=_fmt_msg(msg), line=line, col=col, ll=ll, rl=rl
                 )
             )
 
