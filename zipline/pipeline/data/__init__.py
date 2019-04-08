@@ -3,8 +3,8 @@ from .dataset import (
     BoundColumn,
     Column,
     DataSet,
-    MultiDimensionalDataSet,
-    MultiDimensionalDataSetSlice,
+    DataSetFamily,
+    DataSetFamilySlice,
 )
 
 __all__ = [
@@ -12,7 +12,7 @@ __all__ = [
     'Column',
     'DataSet',
     'EquityPricing',
-    'MultiDimensionalDataSet',
-    'MultiDimensionalDataSetSlice',
+    'DataSetFamily',
+    'DataSetFamilySlice',
     'USEquityPricing',
 ]
