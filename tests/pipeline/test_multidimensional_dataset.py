@@ -7,8 +7,8 @@ import numpy as np
 
 from zipline.pipeline.data import (
     Column,
-    MultiDimensionalDataSet,
-    MultiDimensionalDataSetSlice,
+    DataSetFamily,
+    DataSetFamilySlice,
 )
 from zipline.testing import ZiplineTestCase
 from zipline.testing.predicates import (
@@ -20,37 +20,37 @@ from zipline.testing.predicates import (
 )
 
 
-class TestMultiDimensionalDataSet(ZiplineTestCase):
+class TestDataSetFamily(ZiplineTestCase):
     def test_repr(self):
-        class MD1(MultiDimensionalDataSet):
+        class MD1(DataSetFamily):
             extra_dims = [('dim_0', [])]
 
         expected_repr = (
-            "<MultiDimensionalDataSet: 'MD1', extra_dims=['dim_0']>"
+            "<DataSetFamily: 'MD1', extra_dims=['dim_0']>"
         )
         assert_equal(repr(MD1), expected_repr)
 
-        class MD2(MultiDimensionalDataSet):
+        class MD2(DataSetFamily):
             extra_dims = [('dim_0', []), ('dim_1', [])]
 
         expected_repr = (
-            "<MultiDimensionalDataSet: 'MD2', extra_dims=['dim_0', 'dim_1']>"
+            "<DataSetFamily: 'MD2', extra_dims=['dim_0', 'dim_1']>"
         )
         assert_equal(repr(MD2), expected_repr)
 
-        class MD3(MultiDimensionalDataSet):
+        class MD3(DataSetFamily):
             extra_dims = [('dim_1', []), ('dim_0', [])]
 
         expected_repr = (
-            "<MultiDimensionalDataSet: 'MD3', extra_dims=['dim_1', 'dim_0']>"
+            "<DataSetFamily: 'MD3', extra_dims=['dim_1', 'dim_0']>"
         )
         assert_equal(repr(MD3), expected_repr)
 
     def test_cache(self):
-        class MD1(MultiDimensionalDataSet):
+        class MD1(DataSetFamily):
             extra_dims = [('dim_0', ['a', 'b', 'c'])]
 
-        class MD2(MultiDimensionalDataSet):
+        class MD2(DataSetFamily):
             extra_dims = [('dim_0', ['a', 'b', 'c'])]
 
         MD1Slice = MD1.slice(dim_0='a')
@@ -61,10 +61,10 @@ class TestMultiDimensionalDataSet(ZiplineTestCase):
 
     def test_empty_extra_dims(self):
         expected_msg = (
-            'MultiDimensionalDataSet must be defined with non-empty extra_dims'
+            'DataSetFamily must be defined with non-empty extra_dims'
         )
         with assert_raises_str(ValueError, expected_msg):
-            class MD(MultiDimensionalDataSet):
+            class MD(DataSetFamily):
                 extra_dims = []
 
     def spec(*cs):
@@ -91,7 +91,7 @@ class TestMultiDimensionalDataSet(ZiplineTestCase):
         ),
     ])
     def test_valid_slice(self, dims_spec):
-        class MD(MultiDimensionalDataSet):
+        class MD(DataSetFamily):
             extra_dims = dims_spec
 
             f8 = Column('f8')
@@ -128,9 +128,9 @@ class TestMultiDimensionalDataSet(ZiplineTestCase):
             )
             assert_equal(Slice.extra_coords, expected_coords)
 
-            assert_is(Slice.parent_multidimensional_dataset, MD)
+            assert_is(Slice.dataset_family, MD)
 
-            assert_is_subclass(Slice, MultiDimensionalDataSetSlice)
+            assert_is_subclass(Slice, DataSetFamilySlice)
 
             expected_columns = {
                 ('f8', np.dtype('f8'), Slice),
@@ -147,7 +147,7 @@ class TestMultiDimensionalDataSet(ZiplineTestCase):
     del spec
 
     def test_slice_unknown_dims(self):
-        class MD(MultiDimensionalDataSet):
+        class MD(DataSetFamily):
             extra_dims = [
                 ('dim_0', {'a', 'b', 'c'}),
                 ('dim_1', {'c', 'd', 'e'}),
@@ -213,7 +213,7 @@ class TestMultiDimensionalDataSet(ZiplineTestCase):
         )
 
     def test_slice_unknown_dim_label(self):
-        class MD(MultiDimensionalDataSet):
+        class MD(DataSetFamily):
             extra_dims = [
                 ('dim_0', {'a', 'b', 'c'}),
                 ('dim_1', {'c', 'd', 'e'}),
@@ -252,7 +252,7 @@ class TestMultiDimensionalDataSet(ZiplineTestCase):
         )
 
     def test_inheritence(self):
-        class Parent(MultiDimensionalDataSet):
+        class Parent(DataSetFamily):
             extra_dims = [
                 ('dim_0', {'a', 'b', 'c'}),
                 ('dim_1', {'d', 'e', 'f'}),
@@ -279,7 +279,7 @@ class TestMultiDimensionalDataSet(ZiplineTestCase):
         assert_equal(ChildSlice.columns, expected_child_slice_columns)
 
     def test_column_access_without_slice(self):
-        class Parent(MultiDimensionalDataSet):
+        class Parent(DataSetFamily):
             extra_dims = [
                 ('dim_0', {'a', 'b', 'c'}),
                 ('dim_1', {'d', 'e', 'f'}),
@@ -295,13 +295,14 @@ class TestMultiDimensionalDataSet(ZiplineTestCase):
         def make_expected_msg(ds, attr):
             return dedent(
                 """\
-                Attempted to access column {c} from multi-dimensional dataset {d}:
+                Attempted to access column {c} from DataSetFamily {d}:
 
-                To work with multi-dimensional datasets, you must first choose a
+                To work with dataset families, you must first select a
                 slice using the ``slice`` method:
 
                     {d}.slice(...).{c}
-                """.format(c=attr, d=ds),  # noqa
+                """
+                .format(c=attr, d=ds),  # noqa
             )
 
         expected_msg = make_expected_msg('Parent', 'column_0')

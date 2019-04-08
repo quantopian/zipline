@@ -547,38 +547,38 @@ class DataSet(with_metaclass(DataSetMeta, object)):
 del DataSet._domain_specializations
 
 
-class AccessedOnMultiDimensionalDataSet(AttributeError):
-    """Exception thrown when a column is accessed on a MultiDimensionalDataSet
+class DataSetFamilyLookupError(AttributeError):
+    """Exception thrown when a column is accessed on a DataSetFamily
     instead of on the result of a slice.
 
     Parameters
     ----------
-    dataset_name : str
-        The name of the MultiDimensionalDataSet.
-    column_names : str
+    family_name : str
+        The name of the DataSetFamily on which the access occurred.
+    column_name : str
         The name of the column accessed.
     """
-    def __init__(self, dataset_name, column_name):
-        self.dataset_name = dataset_name
+    def __init__(self, family_name, column_name):
+        self.family_name = family_name
         self.column_name = column_name
 
     def __str__(self):
         # NOTE: when ``aggregate`` is added, remember to update this message
         return dedent(
             """\
-            Attempted to access column {c} from multi-dimensional dataset {d}:
+            Attempted to access column {c} from DataSetFamily {d}:
 
-            To work with multi-dimensional datasets, you must first choose a
+            To work with dataset families, you must first select a
             slice using the ``slice`` method:
 
                 {d}.slice(...).{c}
-            """.format(c=self.column_name, d=self.dataset_name)
+            """.format(c=self.column_name, d=self.family_name)
         )
 
 
-class _MultiDimensionalDataSetColumn(object):
+class _DataSetFamilyColumn(object):
     """Descriptor used to raise a helpful error when a column is accessed on a
-    MultiDimensionalDataSet instead of on the result of a slice.
+    DataSetFamily instead of on the result of a slice.
 
     Parameters
     ----------
@@ -589,30 +589,30 @@ class _MultiDimensionalDataSetColumn(object):
         self.column_name = column_name
 
     def __get__(self, instance, owner):
-        raise AccessedOnMultiDimensionalDataSet(
+        raise DataSetFamilyLookupError(
             owner.__name__,
             self.column_name,
         )
 
 
-class MultiDimensionalDataSetMeta(abc.ABCMeta):
+class DataSetFamilyMeta(abc.ABCMeta):
     _base_marker = object()
 
     def __new__(cls, name, bases, dict_):
         columns = {}
         for k, v in dict_.items():
             if isinstance(v, Column):
-                # capture all the columns off the MultiDimensionalDataSet class
+                # capture all the columns off the DataSetFamily class
                 # and replace them with a descriptor that will raise a helpful
                 # error message. The columns will get added to the BaseSlice
                 # for this type.
                 columns[k] = v
-                dict_[k] = _MultiDimensionalDataSetColumn(k)
+                dict_[k] = _DataSetFamilyColumn(k)
 
         is_base_class = bases == (cls._base_marker,)
         if is_base_class:
             bases = (object,)
-        self = super(MultiDimensionalDataSetMeta, cls).__new__(
+        self = super(DataSetFamilyMeta, cls).__new__(
             cls,
             name,
             bases,
@@ -626,12 +626,12 @@ class MultiDimensionalDataSetMeta(abc.ABCMeta):
             ])
             if not extra_dims:
                 raise ValueError(
-                    'MultiDimensionalDataSet must be defined with non-empty'
+                    'DataSetFamily must be defined with non-empty'
                     ' extra_dims',
                 )
 
             class BaseSlice(self._SliceType):
-                parent_multidimensional_dataset = self
+                dataset_family = self
 
                 ndim = self.slice_ndim
                 domain = self.domain
@@ -646,56 +646,64 @@ class MultiDimensionalDataSetMeta(abc.ABCMeta):
         return self
 
     def __repr__(self):
-        return '<MultiDimensionalDataSet: %r, extra_dims=%r>' % (
+        return '<DataSetFamily: %r, extra_dims=%r>' % (
             self.__name__,
             list(self.extra_dims),
         )
 
 
 _base = with_metaclass(
-    MultiDimensionalDataSetMeta,
-    MultiDimensionalDataSetMeta._base_marker,
+    DataSetFamilyMeta,
+    DataSetFamilyMeta._base_marker,
 )
 
 
-class MultiDimensionalDataSetSlice(DataSet):
+class DataSetFamilySlice(DataSet):
     """Marker type for slices of a
-    :class:`zipline.pipeline.data.dataset.MultiDimensionalDataSet` objects
+    :class:`zipline.pipeline.data.dataset.DataSetFamily` objects
     """
 
 
-class MultiDimensionalDataSet(_base):
+# XXX: This docstring was mostly written when the abstraction here was
+# "MultiDimensionalDataSet". It probably needs some rewriting.
+class DataSetFamily(_base):
     """
-    Base class for Pipeline multi-dimensional datasets.
+    Base class for Pipeline dataset families.
 
-    A multi-dimensional dataset represents data where the unique identifier for
-    a particular value requires more than asset and date coordinates. A
-    multi-dimensional dataset may be thought of as a collection of
-    :class:`~zipline.pipeline.data.DataSet` objects with the same columns,
-    domain, and ndim.
+    Dataset families are used to represent data where the unique identifier for
+    a row requires more than just asset and date coordinates. A
+    :class:`DataSetFamily` can also be thought of as a collection of
+    :class:`~zipline.pipeline.data.DataSet` objects, each of which has the same
+    columns, domain, and ndim.
 
-    ``MultiDimensionalDataSet`` objects have an extra field called the
-    ``extra_dims``. The ``extra_dims`` field describes the coords that are not
-    asset or date. The ``extra_dims`` are represented as an ordered dictionary
-    where the keys are the dimension name, and the values are a set of unique
-    values along that dimension.
+    :class:`DataSetFamily` objects are defined with by one or more
+    :class:`~zipline.pipeline.data.Column` objects, plus one additional field:
+    ``extra_dims``.
 
-    To use a ``MultiDimensionalDataSet``, one must "fix" all of the extra
-    dimensions. The
-    :meth:`~zipline.pipeline.data.dataset.MultiDimensionalDataSet.slice` method
-    is used to create a dataset where all rows have the same values in the
-    extra dimensions. For example, given a ``MultiDimensionalDataSet``:
+    The ``extra_dims`` field defines coordinates other than asset and date that
+    must be fixed to produce a logical timeseries. The column objects determine
+    columns that will be shared by slices of the family.
+
+    ``extra_dims`` are represented as an ordered dictionary where the keys are
+    the dimension name, and the values are a set of unique values along that
+    dimension.
+
+    To work with a :class:`DataSetFamily` in a pipeline expression, one must
+    "fix" all of the extra dimensions. The
+    :meth:`~zipline.pipeline.data.dataset.DataSetFamily.slice` method is used
+    to create a dataset where all rows have the same values in the extra
+    dimensions. For example, given a :class:`DataSetFamily`:
 
     .. code-block:: python
 
-       class SomeDataSet(MultiDimensionalDataSet):
+       class SomeDataSet(DataSetFamily):
            extra_dims = [
                ('dimension_0', {'a', 'b', 'c'}),
                ('dimension_1', {'d', 'e', 'f'}),
            ]
 
-           column_0 = Column('f8')
-           column_1 = Column('?')
+           column_0 = Column(float)
+           column_1 = Column(bool)
 
     This dataset might represent a table with the following columns:
 
@@ -712,8 +720,7 @@ class MultiDimensionalDataSet(_base):
     Here we see the implicit ``sid``, ``asof_date`` and ``timestamp`` columns
     as well as the extra dimensions columns.
 
-    This ``MultiDimensionalDataSet`` can be converted to a regular ``DataSet``
-    with:
+    This `:class:`DataSetFamily`can be converted to a regular ``DataSet`` with:
 
     .. code-block:: python
 
@@ -725,7 +732,7 @@ class MultiDimensionalDataSet(_base):
     domain = GENERIC
     slice_ndim = 2
 
-    _SliceType = MultiDimensionalDataSetSlice
+    _SliceType = DataSetFamilySlice
 
     @type.__call__
     class extra_dims(object):
@@ -818,7 +825,7 @@ class MultiDimensionalDataSet(_base):
 
     @classmethod
     def slice(cls, *args, **kwargs):
-        """Take a slice of a multi-dimensional dataset to produce a dataset
+        """Take a slice of a DataSetFamily to produce a dataset
         indexed by asset and date.
 
         Parameters
