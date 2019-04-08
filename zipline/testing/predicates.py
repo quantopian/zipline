@@ -286,7 +286,7 @@ def _assert_raises_helper(do_check, exc_type, msg):
     except exc_type as e:
         do_check(e)
     else:
-        raise AssertionError('%s%s was not raised' % (_fmt_msg(msg), e))
+        raise AssertionError('%s%s was not raised' % (_fmt_msg(msg), exc_type))
 
 
 def assert_raises_regex(exc, pattern, msg=''):
