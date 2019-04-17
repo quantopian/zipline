@@ -60,12 +60,37 @@ class TestDataSetFamily(ZiplineTestCase):
         assert_is_not(MD1Slice, MD2Slice)
 
     def test_empty_extra_dims(self):
-        expected_msg = (
-            'DataSetFamily must be defined with non-empty extra_dims'
+        msg = (
+            "DataSetFamily must be defined with non-empty extra_dims,"
+            " or with `_abstract = True`"
         )
-        with assert_raises_str(ValueError, expected_msg):
-            class MD(DataSetFamily):
+        with assert_raises_str(ValueError, msg):
+            class NoExtraDims(DataSetFamily):
+                pass
+
+        with assert_raises_str(ValueError, msg):
+            class EmptyExtraDims(DataSetFamily):
                 extra_dims = []
+
+        class AbstractParent(DataSetFamily):
+            _abstract = True
+
+        with assert_raises_str(ValueError, msg):
+            class NoExtraDimsChild(AbstractParent):
+                pass
+
+        with assert_raises_str(ValueError, msg):
+            class EmptyExtraDimsChild(AbstractParent):
+                extra_dims = []
+
+        class AbstractChild(AbstractParent):
+            _abstract = True
+
+        class Child(AbstractParent):
+            extra_dims = [
+                ('dim_0', {'a', 'b', 'c'}),
+                ('dim_1', {'d', 'e', 'f'}),
+            ]
 
     def spec(*cs):
         return (cs,)
@@ -251,7 +276,7 @@ class TestDataSetFamily(ZiplineTestCase):
             ),
         )
 
-    def test_inheritence(self):
+    def test_inheritance(self):
         class Parent(DataSetFamily):
             extra_dims = [
                 ('dim_0', {'a', 'b', 'c'}),
