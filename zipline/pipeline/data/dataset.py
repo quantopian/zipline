@@ -596,7 +596,6 @@ class _DataSetFamilyColumn(object):
 
 
 class DataSetFamilyMeta(abc.ABCMeta):
-    _base_marker = object()
 
     def __new__(cls, name, bases, dict_):
         columns = {}
@@ -609,9 +608,8 @@ class DataSetFamilyMeta(abc.ABCMeta):
                 columns[k] = v
                 dict_[k] = _DataSetFamilyColumn(k)
 
-        is_base_class = bases == (cls._base_marker,)
-        if is_base_class:
-            bases = (object,)
+        is_abstract = dict_.pop('__abstract__', False)
+
         self = super(DataSetFamilyMeta, cls).__new__(
             cls,
             name,
@@ -619,7 +617,7 @@ class DataSetFamilyMeta(abc.ABCMeta):
             dict_,
         )
 
-        if not is_base_class:
+        if not is_abstract:
             self.extra_dims = extra_dims = OrderedDict([
                 (k, frozenset(v))
                 for k, v in OrderedDict(self.extra_dims).items()
@@ -627,7 +625,7 @@ class DataSetFamilyMeta(abc.ABCMeta):
             if not extra_dims:
                 raise ValueError(
                     'DataSetFamily must be defined with non-empty'
-                    ' extra_dims',
+                    ' extra_dims, or with `__abstract__ = True`',
                 )
 
             class BaseSlice(self._SliceType):
@@ -652,12 +650,6 @@ class DataSetFamilyMeta(abc.ABCMeta):
         )
 
 
-_base = with_metaclass(
-    DataSetFamilyMeta,
-    DataSetFamilyMeta._base_marker,
-)
-
-
 class DataSetFamilySlice(DataSet):
     """Marker type for slices of a
     :class:`zipline.pipeline.data.dataset.DataSetFamily` objects
@@ -666,7 +658,7 @@ class DataSetFamilySlice(DataSet):
 
 # XXX: This docstring was mostly written when the abstraction here was
 # "MultiDimensionalDataSet". It probably needs some rewriting.
-class DataSetFamily(_base):
+class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
     """
     Base class for Pipeline dataset families.
 
@@ -729,6 +721,8 @@ class DataSetFamily(_base):
     This sliced dataset represents the rows from the higher dimensional dataset
     where ``(dimension_0 == 'a') & (dimension_1 == 'e')``.
     """
+    __abstract__ = True  # Removed by metaclass
+
     domain = GENERIC
     slice_ndim = 2
 
