@@ -251,7 +251,7 @@ class TestDataSetFamily(ZiplineTestCase):
             ),
         )
 
-    def test_inheritence(self):
+    def test_inheritance(self):
         class Parent(DataSetFamily):
             extra_dims = [
                 ('dim_0', {'a', 'b', 'c'}),

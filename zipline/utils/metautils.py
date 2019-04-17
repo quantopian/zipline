@@ -65,7 +65,7 @@ def compose_types(a, *cs):
 
     An important note here is that ``M`` did not use ``type.__new__`` and
     instead used ``super()``. This is to support cooperative multiple
-    inheritence which is needed for ``compose_types`` to work as intended.
+    inheritance which is needed for ``compose_types`` to work as intended.
     After we have composed these types ``M.__new__``\'s super will actually
     go to ``ABCMeta.__new__`` and not ``type.__new__``.
 
