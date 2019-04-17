@@ -608,7 +608,7 @@ class DataSetFamilyMeta(abc.ABCMeta):
                 columns[k] = v
                 dict_[k] = _DataSetFamilyColumn(k)
 
-        is_abstract = dict_.pop('__abstract__', False)
+        is_abstract = dict_.pop('_abstract', False)
 
         self = super(DataSetFamilyMeta, cls).__new__(
             cls,
@@ -625,7 +625,7 @@ class DataSetFamilyMeta(abc.ABCMeta):
             if not extra_dims:
                 raise ValueError(
                     'DataSetFamily must be defined with non-empty'
-                    ' extra_dims, or with `__abstract__ = True`',
+                    ' extra_dims, or with `_abstract = True`',
                 )
 
             class BaseSlice(self._SliceType):
@@ -721,7 +721,7 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
     This sliced dataset represents the rows from the higher dimensional dataset
     where ``(dimension_0 == 'a') & (dimension_1 == 'e')``.
     """
-    __abstract__ = True  # Removed by metaclass
+    _abstract = True  # Removed by metaclass
 
     domain = GENERIC
     slice_ndim = 2

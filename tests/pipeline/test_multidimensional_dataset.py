@@ -62,7 +62,7 @@ class TestDataSetFamily(ZiplineTestCase):
     def test_empty_extra_dims(self):
         msg = (
             "DataSetFamily must be defined with non-empty extra_dims,"
-            " or with `__abstract__ = True`"
+            " or with `_abstract = True`"
         )
         with assert_raises_str(ValueError, msg):
             class NoExtraDims(DataSetFamily):
@@ -73,7 +73,7 @@ class TestDataSetFamily(ZiplineTestCase):
                 extra_dims = []
 
         class AbstractParent(DataSetFamily):
-            __abstract__ = True
+            _abstract = True
 
         with assert_raises_str(ValueError, msg):
             class NoExtraDimsChild(AbstractParent):
@@ -84,7 +84,7 @@ class TestDataSetFamily(ZiplineTestCase):
                 extra_dims = []
 
         class AbstractChild(AbstractParent):
-            __abstract__ = True
+            _abstract = True
 
         class Child(AbstractParent):
             extra_dims = [
