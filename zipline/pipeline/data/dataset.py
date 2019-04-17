@@ -736,6 +736,11 @@ class DataSetFamily(_base):
 
     @type.__call__
     class extra_dims(object):
+        """OrderedDict[str, frozenset] of dimension name -> unique values
+
+        May be defined on subclasses as an iterable of pairs: the
+        metaclass converts this attribute to an OrderedDict.
+        """
         __isabstractmethod__ = True
 
         def __get__(self, instance, owner):
