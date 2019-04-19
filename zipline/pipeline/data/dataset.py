@@ -541,8 +541,8 @@ class DataSet(with_metaclass(DataSetMeta, object)):
 
 
 # This attribute is set by DataSetMeta to mark that a class is the root of a
-# family of datasets with diffent domains. We don't want that behavior for the
-# base DataSet class, and we also don't want to accidentally use a shared
+# family of datasets with different domains. We don't want that behavior for
+# the base DataSet class, and we also don't want to accidentally use a shared
 # version of this attribute if we fail to set this in a subclass somewhere.
 del DataSet._domain_specializations
 
