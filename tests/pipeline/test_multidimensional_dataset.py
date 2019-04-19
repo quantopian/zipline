@@ -227,6 +227,26 @@ class TestDataSetFamily(ZiplineTestCase):
             ),
         )
 
+        # duplicate positional+keyword arguments
+        expect_slice_fails(
+            'a', 'b', dim_0='a',
+            expected_msg=(
+                'MD got multiple values for dimension dim_0'
+            ),
+        )
+        expect_slice_fails(
+            'a', 'b', dim_1='b',
+            expected_msg=(
+                'MD got multiple values for dimension dim_1'
+            ),
+        )
+        expect_slice_fails(
+            'a', 'b', dim_0='a', dim_1='b',
+            expected_msg=(
+                'MD got multiple values for dimensions dim_0, dim_1'
+            ),
+        )
+
         # the extra keyword dims should be sorted
         expect_slice_fails(
             dim_3='??', dim_2='??',
