@@ -638,9 +638,9 @@ class DataSetFamilyMeta(abc.ABCMeta):
 
             BaseSlice.__name__ = '%sBaseSlice' % self.__name__
             self._SliceType = BaseSlice
+            # each non-abstract subclass gets a unique cache
+            self._slice_cache = {}
 
-        # each type gets a unique cache
-        self._slice_cache = {}
         return self
 
     def __repr__(self):
