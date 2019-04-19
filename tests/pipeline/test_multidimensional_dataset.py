@@ -14,6 +14,7 @@ from zipline.testing import ZiplineTestCase
 from zipline.testing.predicates import (
     assert_equal,
     assert_is,
+    assert_is_instance,
     assert_is_not,
     assert_is_subclass,
     assert_raises_str,
@@ -148,10 +149,8 @@ class TestDataSetFamily(ZiplineTestCase):
             for alt in alternate_constructions:
                 assert_is(Slice, alt, msg='Slices are not properly memoized')
 
-            expected_coords = OrderedDict(
-                zip(expected_dims, valid_combination),
-            )
-            assert_equal(Slice.extra_coords, expected_coords)
+            assert_equal(Slice.extra_coords, valid_combination)
+            assert_is_instance(Slice.extra_coords, MD._CoordsType)
 
             assert_is(Slice.dataset_family, MD)
 

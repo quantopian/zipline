@@ -1,7 +1,6 @@
 import abc
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from functools import total_ordering
-from itertools import repeat
 from textwrap import dedent
 from weakref import WeakKeyDictionary
 
@@ -641,6 +640,11 @@ class DataSetFamilyMeta(abc.ABCMeta):
             # each non-abstract subclass gets a unique cache
             self._slice_cache = {}
 
+            self._CoordsType = namedtuple(
+                '%sCoords' % self.__name__,
+                extra_dims,
+            )
+
         return self
 
     def __repr__(self):
@@ -741,7 +745,11 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
             return []
 
     @classmethod
-    def _canonical_key(cls, args, kwargs):
+    def _diagnose_slice_error(cls, args, kwargs):
+        """Raise a TypeError with a helpful message.
+
+        Returns if the arguments should produce a valid slice.
+        """
         extra_dims = cls.extra_dims
         dimensions_set = set(extra_dims)
         if not set(kwargs) <= dimensions_set:
@@ -767,26 +775,23 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
                 ),
             )
 
-        missing = object()
-        coords = OrderedDict(zip(extra_dims, repeat(missing)))
-        to_add = dict(zip(extra_dims, args))
-        coords.update(to_add)
-        added = set(to_add)
+        num_provided = len(args) + len(kwargs)
+        num_expected = len(extra_dims)
 
-        for key, value in kwargs.items():
-            if key in added:
-                raise TypeError(
-                    '%s got multiple values for dimension %r' % (
-                        cls.__name__,
-                        coords,
-                    ),
-                )
-            coords[key] = value
-            added.add(key)
+        inferred_arg_names = set(tuple(extra_dims)[:len(args)])
 
-        missing = {k for k, v in coords.items() if v is missing}
-        if missing:
-            missing = sorted(missing)
+        if num_provided > num_expected:
+            duplicates = inferred_arg_names & set(kwargs)
+            raise TypeError(
+                '%s got multiple values for %s %s' % (
+                    cls.__name__,
+                    s('dimension', duplicates),
+                    ', '.join(sorted(duplicates)),
+                ),
+            )
+
+        if num_provided < num_expected:
+            missing = sorted(dimensions_set - set(kwargs) - inferred_arg_names)
             raise TypeError(
                 'no coordinate provided to %s for the following %s: %s' % (
                     cls.__name__,
@@ -795,9 +800,16 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
                 ),
             )
 
-        # validate that all of the provided values exist along their given
-        # dimensions
-        for key, value in coords.items():
+    @classmethod
+    def _validate_coords(cls, coords):
+        """
+        Validate that all of the provided values exist along their given
+        dimensions.
+
+        May be overridden in subclasses to provide better error messages
+        for specific types of invalid coords.
+        """
+        for key, value in zip(cls.extra_dims, coords):
             if value not in cls.extra_dims[key]:
                 raise ValueError(
                     '%r is not a value along the %s dimension of %s' % (
@@ -806,8 +818,6 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
                         cls.__name__,
                     ),
                 )
-
-        return coords, tuple(coords.items())
 
     @classmethod
     def _make_dataset(cls, coords):
@@ -818,7 +828,7 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
 
         Slice.__name__ = '%s.slice(%s)' % (
             cls.__name__,
-            ', '.join('%s=%r' % item for item in coords.items()),
+            ', '.join('%s=%r' % item for item in zip(cls.extra_dims, coords)),
         )
         return Slice
 
@@ -843,12 +853,24 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
         The extra dimensions coords used to produce the result are available
         under the ``extra_coords`` attribute.
         """
-        coords, hash_key = cls._canonical_key(args, kwargs)
         try:
-            return cls._slice_cache[hash_key]
+            # namedtuple's constructor raises TypeError for invalid args.
+            coords = cls._CoordsType(*args, **kwargs)
+        except TypeError:
+            # Raise a new TypeError with a more helpful message.
+            cls._diagnose_slice_error(args, kwargs)
+            raise AssertionError(
+                "args=%r, kwargs=%r should have produced a valid slice"
+                % (args, kwargs)
+            )
+
+        cls._validate_coords(coords)
+
+        try:
+            return cls._slice_cache[coords]
         except KeyError:
             pass
 
         Slice = cls._make_dataset(coords)
-        cls._slice_cache[hash_key] = Slice
+        cls._slice_cache[coords] = Slice
         return Slice
