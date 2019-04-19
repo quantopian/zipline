@@ -596,7 +596,7 @@ class _DataSetFamilyColumn(object):
 
 class DataSetFamilyMeta(abc.ABCMeta):
 
-    def __new__(cls, name, bases, dict_):
+    def __new__(meta, name, bases, dict_):
         columns = {}
         for k, v in dict_.items():
             if isinstance(v, Column):
@@ -609,17 +609,17 @@ class DataSetFamilyMeta(abc.ABCMeta):
 
         is_abstract = dict_.pop('_abstract', False)
 
-        self = super(DataSetFamilyMeta, cls).__new__(
-            cls,
+        cls = super(DataSetFamilyMeta, meta).__new__(
+            meta,
             name,
             bases,
             dict_,
         )
 
         if not is_abstract:
-            self.extra_dims = extra_dims = OrderedDict([
+            cls.extra_dims = extra_dims = OrderedDict([
                 (k, frozenset(v))
-                for k, v in OrderedDict(self.extra_dims).items()
+                for k, v in OrderedDict(cls.extra_dims).items()
             ])
             if not extra_dims:
                 raise ValueError(
@@ -627,30 +627,30 @@ class DataSetFamilyMeta(abc.ABCMeta):
                     ' extra_dims, or with `_abstract = True`',
                 )
 
-            class BaseSlice(self._SliceType):
-                dataset_family = self
+            class BaseSlice(cls._SliceType):
+                dataset_family = cls
 
-                ndim = self.slice_ndim
-                domain = self.domain
+                ndim = cls.slice_ndim
+                domain = cls.domain
 
                 locals().update(columns)
 
-            BaseSlice.__name__ = '%sBaseSlice' % self.__name__
-            self._SliceType = BaseSlice
+            BaseSlice.__name__ = '%sBaseSlice' % cls.__name__
+            cls._SliceType = BaseSlice
             # each non-abstract subclass gets a unique cache
-            self._slice_cache = {}
+            cls._slice_cache = {}
 
-            self._CoordsType = namedtuple(
-                '%sCoords' % self.__name__,
+            cls._CoordsType = namedtuple(
+                '%sCoords' % cls.__name__,
                 extra_dims,
             )
 
-        return self
+        return cls
 
-    def __repr__(self):
+    def __repr__(cls):
         return '<DataSetFamily: %r, extra_dims=%r>' % (
-            self.__name__,
-            list(self.extra_dims),
+            cls.__name__,
+            list(cls.extra_dims),
         )
 
 
