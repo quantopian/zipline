@@ -18,7 +18,7 @@ requests-file==1.4.1
 certifi==2018.8.24
 chardet==3.0.4
 idna==2.7
-urllib3==1.23
+urllib3==1.24.2
 
 # scipy and pandas are required for statsmodels,
 # statsmodels in turn is required for some pandas packages
