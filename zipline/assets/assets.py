@@ -270,6 +270,9 @@ def _encode_continuous_future_sid(root_symbol,
     return int(binascii.hexlify(a), 16)
 
 
+Lifetimes = namedtuple('Lifetimes', 'sid start end')
+
+
 class AssetFinder(object):
     """
     An AssetFinder is an interface to a database of Asset metadata written by
@@ -1417,43 +1420,26 @@ class AssetFinder(object):
         """
         Compute and cache a recarray of asset lifetimes.
         """
+        sids = starts = ends = []
         equities_cols = self.equities.c
         if country_codes:
-            buf = np.array(
-                tuple(
-                    sa.select((
-                        equities_cols.sid,
-                        equities_cols.start_date,
-                        equities_cols.end_date,
-                    )).where(
-                        (self.exchanges.c.exchange == equities_cols.exchange) &
-                        (self.exchanges.c.country_code.in_(country_codes))
-                    ).execute(),
-                ),
-                dtype='f8',  # use doubles so we get NaNs
-            )
-        else:
-            buf = np.array([], dtype='f8')
+            results = sa.select((
+                equities_cols.sid,
+                equities_cols.start_date,
+                equities_cols.end_date,
+            )).where(
+                (self.exchanges.c.exchange == equities_cols.exchange) &
+                (self.exchanges.c.country_code.in_(country_codes))
+            ).execute().fetchall()
+            if results:
+                sids, starts, ends = zip(*results)
 
-        lifetimes = np.recarray(
-            buf=buf,
-            shape=(len(buf),),
-            dtype=[
-                ('sid', 'f8'),
-                ('start', 'f8'),
-                ('end', 'f8')
-            ],
-        )
-        start = lifetimes.start
-        end = lifetimes.end
+        sid = np.array(sids, dtype='i8')
+        start = np.array(starts, dtype='f8')
+        end = np.array(ends, dtype='f8')
         start[np.isnan(start)] = 0  # convert missing starts to 0
         end[np.isnan(end)] = np.iinfo(int).max  # convert missing end to INTMAX
-        # Cast the results back down to int.
-        return lifetimes.astype([
-            ('sid', 'i8'),
-            ('start', 'i8'),
-            ('end', 'i8'),
-        ])
+        return Lifetimes(sid, start.astype('i8'), end.astype('i8'))
 
     def lifetimes(self, dates, include_start_date, country_codes):
         """
