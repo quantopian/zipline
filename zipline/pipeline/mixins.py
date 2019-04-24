@@ -232,8 +232,8 @@ class LatestMixin(SingleInputMixin):
     """
     window_length = 1
 
-    def compute(self, today, assets, out, data):
-        out[:] = data[-1]
+    def _compute(self, windows, dates, assets, mask):
+        return windows[0].data.base[-len(dates):]
 
     def _validate(self):
         super(LatestMixin, self)._validate()
