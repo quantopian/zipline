@@ -207,6 +207,9 @@ class TermGraph(object):
                 garbage.add(parent)
         return garbage
 
+    def __len__(self):
+        return len(self.graph)
+
 
 class ExecutionPlan(TermGraph):
     """

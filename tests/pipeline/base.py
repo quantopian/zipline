@@ -7,9 +7,10 @@ from pandas import DataFrame, Timestamp
 from six import iteritems
 
 from zipline.utils.compat import wraps
+from zipline.pipeline import ExecutionPlan
 from zipline.pipeline.domain import US_EQUITIES
 from zipline.pipeline.engine import SimplePipelineEngine
-from zipline.pipeline import ExecutionPlan
+from zipline.pipeline.hooks import NoHooks
 from zipline.pipeline.term import AssetExists, InputDates
 from zipline.testing import check_arrays
 from zipline.testing.fixtures import (
@@ -113,6 +114,7 @@ class BaseUSEquityPipelineTestCase(WithTradingSessions,
             dates=dates,
             sids=sids,
             initial_workspace=initial_workspace,
+            hooks=NoHooks(),
         )
 
     def check_terms(self,
