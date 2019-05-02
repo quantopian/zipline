@@ -15,7 +15,7 @@
 from collections import namedtuple
 import re
 
-from contextlib2 import ExitStack
+from contextlib import ExitStack
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa

@@ -214,77 +214,17 @@ def _conda_format(req):
     return REQ_PATTERN.sub(_sub, req, 1)
 
 
-def read_requirements(path,
-                      strict_bounds,
-                      conda_format=False,
-                      filter_names=None):
-    """
-    Read a requirements.txt file, expressed as a path relative to Zipline root.
+install_requires = [
+    'pandas',
+    'trading_calendars',
+    'logbook',
+    'sqlalchemy',
+]
 
-    Returns requirements with the pinned versions as lower bounds
-    if `strict_bounds` is falsey.
-    """
-    real_path = join(dirname(abspath(__file__)), path)
-    with open(real_path) as f:
-        reqs = _filter_requirements(f.readlines(), filter_names=filter_names,
-                                    filter_sys_version=not conda_format)
-
-        if not strict_bounds:
-            reqs = map(_with_bounds, reqs)
-
-        if conda_format:
-            reqs = map(_conda_format, reqs)
-
-        return list(reqs)
-
-
-def install_requires(strict_bounds=False, conda_format=False):
-    return read_requirements('etc/requirements.txt',
-                             strict_bounds=strict_bounds,
-                             conda_format=conda_format)
-
-
-def extras_requires(conda_format=False):
-    extras = {
-        extra: read_requirements('etc/requirements_{0}.txt'.format(extra),
-                                 strict_bounds=True,
-                                 conda_format=conda_format)
-        for extra in ('dev', 'talib')
-    }
-    extras['all'] = [req for reqs in extras.values() for req in reqs]
-
-    return extras
-
-
-def setup_requirements(requirements_path, module_names, strict_bounds,
-                       conda_format=False):
-    module_names = set(module_names)
-    module_lines = read_requirements(requirements_path,
-                                     strict_bounds=strict_bounds,
-                                     conda_format=conda_format,
-                                     filter_names=module_names)
-
-    if len(set(module_lines)) != len(module_names):
-        raise AssertionError(
-            "Missing requirements. Looking for %s, but found %s."
-            % (module_names, module_lines)
-        )
-    return module_lines
-
-
-conda_build = os.path.basename(sys.argv[0]) in ('conda-build',  # unix
-                                                'conda-build-script.py')  # win
-
-setup_requires = setup_requirements(
-    'etc/requirements.txt',
-    ('Cython', 'numpy'),
-    strict_bounds=conda_build,
-    conda_format=conda_build,
-)
-
-conditional_arguments = {
-    'setup_requires' if not conda_build else 'build_requires': setup_requires,
-}
+setup_requires = [
+    'Cython',
+    'numpy'
+]
 
 setup(
     name='zipline',
@@ -320,7 +260,6 @@ setup(
         'Topic :: Scientific/Engineering :: Information Analysis',
         'Topic :: System :: Distributed Computing',
     ],
-    install_requires=install_requires(conda_format=conda_build),
-    extras_require=extras_requires(conda_format=conda_build),
-    **conditional_arguments
+    install_requires=install_requires,
+    setup_requires=setup_requires,
 )
