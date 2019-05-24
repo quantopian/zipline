@@ -9,6 +9,7 @@ from zipline.utils.compat import contextmanager, wraps
 
 Call = namedtuple('Call', 'method_name args kwargs')
 
+
 class ContextCall(namedtuple('ContextCall', 'state call')):
 
     @property
