@@ -1791,10 +1791,6 @@ class WithSeededRandomPipelineEngine(WithTradingSessions, WithAssetFinder):
         """
         Run a pipeline with self.seeded_random_engine.
         """
-        if start_date not in self.trading_days:
-            raise AssertionError("Start date not in calendar: %s" % start_date)
-        if end_date not in self.trading_days:
-            raise AssertionError("End date not in calendar: %s" % end_date)
         return self.seeded_random_engine.run_pipeline(
             pipeline,
             start_date,
@@ -1811,10 +1807,6 @@ class WithSeededRandomPipelineEngine(WithTradingSessions, WithAssetFinder):
         """
         Run a chunked pipeline with self.seeded_random_engine.
         """
-        if start_date not in self.trading_days:
-            raise AssertionError("Start date not in calendar: %s" % start_date)
-        if end_date not in self.trading_days:
-            raise AssertionError("End date not in calendar: %s" % end_date)
         return self.seeded_random_engine.run_chunked_pipeline(
             pipeline,
             start_date,

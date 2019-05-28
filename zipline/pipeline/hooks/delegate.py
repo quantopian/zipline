@@ -50,10 +50,9 @@ class DelegatingHooks(implements(PipelineHooks)):
             # sub-hook.
             return hooks[0]
         else:
-            return super(DelegatingHooks, cls).__new__(cls, hooks)
-
-    def __init__(self, hooks):
-        self._hooks = hooks
+            self = super(DelegatingHooks, cls).__new__(cls)
+            self._hooks = hooks
+            return self
 
     # Implement all interface methods by delegating to corresponding methods on
     # input hooks.

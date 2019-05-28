@@ -414,19 +414,10 @@ def two_at_a_time(it):
     """Iterate over ``it``, two elements at a time.
 
     ``it`` must yield an even number of times.
-    """
-    it = iter(it)
-    while True:
-        try:
-            first = next(it)
-        except StopIteration:
-            return
-        try:
-            second = next(it)
-        except StopIteration:
-            raise ValueError(
-                "iterator did not yield an even number of times. "
-                "last value was {}".format(first)
-            )
 
-        yield first, second
+    Examples
+    --------
+    >>> list(two_at_a_time([1, 2, 3, 4]))
+    [(1, 2), (3, 4)]
+    """
+    return toolz.partition(2, it, pad=None)
