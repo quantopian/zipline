@@ -1761,11 +1761,18 @@ class WithSeededRandomPipelineEngine(WithTradingSessions, WithAssetFinder):
             asset_finder=cls.asset_finder,
             default_domain=cls.SEEDED_RANDOM_PIPELINE_DEFAULT_DOMAIN,
             default_hooks=cls.make_seeded_random_pipeline_engine_hooks(),
+            populate_initial_workspace=(
+                cls.make_seeded_random_populate_initial_workspace()
+            ),
         )
 
     @classmethod
     def make_seeded_random_pipeline_engine_hooks(cls):
         return []
+
+    @classmethod
+    def make_seeded_random_populate_initial_workspace(cls):
+        return None
 
     def raw_expected_values(self, column, start_date, end_date):
         """

@@ -29,16 +29,11 @@ class PipelineHooks(Interface):
 
     Methods
     -------
-    on_create_execution_plan(self, plan)
     running_pipeline(self, pipeline, start_date, end_date, chunked)
-    computing_chunk(self, plan, start_date, end_date)
+    computing_chunk(self, plan, initial_workspace, start_date, end_date)
     loading_terms(self, terms)
     computing_term(self, term):
     """
-
-    def on_create_execution_plan(self, plan):
-        """Called on resolution of a Pipeline to an ExecutionPlan.
-        """
 
     @contextmanager
     def running_pipeline(self, pipeline, start_date, end_date):
@@ -48,7 +43,7 @@ class PipelineHooks(Interface):
         """
 
     @contextmanager
-    def computing_chunk(self, plan, start_date, end_date):
+    def computing_chunk(self, plan, initial_workspace, start_date, end_date):
         """Contextmanager entered during execution of compute_chunk.
         """
 

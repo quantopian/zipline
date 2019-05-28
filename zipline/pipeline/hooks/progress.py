@@ -23,9 +23,14 @@ class ProgressHooks(implements(PipelineHooks)):
         a ``ProgressModel`` and publishes progress to a consumer.
     """
     def __init__(self, publisher_factory):
-        # This object encapsulates state that should be reset between pipeline
-        # executions.
-        self._state = _ProgressHooksState(publisher_factory)
+        self._publisher_factory = publisher_factory
+        self._reset_transient_state()
+
+    def _reset_transient_state(self):
+        self._start_date = None
+        self._end_date = None
+        self._model = None
+        self._publisher = None
 
     @classmethod
     def with_widget_publisher(cls):
@@ -41,21 +46,23 @@ class ProgressHooks(implements(PipelineHooks)):
         """
         return cls(publisher_factory=lambda: publisher)
 
-    # The state manages our ProgressModel because we receive the information
-    # necessary to initialize over the course of several hook callbacks.
-    @property
-    def _model(self):
-        return self._state.model
-
     def _publish(self):
-        self._state.publish()
+        self._publisher.publish(self._model)
 
     @contextmanager
     def running_pipeline(self, pipeline, start_date, end_date):
-        self._state.set_bounds(start_date, end_date)
+        self._start_date = start_date
+        self._end_date = end_date
+
         try:
             yield
         except Exception:
+            if self._model is None:
+                # This will only happen if an error happens in the Pipeline
+                # Engine beteween entering `running_pipeline` and the first
+                # `computing_chunk` call. If that happens, just propagate the
+                # exception.
+                raise
             self._model.finish(success=False)
             self._publish()
             raise
@@ -63,16 +70,31 @@ class ProgressHooks(implements(PipelineHooks)):
             self._model.finish(success=True)
             self._publish()
         finally:
-            self._state.reset()
-
-    def on_create_execution_plan(self, plan):
-        self._state.set_execution_plan(plan)
-        self._publish()
+            self._reset_transient_state()
 
     @contextmanager
-    def computing_chunk(self, plan, start_date, end_date):
+    def computing_chunk(self, plan, initial_workspace, start_date, end_date):
+        # Set up model on first compute_chunk call.
+        if self._model is None:
+            self._publisher = self._publisher_factory()
+            self._model = ProgressModel(
+                nterms=len(plan),
+                start_date=self._start_date,
+                end_date=self._end_date,
+            )
+
+        # Account for terms that were pre-computed by
+        # populate_initial_workspace. We take the intersection of
+        # initial_workspace and plan because AssetExists() and InputDates() are
+        # always in the initial workspace even if they're not needed, and we
+        # don't want to increment progress for those terms if they aren't
+        # actually part of the plan.
+        precomputed = [t for t in initial_workspace if t in plan]
+
         try:
             self._model.start_chunk(start_date, end_date)
+            if precomputed:
+                self._model.load_precomputed_terms(precomputed)
             self._publish()
             yield
         finally:
@@ -100,79 +122,6 @@ class ProgressHooks(implements(PipelineHooks)):
             self._publish()
 
 
-class _ProgressHooksState(object):
-    """
-    Helper class for managing incremental acquisition of pipeline state in
-    ``ProgressHooks``.
-    """
-
-    def __init__(self, publisher_factory):
-        self._publisher_factory = publisher_factory
-        self.reset()
-
-    def reset(self):
-        self._start_date = None
-        self._end_date = None
-        self._plan = None
-
-        self._model = None
-        self._publisher = None
-
-    def set_bounds(self, start_date, end_date):
-        self._start_date = start_date
-        self._end_date = end_date
-
-    def set_execution_plan(self, plan):
-        # NOTE: This will be called multiple times in a chunked execution, but
-        # the plans should always be functionally equivalent.
-        self._plan = plan
-
-    def publish(self):
-        self.publisher.publish(self.model)
-
-    @property
-    def model(self):
-        _model = self._model
-        if _model is None:
-            _model = self._model = self._create_model()
-        return _model
-
-    @property
-    def publisher(self):
-        publisher = self._publisher
-        if publisher is None:
-            publisher = self._publisher = self._publisher_factory()
-        return self._publisher
-
-    def _create_model(self):
-        """
-        Create a ProgressModel.
-
-        Can only be called after ``set_bounds`` and ``set_execution_plan``.
-        """
-        start_date = self._start_date
-        end_date = self._end_date
-        plan = self._plan
-
-        if start_date is None:
-            raise ValueError(
-                "Must have start_date to create a progress model."
-            )
-        elif end_date is None:
-            raise ValueError(
-                "Must have end_date to create a progress model."
-            )
-        elif plan is None:
-            raise ValueError(
-                "Must have an execution plan to create a progress model."
-            )
-
-        # Subtract one from the execution plan length to account for
-        # AssetExists(), which will always be in the pipeline, but won't be
-        # computed.
-        return ProgressModel(len(plan) - 1, start_date, end_date)
-
-
 class ProgressModel(object):
     """
     Model object for tracking progress of a Pipeline execution.
@@ -190,6 +139,7 @@ class ProgressModel(object):
     -------
     start_chunk(start_date, end_date)
     finish_chunk(start_date, end_date)
+    load_precomputed_terms(terms)
     start_load_terms(terms)
     finish_load_terms(terms)
     start_compute_term(term)
@@ -233,7 +183,7 @@ class ProgressModel(object):
         self._start_time = time.time()
         self._end_time = None
 
-    # These properties form the public interface for Publishers.
+    # These properties form the interface for Publishers.
     @property
     def state(self):
         return self._state
@@ -270,6 +220,13 @@ class ProgressModel(object):
 
     def finish_chunk(self, start_date, end_date):
         self._days_completed += self._current_chunk_size
+
+    # There's no begin/end for this because we get all the precomputed terms by
+    # diffing ``initial_workspace`` with ``plan`` in ``computing_chunk``.
+    def load_precomputed_terms(self, terms):
+        self._state = 'loading'
+        self._current_work = terms
+        self._increment_progress(nterms=len(terms))
 
     def start_load_terms(self, terms):
         self._state = 'loading'
@@ -380,10 +337,6 @@ class IPythonWidgetProgressPublisher(object):
             self._heading.value = '<b>Analyzing Pipeline...</b>'
             self._set_progress(0.0)
 
-            if not self._displayed:
-                display(self._layout)
-                self._displayed = True
-
         elif model.state in ('loading', 'computing'):
             term_list = self._render_term_list(model.current_work)
             if model.state == 'loading':
@@ -392,9 +345,10 @@ class IPythonWidgetProgressPublisher(object):
                 details_heading = '<b>Computing Expression:</b>'
 
             self._details_body.value = details_heading + term_list
+            chunk_start, chunk_end = model.current_chunk_bounds
             self._heading.value = (
                 "<b>Running Pipeline</b>: Chunk Start={}, Chunk End={}"
-                .format(*model.current_chunk_bounds)
+                .format(chunk_start.date(), chunk_end.date())
             )
             self._set_progress(model.percent_complete)
 
@@ -413,6 +367,10 @@ class IPythonWidgetProgressPublisher(object):
 
         else:
             raise ValueError('Unknown display state: {!r}'.format(model.state))
+
+        if not self._displayed:
+            display(self._layout)
+            self._displayed = True
 
     @staticmethod
     def _render_term_list(terms):

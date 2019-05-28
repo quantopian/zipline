@@ -66,6 +66,9 @@ class TermGraph(object):
         # Mark that no more terms should be added to the graph.
         self._frozen = True
 
+    def __contains__(self, term):
+        return term in self.graph
+
     def _add_to_graph(self, term, parents):
         """
         Add a term and all its children to ``graph``.

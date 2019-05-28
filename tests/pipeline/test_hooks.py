@@ -1,6 +1,7 @@
 import itertools
 from operator import attrgetter
 
+import numpy as np
 import toolz
 
 from zipline.pipeline import Pipeline
@@ -14,7 +15,7 @@ from zipline.pipeline.hooks.progress import (
     ProgressHooks,
     TestingProgressPublisher,
 )
-from zipline.pipeline.term import ComputableTerm, LoadableTerm
+from zipline.pipeline.term import AssetExists, ComputableTerm, LoadableTerm
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import (
     ZiplineTestCase,
@@ -134,20 +135,17 @@ class HooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
         for ctrace, (chunk_start, chunk_end) in zip(chunk_traces,
                                                     expected_chunks):
-
-            # First call should create the execution plan.
-            self.assertEqual(ctrace[0].method_name, 'on_create_execution_plan')
-
             # Next call should bracket compute_chunk
-            self.expect_context_pair(ctrace[1], ctrace[-1], 'computing_chunk')
-            self.assertIsInstance(ctrace[1].args[0], ExecutionPlan)
-            self.assertEqual(ctrace[1].args[1:], (chunk_start, chunk_end))
+            self.expect_context_pair(ctrace[0], ctrace[-1], 'computing_chunk')
+            self.assertIsInstance(ctrace[0].args[0], ExecutionPlan)
+            self.assertIsInstance(ctrace[0].args[1], dict)  # initial workspace
+            self.assertEqual(ctrace[0].args[2:], (chunk_start, chunk_end))
 
             # Remainder of calls should be loads and computes. These have to
             # happen in dependency order, but we don't bother to assert that
             # here. We just make sure that we see each expected load/compute
             # exactly once.
-            loads_and_computes = ctrace[2:-1]
+            loads_and_computes = ctrace[1:-1]
             loads = set()
             computes = set()
             for enter, exit_ in two_at_a_time(loads_and_computes):
@@ -202,10 +200,48 @@ class HooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             self.assertEqual(enter.call.method_name, method)
 
 
+class PrepopulatedFactor(CustomFactor):
+    """CustomFactor that will be set by populate_initial_workspace.
+    """
+    window_length = 5
+    inputs = [TestingDataSet.float_col]
+
+    def compute(self, today, assets, out, inputs_):
+        out[:] = 0.0
+
+
+PREPOPULATED_TERM = PrepopulatedFactor()
+
+
 class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
     """Tests for verifying ProgressHooks.
     """
     ASSET_FINDER_COUNTRY_CODE = 'US'
+
+    @classmethod
+    def make_seeded_random_populate_initial_workspace(cls):
+        # Populate valeus for PREPOPULATED_TERM. This is used to ensure that we
+        # properly track progress when we skip prepopulated terms.
+        def populate(initial_workspace,
+                     root_mask_term,
+                     execution_plan,
+                     dates,
+                     assets):
+            if PREPOPULATED_TERM not in execution_plan:
+                return initial_workspace
+
+            workspace = initial_workspace.copy()
+            _, dates = execution_plan.mask_and_dates_for_term(
+                PREPOPULATED_TERM,
+                root_mask_term,
+                workspace,
+                dates,
+            )
+            shape = (len(dates), len(assets))
+            workspace[PREPOPULATED_TERM] = np.zeros(shape, dtype=float)
+            return workspace
+
+        return populate
 
     def test_progress_hooks(self):
         publisher = TestingProgressPublisher()
@@ -214,6 +250,7 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             {
                 'bool_': TestingDataSet.bool_col.latest,
                 'factor_rank': TrivialFactor().rank().zscore(),
+                'prepopulated': PREPOPULATED_TERM,
             },
             domain=US_EQUITIES,
         )
@@ -264,27 +301,17 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
                 before.percent_complete,
             )
 
-        # First publish should be the initial state.
+        # First publish should contain precomputed terms from first chunk.
         first = trace[0]
         expected_first = TestingProgressPublisher.TraceState(
-            state='init',
-            percent_complete=0.0,
-            execution_bounds=(pipeline_start_date, pipeline_end_date),
-            current_chunk_bounds=None,
-            current_work=None,
-        )
-        self.assertEqual(first, expected_first)
-
-        # Second publish should start the first chunk.
-        second = trace[1]
-        expected_second = TestingProgressPublisher.TraceState(
-            state='init',
-            percent_complete=0.0,
+            state='loading',
+            percent_complete=instance_of(float),
             execution_bounds=(pipeline_start_date, pipeline_end_date),
             current_chunk_bounds=expected_chunks[0],
-            current_work=None,
+            current_work=[AssetExists(), PREPOPULATED_TERM],
         )
-        self.assertEqual(second, expected_second)
+        self.assertGreater(first.percent_complete, 0.0)
+        self.assertEqual(first, expected_first)
 
         # Last publish should have a state of success and be 100% complete.
         last = trace[-1]
@@ -302,12 +329,15 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         self.assertEqual(last, expected_last)
 
         # Remaining updates should all be loads or computes.
-        middle = trace[2:-1]
+        middle = trace[1:-1]
         for update in middle:
             self.assertIsInstance(update.current_work, list)
             if update.state == 'loading':
                 for term in update.current_work:
-                    self.assertIsInstance(term, LoadableTerm)
+                    self.assertIsInstance(
+                        term,
+                        (LoadableTerm, AssetExists, PrepopulatedFactor),
+                    )
             elif update.state == 'computing':
                 for term in update.current_work:
                     self.assertIsInstance(term, ComputableTerm)

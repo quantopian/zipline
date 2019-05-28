@@ -97,6 +97,8 @@ class PipelineEngine(with_metaclass(ABCMeta)):
             Start date of the computed matrix.
         end_date : pd.Timestamp
             End date of the computed matrix.
+        hooks : list[implements(PipelineHooks)], optional
+            Hooks for instrumenting Pipeline execution.
 
         Returns
         -------
@@ -138,6 +140,8 @@ class PipelineEngine(with_metaclass(ABCMeta)):
             The end date to run the pipeline for.
         chunksize : int
             The number of days to execute at a time.
+        hooks : list[implements(PipelineHooks)], optional
+            Hooks for instrumenting Pipeline execution.
 
         Returns
         -------
@@ -333,8 +337,6 @@ class SimplePipelineEngine(PipelineEngine):
             end_date,
             chunksize,
         )
-        if hooks is None:
-            hooks = []
         hooks = self._resolve_hooks(hooks)
 
         run_pipeline = partial(self._run_pipeline_impl, pipeline, hooks=hooks)
@@ -377,9 +379,6 @@ class SimplePipelineEngine(PipelineEngine):
             A screen of ``None`` indicates that a row should be returned for
             each asset that existed each day.
         """
-        if hooks is None:
-            hooks = []
-
         hooks = self._resolve_hooks(hooks)
         with hooks.running_pipeline(pipeline, start_date, end_date):
             return self._run_pipeline_impl(
@@ -405,8 +404,6 @@ class SimplePipelineEngine(PipelineEngine):
         plan = pipeline.to_execution_plan(
             domain, self._root_mask_term, start_date, end_date,
         )
-        hooks.on_create_execution_plan(plan)
-
         extra_rows = plan.extra_rows[self._root_mask_term]
         root_mask = self._compute_root_mask(
             domain, start_date, end_date, extra_rows,
@@ -424,7 +421,10 @@ class SimplePipelineEngine(PipelineEngine):
             assets,
         )
 
-        with hooks.computing_chunk(plan, start_date, end_date):
+        with hooks.computing_chunk(plan,
+                                   initial_workspace,
+                                   start_date,
+                                   end_date):
             results = self.compute_chunk(
                 plan,
                 dates,
@@ -667,7 +667,7 @@ class SimplePipelineEngine(PipelineEngine):
                         domain, to_load, mask_dates, sids, mask,
                     )
                 assert set(loaded) == set(to_load), (
-                    'loader did not return AdjustedArray for each column\n'
+                    'loader did not return an AdjustedArray for each column\n'
                     'expected: %r\n'
                     'got:      %r' % (sorted(to_load), sorted(loaded))
                 )
@@ -863,4 +863,6 @@ class SimplePipelineEngine(PipelineEngine):
         )
 
     def _resolve_hooks(self, hooks):
-        return DelegatingHooks(list(hooks) + self._default_hooks)
+        if hooks is None:
+            hooks = []
+        return DelegatingHooks(self._default_hooks + hooks)
