@@ -303,27 +303,19 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
         # First publish should contain precomputed terms from first chunk.
         first = trace[0]
-        self.assertEqual(first.state, 'loading')
-        self.assertIsInstance(first.percent_complete, float)
-        self.assertEqual(first.execution_bounds,
-                         (pipeline_start_date, pipeline_end_date))
-        self.assertEqual(
-            first.current_chunk_bounds,
-            expected_chunks[0],
+        expected_first = TestingProgressPublisher.TraceState(
+            state='loading',
+            percent_complete=instance_of(float),
+            execution_bounds=(pipeline_start_date, pipeline_end_date),
+            current_chunk_bounds=expected_chunks[0],
+            current_work=instance_of(list)
         )
+        self.assertEqual(first, expected_first)
+        self.assertGreater(first.percent_complete, 0.0)
         self.assertEqual(
-            first.current_work, [AssetExists(), PREPOPULATED_TERM]
+            set(first.current_work),
+            {AssetExists(), PREPOPULATED_TERM},
         )
-
-        # expected_first = TestingProgressPublisher.TraceState(
-        #     state='loading',
-        #     percent_complete=instance_of(float),
-        #     execution_bounds=(pipeline_start_date, pipeline_end_date),
-        #     current_chunk_bounds=expected_chunks[0],
-        #     current_work=[AssetExists(), PREPOPULATED_TERM],
-        # )
-        # self.assertGreater(first.percent_complete, 0.0)
-        # self.assertEqual(first, expected_first)
 
         # Last publish should have a state of success and be 100% complete.
         last = trace[-1]
