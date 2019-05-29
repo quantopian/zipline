@@ -9,6 +9,7 @@ from six import PY2
 if PY2:
     from abc import ABCMeta
     from types import DictProxyType
+    import contextlib
     from ctypes import py_object, pythonapi
 
     _new_mappingproxy = pythonapi.PyDictProxy_New
@@ -83,7 +84,17 @@ if PY2:
     # This is deprecated in python 3.6+.
     getargspec = inspect.getargspec
 
+    # Updated version of contextlib.contextmanager that uses our updated
+    # `wraps` to preserve function signatures.
+    @wraps(contextlib.contextmanager)
+    def contextmanager(f):
+        @wraps(f)
+        def helper(*args, **kwargs):
+            return contextlib.GeneratorContextManager(f(*args, **kwargs))
+        return helper
+
 else:
+    from contextlib import contextmanager
     from types import MappingProxyType as mappingproxy
     from math import ceil
 
@@ -128,4 +139,5 @@ __all__ = [
     'values_as_list',
     'wraps',
     'consistent_round',
+    'contextmanager',
 ]

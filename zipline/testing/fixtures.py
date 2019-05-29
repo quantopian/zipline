@@ -1760,7 +1760,19 @@ class WithSeededRandomPipelineEngine(WithTradingSessions, WithAssetFinder):
             get_loader=lambda column: loader,
             asset_finder=cls.asset_finder,
             default_domain=cls.SEEDED_RANDOM_PIPELINE_DEFAULT_DOMAIN,
+            default_hooks=cls.make_seeded_random_pipeline_engine_hooks(),
+            populate_initial_workspace=(
+                cls.make_seeded_random_populate_initial_workspace()
+            ),
         )
+
+    @classmethod
+    def make_seeded_random_pipeline_engine_hooks(cls):
+        return []
+
+    @classmethod
+    def make_seeded_random_populate_initial_workspace(cls):
+        return None
 
     def raw_expected_values(self, column, start_date, end_date):
         """
@@ -1775,18 +1787,32 @@ class WithSeededRandomPipelineEngine(WithTradingSessions, WithAssetFinder):
         row_slice = self.trading_days.slice_indexer(start_date, end_date)
         return all_values[row_slice]
 
-    def run_pipeline(self, pipeline, start_date, end_date):
+    def run_pipeline(self, pipeline, start_date, end_date, hooks=None):
         """
         Run a pipeline with self.seeded_random_engine.
         """
-        if start_date not in self.trading_days:
-            raise AssertionError("Start date not in calendar: %s" % start_date)
-        if end_date not in self.trading_days:
-            raise AssertionError("End date not in calendar: %s" % end_date)
         return self.seeded_random_engine.run_pipeline(
             pipeline,
             start_date,
             end_date,
+            hooks=hooks,
+        )
+
+    def run_chunked_pipeline(self,
+                             pipeline,
+                             start_date,
+                             end_date,
+                             chunksize,
+                             hooks=None):
+        """
+        Run a chunked pipeline with self.seeded_random_engine.
+        """
+        return self.seeded_random_engine.run_chunked_pipeline(
+            pipeline,
+            start_date,
+            end_date,
+            chunksize=chunksize,
+            hooks=hooks,
         )
 
 
