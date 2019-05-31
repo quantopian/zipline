@@ -260,7 +260,7 @@ except ImportError:
     HAVE_WIDGETS = False
 
 try:
-    from IPython.display import display, HTML as IPython_HTML
+    from IPython.display import clear_output, display, HTML as IPython_HTML
     HAVE_IPYTHON = True
 except ImportError:
     HAVE_IPYTHON = False
@@ -336,41 +336,51 @@ class IPythonWidgetProgressPublisher(object):
         if model.state == 'init':
             self._heading.value = '<b>Analyzing Pipeline...</b>'
             self._set_progress(0.0)
+            self._ensure_displayed()
 
         elif model.state in ('loading', 'computing'):
+
             term_list = self._render_term_list(model.current_work)
             if model.state == 'loading':
                 details_heading = '<b>Loading Inputs:</b>'
             else:
                 details_heading = '<b>Computing Expression:</b>'
-
             self._details_body.value = details_heading + term_list
+
             chunk_start, chunk_end = model.current_chunk_bounds
             self._heading.value = (
                 "<b>Running Pipeline</b>: Chunk Start={}, Chunk End={}"
                 .format(chunk_start.date(), chunk_end.date())
             )
+
             self._set_progress(model.percent_complete)
+
+            self._ensure_displayed()
 
         elif model.state == 'success':
             # Replace widget layout with html that can be persisted.
-            self._layout.close()
+            self._stop_displaying()
             display(
                 IPython_HTML("<b>Pipeline Execution Time:</b> {}".format(
                     self._format_execution_time(model.execution_time)
-                ))
+                )),
             )
 
         elif model.state == 'error':
             self._bar.bar_style = 'danger'
-            self._layout.close()
-
+            self._stop_displaying()
         else:
+            self._layout.close()
             raise ValueError('Unknown display state: {!r}'.format(model.state))
 
+    def _ensure_displayed(self):
         if not self._displayed:
             display(self._layout)
             self._displayed = True
+
+    def _stop_displaying(self):
+        self._layout.close()
+        clear_output()
 
     @staticmethod
     def _render_term_list(terms):
