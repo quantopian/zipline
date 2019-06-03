@@ -753,7 +753,7 @@ class Slice(ComputableTerm):
         )
 
     def __repr__(self):
-        return "{parent_term}[{asset}])".format(
+        return "{parent_term}[{asset}]".format(
             type=type(self).__name__,
             parent_term=self.inputs[0].recursive_repr(),
             asset=self._asset,
