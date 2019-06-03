@@ -13,6 +13,7 @@ from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.hooks.testing import TestingHooks
 from zipline.pipeline.hooks.progress import (
     ProgressHooks,
+    repr_htmlsafe,
     TestingProgressPublisher,
 )
 from zipline.pipeline.term import AssetExists, ComputableTerm, LoadableTerm
@@ -412,6 +413,62 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         total_days = (pipeline_end - pipeline_start).days + 1
         days_complete = (chunk_end - pipeline_start).days + 1
         return (100.0 * days_complete) / total_days
+
+
+class TermReprTestCase(ZiplineTestCase):
+
+    def test_htmlsafe_repr(self):
+
+        class MyFactor(CustomFactor):
+            inputs = [TestingDataSet.float_col]
+            window_length = 3
+
+        self.assertEqual(
+            repr_htmlsafe(MyFactor()),
+            repr(MyFactor()),
+        )
+
+    def test_htmlsafe_repr_escapes_html(self):
+        class MyFactor(CustomFactor):
+            inputs = [TestingDataSet.float_col]
+            window_length = 3
+
+            def __repr__(self):
+                return '<b>foo</b>'
+
+        self.assertEqual(
+            repr_htmlsafe(MyFactor()),
+            '<b>foo</b>'.replace('<', '&lt;').replace('>', '&gt;')
+        )
+
+    def test_htmlsafe_repr_handles_errors(self):
+        class MyFactor(CustomFactor):
+            inputs = [TestingDataSet.float_col]
+            window_length = 3
+
+            def __repr__(self):
+                raise ValueError("Kaboom!")
+
+        self.assertEqual(
+            repr_htmlsafe(MyFactor()),
+            '(Error Displaying MyFactor)',
+        )
+
+    def test_htmlsafe_repr_escapes_html_when_it_handles_errors(self):
+        class MyFactor(CustomFactor):
+            inputs = [TestingDataSet.float_col]
+            window_length = 3
+
+            def __repr__(self):
+                raise ValueError("Kaboom!")
+
+        MyFactor.__name__ = '<b>foo</b>'
+        converted = MyFactor.__name__.replace('<', '&lt;').replace('>', '&gt;')
+
+        self.assertEqual(
+            repr_htmlsafe(MyFactor()),
+            '(Error Displaying {})'.format(converted),
+        )
 
 
 def two_at_a_time(it):

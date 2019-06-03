@@ -385,7 +385,7 @@ class IPythonWidgetProgressPublisher(object):
     @staticmethod
     def _render_term_list(terms):
         list_elements = ''.join([
-             '<li><pre>{}</pre></li>'.format(cgi.escape(str(t)))
+             '<li><pre>{}</pre></li>'.format(repr_htmlsafe(t))
              for t in terms
         ])
         return '<ul>{}</ul>'.format(list_elements)
@@ -460,3 +460,16 @@ class TestingProgressPublisher(object):
                 current_work=model.current_work
             ),
         )
+
+
+def repr_htmlsafe(t):
+    """Repr a value and html-escape the result.
+
+    If an error is thrown by the repr, show a placeholder.
+    """
+    try:
+        r = repr(t)
+    except Exception:
+        r = "(Error Displaying {})".format(type(t).__name__)
+
+    return cgi.escape(str(r))
