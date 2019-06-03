@@ -819,4 +819,3 @@ class SubDataSetTestCase(TestCase):
             ).format(mv=bad_mv, dtype=dtype_)
 
             self.assertRegexpMatches(str(e.exception), prefix)
-

@@ -7,7 +7,6 @@ import pandas as pd
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Classifier
 from zipline.pipeline.data.testing import TestingDataSet
-from zipline.pipeline.factors.basic import DailyReturns
 from zipline.pipeline.expression import methods_to_ops
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import ZiplineTestCase
