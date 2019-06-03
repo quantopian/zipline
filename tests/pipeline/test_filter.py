@@ -1118,14 +1118,14 @@ class ReprTestCase(ZiplineTestCase):
         rep = repr(m)
         assert_equal(
             rep,
-            "Maximum({!r}, groupby={!r}, mask={!r})".format(
-                SomeFactor(),
-                SomeClassifier(),
-                SomeFilter(),
+            "Maximum({}, groupby={}, mask={})".format(
+                SomeFactor().recursive_repr(),
+                SomeClassifier().recursive_repr(),
+                SomeFilter().recursive_repr(),
             )
         )
 
         short_rep = m.graph_repr()
         assert_equal(short_rep, "Maximum:\\l  "
-                                "groupby: SomeClassifier\\l  "
-                                "mask: SomeFilter\\l")
+                                "groupby: SomeClassifier(...)\\l  "
+                                "mask: SomeFilter(...)\\l")

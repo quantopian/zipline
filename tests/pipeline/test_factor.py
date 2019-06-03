@@ -1310,7 +1310,7 @@ class ReprTestCase(TestCase):
             inputs = ()
             window_length = 5
 
-            def graph_repr(self):
+            def recursive_repr(self):
                 return "CustomRepr()"
 
         a = MultipleOutputs().a
@@ -1351,6 +1351,24 @@ class ReprTestCase(TestCase):
         result = repr(HasInputs())
         expected = "HasInputs([Input(...), DS.a, DS.b], 3)"
         self.assertEqual(result, expected)
+
+    def test_rank_repr(self):
+        rank = DailyReturns().rank()
+        result = repr(rank)
+        expected = "Rank(DailyReturns(...), method='ordinal')"
+        self.assertEqual(result, expected)
+
+        recursive_repr = rank.recursive_repr()
+        self.assertEqual(recursive_repr, "Rank(...)")
+
+    def test_rank_repr_with_mask(self):
+        rank = DailyReturns().rank(mask=Mask())
+        result = repr(rank)
+        expected = "Rank(DailyReturns(...), method='ordinal', mask=Mask(...))"
+        self.assertEqual(result, expected)
+
+        recursive_repr = rank.recursive_repr()
+        self.assertEqual(recursive_repr, "Rank(...)")
 
 
 class TestWindowSafety(TestCase):

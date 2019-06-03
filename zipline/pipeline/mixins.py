@@ -283,9 +283,9 @@ class AliasedMixin(SingleInputMixin):
         return inputs[0]
 
     def __repr__(self):
-        return '{type}({inner_type}(...), name={name!r})'.format(
+        return '{type}({inner}, name={name!r})'.format(
             type=type(self).__name__,
-            inner_type=type(self.inputs[0]).__name__,
+            inner=self.inputs[0].recursive_repr(),
             name=self.name,
         )
 

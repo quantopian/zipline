@@ -647,13 +647,15 @@ class MaximumFilter(Filter, StandardOutputs):
         )
 
     def __repr__(self):
-        return "Maximum({!r}, groupby={!r}, mask={!r})".format(
-            self.inputs[0], self.inputs[1], self.mask,
+        return "Maximum({}, groupby={}, mask={})".format(
+            self.inputs[0].recursive_repr(),
+            self.inputs[1].recursive_repr(),
+            self.mask.recursive_repr(),
         )
 
     def graph_repr(self):
         # Graphviz interprets `\l` as "divide label into lines, left-justified"
         return "Maximum:\\l  groupby: {}\\l  mask: {}\\l".format(
-            type(self.inputs[1]).__name__,
-            type(self.mask).__name__,
+            self.inputs[1].recursive_repr(),
+            self.mask.recursive_repr(),
         )
