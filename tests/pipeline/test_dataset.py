@@ -12,6 +12,8 @@ class SomeDataSet(DataSet):
     b = Column(dtype=object)
     c = Column(dtype=int, missing_value=-1)
 
+    exists_but_not_a_column = 'foo'
+
 
 # A DataSet with lots of columns.
 class LargeDataSet(DataSet):
@@ -50,6 +52,25 @@ class GetColumnTestCase(ZiplineTestCase):
         )
         assert_messages_equal(result, expected)
 
+    def test_get_column_failure_but_attribute_exists(self):
+        attr = 'exists_but_not_a_column'
+        self.assertTrue(hasattr(SomeDataSet, attr))
+
+        with self.assertRaises(AttributeError) as e:
+            SomeDataSet.get_column(attr)
+
+        result = str(e.exception)
+        expected = dedent(
+            """\
+            SomeDataSet has no column 'exists_but_not_a_column':
+
+            Possible choices are:
+              - a
+              - b
+              - c"""
+        )
+        assert_messages_equal(result, expected)
+
     def test_get_column_failure_truncate_error_message(self):
         with self.assertRaises(AttributeError) as e:
             LargeDataSet.get_column('arglebargle')
@@ -73,3 +94,12 @@ class GetColumnTestCase(ZiplineTestCase):
               - z"""
         )
         assert_messages_equal(result, expected)
+
+
+class ReprTestCase(ZiplineTestCase):
+
+    def test_dataset_repr(self):
+        self.assertEqual(
+            repr(SomeDataSet),
+            "<DataSet: 'SomeDataSet', domain=GENERIC>"
+        )

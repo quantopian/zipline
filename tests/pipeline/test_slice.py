@@ -520,3 +520,9 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             returns.linear_regression(
                 target=date_factor_slice, regression_length=regression_length,
             )
+
+    def test_slice_repr(self):
+        my_asset = self.asset_finder.retrieve_asset(self.sids[0])
+        slice_ = Returns(window_length=2)[my_asset]
+        result = repr(slice_)
+        self.assertEqual(result, "Returns(...)[{}]".format(my_asset))

@@ -52,7 +52,7 @@ from zipline.pipeline.mixins import (
     SingleInputMixin,
 )
 from zipline.pipeline.sentinels import NotSpecified, NotSpecifiedType
-from zipline.pipeline.term import ComputableTerm, Term
+from zipline.pipeline.term import AssetExists, ComputableTerm, Term
 from zipline.utils.functional import with_doc, with_name
 from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import nanmean, nanstd
@@ -1404,11 +1404,17 @@ class Rank(SingleInputMixin, Factor):
         )
 
     def __repr__(self):
-        return "{type}({input_}, method='{method}', mask={mask})".format(
+        if self.mask is AssetExists():
+            # Don't include mask in repr if it's the default.
+            mask_info = ""
+        else:
+            mask_info = ", mask={}".format(self.mask.recursive_repr())
+
+        return "{type}({input_}, method='{method}'{mask_info})".format(
             type=type(self).__name__,
-            input_=self.inputs[0],
+            input_=self.inputs[0].recursive_repr(),
             method=self._method,
-            mask=self.mask,
+            mask_info=mask_info,
         )
 
     def graph_repr(self):
@@ -1642,7 +1648,7 @@ class RecarrayField(SingleInputMixin, Factor):
         return windows[0][self._attribute]
 
     def graph_repr(self):
-        return "{}.{}".format(self.inputs[0].graph_repr(), self._attribute)
+        return "{}.{}".format(self.inputs[0].recursive_repr(), self._attribute)
 
 
 class Latest(LatestMixin, CustomFactor):

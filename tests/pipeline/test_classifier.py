@@ -6,6 +6,8 @@ import pandas as pd
 
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Classifier
+from zipline.pipeline.data.testing import TestingDataSet
+from zipline.pipeline.factors.basic import DailyReturns
 from zipline.pipeline.expression import methods_to_ops
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import ZiplineTestCase
@@ -683,3 +685,10 @@ class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
             f.to_workspace_value(pipeline_output, pd.Index([0, 1])),
             column_data,
         )
+
+
+class ReprTestCase(ZiplineTestCase):
+
+    def test_quantiles_graph_repr(self):
+        quantiles = TestingDataSet.float_col.latest.quantiles(5)
+        self.assertEqual(quantiles.graph_repr(), "Quantiles(5)")
