@@ -256,11 +256,21 @@ class ProgressModel(object):
 try:
     import ipywidgets
     HAVE_WIDGETS = True
+
+    # This VBox subclass exists to work around a strange display issue but
+    # where the repr of the progress bar sometimes gets re-displayed upon
+    # re-opening the notebook, even after the bar has closed. The repr of VBox
+    # is somewhat noisy, so we replace it here with a version that just returns
+    # an empty string.
+    class ProgressBarContainer(ipywidgets.VBox):
+        def __repr__(self):
+            return ""
+
 except ImportError:
     HAVE_WIDGETS = False
 
 try:
-    from IPython.display import clear_output, display, HTML as IPython_HTML
+    from IPython.display import display, HTML as IPython_HTML
     HAVE_IPYTHON = True
 except ImportError:
     HAVE_IPYTHON = False
@@ -320,7 +330,7 @@ class IPythonWidgetProgressPublisher(object):
         self._details_tab.set_title(0, 'Details')
 
         # Container for the combined widget.
-        self._layout = ipywidgets.VBox(
+        self._layout = ProgressBarContainer(
             [
                 self._heading,
                 bar_and_percent,
@@ -380,7 +390,6 @@ class IPythonWidgetProgressPublisher(object):
 
     def _stop_displaying(self):
         self._layout.close()
-        clear_output()
 
     @staticmethod
     def _render_term_list(terms):
