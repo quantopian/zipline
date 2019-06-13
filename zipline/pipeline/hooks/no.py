@@ -13,7 +13,7 @@ class NoHooks(implements(PipelineHooks)):
         yield
 
     @contextmanager
-    def computing_chunk(self, plan, initial_workspace, start_date, end_date):
+    def computing_chunk(self, terms, start_date, end_date):
         yield
 
     @contextmanager

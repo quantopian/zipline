@@ -109,11 +109,16 @@ class BaseUSEquityPipelineTestCase(WithTradingSessions,
         initial_workspace.setdefault(AssetExists(), mask_values)
         initial_workspace.setdefault(InputDates(), dates)
 
+        refcounts = graph.initial_refcounts(initial_workspace)
+        execution_order = graph.execution_order(initial_workspace, refcounts)
+
         return engine.compute_chunk(
             graph=graph,
             dates=dates,
             sids=sids,
-            initial_workspace=initial_workspace,
+            workspace=initial_workspace,
+            execution_order=execution_order,
+            refcounts=refcounts,
             hooks=NoHooks(),
         )
 
