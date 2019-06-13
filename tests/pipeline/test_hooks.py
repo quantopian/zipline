@@ -2,13 +2,14 @@ import itertools
 from operator import attrgetter
 
 import numpy as np
+import pandas as pd
 import toolz
 
 from zipline.pipeline import Pipeline
 from zipline.pipeline.classifiers import Everything
 from zipline.pipeline.domain import US_EQUITIES
 from zipline.pipeline.factors import CustomFactor
-from zipline.pipeline.graph import ExecutionPlan
+from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.hooks.testing import TestingHooks
 from zipline.pipeline.hooks.progress import (
@@ -138,9 +139,8 @@ class HooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
                                                     expected_chunks):
             # Next call should bracket compute_chunk
             self.expect_context_pair(ctrace[0], ctrace[-1], 'computing_chunk')
-            self.assertIsInstance(ctrace[0].args[0], ExecutionPlan)
-            self.assertIsInstance(ctrace[0].args[1], dict)  # initial workspace
-            self.assertEqual(ctrace[0].args[2:], (chunk_start, chunk_end))
+            self.assertIsInstance(ctrace[0].args[0], list)  # terms
+            self.assertEqual(ctrace[0].args[1:], (chunk_start, chunk_end))
 
             # Remainder of calls should be loads and computes. These have to
             # happen in dependency order, but we don't bother to assert that
@@ -201,13 +201,22 @@ class HooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             self.assertEqual(enter.call.method_name, method)
 
 
+class ShouldGetSkipped(DataSet):
+    """
+    Dataset that's only used by PrepopulatedFactor. It should get pruned from
+    the execution when PrepopulatedFactor is prepopulated.
+    """
+    column1 = Column(dtype=float)
+    column2 = Column(dtype=float)
+
+
 class PrepopulatedFactor(CustomFactor):
     """CustomFactor that will be set by populate_initial_workspace.
     """
     window_length = 5
-    inputs = [TestingDataSet.float_col]
+    inputs = [ShouldGetSkipped.column1, ShouldGetSkipped.column2]
 
-    def compute(self, today, assets, out, inputs_):
+    def compute(self, today, assets, out, col1, col2):
         out[:] = 0.0
 
 
@@ -219,6 +228,14 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
     """
     ASSET_FINDER_COUNTRY_CODE = 'US'
 
+    START_DATE = pd.Timestamp('2014-01-02', tz='UTC')
+    END_DATE = pd.Timestamp('2014-01-31', tz='UTC')
+
+    # Don't populate PREPOPULATED_TERM for days after this cutoff.
+    # This is used to test that we correctly compute progress when the number
+    # of terms computed in each chunk changes.
+    PREPOPULATED_TERM_CUTOFF = END_DATE - pd.Timedelta('2 days')
+
     @classmethod
     def make_seeded_random_populate_initial_workspace(cls):
         # Populate valeus for PREPOPULATED_TERM. This is used to ensure that we
@@ -229,6 +246,8 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
                      dates,
                      assets):
             if PREPOPULATED_TERM not in execution_plan:
+                return initial_workspace
+            elif dates[-1] > cls.PREPOPULATED_TERM_CUTOFF:
                 return initial_workspace
 
             workspace = initial_workspace.copy()
@@ -243,6 +262,10 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             return workspace
 
         return populate
+
+    @classmethod
+    def make_seeded_random_loader_columns(cls):
+        return TestingDataSet.columns | ShouldGetSkipped.columns
 
     def test_progress_hooks(self):
         publisher = TestingProgressPublisher()
@@ -261,6 +284,12 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             tuple(self.trading_days[[-5, -1]]),
         ]
 
+        # First chunk should get prepopulated term in initial workspace.
+        self.assertLess(expected_chunks[0][1], self.PREPOPULATED_TERM_CUTOFF)
+
+        # Second chunk should have to compute PREPOPULATED_TERM explicitly.
+        self.assertLess(expected_chunks[0][1], self.PREPOPULATED_TERM_CUTOFF)
+
         self.run_chunked_pipeline(
             pipeline=pipeline,
             start_date=start_date,
@@ -269,21 +298,10 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             hooks=hooks,
         )
 
-        expected_loads = set(TrivialFactor.inputs) | {TestingDataSet.bool_col}
-        expected_computes = {
-            TestingDataSet.bool_col.latest,
-            TrivialFactor(),
-            TrivialFactor().rank(),
-            TrivialFactor().rank().zscore(),
-            Everything(),  # Default input for .rank().
-        }
-
         self.verify_trace(
             publisher.trace,
             pipeline_start_date=start_date,
             pipeline_end_date=end_date,
-            expected_loads=expected_loads,
-            expected_computes=expected_computes,
             expected_chunks=expected_chunks,
         )
 
@@ -291,8 +309,6 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
                      trace,
                      pipeline_start_date,
                      pipeline_end_date,
-                     expected_loads,
-                     expected_computes,
                      expected_chunks):
         # Percent complete should be monotonically increasing through the whole
         # execution.
@@ -302,21 +318,17 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
                 before.percent_complete,
             )
 
-        # First publish should contain precomputed terms from first chunk.
+        # First publish should come from the start of the first chunk, with no
+        # work yet.
         first = trace[0]
         expected_first = TestingProgressPublisher.TraceState(
-            state='loading',
-            percent_complete=instance_of(float),
+            state='init',
+            percent_complete=0.0,
             execution_bounds=(pipeline_start_date, pipeline_end_date),
             current_chunk_bounds=expected_chunks[0],
-            current_work=instance_of(list)
+            current_work=None,
         )
         self.assertEqual(first, expected_first)
-        self.assertGreater(first.percent_complete, 0.0)
-        self.assertEqual(
-            set(first.current_work),
-            {AssetExists(), PREPOPULATED_TERM},
-        )
 
         # Last publish should have a state of success and be 100% complete.
         last = trace[-1]
@@ -339,10 +351,7 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             self.assertIsInstance(update.current_work, list)
             if update.state == 'loading':
                 for term in update.current_work:
-                    self.assertIsInstance(
-                        term,
-                        (LoadableTerm, AssetExists, PrepopulatedFactor),
-                    )
+                    self.assertIsInstance(term, (LoadableTerm, AssetExists))
             elif update.state == 'computing':
                 for term in update.current_work:
                     self.assertIsInstance(term, ComputableTerm)
@@ -364,7 +373,10 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
                 chunk_stop,
             )
             end_progress = chunk_trace[-1].percent_complete
-            assert_almost_equal(end_progress, expected_end_progress)
+            assert_almost_equal(
+                end_progress,
+                expected_end_progress,
+            )
 
         self.assertEqual(all_chunks, expected_chunks)
 
@@ -412,7 +424,7 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         # +1 to be inclusive of end dates
         total_days = (pipeline_end - pipeline_start).days + 1
         days_complete = (chunk_end - pipeline_start).days + 1
-        return (100.0 * days_complete) / total_days
+        return round((100.0 * days_complete) / total_days, 3)
 
 
 class TermReprTestCase(ZiplineTestCase):

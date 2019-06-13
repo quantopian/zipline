@@ -23,6 +23,7 @@ from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.utils.memoize import classlazyval
 from zipline.pipeline import SimplePipelineEngine
 from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.domain import GENERIC, US_EQUITIES
 from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
@@ -1755,6 +1756,7 @@ class WithSeededRandomPipelineEngine(WithTradingSessions, WithAssetFinder):
             cls.SEEDED_RANDOM_PIPELINE_SEED,
             cls.trading_days,
             cls._sids,
+            columns=cls.make_seeded_random_loader_columns(),
         )
         cls.seeded_random_engine = SimplePipelineEngine(
             get_loader=lambda column: loader,
@@ -1773,6 +1775,10 @@ class WithSeededRandomPipelineEngine(WithTradingSessions, WithAssetFinder):
     @classmethod
     def make_seeded_random_populate_initial_workspace(cls):
         return None
+
+    @classmethod
+    def make_seeded_random_loader_columns(cls):
+        return TestingDataSet.columns
 
     def raw_expected_values(self, column, start_date, end_date):
         """
