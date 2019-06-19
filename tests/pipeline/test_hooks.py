@@ -305,11 +305,38 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             expected_chunks=expected_chunks,
         )
 
+    def test_progress_hooks_empty_pipeline(self):
+        publisher = TestingProgressPublisher()
+        hooks = [ProgressHooks.with_static_publisher(publisher)]
+        pipeline = Pipeline({}, domain=US_EQUITIES)
+        start_date, end_date = self.trading_days[[-10, -1]]
+        expected_chunks = [
+            tuple(self.trading_days[[-10, -6]]),
+            tuple(self.trading_days[[-5, -1]]),
+        ]
+
+        self.run_chunked_pipeline(
+            pipeline=pipeline,
+            start_date=start_date,
+            end_date=end_date,
+            chunksize=5,
+            hooks=hooks,
+        )
+
+        self.verify_trace(
+            publisher.trace,
+            pipeline_start_date=start_date,
+            pipeline_end_date=end_date,
+            expected_chunks=expected_chunks,
+            empty=True,
+        )
+
     def verify_trace(self,
                      trace,
                      pipeline_start_date,
                      pipeline_end_date,
-                     expected_chunks):
+                     expected_chunks,
+                     empty=False):
         # Percent complete should be monotonically increasing through the whole
         # execution.
         for before, after in toolz.sliding_window(2, trace):
@@ -341,14 +368,24 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             # instance of a single ComputableTerm, because we only run
             # ComputableTerms one at a time, and a LoadableTerm will only be in
             # the graph if some ComputableTerm depends on it.
-            current_work=[instance_of(ComputableTerm)],
+            #
+            # The one exception to this rule is that, if we run a completely
+            # empty pipeline, the final work will be None.
+            current_work=None if empty else [instance_of(ComputableTerm)],
         )
         self.assertEqual(last, expected_last)
 
         # Remaining updates should all be loads or computes.
         middle = trace[1:-1]
         for update in middle:
-            self.assertIsInstance(update.current_work, list)
+            # For empty pipelines we never leave the 'init' state.
+            if empty:
+                self.assertEqual(update.state, 'init')
+                self.assertIs(update.current_work, None)
+                continue
+
+            if update.state in ('loading', 'computing'):
+                self.assertIsInstance(update.current_work, list)
             if update.state == 'loading':
                 for term in update.current_work:
                     self.assertIsInstance(term, (LoadableTerm, AssetExists))
