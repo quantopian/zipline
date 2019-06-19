@@ -169,8 +169,13 @@ class ProgressModel(object):
         # (start_date, end_date) of current chunk.
         self._current_chunk_bounds = None
 
-        # What % of overall progress is each term worth in the current chunk?
-        self._current_increment = None
+        # How much should we increment progress by after completing a term?
+        self._completed_term_increment = None
+
+        # How much should we increment progress by after completing a chunk?
+        # This is zero unless we compute a pipeline with no terms, in which
+        # case it will be the full chunk percentage.
+        self._completed_chunk_increment = None
 
         # Terms currently being computed.
         self._current_work = None
@@ -218,24 +223,33 @@ class ProgressModel(object):
         chunk_percent = float(self._current_chunk_size) / self._total_days
 
         # How much of that is associated with each completed term?
-        self._current_increment = chunk_percent / len(terms)
+        nterms = len(terms)
+        if nterms:
+            self._completed_term_increment = chunk_percent / len(terms)
+            self._completed_chunk_increment = 0.0
+        else:
+            # Special case. If we don't have any terms, increment the entire
+            # chunk's worth of progress when we finish the chunk.
+            self._completed_term_increment = 0.0
+            self._completed_chunk_increment = chunk_percent
 
     def finish_chunk(self, terms, start_date, end_date):
         self._days_completed += self._current_chunk_size
+        self._progress += self._completed_chunk_increment
 
     def start_load_terms(self, terms):
         self._state = 'loading'
         self._current_work = terms
 
     def finish_load_terms(self, terms):
-        self._increment_progress(nterms=len(terms))
+        self._finish_terms(nterms=len(terms))
 
     def start_compute_term(self, term):
         self._state = 'computing'
         self._current_work = [term]
 
     def finish_compute_term(self, term):
-        self._increment_progress(nterms=1)
+        self._finish_terms(nterms=1)
 
     def finish(self, success):
         self._end_time = time.time()
@@ -244,8 +258,8 @@ class ProgressModel(object):
         else:
             self._state = 'error'
 
-    def _increment_progress(self, nterms):
-        self._progress += nterms * self._current_increment
+    def _finish_terms(self, nterms):
+        self._progress += nterms * self._completed_term_increment
 
 
 try:
