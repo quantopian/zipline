@@ -99,17 +99,19 @@ def _normalize_array(data, missing_value):
     Returns
     -------
     coerced, view_kwargs : (np.ndarray, np.dtype)
+        The input ``data`` array coerced to the appropriate pipeline type.
+        This may return the original array or a view over the same data.
     """
     if isinstance(data, LabelArray):
         return data, {}
 
     data_dtype = data.dtype
     if data_dtype in BOOL_DTYPES:
-        return data.astype(uint8), {'dtype': dtype(bool_)}
+        return data.astype(uint8, copy=False), {'dtype': dtype(bool_)}
     elif data_dtype in FLOAT_DTYPES:
-        return data.astype(float64), {'dtype': dtype(float64)}
+        return data.astype(float64, copy=False), {'dtype': dtype(float64)}
     elif data_dtype in INT_DTYPES:
-        return data.astype(int64), {'dtype': dtype(int64)}
+        return data.astype(int64, copy=False), {'dtype': dtype(int64)}
     elif is_categorical(data_dtype):
         if not isinstance(missing_value, LabelArray.SUPPORTED_SCALAR_TYPES):
             raise TypeError(
@@ -119,7 +121,7 @@ def _normalize_array(data, missing_value):
         return LabelArray(data, missing_value), {}
     elif data_dtype.kind == 'M':
         try:
-            outarray = data.astype('datetime64[ns]').view('int64')
+            outarray = data.astype('datetime64[ns]', copy=False).view('int64')
             return outarray, {'dtype': datetime64ns_dtype}
         except OverflowError:
             raise ValueError(
@@ -184,7 +186,8 @@ class AdjustedArray(object):
     Parameters
     ----------
     data : np.ndarray
-        The baseline data values.
+        The baseline data values. This array may be mutated by
+        ``traverse(..., copy=False)`` calls.
     adjustments : dict[int -> list[Adjustment]]
         A dict mapping row indices to lists of adjustments to apply when we
         reach that row.
@@ -197,6 +200,7 @@ class AdjustedArray(object):
         '_view_kwargs',
         'adjustments',
         'missing_value',
+        '_invalidated',
         '__weakref__',
     )
 
@@ -205,6 +209,7 @@ class AdjustedArray(object):
 
         self.adjustments = adjustments
         self.missing_value = missing_value
+        self._invalidated = False
 
     def update_adjustments(self, adjustments, method):
         """
@@ -261,7 +266,8 @@ class AdjustedArray(object):
     def traverse(self,
                  window_length,
                  offset=0,
-                 perspective_offset=0):
+                 perspective_offset=0,
+                 copy=True):
         """
         Produce an iterator rolling windows rows over our data.
         Each emitted window will have `window_length` rows.
@@ -275,8 +281,19 @@ class AdjustedArray(object):
         perspective_offset : int, optional
             Number of rows past the end of the current window from which to
             "view" the underlying data.
+        copy : bool, optional
+            Copy the underlying data. If ``copy=False``, the adjusted array
+            will be invalidated and cannot be traversed again.
         """
-        data = self._data.copy()
+        if self._invalidated:
+            raise ValueError('cannot traverse invalidated AdjustedArray')
+
+        data = self._data
+        if copy:
+            data = data.copy()
+        else:
+            self._invalidated = True
+
         _check_window_params(data, window_length)
         return self._iterator_type(
             data,

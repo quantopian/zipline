@@ -532,7 +532,7 @@ class SimplePipelineEngine(PipelineEngine):
         return ret
 
     @staticmethod
-    def _inputs_for_term(term, workspace, graph, domain):
+    def _inputs_for_term(term, workspace, graph, domain, refcounts):
         """
         Compute inputs for the given term.
 
@@ -559,6 +559,12 @@ class SimplePipelineEngine(PipelineEngine):
                     adjusted_array.traverse(
                         window_length=term.window_length,
                         offset=offsets[term, input_],
+                        # If the refcount for the input is > 1, we will need
+                        # to traverse this array again so we must copy.
+                        # If the refcount for the input == 0, this is the last
+                        # traversal that will happen so we can invalidate
+                        # the AdjustedArray and mutate the data in place.
+                        copy=refcounts[input_] > 1,
                     )
                 )
         else:
@@ -690,7 +696,13 @@ class SimplePipelineEngine(PipelineEngine):
             else:
                 with hooks.computing_term(term):
                     workspace[term] = term._compute(
-                        self._inputs_for_term(term, workspace, graph, domain),
+                        self._inputs_for_term(
+                            term,
+                            workspace,
+                            graph,
+                            domain,
+                            refcounts,
+                        ),
                         mask_dates,
                         sids,
                         mask,

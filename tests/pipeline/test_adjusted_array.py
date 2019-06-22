@@ -34,6 +34,7 @@ from zipline.lib.adjustment import (
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.labelarray import LabelArray
 from zipline.testing import check_arrays
+from zipline.testing.predicates import assert_equal
 from zipline.utils.compat import unicode
 from zipline.utils.numpy_utils import (
     coerce_to_dtype,
@@ -498,6 +499,24 @@ def _gen_expectations(baseline,
 
 
 class AdjustedArrayTestCase(TestCase):
+    def test_traverse_invalidating(self):
+        data = arange(5 * 3, dtype='f8').reshape(5, 3)
+        original_data = data.copy()
+        adjustments = {2: [Float64Multiply(0, 4, 0, 2, 2.0)]}
+        adjusted_array = AdjustedArray(data, adjustments, float('nan'))
+
+        for _ in adjusted_array.traverse(1, copy=False):
+            pass
+
+        assert_equal(data, original_data * 2)
+
+        with self.assertRaises(ValueError) as e:
+            adjusted_array.traverse(1)
+
+        assert_equal(
+            str(e.exception),
+            'cannot traverse invalidated AdjustedArray',
+        )
 
     @parameterized.expand(
         chain(
