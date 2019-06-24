@@ -290,7 +290,7 @@ class AdjustedArray(object):
 
         data = self._data
         if copy:
-            data = data.copy()
+            data = data.copy(order='F')
         else:
             self._invalidated = True
 
