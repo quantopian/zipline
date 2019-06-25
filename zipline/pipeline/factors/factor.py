@@ -290,7 +290,9 @@ def function_application(func):
     if func not in NUMEXPR_MATH_FUNCS:
         raise ValueError("Unsupported mathematical function '%s'" % func)
 
-    @with_doc(func)
+    docstring = "A Factor that computes {}(x) on every input.".format(func)
+
+    @with_doc(docstring)
     @with_name(func)
     def mathfunc(self):
         if isinstance(self, NumericalExpression):
