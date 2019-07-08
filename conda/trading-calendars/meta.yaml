@@ -37,11 +37,6 @@ requirements:
     - pytz
     - toolz
 
-test:
-  imports:
-    - tests
-    - trading_calendars
-    - trading_calendars.utils
 
 about:
   home: https://github.com/quantopian/trading_calendars
