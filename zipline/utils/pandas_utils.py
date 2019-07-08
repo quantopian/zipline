@@ -13,7 +13,9 @@ pandas_version = StrictVersion(pd.__version__)
 
 
 def july_5th_holiday_observance(datetime_index):
-    return datetime_index[datetime_index.year != 2013]
+    return datetime_index[
+        (datetime_index.year != 2013) & (datetime_index.year != 2019)
+    ]
 
 
 def explode(df):

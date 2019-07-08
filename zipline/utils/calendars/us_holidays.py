@@ -90,7 +90,7 @@ MonTuesThursBeforeIndependenceDay = Holiday(
     days_of_week=(MONDAY, TUESDAY, THURSDAY),
     start_date=Timestamp("1995-01-01"),
 )
-FridayAfterIndependenceDayExcept2013 = Holiday(
+FridayAfterIndependenceDayExcept2013and2019 = Holiday(
     # When July 4th is a Thursday, the next day is a half day (except in 2013,
     # when, for no explicable reason, Wednesday was a half day instead).
     "Fridays after Independence Day that aren't in 2013",
