@@ -1,8 +1,8 @@
 {% set name = "trading-calendars" %}
-{% set version = "1.6.1" %}
+{% set version = "1.8.1" %}
 {% set file_ext = "tar.gz" %}
 {% set hash_type = "sha256" %}
-{% set hash_value = "1420def27cbbbbc8328349e499b0fbf5689f4b544f4b7ef53c9c2d3ebfab47ca" %}
+{% set hash_value = "a4292987fadecf5c494012445f16b94c1601e57755f5270ee2ff5addcff9fc0e" %}
 
 package:
   name: '{{ name|lower }}'
@@ -37,11 +37,6 @@ requirements:
     - pytz
     - toolz
 
-test:
-  imports:
-    - tests
-    - trading_calendars
-    - trading_calendars.utils
 
 about:
   home: https://github.com/quantopian/trading_calendars
