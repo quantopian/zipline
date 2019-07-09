@@ -211,6 +211,18 @@ class AdjustedArray(object):
         self.missing_value = missing_value
         self._invalidated = False
 
+    def copy(self):
+        """Copy an adjusted array, deep-copying the ``data`` array.
+        """
+        if self._invalidated:
+            raise ValueError('cannot copy invalidated AdjustedArray')
+
+        return type(self)(
+            self.data.copy(order='F'),
+            self.adjustments,
+            self.missing_value,
+        )
+
     def update_adjustments(self, adjustments, method):
         """
         Merge ``adjustments`` with existing adjustments, handling index
