@@ -26,10 +26,7 @@ testfixtures==4.1.2
 
 # Linting
 
-flake8==3.6.0
-mccabe==0.6.0
-pycodestyle==2.4.0
-pyflakes==2.0.0
+flake8==3.7.7
 configparser==3.5.0;python_version<"3.2"
 
 # Documentation Conversion
