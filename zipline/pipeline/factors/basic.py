@@ -356,7 +356,7 @@ class ExponentialWeightedMovingAverage(_ExponentialWeightedFactor):
 
     See Also
     --------
-    :func:`pandas.ewma`
+    :meth:`pandas.DataFrame.ewm`
     """
     def compute(self, today, assets, out, data, decay_rate):
         out[:] = average(
@@ -394,7 +394,7 @@ class ExponentialWeightedMovingStdDev(_ExponentialWeightedFactor):
 
     See Also
     --------
-    :func:`pandas.ewmstd`
+    :func:`pandas.DataFrame.ewm`
     """
 
     def compute(self, today, assets, out, data, decay_rate):
@@ -445,7 +445,7 @@ class AnnualizedVolatility(CustomFactor):
     the standard deviation of daily returns.
     https://en.wikipedia.org/wiki/Volatility_(finance)
 
-    **Default Inputs:** :data:`zipline.pipeline.factors.Returns(window_length=2)`  # noqa
+    **Default Inputs:** [Returns(window_length=2)]
 
     Parameters
     ----------

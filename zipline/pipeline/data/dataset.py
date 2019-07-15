@@ -113,27 +113,29 @@ class BoundColumn(LoadableTerm):
     """
     A column of data that's been concretely bound to a particular dataset.
 
-    Instances of this class are dynamically created upon access to attributes
-    of DataSets (for example, USEquityPricing.close is an instance of this
-    class).
-
     Attributes
     ----------
     dtype : numpy.dtype
         The dtype of data produced when this column is loaded.
-    latest : zipline.pipeline.data.Factor or zipline.pipeline.data.Filter
-        A Filter, Factor, or Classifier computing the most recently known value
-        of this column on each date.
-
-        Produces a Filter if self.dtype == ``np.bool_``.
-        Produces a Classifier if self.dtype == ``np.int64``
-        Otherwise produces a Factor.
+    latest : zipline.pipeline.LoadableTerm
+        A :class:`~zipline.pipeline.Filter`, :class:`~zipline.pipeline.Factor`,
+        or :class:`~zipline.pipeline.Classifier` computing the most recently
+        known value of this column on each date.
+        See :class:`zipline.pipeline.mixins.LatestMixin` for more details.
     dataset : zipline.pipeline.data.DataSet
         The dataset to which this column is bound.
     name : str
         The name of this column.
     metadata : dict
         Extra metadata associated with this column.
+
+    Notes
+    -----
+    Instances of this class are dynamically created upon access to attributes
+    of :class:`~zipline.pipeline.data.DataSet`. For example,
+    :attr:`~zipline.pipeline.data.EquityPricing.close` is an instance of this
+    class. Pipeline API users should never construct instances of this
+    directly.
     """
     mask = AssetExists()
     window_safe = True
@@ -328,9 +330,9 @@ class DataSetMeta(type):
 
         Returns
         -------
-        specialized : DataSetMeta
-            A new DataSet subclass with the same columns as ``self``, but
-            specialized to ``domain``.
+        specialized : type
+            A new :class:`~zipline.pipeline.data.DataSet` subclass with the
+            same columns as ``self``, but specialized to ``domain``.
         """
         # We're already the specialization to this domain, so just return self.
         if domain == self.domain:
@@ -424,22 +426,24 @@ class DataSet(with_metaclass(DataSetMeta, object)):
     """
     Base class for Pipeline datasets.
 
-    A DataSet has two parts:
+    A :class:`DataSet` is defined by two parts:
 
     1. A collection of :class:`~zipline.pipeline.data.Column` objects that
-       describe the attributes of the dataset.
+       describe the queryable attributes of the dataset.
 
     2. A :class:`~zipline.pipeline.domain.Domain` describing the assets and
-       calendar of the data represented by the DataSet.
+       calendar of the data represented by the :class:`DataSet`.
 
-    To create a new Pipeline dataset, define a subclass of DataSet and set one
-    or more Column objects as class-level attributes. Each column requires a
-    ``np.dtype`` that describes the type of data that should be produced by a
-    loader for the dataset. Integer columns must also provide a "missing value"
-    to be used when no value is available for a given asset/date combination.
+    To create a new Pipeline dataset, define a subclass of :class:`DataSet` and
+    set one or more :class:`Column` objects as class-level attributes. Each
+    column requires a ``np.dtype`` that describes the type of data that should
+    be produced by a loader for the dataset. Integer columns must also provide
+    a "missing value" to be used when no value is available for a given
+    asset/date combination.
 
-    By default, the domain of a dataset is the special singleton value GENERIC,
-    which means that they can be used in a Pipeline running on **any** domain.
+    By default, the domain of a dataset is the special singleton value,
+    :data:`~zipline.pipeline.domain.GENERIC`, which means that they can be used
+    in a Pipeline running on **any** domain.
 
     In some cases, it may be preferable to restrict a dataset to only allow
     support a single domain. For example, a DataSet may describe data from a
@@ -447,7 +451,7 @@ class DataSet(with_metaclass(DataSetMeta, object)):
     define a `domain` attribute at class scope.
 
     You can also define a domain-specific version of a generic DataSet by
-    calling its `specialize` method with the domain of interest.
+    calling its ``specialize`` method with the domain of interest.
 
     Examples
     --------
@@ -681,10 +685,9 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
     dimension.
 
     To work with a :class:`DataSetFamily` in a pipeline expression, one must
-    "fix" all of the extra dimensions. The
-    :meth:`~zipline.pipeline.data.dataset.DataSetFamily.slice` method is used
-    to create a dataset where all rows have the same values in the extra
-    dimensions. For example, given a :class:`DataSetFamily`:
+    choose a specific value for each of the extra dimensions using the
+    :meth:`~zipline.pipeline.data.DataSetFamily.slice` method.
+    For example, given a :class:`DataSetFamily`:
 
     .. code-block:: python
 
@@ -712,7 +715,8 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
     Here we see the implicit ``sid``, ``asof_date`` and ``timestamp`` columns
     as well as the extra dimensions columns.
 
-    This `:class:`DataSetFamily`can be converted to a regular ``DataSet`` with:
+    This :class:`DataSetFamily` can be converted to a regular :class:`DataSet`
+    with:
 
     .. code-block:: python
 

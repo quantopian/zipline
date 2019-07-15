@@ -58,7 +58,7 @@ class PipelineHooks(Interface):
 
         Parameters
         ----------
-        terms : list[zipline.pipeline.term.Term]
+        terms : list[zipline.pipeline.Term]
             List of terms, in execution order, that will be computed. This
             value may change between chunks if ``populate_initial_workspace``
             prepopulates different terms at different times.
@@ -74,7 +74,7 @@ class PipelineHooks(Interface):
 
         Parameters
         ----------
-        terms : list[zipline.pipeline.term.LoadableTerm]
+        terms : list[zipline.pipeline.LoadableTerm]
             Terms being loaded.
         """
 
@@ -84,6 +84,6 @@ class PipelineHooks(Interface):
 
         Parameters
         ----------
-        terms : zipline.pipeline.term.ComputableTerm
+        terms : zipline.pipeline.ComputableTerm
             Terms being computed.
         """

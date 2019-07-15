@@ -19,8 +19,8 @@ class Pipeline(object):
     compiled and executed by a PipelineEngine.
 
     A Pipeline has two important attributes: 'columns', a dictionary of named
-    :class:`~zipline.pipeline.term.Term` instances, and 'screen', a
-    :class:`~zipline.pipeline.filters.Filter` representing criteria for
+    :class:`~zipline.pipeline.Term` instances, and 'screen', a
+    :class:`~zipline.pipeline.Filter` representing criteria for
     including an asset in the results of a Pipeline.
 
     To compute a pipeline in the context of a TradingAlgorithm, users must call
@@ -33,7 +33,7 @@ class Pipeline(object):
     ----------
     columns : dict, optional
         Initial columns.
-    screen : zipline.pipeline.term.Filter, optional
+    screen : zipline.pipeline.Filter, optional
         Initial screen.
     """
     __slots__ = ('_columns', '_screen', '_domain', '__weakref__')
@@ -64,24 +64,43 @@ class Pipeline(object):
 
     @property
     def columns(self):
-        """
-        The columns registered with this pipeline.
+        """The output columns of this pipeline.
+
+        Returns
+        -------
+        columns : dict[str, zipline.pipeline.ComputableTerm]
+            Map from column name to expression computing that column's output.
         """
         return self._columns
 
     @property
     def screen(self):
         """
-        The screen applied to the rows of this pipeline.
+        The screen of this pipeline.
+
+        Returns
+        -------
+        screen : zipline.pipeline.Filter or None
+            Term defining the screen for this pipeline. If ``screen`` is a
+            filter, rows that do not pass the filter (i.e., rows for which the
+            filter computed ``False``) will be dropped from the output of this
+            pipeline before returning results.
+
+        Notes
+        -----
+        Setting a screen on a Pipeline does not change the values produced for
+        any rows: it only affects whether a given row is returned. Computing a
+        pipeline with a screen is logically equivalent to computing the
+        pipeline without the screen and then, as a post-processing-step,
+        filtering out any rows for which the screen computed ``False``.
         """
         return self._screen
 
     @expect_types(term=Term, name=str)
     def add(self, term, name, overwrite=False):
-        """
-        Add a column.
+        """Add a column.
 
-        The results of computing `term` will show up as a column in the
+        The results of computing ``term`` will show up as a column in the
         DataFrame produced by running this pipeline.
 
         Parameters
@@ -113,8 +132,7 @@ class Pipeline(object):
 
     @expect_types(name=str)
     def remove(self, name):
-        """
-        Remove a column.
+        """Remove a column.
 
         Parameters
         ----------
@@ -128,15 +146,14 @@ class Pipeline(object):
 
         Returns
         -------
-        removed : zipline.pipeline.term.Term
+        removed : zipline.pipeline.Term
             The removed term.
         """
         return self.columns.pop(name)
 
     @expect_types(screen=Filter, overwrite=(bool, int))
     def set_screen(self, screen, overwrite=False):
-        """
-        Set a screen on this Pipeline.
+        """Set a screen on this Pipeline.
 
         Parameters
         ----------
@@ -169,7 +186,7 @@ class Pipeline(object):
         ----------
         domain : zipline.pipeline.domain.Domain
             Domain on which the pipeline will be executed.
-        default_screen : zipline.pipeline.term.Term
+        default_screen : zipline.pipeline.Term
             Term to use as a screen if self.screen is None.
         all_dates : pd.DatetimeIndex
             A calendar of dates to use to calculate starts and ends for each
@@ -204,7 +221,7 @@ class Pipeline(object):
 
         Parameters
         ----------
-        default_screen : zipline.pipeline.term.Term
+        default_screen : zipline.pipeline.Term
             Term to use as a screen if self.screen is None.
 
         Returns
@@ -276,13 +293,13 @@ class Pipeline(object):
 
         Parameters
         ----------
-        default : zipline.pipeline.Domain
+        default : zipline.pipeline.domain.Domain
             Domain to use if no domain can be inferred from this pipeline by
             itself.
 
         Returns
         -------
-        domain : zipline.pipeline.Domain
+        domain : zipline.pipeline.domain.Domain
             The domain for the pipeline.
 
         Raises

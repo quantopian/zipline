@@ -228,7 +228,32 @@ class CustomTermMixin(object):
 
 class LatestMixin(SingleInputMixin):
     """
-    Mixin for behavior shared by Custom{Factor,Filter,Classifier}.
+    Common behavior for :attr:`zipline.pipeline.data.BoundColumn.latest`.
+
+    Given a :class:`~zipline.pipeline.data.DataSet` named ``MyData`` with a
+    column ``col`` of numeric dtype, the following expression:
+
+    .. code-block:: python
+
+       factor = MyData.col.latest
+
+    is equivalent to:
+
+    .. code-block:: python
+
+       class Latest(CustomFactor):
+           inputs = [MyData.col]
+           window_length = 1
+
+           def compute(self, today, assets, out, data):
+               out[:] = data[-1]
+
+       factor = Latest()
+
+    The behavior is the same for columns of boolean or string dtype, except the
+    resulting expression will be a :class:`~zipline.pipeline.CustomFilter` for
+    boolean columns, and the resulting object will be a
+    :class:`~zipline.pipeline.CustomClassifier` for string or integer columns.
     """
     window_length = 1
 
