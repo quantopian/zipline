@@ -9,7 +9,8 @@ from .dataset import Column, DataSet
 
 class EquityPricing(DataSet):
     """
-    Dataset representing daily trading prices and volumes.
+    :class:`~zipline.pipeline.data.DataSet` containing daily trading prices and
+    volumes.
     """
     open = Column(float64_dtype)
     high = Column(float64_dtype)

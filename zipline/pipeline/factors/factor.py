@@ -866,7 +866,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Returns
         -------
-        regressions : zipline.pipeline.factors.RollingLinearRegression
+        regressions : zipline.pipeline.Factor
             A new Factor that will compute linear regressions of `target`
             against the columns of `self`.
 
@@ -1054,7 +1054,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Returns
         -------
-        quartiles : zipline.pipeline.Classiifer
+        quartiles : zipline.pipeline.Classifier
             A classifier producing integer labels ranging from 0 to 3.
         """
         return self.quantiles(bins=4, mask=mask)
@@ -1078,7 +1078,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Returns
         -------
-        quintiles : zipline.pipeline.classifiers
+        quintiles : zipline.pipeline.Classifier
             A classifier producing integer labels ranging from 0 to 4.
         """
         return self.quantiles(bins=5, mask=mask)
