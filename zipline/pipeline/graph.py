@@ -449,7 +449,7 @@ class ExecutionPlan(TermGraph):
         See Also
         --------
         :meth:`zipline.pipeline.graph.ExecutionPlan.offset`
-        :meth:`zipline.pipeline.term.Term.dependencies`
+        :meth:`zipline.pipeline.Term.dependencies`
         """
         return {
             term: attrs['extra_rows']

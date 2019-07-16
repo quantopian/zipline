@@ -538,8 +538,6 @@ class Latest(LatestMixin, CustomClassifier):
     See Also
     --------
     zipline.pipeline.data.dataset.BoundColumn.latest
-    zipline.pipeline.factors.factor.Latest
-    zipline.pipeline.filters.filter.Latest
     """
     pass
 

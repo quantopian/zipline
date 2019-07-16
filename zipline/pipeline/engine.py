@@ -107,7 +107,7 @@ class PipelineEngine(with_metaclass(ABCMeta)):
 
             The ``result`` columns correspond to the entries of
             `pipeline.columns`, which should be a dictionary mapping strings to
-            instances of :class:`zipline.pipeline.term.Term`.
+            instances of :class:`zipline.pipeline.Term`.
 
             For each date between ``start_date`` and ``end_date``, ``result``
             will contain a row for each asset that passed `pipeline.screen`.
@@ -150,7 +150,7 @@ class PipelineEngine(with_metaclass(ABCMeta)):
 
             The ``result`` columns correspond to the entries of
             `pipeline.columns`, which should be a dictionary mapping strings to
-            instances of :class:`zipline.pipeline.term.Term`.
+            instances of :class:`zipline.pipeline.Term`.
 
             For each date between ``start_date`` and ``end_date``, ``result``
             will contain a row for each asset that passed `pipeline.screen`.
@@ -319,7 +319,7 @@ class SimplePipelineEngine(PipelineEngine):
 
             The ``result`` columns correspond to the entries of
             `pipeline.columns`, which should be a dictionary mapping strings to
-            instances of :class:`zipline.pipeline.term.Term`.
+            instances of :class:`zipline.pipeline.Term`.
 
             For each date between ``start_date`` and ``end_date``, ``result``
             will contain a row for each asset that passed `pipeline.screen`.
@@ -372,7 +372,7 @@ class SimplePipelineEngine(PipelineEngine):
 
             The ``result`` columns correspond to the entries of
             `pipeline.columns`, which should be a dictionary mapping strings to
-            instances of :class:`zipline.pipeline.term.Term`.
+            instances of :class:`zipline.pipeline.Term`.
 
             For each date between ``start_date`` and ``end_date``, ``result``
             will contain a row for each asset that passed `pipeline.screen`.

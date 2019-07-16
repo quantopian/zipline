@@ -59,7 +59,7 @@ class RollingPearson(_RollingCorrelation):
 
     Parameters
     ----------
-    base_factor : zipline.pipeline.factors.Factor
+    base_factor : zipline.pipeline.Factor
         The factor for which to compute correlations of each of its columns
         with `target`.
     target : zipline.pipeline.Term with a numeric dtype
@@ -105,7 +105,7 @@ class RollingSpearman(_RollingCorrelation):
 
     Parameters
     ----------
-    base_factor : zipline.pipeline.factors.Factor
+    base_factor : zipline.pipeline.Factor
         The factor for which to compute correlations of each of its columns
         with `target`.
     target : zipline.pipeline.Term with a numeric dtype
@@ -151,7 +151,7 @@ class RollingLinearRegression(CustomFactor, SingleInputMixin):
 
     Parameters
     ----------
-    dependent : zipline.pipeline.factors.Factor
+    dependent : zipline.pipeline.Factor
         The factor whose columns are the predicted/dependent variable of each
         regression with `independent`.
     independent : zipline.pipeline.slice.Slice or zipline.pipeline.Factor
@@ -400,7 +400,7 @@ class RollingLinearRegressionOfReturns(RollingLinearRegression):
       regression.
 
     For more help on factors with multiple outputs, see
-    :class:`zipline.pipeline.factors.CustomFactor`.
+    :class:`zipline.pipeline.CustomFactor`.
 
     Examples
     --------

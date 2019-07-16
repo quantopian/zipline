@@ -51,7 +51,35 @@ from .sentinels import NotSpecified
 
 class Term(with_metaclass(ABCMeta, object)):
     """
-    Base class for terms in a Pipeline API compute graph.
+    Base class for objects that can appear in the compute graph of a
+    :class:`zipline.pipeline.Pipeline`.
+
+    Notes
+    -----
+    Most Pipeline API users only interact with :class:`Term` via subclasses:
+
+    - :class:`~zipline.pipeline.data.BoundColumn`
+    - :class:`~zipline.pipeline.Factor`
+    - :class:`~zipline.pipeline.Filter`
+    - :class:`~zipline.pipeline.Classifier`
+
+    Instances of :class:`Term` are **memoized**. If you call a Term's
+    constructor with the same arguments twice, the same object will be returned
+    from both calls:
+
+    **Example:**
+
+    >>> from zipline.pipeline.data import EquityPricing
+    >>> from zipline.pipeline.factors import SimpleMovingAverage
+    >>> x = SimpleMovingAverage(inputs=[EquityPricing.close], window_length=5)
+    >>> y = SimpleMovingAverage(inputs=[EquityPricing.close], window_length=5)
+    >>> x is y
+    True
+
+    .. warning::
+
+       Memoization of terms means that it's generally unsafe to modify
+       attributes of a term after construction.
     """
     # These are NotSpecified because a subclass is required to provide them.
     dtype = NotSpecified
@@ -329,7 +357,7 @@ class Term(with_metaclass(ABCMeta, object)):
     @abstractproperty
     def inputs(self):
         """
-        A tuple of other Terms needed as direct inputs for this Term.
+        A tuple of other Terms needed as inputs for ``self``.
         """
         raise NotImplementedError('inputs')
 
@@ -343,8 +371,8 @@ class Term(with_metaclass(ABCMeta, object)):
     @abstractproperty
     def mask(self):
         """
-        A Filter representing asset/date pairs to include while
-        computing this Term. (True means include; False means exclude.)
+        A :class:`~zipline.pipeline.Filter` representing asset/date pairs to
+        while computing this Term. True means include; False means exclude.
         """
         raise NotImplementedError('mask')
 
@@ -729,7 +757,7 @@ class Slice(ComputableTerm):
 
     Parameters
     ----------
-    term : zipline.pipeline.term.Term
+    term : zipline.pipeline.Term
         The term from which to extract a column of data.
     asset : zipline.assets.Asset
         The asset corresponding to the column of `term` to be extracted.

@@ -148,7 +148,7 @@ class ProgressModel(object):
         Pair of (start_date, end_date) for the entire execution.
     current_chunk_bounds : (pd.Timestamp, pd.Timestamp)
         Pair of (start_date, end_date) for the currently executing chunk.
-    current_work : [zipline.pipeline.term.Term]
+    current_work : [zipline.pipeline.Term]
         List of terms currently being loaded or computed.
     """
 

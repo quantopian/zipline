@@ -286,7 +286,7 @@ def infer_domain(terms):
 
     Parameters
     ----------
-    terms : iterable[zipline.pipeline.term.Term]
+    terms : iterable[zipline.pipeline.Term]
 
     Returns
     -------

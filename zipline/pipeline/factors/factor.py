@@ -4,6 +4,7 @@ factor.py
 from operator import attrgetter
 from numbers import Number
 from math import ceil
+from textwrap import dedent
 
 from numpy import empty_like, inf, isnan, nan, where
 from scipy.stats import rankdata
@@ -62,6 +63,7 @@ from zipline.utils.numpy_utils import (
     coerce_to_dtype,
     float64_dtype,
 )
+from zipline.utils.sharedoc import templated_docstring
 
 
 _RANK_METHODS = frozenset(['average', 'min', 'max', 'dense', 'ordinal'])
@@ -89,13 +91,6 @@ def coerce_numbers_to_my_dtype(f):
             other = coerce_to_dtype(self.dtype, other)
         return f(self, other)
     return method
-
-
-def binop_return_type(op):
-    if is_comparison(op):
-        return NumExprFilter
-    else:
-        return NumExprFactor
 
 
 def binop_return_dtype(op, left, right):
@@ -138,6 +133,32 @@ def binop_return_dtype(op, left, right):
     return float64_dtype
 
 
+BINOP_DOCSTRING_TEMPLATE = """
+Construct a :class:`~zipline.pipeline.{rtype}` computing ``self {op} other``.
+
+Parameters
+----------
+other : zipline.pipeline.Factor, float
+    Right-hand side of the expression.
+
+Returns
+-------
+{ret}
+"""
+
+BINOP_RETURN_FILTER = """\
+filter : zipline.pipeline.Filter
+    Filter computing ``self {op} other`` with the outputs of ``self`` and
+    ``other``.
+"""
+
+BINOP_RETURN_FACTOR = """\
+factor : zipline.pipeline.Factor
+    Factor computing ``self {op} other`` with outputs of ``self`` and
+    ``other``.
+"""
+
+
 def binary_operator(op):
     """
     Factory function for making binary operator methods on a Factor subclass.
@@ -150,14 +171,30 @@ def binary_operator(op):
     # NumericalExpression operator.
     commuted_method_getter = attrgetter(method_name_for_op(op, commute=True))
 
-    @with_doc("Binary Operator: '%s'" % op)
+    is_compare = is_comparison(op)
+
+    if is_compare:
+        ret_doc = BINOP_RETURN_FILTER.format(op=op)
+        rtype = 'Filter'
+    else:
+        ret_doc = BINOP_RETURN_FACTOR.format(op=op)
+        rtype = 'Factor'
+
+    docstring = BINOP_DOCSTRING_TEMPLATE.format(
+        op=op,
+        ret=ret_doc,
+        rtype=rtype,
+    )
+
+    @with_doc(docstring)
     @with_name(method_name_for_op(op))
     @coerce_numbers_to_my_dtype
     def binary_operator(self, other):
         # This can't be hoisted up a scope because the types returned by
         # binop_return_type aren't defined when the top-level function is
         # invoked in the class body of Factor.
-        return_type = binop_return_type(op)
+        return_type = NumExprFilter if is_compare else NumExprFactor
+
         if isinstance(self, NumExprFactor):
             self_expr, other_expr, new_inputs = self.build_binary_op(
                 op, other,
@@ -290,7 +327,15 @@ def function_application(func):
     if func not in NUMEXPR_MATH_FUNCS:
         raise ValueError("Unsupported mathematical function '%s'" % func)
 
-    docstring = "A Factor that computes {}(x) on every input.".format(func)
+    docstring = dedent(
+        """\
+        Construct a Factor that computes ``{}()`` on each output of ``self``.
+
+        Returns
+        -------
+        factor : zipline.pipeline.Factor
+        """.format(func)
+    )
 
     @with_doc(docstring)
     @with_name(func)
@@ -329,6 +374,19 @@ float64_only = restrict_to_dtype(
 )
 
 
+CORRELATION_METHOD_NOTE = dedent(
+    """\
+    This method can only be called on expressions which are deemed safe for use
+    as inputs to windowed :class:`~zipline.pipeline.Factor` objects. Examples
+    of such expressions include This includes
+    :class:`~zipline.pipeline.data.BoundColumn`
+    :class:`~zipline.pipeline.factors.Returns` and any factors created from
+    :meth:`~zipline.pipeline.Factor.rank` or
+    :meth:`~zipline.pipeline.Factor.zscore`.
+    """
+)
+
+
 class Factor(RestrictedDTypeMixin, ComputableTerm):
     """
     Pipeline API expression producing a numerical or date-valued output.
@@ -338,8 +396,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
     Factors can be combined, both with other Factors and with scalar values,
     via any of the builtin mathematical operators (``+``, ``-``, ``*``, etc).
+
     This makes it easy to write complex expressions that combine multiple
-    Factors.  For example, constructing a Factor that computes the average of
+    Factors. For example, constructing a Factor that computes the average of
     two other Factors is simply::
 
         >>> f1 = SomeFactor(...)  # doctest: +SKIP
@@ -350,11 +409,12 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
     via comparison operators: (``<``, ``<=``, ``!=``, ``eq``, ``>``, ``>=``).
 
     There are many natural operators defined on Factors besides the basic
-    numerical operators. These include methods identifying missing or
-    extreme-valued outputs (isnull, notnull, isnan, notnan), methods for
-    normalizing outputs (rank, demean, zscore), and methods for constructing
-    Filters based on rank-order properties of results (top, bottom,
-    percentile_between).
+    numerical operators. These include methods for identifying missing or
+    extreme-valued outputs (:meth:`isnull`, :meth:`notnull`, :meth:`isnan`,
+    :meth:`notnan`), methods for normalizing outputs (:meth:`rank`,
+    :meth:`demean`, :meth:`zscore`), and methods for constructing Filters based
+    on rank-order properties of results (:meth:`top`, :meth:`bottom`,
+    :meth:`percentile_between`).
     """
     ALLOWED_DTYPES = FACTOR_DTYPES  # Used by RestrictedDTypeMixin
 
@@ -574,7 +634,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Examples
         --------
-        See :meth:`~zipline.pipeline.factors.Factor.demean` for an in-depth
+        See :meth:`~zipline.pipeline.Factor.demean` for an in-depth
         example of the semantics for ``mask`` and ``groupby``.
 
         See Also
@@ -619,7 +679,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Returns
         -------
-        ranks : zipline.pipeline.factors.Rank
+        ranks : zipline.pipeline.Factor
             A new factor that will compute the ranking of the data produced by
             `self`.
 
@@ -635,7 +695,6 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         See Also
         --------
         :func:`scipy.stats.rankdata`
-        :class:`zipline.pipeline.factors.factor.Rank`
         """
 
         if groupby is NotSpecified:
@@ -655,18 +714,15 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
     @expect_types(
         target=Term, correlation_length=int, mask=(Filter, NotSpecifiedType),
     )
+    @templated_docstring(CORRELATION_METHOD_NOTE=CORRELATION_METHOD_NOTE)
     def pearsonr(self, target, correlation_length, mask=NotSpecified):
         """
         Construct a new Factor that computes rolling pearson correlation
-        coefficients between `target` and the columns of `self`.
-
-        This method can only be called on factors which are deemed safe for use
-        as inputs to other factors. This includes `Returns` and any factors
-        created from `Factor.rank` or `Factor.zscore`.
+        coefficients between ``target`` and the columns of ``self``.
 
         Parameters
         ----------
-        target : zipline.pipeline.Term with a numeric dtype
+        target : zipline.pipeline.Term
             The term used to compute correlations against each column of data
             produced by `self`. This may be a Factor, a BoundColumn or a Slice.
             If `target` is two-dimensional, correlations are computed
@@ -680,9 +736,13 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Returns
         -------
-        correlations : zipline.pipeline.factors.RollingPearson
-            A new Factor that will compute correlations between `target` and
-            the columns of `self`.
+        correlations : zipline.pipeline.Factor
+            A new Factor that will compute correlations between ``target`` and
+            the columns of ``self``.
+
+        Notes
+        -----
+        {CORRELATION_METHOD_NOTE}
 
         Examples
         --------
@@ -720,18 +780,15 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
     @expect_types(
         target=Term, correlation_length=int, mask=(Filter, NotSpecifiedType),
     )
+    @templated_docstring(CORRELATION_METHOD_NOTE=CORRELATION_METHOD_NOTE)
     def spearmanr(self, target, correlation_length, mask=NotSpecified):
         """
         Construct a new Factor that computes rolling spearman rank correlation
-        coefficients between `target` and the columns of `self`.
-
-        This method can only be called on factors which are deemed safe for use
-        as inputs to other factors. This includes `Returns` and any factors
-        created from `Factor.rank` or `Factor.zscore`.
+        coefficients between ``target`` and the columns of ``self``.
 
         Parameters
         ----------
-        target : zipline.pipeline.Term with a numeric dtype
+        target : zipline.pipeline.Term
             The term used to compute correlations against each column of data
             produced by `self`. This may be a Factor, a BoundColumn or a Slice.
             If `target` is two-dimensional, correlations are computed
@@ -745,9 +802,13 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Returns
         -------
-        correlations : zipline.pipeline.factors.RollingSpearman
-            A new Factor that will compute correlations between `target` and
-            the columns of `self`.
+        correlations : zipline.pipeline.Factor
+            A new Factor that will compute correlations between ``target`` and
+            the columns of ``self``.
+
+        Notes
+        -----
+        {CORRELATION_METHOD_NOTE}
 
         Examples
         --------
@@ -771,7 +832,6 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         See Also
         --------
         :func:`scipy.stats.spearmanr`
-        :class:`zipline.pipeline.factors.RollingSpearmanOfReturns`
         :meth:`Factor.pearsonr`
         """
         from .statistical import RollingSpearman
@@ -785,18 +845,15 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
     @expect_types(
         target=Term, regression_length=int, mask=(Filter, NotSpecifiedType),
     )
+    @templated_docstring(CORRELATION_METHOD_NOTE=CORRELATION_METHOD_NOTE)
     def linear_regression(self, target, regression_length, mask=NotSpecified):
         """
         Construct a new Factor that performs an ordinary least-squares
         regression predicting the columns of `self` from `target`.
 
-        This method can only be called on factors which are deemed safe for use
-        as inputs to other factors. This includes `Returns` and any factors
-        created from `Factor.rank` or `Factor.zscore`.
-
         Parameters
         ----------
-        target : zipline.pipeline.Term with a numeric dtype
+        target : zipline.pipeline.Term
             The term to use as the predictor/independent variable in each
             regression. This may be a Factor, a BoundColumn or a Slice. If
             `target` is two-dimensional, regressions are computed asset-wise.
@@ -809,9 +866,13 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Returns
         -------
-        regressions : zipline.pipeline.factors.RollingLinearRegression
+        regressions : zipline.pipeline.Factor
             A new Factor that will compute linear regressions of `target`
             against the columns of `self`.
+
+        Notes
+        -----
+        {CORRELATION_METHOD_NOTE}
 
         Examples
         --------
@@ -834,7 +895,6 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         See Also
         --------
         :func:`scipy.stats.linregress`
-        :class:`zipline.pipeline.factors.RollingLinearRegressionOfReturns`
         """
         from .statistical import RollingLinearRegression
         return RollingLinearRegression(
@@ -954,7 +1014,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         Construct a Classifier computing quantiles of the output of ``self``.
 
         Every non-NaN data point the output is labelled with an integer value
-        from 0 to (bins - 1).  NaNs are labelled with -1.
+        from 0 to (bins - 1). NaNs are labelled with -1.
 
         If ``mask`` is supplied, ignore data points in locations for which
         ``mask`` produces False, and emit a label of -1 at those locations.
@@ -968,8 +1028,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Returns
         -------
-        quantiles : zipline.pipeline.classifiers.Quantiles
-            A Classifier producing integer labels ranging from 0 to (bins - 1).
+        quantiles : zipline.pipeline.Classifier
+            A classifier producing integer labels ranging from 0 to (bins - 1).
         """
         if mask is NotSpecified:
             mask = self.mask
@@ -994,8 +1054,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Returns
         -------
-        quartiles : zipline.pipeline.classifiers.Quantiles
-            A Classifier producing integer labels ranging from 0 to 3.
+        quartiles : zipline.pipeline.Classifier
+            A classifier producing integer labels ranging from 0 to 3.
         """
         return self.quantiles(bins=4, mask=mask)
 
@@ -1018,8 +1078,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Returns
         -------
-        quintiles : zipline.pipeline.classifiers.Quantiles
-            A Classifier producing integer labels ranging from 0 to 4.
+        quintiles : zipline.pipeline.Classifier
+            A classifier producing integer labels ranging from 0 to 4.
         """
         return self.quantiles(bins=5, mask=mask)
 
@@ -1042,8 +1102,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Returns
         -------
-        deciles : zipline.pipeline.classifiers.Quantiles
-            A Classifier producing integer labels ranging from 0 to 9.
+        deciles : zipline.pipeline.Classifier
+            A classifier producing integer labels ranging from 0 to 9.
         """
         return self.quantiles(bins=10, mask=mask)
 
@@ -1067,7 +1127,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Returns
         -------
-        filter : zipline.pipeline.filters.Filter
+        filter : zipline.pipeline.Filter
         """
         if N == 1:
             # Special case: if N == 1, we can avoid doing a full sort on every
@@ -1080,7 +1140,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         Construct a Filter matching the bottom N asset values of self each day.
 
         If ``groupby`` is supplied, returns a Filter matching the bottom N
-        asset values for each group.
+        asset values **for each group** defined by ``groupby``.
 
         Parameters
         ----------
@@ -1107,9 +1167,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
                            max_percentile,
                            mask=NotSpecified):
         """
-        Construct a new Filter representing entries from the output of this
-        Factor that fall within the percentile range defined by min_percentile
-        and max_percentile.
+        Construct a Filter matching values of self that fall within the range
+        defined by ``min_percentile`` and ``max_percentile``.
 
         Parameters
         ----------
@@ -1126,12 +1185,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Returns
         -------
-        out : zipline.pipeline.filters.PercentileFilter
+        out : zipline.pipeline.Filter
             A new filter that will compute the specified percentile-range mask.
-
-        See Also
-        --------
-        zipline.pipeline.filters.filter.PercentileFilter
         """
         return PercentileFilter(
             self,
@@ -1149,7 +1204,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Returns
         -------
-        filter : zipline.pipeline.filters.Filter
+        filter : zipline.pipeline.Filter
         """
         if self.dtype == float64_dtype:
             # Using isnan is more efficient when possible because we can fold
@@ -1174,7 +1229,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Returns
         -------
-        nanfilter : zipline.pipeline.filters.Filter
+        nanfilter : zipline.pipeline.Filter
         """
         return self != self
 
@@ -1185,7 +1240,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Returns
         -------
-        nanfilter : zipline.pipeline.filters.Filter
+        nanfilter : zipline.pipeline.Filter
         """
         return ~self.isnan()
 
@@ -1258,9 +1313,9 @@ class GroupedRowTransform(Factor):
 
     See Also
     --------
-    zipline.pipeline.factors.Factor.zscore
-    zipline.pipeline.factors.Factor.demean
-    zipline.pipeline.factors.Factor.rank
+    zipline.pipeline.Factor.zscore
+    zipline.pipeline.Factor.demean
+    zipline.pipeline.Factor.rank
     """
     window_length = 0
 
@@ -1338,7 +1393,7 @@ class Rank(SingleInputMixin, Factor):
 
     Parameters
     ----------
-    factor : zipline.pipeline.factors.Factor
+    factor : zipline.pipeline.Factor
         The factor on which to compute ranks.
     method : str, {'average', 'min', 'max', 'dense', 'ordinal'}
         The method used to assign ranks to tied elements.  See
