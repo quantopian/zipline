@@ -398,7 +398,9 @@ class DataSetMeta(type):
         name = self.__name__
         bases = (self,)
         dict_ = {'domain': domain, IsSpecialization: True}
-        return type(name, bases, dict_)
+        out = type(name, bases, dict_)
+        out.__module__ = self.__module__
+        return out
 
     @property
     def columns(self):
