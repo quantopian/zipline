@@ -119,8 +119,9 @@ class SpecializeTestCase(zf.ZiplineTestCase):
             self.assertIs(specialized, cls.specialize(domain))
             self.assertIs(specialized, specialized.specialize(domain))
 
-            # Specializations should have the same name.
+            # Specializations should have the same name and module
             assert_equal(specialized.__name__, cls.__name__)
+            assert_equal(specialized.__module__, cls.__module__)
             self.assertIs(specialized.domain, domain)
 
             for attr in colnames:
