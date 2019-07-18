@@ -15,9 +15,9 @@ from numpy import (
     datetime64,
     empty,
     eye,
+    inf,
     log1p,
     nan,
-    inf,
     ones,
     rot90,
     where,
@@ -594,25 +594,28 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
     def test_percentchange(self, seed_value, window_length):
 
         pct_change = PercentChange(
-            inputs=(), 
-            window_length=window_length
+            inputs=(),
+            window_length=window_length,
         )
 
         today = datetime64(1, 'ns')
-        assets = arange(7)
+        assets = arange(8)
 
         seed(seed_value)  # Seed so we get deterministic results.
-        test_data = randn(window_length, 7)
-        test_data[0] = array([1, 2, 1, -1, -1, 0, nan])
-        test_data[-1] = array([2, 1, -2, 2, -2, 1, 1])
+        test_data = randn(window_length, 8)
+        test_data[0] = array([1, 2, 2, 1, -1, -1, 0, nan])
+        test_data[-1] = array([2, 1, 2, -2, 2, -2, 1, 1])
 
         # Calculate the expected percent change
-        expected = array([1, -0.5, -3, 3, -1, inf, nan])
+        expected = array([1, -0.5, 0, -3, 3, -1, inf, nan])
 
-        out = empty((7,), dtype=float)
+        out = empty((8,), dtype=float)
         pct_change.compute(today, assets, out, test_data)
 
         check_allclose(expected, out)
+
+        with self.assertRaises(ValueError):
+            PercentChange(inputs=(), window_length=1)
 
     def gen_ranking_cases():
         seeds = range(int(1e4), int(1e5), int(1e4))

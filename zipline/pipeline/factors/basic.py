@@ -56,10 +56,11 @@ class Returns(CustomFactor):
 
 class PercentChange(CustomFactor):
     """
-    Calculates the percent change in the input value over the given window_length.
-    Note: Uses the formula "new - old / abs(old)" to handle negative input values
+    Calculates the percent change over the given window_length.
+    Note: Uses formula "new - old / abs(old)" for negative input values
 
     **Default Inputs:** None
+    **Default Window Length:** None
     """
     window_safe = True
 
@@ -67,8 +68,9 @@ class PercentChange(CustomFactor):
         super(PercentChange, self)._validate()
         if self.window_length < 2:
             raise ValueError(
-                "'PercentChange' expected a window length of at least 2, but was "
-                "given {window_length}. For daily percent change, use a window "
+                "'PercentChange' expected a window length"
+                "of at least 2, but was given {window_length}. "
+                "For daily percent change, use a window "
                 "length of 2.".format(window_length=self.window_length)
             )
 
