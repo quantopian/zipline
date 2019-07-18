@@ -17,6 +17,7 @@ from numpy import (
     eye,
     log1p,
     nan,
+    inf,
     ones,
     rot90,
     where,
@@ -35,6 +36,7 @@ from zipline.pipeline.factors import (
     CustomFactor,
     DailyReturns,
     Returns,
+    PercentChange,
 )
 from zipline.pipeline.factors.factor import winsorize as zp_winsorize
 from zipline.testing import (
@@ -572,7 +574,6 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         today = datetime64(1, 'ns')
         assets = arange(3)
-        out = empty((3,), dtype=float)
 
         seed(seed_value)  # Seed so we get deterministic results.
         test_data = abs(randn(window_length, 3))
@@ -582,6 +583,34 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         out = empty((3,), dtype=float)
         returns.compute(today, assets, out, test_data)
+
+        check_allclose(expected, out)
+
+    @parameterized.expand([
+        (100, 15),
+        (101, 4),
+        (102, 100),
+        ])
+    def test_percentchange(self, seed_value, window_length):
+
+        pct_change = PercentChange(
+            inputs=(), 
+            window_length=window_length
+        )
+
+        today = datetime64(1, 'ns')
+        assets = arange(7)
+
+        seed(seed_value)  # Seed so we get deterministic results.
+        test_data = randn(window_length, 7)
+        test_data[0] = array([1, 2, 1, -1, -1, 0, nan])
+        test_data[-1] = array([2, 1, -2, 2, -2, 1, 1])
+
+        # Calculate the expected percent change
+        expected = array([1, -0.5, -3, 3, -1, inf, nan])
+
+        out = empty((7,), dtype=float)
+        pct_change.compute(today, assets, out, test_data)
 
         check_allclose(expected, out)
 

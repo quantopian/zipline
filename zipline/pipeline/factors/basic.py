@@ -54,6 +54,28 @@ class Returns(CustomFactor):
         out[:] = (close[-1] - close[0]) / close[0]
 
 
+class PercentChange(CustomFactor):
+    """
+    Calculates the percent change in the input value over the given window_length.
+    Note: Uses the formula "new - old / abs(old)" to handle negative input values
+
+    **Default Inputs:** None
+    """
+    window_safe = True
+
+    def _validate(self):
+        super(PercentChange, self)._validate()
+        if self.window_length < 2:
+            raise ValueError(
+                "'PercentChange' expected a window length of at least 2, but was "
+                "given {window_length}. For daily percent change, use a window "
+                "length of 2.".format(window_length=self.window_length)
+            )
+
+    def compute(self, today, assets, out, values):
+        out[:] = (values[-1] - values[0]) / abs(values[0])
+
+
 class DailyReturns(Returns):
     """
     Calculates daily percent change in close price.
