@@ -602,9 +602,10 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         assets = arange(8)
 
         seed(seed_value)  # Seed so we get deterministic results.
-        test_data = randn(window_length, 8)
-        test_data[0] = array([1, 2, 2, 1, -1, -1, 0, nan])
-        test_data[-1] = array([2, 1, 2, -2, 2, -2, 1, 1])
+        middle_rows = randn(window_length - 2, 8)
+        first_row = array([1, 2, 2, 1, -1, -1, 0, nan])
+        end_row = array([2, 1, 2, -2, 2, -2, 1, 1])
+        test_data = np.vstack([first_row, middle_rows, end_row])
 
         # Calculate the expected percent change
         expected = array([1, -0.5, 0, -3, 3, -1, inf, nan])
@@ -618,7 +619,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             PercentChange(inputs=(), window_length=2)
 
         with self.assertRaises(ValueError):
-            PercentChange(inputs=[EquityPricing.close, ], window_length=1)
+            PercentChange(inputs=[EquityPricing.close], window_length=1)
 
     def gen_ranking_cases():
         seeds = range(int(1e4), int(1e5), int(1e4))

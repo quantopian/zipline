@@ -57,10 +57,14 @@ class Returns(CustomFactor):
 class PercentChange(SingleInputMixin, CustomFactor):
     """
     Calculates the percent change over the given window_length.
-    Note: Uses formula "new - old / abs(old)" for negative input values
 
     **Default Inputs:** None
+
     **Default Window Length:** None
+
+    Notes
+    -----
+    Percent change is calculated as (new - old) / abs(old).
     """
     window_safe = True
 
