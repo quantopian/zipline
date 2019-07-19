@@ -31,7 +31,7 @@ from zipline.lib.labelarray import LabelArray
 from zipline.lib.rank import masked_rankdata_2d
 from zipline.lib.normalize import naive_grouped_rowwise_apply as grouped_apply
 from zipline.pipeline import Classifier, Factor, Filter, Pipeline
-from zipline.pipeline.data import DataSet, Column
+from zipline.pipeline.data import DataSet, Column, EquityPricing
 from zipline.pipeline.factors import (
     CustomFactor,
     DailyReturns,
@@ -594,7 +594,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
     def test_percentchange(self, seed_value, window_length):
 
         pct_change = PercentChange(
-            inputs=(),
+            inputs=[EquityPricing.close, ],
             window_length=window_length,
         )
 
@@ -615,7 +615,10 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         check_allclose(expected, out)
 
         with self.assertRaises(ValueError):
-            PercentChange(inputs=(), window_length=1)
+            PercentChange(inputs=(), window_length=2)
+
+        with self.assertRaises(ValueError):
+            PercentChange(inputs=[EquityPricing.close, ], window_length=1)
 
     def gen_ranking_cases():
         seeds = range(int(1e4), int(1e5), int(1e4))

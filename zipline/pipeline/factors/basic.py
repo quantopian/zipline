@@ -54,7 +54,7 @@ class Returns(CustomFactor):
         out[:] = (close[-1] - close[0]) / close[0]
 
 
-class PercentChange(CustomFactor):
+class PercentChange(SingleInputMixin, CustomFactor):
     """
     Calculates the percent change over the given window_length.
     Note: Uses formula "new - old / abs(old)" for negative input values
