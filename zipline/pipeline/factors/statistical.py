@@ -10,7 +10,7 @@ from zipline.assets import Asset
 from zipline.errors import IncompatibleTerms
 from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.filters import SingleAsset
-from zipline.pipeline.mixins import SingleInputMixin, StandardOutputs
+from zipline.pipeline.mixins import StandardOutputs
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import AssetExists
 from zipline.utils.input_validation import (
@@ -31,7 +31,7 @@ from .basic import Returns
 ALLOWED_DTYPES = (float64_dtype, int64_dtype)
 
 
-class _RollingCorrelation(CustomFactor, SingleInputMixin):
+class _RollingCorrelation(CustomFactor):
 
     @expect_dtypes(base_factor=ALLOWED_DTYPES, target=ALLOWED_DTYPES)
     @expect_bounded(correlation_length=(2, None))
@@ -143,7 +143,7 @@ class RollingSpearman(_RollingCorrelation):
             out[i] = spearmanr(base_data[:, i], target_data[:, i])[0]
 
 
-class RollingLinearRegression(CustomFactor, SingleInputMixin):
+class RollingLinearRegression(CustomFactor):
     """
     A Factor that performs an ordinary least-squares regression predicting the
     columns of a given Factor from either the columns of another

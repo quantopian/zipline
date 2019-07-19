@@ -40,7 +40,7 @@ from .basic import (  # noqa reexport
 )
 
 
-class RSI(CustomFactor, SingleInputMixin):
+class RSI(SingleInputMixin, CustomFactor):
     """
     Relative Strength Index
 

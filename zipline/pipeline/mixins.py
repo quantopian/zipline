@@ -1,5 +1,8 @@
 """
 Mixins classes for use with Filters and Factors.
+
+The mixin classes inherit from Term to ensure they appear before
+Term in the MRO of any class using the mixin
 """
 from textwrap import dedent
 
@@ -34,7 +37,7 @@ from .sentinels import NotSpecified
 from .term import Term
 
 
-class PositiveWindowLengthMixin(object):
+class PositiveWindowLengthMixin(Term):
     """
     Validation mixin enforcing that a Term gets a positive WindowLength
     """
@@ -44,7 +47,7 @@ class PositiveWindowLengthMixin(object):
             raise WindowLengthNotPositive(window_length=self.window_length)
 
 
-class SingleInputMixin(object):
+class SingleInputMixin(Term):
     """
     Validation mixin enforcing that a Term gets a length-1 inputs list.
     """
@@ -61,7 +64,7 @@ class SingleInputMixin(object):
             )
 
 
-class StandardOutputs(object):
+class StandardOutputs(Term):
     """
     Validation mixin enforcing that a Term cannot produce non-standard outputs.
     """
@@ -77,7 +80,7 @@ class StandardOutputs(object):
             )
 
 
-class RestrictedDTypeMixin(object):
+class RestrictedDTypeMixin(Term):
     """
     Validation mixin enforcing that a term has a specific dtype.
     """
@@ -97,7 +100,7 @@ class RestrictedDTypeMixin(object):
             )
 
 
-class CustomTermMixin(object):
+class CustomTermMixin(Term):
     """
     Mixin for user-defined rolling-window Terms.
 

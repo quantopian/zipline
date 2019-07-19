@@ -89,7 +89,7 @@ class DailyReturns(Returns):
     window_length = 2
 
 
-class SimpleMovingAverage(CustomFactor, SingleInputMixin):
+class SimpleMovingAverage(SingleInputMixin, CustomFactor):
     """
     Average Value of an arbitrary column
 
@@ -129,7 +129,7 @@ class VWAP(WeightedAverageValue):
     inputs = (EquityPricing.close, EquityPricing.volume)
 
 
-class MaxDrawdown(CustomFactor, SingleInputMixin):
+class MaxDrawdown(SingleInputMixin, CustomFactor):
     """
     Max Drawdown
 
@@ -434,7 +434,7 @@ class ExponentialWeightedMovingStdDev(_ExponentialWeightedFactor):
         out[:] = sqrt(variance * bias_correction)
 
 
-class LinearWeightedMovingAverage(CustomFactor, SingleInputMixin):
+class LinearWeightedMovingAverage(SingleInputMixin, CustomFactor):
     """
     Weighted Average Value of an arbitrary column
 
