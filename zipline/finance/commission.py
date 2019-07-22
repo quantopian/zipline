@@ -31,12 +31,15 @@ DEFAULT_MINIMUM_COST_PER_FUTURE_TRADE = 0.0  # $0 per trade
 
 
 class CommissionModel(with_metaclass(FinancialModelMeta)):
-    """
-    Abstract commission model interface.
+    """Abstract base class for commission models.
 
     Commission models are responsible for accepting order/transaction pairs and
     calculating how much commission should be charged to an algorithm's account
     on each transaction.
+
+    To implement a new commission model, create a subclass of
+    :class:`~zipline.finance.commission.CommissionModel` and implement
+    :meth:`calculate`.
     """
 
     # Asset types that are compatible with the given model.
@@ -71,7 +74,7 @@ class CommissionModel(with_metaclass(FinancialModelMeta)):
 
 
 class NoCommission(CommissionModel):
-    """A commission model where all transactions are free.
+    """Model commissions as free.
 
     Notes
     -----
@@ -146,9 +149,15 @@ class PerShare(EquityCommissionModel):
     Parameters
     ----------
     cost : float, optional
-        The amount of commissions paid per share traded.
+        The amount of commissions paid per share traded. Default is one tenth
+        of a cent per share.
     min_trade_cost : float, optional
-        The minimum amount of commissions paid per trade.
+        The minimum amount of commissions paid per trade. Default is no
+        minimum.
+
+    Notes
+    -----
+    This is the zipline's default commission model for equities.
     """
 
     def __init__(self,
@@ -272,6 +281,9 @@ class PerTrade(CommissionModel):
     """
     Calculates a commission for a transaction based on a per trade cost.
 
+    For orders that require multiple fills, the full commission is charged to
+    the first fill.
+
     Parameters
     ----------
     cost : float, optional
@@ -342,12 +354,13 @@ class PerFutureTrade(PerContract):
 
 class PerDollar(EquityCommissionModel):
     """
-    Calculates a commission for a transaction based on a per dollar cost.
+    Model commissions by applying a fixed cost per dollar transacted.
 
     Parameters
     ----------
-    cost : float
-        The flat amount of commissions paid per dollar of equities traded.
+    cost : float, optional
+        The flat amount of commissions paid per dollar of equities
+        traded. Default is a commission of $0.0015 per dollar transacted.
     """
     def __init__(self, cost=DEFAULT_PER_DOLLAR_COST):
         """

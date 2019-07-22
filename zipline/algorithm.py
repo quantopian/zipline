@@ -892,20 +892,23 @@ class TradingAlgorithm(object):
                           time_rule=None,
                           half_days=True,
                           calendar=None):
-        """Schedules a function to be called according to some timed rules.
+        """
+        Schedule a function to be called in the future.
 
         Parameters
         ----------
-        func : callable[(context, data) -> None]
-            The function to execute when the rule is triggered.
-        date_rule : EventRule, optional
-            The rule for the dates to execute this function.
-        time_rule : EventRule, optional
-            The rule for the times to execute this function.
+        func : callable
+            The function to execute when the rule is triggered. ``func`` should
+            have the same signature as ``handle_data``.
+        date_rule : zipline.utils.events.EventRule, optional
+            Rule for the dates on which to execute ``func``. If not
+            passed, the function will run every trading day.
+        time_rule : zipline.utils.events.EventRule, optional
+            Rule for the time at which to execute this function.
         half_days : bool, optional
             Should this rule fire on half days?
         calendar : Sentinel, optional
-            Calendar used to reconcile date and time rules.
+            Calendar used to compute rules that depend on the trading calendar.
 
         See Also
         --------
@@ -982,7 +985,7 @@ class TradingAlgorithm(object):
 
         Parameters
         ----------
-        benchmark : Asset
+        benchmark : zipline.assets.Asset
             The asset to set as the new benchmark.
 
         Notes
@@ -1222,12 +1225,12 @@ class TradingAlgorithm(object):
               limit_price=None,
               stop_price=None,
               style=None):
-        """Place an order.
+        """Place an order for a fixed number of shares.
 
         Parameters
         ----------
         asset : Asset
-            The asset that this order is for.
+            The asset to be ordered.
         amount : int
             The amount of shares to order. If ``amount`` is positive, this is
             the number of shares to buy or cover. If ``amount`` is negative,
@@ -1366,25 +1369,22 @@ class TradingAlgorithm(object):
                     limit_price=None,
                     stop_price=None,
                     style=None):
-        """Place an order by desired value rather than desired number of
-        shares.
+        """
+        Place an order for a fixed amount of value.
+
+        Equivalent to ``order(asset, value / data.current(asset, 'price'))``.
 
         Parameters
         ----------
         asset : Asset
-            The asset that this order is for.
+            The asset to be ordered.
         value : float
-            If the requested asset exists, the requested value is
-            divided by its price to imply the number of shares to transact.
-            If the Asset being ordered is a Future, the 'value' calculated
-            is actually the exposure, as Futures have no 'value'.
-
-            value > 0 :: Buy/Cover
-            value < 0 :: Sell/Short
+            Amount of value of ``asset`` to be transacted. The number of shares
+            bought or sold will be equal to ``value / current_price``.
         limit_price : float, optional
-            The limit price for the order.
+            Limit price for the order.
         stop_price : float, optional
-            The stop price for the order.
+            Stop price for the order.
         style : ExecutionStyle
             The execution style for the order.
 
@@ -1490,7 +1490,8 @@ class TradingAlgorithm(object):
 
     @api_method
     def set_slippage(self, us_equities=None, us_futures=None):
-        """Set the slippage models for the simulation.
+        """
+        Set the slippage models for the simulation.
 
         Parameters
         ----------
@@ -1498,6 +1499,11 @@ class TradingAlgorithm(object):
             The slippage model to use for trading US equities.
         us_futures : FutureSlippageModel
             The slippage model to use for trading US futures.
+
+        Notes
+        -----
+        This function can only be called during
+        :func:`~zipline.api.initialize`.
 
         See Also
         --------
@@ -1534,6 +1540,11 @@ class TradingAlgorithm(object):
             The commission model to use for trading US equities.
         us_futures : FutureCommissionModel
             The commission model to use for trading US futures.
+
+        Notes
+        -----
+        This function can only be called during
+        :func:`~zipline.api.initialize`.
 
         See Also
         --------
@@ -2272,13 +2283,13 @@ class TradingAlgorithm(object):
     @api_method
     @require_initialized(PipelineOutputDuringInitialize())
     def pipeline_output(self, name):
-        """Get the results of the pipeline that was attached with the name:
-        ``name``.
+        """
+        Get results of the pipeline attached by with ``name``.  ``name``.
 
         Parameters
         ----------
         name : str
-            Name of the pipeline for which results are requested.
+            Name of the pipeline from which to fetch results.
 
         Returns
         -------

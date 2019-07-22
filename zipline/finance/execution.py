@@ -23,8 +23,7 @@ from zipline.utils.compat import consistent_round
 
 
 class ExecutionStyle(with_metaclass(abc.ABCMeta)):
-    """
-    Abstract base class representing a modification to a standard order.
+    """Base class for order execution styles.
     """
 
     _exchange = None
@@ -55,7 +54,9 @@ class ExecutionStyle(with_metaclass(abc.ABCMeta)):
 
 class MarketOrder(ExecutionStyle):
     """
-    Class encapsulating an order to be placed at the current market price.
+    Execution style for orders to be filled at current market price.
+
+    This is the default for orders placed with :func:`~zipline.api.order`.
     """
 
     def __init__(self, exchange=None):
@@ -70,14 +71,16 @@ class MarketOrder(ExecutionStyle):
 
 class LimitOrder(ExecutionStyle):
     """
-    Execution style representing an order to be executed at a price equal to or
-    better than a specified limit price.
+    Execution style for orders to be filled at a price equal to or better than
+    a specified limit price.
+
+    Parameters
+    ----------
+    limit_price : float
+        Maximum price for buys, or minimum price for sells, at which the order
+        should be filled.
     """
     def __init__(self, limit_price, asset=None, exchange=None):
-        """
-        Store the given price.
-        """
-
         check_stoplimit_prices(limit_price, 'limit')
 
         self.limit_price = limit_price
@@ -97,14 +100,17 @@ class LimitOrder(ExecutionStyle):
 
 class StopOrder(ExecutionStyle):
     """
-    Execution style representing an order to be placed once the market price
-    reaches a specified stop price.
+    Execution style representing a market order to be placed if market price
+    reaches a threshold.
+
+    Parameters
+    ----------
+    stop_price : float
+        Price threshold at which the order should be placed. For sells, the
+        order will be placed if market price falls below this value. For buys,
+        the order will be placed if market price rises above this value.
     """
     def __init__(self, stop_price, asset=None, exchange=None):
-        """
-        Store the given price.
-        """
-
         check_stoplimit_prices(stop_price, 'stop')
 
         self.stop_price = stop_price
@@ -124,16 +130,21 @@ class StopOrder(ExecutionStyle):
 
 class StopLimitOrder(ExecutionStyle):
     """
-    Execution style representing a limit order to be placed with a specified
-    limit price once the market reaches a specified stop price.
+    Execution style representing a limit order to be placed if market price
+    reaches a threshold.
+
+    Parameters
+    ----------
+    limit_price : float
+        Maximum price for buys, or minimum price for sells, at which the order
+        should be filled, if placed.
+    stop_price : float
+        Price threshold at which the order should be placed. For sells, the
+        order will be placed if market price falls below this value. For buys,
+        the order will be placed if market price rises above this value.
     """
     def __init__(self, limit_price, stop_price, asset=None, exchange=None):
-        """
-        Store the given prices
-        """
-
         check_stoplimit_prices(limit_price, 'limit')
-
         check_stoplimit_prices(stop_price, 'stop')
 
         self.limit_price = limit_price

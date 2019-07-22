@@ -37,11 +37,11 @@ cdef bool _is_iterable(obj):
     return isinstance(obj, Iterable) and not isinstance(obj, string_types)
 
 
-# Wraps doesn't work for method objects in python2. Docs should be generated
-# with python3 so it is not a big deal.
 if PY2:
     def no_wraps_py2(f):
         def dec(g):
+            g.__doc__ = f.__doc__
+            g.__name__ = f.__name__
             return g
         return dec
 else:
@@ -134,11 +134,15 @@ def handle_non_market_minutes(bar_data):
 
 cdef class BarData:
     """
-    Provides methods to access spot value or history windows of price data.
-    Also provides some utility methods to determine if an asset is alive,
-    has recent trade data, etc.
+    Provides methods for accessing minutely and daily price/volume data from
+    Algorithm API functions.
 
-    This is what is passed as ``data`` to the ``handle_data`` function.
+    Also provides utility methods to determine if an asset is alive, and if it
+    has recent trade data.
+
+    An instance of this object is passed as ``data`` to
+    :func:`~zipline.api.handle_data` and
+    :func:`~zipline.api.before_trading_start`.
 
     Parameters
     ----------
@@ -254,18 +258,16 @@ cdef class BarData:
                       ((Asset, ContinuousFuture) + string_types, string_types))
     def current(self, assets, fields):
         """
-        Returns the current value of the given assets for the given fields
-        at the current simulation time.  Current values are the as-traded price
-        and are usually not adjusted for events like splits or dividends (see
-        notes for more information).
+        Returns the "current" value of the given fields for the given assets
+        at the current simulation time.
 
         Parameters
         ----------
-        assets : Asset or iterable of Assets
+        assets : zipline.assets.Asset or iterable of zipline.assets.Asset
+            The asset(s) for which data is requested.
         fields : str or iterable[str].
-            Valid values are: "price",
-            "last_traded", "open", "high", "low", "close", "volume", or column
-            names in files read by ``fetch_csv``.
+            Requested data field(s). Valid field names are: "price",
+            "last_traded", "open", "high", "low", "close", and "volume".
 
         Returns
         -------
@@ -274,40 +276,47 @@ cdef class BarData:
 
         Notes
         -----
-        If a single asset and a single field are passed in, a scalar float
-        value is returned.
+        The return type of this function depends on the types of its inputs:
 
-        If a single asset and a list of fields are passed in, a pandas Series
-        is returned whose indices are the fields, and whose values are scalar
-        values for this asset for each field.
+        - If a single asset and a single field are requested, the returned
+          value is a scalar (either a float or a ``pd.Timestamp`` depending on
+          the field).
 
-        If a list of assets and a single field are passed in, a pandas Series
-        is returned whose indices are the assets, and whose values are scalar
-        values for each asset for the given field.
+        - If a single asset and a list of fields are requested, the returned
+          value is a :class:`pd.Series` whose indices are the requested fields.
 
-        If a list of assets and a list of fields are passed in, a pandas
-        DataFrame is returned, indexed by asset.  The columns are the requested
-        fields, filled with the scalar values for each asset for each field.
+        - If a list of assets and a single field are requested, the returned
+          value is a :class:`pd.Series` is returned whose indices are the
+          assets.
 
-        If the current simulation time is not a valid market time, we use the
-        last market close instead.
+        - If a list of assets and a list of fields are requested, the returned
+          value is a :class:`pd.DataFrame`.  The columns of the returned frame
+          will be the requested fields, and the index of the frame will be the
+          requested assets.
 
-        "price" returns the last known close price of the asset.  If there is
-        no last known value (either because the asset has never traded, or
-        because it has delisted) NaN is returned.  If a value is found, and we
-        had to cross an adjustment boundary (split, dividend, etc) to get it,
-        the value is adjusted before being returned.
+        The values produced for ``fields`` are as follows:
 
-        "last_traded" returns the date of the last trade event of the asset,
-        even if the asset has stopped trading. If there is no last known value,
-        pd.NaT is returned.
+        - Requesting "price" produces the last known close price for the asset,
+          forward-filled from an earlier minute if there is no trade this
+          minute. If there is no last known value (either because the asset
+          has never traded, or because it has delisted) NaN is returned. If a
+          value is found, and we had to cross an adjustment boundary (split,
+          dividend, etc) to get it, the value is adjusted to the current
+          simulation time before being returned.
 
-        "volume" returns the trade volume for the current simulation time.  If
-        there is no trade this minute, 0 is returned.
+        - Requesting "open", "high", "low", or "close" produces the open, high,
+          low, or close for the current minute. If no trades occurred this
+          minute, ``NaN`` is returned.
 
-        "open", "high", "low", and "close" return the relevant information for
-        the current trade bar.  If there is no current trade bar, NaN is
-        returned.
+        - Requesting "volume" produces the trade volume for the current
+          minute. If no trades occurred this minute, 0 is returned.
+
+        - Requesting "last_traded" produces the datetime of the last minute in
+          which the asset traded, even if the asset has stopped trading. If
+          there is no last known value, ``pd.NaT`` is returned.
+
+        If the current simulation time is not a valid market time for an asset,
+        we use the most recent market close instead.
         """
         multiple_assets = _is_iterable(assets)
         multiple_fields = _is_iterable(fields)
@@ -437,35 +446,39 @@ cdef class BarData:
     @check_parameters(('assets',), (Asset,))
     def can_trade(self, assets):
         """
-        For the given asset or iterable of assets, returns true if all of the
+        For the given asset or iterable of assets, returns True if all of the
         following are true:
-        1) the asset is alive for the session of the current simulation time
-          (if current simulation time is not a market minute, we use the next
-          session)
-        2) (if we are in minute mode) the asset's exchange is open at the
-          current simulation time or at the simulation calendar's next market
-          minute
-        3) there is a known last price for the asset.
 
-        Notes
-        -----
-        The second condition above warrants some further explanation.
-        - If the asset's exchange calendar is identical to the simulation
-        calendar, then this condition always returns True.
-        - If there are market minutes in the simulation calendar outside of
-        this asset's exchange's trading hours (for example, if the simulation
-        is running on the CMES calendar but the asset is MSFT, which trades on
-        the NYSE), during those minutes, this condition will return false
-        (for example, 3:15 am Eastern on a weekday, during which the CMES is
-        open but the NYSE is closed).
+        1. The asset is alive for the session of the current simulation time
+           (if current simulation time is not a market minute, we use the next
+           session)
+        2. The asset's exchange is open at the current simulation time or at
+           the simulation calendar's next market minute
+        3. There is a known last price for the asset.
 
         Parameters
         ----------
-        assets: Asset or iterable of assets
+        assets: zipline.assets.Asset or iterable of zipline.assets.Asset
+            Asset(s) for which tradeability should be determined.
+
+        Notes
+        -----
+        The second condition above warrants some further explanation:
+
+        - If the asset's exchange calendar is identical to the simulation
+          calendar, then this condition always returns True.
+        - If there are market minutes in the simulation calendar outside of
+          this asset's exchange's trading hours (for example, if the simulation
+          is running on the CMES calendar but the asset is MSFT, which trades
+          on the NYSE), during those minutes, this condition will return False
+          (for example, 3:15 am Eastern on a weekday, during which the CMES is
+          open but the NYSE is closed).
 
         Returns
         -------
-        can_trade : bool or pd.Series[bool] indexed by asset.
+        can_trade : bool or pd.Series[bool]
+            Bool or series of bools indicating whether the requested asset(s)
+            can be traded in the current minute.
         """
         dt = self.simulation_dt_func()
 
@@ -527,7 +540,7 @@ cdef class BarData:
     @check_parameters(('assets',), (Asset,))
     def is_stale(self, assets):
         """
-        For the given asset or iterable of assets, returns true if the asset
+        For the given asset or iterable of assets, returns True if the asset
         is alive and there is no trade data for the current simulation time.
 
         If the asset has never traded, returns False.
@@ -538,11 +551,14 @@ cdef class BarData:
 
         Parameters
         ----------
-        assets: Asset or iterable of assets
+        assets: zipline.assets.Asset or iterable of zipline.assets.Asset
+            Asset(s) for which staleness should be determined.
 
         Returns
         -------
-        boolean or Series of booleans, indexed by asset.
+        is_stale : bool or pd.Series[bool]
+            Bool or series of bools indicating whether the requested asset(s)
+            are stale.
         """
         dt = self.simulation_dt_func()
         if self._adjust_minutes:
@@ -593,46 +609,61 @@ cdef class BarData:
                        string_types))
     def history(self, assets, fields, bar_count, frequency):
         """
-        Returns a window of data for the given assets and fields.
+        Returns a trailing window of length ``bar_count`` containing data for
+        the given assets, fields, and frequency.
 
-        This data is adjusted for splits, dividends, and mergers as of the
-        current algorithm time.
+        Returned data adjusted for splits, dividends, and mergers as of the
+        current simulation time.
 
-        The semantics of missing data are identical to the ones described in
-        the notes for `get_spot_value`.
+        The semantics for missing data are identical to the ones described in
+        the notes for :meth:`current`.
 
         Parameters
         ----------
-        assets: Asset or iterable of Asset
-
-        fields: string or iterable of string.  Valid values are "open", "high",
-            "low", "close", "volume", "price", and "last_traded".
-
-        bar_count: integer number of bars of trade data
-
-        frequency: string. "1m" for minutely data or "1d" for daily date
+        assets: zipline.assets.Asset or iterable of zipline.assets.Asset
+            The asset(s) for which data is requested.
+        fields: string or iterable of string.
+            Requested data field(s). Valid field names are: "price",
+            "last_traded", "open", "high", "low", "close", and "volume".
+        bar_count: int
+            Number of data observations requested.
+        frequency: str
+            String indicating whether to load daily or minutely data
+            observations. Pass '1m' for minutely data, '1d' for daily data.
 
         Returns
         -------
-        history : Series or DataFrame or Panel
-            Return type depends on the dimensionality of the 'assets' and
-            'fields' parameters.
-
-            If single asset and field are passed in, the returned Series is
-            indexed by dt.
-
-            If multiple assets and single field are passed in, the returned
-            DataFrame is indexed by dt, and has assets as columns.
-
-            If a single asset and multiple fields are passed in, the returned
-            DataFrame is indexed by dt, and has fields as columns.
-
-            If multiple assets and multiple fields are passed in, the returned
-            Panel is indexed by field, has dt as the major axis, and assets
-            as the minor axis.
+        history : pd.Series or pd.DataFrame or pd.Panel
+            See notes below.
 
         Notes
         -----
+        The return type of this function depends on the types of ``assets`` and
+        ``fields``:
+
+        - If a single asset and a single field are requested, the returned
+          value is a :class:`pd.Series` of length ``bar_count`` whose index is
+          :class:`pd.DatetimeIndex`.
+
+        - If a single asset and multiple fields are requested, the returned
+          value is a :class:`pd.DataFrame` with shape
+          ``(bar_count, len(fields))``. The frame's index will be a
+          :class:`pd.DatetimeIndex`, and its columns will be ``fields``.
+
+        - If multiple assets and a single field are requested, the returned
+          value is a :class:`pd.DataFrame` with shape
+          ``(bar_count, len(assets))``. The frame's index will be a
+          :class:`pd.DatetimeIndex`, and its columns will be ``assets``.
+
+        - If multiple assets and multiple fields are requested, the returned
+          value is a :class:`pd.Panel` with shape
+          ``(len(fields), bar_count, len(assets))``. The axes of the returned
+          panel will be:
+
+          - ``panel.items`` : ``fields``
+          - ``panel.major_axis`` : :class:`pd.DatetimeIndex` of length ``bar_count``
+          - ``panel.minor_axis`` : ``assets``
+
         If the current simulation time is not a valid market time, we use the
         last market close instead.
         """

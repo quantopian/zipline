@@ -161,7 +161,7 @@ class Order(Event):
 
 
 class Portfolio(object):
-    """The portfolio at a given time.
+    """Object providing read-only access to current portfolio state.
 
     Parameters
     ----------
@@ -170,6 +170,18 @@ class Portfolio(object):
     capital_base : float
         The starting value for the portfolio. This will be used as the starting
         cash, current cash, and portfolio value.
+
+    Attributes
+    ----------
+    positions : zipline.protocol.Positions
+        Dict-like object containing information about currently-held positions.
+    cash : float
+        Amount of cash currently held in portfolio.
+    portfolio_value : float
+        Current liquidation value of the portfolio's holdings.
+        This is equal to ``cash + sum(shares * price)``
+    starting_cash : float
+        Amount of cash in the portfolio at the start of the backtest.
     """
 
     def __init__(self, start_date=None, capital_base=0.0):
@@ -294,6 +306,23 @@ class Account(object):
 
 
 class Position(object):
+    """
+    A position held by an algorithm.
+
+    Attributes
+    ----------
+    asset : zipline.assets.Asset
+        The held asset.
+    amount : int
+        Number of shares held. Short positions are represented with negative
+        values.
+    cost_basis : float
+        Average price at which currently-held shares were acquired.
+    last_sale_price : float
+        Most recent price for the position.
+    last_sale_date : pd.Timestamp
+        Datetime at which ``last_sale_price`` was last updated.
+    """
     __slots__ = ('_underlying_position',)
 
     def __init__(self, underlying_position):
@@ -365,6 +394,9 @@ class _DeprecatedSidLookupPosition(object):
 
 
 class Positions(dict):
+    """A dict-like object containing the algorithm's current positions.
+    """
+
     def __missing__(self, key):
         if isinstance(key, Asset):
             return Position(InnerPosition(key))
