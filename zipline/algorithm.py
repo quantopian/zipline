@@ -1024,7 +1024,7 @@ class TradingAlgorithm(object):
 
         Returns
         -------
-        continuous_future : ContinuousFuture
+        continuous_future : zipline.assets.ContinuousFuture
             The continuous future specifier.
         """
         return self.asset_finder.create_continuous_future(
@@ -1051,7 +1051,7 @@ class TradingAlgorithm(object):
 
         Returns
         -------
-        equity : Equity
+        equity : zipline.assets.Equity
             The equity that held the ticker symbol on the current
             symbol lookup date.
 
@@ -1087,11 +1087,9 @@ class TradingAlgorithm(object):
         country_code : str or None, optional
             A country to limit symbol searches to.
 
-
-
         Returns
         -------
-        equities : list[Equity]
+        equities : list[zipline.assets.Equity]
             The equities that held the given ticker symbols on the current
             symbol lookup date.
 
@@ -1118,7 +1116,7 @@ class TradingAlgorithm(object):
 
         Returns
         -------
-        asset : Asset
+        asset : zipline.assets.Asset
             The asset with the given ``sid``.
 
         Raises
@@ -1140,7 +1138,7 @@ class TradingAlgorithm(object):
 
         Returns
         -------
-        future : Future
+        future : zipline.assets.Future
             The future that trades with the name ``symbol``.
 
         Raises
