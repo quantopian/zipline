@@ -54,6 +54,34 @@ class Returns(CustomFactor):
         out[:] = (close[-1] - close[0]) / close[0]
 
 
+class PercentChange(SingleInputMixin, CustomFactor):
+    """
+    Calculates the percent change over the given window_length.
+
+    **Default Inputs:** None
+
+    **Default Window Length:** None
+
+    Notes
+    -----
+    Percent change is calculated as ``(new - old) / abs(old)``.
+    """
+    window_safe = True
+
+    def _validate(self):
+        super(PercentChange, self)._validate()
+        if self.window_length < 2:
+            raise ValueError(
+                "'PercentChange' expected a window length"
+                "of at least 2, but was given {window_length}. "
+                "For daily percent change, use a window "
+                "length of 2.".format(window_length=self.window_length)
+            )
+
+    def compute(self, today, assets, out, values):
+        out[:] = (values[-1] - values[0]) / abs(values[0])
+
+
 class DailyReturns(Returns):
     """
     Calculates daily percent change in close price.
@@ -65,7 +93,7 @@ class DailyReturns(Returns):
     window_length = 2
 
 
-class SimpleMovingAverage(CustomFactor, SingleInputMixin):
+class SimpleMovingAverage(SingleInputMixin, CustomFactor):
     """
     Average Value of an arbitrary column
 
@@ -105,7 +133,7 @@ class VWAP(WeightedAverageValue):
     inputs = (EquityPricing.close, EquityPricing.volume)
 
 
-class MaxDrawdown(CustomFactor, SingleInputMixin):
+class MaxDrawdown(SingleInputMixin, CustomFactor):
     """
     Max Drawdown
 
@@ -410,7 +438,7 @@ class ExponentialWeightedMovingStdDev(_ExponentialWeightedFactor):
         out[:] = sqrt(variance * bias_correction)
 
 
-class LinearWeightedMovingAverage(CustomFactor, SingleInputMixin):
+class LinearWeightedMovingAverage(SingleInputMixin, CustomFactor):
     """
     Weighted Average Value of an arbitrary column
 

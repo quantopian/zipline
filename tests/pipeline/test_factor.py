@@ -15,6 +15,7 @@ from numpy import (
     datetime64,
     empty,
     eye,
+    inf,
     log1p,
     nan,
     ones,
@@ -30,11 +31,12 @@ from zipline.lib.labelarray import LabelArray
 from zipline.lib.rank import masked_rankdata_2d
 from zipline.lib.normalize import naive_grouped_rowwise_apply as grouped_apply
 from zipline.pipeline import Classifier, Factor, Filter, Pipeline
-from zipline.pipeline.data import DataSet, Column
+from zipline.pipeline.data import DataSet, Column, EquityPricing
 from zipline.pipeline.factors import (
     CustomFactor,
     DailyReturns,
     Returns,
+    PercentChange,
 )
 from zipline.pipeline.factors.factor import winsorize as zp_winsorize
 from zipline.testing import (
@@ -572,7 +574,6 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         today = datetime64(1, 'ns')
         assets = arange(3)
-        out = empty((3,), dtype=float)
 
         seed(seed_value)  # Seed so we get deterministic results.
         test_data = abs(randn(window_length, 3))
@@ -584,6 +585,41 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         returns.compute(today, assets, out, test_data)
 
         check_allclose(expected, out)
+
+    @parameterized.expand([
+        (100, 15),
+        (101, 4),
+        (102, 100),
+        ])
+    def test_percentchange(self, seed_value, window_length):
+
+        pct_change = PercentChange(
+            inputs=[EquityPricing.close, ],
+            window_length=window_length,
+        )
+
+        today = datetime64(1, 'ns')
+        assets = arange(8)
+
+        seed(seed_value)  # Seed so we get deterministic results.
+        middle_rows = randn(window_length - 2, 8)
+        first_row = array([1, 2, 2, 1, -1, -1, 0, nan])
+        end_row = array([2, 1, 2, -2, 2, -2, 1, 1])
+        test_data = np.vstack([first_row, middle_rows, end_row])
+
+        # Calculate the expected percent change
+        expected = array([1, -0.5, 0, -3, 3, -1, inf, nan])
+
+        out = empty((8,), dtype=float)
+        pct_change.compute(today, assets, out, test_data)
+
+        check_allclose(expected, out)
+
+        with self.assertRaises(ValueError):
+            PercentChange(inputs=(), window_length=2)
+
+        with self.assertRaises(ValueError):
+            PercentChange(inputs=[EquityPricing.close], window_length=1)
 
     def gen_ranking_cases():
         seeds = range(int(1e4), int(1e5), int(1e4))
