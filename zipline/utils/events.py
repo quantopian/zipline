@@ -109,6 +109,8 @@ def _build_offset(offset, kwargs, default):
     """
     Builds the offset argument for event rules.
     """
+    # Filter down to just kwargs that were actually passed.
+    kwargs = {k: v for k, v in six.iteritems(kwargs) if v is not None}
     if offset is None:
         if not kwargs:
             return default  # use the default.
@@ -763,6 +765,7 @@ class time_rules(object):
         passed. Conversely, if either ``hours`` or ``minutes`` are passed,
         ``offset`` must not be passed.
         """
+        return BeforeClose(offset=offset, hours=hours, minutes=minutes)
 
     every_minute = Always
 
