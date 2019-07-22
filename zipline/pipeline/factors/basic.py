@@ -64,7 +64,7 @@ class PercentChange(SingleInputMixin, CustomFactor):
 
     Notes
     -----
-    Percent change is calculated as (new - old) / abs(old).
+    Percent change is calculated as ``(new - old) / abs(old)``.
     """
     window_safe = True
 
