@@ -37,7 +37,44 @@ cimport numpy as np
 from trading_calendars import get_calendar
 
 
+# Users don't construct instances of this object, and embedding the signature
+# in the docstring seems to confuse Sphinx, so disable it for now.
+@cython.embedsignature(False)
 cdef class Asset:
+    """
+    Base class for entities that can be owned by a trading algorithm.
+
+    Attributes
+    ----------
+    sid : int
+        Persistent unique identifier assigned to the asset.
+    symbol : str
+        Most recent ticker under which the asset traded. This field can change
+        without warning if the asset changes tickers. Use ``sid`` if you need a
+        persistent identifier.
+    asset_name : str
+        Full name of the asset.
+    exchange : str
+        Canonical short name of the exchange on which the asset trades (e.g.,
+        'NYSE').
+    exchange_full : str
+        Full name of the exchange on which the asset trades (e.g., 'NEW YORK
+        STOCK EXCHANGE').
+    country_code : str
+        Two character code indicating the country in which the asset trades.
+    start_date : pd.Timestamp
+        Date on which the asset first traded.
+    end_date : pd.Timestamp
+        Last date on which the asset traded. On Quantopian, this value is set
+        to the current (real time) date for assets that are still trading.
+    tick_size : float
+        Minimum amount that the price can change for this asset.
+    auto_close_date : pd.Timestamp
+        Date on which positions in this asset will be automatically liquidated
+        to cash during a simulation. By default, this is three days after
+        ``end_date``.
+    """
+
     _kwargnames = frozenset({
         'sid',
         'symbol',
@@ -156,8 +193,13 @@ cdef class Asset:
                                  self.price_multiplier))
 
     cpdef to_dict(self):
-        """
-        Convert to a python dict.
+        """Convert to a python dict containing all attributes of the asset.
+
+        This is often useful for debugging.
+
+        Returns
+        -------
+        as_dict : dict
         """
         return {
             'sid': self.sid,
@@ -217,7 +259,12 @@ cdef class Asset:
         return calendar.is_open_on_minute(dt_minute)
 
 
+@cython.embedsignature(False)
 cdef class Equity(Asset):
+    """
+    Asset subclass representing partial ownership of a company, trust, or
+    partnership.
+    """
 
     property security_start_date:
         """
@@ -253,7 +300,10 @@ cdef class Equity(Asset):
             return self.asset_name
 
 
+@cython.embedsignature(False)
 cdef class Future(Asset):
+    """Asset subclass representing ownership of a futures contract.
+    """
     _kwargnames = frozenset({
         'sid',
         'symbol',

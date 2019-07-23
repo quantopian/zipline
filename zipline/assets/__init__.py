@@ -22,6 +22,7 @@ from ._assets import (
 from .assets import (
     AssetFinder,
     AssetConvertible,
+    ContinuousFuture,
     PricingDataAssociable,
 )
 from .asset_db_schema import ASSET_DB_VERSION
@@ -32,6 +33,7 @@ __all__ = [
     'ASSET_DB_VERSION',
     'Asset',
     'AssetDBWriter',
+    'ContinuousFuture',
     'Equity',
     'Future',
     'AssetFinder',

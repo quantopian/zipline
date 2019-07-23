@@ -81,7 +81,34 @@ def fill_price_worse_than_limit_price(fill_price, order):
 
 
 class SlippageModel(with_metaclass(FinancialModelMeta)):
-    """Abstract interface for defining a slippage model.
+    """
+    Abstract base class for slippage models.
+
+    Slippage models are responsible for the rates and prices at which orders
+    fill during a simulation.
+
+    To implement a new slippage model, create a subclass of
+    :class:`~zipline.finance.slippage.SlippageModel` and implement
+    :meth:`process_order`.
+
+    Methods
+    -------
+    process_order(data, order)
+
+    Attributes
+    ----------
+    volume_for_bar : int
+        Number of shares that have already been filled for the
+        currently-filling asset in the current minute. This attribute is
+        maintained automatically by the base class. It can be used by
+        subclasses to keep track of the total amount filled if there are
+        multiple open orders for a single asset.
+
+    Notes
+    -----
+    Subclasses that define their own constructors should call
+    ``super(<subclass name>, self).__init__()`` before performing other
+    initialization.
     """
 
     # Asset types that are compatible with the given model.
@@ -96,23 +123,41 @@ class SlippageModel(with_metaclass(FinancialModelMeta)):
 
     @abstractmethod
     def process_order(self, data, order):
-        """Process how orders get filled.
+        """
+        Compute the number of shares and price to fill for ``order`` in the
+        current minute.
 
         Parameters
         ----------
-        data : BarData
+        data : zipline.protocol.BarData
             The data for the given bar.
-        order : Order
+        order : zipline.finance.order.Order
             The order to simulate.
 
         Returns
         -------
         execution_price : float
-            The price to execute the trade at.
+            The price of the fill.
         execution_volume : int
-            The number of shares that could be filled. This may not be all
-            the shares ordered in which case the order will be filled over
-            multiple bars.
+            The number of shares that should be filled. Must be between ``0``
+            and ``order.amount - order.filled``. If the amount filled is less
+            than the amount remaining, ``order`` will remain open and will be
+            passed again to this method in the next minute.
+
+        Raises
+        ------
+        zipline.finance.slippage.LiquidityExceeded
+            May be raised if no more orders should be processed for the current
+            asset during the current bar.
+
+        Notes
+        -----
+        Before this method is called, :attr:`volume_for_bar` will be set to the
+        number of shares that have already been filled for ``order.asset`` in
+        the current minute.
+
+        :meth:`process_order` is not called by the base class on bars for which
+        there was no historical volume.
         """
         raise NotImplementedError('process_order')
 
@@ -201,9 +246,32 @@ class FutureSlippageModel(with_metaclass(AllowedAssetMarker, SlippageModel)):
 
 class VolumeShareSlippage(SlippageModel):
     """
-    Model slippage as a function of the volume of contracts traded.
+    Model slippage as a quadratic function of percentage of historical volume.
+
+    Orders to buy will be filled at::
+
+       price * (1 + price_impact * (volume_share ** 2))
+
+    Orders to sell will be filled at::
+
+       price * (1 - price_impact * (volume_share ** 2))
+
+    where ``price`` is the close price for the bar, and ``volume_share`` is the
+    percentage of minutely volume filled, up to a max of ``volume_limit``.
+
+    Parameters
+    ----------
+    volume_limit : float, optional
+        Maximum percent of historical volume that can fill in each bar. 0.5
+        means 50% of historical volume. 1.0 means 100%. Default is 0.025 (i.e.,
+        2.5%).
+    price_impact : float, optional
+        Scaling coefficient for price impact. Larger values will result in more
+        simulated price impact. Smaller values will result in less simulated
+        price impact. Default is 0.1.
     """
-    def __init__(self, volume_limit=DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT,
+    def __init__(self,
+                 volume_limit=DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT,
                  price_impact=0.1):
 
         super(VolumeShareSlippage, self).__init__()
@@ -272,12 +340,21 @@ class VolumeShareSlippage(SlippageModel):
 
 class FixedSlippage(SlippageModel):
     """
-    Model slippage as a fixed spread.
+    Simple model assuming a fixed-size spread for all assets.
 
     Parameters
     ----------
     spread : float, optional
-        spread / 2 will be added to buys and subtracted from sells.
+        Size of the assumed spread for all assets.
+        Orders to buy will be filled at ``close + (spread / 2)``.
+        Orders to sell will be filled at ``close - (spread / 2)``.
+
+    Notes
+    -----
+    This model does not impose limits on the size of fills. An order for an
+    asset will always be filled as soon as any trading activity occurs in the
+    order's asset, even if the size of the order is greater than the historical
+    volume.
     """
     def __init__(self, spread=0.0):
         super(FixedSlippage, self).__init__()
@@ -454,9 +531,9 @@ class VolatilityVolumeShare(MarketImpactBase):
 
         MI = eta * sigma * sqrt(psi)
 
-    Eta is a constant which varies by root symbol.
-    Sigma is 20-day annualized volatility.
-    Psi is the volume traded in the given bar divided by 20-day ADV.
+    - ``eta`` is a constant which varies by root symbol.
+    - ``sigma`` is 20-day annualized volatility.
+    - ``psi`` is the volume traded in the given bar divided by 20-day ADV.
 
     Parameters
     ----------
@@ -524,20 +601,36 @@ class VolatilityVolumeShare(MarketImpactBase):
 
 class FixedBasisPointsSlippage(SlippageModel):
     """
-    Model slippage as a fixed percentage of fill price. Executes the full
-    order immediately.
+    Model slippage as a fixed percentage difference from historical minutely
+    close price, limiting the size of fills to a fixed percentage of historical
+    minutely volume.
 
-    Orders to buy will be filled at: `price + (price * basis_points * 0.0001)`.
-    Orders to sell will be filled at:
-        `price - (price * basis_points * 0.0001)`.
+    Orders to buy are filled at::
+
+        historical_price * (1 + (basis_points * 0.0001))
+
+    Orders to sell are filled at::
+
+        historical_price * (1 - (basis_points * 0.0001))
+
+    Fill sizes are capped at::
+
+        historical_volume * volume_limit
 
     Parameters
     ----------
     basis_points : float, optional
-        Number of basis points of slippage to apply on each execution.
-
+        Number of basis points of slippage to apply for each fill. Default
+        is 5 basis points.
     volume_limit : float, optional
-        fraction of the trading volume that can be filled each minute.
+        Fraction of trading volume that can be filled each minute. Default is
+        10% of trading volume.
+
+    Notes
+    -----
+    - A basis point is one one-hundredth of a percent.
+    - This class, default-constructed, is zipline's default slippage model for
+      equities.
     """
     @expect_bounded(
         basis_points=(0, None),
