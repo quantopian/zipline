@@ -262,11 +262,13 @@ class VolumeShareSlippage(SlippageModel):
     Parameters
     ----------
     volume_limit : float, optional
-        Maximum percent of historical volume that can fill in each
-        bar. 1.0 is means 100% of historical volume. Default is 2.5%.
+        Maximum percent of historical volume that can fill in each bar. 0.5
+        means 50% of historical volume. 1.0 means 100%. Default is 0.025 (i.e.,
+        2.5%).
     price_impact : float, optional
-        Scaling coefficient. Larger values will result in more simulated price
-        impact. Smaller values will result in less simulated price impact.
+        Scaling coefficient for price impact. Larger values will result in more
+        simulated price impact. Smaller values will result in less simulated
+        price impact. Default is 0.1.
     """
     def __init__(self,
                  volume_limit=DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT,
