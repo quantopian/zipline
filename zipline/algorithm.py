@@ -893,7 +893,7 @@ class TradingAlgorithm(object):
                           half_days=True,
                           calendar=None):
         """
-        Schedule a function to be called in the future.
+        Schedule a function to be called repeatedly in the future.
 
         Parameters
         ----------
@@ -904,9 +904,11 @@ class TradingAlgorithm(object):
             Rule for the dates on which to execute ``func``. If not
             passed, the function will run every trading day.
         time_rule : zipline.utils.events.EventRule, optional
-            Rule for the time at which to execute this function.
+            Rule for the time at which to execute ``func``. If not passed, the
+            function will execute at the end of the first market minute of the
+            day.
         half_days : bool, optional
-            Should this rule fire on half days?
+            Should this rule fire on half days? Default is True.
         calendar : Sentinel, optional
             Calendar used to compute rules that depend on the trading calendar.
 
@@ -1368,7 +1370,7 @@ class TradingAlgorithm(object):
                     stop_price=None,
                     style=None):
         """
-        Place an order for a fixed amount of value.
+        Place an order for a fixed amount of money.
 
         Equivalent to ``order(asset, value / data.current(asset, 'price'))``.
 
@@ -2282,7 +2284,7 @@ class TradingAlgorithm(object):
     @require_initialized(PipelineOutputDuringInitialize())
     def pipeline_output(self, name):
         """
-        Get results of the pipeline attached by with ``name``.  ``name``.
+        Get results of the pipeline attached by with name ``name``.
 
         Parameters
         ----------

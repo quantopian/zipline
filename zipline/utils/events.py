@@ -745,12 +745,12 @@ class time_rules(object):
         Parameters
         ----------
         offset : datetime.timedelta, optional
-            If passed, the offset from market open at which to trigger. Must be
-            at least 1 minute.
+            If passed, the offset from market close at which to trigger. Must
+            be at least 1 minute.
         hours : int, optional
-            If passed, number of hours to wait after market open.
+            If passed, number of hours to wait before market close.
         minutes : int, optional
-            If passed, number of minutes to wait after market open.
+            If passed, number of minutes to wait before market close.
 
         Returns
         -------

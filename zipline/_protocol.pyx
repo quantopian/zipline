@@ -286,8 +286,7 @@ cdef class BarData:
           value is a :class:`pd.Series` whose indices are the requested fields.
 
         - If a list of assets and a single field are requested, the returned
-          value is a :class:`pd.Series` is returned whose indices are the
-          assets.
+          value is a :class:`pd.Series` whose indices are the assets.
 
         - If a list of assets and a list of fields are requested, the returned
           value is a :class:`pd.DataFrame`.  The columns of the returned frame
@@ -451,15 +450,15 @@ cdef class BarData:
 
         1. The asset is alive for the session of the current simulation time
            (if current simulation time is not a market minute, we use the next
-           session)
+           session).
         2. The asset's exchange is open at the current simulation time or at
-           the simulation calendar's next market minute
+           the simulation calendar's next market minute.
         3. There is a known last price for the asset.
 
         Parameters
         ----------
         assets: zipline.assets.Asset or iterable of zipline.assets.Asset
-            Asset(s) for which tradeability should be determined.
+            Asset(s) for which tradability should be determined.
 
         Notes
         -----
@@ -612,7 +611,7 @@ cdef class BarData:
         Returns a trailing window of length ``bar_count`` containing data for
         the given assets, fields, and frequency.
 
-        Returned data adjusted for splits, dividends, and mergers as of the
+        Returned data is adjusted for splits, dividends, and mergers as of the
         current simulation time.
 
         The semantics for missing data are identical to the ones described in

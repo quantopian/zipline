@@ -84,8 +84,8 @@ class SlippageModel(with_metaclass(FinancialModelMeta)):
     """
     Abstract base class for slippage models.
 
-    Slippage models are responsible for determines the rate and price at which
-    orders are filled.
+    Slippage models are responsible for the rates and prices at which orders
+    fill during a simulation.
 
     To implement a new slippage model, create a subclass of
     :class:`~zipline.finance.slippage.SlippageModel` and implement

@@ -68,7 +68,7 @@ cdef class Asset:
         Last date on which the asset traded. On Quantopian, this value is set
         to the current (real time) date for assets that are still trading.
     tick_size : float
-        Minimum amount that the price can change for this asset
+        Minimum amount that the price can change for this asset.
     auto_close_date : pd.Timestamp
         Date on which positions in this asset will be automatically liquidated
         to cash during a simulation. By default, this is three days after

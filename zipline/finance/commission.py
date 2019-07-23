@@ -157,7 +157,7 @@ class PerShare(EquityCommissionModel):
 
     Notes
     -----
-    This is the zipline's default commission model for equities.
+    This is zipline's default commission model for equities.
     """
 
     def __init__(self,
