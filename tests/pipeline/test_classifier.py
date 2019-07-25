@@ -607,6 +607,48 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             ),
         )
 
+    @parameter_space(
+        dtype_and_missing=[(int64_dtype, -1), (categorical_dtype, None)],
+    )
+    def test_peer_count(self, dtype_and_missing):
+        class C(Classifier):
+            dtype = dtype_and_missing[0]
+            missing_value = dtype_and_missing[1]
+            inputs = ()
+            window_length = 0
+
+        c = C()
+
+        if dtype_and_missing[0] == int64_dtype:
+            data = np.array(
+                [[2, 4, 4, -1, 3, 4, -1, 1, 3]],
+                dtype=int64_dtype,
+            )
+        else:
+            data = LabelArray(
+                [['aa', 'a', 'a', None, 'b', 'a', None, 'c', 'b']],
+                missing_value=None,
+            )
+
+        expected = np.array(
+            [[1, 3, 3, 2, 2, 3, 2, 1, 2]],
+            dtype=int64_dtype
+        )
+
+        terms = {
+            'peer_counts': c.peer_count(),
+        }
+        expected_results = {
+            'peer_counts': expected,
+        }
+
+        self.check_terms(
+            terms=terms,
+            expected=expected_results,
+            initial_workspace={c: data},
+            mask=self.build_mask(self.ones_mask(shape=data.shape)),
+        )
+
 
 class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
     def test_reversability_categorical(self):

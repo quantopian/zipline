@@ -398,6 +398,21 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             )
         return group_labels, null_label
 
+    def peer_count(self):
+        """
+        Construct a PeerCount factor that gives the number of occurrences of
+        each distinct category in a classifier
+
+        Returns
+        -------
+        PeerCount : CustomFactor
+            CustomFactor giving the peer count for each category in
+            the classifier
+        """
+        # Lazy import due to cyclic dependencies in factor.py, classifier.py
+        from ..factors import PeerCount
+        return PeerCount(inputs=[self])
+
 
 class Everything(Classifier):
     """
