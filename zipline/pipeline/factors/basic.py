@@ -512,9 +512,9 @@ class PeerCount(SingleInputMixin, CustomFactor):
                 "{window_length}.".format(window_length=self.window_length)
             )
 
-    def compute(self, today, assets, out, arrays):
-        # Convert arrays to group label int arrays
-        group_labels, _ = self.inputs[0]._to_integral(arrays[0])
+    def compute(self, today, assets, out, classifier_values):
+        # Convert classifier array to group label int array
+        group_labels, _ = self.inputs[0]._to_integral(classifier_values[0])
         _, inverse, counts = unique(  # Get counts, idx of unique groups
             group_labels,
             return_counts=True,
