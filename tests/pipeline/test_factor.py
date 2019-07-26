@@ -594,7 +594,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
     def test_percentchange(self, seed_value, window_length):
 
         pct_change = PercentChange(
-            inputs=[EquityPricing.close, ],
+            inputs=[EquityPricing.close],
             window_length=window_length,
         )
 
