@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from functools import partial
+from operator import itemgetter
 import tarfile
 
 import matplotlib
@@ -76,11 +77,20 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             },
         )
         expected_perf = self.expected_perf[example_name]
+        # Exclude positions column as the positions do not always have the
+        # same order
+        columns = [column for column in examples._cols_to_check
+                   if column != 'positions']
         assert_equal(
-            actual_perf[examples._cols_to_check],
-            expected_perf[examples._cols_to_check],
+            actual_perf[columns],
+            expected_perf[columns],
             # There is a difference in the datetime columns in pandas
             # 0.16 and 0.17 because in 16 they are object and in 17 they are
             # datetime[ns, UTC]. We will just ignore the dtypes for now.
             check_dtype=False,
+        )
+        # Sort positions by SID before comparing
+        assert_equal(
+            expected_perf['positions'].apply(sorted, key=itemgetter('sid')),
+            actual_perf['positions'].apply(sorted, key=itemgetter('sid')),
         )
