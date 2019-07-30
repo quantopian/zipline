@@ -4,17 +4,16 @@ from numbers import Number
 from numpy import (
     arange,
     average,
+    copyto,
     exp,
     fmax,
     full,
     isnan,
     log,
-    nan,
     NINF,
     sqrt,
     sum as np_sum,
     unique,
-    where,
 )
 
 from zipline.pipeline.data import EquityPricing
@@ -502,7 +501,6 @@ class PeerCount(SingleInputMixin, CustomFactor):
     **Default Window Length:** 1
     """
     window_length = 1
-    missing_value = nan
 
     def _validate(self):
         super(PeerCount, self)._validate()
@@ -522,11 +520,7 @@ class PeerCount(SingleInputMixin, CustomFactor):
             return_counts=True,
             return_inverse=True,
         )
-        out[:] = where(
-            group_labels != null_label,
-            counts[inverse],
-            self.missing_value,
-        )
+        copyto(out, counts[inverse], where=(group_labels != null_label))
 
 
 # Convenience aliases
