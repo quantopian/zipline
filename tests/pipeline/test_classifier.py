@@ -621,18 +621,26 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
 
         if dtype_and_missing[0] == int64_dtype:
             data = np.array(
-                [[2, 4, 4, -1, 3, 4, -1, 1, 3]],
+                [[1, 1, -1, 2, 1, -1],
+                 [2, 1, 3, 2, 2, 2],
+                 [-1, 1, 10, 10, 10, -1],
+                 [3, 3, 3, 3, 3, 3]],
                 dtype=int64_dtype,
             )
         else:
             data = LabelArray(
-                [['aa', 'a', 'a', None, 'b', 'a', None, 'c', 'b']],
+                [['a', 'a', None, 'b', 'a', None],
+                 ['b', 'a', 'c', 'b', 'b', 'b'],
+                 [None, 'a', 'aa', 'aa', 'aa', None],
+                 ['c', 'c', 'c', 'c', 'c', 'c']],
                 missing_value=None,
             )
 
         expected = np.array(
-            [[1, 3, 3, 2, 2, 3, 2, 1, 2]],
-            dtype=int64_dtype
+            [[3, 3, np.nan, 1, 3, np.nan],
+             [4, 1, 1, 4, 4, 4],
+             [np.nan, 1, 3, 3, 3, np.nan],
+             [6, 6, 6, 6, 6, 6]],
         )
 
         terms = {
