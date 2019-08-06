@@ -4,6 +4,7 @@ from numbers import Number
 from numpy import (
     arange,
     average,
+    copyto,
     exp,
     fmax,
     full,
@@ -27,7 +28,6 @@ from zipline.utils.math_utils import (
 from zipline.utils.numpy_utils import (
     float64_dtype,
     ignore_nanwarnings,
-    int64_dtype,
 )
 
 from .factor import CustomFactor
@@ -501,8 +501,6 @@ class PeerCount(SingleInputMixin, CustomFactor):
     **Default Window Length:** 1
     """
     window_length = 1
-    missing_value = -1
-    dtype = int64_dtype
 
     def _validate(self):
         super(PeerCount, self)._validate()
@@ -514,13 +512,15 @@ class PeerCount(SingleInputMixin, CustomFactor):
 
     def compute(self, today, assets, out, classifier_values):
         # Convert classifier array to group label int array
-        group_labels, _ = self.inputs[0]._to_integral(classifier_values[0])
+        group_labels, null_label = self.inputs[0]._to_integral(
+            classifier_values[0]
+        )
         _, inverse, counts = unique(  # Get counts, idx of unique groups
             group_labels,
             return_counts=True,
             return_inverse=True,
         )
-        out[:] = counts[inverse]
+        copyto(out, counts[inverse], where=(group_labels != null_label))
 
 
 # Convenience aliases
