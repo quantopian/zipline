@@ -1,6 +1,5 @@
 import abc
 from collections import OrderedDict
-from functools import total_ordering
 from itertools import repeat
 from textwrap import dedent
 from weakref import WeakKeyDictionary
@@ -266,7 +265,6 @@ class BoundColumn(LoadableTerm):
         return self.qualname
 
 
-@total_ordering
 class DataSetMeta(type):
     """
     Metaclass for DataSets
@@ -417,6 +415,11 @@ class DataSetMeta(type):
 
         return self.__name__ + specialization_key
 
+    # NOTE: We used to use `functools.total_ordering` to account for all of the
+    #       other rich comparison methods, but it has issues in python 3 and
+    #       this method is only used for test purposes, so for now we will just
+    #       keep this in isolation. If we ever need any of the other comparison
+    #       methods we will have to implement them individually.
     def __lt__(self, other):
         return id(self) < id(other)
 
