@@ -20,7 +20,7 @@ environment:
 
     PYTHON_ARCH: "64"
     PANDAS_VERSION: "0.18.1"
-    NUMPY_VERSION: "1.11.3"
+    NUMPY_VERSION: "1.15.0"
     SCIPY_VERSION: "0.17.1"
 
   matrix:
@@ -32,7 +32,7 @@ environment:
 
     - PYTHON_VERSION: "3.5"
       PANDAS_VERSION: "0.22.0"
-      NUMPY_VERSION: "1.14.1"
+      NUMPY_VERSION: "1.15.0"
       SCIPY_VERSION: "1.0.0"
       PANDAS_DATAREADER_VERSION: "0.4.0"
       DASK_VERSION: "0.17.1"
@@ -94,7 +94,7 @@ install:
   - ps: $env:PYTABLES_VERSION=(sls "tables==(.*)" .\etc\requirements.txt -ca).matches.groups[1].value
   - ps: $env:H5PY_VERSION=(sls "h5py==(.*)" .\etc\requirements.txt -ca).matches.groups[1].value
   - ps: $env:TALIB_VERSION=(sls "TA-Lib==(.*)" .\etc\requirements_talib.txt -ca).matches.groups[1].value
-  # We conda install certifi at the pinned exact version because it is a transitive dependency of zipline via requests and uses distutils for packaging. 
+  # We conda install certifi at the pinned exact version because it is a transitive dependency of zipline via requests and uses distutils for packaging.
   # Since conda installs latest certifi by default, we would fail to uninstall that new version when trying to install the pinned version using pip later in the build:
   # "Cannot uninstall 'certifi'. It is a distutils installed project and thus we cannot accurately determine which files belong to it which would lead to only a partial uninstall."
   - ps: $env:CERTIFI_VERSION=(sls "certifi==(.*)" .\etc\requirements.txt -ca).matches.groups[1].value
