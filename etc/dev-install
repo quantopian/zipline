@@ -9,8 +9,9 @@
 #
 # Forwards positional arguments to all invocations of pip install.
 
-set -euo pipefail  # Safety mode.
-# (Travis' env command doesn't permit options in the shebang line.)
+# Travis' env command doesn't permit options in the shebang line, so
+# set them here.
+set -euvxo pipefail
 
 echo
 echo "Installing zipline using $(which python)"
