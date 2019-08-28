@@ -13,7 +13,7 @@ argh==0.26.2              # via sphinx-autobuild, watchdog
 babel==2.6.0              # via sphinx
 backports-abc==0.5        # via tornado
 bcolz==1.2.1              # via -r etc/requirements.in
-bottleneck==1.0.0         # via -r etc/requirements.in, empyrical
+bottleneck==1.0.0         # via -r etc/requirements.in
 certifi==2018.8.24        # via requests
 chardet==3.0.4            # via requests
 click==7.0.0              # via -r etc/requirements.in, flask, pip-tools
@@ -28,7 +28,7 @@ cytoolz==0.8.2            # via -r etc/requirements_blaze.in
 dask[dataframe]==0.13.0   # via -r etc/requirements_blaze.in, blaze, odo
 decorator==4.0.0          # via networkx
 docutils==0.14            # via sphinx
-empyrical==0.5.0          # via -r etc/requirements.in
+empyrical==0.5.3          # via -r etc/requirements.in
 enum34==1.1.6             # via flake8
 flake8==3.6.0             # via -r etc/requirements_dev.in
 flask-cors==2.1.3         # via blaze
