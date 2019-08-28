@@ -49,15 +49,14 @@ matplotlib==1.5.3
 Markdown==2.6.2
 
 # Checking for old PIP packages
-futures==3.0.5
+futures==3.0.5;python_version<'3.0'
 requests-futures==0.9.7
 piprot==0.9.6
 
 # For mocking out requests fetches
 responses==0.9.0
 
-# Debugging
-pdbpp==0.9.1
-pyrepl==0.8.4;python_version<'3.0'
-fancycompleter==0.7
-wmctrl==0.3
+# Note: pdbpp is frequently very useful for development and debugging;
+# but not everyone likes it, and it applies nightmare-inducing sys.path
+# hacks during the site-packages discovery process, so it is no longer
+# included as a requirement. Install and use at your own risk.
