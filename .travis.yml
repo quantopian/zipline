@@ -1,5 +1,4 @@
 language: python
-dist: xenial  # required for Python >= 3.7
 fast_finish: true
 python:
   - 2.7
