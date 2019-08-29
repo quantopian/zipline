@@ -1016,7 +1016,7 @@ class DataPortal(object):
                     )
 
             # Set leading values for assets that were missing data, then ffill.
-            df.ix[0, assets_with_leading_nan] = np.array(
+            df.iloc[0, assets_with_leading_nan] = np.array(
                 initial_values,
                 dtype=np.float64
             )
