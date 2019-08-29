@@ -15,7 +15,7 @@
 from unittest import TestCase
 import pandas as pd
 
-from test_events import StatefulRulesTests, StatelessRulesTests, \
+from .test_events import StatefulRulesTests, StatelessRulesTests, \
     minutes_for_days
 from zipline.utils.events import AfterOpen
 

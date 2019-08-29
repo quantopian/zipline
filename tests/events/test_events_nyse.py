@@ -22,7 +22,7 @@ from zipline.utils.events import NDaysBeforeLastTradingDayOfWeek, AfterOpen, \
     BeforeClose
 from zipline.utils.events import NthTradingDayOfWeek
 
-from test_events import StatelessRulesTests, StatefulRulesTests, \
+from .test_events import StatelessRulesTests, StatefulRulesTests, \
     minutes_for_days
 
 T = partial(pd.Timestamp, tz='UTC')
