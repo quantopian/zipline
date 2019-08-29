@@ -573,7 +573,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
                     assert_equal(positions, {})
                     return
 
-                assert_equal(positions.keys(), [self.equity])
+                assert_equal(list(positions), [self.equity])
                 position = positions[self.equity]
                 assert_equal(position.last_sale_date, api.get_datetime())
                 assert_equal(position.amount, shares)
@@ -987,7 +987,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
                     assert_equal(positions, {})
                     return
 
-                assert_equal(positions.keys(), [self.future])
+                assert_equal(list(positions), [self.future])
                 position = positions[self.future]
                 assert_equal(position.last_sale_date, api.get_datetime())
                 assert_equal(position.amount, contracts)
@@ -1543,7 +1543,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
                     assert_equal(positions, {})
                     return
 
-                assert_equal(positions.keys(), [self.equity])
+                assert_equal(list(positions), [self.equity])
                 position = positions[self.equity]
                 assert_equal(position.last_sale_date, api.get_datetime())
                 assert_equal(position.amount, shares)
@@ -1959,7 +1959,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
                     assert_equal(positions, {})
                     return
 
-                assert_equal(positions.keys(), [self.future])
+                assert_equal(list(positions), [self.future])
                 position = positions[self.future]
                 assert_equal(position.last_sale_date, api.get_datetime())
                 assert_equal(position.amount, contracts)
