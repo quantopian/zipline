@@ -776,6 +776,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             pd.Series(
                 np.arange(len(self.closes)) + 1,
                 index=self.closes,
+                dtype=np.int64,
             ),
             check_names=False,
         )
@@ -1726,6 +1727,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             pd.Series(
                 np.arange(len(self.equity_closes)) + 1,
                 index=self.equity_closes,
+                dtype=np.int64,
             ),
             check_names=False,
         )
