@@ -149,7 +149,7 @@ Once you have your key, run the following from the command line:
 
 This will download asset pricing data data from `quandl`, and stream it through the algorithm
 over the specified time range. Then, the resulting performance DataFrame is saved in `dma.pickle`, which you
-can load an analyze from within Python.
+can load and analyze from within Python.
 
 You can find other examples in the ``zipline/examples`` directory.
 
