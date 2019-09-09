@@ -75,7 +75,7 @@ sqlalchemy==1.1.18
 # For asset db management
 alembic==0.7.7
 
-sortedcontainers==1.4.4
+sortedcontainers==2.1.0
 # for intervaltree
 intervaltree==2.1.0
 
