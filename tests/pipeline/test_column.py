@@ -1,11 +1,14 @@
 """
 Tests BoundColumn attributes and methods.
 """
+import operator
 from unittest import skipIf
 
+from nose_parameterized import parameterized
 from pandas import Timestamp, DataFrame
 from pandas.util.testing import assert_frame_equal
 
+from zipline.errors import BoundColumnInvalidCompare
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Pipeline
 from zipline.pipeline.data.testing import TestingDataSet as TDS
@@ -81,3 +84,20 @@ class LatestTestCase(WithSeededRandomPipelineEngine,
 
             expected_col_result = self.expected_latest(column, cal_slice)
             assert_frame_equal(col_result, expected_col_result)
+
+    @parameterized.expand([
+        (operator.gt,),
+        (operator.ge,),
+        (operator.lt,),
+        (operator.le,),
+    ])
+    def test_comparison_errors(self, compare):
+        columns = TDS.columns
+        for column in columns:
+            with self.assertRaises(BoundColumnInvalidCompare):
+                compare(column, 1000)
+
+            with self.assertRaises(BoundColumnInvalidCompare):
+                compare(column, 'test')
+
+            

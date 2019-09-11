@@ -858,3 +858,14 @@ class IncompatibleTerms(ZiplineError):
         "{term_1} and {term_2} must have the same mask in order to compute "
         "correlations and regressions asset-wise."
     )
+
+
+class BoundColumnInvalidCompare(ZiplineError):
+    """
+    Raised when trying to use BoundColumn with a comparison operator.  
+    Frequently occurs when users forget to use '.latest'.
+    """
+    msg = (
+        "Can't compare BoundColumn with {other}.  Did you mean to append "
+        ".latest?"
+    )

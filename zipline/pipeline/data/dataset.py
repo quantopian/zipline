@@ -10,6 +10,7 @@ from six import (
 )
 from toolz import first
 
+from zipline.errors import BoundColumnInvalidCompare
 from zipline.pipeline.classifiers import Classifier, Latest as LatestClassifier
 from zipline.pipeline.domain import Domain, GENERIC
 from zipline.pipeline.factors import Factor, Latest as LatestFactor
@@ -174,6 +175,18 @@ class BoundColumn(LoadableTerm):
             doc,
             frozenset(sorted(metadata.items(), key=first)),
         )
+    
+    def __gt__(self, other):
+        raise BoundColumnInvalidCompare(other=type(other))
+    
+    def __ge__(self, other):
+        raise BoundColumnInvalidCompare(other=type(other))
+    
+    def __lt__(self, other):
+        raise BoundColumnInvalidCompare(other=type(other))
+    
+    def __le__(self, other):
+        raise BoundColumnInvalidCompare(other=type(other))
 
     def specialize(self, domain):
         """Specialize ``self`` to a concrete domain.
