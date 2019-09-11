@@ -866,6 +866,6 @@ class BoundColumnInvalidCompare(ZiplineError):
     Frequently occurs when users forget to use '.latest'.
     """
     msg = (
-        "Can't compare BoundColumn with {other}.  Did you mean to append "
+        "Can't compare {column!s} with {other.__class__}.  Did you mean to append "
         ".latest?"
     )

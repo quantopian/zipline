@@ -177,16 +177,16 @@ class BoundColumn(LoadableTerm):
         )
 
     def __gt__(self, other):
-        raise BoundColumnInvalidCompare(other=type(other))
+        raise BoundColumnInvalidCompare(column=self, other=other)
 
     def __ge__(self, other):
-        raise BoundColumnInvalidCompare(other=type(other))
+        raise BoundColumnInvalidCompare(column=self, other=other)
 
     def __lt__(self, other):
-        raise BoundColumnInvalidCompare(other=type(other))
+        raise BoundColumnInvalidCompare(column=self, other=other)
 
     def __le__(self, other):
-        raise BoundColumnInvalidCompare(other=type(other))
+        raise BoundColumnInvalidCompare(column=self, other=other)
 
     def specialize(self, domain):
         """Specialize ``self`` to a concrete domain.
