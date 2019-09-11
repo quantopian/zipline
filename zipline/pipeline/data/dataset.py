@@ -175,16 +175,16 @@ class BoundColumn(LoadableTerm):
             doc,
             frozenset(sorted(metadata.items(), key=first)),
         )
-    
+
     def __gt__(self, other):
         raise BoundColumnInvalidCompare(other=type(other))
-    
+
     def __ge__(self, other):
         raise BoundColumnInvalidCompare(other=type(other))
-    
+
     def __lt__(self, other):
         raise BoundColumnInvalidCompare(other=type(other))
-    
+
     def __le__(self, other):
         raise BoundColumnInvalidCompare(other=type(other))
 

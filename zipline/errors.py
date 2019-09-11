@@ -862,7 +862,7 @@ class IncompatibleTerms(ZiplineError):
 
 class BoundColumnInvalidCompare(ZiplineError):
     """
-    Raised when trying to use BoundColumn with a comparison operator.  
+    Raised when trying to use BoundColumn with a comparison operator.
     Frequently occurs when users forget to use '.latest'.
     """
     msg = (

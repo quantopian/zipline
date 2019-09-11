@@ -99,5 +99,3 @@ class LatestTestCase(WithSeededRandomPipelineEngine,
 
             with self.assertRaises(BoundColumnInvalidCompare):
                 compare(column, 'test')
-
-            
