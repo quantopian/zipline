@@ -8,7 +8,6 @@ from nose_parameterized import parameterized
 from pandas import Timestamp, DataFrame
 from pandas.util.testing import assert_frame_equal
 
-from zipline.errors import BoundColumnInvalidCompare
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Pipeline
 from zipline.pipeline.data.testing import TestingDataSet as TDS
@@ -91,11 +90,24 @@ class LatestTestCase(WithSeededRandomPipelineEngine,
         (operator.lt,),
         (operator.le,),
     ])
-    def test_comparison_errors(self, compare):
+    def test_comparison_errors(self, op):
         columns = TDS.columns
-        for column in columns:
-            with self.assertRaises(BoundColumnInvalidCompare):
-                compare(column, 1000)
 
-            with self.assertRaises(BoundColumnInvalidCompare):
-                compare(column, 'test')
+        def get_error_msg(op, compare_type):
+            return (
+                "'{op}' not supported between instance of "
+                "'{compare_type}' and '.*'. "
+                "Did you mean use '.latest' with '.*'?"
+            ).format(op=op, compare_type=compare_type)
+
+        ops = {'gt': '>', 'ge': '>=', 'lt': '<', 'le': '<='}
+
+        for column in columns:
+            int_err_msg = get_error_msg(ops[op.__name__], 'int')
+            str_err_msg = get_error_msg(ops[op.__name__], 'str')
+
+            with self.assertRaisesRegexp(TypeError, int_err_msg):
+                op(column, 1000)
+
+            with self.assertRaisesRegexp(TypeError, str_err_msg):
+                op(column, 'test')

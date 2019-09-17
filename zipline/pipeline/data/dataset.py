@@ -10,7 +10,6 @@ from six import (
 )
 from toolz import first
 
-from zipline.errors import BoundColumnInvalidCompare
 from zipline.pipeline.classifiers import Classifier, Latest as LatestClassifier
 from zipline.pipeline.domain import Domain, GENERIC
 from zipline.pipeline.factors import Factor, Latest as LatestFactor
@@ -176,17 +175,24 @@ class BoundColumn(LoadableTerm):
             frozenset(sorted(metadata.items(), key=first)),
         )
 
+    def compare_error_msg(self, op, other):
+        return (
+            "'{op}' not supported between instance of "
+            "'{other.__class__.__name__}' and '{column}'. "
+            "Did you mean use '.latest' with '{column}'?"
+        ).format(op=op, other=other, column=self)
+
     def __gt__(self, other):
-        raise BoundColumnInvalidCompare(column=self, other=other)
+        raise TypeError(self.compare_error_msg(op='>', other=other))
 
     def __ge__(self, other):
-        raise BoundColumnInvalidCompare(column=self, other=other)
+        raise TypeError(self.compare_error_msg(op='>=', other=other))
 
     def __lt__(self, other):
-        raise BoundColumnInvalidCompare(column=self, other=other)
+        raise TypeError(self.compare_error_msg(op='<', other=other))
 
     def __le__(self, other):
-        raise BoundColumnInvalidCompare(column=self, other=other)
+        raise TypeError(self.compare_error_msg(op='<=', other=other))
 
     def specialize(self, domain):
         """Specialize ``self`` to a concrete domain.
