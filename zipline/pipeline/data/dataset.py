@@ -178,7 +178,7 @@ class BoundColumn(LoadableTerm):
     _compare_error_msg = (
         "'{op}' not supported between instance of "
         "'{other.__class__.__name__}' and '{column.qualname}'. "
-        "Did you mean use '{column.qualname}.latest'?"
+        "Did you mean to use '{column.qualname}.latest'?"
     )
 
     def __gt__(self, other):

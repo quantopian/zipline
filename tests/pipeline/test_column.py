@@ -112,11 +112,11 @@ class LatestTestCase(WithSeededRandomPipelineEngine,
 
         with self.assertRaises(TypeError) as e:
             column < 1000
-            self.assertEqual(str(e), err_msg)
+        self.assertEqual(str(e.exception), err_msg)
 
         with self.assertRaises(TypeError) as e:
-            1000 < column
-            self.assertEqual(str(e), err_msg)
+            1000 > column
+        self.assertEqual(str(e.exception), err_msg)
 
         try:
             column.latest < 1000
