@@ -175,6 +175,12 @@ class BoundColumn(LoadableTerm):
             frozenset(sorted(metadata.items(), key=first)),
         )
 
+    def __lt__(self, other):
+        msg = "Can't compare '{}' with '{}'. (Did you mean to use '.latest'?)"
+        raise TypeError(msg.format(self.qualname, other.__class__.__name__))
+
+    __gt__ = __le__ = __ge__ = __lt__
+
     def specialize(self, domain):
         """Specialize ``self`` to a concrete domain.
         """

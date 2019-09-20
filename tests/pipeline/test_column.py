@@ -1,13 +1,16 @@
 """
 Tests BoundColumn attributes and methods.
 """
+import operator
 from unittest import skipIf
 
+from nose_parameterized import parameterized
 from pandas import Timestamp, DataFrame
 from pandas.util.testing import assert_frame_equal
 
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Pipeline
+from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.data.testing import TestingDataSet as TDS
 from zipline.pipeline.domain import US_EQUITIES
 from zipline.testing.fixtures import (
@@ -81,3 +84,36 @@ class LatestTestCase(WithSeededRandomPipelineEngine,
 
             expected_col_result = self.expected_latest(column, cal_slice)
             assert_frame_equal(col_result, expected_col_result)
+
+    @parameterized.expand([
+        (operator.gt,),
+        (operator.ge,),
+        (operator.lt,),
+        (operator.le,),
+    ])
+    def test_comparison_errors(self, op):
+        for column in TDS.columns:
+            with self.assertRaises(TypeError):
+                op(column, 1000)
+            with self.assertRaises(TypeError):
+                op(1000, column)
+            with self.assertRaises(TypeError):
+                op(column, 'test')
+            with self.assertRaises(TypeError):
+                op('test', column)
+
+    def test_comparison_error_message(self):
+        column = USEquityPricing.volume
+        err_msg = (
+            "Can't compare 'EquityPricing<US>.volume' with 'int'."
+            " (Did you mean to use '.latest'?)"
+        )
+
+        with self.assertRaises(TypeError) as e:
+            column < 1000
+        self.assertEqual(str(e.exception), err_msg)
+
+        try:
+            column.latest < 1000
+        except TypeError:
+            self.fail()
