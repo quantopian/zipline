@@ -175,24 +175,31 @@ class BoundColumn(LoadableTerm):
             frozenset(sorted(metadata.items(), key=first)),
         )
 
-    def compare_error_msg(self, op, other):
-        return (
-            "'{op}' not supported between instance of "
-            "'{other.__class__.__name__}' and '{column}'. "
-            "Did you mean use '.latest' with '{column}'?"
-        ).format(op=op, other=other, column=self)
+    _compare_error_msg = (
+        "'{op}' not supported between instance of "
+        "'{other.__class__.__name__}' and '{column.qualname}'. "
+        "Did you mean use '{column.qualname}.latest'?"
+    )
 
     def __gt__(self, other):
-        raise TypeError(self.compare_error_msg(op='>', other=other))
+        raise TypeError(
+            self._compare_error_msg.format(op='>', other=other, column=self)
+        )
 
     def __ge__(self, other):
-        raise TypeError(self.compare_error_msg(op='>=', other=other))
+        raise TypeError(
+            self._compare_error_msg.format(op='>=', other=other, column=self)
+        )
 
     def __lt__(self, other):
-        raise TypeError(self.compare_error_msg(op='<', other=other))
+        raise TypeError(
+            self._compare_error_msg.format(op='<', other=other, column=self)
+        )
 
     def __le__(self, other):
-        raise TypeError(self.compare_error_msg(op='<=', other=other))
+        raise TypeError(
+            self._compare_error_msg.format(op='<=', other=other, column=self)
+        )
 
     def specialize(self, domain):
         """Specialize ``self`` to a concrete domain.

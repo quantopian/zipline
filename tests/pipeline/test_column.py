@@ -10,6 +10,7 @@ from pandas.util.testing import assert_frame_equal
 
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Pipeline
+from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.data.testing import TestingDataSet as TDS
 from zipline.pipeline.domain import US_EQUITIES
 from zipline.testing.fixtures import (
@@ -91,23 +92,33 @@ class LatestTestCase(WithSeededRandomPipelineEngine,
         (operator.le,),
     ])
     def test_comparison_errors(self, op):
-        columns = TDS.columns
-
-        def get_error_msg(op, compare_type):
-            return (
-                "'{op}' not supported between instance of "
-                "'{compare_type}' and '.*'. "
-                "Did you mean use '.latest' with '.*'?"
-            ).format(op=op, compare_type=compare_type)
-
-        ops = {'gt': '>', 'ge': '>=', 'lt': '<', 'le': '<='}
-
-        for column in columns:
-            int_err_msg = get_error_msg(ops[op.__name__], 'int')
-            str_err_msg = get_error_msg(ops[op.__name__], 'str')
-
-            with self.assertRaisesRegexp(TypeError, int_err_msg):
+        for column in TDS.columns:
+            with self.assertRaises(TypeError):
                 op(column, 1000)
-
-            with self.assertRaisesRegexp(TypeError, str_err_msg):
+            with self.assertRaises(TypeError):
+                op(1000, column)
+            with self.assertRaises(TypeError):
                 op(column, 'test')
+            with self.assertRaises(TypeError):
+                op('test', column)
+
+    def test_comparison_error_message(self):
+        column = USEquityPricing.volume
+        err_msg = (
+            "'<' not supported between instance of"
+            " 'int' and 'EquityPricing<US>.volume'."
+            " Did you mean to use 'EquityPricing<US>.volume.latest'?"
+        )
+
+        with self.assertRaises(TypeError) as e:
+            column < 1000
+            self.assertEqual(str(e), err_msg)
+
+        with self.assertRaises(TypeError) as e:
+            1000 < column
+            self.assertEqual(str(e), err_msg)
+
+        try:
+            column.latest < 1000
+        except Exception:
+            self.fail()
