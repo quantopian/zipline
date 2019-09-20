@@ -105,20 +105,15 @@ class LatestTestCase(WithSeededRandomPipelineEngine,
     def test_comparison_error_message(self):
         column = USEquityPricing.volume
         err_msg = (
-            "'<' not supported between instance of"
-            " 'int' and 'EquityPricing<US>.volume'."
-            " Did you mean to use 'EquityPricing<US>.volume.latest'?"
+            "Can't compare 'EquityPricing<US>.volume' with 'int'."
+            " (Did you mean to use '.latest'?)"
         )
 
         with self.assertRaises(TypeError) as e:
             column < 1000
         self.assertEqual(str(e.exception), err_msg)
 
-        with self.assertRaises(TypeError) as e:
-            1000 > column
-        self.assertEqual(str(e.exception), err_msg)
-
         try:
             column.latest < 1000
-        except Exception:
+        except TypeError:
             self.fail()

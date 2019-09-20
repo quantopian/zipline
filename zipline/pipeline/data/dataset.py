@@ -175,31 +175,11 @@ class BoundColumn(LoadableTerm):
             frozenset(sorted(metadata.items(), key=first)),
         )
 
-    _compare_error_msg = (
-        "'{op}' not supported between instance of "
-        "'{other.__class__.__name__}' and '{column.qualname}'. "
-        "Did you mean to use '{column.qualname}.latest'?"
-    )
-
-    def __gt__(self, other):
-        raise TypeError(
-            self._compare_error_msg.format(op='>', other=other, column=self)
-        )
-
-    def __ge__(self, other):
-        raise TypeError(
-            self._compare_error_msg.format(op='>=', other=other, column=self)
-        )
-
     def __lt__(self, other):
-        raise TypeError(
-            self._compare_error_msg.format(op='<', other=other, column=self)
-        )
+        msg = "Can't compare '{}' with '{}'. (Did you mean to use '.latest'?)"
+        raise TypeError(msg.format(self.qualname, other.__class__.__name__))
 
-    def __le__(self, other):
-        raise TypeError(
-            self._compare_error_msg.format(op='<=', other=other, column=self)
-        )
+    __gt__ = __le__ = __ge__ = __lt__
 
     def specialize(self, domain):
         """Specialize ``self`` to a concrete domain.
