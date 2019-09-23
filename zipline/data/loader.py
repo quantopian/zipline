@@ -213,7 +213,7 @@ def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day,
     )
 
     try:
-        data = get_benchmark_returns(symbol)
+        data = get_benchmark_returns(symbol, first_date, last_date)
         data.to_csv(get_data_filepath(filename, environ))
     except (OSError, IOError, HTTPError):
         logger.exception('Failed to cache the new benchmark returns')
