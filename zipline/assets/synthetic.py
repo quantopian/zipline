@@ -3,7 +3,6 @@ from string import ascii_uppercase
 
 import pandas as pd
 from pandas.tseries.offsets import MonthBegin
-from six import iteritems
 
 from .futures import CMES_CODE_TO_MONTH
 
@@ -255,13 +254,14 @@ def make_future_info(first_sid,
     year_strs = list(map(str, years))
     years = [pd.Timestamp(s, tz='UTC') for s in year_strs]
 
-    # Pairs of string/date like ('K06', 2006-05-01)
+    # Pairs of string/date like ('K06', 2006-05-01) sorted by year/month
+    # `MonthBegin(month_num - 1)` since the year already starts at month 1.
     contract_suffix_to_beginning_of_month = tuple(
-        (month_code + year_str[-2:], year + MonthBegin(month_num))
+        (month_code + year_str[-2:], year + MonthBegin(month_num - 1))
         for ((year, year_str), (month_code, month_num))
         in product(
             zip(years, year_strs),
-            iteritems(month_codes),
+            sorted(list(month_codes.items()), key=lambda item: item[1]),
         )
     )
 
@@ -274,7 +274,7 @@ def make_future_info(first_sid,
             'symbol': root_sym + suffix,
             'start_date': start_date_func(month_begin),
             'notice_date': notice_date_func(month_begin),
-            'expiration_date': notice_date_func(month_begin),
+            'expiration_date': expiration_date_func(month_begin),
             'multiplier': multiplier,
             'exchange': "TEST",
         })
