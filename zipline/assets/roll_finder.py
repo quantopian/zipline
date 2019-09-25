@@ -156,11 +156,10 @@ class CalendarRollFinder(RollFinder):
 
 class VolumeRollFinder(RollFinder):
     """
-    The CalendarRollFinder calculates contract rolls based on when
+    The VolumeRollFinder calculates contract rolls based on when
     volume activity transfers from one contract to another.
     """
     GRACE_DAYS = 7
-    THRESHOLD = 0.10
 
     def __init__(self, trading_calendar, asset_finder, session_reader):
         self.trading_calendar = trading_calendar
