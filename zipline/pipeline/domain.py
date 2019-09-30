@@ -220,7 +220,10 @@ BE_EQUITIES = EquityCalendarDomain(CountryCode.BELGIUM, 'XBRU')
 BR_EQUITIES = EquityCalendarDomain(CountryCode.BRAZIL, 'BVMF')
 CA_EQUITIES = EquityCalendarDomain(CountryCode.CANADA, 'XTSE')
 CH_EQUITIES = EquityCalendarDomain(CountryCode.SWITZERLAND, 'XSWX')
+CL_EQUITIES = EquityCalendarDomain(CountryCode.CHILE, 'XSGO')
 CN_EQUITIES = EquityCalendarDomain(CountryCode.CHINA, 'XSHG')
+CO_EQUITIES = EquityCalendarDomain(CountryCode.COLOMBIA, 'XBOG')
+CZ_EQUITIES = EquityCalendarDomain(CountryCode.CZECH_REPUBLIC, 'XPRA')
 DE_EQUITIES = EquityCalendarDomain(CountryCode.GERMANY, 'XFRA')
 DK_EQUITIES = EquityCalendarDomain(CountryCode.DENMARK, 'XCSE')
 ES_EQUITIES = EquityCalendarDomain(CountryCode.SPAIN, 'XMAD')
@@ -233,9 +236,12 @@ IN_EQUITIES = EquityCalendarDomain(CountryCode.INDIA, "XBOM")
 IT_EQUITIES = EquityCalendarDomain(CountryCode.ITALY, 'XMIL')
 JP_EQUITIES = EquityCalendarDomain(CountryCode.JAPAN, 'XTKS')
 KR_EQUITIES = EquityCalendarDomain(CountryCode.SOUTH_KOREA, 'XKRX')
+MX_EQUITIES = EquityCalendarDomain(CountryCode.MEXICO, 'XMEX')
 NL_EQUITIES = EquityCalendarDomain(CountryCode.NETHERLANDS, 'XAMS')
 NO_EQUITIES = EquityCalendarDomain(CountryCode.NORWAY, 'XOSL')
 NZ_EQUITIES = EquityCalendarDomain(CountryCode.NEW_ZEALAND, 'XNZE')
+PE_EQUITIES = EquityCalendarDomain(CountryCode.PERU, 'XLIM')
+PL_EQUITIES = EquityCalendarDomain(CountryCode.POLAND, 'XWAR')
 PT_EQUITIES = EquityCalendarDomain(CountryCode.PORTUGAL, 'XLIS')
 SE_EQUITIES = EquityCalendarDomain(CountryCode.SWEDEN, 'XSTO')
 SG_EQUITIES = EquityCalendarDomain(CountryCode.SINGAPORE, 'XSES')
@@ -248,7 +254,10 @@ BUILT_IN_DOMAINS = [
     BR_EQUITIES,
     CA_EQUITIES,
     CH_EQUITIES,
+    CL_EQUITIES,
     CN_EQUITIES,
+    CO_EQUITIES,
+    CZ_EQUITIES,
     DE_EQUITIES,
     DK_EQUITIES,
     ES_EQUITIES,
@@ -261,9 +270,12 @@ BUILT_IN_DOMAINS = [
     IT_EQUITIES,
     JP_EQUITIES,
     KR_EQUITIES,
+    MX_EQUITIES,
     NL_EQUITIES,
     NO_EQUITIES,
     NZ_EQUITIES,
+    PE_EQUITIES,
+    PL_EQUITIES,
     PT_EQUITIES,
     SE_EQUITIES,
     SG_EQUITIES,
