@@ -230,7 +230,9 @@ ES_EQUITIES = EquityCalendarDomain(CountryCode.SPAIN, 'XMAD')
 FI_EQUITIES = EquityCalendarDomain(CountryCode.FINLAND, 'XHEL')
 FR_EQUITIES = EquityCalendarDomain(CountryCode.FRANCE, 'XPAR')
 GB_EQUITIES = EquityCalendarDomain(CountryCode.UNITED_KINGDOM, 'XLON')
+GR_EQUITIES = EquityCalendarDomain(CountryCode.GREECE, 'ASEX')
 HK_EQUITIES = EquityCalendarDomain(CountryCode.HONG_KONG, 'XHKG')
+HU_EQUITIES = EquityCalendarDomain(CountryCode.HUNGARY, 'XBUD')
 IE_EQUITIES = EquityCalendarDomain(CountryCode.IRELAND, 'XDUB')
 IN_EQUITIES = EquityCalendarDomain(CountryCode.INDIA, "XBOM")
 IT_EQUITIES = EquityCalendarDomain(CountryCode.ITALY, 'XMIL')
@@ -245,7 +247,9 @@ PL_EQUITIES = EquityCalendarDomain(CountryCode.POLAND, 'XWAR')
 PT_EQUITIES = EquityCalendarDomain(CountryCode.PORTUGAL, 'XLIS')
 SE_EQUITIES = EquityCalendarDomain(CountryCode.SWEDEN, 'XSTO')
 SG_EQUITIES = EquityCalendarDomain(CountryCode.SINGAPORE, 'XSES')
+TR_EQUITIES = EquityCalendarDomain(CountryCode.TURKEY, 'XIST')
 US_EQUITIES = EquityCalendarDomain(CountryCode.UNITED_STATES, 'XNYS')
+ZA_EQUITIES = EquityCalendarDomain(CountryCode.SOUTH_AFRICA, 'XJSE')
 
 BUILT_IN_DOMAINS = [
     AT_EQUITIES,
@@ -264,7 +268,9 @@ BUILT_IN_DOMAINS = [
     FI_EQUITIES,
     FR_EQUITIES,
     GB_EQUITIES,
+    GR_EQUITIES,
     HK_EQUITIES,
+    HU_EQUITIES,
     IE_EQUITIES,
     IN_EQUITIES,
     IT_EQUITIES,
@@ -279,7 +285,9 @@ BUILT_IN_DOMAINS = [
     PT_EQUITIES,
     SE_EQUITIES,
     SG_EQUITIES,
+    TR_EQUITIES,
     US_EQUITIES,
+    ZA_EQUITIES,
 ]
 
 
