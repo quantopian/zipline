@@ -23,7 +23,9 @@ class CountryCode(object):
     FINLAND = code('FINLAND')
     FRANCE = code('FRANCE')
     GERMANY = code('GERMANY')
+    GREECE = code('GREECE')
     HONG_KONG = code('HONG KONG')
+    HUNGARY = code('HUNGARY')
     INDIA = code('INDIA')
     IRELAND = code('IRELAND')
     ISRAEL = code('ISRAEL')
@@ -37,10 +39,12 @@ class CountryCode(object):
     POLAND = code('POLAND')
     PORTUGAL = code('PORTUGAL')
     SINGAPORE = code('SINGAPORE')
+    SOUTH_AFRICA = code('SOUTH AFRICA')
     SOUTH_KOREA = code('KOREA, REPUBLIC OF')
     SPAIN = code('SPAIN')
     SWEDEN = code('SWEDEN')
     SWITZERLAND = code('SWITZERLAND')
+    TURKEY = code('TURKEY')
     UNITED_KINGDOM = code(
         'UNITED KINGDOM OF GREAT BRITAIN AND NORTHERN IRELAND'
     )

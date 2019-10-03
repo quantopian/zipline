@@ -32,7 +32,9 @@ from zipline.pipeline.domain import (
     FR_EQUITIES,
     GB_EQUITIES,
     GENERIC,
+    GR_EQUITIES,
     HK_EQUITIES,
+    HU_EQUITIES,
     IE_EQUITIES,
     IN_EQUITIES,
     infer_domain,
@@ -48,7 +50,9 @@ from zipline.pipeline.domain import (
     PT_EQUITIES,
     SE_EQUITIES,
     SG_EQUITIES,
+    TR_EQUITIES,
     US_EQUITIES,
+    ZA_EQUITIES,
 )
 from zipline.pipeline.factors import CustomFactor
 import zipline.testing.fixtures as zf
@@ -365,7 +369,9 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
             FI_EQUITIES: datetime.time(9, 15),
             FR_EQUITIES: datetime.time(8, 15),
             GB_EQUITIES: datetime.time(7, 15),
+            GR_EQUITIES: datetime.time(9, 15),
             HK_EQUITIES: datetime.time(9, 15),
+            HU_EQUITIES: datetime.time(8, 15),
             IE_EQUITIES: datetime.time(7, 15),
             IN_EQUITIES: datetime.time(8, 30),
             IT_EQUITIES: datetime.time(8, 15),
@@ -380,7 +386,9 @@ class DataQueryCutoffForSessionTestCase(zf.ZiplineTestCase):
             PT_EQUITIES: datetime.time(7, 15),
             SE_EQUITIES: datetime.time(8, 15),
             SG_EQUITIES: datetime.time(8, 15),
+            TR_EQUITIES: datetime.time(9, 15),
             US_EQUITIES: datetime.time(8, 45),
+            ZA_EQUITIES: datetime.time(8, 15),
         }
 
         # make sure we are not missing any domains in this test
