@@ -214,6 +214,7 @@ class EquityCalendarDomain(Domain):
         )
 
 
+AR_EQUITIES = EquityCalendarDomain(CountryCode.ARGENTINA, 'XBUE')
 AT_EQUITIES = EquityCalendarDomain(CountryCode.AUSTRIA, 'XWBO')
 AU_EQUITIES = EquityCalendarDomain(CountryCode.AUSTRALIA, 'XASX')
 BE_EQUITIES = EquityCalendarDomain(CountryCode.BELGIUM, 'XBRU')
@@ -233,25 +234,33 @@ GB_EQUITIES = EquityCalendarDomain(CountryCode.UNITED_KINGDOM, 'XLON')
 GR_EQUITIES = EquityCalendarDomain(CountryCode.GREECE, 'ASEX')
 HK_EQUITIES = EquityCalendarDomain(CountryCode.HONG_KONG, 'XHKG')
 HU_EQUITIES = EquityCalendarDomain(CountryCode.HUNGARY, 'XBUD')
+ID_EQUITIES = EquityCalendarDomain(CountryCode.INDONESIA, 'XIDX')
 IE_EQUITIES = EquityCalendarDomain(CountryCode.IRELAND, 'XDUB')
 IN_EQUITIES = EquityCalendarDomain(CountryCode.INDIA, "XBOM")
 IT_EQUITIES = EquityCalendarDomain(CountryCode.ITALY, 'XMIL')
 JP_EQUITIES = EquityCalendarDomain(CountryCode.JAPAN, 'XTKS')
 KR_EQUITIES = EquityCalendarDomain(CountryCode.SOUTH_KOREA, 'XKRX')
 MX_EQUITIES = EquityCalendarDomain(CountryCode.MEXICO, 'XMEX')
+MY_EQUITIES = EquityCalendarDomain(CountryCode.MALAYSIA, 'XKLS')
 NL_EQUITIES = EquityCalendarDomain(CountryCode.NETHERLANDS, 'XAMS')
 NO_EQUITIES = EquityCalendarDomain(CountryCode.NORWAY, 'XOSL')
 NZ_EQUITIES = EquityCalendarDomain(CountryCode.NEW_ZEALAND, 'XNZE')
 PE_EQUITIES = EquityCalendarDomain(CountryCode.PERU, 'XLIM')
+PH_EQUITIES = EquityCalendarDomain(CountryCode.PHILIPPINES, 'XPHS')
+PK_EQUITIES = EquityCalendarDomain(CountryCode.PAKISTAN, 'XKAR')
 PL_EQUITIES = EquityCalendarDomain(CountryCode.POLAND, 'XWAR')
 PT_EQUITIES = EquityCalendarDomain(CountryCode.PORTUGAL, 'XLIS')
+RU_EQUITIES = EquityCalendarDomain(CountryCode.RUSSIA, 'XMOS')
 SE_EQUITIES = EquityCalendarDomain(CountryCode.SWEDEN, 'XSTO')
 SG_EQUITIES = EquityCalendarDomain(CountryCode.SINGAPORE, 'XSES')
+TH_EQUITIES = EquityCalendarDomain(CountryCode.THAILAND, 'XBKK')
 TR_EQUITIES = EquityCalendarDomain(CountryCode.TURKEY, 'XIST')
+TW_EQUITIES = EquityCalendarDomain(CountryCode.TAIWAN, 'XTAI')
 US_EQUITIES = EquityCalendarDomain(CountryCode.UNITED_STATES, 'XNYS')
 ZA_EQUITIES = EquityCalendarDomain(CountryCode.SOUTH_AFRICA, 'XJSE')
 
 BUILT_IN_DOMAINS = [
+    AR_EQUITIES,
     AT_EQUITIES,
     AU_EQUITIES,
     BE_EQUITIES,
@@ -271,21 +280,28 @@ BUILT_IN_DOMAINS = [
     GR_EQUITIES,
     HK_EQUITIES,
     HU_EQUITIES,
+    ID_EQUITIES,
     IE_EQUITIES,
     IN_EQUITIES,
     IT_EQUITIES,
     JP_EQUITIES,
     KR_EQUITIES,
     MX_EQUITIES,
+    MY_EQUITIES,
     NL_EQUITIES,
     NO_EQUITIES,
     NZ_EQUITIES,
     PE_EQUITIES,
+    PH_EQUITIES,
+    PK_EQUITIES,
     PL_EQUITIES,
     PT_EQUITIES,
+    RU_EQUITIES,
     SE_EQUITIES,
     SG_EQUITIES,
+    TH_EQUITIES,
     TR_EQUITIES,
+    TW_EQUITIES,
     US_EQUITIES,
     ZA_EQUITIES,
 ]
