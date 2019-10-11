@@ -120,6 +120,16 @@ If you are looking to start working with the Zipline codebase, navigate to the G
 
 Feel free to ask questions on the `mailing list <https://groups.google.com/forum/#!forum/zipline>`_ or on `Gitter <https://gitter.im/quantopian/zipline>`_.
 
+.. note::
+
+   Please note that Zipline is not a community-led project. Zipline is
+   maintained by the Quantopian engineering team, and we are quite small and
+   often busy.
+
+   Because of this, we want to warn you that we may not attend to your pull
+   request, issue, or direct mention in months, or even years. We hope you
+   understand, and we hope that this note might help reduce any frustration or
+   wasted time.
 
 
 .. |Gitter| image:: https://badges.gitter.im/Join%20Chat.svg
