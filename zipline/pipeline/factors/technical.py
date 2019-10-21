@@ -44,7 +44,7 @@ class RSI(SingleInputMixin, CustomFactor):
     """
     Relative Strength Index
 
-    **Default Inputs**: [EquityPricing.close]
+    **Default Inputs**: :data:`zipline.pipeline.data.EquityPricing.close`
 
     **Default Window Length**: 15
     """
@@ -96,16 +96,17 @@ class BollingerBands(CustomFactor):
 class Aroon(CustomFactor):
     """
     Aroon technical indicator.
-    https://www.fidelity.com/learning-center/trading-investing/technical-analysis/technical-indicator-guide/aroon-indicator  # noqa
+    https://www.fidelity.com/learning-center/trading-investing/technical-analysis/technical-indicator-guide/aroon-indicator
 
-    **Defaults Inputs:** EquityPricing.low, EquityPricing.high
+    **Defaults Inputs:** :data:`zipline.pipeline.data.EquityPricing.low`, \
+                         :data:`zipline.pipeline.data.EquityPricing.high`
 
     Parameters
     ----------
     window_length : int > 0
         Length of the lookback window over which to compute the Aroon
         indicator.
-    """
+    """ # noqa
 
     inputs = (EquityPricing.low, EquityPricing.high)
     outputs = ('down', 'up')
@@ -141,9 +142,9 @@ class FastStochasticOscillator(CustomFactor):
     market analysis. It is recommended to use the slow stochastic oscillator
     or a moving average of the %K [%D].
 
-    **Default Inputs:** :data: `zipline.pipeline.data.EquityPricing.close`
-                        :data: `zipline.pipeline.data.EquityPricing.low`
-                        :data: `zipline.pipeline.data.EquityPricing.high`
+    **Default Inputs:** :data:`zipline.pipeline.data.EquityPricing.close`, \
+                        :data:`zipline.pipeline.data.EquityPricing.low`, \
+                        :data:`zipline.pipeline.data.EquityPricing.high`
 
     **Default Window Length:** 14
 
@@ -175,11 +176,12 @@ class FastStochasticOscillator(CustomFactor):
 
 class IchimokuKinkoHyo(CustomFactor):
     """Compute the various metrics for the Ichimoku Kinko Hyo (Ichimoku Cloud).
-    http://stockcharts.com/school/doku.php?id=chart_school:technical_indicators:ichimoku_cloud  # noqa
+    http://stockcharts.com/school/doku.php?id=chart_school:technical_indicators:ichimoku_cloud
 
-    **Default Inputs:** :data:`zipline.pipeline.data.EquityPricing.high`
-                        :data:`zipline.pipeline.data.EquityPricing.low`
+    **Default Inputs:** :data:`zipline.pipeline.data.EquityPricing.high`, \
+                        :data:`zipline.pipeline.data.EquityPricing.low`, \
                         :data:`zipline.pipeline.data.EquityPricing.close`
+
     **Default Window Length:** 52
 
     Parameters
@@ -192,7 +194,7 @@ class IchimokuKinkoHyo(CustomFactor):
         The length of the window for the kijou-sen.
     chikou_span_length : int >= 0, <= window_length
         The lag for the chikou span.
-    """
+    """ # noqa
 
     params = {
         'tenkan_sen_length': 9,
@@ -273,9 +275,10 @@ class TrueRange(CustomFactor):
     A technical indicator originally developed by J. Welles Wilder, Jr.
     Indicates the true degree of daily price change in an underlying.
 
-    **Default Inputs:** :data:`zipline.pipeline.data.EquityPricing.high`
-                        :data:`zipline.pipeline.data.EquityPricing.low`
+    **Default Inputs:** :data:`zipline.pipeline.data.EquityPricing.high`, \
+                        :data:`zipline.pipeline.data.EquityPricing.low`, \
                         :data:`zipline.pipeline.data.EquityPricing.close`
+
     **Default Window Length:** 2
     """
     inputs = (
