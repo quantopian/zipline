@@ -14,8 +14,8 @@
 
 Zipline is a Pythonic algorithmic trading library. It is an event-driven
 system for backtesting. Zipline is currently used in production as the backtesting and live-trading
-engine powering `Quantopian <https://www.quantopian.com>`_ -- a free,
-community-centered, hosted platform for building and executing trading
+the engine powering `Quantopian <https://www.quantopian.com>`_ -- a free,
+the community-centered, hosted platform for building and executing trading
 strategies.
 
 - `Join our Community! <https://groups.google.com/forum/#!forum/zipline>`_
@@ -28,8 +28,7 @@ Features
 - **Ease of Use:** Zipline tries to get out of your way so that you can
   focus on algorithm development. See below for a code example.
 - **"Batteries Included":** many common statistics like
-  moving average and linear regression can be readily accessed from
-  within a user-written algorithm.
+  moving average and linear regression can be readily accessed from within a user-written algorithm.
 - **PyData Integration:** Input of historical data and output of performance statistics are
   based on Pandas DataFrames to integrate nicely into the existing
   PyData ecosystem.
@@ -62,12 +61,12 @@ There are two reasons for the additional complexity:
 
 2. Zipline depends on `numpy <https://www.numpy.org/>`_, the core library for
    numerical array computing in Python.  Numpy depends on having the `LAPACK
-   <https://www.netlib.org/lapack/>`_ linear algebra routines available.
+   <https://www.netlib.org/lapack/>`_ linear algebra routines were available.
 
 Because LAPACK and the CPython headers are binary dependencies, the correct way
 to install them varies from platform to platform.  On Linux, users generally
 acquire these dependencies via a package manager like ``apt``, ``yum``, or
-``pacman``.  On OSX, `Homebrew <https://brew.sh/>`_ is a popular choice
+``Pacman``.  On OSX, `Homebrew <https://brew.sh/>`_ is a popular choice
 providing similar functionality.
 
 See the full `Zipline Install Documentation`_ for more information on acquiring
@@ -95,7 +94,7 @@ Currently supported platforms include:
 .. note::
 
    Windows 32-bit may work; however, it is not currently included in
-   continuous integration tests.
+   continuous-integration tests.
 
 Quickstart
 ==========
@@ -147,7 +146,7 @@ Once you have your key, run the following from the command line:
     $ QUANDL_API_KEY=<yourkey> zipline ingest -b quandl
     $ zipline run -f dual_moving_average.py --start 2014-1-1 --end 2018-1-1 -o dma.pickle
 
-This will download asset pricing data data from `quandl`, and stream it through the algorithm
+This will download asset pricing data from `and`, and stream it through the algorithm
 over the specified time range. Then, the resulting performance DataFrame is saved in `dma.pickle`, which you
 can load and analyze from within Python.
 
