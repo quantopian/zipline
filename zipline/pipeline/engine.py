@@ -64,7 +64,6 @@ from pandas import DataFrame, MultiIndex
 from toolz import groupby
 
 from zipline.lib.adjusted_array import ensure_adjusted_array, ensure_ndarray
-from zipline.errors import NoFurtherDataError
 from zipline.utils.input_validation import expect_types
 from zipline.utils.numpy_utils import (
     as_column,
@@ -72,6 +71,7 @@ from zipline.utils.numpy_utils import (
     repeat_last_axis,
 )
 from zipline.utils.pandas_utils import explode
+from zipline.utils.string_formatting import bulleted_list
 
 from .domain import Domain, GENERIC
 from .graph import maybe_specialize
@@ -461,8 +461,8 @@ class SimplePipelineEngine(PipelineEngine):
             End date for the matrix.
         extra_rows : int
             Number of extra rows to compute before `start_date`.
-            Extra rows are needed by terms like moving averages that require a
-            trailing window of data.
+            Extra rows are needed by terms that require a trailing window of
+            data.
 
         Returns
         -------
@@ -473,45 +473,19 @@ class SimplePipelineEngine(PipelineEngine):
             that existed for at least one day between `start_date` and
             `end_date`.
         """
-        sessions = domain.all_sessions()
-
-        if start_date not in sessions:
-            raise ValueError(
-                "Pipeline start date ({}) is not a trading session for "
-                "domain {}.".format(start_date, domain)
-            )
-
-        elif end_date not in sessions:
-            raise ValueError(
-                "Pipeline end date {} is not a trading session for "
-                "domain {}.".format(end_date, domain)
-            )
-
-        start_idx, end_idx = sessions.slice_locs(start_date, end_date)
-        if start_idx < extra_rows:
-            raise NoFurtherDataError.from_lookback_window(
-                initial_message="Insufficient data to compute Pipeline:",
-                first_date=sessions[0],
-                lookback_start=start_date,
-                lookback_length=extra_rows,
-            )
-
-        # NOTE: This logic should probably be delegated to the domain once we
-        #       start adding more complex domains.
-        #
-        # Build lifetimes matrix reaching back to `extra_rows` days before
-        # `start_date.`
-        finder = self._finder
-        lifetimes = finder.lifetimes(
-            sessions[start_idx - extra_rows:end_idx],
-            include_start_date=False,
-            country_codes=(domain.country_code,),
+        lifetimes = domain.lifetimes(
+            self._finder,
+            start_date,
+            end_date,
+            extra_rows,
         )
+
+        # XXX: Should these go here or in Domain.lifetimes?
 
         if not lifetimes.columns.unique:
             columns = lifetimes.columns
             duplicated = columns[columns.duplicated()].unique()
-            raise AssertionError("Duplicated sids: %d" % duplicated)
+            raise AssertionError("Duplicated entities: %d" % duplicated)
 
         # Filter out columns that didn't exist from the farthest look back
         # window through the end of the requested dates.
@@ -521,11 +495,11 @@ class SimplePipelineEngine(PipelineEngine):
 
         if num_assets == 0:
             raise ValueError(
-                "Failed to find any assets with country_code {!r} that traded "
+                "Failed to find any entities on domain {} that traded "
                 "between {} and {}.\n"
                 "This probably means that your asset db is old or that it has "
                 "incorrect country/exchange metadata.".format(
-                    domain.country_code, start_date, end_date,
+                    domain, start_date, end_date,
                 )
             )
 
@@ -683,6 +657,7 @@ class SimplePipelineEngine(PipelineEngine):
                     loader_groups[loader_group_key(term)],
                     key=lambda t: t.dataset
                 )
+                self._ensure_can_load(loader, to_load)
                 with hooks.loading_terms(to_load):
                     loaded = loader.load_adjusted_array(
                         domain, to_load, mask_dates, sids, mask,
@@ -824,7 +799,7 @@ class SimplePipelineEngine(PipelineEngine):
             if self._is_special_root_term(term):
                 continue
 
-            if term.domain is GENERIC:
+            if term.domain == GENERIC:
                 # XXX: We really shouldn't allow **any** generic terms to be
                 # populated in the initial workspace. A generic term, by
                 # definition, can't correspond to concrete data until it's
@@ -871,7 +846,7 @@ class SimplePipelineEngine(PipelineEngine):
         """Resolve a concrete domain for ``pipeline``.
         """
         domain = pipeline.domain(default=self._default_domain)
-        if domain is GENERIC:
+        if domain == GENERIC:
             raise ValueError(
                 "Unable to determine domain for Pipeline.\n"
                 "Pass domain=<desired domain> to your Pipeline to set a "
@@ -889,6 +864,17 @@ class SimplePipelineEngine(PipelineEngine):
         if hooks is None:
             hooks = []
         return DelegatingHooks(self._default_hooks + hooks)
+
+    def _ensure_can_load(self, loader, terms):
+        """Ensure that ``loader`` can load ``terms``.
+        """
+        if not loader.currency_aware:
+            bad = [t for t in terms if t.needs_currency_conversion]
+            if bad:
+                raise ValueError(
+                    "Requested currency conversion is not supported for the "
+                    "following terms:\n{}".format(bulleted_list(bad))
+                )
 
 
 def _pipeline_output_index(dates, assets, mask):

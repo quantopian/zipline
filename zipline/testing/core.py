@@ -45,7 +45,7 @@ from zipline.finance.blotter import SimulationBlotter
 from zipline.finance.order import ORDER_STATUS
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline.data import EquityPricing
-from zipline.pipeline.domain import EquitySessionDomain
+from zipline.pipeline.domain import Domain, AdHocCalendar, SingleMarketEquities
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
@@ -1779,7 +1779,10 @@ def simulate_minutes_for_day(open_,
 def create_simple_domain(start, end, country_code):
     """Create a new pipeline domain with a simple date_range index.
     """
-    return EquitySessionDomain(pd.date_range(start, end), country_code)
+    return Domain(
+        AdHocCalendar(pd.date_range(start, end)),
+        SingleMarketEquities(country_code),
+    )
 
 
 def write_hdf5_daily_bars(writer,

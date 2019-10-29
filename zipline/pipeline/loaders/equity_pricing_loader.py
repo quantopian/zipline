@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import defaultdict
+
 from interface import implements
-from numpy import iinfo, uint32
+from numpy import iinfo, uint32, multiply
 
 from zipline.lib.adjusted_array import AdjustedArray
 
@@ -31,10 +33,17 @@ class EquityPricingLoader(implements(PipelineLoader)):
         Reader providing raw prices.
     adjustments_reader : zipline.data.adjustments.SQLiteAdjustmentReader
         Reader providing price/volume adjustments.
+    fx_reader : zipline.data.fx.ExchangeRateReader
+       Reader providing currency conversions.
     """
-    def __init__(self, raw_price_reader, adjustments_reader):
+
+    def __init__(self,
+                 raw_price_reader,
+                 adjustments_reader,
+                 fx_reader):
         self.raw_price_reader = raw_price_reader
         self.adjustments_reader = adjustments_reader
+        self.fx_reader = fx_reader
 
     def load_adjusted_array(self, domain, columns, dates, sids, mask):
         # load_adjusted_array is called with dates on which the user's algo
@@ -53,6 +62,10 @@ class EquityPricingLoader(implements(PipelineLoader)):
             end_date,
             sids,
         )
+
+        # Currency convert raw_arrays in place if necessary.
+        self._maybe_inplace_currency_convert(columns, raw_arrays, dates, sids)
+
         adjustments = self.adjustments_reader.load_pricing_adjustments(
             colnames,
             dates,
@@ -67,6 +80,47 @@ class EquityPricingLoader(implements(PipelineLoader)):
                 c.missing_value,
             )
         return out
+
+    @property
+    def currency_aware(self):
+        return True
+
+    def _inplace_currency_convert(self, columns, arrays, dates, sids):
+        """Currency convert raw data loaded for ``column``.
+
+        Parameters
+        ----------
+        TOOD
+
+        Returns
+        -------
+        None
+
+        Side Effects
+        ------------
+        Modifies ``arrays`` by currency-converting input terms in place.
+        """
+        by_spec = defaultdict(list)
+        for column, array in zip(columns, arrays):
+            by_spec[column.currency_conversion].append(array)
+
+        # Nothing to do for terms with no currency conversion.
+        by_spec.pop(None)
+        if not by_spec:
+            return
+
+        base_currencies = self.raw_price_reader.listing_currencies(sids)
+        fx_reader = self.fx_reader
+
+        for spec, arrays in by_spec.items():
+            rates = fx_reader.get_rates(
+                field=spec.field,
+                quote=spec.currency,
+                bases=base_currencies,
+                dates=dates,
+            )
+            for arr in arrays:
+                multiply(arr, rates, out=arr)
 
 
 # Backwards compat alias.

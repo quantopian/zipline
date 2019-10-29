@@ -2412,11 +2412,12 @@ class TradingAlgorithm(object):
         ]
 
 
+# TODO: Don't reach into private state for these.
 # Map from calendar name to default domain for that calendar.
-_DEFAULT_DOMAINS = {d.calendar_name: d for d in domain.BUILT_IN_DOMAINS}
+_DEFAULT_DOMAINS = {d._time_dim._calendar_name: d for d in domain.BUILT_IN_DOMAINS}
 # Map from calendar name to default country code for that calendar.
 _DEFAULT_FETCH_CSV_COUNTRY_CODES = {
-    d.calendar_name: d.country_code for d in domain.BUILT_IN_DOMAINS
+    d._time_dim._calendar_name: d._entity_dim._country for d in domain.BUILT_IN_DOMAINS
 }
 # Include us_futures, which doesn't have a pipeline domain.
 _DEFAULT_FETCH_CSV_COUNTRY_CODES['us_futures'] = 'US'

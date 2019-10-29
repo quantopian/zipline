@@ -312,18 +312,18 @@ class Pipeline(object):
         # with our explicit domain.
         inferred = infer_domain(self._output_terms)
 
-        if inferred is GENERIC and self._domain is GENERIC:
+        if inferred == GENERIC and self._domain == GENERIC:
             # Both generic. Fall back to default.
             return default
-        elif inferred is GENERIC and self._domain is not GENERIC:
+        elif inferred == GENERIC and self._domain != GENERIC:
             # Use the non-generic domain.
             return self._domain
-        elif inferred is not GENERIC and self._domain is GENERIC:
+        elif inferred != GENERIC and self._domain == GENERIC:
             # Use the non-generic domain.
             return inferred
         else:
             # Both non-generic. They have to match.
-            if inferred is not self._domain:
+            if inferred != self._domain:
                 raise ValueError(
                     "Conflicting domains in Pipeline. Inferred {}, but {} was "
                     "passed at construction.".format(inferred, self._domain)

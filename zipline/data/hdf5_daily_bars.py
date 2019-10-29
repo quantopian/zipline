@@ -4,7 +4,7 @@ HDF5 Pricing File Format
 At the top level, the file is keyed by country (to support regional
 files containing multiple countries).
 
-Within each country, there are 3 subgroups:
+Within each country, there are 4 subgroups:
 
 ``/data``
 ^^^^^^^^^
@@ -46,6 +46,12 @@ for each asset, aligned to the sids index.
      /start_date
      /end_date
 
+``/currency``
+^^^^^^^^^^^^^
+
+Contains a single dataset, ``code``, aligned to the sids index, which contains
+the listing currency of each sid.
+
 Example
 ^^^^^^^
 Sample layout of the full file with multiple countries.
@@ -65,8 +71,11 @@ Sample layout of the full file with multiple countries.
    |  |  |- /day
    |  |
    |  |- /lifetimes
-   |     |- /start_date
-   |     |- /end_date
+   |  |  |- /start_date
+   |  |  |- /end_date
+   |  |
+   |  |- /currency
+   |     |- /code
    |
    |- /CA
       |- /data
@@ -81,8 +90,11 @@ Sample layout of the full file with multiple countries.
       |  |- /day
       |
       |- /lifetimes
-         |- /start_date
-         |- /end_date
+      |  |- /start_date
+      |  |- /end_date
+      |
+      |- /currency
+         |- /code
 """
 
 
@@ -114,6 +126,8 @@ VERSION = 0
 DATA = 'data'
 INDEX = 'index'
 LIFETIMES = 'lifetimes'
+CURRENCY = 'currency'
+CODE = 'code'
 
 SCALING_FACTOR = 'scaling_factor'
 
@@ -217,8 +231,13 @@ class HDF5DailyBarWriter(object):
     def h5_file(self, mode):
         return h5py.File(self._filename, mode)
 
-    def write(self, country_code, frames, scaling_factors=None):
-        """Write the OHLCV data for one country to the HDF5 file.
+    def write(self,
+              country_code,
+              frames,
+              currencies,
+              scaling_factors=None):
+        """
+        Write the OHLCV data for one country to the HDF5 file.
 
         Parameters
         ----------
@@ -228,6 +247,9 @@ class HDF5DailyBarWriter(object):
             A dict mapping each OHLCV field to a dataframe with a row
             for each date and a column for each sid. The dataframes need
             to have the same index and columns.
+        currencies : pd.Series
+            Series mapping sids to zipline.international.Currency values for
+            those sids' listing currencies.
         scaling_factors : dict[str, float], optional
             A dict mapping each OHLCV field to a scaling factor, which
             is applied (as a multiplier) to the values of field to
@@ -601,6 +623,40 @@ class HDF5DailyBarReader(SessionBarReader):
     @lazyval
     def asset_end_dates(self):
         return self.dates[self._country_group[LIFETIMES][END_DATE][:]]
+
+    @lazyval
+    def _currency_codes(self):
+        return self._country_group[CURRENCY][CODE][:]
+
+    def currency_codes(self, sids):
+        """Get currencies in which prices are quoted for the requested sids.
+
+        Parameters
+        ----------
+        sids : np.array[int64]
+            Array of sids for which currencies are needed.
+
+        Returns
+        -------
+        currency_codes : np.array[S3]
+            Array of currency codes for listing currencies of ``sids``.
+        """
+        all_sids = sids
+
+        # For each sid in ``sids``, find its index in ``all_sids``.
+        ixs = all_sids.searchsorted(sids, side='left')
+
+        # searchsorted will return the index of the next lowest sid if the
+        # lookup fails. Check for this case and raise an error.
+        not_found = (all_sids[ixs] != sids)
+        if not_found.any():
+            # TODO: Should we return an unknown sentinel here?
+            missing = sids[not_found]
+            raise ValueError(
+                "Unable to find currency codes for sids:\n{}".format(missing)
+            )
+
+        return self._currency_codes[ixs]
 
     @property
     def last_available_dt(self):

@@ -1,5 +1,5 @@
 import abc
-from collections import OrderedDict
+from collections import namedtuple, OrderedDict
 from itertools import repeat
 from textwrap import dedent
 from weakref import WeakKeyDictionary
@@ -10,6 +10,7 @@ from six import (
 )
 from toolz import first
 
+from zipline.international import Currency
 from zipline.pipeline.classifiers import Classifier, Latest as LatestClassifier
 from zipline.pipeline.domain import Domain, GENERIC
 from zipline.pipeline.factors import Factor, Latest as LatestFactor
@@ -21,7 +22,11 @@ from zipline.pipeline.term import (
     validate_dtype,
 )
 from zipline.utils.formatting import s, plural
-from zipline.utils.input_validation import ensure_dtype, expect_types
+from zipline.utils.input_validation import (
+    coerce_types,
+    ensure_dtype,
+    expect_types,
+)
 from zipline.utils.numpy_utils import NoDefaultMissingValue
 from zipline.utils.preprocess import preprocess
 from zipline.utils.string_formatting import bulleted_list
@@ -105,6 +110,7 @@ class _BoundColumnDescr(object):
             name=self.name,
             doc=self.doc,
             metadata=self.metadata,
+            currency_conversion=None,
         )
 
 
@@ -145,7 +151,8 @@ class BoundColumn(LoadableTerm):
                 dataset,
                 name,
                 doc,
-                metadata):
+                metadata,
+                currency_conversion):
         return super(BoundColumn, cls).__new__(
             cls,
             domain=dataset.domain,
@@ -156,23 +163,38 @@ class BoundColumn(LoadableTerm):
             ndim=dataset.ndim,
             doc=doc,
             metadata=metadata,
+            currency_conversion=currency_conversion,
         )
 
-    def _init(self, dataset, name, doc, metadata, *args, **kwargs):
+    def _init(self,
+              dataset,
+              name,
+              doc,
+              metadata,
+              currency_conversion,
+              *args, **kwargs):
         self._dataset = dataset
         self._name = name
         self.__doc__ = doc
         self._metadata = metadata
+        self._currency_conversion = currency_conversion
         return super(BoundColumn, self)._init(*args, **kwargs)
 
     @classmethod
-    def _static_identity(cls, dataset, name, doc, metadata, *args, **kwargs):
+    def _static_identity(cls,
+                         dataset,
+                         name,
+                         doc,
+                         metadata,
+                         currency_conversion,
+                         *args, **kwargs):
         return (
             super(BoundColumn, cls)._static_identity(*args, **kwargs),
             dataset,
             name,
             doc,
             frozenset(sorted(metadata.items(), key=first)),
+            currency_conversion,
         )
 
     def __lt__(self, other):
@@ -181,20 +203,27 @@ class BoundColumn(LoadableTerm):
 
     __gt__ = __le__ = __ge__ = __lt__
 
+    def _replace(self, **kwargs):
+        kw = dict(
+            dtype=self.dtype,
+            missing_value=self.missing_value,
+            dataset=self._dataset,
+            name=self._name,
+            doc=self.__doc__,
+            metadata=self._metadata,
+            currency_conversion=self._currency_conversion,
+        )
+        kw.update(kwargs)
+
+        return type(self)(**kw)
+
     def specialize(self, domain):
         """Specialize ``self`` to a concrete domain.
         """
         if domain == self.domain:
             return self
 
-        return type(self)(
-            dtype=self.dtype,
-            missing_value=self.missing_value,
-            dataset=self._dataset.specialize(domain),
-            name=self._name,
-            doc=self.__doc__,
-            metadata=self._metadata,
-        )
+        return self._replace(dataset=self._dataset.specialize(domain))
 
     def unspecialize(self):
         """
@@ -202,7 +231,48 @@ class BoundColumn(LoadableTerm):
 
         This is equivalent to ``column.specialize(GENERIC)``.
         """
+        # TODO: Is GENERIC still the right sentinel here?
         return self.specialize(GENERIC)
+
+    @coerce_types(currency=(str, Currency))
+    def fx(self, currency):
+        """
+        Construct a currency-converted version of this column.
+
+        Parameters
+        ----------
+        currency : str or zipline.international.Currency
+            Currency into which to convert this column's data.
+
+        Returns
+        -------
+        column : BoundColumn
+            Column producing the same data as ``self``, but currency-converted
+            into ``currency``.
+        """
+        conversion = self._currency_conversion
+        if conversion is not None and conversion.currency == currency:
+            return self
+
+        return self._replace(
+            currency_conversion=CurrencyConversion(
+                currency=currency,
+                # TODO: Figure out what to do with this.
+                # For now, only support converting with mid. We might
+                # eventually support other fields
+                field='mid',
+            )
+        )
+
+    @property
+    def currency_conversion(self):
+        """Specification for currency conversions applied for this term.
+        """
+        return self._currency_conversion
+
+    @property
+    def currency_aware(self):
+        return self.currency_conversion is not None
 
     @property
     def dataset(self):
@@ -371,12 +441,12 @@ class DataSetMeta(type):
 
     def _can_create_new_specialization(self, domain):
         # Always allow specializing to a generic domain.
-        if domain is GENERIC:
+        if domain == GENERIC:
             return True
         elif '_domain_specializations' in vars(self):
             # This branch is True if we're the root of a family.
             # Allow specialization if we're generic.
-            return self.domain is GENERIC
+            return self.domain == GENERIC
         else:
             # If we're not the root of a family, we can't create any new
             # specializations.
@@ -389,8 +459,8 @@ class DataSetMeta(type):
         assert domain not in self._domain_specializations, (
             "Domain specializations should be memoized!"
         )
-        if domain is not GENERIC:
-            assert self.domain is GENERIC, (
+        if domain != GENERIC:
+            assert self.domain == GENERIC, (
                 "Can't specialize dataset with domain {} to domain {}.".format(
                     self.domain, domain,
                 )
@@ -414,7 +484,7 @@ class DataSetMeta(type):
 
     @property
     def qualname(self):
-        if self.domain is GENERIC:
+        if self.domain != GENERIC:
             specialization_key = ''
         else:
             specialization_key = '<' + self.domain.country_code + '>'
@@ -867,3 +937,9 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
         Slice = cls._make_dataset(coords)
         cls._slice_cache[hash_key] = Slice
         return Slice
+
+
+CurrencyConversion = namedtuple(
+    'CurrencyConversion',
+    ['currency', 'field'],
+)

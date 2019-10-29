@@ -51,6 +51,7 @@ from ..data.data_portal import (
     DEFAULT_MINUTE_HISTORY_PREFETCH,
     DEFAULT_DAILY_HISTORY_PREFETCH,
 )
+from ..data.fx import TestingExchangeRateReader
 from ..data.hdf5_daily_bars import (
     HDF5DailyBarReader,
     HDF5DailyBarWriter,
@@ -2049,3 +2050,38 @@ class WithSeededRandomState(object):
     def init_instance_fixtures(self):
         super(WithSeededRandomState, self).init_instance_fixtures()
         self.rand = np.random.RandomState(self.RANDOM_SEED)
+
+
+class WithExchangeRates(object):
+    """Fixture providing a factory for in-memory exchange rate data.
+    """
+    # Start date for exchange rates data.
+    EXCHANGE_RATES_START_DATE = alias('START_DATE')
+
+    # End date for exchange rates data.
+    EXCHANGE_RATES_END_DATE = alias('END_DATE')
+
+    # Calendar to which exchange rates data is aligned.
+    EXCHANGE_RATES_CALENDAR = '24/5'
+
+    # Currencies between which exchange rates can be calculated.
+    EXCHANGE_RATES_CURRENCIES = ["USD", "CAD", "GBP", "EUR"]
+
+    # Fields for which exchange rate data is present.
+    EXCHANGE_RATES_FIELDS = ["mid"]
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(WithExchangeRates, cls).init_class_fixtures()
+
+        cal = get_calendar(cls.EXCHANGE_RATES_CALENDAR)
+        sessions = cal.sessions_in_range(
+            cls.EXCHANGE_RATES_START_DATE,
+            cls.EXCHANGE_RATES_END_DATE,
+        )
+
+        cls.testing_exchange_rate_reader = TestingExchangeRateReader(
+            cls.EXCHANGE_RATES_FIELDS,
+            cls.EXCHANGE_RATES_CURRENCIES,
+            sessions,
+        )

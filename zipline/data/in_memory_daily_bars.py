@@ -1,5 +1,6 @@
 from six import iteritems
 
+import numpy as np
 from pandas import NaT
 
 from trading_calendars import TradingCalendar
@@ -21,15 +22,27 @@ class InMemoryDailyBarReader(SessionBarReader):
         "volume") to DataFrame containing data for that field.
     calendar : str or trading_calendars.TradingCalendar
         Calendar (or name of calendar) to which data is aligned.
+    currency_codes : dict
+        Map from sid -> listing currency for that sid.
     verify_indices : bool, optional
         Whether or not to verify that input data is correctly aligned to the
         given calendar. Default is True.
     """
-    @expect_types(frames=dict, calendar=TradingCalendar, verify_indices=bool)
-    def __init__(self, frames, calendar, verify_indices=True):
+    @expect_types(
+        frames=dict,
+        calendar=TradingCalendar,
+        verify_indices=bool,
+        currency_codes=dict,
+    )
+    def __init__(self,
+                 frames,
+                 calendar,
+                 currency_codes,
+                 verify_indices=True):
         self._frames = frames
         self._values = {key: frame.values for key, frame in iteritems(frames)}
         self._calendar = calendar
+        self._currency_codes = currency_codes
 
         validate_keys(frames, set(OHLCV), type(self).__name__)
         if verify_indices:
@@ -39,10 +52,10 @@ class InMemoryDailyBarReader(SessionBarReader):
         self._sids = frames['close'].columns
 
     @classmethod
-    def from_panel(cls, panel, calendar):
+    def from_panel(cls, panel, calendar, currency_codes):
         """Helper for construction from a pandas.Panel.
         """
-        return cls(dict(panel.iteritems()), calendar)
+        return cls(dict(panel.iteritems()), calendar, currency_codes)
 
     @property
     def last_available_dt(self):
@@ -119,6 +132,10 @@ class InMemoryDailyBarReader(SessionBarReader):
     @property
     def first_trading_day(self):
         return self._sessions[0]
+
+    def currency_codes(self, sids):
+        codes = self.currency_codes
+        return np.array([codes[sid] for sid in sids])
 
 
 def verify_frames_aligned(frames, calendar):
