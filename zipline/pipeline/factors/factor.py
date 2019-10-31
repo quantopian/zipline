@@ -1488,30 +1488,30 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
 
     Parameters
     ----------
-    inputs : iterable, optional
-        An iterable of `BoundColumn` instances (e.g. USEquityPricing.close),
-        describing the data to load and pass to `self.compute`.  If this
-        argument is not passed to the CustomFactor constructor, we look for a
-        class-level attribute named `inputs`.
+    inputs : zipline.pipeline.Term or iterable, optional
+        A :class:`~zipline.pipeline.Term` (e.g. ``EquityPricing.close``), or an
+        iterable of terms. These define the data that will be loaded and passed
+        to ``self.compute``. If this argument is not passed to the CustomFactor
+        constructor, we look for a class-level attribute named ``inputs``.
     outputs : iterable[str], optional
-        An iterable of strings which represent the names of each output this
+        An iterable of strings which define the names of each output this
         factor should compute and return. If this argument is not passed to the
         CustomFactor constructor, we look for a class-level attribute named
-        `outputs`.
+        ``outputs``.
     window_length : int, optional
         Number of rows to pass for each input.  If this argument is not passed
         to the CustomFactor constructor, we look for a class-level attribute
-        named `window_length`.
+        named ``window_length``.
     mask : zipline.pipeline.Filter, optional
         A Filter describing the assets on which we should compute each day.
-        Each call to ``CustomFactor.compute`` will only receive assets for
+        Each call to :meth:`CustomFactor.compute` will only receive assets for
         which ``mask`` produced True on the day for which compute is being
         called.
 
     Notes
     -----
-    Users implementing their own Factors should subclass CustomFactor and
-    implement a method named `compute` with the following signature:
+    Users implementing their own factors should subclass :class:`CustomFactor`
+    and implement a method named `compute` with the following signature:
 
     .. code-block:: python
 
@@ -1522,7 +1522,7 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
     an array of sids, an output array, and an input array for each expression
     passed as inputs to the CustomFactor constructor.
 
-    The specific types of the values passed to `compute` are as follows::
+    The specific types of the values passed to ``compute`` are as follows::
 
         today : np.datetime64[ns]
             Row label for the last row of all arrays passed as `inputs`.
@@ -1537,18 +1537,18 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
             Raw data arrays corresponding to the values of `self.inputs`.
 
     ``compute`` functions should expect to be passed NaN values for dates on
-    which no data was available for an asset.  This may include dates on which
+    which no data was available for an asset. This may include dates on which
     an asset did not yet exist.
 
-    For example, if a CustomFactor requires 10 rows of close price data, and
-    asset A started trading on Monday June 2nd, 2014, then on Tuesday, June
-    3rd, 2014, the column of input data for asset A will have 9 leading NaNs
-    for the preceding days on which data was not yet available.
+    For example, if a :class:`CustomFactor` requires 10 rows of close price
+    data, and asset A started trading on Monday June 2nd, 2014, then on
+    Tuesday, June 3rd, 2014, the column of input data for asset A will have 9
+    leading NaNs for the preceding days on which data was not yet available.
 
     Examples
     --------
 
-    A CustomFactor with pre-declared defaults:
+    A :class:`CustomFactor` with pre-declared defaults:
 
     .. code-block:: python
 
@@ -1561,7 +1561,7 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
             10.
             """
 
-            inputs = [USEquityPricing.high, USEquityPricing.low]
+            inputs = [EquityPricing.high, EquityPricing.low]
             window_length = 10
 
             def compute(self, today, assets, out, highs, lows):
@@ -1576,7 +1576,7 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
         # pre-declared as defaults for the TenDayRange class.
         ten_day_range = TenDayRange()
 
-    A CustomFactor without defaults:
+    A :class:`CustomFactor` without defaults:
 
     .. code-block:: python
 
@@ -1595,15 +1595,15 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
 
         # Values for `inputs` and `window_length` must be passed explicitly to
         # MedianValue.
-        median_close10 = MedianValue([USEquityPricing.close], window_length=10)
-        median_low15 = MedianValue([USEquityPricing.low], window_length=15)
+        median_close10 = MedianValue([EquityPricing.close], window_length=10)
+        median_low15 = MedianValue([EquityPricing.low], window_length=15)
 
-    A CustomFactor with multiple outputs:
+    A :class:`CustomFactor` with multiple outputs:
 
     .. code-block:: python
 
         class MultipleOutputs(CustomFactor):
-            inputs = [USEquityPricing.close]
+            inputs = [EquityPricing.close]
             outputs = ['alpha', 'beta']
             window_length = N
 
