@@ -594,7 +594,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
     def test_percentchange(self, seed_value, window_length):
 
         pct_change = PercentChange(
-            inputs=[EquityPricing.close],
+            inputs=EquityPricing.close,
             window_length=window_length,
         )
 
@@ -619,7 +619,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             PercentChange(inputs=(), window_length=2)
 
         with self.assertRaises(ValueError):
-            PercentChange(inputs=[EquityPricing.close], window_length=1)
+            PercentChange(inputs=EquityPricing.close, window_length=1)
 
     def gen_ranking_cases():
         seeds = range(int(1e4), int(1e5), int(1e4))

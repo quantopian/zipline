@@ -68,7 +68,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         sids = self.sids
         my_asset = self.asset_finder.retrieve_asset(self.sids[my_asset_column])
 
-        returns = Returns(window_length=2, inputs=[self.col])
+        returns = Returns(window_length=2, inputs=self.col)
         returns_slice = returns[my_asset]
 
         class UsesSlicedInput(CustomFactor):
@@ -112,7 +112,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         # masked out.
         slice_asset = asset_finder.retrieve_asset(sids[slice_column])
 
-        returns = Returns(window_length=2, inputs=[self.col])
+        returns = Returns(window_length=2, inputs=self.col)
         returns_slice = returns[slice_asset]
 
         returns_results = self.run_pipeline(
@@ -172,7 +172,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             0,
             exchange_info=ExchangeInfo('TEST FULL', 'TEST', 'US'),
         )
-        returns = Returns(window_length=2, inputs=[self.col])
+        returns = Returns(window_length=2, inputs=self.col)
         returns_slice = returns[my_asset]
 
         class UsesSlicedInput(CustomFactor):
@@ -198,7 +198,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         my_asset = self.asset_finder.retrieve_asset(self.sids[0])
 
         # SimpleMovingAverage is not window safe.
-        sma = SimpleMovingAverage(inputs=[self.col], window_length=10)
+        sma = SimpleMovingAverage(inputs=self.col, window_length=10)
         sma_slice = sma[my_asset]
 
         class UsesSlicedInput(CustomFactor):
@@ -375,7 +375,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         """
         my_asset = self.asset_finder.retrieve_asset(self.sids[0])
 
-        returns = Returns(window_length=returns_length, inputs=[self.col])
+        returns = Returns(window_length=returns_length, inputs=self.col)
         returns_slice = returns[my_asset]
 
         pearson = returns.pearsonr(
@@ -464,7 +464,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         """
         my_asset = self.asset_finder.retrieve_asset(self.sids[0])
 
-        returns = Returns(window_length=returns_length, inputs=[self.col])
+        returns = Returns(window_length=returns_length, inputs=self.col)
         returns_slice = returns[my_asset]
 
         regression = returns.linear_regression(

@@ -1666,11 +1666,7 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
 
     def __iter__(self):
         if self.outputs is NotSpecified:
-            raise ValueError(
-                '{factor} does not have multiple outputs.'.format(
-                    factor=type(self).__name__,
-                )
-            )
+            return super(CustomFactor, self).__iter__()
         return (RecarrayField(self, attr) for attr in self.outputs)
 
 
@@ -1682,7 +1678,7 @@ class RecarrayField(SingleInputMixin, Factor):
         return super(RecarrayField, cls).__new__(
             cls,
             attribute=attribute,
-            inputs=[factor],
+            inputs=factor,
             window_length=0,
             mask=factor.mask,
             dtype=factor.dtype,

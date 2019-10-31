@@ -433,7 +433,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         """
         # Lazy import due to cyclic dependencies in factor.py, classifier.py
         from ..factors import PeerCount
-        return PeerCount(inputs=[self])
+        return PeerCount(inputs=self)
 
 
 class Everything(Classifier):

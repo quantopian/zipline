@@ -584,8 +584,8 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
         self.check_terms(
             terms={
-                '3': All(inputs=[Input()], window_length=3),
-                '4': All(inputs=[Input()], window_length=4),
+                '3': All(inputs=Input(), window_length=3),
+                '4': All(inputs=Input(), window_length=4),
             },
             expected={
                 '3': expected_3,
@@ -644,8 +644,8 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
         self.check_terms(
             terms={
-                '3': Any(inputs=[Input()], window_length=3),
-                '4': Any(inputs=[Input()], window_length=4),
+                '3': Any(inputs=Input(), window_length=3),
+                '4': Any(inputs=Input(), window_length=4),
             },
             expected={
                 '3': expected_3,
@@ -694,19 +694,19 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             inputs = ()
             window_length = 0
 
-        all_but_one = AtLeastN(inputs=[Input()],
+        all_but_one = AtLeastN(inputs=Input(),
                                window_length=4,
                                N=3)
 
-        all_but_two = AtLeastN(inputs=[Input()],
+        all_but_two = AtLeastN(inputs=Input(),
                                window_length=4,
                                N=2)
 
-        any_equiv = AtLeastN(inputs=[Input()],
+        any_equiv = AtLeastN(inputs=Input(),
                              window_length=4,
                              N=1)
 
-        all_equiv = AtLeastN(inputs=[Input()],
+        all_equiv = AtLeastN(inputs=Input(),
                              window_length=4,
                              N=4)
 
@@ -716,8 +716,8 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
                 'AllButTwo': all_but_two,
                 'AnyEquiv': any_equiv,
                 'AllEquiv': all_equiv,
-                'Any': Any(inputs=[Input()], window_length=4),
-                'All': All(inputs=[Input()], window_length=4)
+                'Any': Any(inputs=Input(), window_length=4),
+                'All': All(inputs=Input(), window_length=4)
             },
             expected={
                 'Any': expected_1,

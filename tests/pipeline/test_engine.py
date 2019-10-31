@@ -883,11 +883,11 @@ class FrameInputTestCase(zf.WithAssetFinder,
 
         for window_length in range(1, 4):
             low_mavg = SimpleMovingAverage(
-                inputs=[EquityPricing.low],
+                inputs=EquityPricing.low,
                 window_length=window_length,
             )
             high_mavg = SimpleMovingAverage(
-                inputs=[EquityPricing.high],
+                inputs=EquityPricing.high,
                 window_length=window_length,
             )
             bounds = product_upper_triangle(range(window_length, len(dates)))
@@ -1217,7 +1217,7 @@ class ParameterizedFactorTestCase(zf.WithAssetFinder,
     @parameterized.expand(ewm_cases())
     def test_from_span(self, type_, span):
         from_span = type_.from_span(
-            inputs=[EquityPricing.close],
+            inputs=EquityPricing.close,
             window_length=20,
             span=span,
         )
@@ -1227,7 +1227,7 @@ class ParameterizedFactorTestCase(zf.WithAssetFinder,
     @parameterized.expand(ewm_cases())
     def test_from_halflife(self, type_, halflife):
         from_hl = EWMA.from_halflife(
-            inputs=[EquityPricing.close],
+            inputs=EquityPricing.close,
             window_length=20,
             halflife=halflife,
         )
@@ -1237,7 +1237,7 @@ class ParameterizedFactorTestCase(zf.WithAssetFinder,
     @parameterized.expand(ewm_cases())
     def test_from_com(self, type_, com):
         from_com = EWMA.from_center_of_mass(
-            inputs=[EquityPricing.close],
+            inputs=EquityPricing.close,
             window_length=20,
             center_of_mass=com,
         )
@@ -1395,7 +1395,7 @@ class PopulateInitialWorkspaceTestCase(WithConstantInputs,
         depends_on_precomputed_term = precomputed_term + 1
         # A term that requires a window of `precomputed_term`.
         depends_on_window_of_precomputed_term = SimpleMovingAverage(
-            inputs=[precomputed_term],
+            inputs=precomputed_term,
             window_length=window_length,
         )
 

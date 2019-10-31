@@ -676,14 +676,14 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
     def test_downsample_windowed_factor(self):
         self.check_downsampled_term(
             SimpleMovingAverage(
-                inputs=[TestingDataSet.float_col],
+                inputs=TestingDataSet.float_col,
                 window_length=5,
             )
         )
 
     def test_downsample_non_windowed_factor(self):
         sma = SimpleMovingAverage(
-            inputs=[TestingDataSet.float_col],
+            inputs=TestingDataSet.float_col,
             window_length=5,
         )
 
@@ -691,14 +691,14 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
 
     def test_downsample_windowed_filter(self):
         sma = SimpleMovingAverage(
-            inputs=[TestingDataSet.float_col],
+            inputs=TestingDataSet.float_col,
             window_length=5,
         )
-        self.check_downsampled_term(All(inputs=[sma.top(4)], window_length=5))
+        self.check_downsampled_term(All(inputs=sma.top(4), window_length=5))
 
     def test_downsample_nonwindowed_filter(self):
         sma = SimpleMovingAverage(
-            inputs=[TestingDataSet.float_col],
+            inputs=TestingDataSet.float_col,
             window_length=5,
         )
         self.check_downsampled_term(sma > 5)
@@ -718,7 +718,7 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
 
     def test_downsample_nonwindowed_classifier(self):
         sma = SimpleMovingAverage(
-            inputs=[TestingDataSet.float_col],
+            inputs=TestingDataSet.float_col,
             window_length=5,
         )
         self.check_downsampled_term(sma.quantiles(5))

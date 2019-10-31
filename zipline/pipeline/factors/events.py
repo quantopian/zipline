@@ -40,7 +40,7 @@ class BusinessDaysSincePreviousEvent(Factor):
         # Factor computing number of days since most recent asof_date
         # per asset.
         days_since_event = BusinessDaysSincePreviousEvent(
-            inputs=[MyDataset.asof_date]
+            inputs=MyDataset.asof_date
         )
 
         # Filter returning True for each asset whose most recent asof_date

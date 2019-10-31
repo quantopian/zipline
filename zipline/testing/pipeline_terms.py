@@ -57,7 +57,7 @@ class CheckWindowsClassifier(CheckWindowsMixin, CustomClassifier):
 
         return super(CheckWindowsClassifier, cls).__new__(
             cls,
-            inputs=[input_],
+            inputs=input_,
             dtype=dtype,
             window_length=window_length,
             expected_windows=frozenset(
@@ -87,7 +87,7 @@ class CheckWindowsFactor(CheckWindowsMixin, CustomFactor):
     def __new__(cls, input_, window_length, expected_windows):
         return super(CheckWindowsFactor, cls).__new__(
             cls,
-            inputs=[input_],
+            inputs=input_,
             dtype=input_.dtype,
             window_length=window_length,
             expected_windows=frozenset(

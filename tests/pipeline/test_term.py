@@ -276,9 +276,9 @@ class DependencyResolutionTestCase(WithTradingSessions, ZiplineTestCase):
         the parent factor has window length greater than 1
         """
         with self.assertRaises(NonWindowSafeInput):
-            SomeFactor(inputs=[SomeOtherFactor()])
+            SomeFactor(inputs=SomeOtherFactor())
 
-        SomeFactor(inputs=[SomeOtherFactor()], window_length=1)
+        SomeFactor(inputs=SomeOtherFactor(), window_length=1)
 
 
 class ObjectIdentityTestCase(TestCase):
@@ -578,6 +578,9 @@ class ObjectIdentityTestCase(TestCase):
         with self.assertRaises(NonPipelineInputs):
             SomeFactor(window_length=1, inputs=[2])
 
+        with self.assertRaises(NonPipelineInputs):
+            SomeFactor(window_length=1, inputs=2)
+
         with self.assertRaises(WindowLengthNotSpecified):
             SomeFactor(inputs=(SomeDataSet.foo,))
 
@@ -624,7 +627,7 @@ class ObjectIdentityTestCase(TestCase):
 
         errmsg = str(e.exception)
         self.assertEqual(
-            errmsg, "GenericCustomFactor does not have multiple outputs.",
+            errmsg, "'GenericCustomFactor' object is not iterable.",
         )
 
         # Public method, user-defined method.

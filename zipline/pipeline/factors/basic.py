@@ -238,12 +238,12 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
 
             # Equivalent to:
             # my_ewma = EWMA(
-            #    inputs=[EquityPricing.close],
+            #    inputs=EquityPricing.close,
             #    window_length=30,
             #    decay_rate=(1 - (2.0 / (1 + 15.0))),
             # )
             my_ewma = EWMA.from_span(
-                inputs=[EquityPricing.close],
+                inputs=EquityPricing.close,
                 window_length=30,
                 span=15,
             )
@@ -285,12 +285,12 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
 
             # Equivalent to:
             # my_ewma = EWMA(
-            #    inputs=[EquityPricing.close],
+            #    inputs=EquityPricing.close,
             #    window_length=30,
             #    decay_rate=np.exp(np.log(0.5) / 15),
             # )
             my_ewma = EWMA.from_halflife(
-                inputs=[EquityPricing.close],
+                inputs=EquityPricing.close,
                 window_length=30,
                 halflife=15,
             )
@@ -334,12 +334,12 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
 
             # Equivalent to:
             # my_ewma = EWMA(
-            #    inputs=[EquityPricing.close],
+            #    inputs=EquityPricing.close,
             #    window_length=30,
             #    decay_rate=(1 - (1 / 15.0)),
             # )
             my_ewma = EWMA.from_center_of_mass(
-                inputs=[EquityPricing.close],
+                inputs=EquityPricing.close,
                 window_length=30,
                 center_of_mass=15,
             )

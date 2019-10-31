@@ -71,8 +71,8 @@ class Term(with_metaclass(ABCMeta, object)):
 
     >>> from zipline.pipeline.data import EquityPricing
     >>> from zipline.pipeline.factors import SimpleMovingAverage
-    >>> x = SimpleMovingAverage(inputs=[EquityPricing.close], window_length=5)
-    >>> y = SimpleMovingAverage(inputs=[EquityPricing.close], window_length=5)
+    >>> x = SimpleMovingAverage(inputs=EquityPricing.close, window_length=5)
+    >>> y = SimpleMovingAverage(inputs=EquityPricing.close, window_length=5)
     >>> x is y
     True
 
@@ -240,6 +240,13 @@ class Term(with_metaclass(ABCMeta, object)):
         if isinstance(self, LoadableTerm):
             raise NonSliceableTerm(term=self)
         return Slice(self, key)
+
+    def __iter__(self):
+        raise ValueError(
+            "{typename!r} object is not iterable.".format(
+                typename=type(self).__name__,
+            ),
+        )
 
     @classmethod
     def _static_identity(cls,
@@ -502,9 +509,20 @@ class ComputableTerm(Term):
         # Having inputs = NotSpecified is an error, but we handle it later
         # in self._validate rather than here.
         if inputs is not NotSpecified:
-            # Allow users to specify lists as class-level defaults, but
-            # normalize to a tuple so that inputs is hashable.
-            inputs = tuple(inputs)
+
+            # For terms that accept a single argument, allow passing just the
+            # term rather than forcing the user to wrap it in a list.
+            if isinstance(inputs, Term):
+                inputs = (inputs,)
+            else:
+                # If the input isn't a term, we expect to have an iterable of
+                # terms. Normalize to a tuple so that inputs is hashable.
+                try:
+                    inputs = tuple(inputs)
+                except TypeError:
+                    # If `inputs` isn't iterable, the user has given us a
+                    # scalar value of some unknown type (e.g., `inputs=5`).
+                    raise NonPipelineInputs(cls.__name__, [inputs])
 
             # Make sure all our inputs are valid pipeline objects before trying
             # to infer a domain.
@@ -771,7 +789,7 @@ class Slice(ComputableTerm):
         return super(Slice, cls).__new__(
             cls,
             asset=asset,
-            inputs=[term],
+            inputs=term,
             window_length=0,
             mask=term.mask,
             dtype=term.dtype,

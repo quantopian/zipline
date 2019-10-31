@@ -559,9 +559,8 @@ class StatisticalMethodsTestCase(zf.WithSeededRandomPipelineEngine,
         end_date = self.pipeline_end_date
         run_pipeline = self.run_pipeline
 
-        returns = Returns(window_length=returns_length, inputs=[self.col])
+        returns = Returns(window_length=returns_length, inputs=self.col)
         returns_slice = returns[my_asset]
-
         pearson = returns.pearsonr(
             target=returns_slice, correlation_length=correlation_length,
         )
@@ -612,7 +611,7 @@ class StatisticalMethodsTestCase(zf.WithSeededRandomPipelineEngine,
         returns_length = 2
         correlation_length = 10
 
-        returns = Returns(window_length=returns_length, inputs=[self.col])
+        returns = Returns(window_length=returns_length, inputs=self.col)
         returns_slice = returns[self.my_asset]
 
         class BadTypeFactor(CustomFactor):
@@ -657,7 +656,7 @@ class StatisticalMethodsTestCase(zf.WithSeededRandomPipelineEngine,
         end_date = self.pipeline_end_date
         run_pipeline = self.run_pipeline
 
-        returns = Returns(window_length=returns_length, inputs=[self.col])
+        returns = Returns(window_length=returns_length, inputs=self.col)
         returns_slice = returns[my_asset]
 
         regression = returns.linear_regression(
@@ -696,7 +695,7 @@ class StatisticalMethodsTestCase(zf.WithSeededRandomPipelineEngine,
         returns_length = 2
         regression_length = 10
 
-        returns = Returns(window_length=returns_length, inputs=[self.col])
+        returns = Returns(window_length=returns_length, inputs=self.col)
         returns_slice = returns[self.my_asset]
 
         class BadTypeFactor(CustomFactor):
@@ -739,10 +738,10 @@ class StatisticalMethodsTestCase(zf.WithSeededRandomPipelineEngine,
         # Ensure that the correlation methods cannot be called with two 2D
         # factors which have different masks.
         returns_masked_1 = Returns(
-            window_length=5, inputs=[self.col], mask=AssetID().eq(1),
+            window_length=5, inputs=self.col, mask=AssetID().eq(1),
         )
         returns_masked_2 = Returns(
-            window_length=5, inputs=[self.col], mask=AssetID().eq(2),
+            window_length=5, inputs=self.col, mask=AssetID().eq(2),
         )
         with self.assertRaises(IncompatibleTerms):
             returns_masked_1.pearsonr(
@@ -753,8 +752,8 @@ class StatisticalMethodsTestCase(zf.WithSeededRandomPipelineEngine,
                 target=returns_masked_2, correlation_length=correlation_length,
             )
 
-        returns_5 = Returns(window_length=5, inputs=[self.col])
-        returns_10 = Returns(window_length=10, inputs=[self.col])
+        returns_5 = Returns(window_length=5, inputs=self.col)
+        returns_10 = Returns(window_length=10, inputs=self.col)
 
         pearson_factor = returns_5.pearsonr(
             target=returns_10, correlation_length=correlation_length,
@@ -843,18 +842,18 @@ class StatisticalMethodsTestCase(zf.WithSeededRandomPipelineEngine,
         # Ensure that the `linear_regression` method cannot be called with two
         # 2D factors which have different masks.
         returns_masked_1 = Returns(
-            window_length=5, inputs=[self.col], mask=AssetID().eq(1),
+            window_length=5, inputs=self.col, mask=AssetID().eq(1),
         )
         returns_masked_2 = Returns(
-            window_length=5, inputs=[self.col], mask=AssetID().eq(2),
+            window_length=5, inputs=self.col, mask=AssetID().eq(2),
         )
         with self.assertRaises(IncompatibleTerms):
             returns_masked_1.linear_regression(
                 target=returns_masked_2, regression_length=regression_length,
             )
 
-        returns_5 = Returns(window_length=5, inputs=[self.col])
-        returns_10 = Returns(window_length=10, inputs=[self.col])
+        returns_5 = Returns(window_length=5, inputs=self.col)
+        returns_10 = Returns(window_length=10, inputs=self.col)
 
         regression_factor = returns_5.linear_regression(
             target=returns_10, regression_length=regression_length,
