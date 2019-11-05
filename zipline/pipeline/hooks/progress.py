@@ -1,12 +1,11 @@
 """Pipeline hooks for tracking and displaying progress.
 """
-import cgi
 from collections import namedtuple
 import time
 
 from interface import implements
 
-from zipline.utils.compat import contextmanager
+from zipline.utils.compat import contextmanager, escape
 from zipline.utils.string_formatting import bulleted_list
 
 from .iface import PipelineHooks
@@ -490,4 +489,4 @@ def repr_htmlsafe(t):
     except Exception:
         r = "(Error Displaying {})".format(type(t).__name__)
 
-    return cgi.escape(str(r))
+    return escape(str(r))
