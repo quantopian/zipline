@@ -30,7 +30,7 @@ patsy==0.4.0
 statsmodels==0.6.1
 
 python-dateutil==2.4.2
-six==1.10.0
+six==1.11.0
 
 # For fetching remote data
 requests==2.20.1
