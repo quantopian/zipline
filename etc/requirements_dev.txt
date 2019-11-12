@@ -22,7 +22,7 @@ pbr==1.10.0
 mock==2.0.0
 
 # Temp Directories for testing
-testfixtures==4.1.2
+testfixtures==6.10.1
 
 # Linting
 

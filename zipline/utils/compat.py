@@ -8,6 +8,7 @@ from six import PY2
 
 if PY2:
     from abc import ABCMeta
+    from cgi import escape
     from types import DictProxyType
     import contextlib
     from ctypes import py_object, pythonapi
@@ -95,6 +96,7 @@ if PY2:
 
 else:
     from contextlib import contextmanager
+    from html import escape
     from types import MappingProxyType as mappingproxy
     from math import ceil
 
@@ -132,6 +134,7 @@ unicode = type(u'')
 
 __all__ = [
     'PY2',
+    'escape',
     'exc_clear',
     'mappingproxy',
     'unicode',
