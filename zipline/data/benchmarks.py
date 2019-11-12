@@ -29,8 +29,14 @@ def get_benchmark_returns(symbol):
     The data is provided by IEX (https://iextrading.com/), and we can
     get up to 5 years worth of data.
     """
+    api_key = environ.get('IEX_API_KEY')
+    if api_key is None:
+        raise ValueError(
+            "Please set your IEX_API_KEY environment variable and retry."
+        )
+    api_url = 'https://cloud.iexapis.com/stable/stock/{}/chart/5y?token={}'
     r = requests.get(
-        'https://api.iextrading.com/1.0/stock/{}/chart/5y'.format(symbol)
+        api_url.format(symbol, api_key)
     )
     data = r.json()
 
