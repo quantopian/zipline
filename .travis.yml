@@ -15,7 +15,7 @@ env:
     #   If authenticating travis gem with github, a github token with the following scopes
     #   is sufficient: ["read:org", "user:email", "repo_deployment", "repo:status", "write:repo_hook"]
     #   See https://docs.travis-ci.com/api#external-apis.
-    - secure: "iiVzfsBuKqGf4zEc7Xjf+bWBGxj6atkx0mf31JfqnqqxBesJbQVGWBcmgK82g2XJpiHKfdhNr+KxkKCtHIN9ziOHY//0xNHzCIKsXnlKG4o4fuDkrb3WpK0dU/A0hdB7oDKlyD3/sYvYrOwpAPnag0rkFG7Ck96/jIUtcH0XW2w="
+    - secure: "MxLrJ0ry2NtZXp4zESb0KP+AUuVns96XfPyZgmxrMOjH4epqLiP5NxaY/5UF9oTEdNQDnPO3Rw7M8rH8vuX5dzOVzP2/miAc+ltFQmlaXuERY5fu2LYTST8MCxokiuD4fdaFPFiaCCSrk+zQZSX2uDn161vK+FqZyGAQ9EEJebQ="
     - CONDA_ROOT_PYTHON_VERSION: "2.7"
   matrix:
     - OLD_PANDAS=1
