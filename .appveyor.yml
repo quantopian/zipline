@@ -14,7 +14,7 @@ environment:
     # 2. Generated secure env var below via appveyor's Encrypt data tool at https://ci.appveyor.com/tools/encrypt.
     #   See https://www.appveyor.com/docs/build-configuration/#secure-variables.
     ANACONDA_TOKEN:
-      secure: "4etFWw7fnUnXMyU8zh/DtZ2xFWw5QGx9Mwbh2UrAcF4wvyYyu4BahiSqhKeufnLq"
+      secure: "caWTijK1gR7gM3026NPkI/QWQTcmz9QzI6sqq2POEVVTDwj2uOJ40kZOOioXqFNb"
 
     CONDA_ROOT_PYTHON_VERSION: "2.7"
 
