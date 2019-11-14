@@ -1522,10 +1522,14 @@ class ChunkedPipelineTestCase(zf.WithSeededRandomPipelineEngine,
                     inputs=[TestingDataSet.float_col],
                     window_length=10,
                 ),
-                'categorical': TestingDataSet.categorical_col.latest,
             },
             domain=US_EQUITIES,
         )
+
+        if not new_pandas:
+            # Categoricals only work on old pandas.
+            pipe.add(TestingDataSet.categorical_col.latest, 'categorical')
+
         pipeline_result = self.run_pipeline(
             pipe,
             start_date=self.PIPELINE_START_DATE,
@@ -1557,13 +1561,16 @@ class ChunkedPipelineTestCase(zf.WithSeededRandomPipelineEngine,
             columns={
                 'float': TestingDataSet.float_col.latest,
                 'bool': TestingDataSet.bool_col.latest,
-                'categorical': TestingDataSet.categorical_col.latest,
             },
             # Define a screen that's False for all assets a significant portion
             # of the time.
             screen=FalseOnOddMonths(),
             domain=US_EQUITIES,
         )
+
+        if not new_pandas:
+            # Categoricals only work on old pandas.
+            pipe.add(TestingDataSet.categorical_col.latest, 'categorical')
 
         self.run_chunked_pipeline(
             pipeline=pipe,
