@@ -274,10 +274,8 @@ def categorical_df_concat(df_list, inplace=False):
     categorical_columns = df.columns[df.dtypes == 'category']
 
     for col in categorical_columns:
-        new_categories = sorted(
-            set().union(
-                *(frame[col].cat.categories for frame in df_list)
-            )
+        new_categories = _sort_set_none_first(
+            _union_all(frame[col].cat.categories for frame in df_list)
         )
 
         with ignore_pandas_nan_categorical_warning():
@@ -285,6 +283,25 @@ def categorical_df_concat(df_list, inplace=False):
                 df[col].cat.set_categories(new_categories, inplace=True)
 
     return pd.concat(df_list)
+
+
+def _union_all(iterables):
+    """Union entries in ``iterables`` into a set.
+    """
+    return set().union(*iterables)
+
+
+def _sort_set_none_first(set_):
+    """Sort a set, sorting ``None`` before other elements, if present.
+    """
+    if None in set_:
+        set_.remove(None)
+        out = [None]
+        out.extend(sorted(set_))
+        set_.add(None)
+        return out
+    else:
+        return sorted(set_)
 
 
 def empty_dataframe(*columns):

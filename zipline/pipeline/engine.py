@@ -348,7 +348,10 @@ class SimplePipelineEngine(PipelineEngine):
             # if we don't have to.
             return chunks[0]
 
-        return categorical_df_concat(chunks, inplace=True)
+        # Filter out empty chunks. Empty dataframes lose dtype information,
+        # which makes concatenation fail.
+        nonempty_chunks = [c for c in chunks if len(c)]
+        return categorical_df_concat(nonempty_chunks, inplace=True)
 
     def run_pipeline(self, pipeline, start_date, end_date, hooks=None):
         """
