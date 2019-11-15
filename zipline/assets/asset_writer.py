@@ -326,7 +326,7 @@ def _check_symbol_mappings(df, exchanges, asset_exchange):
                     for (symbol, country_code), (intersections, cs) in sorted(
                         ambigious.items(),
                         key=first,
-                    ),
+                    )
                 ),
             )
         )
