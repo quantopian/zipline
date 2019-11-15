@@ -659,7 +659,7 @@ class AssetFinder(object):
                 for sid_group in partition_all(
                     SQLITE_MAX_VARIABLE_NUMBER,
                     sids
-                ),
+                )
             )
         }
 
