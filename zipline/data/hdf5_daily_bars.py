@@ -4,7 +4,7 @@ HDF5 Pricing File Format
 At the top level, the file is keyed by country (to support regional
 files containing multiple countries).
 
-Within each country, there are 3 subgroups:
+Within each country, there are 4 subgroups:
 
 ``/data``
 ^^^^^^^^^
@@ -46,6 +46,12 @@ for each asset, aligned to the sids index.
      /start_date
      /end_date
 
+``/currency``
+^^^^^^^^^^^^^
+
+Contains a single dataset, ``code``, aligned to the sids index, which contains
+the listing currency of each sid.
+
 Example
 ^^^^^^^
 Sample layout of the full file with multiple countries.
@@ -65,8 +71,11 @@ Sample layout of the full file with multiple countries.
    |  |  |- /day
    |  |
    |  |- /lifetimes
-   |     |- /start_date
-   |     |- /end_date
+   |  |  |- /start_date
+   |  |  |- /end_date
+   |  |
+   |  |- /currency
+   |     |- /code
    |
    |- /CA
       |- /data
@@ -81,8 +90,11 @@ Sample layout of the full file with multiple countries.
       |  |- /day
       |
       |- /lifetimes
-         |- /start_date
-         |- /end_date
+      |  |- /start_date
+      |  |- /end_date
+      |
+      |- /currency
+         |- /code
 """
 
 
@@ -114,6 +126,8 @@ VERSION = 0
 DATA = 'data'
 INDEX = 'index'
 LIFETIMES = 'lifetimes'
+CURRENCY = 'currency'
+CODE = 'code'
 
 SCALING_FACTOR = 'scaling_factor'
 
@@ -130,6 +144,10 @@ SID = 'sid'
 
 START_DATE = 'start_date'
 END_DATE = 'end_date'
+
+
+# XXX is reserved for "transactions involving no currency".
+MISSING_CURRENCY = 'XXX'
 
 
 DEFAULT_SCALING_FACTORS = {
@@ -182,7 +200,7 @@ def days_and_sids_for_frames(frames):
     # Ensure the indices and columns all match.
     check_indexes_all_same(
         [frame.index for frame in frames],
-        message='Frames have mistmatched days.',
+        message='Frames have mismatched days.',
     )
     check_indexes_all_same(
         [frame.columns for frame in frames],
@@ -217,8 +235,13 @@ class HDF5DailyBarWriter(object):
     def h5_file(self, mode):
         return h5py.File(self._filename, mode)
 
-    def write(self, country_code, frames, scaling_factors=None):
-        """Write the OHLCV data for one country to the HDF5 file.
+    def write(self,
+              country_code,
+              frames,
+              currency_codes=None,
+              scaling_factors=None):
+        """
+        Write the OHLCV data for one country to the HDF5 file.
 
         Parameters
         ----------
@@ -228,6 +251,10 @@ class HDF5DailyBarWriter(object):
             A dict mapping each OHLCV field to a dataframe with a row
             for each date and a column for each sid. The dataframes need
             to have the same index and columns.
+        currency_codes : pd.Series, optional
+            Series mapping sids to 3-digit currency code values for those sids'
+            listing currencies. If not passed, missing currencies will be
+            written.
         scaling_factors : dict[str, float], optional
             A dict mapping each OHLCV field to a scaling factor, which
             is applied (as a multiplier) to the values of field to
@@ -240,75 +267,54 @@ class HDF5DailyBarWriter(object):
         if scaling_factors is None:
             scaling_factors = DEFAULT_SCALING_FACTORS
 
+        # Note that this functions validates that all of the frames
+        # share the same days and sids.
+        days, sids = days_and_sids_for_frames(list(frames.values()))
+
+        # XXX: We should make this required once we're using it everywhere.
+        if currency_codes is None:
+            currency_codes = pd.Series(index=sids, data=MISSING_CURRENCY)
+
+        # Currency codes should match dataframe columns.
+        check_sids_arrays_match(
+            sids,
+            currency_codes.index.values,
+            message="currency_codes sids do not match data sids:",
+        )
+
+        # Write start and end dates for each sid.
+        start_date_ixs, end_date_ixs = compute_asset_lifetimes(frames)
+
+        if len(sids):
+            chunks = (len(sids), min(self._date_chunk_size, len(days)))
+        else:
+            # h5py crashes if we provide chunks for empty data.
+            chunks = None
+
         with self.h5_file(mode='a') as h5_file:
             # ensure that the file version has been written
             h5_file.attrs['version'] = VERSION
 
             country_group = h5_file.create_group(country_code)
 
-            data_group = country_group.create_group(DATA)
-            index_group = country_group.create_group(INDEX)
-            lifetimes_group = country_group.create_group(LIFETIMES)
-
-            # Note that this functions validates that all of the frames
-            # share the same days and sids.
-            days, sids = days_and_sids_for_frames(list(frames.values()))
-
-            # Write sid and date indices.
-            index_group.create_dataset(SID, data=sids)
-
-            # h5py does not support datetimes, so they need to be stored
-            # as integers.
-            index_group.create_dataset(DAY, data=days.astype(np.int64))
-
-            log.debug(
-                'Wrote {} group to file {}',
-                index_group.name,
-                self._filename,
+            self._write_index_group(country_group, days, sids)
+            self._write_lifetimes_group(
+                country_group,
+                start_date_ixs,
+                end_date_ixs,
             )
-
-            # Write start and end dates for each sid.
-            start_date_ixs, end_date_ixs = compute_asset_lifetimes(frames)
-
-            lifetimes_group.create_dataset(START_DATE, data=start_date_ixs)
-            lifetimes_group.create_dataset(END_DATE, data=end_date_ixs)
-
-            if len(sids):
-                chunks = (len(sids), min(self._date_chunk_size, len(days)))
-            else:
-                # h5py crashes if we provide chunks for empty data.
-                chunks = None
-
-            for field in FIELDS:
-                frame = frames[field]
-
-                # Sort rows by increasing sid, and columns by increasing date.
-                frame.sort_index(inplace=True)
-                frame.sort_index(axis='columns', inplace=True)
-
-                data = coerce_to_uint32(
-                    frame.T.fillna(0).values,
-                    scaling_factors[field],
-                )
-
-                dataset = data_group.create_dataset(
-                    field,
-                    compression='lzf',
-                    shuffle=True,
-                    data=data,
-                    chunks=chunks,
-                )
-
-                dataset.attrs[SCALING_FACTOR] = scaling_factors[field]
-
-                log.debug(
-                    'Writing dataset {} to file {}',
-                    dataset.name, self._filename
-                )
+            self._write_currency_group(country_group, currency_codes)
+            self._write_data_group(
+                country_group,
+                frames,
+                scaling_factors,
+                chunks,
+            )
 
     def write_from_sid_df_pairs(self,
                                 country_code,
                                 data,
+                                currency_codes=None,
                                 scaling_factors=None):
         """
         Parameters
@@ -318,6 +324,10 @@ class HDF5DailyBarWriter(object):
         data : iterable[tuple[int, pandas.DataFrame]]
             The data chunks to write. Each chunk should be a tuple of
             sid and the data for that asset.
+        currency_codes : pd.Series, optional
+            Series mapping sids to 3-digit currency code values for those sids'
+            listing currencies. If not passed, missing currencies will be
+            written.
         scaling_factors : dict[str, float], optional
             A dict mapping each OHLCV field to a scaling factor, which
             is applied (as a multiplier) to the values of field to
@@ -354,7 +364,88 @@ class HDF5DailyBarWriter(object):
             for field in FIELDS
         }
 
-        return self.write(country_code, frames, scaling_factors)
+        return self.write(
+            country_code=country_code,
+            frames=frames,
+            scaling_factors=scaling_factors,
+            currency_codes=currency_codes
+        )
+
+    def _write_index_group(self, country_group, days, sids):
+        """Write /country/index.
+        """
+        index_group = country_group.create_group(INDEX)
+        self._log_writing_dataset(index_group)
+
+        index_group.create_dataset(SID, data=sids)
+
+        # h5py does not support datetimes, so they need to be stored
+        # as integers.
+        index_group.create_dataset(DAY, data=days.astype(np.int64))
+
+    def _write_lifetimes_group(self,
+                               country_group,
+                               start_date_ixs,
+                               end_date_ixs):
+        """Write /country/lifetimes
+        """
+        lifetimes_group = country_group.create_group(LIFETIMES)
+        self._log_writing_dataset(lifetimes_group)
+
+        lifetimes_group.create_dataset(START_DATE, data=start_date_ixs)
+        lifetimes_group.create_dataset(END_DATE, data=end_date_ixs)
+
+    def _write_currency_group(self, country_group, currencies):
+        """Write /country/currency
+        """
+        currency_group = country_group.create_group(CURRENCY)
+        self._log_writing_dataset(currency_group)
+
+        currency_group.create_dataset(
+            CODE,
+            data=currencies.values.astype(dtype='S3'),
+        )
+
+    def _write_data_group(self,
+                          country_group,
+                          frames,
+                          scaling_factors,
+                          chunks):
+        """Write /country/data
+        """
+        data_group = country_group.create_group(DATA)
+        self._log_writing_dataset(data_group)
+
+        for field in FIELDS:
+            frame = frames[field]
+
+            # Sort rows by increasing sid, and columns by increasing date.
+            frame.sort_index(inplace=True)
+            frame.sort_index(axis='columns', inplace=True)
+
+            data = coerce_to_uint32(
+                frame.T.fillna(0).values,
+                scaling_factors[field],
+            )
+
+            dataset = data_group.create_dataset(
+                field,
+                compression='lzf',
+                shuffle=True,
+                data=data,
+                chunks=chunks,
+            )
+            self._log_writing_dataset(dataset)
+
+            dataset.attrs[SCALING_FACTOR] = scaling_factors[field]
+
+            log.debug(
+                'Writing dataset {} to file {}',
+                dataset.name, self._filename
+            )
+
+    def _log_writing_dataset(self, dataset):
+        log.debug("Writing {} to file {}", dataset.name, self._filename)
 
 
 def compute_asset_lifetimes(frames):
@@ -601,6 +692,40 @@ class HDF5DailyBarReader(SessionBarReader):
     @lazyval
     def asset_end_dates(self):
         return self.dates[self._country_group[LIFETIMES][END_DATE][:]]
+
+    @lazyval
+    def _currency_codes(self):
+        return self._country_group[CURRENCY][CODE][:]
+
+    def currency_codes(self, sids):
+        """Get currencies in which prices are quoted for the requested sids.
+
+        Parameters
+        ----------
+        sids : np.array[int64]
+            Array of sids for which currencies are needed.
+
+        Returns
+        -------
+        currency_codes : np.array[S3]
+            Array of currency codes for listing currencies of ``sids``.
+        """
+        all_sids = sids
+
+        # For each sid in ``sids``, find its index in ``all_sids``.
+        ixs = all_sids.searchsorted(sids, side='left')
+
+        # searchsorted will return the index of the next lowest sid if the
+        # lookup fails. Check for this case and raise an error.
+        not_found = (all_sids[ixs] != sids)
+        if not_found.any():
+            # TODO: Should we return an unknown sentinel here?
+            missing = sids[not_found]
+            raise ValueError(
+                "Unable to find currency codes for sids:\n{}".format(missing)
+            )
+
+        return self._currency_codes[ixs]
 
     @property
     def last_available_dt(self):
@@ -941,3 +1066,21 @@ class MultiCountryDailyBarReader(SessionBarReader):
         """
         country_code = self._country_code_for_assets([asset.sid])
         return self._readers[country_code].get_last_traded_dt(asset, dt)
+
+
+def check_sids_arrays_match(left, right, message):
+    """Check that two 1d arrays of sids are equal
+    """
+    if len(left) != len(right):
+        raise ValueError(
+            "{}:\nlen(left) ({}) != len(right) ({})".format(
+                message, len(left), len(right)
+            )
+        )
+
+    diff = (left != right)
+    if diff.any():
+        (bad_locs,) = np.where(diff)
+        raise ValueError(
+            "{}:\n Indices with differences: {}".format(message, bad_locs)
+        )
