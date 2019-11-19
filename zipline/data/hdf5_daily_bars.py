@@ -113,7 +113,7 @@ from zipline.data.bar_reader import (
     NoDataForSid,
     NoDataOnDate,
 )
-from zipline.data.session_bars import SessionBarReader
+from zipline.data.session_bars import CurrencyAwareSessionBarReader
 from zipline.utils.memoize import lazyval
 from zipline.utils.pandas_utils import check_indexes_all_same
 
@@ -489,7 +489,7 @@ def convert_price_with_scaling_factor(a, scaling_factor):
     return np.where(zeroes, np.nan, a.astype('float64')) * conversion_factor
 
 
-class HDF5DailyBarReader(SessionBarReader):
+class HDF5DailyBarReader(CurrencyAwareSessionBarReader):
     """
     Parameters
     ---------
@@ -851,7 +851,7 @@ class HDF5DailyBarReader(SessionBarReader):
         return pd.Timestamp(self.dates[nonzero_volume_ixs][-1], tz='UTC')
 
 
-class MultiCountryDailyBarReader(SessionBarReader):
+class MultiCountryDailyBarReader(CurrencyAwareSessionBarReader):
     """
     Parameters
     ---------
@@ -1066,6 +1066,24 @@ class MultiCountryDailyBarReader(SessionBarReader):
         """
         country_code = self._country_code_for_assets([asset.sid])
         return self._readers[country_code].get_last_traded_dt(asset, dt)
+
+    def currency_codes(self, sids):
+        """Get currencies in which prices are quoted for the requested sids.
+
+        Assumes that a sid's prices are always quoted in a single currency.
+
+        Parameters
+        ----------
+        sids : np.array[int64]
+            Array of sids for which currencies are needed.
+
+        Returns
+        -------
+        currency_codes : np.array[S3]
+            Array of currency codes for listing currencies of ``sids``.
+        """
+        country_code = self._country_code_for_assets(sids)
+        return self._readers[country_code].currency_codes(sids)
 
 
 def check_sids_arrays_match(left, right, message):

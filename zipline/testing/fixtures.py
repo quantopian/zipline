@@ -770,18 +770,14 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
 
     Methods
     -------
-    make_equity_daily_bar_data() -> iterable[(int, pd.DataFrame)]
-        A class method that returns an iterator of (sid, dataframe) pairs
-        which will be written to the bcolz files that the class's
-        ``BcolzDailyBarReader`` will read from. By default this creates
-        some simple synthetic data with
-        :func:`~zipline.testing.create_daily_bar_data`
+    make_equity_daily_bar_data(country_code, sids)
+    make_equity_daily_bar_currency_codes(country_code, sids)
 
     See Also
     --------
     WithEquityMinuteBarData
     zipline.testing.create_daily_bar_data
-    """
+    """  # noqa
     EQUITY_DAILY_BAR_START_DATE = alias('START_DATE')
     EQUITY_DAILY_BAR_END_DATE = alias('END_DATE')
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = None
@@ -814,6 +810,8 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
     @classmethod
     def make_equity_daily_bar_data(cls, country_code, sids):
         """
+        Create daily pricing data.
+
         Parameters
         ----------
         country_code : str
@@ -836,6 +834,27 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
             return cls._make_equity_daily_bar_from_minute()
         else:
             return create_daily_bar_data(cls.equity_daily_bar_days, sids)
+
+    @classmethod
+    def make_equity_daily_bar_currency_codes(cls, country_code, sids):
+        """Create listing currencies.
+
+        Default is to list all assets in USD.
+
+        Parameters
+        ----------
+        country_code : str
+            An ISO 3166 alpha-2 country code. Data should be created for
+            this country.
+        sids : tuple[int]
+            The sids to include in the data.
+
+        Returns
+        -------
+        currency_codes : pd.Series[int, str]
+            Map from sids to currency for that sid's prices.
+        """
+        return pd.Series(index=list(sids), data='USD')
 
     @classmethod
     def init_class_fixtures(cls):
@@ -1217,6 +1236,7 @@ class WithWriteHDF5DailyBars(WithEquityDailyBarData,
             cls.asset_finder,
             country_codes,
             cls.make_equity_daily_bar_data,
+            cls.make_equity_daily_bar_currency_codes,
         )
 
         # Open the file and mark it for closure during teardown.

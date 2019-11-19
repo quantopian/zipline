@@ -20,14 +20,14 @@ from zipline.testing.fixtures import (
 nat = pd.Timestamp('nat')
 
 
-class TestSQLiteAdjustementsWriter(WithTradingCalendars,
-                                   WithInstanceTmpDir,
-                                   WithLogger,
-                                   ZiplineTestCase):
+class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
+                                  WithInstanceTmpDir,
+                                  WithLogger,
+                                  ZiplineTestCase):
     make_log_handler = logbook.TestHandler
 
     def init_instance_fixtures(self):
-        super(TestSQLiteAdjustementsWriter, self).init_instance_fixtures()
+        super(TestSQLiteAdjustmentsWriter, self).init_instance_fixtures()
         self.db_path = self.instance_tmpdir.getpath('adjustments.db')
 
     def writer(self, session_bar_reader):
@@ -54,7 +54,11 @@ class TestSQLiteAdjustementsWriter(WithTradingCalendars,
             for key in ('open', 'high', 'low', 'close', 'volume')
         }
 
-        return InMemoryDailyBarReader(frames, self.trading_calendar)
+        return InMemoryDailyBarReader(
+            frames,
+            self.trading_calendar,
+            currency_codes=pd.Series(index=sids, data='USD'),
+        )
 
     def writer_without_pricing(self, dates, sids):
         return self.writer(self.empty_in_memory_reader(dates, sids))
@@ -68,7 +72,11 @@ class TestSQLiteAdjustementsWriter(WithTradingCalendars,
         frames = {'close': close}
         for key in 'open', 'high', 'low', 'volume':
             frames[key] = nan_frame
-        return InMemoryDailyBarReader(frames, self.trading_calendar)
+        return InMemoryDailyBarReader(
+            frames,
+            self.trading_calendar,
+            currency_codes=pd.Series(index=close.columns, data='USD'),
+        )
 
     def writer_from_close(self, close):
         return self.writer(self.in_memory_reader_for_close(close))

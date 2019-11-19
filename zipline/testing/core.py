@@ -1785,14 +1785,23 @@ def create_simple_domain(start, end, country_code):
 def write_hdf5_daily_bars(writer,
                           asset_finder,
                           country_codes,
-                          generate_data):
+                          generate_data,
+                          generate_currency_codes):
     """Write an HDF5 file of pricing data using an HDF5DailyBarWriter.
     """
     asset_finder = asset_finder
     for country_code in country_codes:
         sids = asset_finder.equities_sids_for_country_code(country_code)
+        currency_codes = generate_currency_codes(
+            country_code=country_code,
+            sids=sids,
+        )
         data_generator = generate_data(country_code=country_code, sids=sids)
-        writer.write_from_sid_df_pairs(country_code, data_generator)
+        writer.write_from_sid_df_pairs(
+            country_code,
+            data_generator,
+            currency_codes=currency_codes,
+        )
 
 
 def exchange_info_for_domains(domains):

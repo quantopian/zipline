@@ -1,5 +1,7 @@
 """Tests for pipelines on international markets.
 """
+from itertools import cycle, islice
+
 import numpy as np
 import pandas as pd
 
@@ -43,6 +45,18 @@ class WithInternationalDailyBarData(zf.WithAssetFinder):
         'XTSE': 50,   # Toronto Stock Exchange
         'XLON': 25,   # London Stock Exchange
     }
+    # Assets in these countries will be quoted in one of the listed currencies.
+    INTERNATIONAL_PRICING_CURRENCIES = {
+        'XNYS': ['USD'],
+        'XTSE': ['CAD'],
+        'XLON': ['GBP', 'EUR', 'USD'],
+    }
+    assert (
+        INTERNATIONAL_PRICING_STARTING_PRICES.keys()
+        == INTERNATIONAL_PRICING_CURRENCIES.keys()
+    )
+
+    EXCHANGE_RATES_CURRENCIES = ["USD", "CAD", "GBP", "EUR"]
 
     @classmethod
     def make_daily_bar_data(cls, assets, calendar, sessions):
@@ -67,6 +81,14 @@ class WithInternationalDailyBarData(zf.WithAssetFinder):
         for asset in assets:
             sid = asset.sid
             yield sid, base_frame + sid
+
+    @classmethod
+    def make_currency_codes(cls, calendar, assets):
+        currencies = cls.INTERNATIONAL_PRICING_CURRENCIES[calendar.name]
+        return pd.Series(
+            index=assets,
+            data=list(islice(cycle(currencies), len(assets)))
+        )
 
     @classmethod
     def init_class_fixtures(cls):
@@ -95,6 +117,7 @@ class WithInternationalDailyBarData(zf.WithAssetFinder):
             cls.daily_bar_readers[name] = InMemoryDailyBarReader.from_panel(
                 panel,
                 calendar,
+                currency_codes=cls.make_currency_codes(calendar, assets)
             )
 
 
