@@ -97,3 +97,4 @@ typing==3.6.2
 
 # Country Codes
 iso3166==0.9
+iso4217==1.6.20180829
