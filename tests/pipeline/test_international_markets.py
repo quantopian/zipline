@@ -2,6 +2,7 @@
 """
 from itertools import cycle, islice
 
+from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd
 
@@ -56,7 +57,7 @@ class WithInternationalDailyBarData(zf.WithAssetFinder):
         == INTERNATIONAL_PRICING_CURRENCIES.keys()
     )
 
-    EXCHANGE_RATES_CURRENCIES = ["USD", "CAD", "GBP", "EUR"]
+    FX_RATES_CURRENCIES = ["USD", "CAD", "GBP", "EUR"]
 
     @classmethod
     def make_daily_bar_data(cls, assets, calendar, sessions):
@@ -97,6 +98,7 @@ class WithInternationalDailyBarData(zf.WithAssetFinder):
         cls.daily_bar_sessions = {}
         cls.daily_bar_data = {}
         cls.daily_bar_readers = {}
+        cls.daily_bar_currency_codes = {}
 
         for calendar, assets, in cls.assets_by_calendar.items():
             name = calendar.name
@@ -114,14 +116,21 @@ class WithInternationalDailyBarData(zf.WithAssetFinder):
 
             panel = (pd.Panel.from_dict(cls.daily_bar_data[name])
                      .transpose(2, 1, 0))
+
+            cls.daily_bar_currency_codes[name] = cls.make_currency_codes(
+                calendar,
+                assets,
+            )
+
             cls.daily_bar_readers[name] = InMemoryDailyBarReader.from_panel(
                 panel,
                 calendar,
-                currency_codes=cls.make_currency_codes(calendar, assets)
+                currency_codes=cls.daily_bar_currency_codes[name],
             )
 
 
-class WithInternationalPricingPipelineEngine(WithInternationalDailyBarData):
+class WithInternationalPricingPipelineEngine(zf.WithFXRates,
+                                             WithInternationalDailyBarData):
 
     @classmethod
     def init_class_fixtures(cls):
@@ -133,14 +142,17 @@ class WithInternationalPricingPipelineEngine(WithInternationalDailyBarData):
             GB_EQUITIES: EquityPricingLoader(
                 cls.daily_bar_readers['XLON'],
                 adjustments,
+                cls.in_memory_fx_rate_reader,
             ),
             US_EQUITIES: EquityPricingLoader(
                 cls.daily_bar_readers['XNYS'],
                 adjustments,
+                cls.in_memory_fx_rate_reader,
             ),
             CA_EQUITIES: EquityPricingLoader(
                 cls.daily_bar_readers['XTSE'],
                 adjustments,
+                cls.in_memory_fx_rate_reader,
             )
         }
         cls.engine = SimplePipelineEngine(
@@ -258,6 +270,64 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
                     self.check_expected_latest_value(
                         calendar, col, date, asset, value,
                     )
+
+    @parameterized.expand([
+        ('US', US_EQUITIES, 'XNYS'),
+        ('CA', CA_EQUITIES, 'XTSE'),
+        ('GB', GB_EQUITIES, 'XLON'),
+    ])
+    def test_currency_convert_prices(self, name, domain, calendar_name):
+        # Test running a pipeline on a domain whose assets are all denominated
+        # in the same currency.
+
+        pipe = Pipeline({
+            'close': EquityPricing.close.latest,
+            'close_USD': EquityPricing.close.fx('USD').latest,
+            'close_CAD': EquityPricing.close.fx('CAD').latest,
+            'close_EUR': EquityPricing.close.fx('EUR').latest,
+            'close_GBP': EquityPricing.close.fx('GBP').latest,
+        }, domain=domain)
+
+        sessions = self.daily_bar_sessions[calendar_name]
+
+        start, end = sessions[[-17, -10]]
+        result = self.run_pipeline(pipe, start, end)
+
+        # Raw closes as a (dates, assets) dataframe.
+        closes_2d = result['close'].unstack(fill_value=np.nan)
+
+        # Currency codes for all sids on this domain.
+        all_currency_codes = self.daily_bar_currency_codes[calendar_name]
+
+        # Currency codes for sids in the pipeline result.
+        currency_codes = all_currency_codes.loc[[
+            a.sid for a in closes_2d.columns
+        ]]
+
+        # For each possible target currency, we should be able to reconstruct
+        # the currency-converted pipeline result by manually fetching exchange
+        # rate values and multiplying by the unconverted pricing values.
+        fx_reader = self.in_memory_fx_rate_reader
+        for target in self.FX_RATES_CURRENCIES:
+
+            # Closes, converted to target currency, as reported by pipeline, as
+            # a (dates, assets) dataframe.
+            result_2d = result['close_' + target].unstack(fill_value=np.nan)
+
+            # (dates, sids) dataframe giving the exchange rate from each
+            # asset's currency to the target currency.
+            expected_rates = fx_reader.get_rates(
+                field='mid',
+                quote=target,
+                bases=np.array(currency_codes, dtype='S3'),
+                # Exchange rates used for pipeline output with label N should
+                # be from day N - 1.
+                dates=sessions[-18:-10],
+            )
+
+            expected_result_2d = closes_2d * expected_rates.values
+
+            assert_equal(result_2d, expected_result_2d)
 
     def test_explicit_specialization_matches_implicit(self):
         pipeline_specialized = Pipeline({

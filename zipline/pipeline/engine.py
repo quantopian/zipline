@@ -72,6 +72,7 @@ from zipline.utils.numpy_utils import (
     repeat_last_axis,
 )
 from zipline.utils.pandas_utils import explode
+from zipline.utils.string_formatting import bulleted_list
 
 from .domain import Domain, GENERIC
 from .graph import maybe_specialize
@@ -686,6 +687,7 @@ class SimplePipelineEngine(PipelineEngine):
                     loader_groups[loader_group_key(term)],
                     key=lambda t: t.dataset
                 )
+                self._ensure_can_load(loader, to_load)
                 with hooks.loading_terms(to_load):
                     loaded = loader.load_adjusted_array(
                         domain, to_load, mask_dates, sids, mask,
@@ -892,6 +894,17 @@ class SimplePipelineEngine(PipelineEngine):
         if hooks is None:
             hooks = []
         return DelegatingHooks(self._default_hooks + hooks)
+
+    def _ensure_can_load(self, loader, terms):
+        """Ensure that ``loader`` can load ``terms``.
+        """
+        if not loader.currency_aware:
+            bad = [t for t in terms if t.currency_conversion is not None]
+            if bad:
+                raise ValueError(
+                    "Requested currency conversion is not supported for the "
+                    "following terms:\n{}".format(bulleted_list(bad))
+                )
 
 
 def _pipeline_output_index(dates, assets, mask):

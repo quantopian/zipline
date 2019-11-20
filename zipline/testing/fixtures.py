@@ -1,3 +1,4 @@
+import itertools
 import os
 import sqlite3
 from unittest import TestCase
@@ -51,6 +52,7 @@ from ..data.data_portal import (
     DEFAULT_MINUTE_HISTORY_PREFETCH,
     DEFAULT_DAILY_HISTORY_PREFETCH,
 )
+from ..data.fx import InMemoryFXRateReader
 from ..data.hdf5_daily_bars import (
     HDF5DailyBarReader,
     HDF5DailyBarWriter,
@@ -1710,7 +1712,7 @@ class WithUSEquityPricingPipelineEngine(WithAdjustmentReader,
         cls.findata_dir = cls.data_root_dir.makedir('findata')
         super(WithUSEquityPricingPipelineEngine, cls).init_class_fixtures()
 
-        loader = USEquityPricingLoader(
+        loader = USEquityPricingLoader.without_fx(
             cls.bcolz_equity_daily_bar_reader,
             SQLiteAdjustmentReader(cls.adjustments_db_path),
         )
@@ -2069,3 +2071,68 @@ class WithSeededRandomState(object):
     def init_instance_fixtures(self):
         super(WithSeededRandomState, self).init_instance_fixtures()
         self.rand = np.random.RandomState(self.RANDOM_SEED)
+
+
+class WithFXRates(object):
+    """Fixture providing a factory for in-memory exchange rate data.
+    """
+    # Start date for exchange rates data.
+    FX_RATES_START_DATE = alias('START_DATE')
+
+    # End date for exchange rates data.
+    FX_RATES_END_DATE = alias('END_DATE')
+
+    # Calendar to which exchange rates data is aligned.
+    FX_RATES_CALENDAR = '24/5'
+
+    # Currencies between which exchange rates can be calculated.
+    FX_RATES_CURRENCIES = ["USD", "CAD", "GBP", "EUR"]
+
+    # Fields for which exchange rate data is present.
+    FX_RATES_FIELDS = ["mid"]
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(WithFXRates, cls).init_class_fixtures()
+
+        cal = get_calendar(cls.FX_RATES_CALENDAR)
+        sessions = cal.sessions_in_range(
+            cls.FX_RATES_START_DATE,
+            cls.FX_RATES_END_DATE,
+        )
+
+        cls.fx_rates = cls.make_fx_rates(
+            cls.FX_RATES_FIELDS,
+            cls.FX_RATES_CURRENCIES,
+            sessions,
+        )
+
+        cls.in_memory_fx_rate_reader = InMemoryFXRateReader(cls.fx_rates)
+
+    @classmethod
+    def make_fx_rates(cls, fields, currencies, sessions):
+        rng = np.random.RandomState(42)
+
+        # Assign each currency a "true value" timeseries.
+        true_values = {}
+        for field, currency in sorted(itertools.product(fields, currencies)):
+            start, end = sorted(rng.uniform(0.5, 1.5, (2,)))
+            true_values[currency] = np.linspace(start, end, len(sessions))
+
+        true_values_df = pd.DataFrame(
+            true_values,
+            index=sessions,
+            columns=sorted(currencies),
+        )
+
+        # Define rates as the ratio between each asset's true values.
+        out = {}
+        for i, field in enumerate(fields):
+            out[field] = {}
+            for quote in currencies:
+                out[field][quote] = true_values_df.divide(
+                    true_values_df[quote],
+                    axis=0,
+                )
+
+        return out
