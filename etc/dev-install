@@ -42,7 +42,6 @@ python -m pip install --no-binary=bcolz -r etc/requirements.txt -c etc/requireme
 
 # TODO: resolve these error messages:
 # flake8 3.6.0 has requirement setuptools>=30, but you'll have setuptools 28.8.0 which is incompatible.
-# Running setup.py (path:[venv]/src/blaze-dev/setup.py) egg_info for package blaze-dev produced metadata for project name blaze. Fix your #egg=blaze-dev fragments.
 # blaze keepalive-30.g31060532 has requirement odo>=0.5.0, but you'll have odo 0.3.2+729.gda7f26d which is incompatible.
 
 python -m pip install -r etc/requirements_dev.txt -c etc/requirements.txt $@
