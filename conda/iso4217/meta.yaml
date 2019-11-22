@@ -11,7 +11,7 @@ source:
 
 build:
   number: 0
-  script: "{{ PYTHON }} -m pip install . -vv"
+  script: "python -m pip install . -vv"
 
 requirements:
   host:
