@@ -1,8 +1,8 @@
 {% set name = "python-interface" %}
-{% set version = "1.5.1" %}
+{% set version = "1.5.3" %}
 {% set file_ext = "tar.gz" %}
 {% set hash_type = "sha256" %}
-{% set hash_value = "7a79690b3340df7d01d81028c18f66488e5a7c504841ecdc8542d50a6984f8be" %}
+{% set hash_value = "697cdfafc421d7b6919bbc5768730af7b8f27906fd35ecbf40553ec911bdc48f" %}
 
 package:
   name: '{{ name|lower }}'
