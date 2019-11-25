@@ -1,5 +1,6 @@
+"""Interface and definitions for foreign exchange rate readers.
 """
-"""
+import six
 
 from interface import implements, Interface
 
@@ -47,6 +48,11 @@ class InMemoryFXRateReader(implements(FXRateReader)):
         self._data = data
 
     def get_rates(self, field, quote, bases, dates):
+        if six.PY3:
+            # DataFrames in self._data should contain str as column keys, which
+            # don't compare equal to bases in Python 3. Convert to unicode.
+            bases = bases.astype('U3')
+
         return self._data[field][quote][bases].reindex(dates, method='ffill')
 
 
