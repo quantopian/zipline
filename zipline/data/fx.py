@@ -49,11 +49,20 @@ class InMemoryFXRateReader(implements(FXRateReader)):
 
     def get_rates(self, field, quote, bases, dates):
         if six.PY3:
-            # DataFrames in self._data should contain str as column keys, which
-            # don't compare equal to bases in Python 3. Convert to unicode.
-            bases = bases.astype('U3')
+            # DataFrames in self._data contain str as column keys, which don't
+            # compare equal to numpy bytes objects in Python 3. Convert to
+            # unicode to make comparisons work as expected.
+            cols = bases.astype('U3')
+        else:
+            # In py2, just use bases unchanged.
+            cols = bases
 
-        return self._data[field][quote][bases].reindex(dates, method='ffill')
+        out = self._data[field][quote][cols].reindex(dates, method='ffill')
+
+        # Ensure that result columns are the original input bases, even in py3.
+        out.columns = bases
+
+        return out
 
 
 class ExplodingFXRateReader(implements(FXRateReader)):
