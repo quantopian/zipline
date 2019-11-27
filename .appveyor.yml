@@ -84,6 +84,7 @@ install:
   - conda list
   # https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/ for 64bit C compilation
   - ps: copy .\ci\appveyor\vcvars64.bat "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64"
+  - "ECHO APPVEYOR_PULL_REQUEST_NUMBER is: %APPVEYOR_PULL_REQUEST_NUMBER%"
   - "%CMD_IN_ENV% python .\\ci\\make_conda_packages.py"
 
   # test that we can conda install zipline in a new env
