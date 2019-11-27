@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import abstractproperty
+from abc import abstractproperty, abstractmethod
 
 from zipline.data.bar_reader import BarReader
 
@@ -32,4 +32,24 @@ class SessionBarReader(BarReader):
         sessions : DatetimeIndex
            All session labels (unioning the range for all assets) which the
            reader can provide.
+        """
+
+
+class CurrencyAwareSessionBarReader(SessionBarReader):
+
+    @abstractmethod
+    def currency_codes(self, sids):
+        """Get currencies in which prices are quoted for the requested sids.
+
+        Assumes that a sid's prices are always quoted in a single currency.
+
+        Parameters
+        ----------
+        sids : np.array[int64]
+            Array of sids for which currencies are needed.
+
+        Returns
+        -------
+        currency_codes : np.array[S3]
+            Array of currency codes for listing currencies of ``sids``.
         """

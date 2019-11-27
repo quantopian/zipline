@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from itertools import cycle, islice
 from sys import maxsize
 import re
 
@@ -27,6 +28,7 @@ from pandas import (
     concat,
     DataFrame,
     NaT,
+    Series,
     Timestamp,
 )
 from six import iteritems
@@ -145,6 +147,12 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
     # The country under which these tests should be run.
     DAILY_BARS_TEST_QUERY_COUNTRY_CODE = 'US'
 
+    # Currencies to use for assets in these tests.
+    DAILY_BARS_TEST_CURRENCIES = {
+        'US': ['USD'],
+        'CA': ['USD', 'CAD']
+    }
+
     @classmethod
     def init_class_fixtures(cls):
         super(_DailyBarsTestCase, cls).init_class_fixtures()
@@ -173,6 +181,13 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
             cls.equity_daily_bar_days,
             holes=merge(HOLES.values()),
         )
+
+    @classmethod
+    def make_equity_daily_bar_currency_codes(cls, country_code, sids):
+        # Evenly distribute choices among ``sids``.
+        choices = cls.DAILY_BARS_TEST_CURRENCIES[country_code]
+        codes = list(islice(cycle(choices), len(sids)))
+        return Series(index=sids, data=np.array(codes, dtype='S3'))
 
     @classproperty
     def holes(cls):
@@ -505,6 +520,15 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
                 ),
                 NaT,
             )
+
+    def test_listing_currency(self):
+        assets = np.array(list(self.assets))
+        # TODO: Test loading codes for missing assets.
+        results = self.daily_bar_reader.currency_codes(assets)
+        expected = self.make_equity_daily_bar_currency_codes(
+            self.DAILY_BARS_TEST_QUERY_COUNTRY_CODE, assets,
+        ).values
+        assert_equal(results, expected)
 
 
 class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):

@@ -34,7 +34,7 @@ from six import iteritems, viewkeys
 from toolz import compose
 from trading_calendars import get_calendar
 
-from zipline.data.session_bars import SessionBarReader
+from zipline.data.session_bars import CurrencyAwareSessionBarReader
 from zipline.data.bar_reader import (
     NoDataAfterDate,
     NoDataBeforeDate,
@@ -373,7 +373,7 @@ class BcolzDailyBarWriter(object):
         return ctable.fromdataframe(processed)
 
 
-class BcolzDailyBarReader(SessionBarReader):
+class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
     """
     Reader for raw pricing data written by BcolzDailyOHLCVWriter.
 
@@ -704,3 +704,7 @@ class BcolzDailyBarReader(SessionBarReader):
                 return price * 0.001
         else:
             return price
+
+    def currency_codes(self, sids):
+        # TODO: Better handling for this.
+        return np.full(len(sids), b'USD', dtype='S3')

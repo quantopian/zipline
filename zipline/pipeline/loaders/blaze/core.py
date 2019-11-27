@@ -153,6 +153,7 @@ from datashape import (
     isscalar,
     integral,
 )
+from interface import implements
 import numpy as np
 from odo import odo
 import pandas as pd
@@ -176,6 +177,7 @@ from zipline.pipeline.common import (
 )
 from zipline.pipeline.data.dataset import DataSet, Column
 from zipline.pipeline.domain import GENERIC
+from zipline.pipeline.loaders.base import PipelineLoader
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.lib.adjusted_array import can_represent_dtype
 from zipline.utils.input_validation import expect_element
@@ -805,7 +807,7 @@ class ExprData(object):
         )
 
 
-class BlazeLoader(object):
+class BlazeLoader(implements(PipelineLoader)):
     """A PipelineLoader for datasets constructed with ``from_blaze``.
 
     Parameters
