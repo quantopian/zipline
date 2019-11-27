@@ -290,7 +290,10 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
 
         sessions = self.daily_bar_sessions[calendar_name]
 
-        start, end = sessions[[-17, -10]]
+        # The dates here are arbitrary. We're just running a couple days in the
+        # middle of the data that's configured in this suite.
+        execution_sessions = sessions[-17:-9]
+        start, end = execution_sessions[[0, -1]]
         result = self.run_pipeline(pipe, start, end)
 
         # Raw closes as a (dates, assets) dataframe.
@@ -321,7 +324,8 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
                 quote=target,
                 bases=np.array(currency_codes, dtype='S3'),
                 # Exchange rates used for pipeline output with label N should
-                # be from day N - 1.
+                # be from day N - 1, so shift back from `execution_sessions` by
+                # a day.
                 dates=sessions[-18:-10],
             )
 
