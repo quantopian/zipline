@@ -1,5 +1,4 @@
 language: python
-sudo: false
 fast_finish: true
 python:
   - 2.7
