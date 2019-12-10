@@ -32,7 +32,7 @@ empyrical==0.5.0
 enum34==1.1.6             # via flake8
 flake8==3.6.0
 flask-cors==2.1.3
-flask==0.12.4             # via flask-cors
+flask==1.1.1              # via flask-cors
 funcsigs==1.0.2           # via mock, python-interface
 futures==3.2.0            # via tornado
 h5py==2.7.1
@@ -88,7 +88,7 @@ sortedcontainers==1.4.4   # via intervaltree
 sphinx-autobuild==0.6.0
 sphinx-rtd-theme==0.4.2   # via sphinx
 sphinx==1.3.2
-sqlalchemy==1.1.18
+sqlalchemy==1.3.11
 statsmodels==0.6.1
 ta-lib==0.4.9
 tables==3.4.3
@@ -98,9 +98,9 @@ toolz==0.8.2
 tornado==5.1.1            # via livereload, sphinx-autobuild
 trading-calendars==1.11.2
 typing==3.6.2             # via python-interface
-urllib3==1.23             # via requests
+urllib3==1.24.3           # via requests
 watchdog==0.9.0           # via sphinx-autobuild
-werkzeug==0.12.2          # via flask
+werkzeug==0.16.0          # via flask
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
