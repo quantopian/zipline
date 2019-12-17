@@ -97,6 +97,7 @@ row i in a data node is the ith element of /index/dts.
 from interface import implements
 import h5py
 from logbook import Logger
+import numpy as np
 import pandas as pd
 
 from zipline.utils.memoize import lazyval
@@ -141,19 +142,18 @@ class HDF5FXRateReader(implements(FXRateReader)):
     def dts(self):
         """Row labels for rate groups.
         """
-        return self._group[INDEX][DTS][:].astype('datetime64[ns]')
+        return self._group[INDEX][DTS][:].astype('M8[ns]')
 
     @lazyval
     def currencies(self):
         """Column labels for rate groups.
         """
-        return self._group[INDEX][CURRENCIES][:]
+        return pd.Index(self._group[INDEX][CURRENCIES][:])
 
     def get_rates(self, rate, quote, bases, dts):
         """Get rates to convert ``bases`` into ``quote``.
         """
         dts = dts.values
-
         self._check_dts(self.dts, dts)
 
         if rate == DEFAULT:
@@ -163,29 +163,29 @@ class HDF5FXRateReader(implements(FXRateReader)):
                     "No default rate was configured.".format(DEFAULT)
                 )
 
-        block = self._read_rate_block(rate, quote)
-        df = pd.DataFrame(data=block, index=self.dts, columns=self.currencies)
+        row_ixs = self.dts.searchsorted(dts, side='right') - 1
+        col_ixs = self.currencies.get_indexer(bases)
 
-        # PERF_TODO: This is super naive. We can probably do better if this
-        # turns out to matter.
-        reindexed = (df
-                     .reindex(dts, method='ffill')
-                     .reindex_axis(bases, axis='columns')
-                     # TODO: Should this be localized?
-                     .tz_localize('utc'))
+        return self._read_rate_block(rate, quote, row_ixs, col_ixs)
 
-        # TODO: Should this return an array or a DataFrame?
-        return reindexed
-
-    # PERF_TODO: This might be a good candidate for using `weak_lru_cache`
-    def _read_rate_block(self, rate, quote):
+    def _read_rate_block(self, rate, quote, row_ixs, col_ixs):
         try:
-            return self._group[DATA][rate][quote][RATES][:]
+            dataset = self._group[DATA][rate][quote][RATES]
         except KeyError:
             raise ValueError(
                 "FX rates not available for rate={}, quote_currency={}."
                 .format(rate, quote)
             )
+
+        # There aren't many columns in the output array, so it's easier to pull
+        # all columns and reindex in memory. For rows, however, a quick and
+        # easy optimization is to pull just the slice from min(row_ixs) to
+        # max(row_ixs).
+        min_row = row_ixs[0]
+        max_row = row_ixs[-1]
+        rows = dataset[min_row:max_row + 1]  # +1 to be inclusive of end
+
+        return rows[row_ixs - min_row][:, col_ixs]
 
     def _check_dts(self, stored, requested):
         """Validate that requested dates are in bounds for what we have stored.

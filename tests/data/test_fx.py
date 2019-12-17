@@ -12,7 +12,13 @@ import zipline.testing.fixtures as zp_fixtures
 
 class _FXReaderTestCase(zp_fixtures.WithFXRates,
                         zp_fixtures.ZiplineTestCase):
+    """
+    Base class for testing FXRateReader implementations.
 
+    To test a new FXRateReader implementation, subclass from this base class
+    and implement the ``reader`` property, returning an FXRateReader that uses
+    the data stored in ``cls.fx_rates``.
+    """
     FX_RATES_START_DATE = pd.Timestamp('2014-01-01', tz='UTC')
     FX_RATES_END_DATE = pd.Timestamp('2014-01-31', tz='UTC')
 
@@ -50,20 +56,33 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
         }
 
     @classmethod
-    def get_expected_rate(cls, rate, quote, base, dt):
-        """Get the expected FX rate for the given coordinates.
+    def get_expected_rate_scalar(cls, rate, quote, base, dt):
+        """Get the expected FX rate for the given scalar coordinates.
         """
         col = cls.fx_rates[rate][quote][base]
-        ix = col.index.get_loc(dt, method='ffill')
-        return col.iloc[ix]
+        # PERF: We call this function a lot in this suite, and get_loc is
+        # surprisingly expensive, so optimizing it has a meaningful impact on
+        # overall suite performance. See test_fast_get_loc_ffilled_for
+        # assurance that this behaves the same as get_loc.
+        ix = fast_get_loc_ffilled(col.index, dt)
+        return col.values[ix]
+
+    @classmethod
+    def get_expected_rates(cls, rate, quote, bases, dts):
+        """Get an array of expected FX rates for the given indices.
+        """
+        out = np.empty((len(dts), len(bases)), dtype='float64')
+
+        for i, dt in enumerate(dts):
+            for j, base in enumerate(bases):
+                out[i, j] = cls.get_expected_rate_scalar(rate, quote, base, dt)
+
+        return out
 
     @property
     def reader(self):
         raise NotImplementedError("Must be implemented by test suite.")
 
-    # PERF_TODO: This test takes about a second on my machine. That will
-    # probably be more like 3-4 seconds on Travis. Is there a good way to make
-    # this faster without losing coverage?
     def test_scalar_lookup(self):
         reader = self.reader
 
@@ -74,25 +93,67 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
         cases = itertools.product(rates, currencies, currencies, dates)
 
         for rate, quote, base, dt in cases:
-            dts = pd.DatetimeIndex([dt])
+            dts = pd.DatetimeIndex([dt], tz='UTC')
             bases = np.array([base], dtype='S3')
 
             result = reader.get_rates(rate, quote, bases, dts)
-            expected_scalar = self.get_expected_rate(rate, quote, base, dt)
+            assert_equal(result.shape, (1, 1))
+
+            result_scalar = result[0, 0]
             if quote == base:
-                self.assertEqual(expected_scalar, 1.0)
+                assert_equal(result_scalar, 1.0)
 
-            expected = pd.DataFrame(
-                data=expected_scalar,
-                index=dts,
-                columns=bases,
-            )
-
-            assert_equal(result, expected)
+            expected = self.get_expected_rate_scalar(rate, quote, base, dt)
+            assert_equal(result_scalar, expected)
 
     def test_vectorized_lookup(self):
-        # TODO
-        pass
+        rand = np.random.RandomState(42)
+
+        dates = pd.date_range(self.FX_RATES_START_DATE, self.FX_RATES_END_DATE)
+        rates = self.FX_RATES_RATE_NAMES
+        currencies = self.FX_RATES_CURRENCIES
+
+        # For every combination of rate name and quote currency...
+        for rate, quote in itertools.product(rates, currencies):
+
+            # Choose N random distinct days...
+            for ndays in 1, 2, 5, 7, 20:
+                dts_raw = rand.choice(dates, ndays, replace=False)
+                dts = pd.DatetimeIndex(dts_raw, tz='utc').sort_values()
+
+                # Choose M random possibly-non-distinct currencies...
+                for nbases in 1, 2, 4, 10, 200:
+                    bases = rand.choice(currencies, nbases, replace=True)
+
+                # ...And check that we get the expected result when querying
+                # for those dates/currencies.
+                result = self.reader.get_rates(rate, quote, bases, dts)
+                expected = self.get_expected_rates(rate, quote, bases, dts)
+
+                assert_equal(result, expected)
+
+    def test_load_everything(self):
+        # Sanity check for the randomized tests above: check that we get
+        # exactly the rates we set up in make_fx_rates if we query for their
+        # indices.
+        for currency in self.FX_RATES_CURRENCIES:
+            tokyo_rates = self.tokyo_mid_rates[currency]
+            tokyo_result = self.reader.get_rates(
+                'tokyo_mid',
+                currency,
+                tokyo_rates.columns,
+                tokyo_rates.index,
+            )
+            assert_equal(tokyo_result, tokyo_rates.values)
+
+            london_rates = self.london_mid_rates[currency]
+            london_result = self.reader.get_rates(
+                'london_mid',
+                currency,
+                london_rates.columns,
+                london_rates.index,
+            )
+            assert_equal(london_result, london_rates.values)
 
     def test_read_before_start_date(self):
         for bad_date in (self.FX_RATES_START_DATE - pd.Timedelta('1 day'),
@@ -136,6 +197,7 @@ class HDF5FXReaderTestCase(zp_fixtures.WithTmpDir,
         # Set by WithFXRates.
         sessions = cls.fx_rates_sessions
 
+        # Write in-memory data to h5 file.
         with h5py.File(path, 'w') as h5_file:
             writer = HDF5FXRateWriter(h5_file)
             fx_data = ((rate, quote, quote_frame.values)
@@ -154,3 +216,37 @@ class HDF5FXReaderTestCase(zp_fixtures.WithTmpDir,
     @property
     def reader(self):
         return self.h5_fx_reader
+
+
+def fast_get_loc_ffilled(dts, dt):
+    """
+    Equivalent to dts.get_loc(dt, method='ffill'), but with reasonable
+    microperformance.
+    """
+    ix = dts.searchsorted(dt, side='right') - 1
+    if ix < 0:
+        raise KeyError(dt)
+    return ix
+
+
+class FastGetLocTestCase(zp_fixtures.ZiplineTestCase):
+
+    def test_fast_get_loc_ffilled(self):
+        dts = pd.to_datetime([
+            '2014-01-02',
+            '2014-01-03',
+            # Skip 2014-01-04
+            '2014-01-05',
+            '2014-01-06',
+        ])
+
+        for dt in pd.date_range('2014-01-02', '2014-01-08'):
+            result = fast_get_loc_ffilled(dts, dt)
+            expected = dts.get_loc(dt, method='ffill')
+            assert_equal(result, expected)
+
+        with self.assertRaises(KeyError):
+            dts.get_loc(pd.Timestamp('2014-01-01'), method='ffill')
+
+        with self.assertRaises(KeyError):
+            fast_get_loc_ffilled(dts, pd.Timestamp('2014-01-01'))

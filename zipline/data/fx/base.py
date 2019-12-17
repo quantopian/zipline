@@ -21,7 +21,8 @@ class FXRateReader(Interface):
 
         Returns
         -------
-        rates : pd.DataFrame
-            DataFrame indexed by (dts, bases) containing exchange rates mapping
-            from base -> quote currency.
+        rates : np.array
+            Array of shape ``(len(dts), len(bases))`` containing fx rates.
+            The row at index i corresponds to the dt in dts[i].
+            The column at index j corresponds to the base currency in bases[j].
         """

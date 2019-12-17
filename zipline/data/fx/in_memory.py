@@ -38,12 +38,23 @@ class InMemoryFXRateReader(implements(FXRateReader)):
         df = self._data[rate][quote]
         self._check_dts(df.index, dts)
 
-        out = df.loc[:, cols].reindex(dts, method='ffill')
+        # Get raw values out of the frame.
+        #
+        # Logically, the operation here is:
+        #
+        # (df
+        #  .reindex(dts, side='right')
+        #  .reindex_axis(cols, axis='columns')
+        #  .values)
+        #
+        # But pandas performance on the above is not great, and we call this
+        # method a lot in tests, so we implement our own indexing logic.
 
-        # Ensure that result columns are the original input bases, even in py3.
-        out.columns = bases
+        values = df.values
+        row_ixs = df.index.searchsorted(dts, side='right') - 1
+        col_ixs = df.columns.get_indexer(cols)
 
-        return out
+        return values[row_ixs][:, col_ixs]
 
     def _check_dts(self, stored, requested):
         """Validate that requested dates are in bounds for what we have stored.

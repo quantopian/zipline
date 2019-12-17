@@ -329,7 +329,7 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
                 dts=sessions[-18:-10],
             )
 
-            expected_result_2d = closes_2d * expected_rates.values
+            expected_result_2d = closes_2d * expected_rates
 
             assert_equal(result_2d, expected_result_2d)
 
