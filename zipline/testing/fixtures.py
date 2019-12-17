@@ -2087,8 +2087,14 @@ class WithFXRates(object):
     # Currencies between which exchange rates can be calculated.
     FX_RATES_CURRENCIES = ["USD", "CAD", "GBP", "EUR"]
 
-    # Fields for which exchange rate data is present.
+    # Kinds of rates for which exchange rate data is present.
     FX_RATES_RATE_NAMES = ["mid"]
+
+    # Rate used by default for Pipeline API queries that don't specify a rate
+    # explicitly.
+    @classproperty
+    def FX_RATES_DEFAULT_RATE(cls):
+        return cls.FX_RATES_RATE_NAMES[0]
 
     @classmethod
     def init_class_fixtures(cls):
@@ -2106,7 +2112,10 @@ class WithFXRates(object):
             cls.fx_rates_sessions,
         )
 
-        cls.in_memory_fx_rate_reader = InMemoryFXRateReader(cls.fx_rates)
+        cls.in_memory_fx_rate_reader = InMemoryFXRateReader(
+            cls.fx_rates,
+            cls.FX_RATES_DEFAULT_RATE,
+        )
 
     @classmethod
     def make_fx_rates_from_reference(cls, reference):

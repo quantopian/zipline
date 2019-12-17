@@ -31,6 +31,9 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
     # Fields for which exchange rate data is present.
     FX_RATES_RATE_NAMES = ["london_mid", "tokyo_mid"]
 
+    # Field to be used on a lookup of `'default'`.
+    FX_RATES_DEFAULT_RATE = 'london_mid'
+
     # Used by WithFXRates.
     @classmethod
     def make_fx_rates(cls, fields, currencies, sessions):
@@ -59,6 +62,9 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
     def get_expected_rate_scalar(cls, rate, quote, base, dt):
         """Get the expected FX rate for the given scalar coordinates.
         """
+        if rate == 'default':
+            rate = 'london_mid'
+
         col = cls.fx_rates[rate][quote][base]
         # PERF: We call this function a lot in this suite, and get_loc is
         # surprisingly expensive, so optimizing it has a meaningful impact on
@@ -110,19 +116,19 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
         rand = np.random.RandomState(42)
 
         dates = pd.date_range(self.FX_RATES_START_DATE, self.FX_RATES_END_DATE)
-        rates = self.FX_RATES_RATE_NAMES
+        rates = self.FX_RATES_RATE_NAMES + ['default']
         currencies = self.FX_RATES_CURRENCIES
 
         # For every combination of rate name and quote currency...
         for rate, quote in itertools.product(rates, currencies):
 
             # Choose N random distinct days...
-            for ndays in 1, 2, 5, 7, 20:
+            for ndays in 1, 2, 7, 20:
                 dts_raw = rand.choice(dates, ndays, replace=False)
                 dts = pd.DatetimeIndex(dts_raw, tz='utc').sort_values()
 
                 # Choose M random possibly-non-distinct currencies...
-                for nbases in 1, 2, 4, 10, 200:
+                for nbases in 1, 2, 10, 200:
                     bases = rand.choice(currencies, nbases, replace=True)
 
                 # ...And check that we get the expected result when querying
@@ -153,6 +159,13 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
                 london_rates.columns,
                 london_rates.index,
             )
+            default_result = self.reader.get_rates(
+                'default',
+                currency,
+                london_rates.columns,
+                london_rates.index,
+            )
+            assert_equal(london_result, default_result)
             assert_equal(london_result, london_rates.values)
 
     def test_read_before_start_date(self):
@@ -211,7 +224,10 @@ class HDF5FXReaderTestCase(zp_fixtures.WithTmpDir,
             )
 
         h5_file = cls.enter_class_context(h5py.File(path, 'r'))
-        cls.h5_fx_reader = HDF5FXRateReader(h5_file)
+        cls.h5_fx_reader = HDF5FXRateReader(
+            h5_file,
+            default_rate=cls.FX_RATES_DEFAULT_RATE,
+        )
 
     @property
     def reader(self):

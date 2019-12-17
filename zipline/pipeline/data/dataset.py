@@ -256,10 +256,9 @@ class BoundColumn(LoadableTerm):
         return self._replace(
             currency_conversion=CurrencyConversion(
                 currency=currency,
-                # TODO: Figure out what to do with this.
-                # For now, only support converting with mid. We might
-                # eventually support other fields
-                field='mid',
+                # TODO: Eventually we should support users passing in
+                # alternative fields.
+                field='default',
             )
         )
 

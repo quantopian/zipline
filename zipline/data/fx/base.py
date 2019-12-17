@@ -10,7 +10,9 @@ class FXRateReader(Interface):
         Parameters
         ----------
         rate : str
-            Rate type to load.
+            Rate type to load. Readers intended for use with the Pipeline API
+            should support ``'default'``, which will be used by default for
+            Pipeline API terms that don't specify a specific rate.
         quote : str
             Currency code of the currency into to convert.
         bases : np.array[S3]

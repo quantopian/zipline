@@ -97,7 +97,6 @@ row i in a data node is the ith element of /index/dts.
 from interface import implements
 import h5py
 from logbook import Logger
-import numpy as np
 import pandas as pd
 
 from zipline.utils.memoize import lazyval
@@ -121,9 +120,11 @@ class HDF5FXRateReader(implements(FXRateReader)):
     ----------
     group : h5py.Group
         Top-level group written by an :class:`HDF5FXRateWriter`.
+    default_rate : str
+        Rate to use when ``get_rates`` is called with a rate of 'default'.
     """
 
-    def __init__(self, group, default_rate=None):
+    def __init__(self, group, default_rate):
         self._group = group
         self._default_rate = default_rate
 
@@ -153,15 +154,11 @@ class HDF5FXRateReader(implements(FXRateReader)):
     def get_rates(self, rate, quote, bases, dts):
         """Get rates to convert ``bases`` into ``quote``.
         """
+        if rate == 'default':
+            rate = self._default_rate
+
         dts = dts.values
         self._check_dts(self.dts, dts)
-
-        if rate == DEFAULT:
-            if self._default_rate is None:
-                raise ValueError(
-                    "FX rates not available for rate={}. "
-                    "No default rate was configured.".format(DEFAULT)
-                )
 
         row_ixs = self.dts.searchsorted(dts, side='right') - 1
         col_ixs = self.currencies.get_indexer(bases)

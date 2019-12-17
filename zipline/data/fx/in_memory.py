@@ -18,14 +18,20 @@ class InMemoryFXRateReader(implements(FXRateReader)):
     data : dict
         Nested map from rate name -> quote currency -> pd.DataFrame
         Leaf frames should be indexed by (dates, base currencies).
+    default_rate : str
+        Rate to use when ``get_rates`` is called with a rate of 'default'.
     """
 
-    def __init__(self, data):
+    def __init__(self, data, default_rate):
         self._data = data
+        self._default_rate = default_rate
 
     def get_rates(self, rate, quote, bases, dts):
         """Get rates to convert ``bases`` into ``quote``.
         """
+        if rate == 'default':
+            rate = self._default_rate
+
         if six.PY3:
             # DataFrames in self._data contain str as column keys, which don't
             # compare equal to numpy bytes objects in Python 3. Convert to
@@ -36,6 +42,7 @@ class InMemoryFXRateReader(implements(FXRateReader)):
             cols = bases
 
         df = self._data[rate][quote]
+
         self._check_dts(df.index, dts)
 
         # Get raw values out of the frame.
@@ -47,8 +54,8 @@ class InMemoryFXRateReader(implements(FXRateReader)):
         #  .reindex_axis(cols, axis='columns')
         #  .values)
         #
-        # But pandas performance on the above is not great, and we call this
-        # method a lot in tests, so we implement our own indexing logic.
+        # But pandas' performance on the above is not great, and we call this
+        # method a lot, so we implement our own indexing logic.
 
         values = df.values
         row_ixs = df.index.searchsorted(dts, side='right') - 1
