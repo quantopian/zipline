@@ -146,7 +146,6 @@ To learn about how we build Zipline conda packages, you can read `this`__ sectio
 
 __ release-process.html#uploading-conda-packages
 
-
 Updating dependencies
 ---------------------
 
@@ -178,7 +177,6 @@ __ https://github.com/jazzband/pip-tools/#updating-requirements
    $ pip-compile --output-file=etc/reqs.txt etc/reqs.in ... -P six==1.13.0 -P "click>4.0.0"
 
 As you can see above, you can include multiple such constraints in a single invocation of ``pip-compile``.
-
 
 Contributing to the Docs
 ------------------------
