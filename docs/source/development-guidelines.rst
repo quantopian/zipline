@@ -117,7 +117,7 @@ Then run ``pip install`` TA-lib:
 
 .. code-block:: bash
 
-   $ pip install -r ./etc/requirements_talib.txt
+   $ pip install -r ./etc/requirements_talib.in -c ./etc/requirements.txt
 
 You should now be free to run tests:
 
@@ -141,9 +141,44 @@ __ https://ci.appveyor.com/project/quantopian/zipline
 
 Packaging
 ---------
+
 To learn about how we build Zipline conda packages, you can read `this`__ section in our release process notes.
 
 __ release-process.html#uploading-conda-packages
+
+
+Updating dependencies
+---------------------
+
+If you update the zipline codebase so that it now depends on a new version of a library,
+then you should update the lower bound on that dependency in ``etc/requirements.in``
+(or ``etc/requirements_dev.in`` as appropriate).
+We use `pip-compile`__ to find mutually compatible versions of dependencies for the
+``etc/requirements.txt`` lockfile used in our CI environments.
+
+__ https://github.com/jazzband/pip-tools/
+
+When you update a dependency in an ``.in`` file,
+you need to re-run the ``pip-compile`` command included in the header of `the lockfile`__;
+otherwise the lockfile will not meet the constraints specified to pip by zipline
+at install time (via ``etc/requirements.in`` via ``setup.py``).
+
+__ https://github.com/quantopian/zipline/tree/master/etc/requirements.txt
+
+If the zipline codebase can still support an old version of a dependency, but you want
+to update to a newer version of that library in our CI environments, then only the
+lockfile needs updating. To update the lockfile without bumping the lower bound,
+re-run the ``pip-compile`` command included in the header of the lockfile with the
+addition of the ``--upgrade-package`` or ``-P`` `flag`__, e.g.
+
+__ https://github.com/jazzband/pip-tools/#updating-requirements
+
+.. code-block:: bash
+
+   $ pip-compile --output-file=etc/reqs.txt etc/reqs.in ... -P six==1.13.0 -P "click>4.0.0"
+
+As you can see above, you can include multiple such constraints in a single invocation of ``pip-compile``.
+
 
 Contributing to the Docs
 ------------------------
