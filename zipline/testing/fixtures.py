@@ -1,4 +1,3 @@
-import itertools
 import os
 import sqlite3
 from unittest import TestCase
@@ -2089,50 +2088,66 @@ class WithFXRates(object):
     FX_RATES_CURRENCIES = ["USD", "CAD", "GBP", "EUR"]
 
     # Fields for which exchange rate data is present.
-    FX_RATES_FIELDS = ["mid"]
+    FX_RATES_RATE_NAMES = ["mid"]
 
     @classmethod
     def init_class_fixtures(cls):
         super(WithFXRates, cls).init_class_fixtures()
 
         cal = get_calendar(cls.FX_RATES_CALENDAR)
-        sessions = cal.sessions_in_range(
+        cls.fx_rates_sessions = cal.sessions_in_range(
             cls.FX_RATES_START_DATE,
             cls.FX_RATES_END_DATE,
         )
 
         cls.fx_rates = cls.make_fx_rates(
-            cls.FX_RATES_FIELDS,
+            cls.FX_RATES_RATE_NAMES,
             cls.FX_RATES_CURRENCIES,
-            sessions,
+            cls.fx_rates_sessions,
         )
 
         cls.in_memory_fx_rate_reader = InMemoryFXRateReader(cls.fx_rates)
 
     @classmethod
-    def make_fx_rates(cls, fields, currencies, sessions):
+    def make_fx_rates_from_reference(cls, reference):
+        """
+        Helper method for implementing make_fx_rates.
+
+        Takes a (dates x currencies) DataFrame of "reference" values, which are
+        assumed to be the "true" value of each currency in some unknown
+        external currency. Computes fx rates from A -> B as by dividing the
+        reference value for A by the reference value for B.
+
+        Parameters
+        ----------
+        reference : pd.DataFrame
+            DataFrame of "true" values for currencies.
+
+        Returns
+        -------
+        rates : dict[str, pd.DataFrame]
+            Map from quote currency to FX rates for that currency.
+        """
+        out = {}
+        for quote in reference.columns:
+            out[quote] = reference.divide(reference[quote], axis=0)
+
+        return out
+
+    @classmethod
+    def make_fx_rates(cls, rate_names, currencies, sessions):
         rng = np.random.RandomState(42)
 
-        # Assign each currency a "true value" timeseries.
-        true_values = {}
-        for field, currency in sorted(itertools.product(fields, currencies)):
-            start, end = sorted(rng.uniform(0.5, 1.5, (2,)))
-            true_values[currency] = np.linspace(start, end, len(sessions))
+        currencies = sorted(currencies)
 
-        true_values_df = pd.DataFrame(
-            true_values,
-            index=sessions,
-            columns=sorted(currencies),
-        )
-
-        # Define rates as the ratio between each asset's true values.
         out = {}
-        for i, field in enumerate(fields):
-            out[field] = {}
-            for quote in currencies:
-                out[field][quote] = true_values_df.divide(
-                    true_values_df[quote],
-                    axis=0,
-                )
+        for rate_name in rate_names:
+            cols = {}
+            for currency in currencies:
+                start, end = sorted(rng.uniform(0.5, 1.5, (2,)))
+                cols[currency] = np.linspace(start, end, len(sessions))
+
+            reference = pd.DataFrame(cols, index=sessions, columns=currencies)
+            out[rate_name] = cls.make_fx_rates_from_reference(reference)
 
         return out

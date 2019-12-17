@@ -161,10 +161,10 @@ class EquityPricingLoader(implements(PipelineLoader)):
         # Columns with the same conversion spec will use the same multipliers.
         for spec, arrays in by_spec.items():
             rates = fx_reader.get_rates(
-                field=spec.field,
+                rate=spec.field,
                 quote=spec.currency.code,
                 bases=base_currencies,
-                dates=dates,
+                dts=dates,
             )
             for arr in arrays:
                 multiply(arr, rates, out=arr)

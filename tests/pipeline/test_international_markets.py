@@ -320,13 +320,13 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
             # (dates, sids) dataframe giving the exchange rate from each
             # asset's currency to the target currency.
             expected_rates = fx_reader.get_rates(
-                field='mid',
+                rate='mid',
                 quote=target,
                 bases=np.array(currency_codes, dtype='S3'),
                 # Exchange rates used for pipeline output with label N should
                 # be from day N - 1, so shift back from `execution_sessions` by
                 # a day.
-                dates=sessions[-18:-10],
+                dts=sessions[-18:-10],
             )
 
             expected_result_2d = closes_2d * expected_rates.values
