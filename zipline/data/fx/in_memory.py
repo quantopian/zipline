@@ -1,7 +1,5 @@
 """Interface and definitions for foreign exchange rate readers.
 """
-import six
-
 from interface import implements
 
 from .base import FXRateReader
@@ -32,15 +30,6 @@ class InMemoryFXRateReader(implements(FXRateReader)):
         if rate == 'default':
             rate = self._default_rate
 
-        if six.PY3:
-            # DataFrames in self._data contain str as column keys, which don't
-            # compare equal to numpy bytes objects in Python 3. Convert to
-            # unicode to make comparisons work as expected.
-            cols = bases.astype('U3')
-        else:
-            # In py2, just use bases unchanged.
-            cols = bases
-
         df = self._data[rate][quote]
 
         self._check_dts(df.index, dts)
@@ -59,8 +48,7 @@ class InMemoryFXRateReader(implements(FXRateReader)):
 
         values = df.values
         row_ixs = df.index.searchsorted(dts, side='right') - 1
-        col_ixs = df.columns.get_indexer(cols)
-
+        col_ixs = df.columns.get_indexer(bases)
         return values[row_ixs][:, col_ixs]
 
     def _check_dts(self, stored, requested):

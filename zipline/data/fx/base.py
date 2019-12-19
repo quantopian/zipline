@@ -15,7 +15,7 @@ class FXRateReader(Interface):
             Pipeline API terms that don't specify a specific rate.
         quote : str
             Currency code of the currency into to convert.
-        bases : np.array[S3]
+        bases : np.array[object]
             Array of codes of the currencies from which to convert. A single
             currency may appear multiple times.
         dts : pd.DatetimeIndex

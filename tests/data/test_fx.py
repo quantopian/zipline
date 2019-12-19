@@ -70,7 +70,7 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
         # surprisingly expensive, so optimizing it has a meaningful impact on
         # overall suite performance. See test_fast_get_loc_ffilled_for
         # assurance that this behaves the same as get_loc.
-        ix = fast_get_loc_ffilled(col.index, dt)
+        ix = fast_get_loc_ffilled(col.index.values, dt.asm8)
         return col.values[ix]
 
     @classmethod
@@ -100,7 +100,7 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
 
         for rate, quote, base, dt in cases:
             dts = pd.DatetimeIndex([dt], tz='UTC')
-            bases = np.array([base], dtype='S3')
+            bases = np.array([base])
 
             result = reader.get_rates(rate, quote, bases, dts)
             assert_equal(result.shape, (1, 1))
@@ -257,7 +257,7 @@ class FastGetLocTestCase(zp_fixtures.ZiplineTestCase):
         ])
 
         for dt in pd.date_range('2014-01-02', '2014-01-08'):
-            result = fast_get_loc_ffilled(dts, dt)
+            result = fast_get_loc_ffilled(dts.values, dt.asm8)
             expected = dts.get_loc(dt, method='ffill')
             assert_equal(result, expected)
 

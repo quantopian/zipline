@@ -98,6 +98,7 @@ from interface import implements
 import h5py
 from logbook import Logger
 import pandas as pd
+import six
 
 from zipline.utils.memoize import lazyval
 
@@ -143,13 +144,24 @@ class HDF5FXRateReader(implements(FXRateReader)):
     def dts(self):
         """Row labels for rate groups.
         """
-        return self._group[INDEX][DTS][:].astype('M8[ns]')
+        return pd.DatetimeIndex(
+            self._group[INDEX][DTS][:].astype('M8[ns]'),
+            tz='UTC',
+        )
 
     @lazyval
     def currencies(self):
         """Column labels for rate groups.
         """
-        return pd.Index(self._group[INDEX][CURRENCIES][:])
+        # Currencies are stored as fixed-length bytes in the file, but we want
+        # `str` objects in memory.
+        byte_strings = self._group[INDEX][CURRENCIES][:]
+        if six.PY3:
+            values = [c.decode('ascii') for c in byte_strings]
+        else:
+            values = byte_strings.astype(object)
+
+        return pd.Index(values)
 
     def get_rates(self, rate, quote, bases, dts):
         """Get rates to convert ``bases`` into ``quote``.
@@ -157,7 +169,6 @@ class HDF5FXRateReader(implements(FXRateReader)):
         if rate == 'default':
             rate = self._default_rate
 
-        dts = dts.values
         self._check_dts(self.dts, dts)
 
         row_ixs = self.dts.searchsorted(dts, side='right') - 1
