@@ -413,7 +413,7 @@
 </div>
           <div role="main" class="document">
             
-  <a class="reference external image-reference" href="http://www.zipline.io"><img alt="Zipline" class="align-center" src="https://media.quantopian.com/logos/open_source/zipline-logo-03_.png" style="width: 212px;" /></a>
+  <a class="reference external image-reference" href="https://www.zipline.io"><img alt="Zipline" class="align-center" src="https://media.quantopian.com/logos/open_source/zipline-logo-03_.png" style="width: 212px;" /></a>
 <hr class="docutils" />
 <p><a class="reference external" href="https://gitter.im/quantopian/zipline?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img alt="Gitter" src="https://badges.gitter.im/Join%20Chat.svg" /></a>
 <a class="reference external" href="https://pypi.python.org/pypi/zipline"><img alt="version status" src="https://img.shields.io/pypi/pyversions/zipline.svg" /></a>
@@ -427,8 +427,8 @@ community-centered, hosted platform for building and executing trading
 strategies.</p>
 <ul class="simple">
 <li><a class="reference external" href="https://groups.google.com/forum/#!forum/zipline">Join our Community!</a></li>
-<li><a class="reference external" href="http://www.zipline.io">Documentation</a></li>
-<li>Want to Contribute? See our <a class="reference external" href="http://zipline.io/development-guidelines.html">Development Guidelines</a></li>
+<li><a class="reference external" href="https://www.zipline.io">Documentation</a></li>
+<li>Want to Contribute? See our <a class="reference external" href="https://www.zipline.io/development-guidelines">Development Guidelines</a></li>
 </ul>
 <div class="section" id="features">
 <h1>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h1>
@@ -452,7 +452,7 @@ visualization of state-of-the-art trading systems.</li>
 <h2>Installing With <code class="docutils literal"><span class="pre">pip</span></code><a class="headerlink" href="#installing-with-pip" title="Permalink to this headline">¶</a></h2>
 <p>Assuming you have all required (see note below) non-Python dependencies, you
 can install Zipline with <code class="docutils literal"><span class="pre">pip</span></code> via:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>pip install zipline
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ pip install zipline
 </pre></div>
 </div>
 <p><strong>Note:</strong> Installing Zipline via <code class="docutils literal"><span class="pre">pip</span></code> is slightly more involved than the
@@ -463,24 +463,24 @@ fail if you&#8217;ve never installed any scientific Python packages before.</p>
 <li>Zipline ships several C extensions that require access to the CPython C API.
 In order to build the C extensions, <code class="docutils literal"><span class="pre">pip</span></code> needs access to the CPython
 header files for your Python installation.</li>
-<li>Zipline depends on <a class="reference external" href="http://www.numpy.org/">numpy</a>, the core library for
-numerical array computing in Python.  Numpy depends on having the <a class="reference external" href="http://www.netlib.org/lapack">LAPACK</a> linear algebra routines available.</li>
+<li>Zipline depends on <a class="reference external" href="https://www.numpy.org/">numpy</a>, the core library for
+numerical array computing in Python.  Numpy depends on having the <a class="reference external" href="https://www.netlib.org/lapack/">LAPACK</a> linear algebra routines available.</li>
 </ol>
 <p>Because LAPACK and the CPython headers are binary dependencies, the correct way
 to install them varies from platform to platform.  On Linux, users generally
 acquire these dependencies via a package manager like <code class="docutils literal"><span class="pre">apt</span></code>, <code class="docutils literal"><span class="pre">yum</span></code>, or
-<code class="docutils literal"><span class="pre">pacman</span></code>.  On OSX, <a class="reference external" href="http://www.brew.sh">Homebrew</a> is a popular choice
+<code class="docutils literal"><span class="pre">pacman</span></code>.  On OSX, <a class="reference external" href="https://brew.sh/">Homebrew</a> is a popular choice
 providing similar functionality.</p>
-<p>See the full <a class="reference external" href="http://www.zipline.io/install.html">Zipline Install Documentation</a> for more information on acquiring
+<p>See the full <a class="reference external" href="https://www.zipline.io/install">Zipline Install Documentation</a> for more information on acquiring
 binary dependencies for your specific platform.</p>
 </div>
 <div class="section" id="conda">
 <h2>conda<a class="headerlink" href="#conda" title="Permalink to this headline">¶</a></h2>
 <p>Another way to install Zipline is via the <code class="docutils literal"><span class="pre">conda</span></code> package manager, which
-comes as part of <a class="reference external" href="http://continuum.io/downloads">Anaconda</a> or can be
+comes as part of <a class="reference external" href="https://www.anaconda.com/distribution/">Anaconda</a> or can be
 installed via <code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">conda</span></code>.</p>
 <p>Once set up, you can install Zipline from our <code class="docutils literal"><span class="pre">Quantopian</span></code> channel:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>conda install -c Quantopian zipline
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ conda install -c Quantopian zipline
 </pre></div>
 </div>
 <p>Currently supported platforms include:</p>
@@ -498,50 +498,50 @@ continuous integration tests.</p>
 </div>
 <div class="section" id="quickstart">
 <h1>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this headline">¶</a></h1>
-<p>See our <a class="reference external" href="http://www.zipline.io/beginner-tutorial.html">getting started tutorial</a>.</p>
+<p>See our <a class="reference external" href="https://www.zipline.io/beginner-tutorial">getting started tutorial</a>.</p>
 <p>The following code implements a simple dual moving average algorithm.</p>
-<div class="code python highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">order_target</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">symbol</span>
+<div class="code python highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">order_target</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">symbol</span>
 
 <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
     <span class="n">context</span><span class="o">.</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">context</span><span class="o">.</span><span class="n">asset</span> <span class="o">=</span> <span class="n">symbol</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">)</span>
+    <span class="n">context</span><span class="o">.</span><span class="n">asset</span> <span class="o">=</span> <span class="n">symbol</span><span class="p">(</span><span class="s1">&#39;AAPL&#39;</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">handle_data</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-    <span class="c"># Skip first 300 days to get full windows</span>
+    <span class="c1"># Skip first 300 days to get full windows</span>
     <span class="n">context</span><span class="o">.</span><span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">i</span> <span class="o">&lt;</span> <span class="mi">300</span><span class="p">:</span>
         <span class="k">return</span>
 
-    <span class="c"># Compute averages</span>
-    <span class="c"># data.history() has to be called with the same params</span>
-    <span class="c"># from above and returns a pandas dataframe.</span>
-    <span class="n">short_mavg</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">history</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">,</span> <span class="n">bar_count</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s">&quot;1d&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-    <span class="n">long_mavg</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">history</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">,</span> <span class="n">bar_count</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s">&quot;1d&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="c1"># Compute averages</span>
+    <span class="c1"># data.history() has to be called with the same params</span>
+    <span class="c1"># from above and returns a pandas dataframe.</span>
+    <span class="n">short_mavg</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">history</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s1">&#39;price&#39;</span><span class="p">,</span> <span class="n">bar_count</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s2">&quot;1d&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">long_mavg</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">history</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s1">&#39;price&#39;</span><span class="p">,</span> <span class="n">bar_count</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s2">&quot;1d&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
 
-    <span class="c"># Trading logic</span>
+    <span class="c1"># Trading logic</span>
     <span class="k">if</span> <span class="n">short_mavg</span> <span class="o">&gt;</span> <span class="n">long_mavg</span><span class="p">:</span>
-        <span class="c"># order_target orders as many shares as needed to</span>
-        <span class="c"># achieve the desired number of shares.</span>
+        <span class="c1"># order_target orders as many shares as needed to</span>
+        <span class="c1"># achieve the desired number of shares.</span>
         <span class="n">order_target</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">short_mavg</span> <span class="o">&lt;</span> <span class="n">long_mavg</span><span class="p">:</span>
         <span class="n">order_target</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
-    <span class="c"># Save values for later inspection</span>
-    <span class="n">record</span><span class="p">(</span><span class="n">AAPL</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">),</span>
+    <span class="c1"># Save values for later inspection</span>
+    <span class="n">record</span><span class="p">(</span><span class="n">AAPL</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s1">&#39;price&#39;</span><span class="p">),</span>
            <span class="n">short_mavg</span><span class="o">=</span><span class="n">short_mavg</span><span class="p">,</span>
            <span class="n">long_mavg</span><span class="o">=</span><span class="n">long_mavg</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>You can then run this algorithm using the Zipline CLI; you&#8217;ll need a <a class="reference external" href="https://docs.quandl.com/docs#section-authentication">Quandl</a> API key to ingest the default data bundle.
 Once you have your key, run the following from the command line:</p>
-<div class="code bash highlight-python"><div class="highlight"><pre>$ QUANDL_API_KEY=&lt;yourkey&gt; zipline ingest -b quandl
+<div class="code bash highlight-python"><div class="highlight"><pre><span></span>$ QUANDL_API_KEY=&lt;yourkey&gt; zipline ingest -b quandl
 $ zipline run -f dual_moving_average.py --start 2014-1-1 --end 2018-1-1 -o dma.pickle
 </pre></div>
 </div>
 <p>This will download asset pricing data data from <cite>quandl</cite>, and stream it through the algorithm
 over the specified time range. Then, the resulting performance DataFrame is saved in <cite>dma.pickle</cite>, which you
-can load an analyze from within Python.</p>
+can load and analyze from within Python.</p>
 <p>You can find other examples in the <code class="docutils literal"><span class="pre">zipline/examples</span></code> directory.</p>
 </div>
 <div class="section" id="questions">
@@ -550,7 +550,7 @@ can load an analyze from within Python.</p>
 </div>
 <div class="section" id="contributing">
 <h1>Contributing<a class="headerlink" href="#contributing" title="Permalink to this headline">¶</a></h1>
-<p>All contributions, bug reports, bug fixes, documentation improvements, enhancements, and ideas are welcome. Details on how to set up a development environment can be found in our <a class="reference external" href="http://zipline.io/development-guidelines.html">development guidelines</a>.</p>
+<p>All contributions, bug reports, bug fixes, documentation improvements, enhancements, and ideas are welcome. Details on how to set up a development environment can be found in our <a class="reference external" href="https://www.zipline.io/development-guidelines">development guidelines</a>.</p>
 <p>If you are looking to start working with the Zipline codebase, navigate to the GitHub <cite>issues</cite> tab and start looking through interesting issues. Sometimes there are issues labeled as <a class="reference external" href="https://github.com/quantopian/zipline/issues?q=is%3Aissue+is%3Aopen+label%3A%22Beginner+Friendly%22">Beginner Friendly</a> or <a class="reference external" href="https://github.com/quantopian/zipline/issues?q=is%3Aissue+is%3Aopen+label%3A%22Help+Wanted%22">Help Wanted</a>.</p>
 <p>Feel free to ask questions on the <a class="reference external" href="https://groups.google.com/forum/#!forum/zipline">mailing list</a> or on <a class="reference external" href="https://gitter.im/quantopian/zipline">Gitter</a>.</p>
 <div class="toctree-wrapper compound">

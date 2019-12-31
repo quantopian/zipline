@@ -414,7 +414,7 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.data.bundles.core</h1><div class="highlight"><pre>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+<span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
 <span class="kn">import</span> <span class="nn">errno</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">shutil</span>
@@ -426,12 +426,8 @@
 <span class="kn">from</span> <span class="nn">trading_calendars</span> <span class="kn">import</span> <span class="n">get_calendar</span>
 <span class="kn">from</span> <span class="nn">toolz</span> <span class="kn">import</span> <span class="n">curry</span><span class="p">,</span> <span class="n">complement</span><span class="p">,</span> <span class="n">take</span>
 
-<span class="kn">from</span> <span class="nn">..us_equity_pricing</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">BcolzDailyBarReader</span><span class="p">,</span>
-    <span class="n">BcolzDailyBarWriter</span><span class="p">,</span>
-    <span class="n">SQLiteAdjustmentReader</span><span class="p">,</span>
-    <span class="n">SQLiteAdjustmentWriter</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">..adjustments</span> <span class="kn">import</span> <span class="n">SQLiteAdjustmentReader</span><span class="p">,</span> <span class="n">SQLiteAdjustmentWriter</span>
+<span class="kn">from</span> <span class="nn">..bcolz_daily_bars</span> <span class="kn">import</span> <span class="n">BcolzDailyBarReader</span><span class="p">,</span> <span class="n">BcolzDailyBarWriter</span>
 <span class="kn">from</span> <span class="nn">..minute_bars</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">BcolzMinuteBarReader</span><span class="p">,</span>
     <span class="n">BcolzMinuteBarWriter</span><span class="p">,</span>
@@ -485,25 +481,25 @@
 
 
 <span class="k">def</span> <span class="nf">adjustment_db_relative</span><span class="p">(</span><span class="n">bundle_name</span><span class="p">,</span> <span class="n">timestr</span><span class="p">,</span> <span class="n">environ</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">bundle_name</span><span class="p">,</span> <span class="n">timestr</span><span class="p">,</span> <span class="s">&#39;adjustments.sqlite&#39;</span>
+    <span class="k">return</span> <span class="n">bundle_name</span><span class="p">,</span> <span class="n">timestr</span><span class="p">,</span> <span class="s1">&#39;adjustments.sqlite&#39;</span>
 
 
 <span class="k">def</span> <span class="nf">cache_relative</span><span class="p">(</span><span class="n">bundle_name</span><span class="p">,</span> <span class="n">timestr</span><span class="p">,</span> <span class="n">environ</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">bundle_name</span><span class="p">,</span> <span class="s">&#39;.cache&#39;</span>
+    <span class="k">return</span> <span class="n">bundle_name</span><span class="p">,</span> <span class="s1">&#39;.cache&#39;</span>
 
 
 <span class="k">def</span> <span class="nf">daily_equity_relative</span><span class="p">(</span><span class="n">bundle_name</span><span class="p">,</span> <span class="n">timestr</span><span class="p">,</span> <span class="n">environ</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">bundle_name</span><span class="p">,</span> <span class="n">timestr</span><span class="p">,</span> <span class="s">&#39;daily_equities.bcolz&#39;</span>
+    <span class="k">return</span> <span class="n">bundle_name</span><span class="p">,</span> <span class="n">timestr</span><span class="p">,</span> <span class="s1">&#39;daily_equities.bcolz&#39;</span>
 
 
 <span class="k">def</span> <span class="nf">minute_equity_relative</span><span class="p">(</span><span class="n">bundle_name</span><span class="p">,</span> <span class="n">timestr</span><span class="p">,</span> <span class="n">environ</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">bundle_name</span><span class="p">,</span> <span class="n">timestr</span><span class="p">,</span> <span class="s">&#39;minute_equities.bcolz&#39;</span>
+    <span class="k">return</span> <span class="n">bundle_name</span><span class="p">,</span> <span class="n">timestr</span><span class="p">,</span> <span class="s1">&#39;minute_equities.bcolz&#39;</span>
 
 
 <span class="k">def</span> <span class="nf">asset_db_relative</span><span class="p">(</span><span class="n">bundle_name</span><span class="p">,</span> <span class="n">timestr</span><span class="p">,</span> <span class="n">environ</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">db_version</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
     <span class="n">db_version</span> <span class="o">=</span> <span class="n">ASSET_DB_VERSION</span> <span class="k">if</span> <span class="n">db_version</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">db_version</span>
 
-    <span class="k">return</span> <span class="n">bundle_name</span><span class="p">,</span> <span class="n">timestr</span><span class="p">,</span> <span class="s">&#39;assets-</span><span class="si">%d</span><span class="s">.sqlite&#39;</span> <span class="o">%</span> <span class="n">db_version</span>
+    <span class="k">return</span> <span class="n">bundle_name</span><span class="p">,</span> <span class="n">timestr</span><span class="p">,</span> <span class="s1">&#39;assets-</span><span class="si">%d</span><span class="s1">.sqlite&#39;</span> <span class="o">%</span> <span class="n">db_version</span>
 
 
 <span class="k">def</span> <span class="nf">to_bundle_ingest_dirname</span><span class="p">(</span><span class="n">ts</span><span class="p">):</span>
@@ -520,7 +516,7 @@
 <span class="sd">    name : str</span>
 <span class="sd">        The name of the directory for this ingestion.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">ts</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="s">&#39;;&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ts</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="s1">&#39;;&#39;</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">from_bundle_ingest_dirname</span><span class="p">(</span><span class="n">cs</span><span class="p">):</span>
@@ -536,7 +532,7 @@
 <span class="sd">    ts : pandas.Timestamp</span>
 <span class="sd">        The time when this ingestion happened.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">cs</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;;&#39;</span><span class="p">,</span> <span class="s">&#39;:&#39;</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">cs</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">,</span> <span class="s1">&#39;:&#39;</span><span class="p">))</span>
 
 
 <span class="k">def</span> <span class="nf">ingestions_for_bundle</span><span class="p">(</span><span class="n">bundle</span><span class="p">,</span> <span class="n">environ</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
@@ -549,24 +545,24 @@
 
 
 <span class="n">RegisteredBundle</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
-    <span class="s">&#39;RegisteredBundle&#39;</span><span class="p">,</span>
-    <span class="p">[</span><span class="s">&#39;calendar_name&#39;</span><span class="p">,</span>
-     <span class="s">&#39;start_session&#39;</span><span class="p">,</span>
-     <span class="s">&#39;end_session&#39;</span><span class="p">,</span>
-     <span class="s">&#39;minutes_per_day&#39;</span><span class="p">,</span>
-     <span class="s">&#39;ingest&#39;</span><span class="p">,</span>
-     <span class="s">&#39;create_writers&#39;</span><span class="p">]</span>
+    <span class="s1">&#39;RegisteredBundle&#39;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s1">&#39;calendar_name&#39;</span><span class="p">,</span>
+     <span class="s1">&#39;start_session&#39;</span><span class="p">,</span>
+     <span class="s1">&#39;end_session&#39;</span><span class="p">,</span>
+     <span class="s1">&#39;minutes_per_day&#39;</span><span class="p">,</span>
+     <span class="s1">&#39;ingest&#39;</span><span class="p">,</span>
+     <span class="s1">&#39;create_writers&#39;</span><span class="p">]</span>
 <span class="p">)</span>
 
 <span class="n">BundleData</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
-    <span class="s">&#39;BundleData&#39;</span><span class="p">,</span>
-    <span class="s">&#39;asset_finder equity_minute_bar_reader equity_daily_bar_reader &#39;</span>
-    <span class="s">&#39;adjustment_reader&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;BundleData&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;asset_finder equity_minute_bar_reader equity_daily_bar_reader &#39;</span>
+    <span class="s1">&#39;adjustment_reader&#39;</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">BundleCore</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
-    <span class="s">&#39;BundleCore&#39;</span><span class="p">,</span>
-    <span class="s">&#39;bundles register unregister ingest load clean&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;BundleCore&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;bundles register unregister ingest load clean&#39;</span><span class="p">,</span>
 <span class="p">)</span>
 
 
@@ -575,13 +571,13 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">exit_code</span> <span class="o">=</span> <span class="mi">1</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">UnknownBundle</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span>
-            <span class="s">&#39;No bundle registered with the name </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">UnknownBundle</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="s1">&#39;No bundle registered with the name </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
 
-    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">message</span>
 
 
@@ -598,17 +594,17 @@
 <span class="sd">    --------</span>
 <span class="sd">    clean</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">before</span><span class="p">,</span> <span class="n">after</span><span class="p">,</span> <span class="n">keep_last</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">BadClean</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span>
-            <span class="s">&#39;Cannot pass a combination of `before` and `after` with&#39;</span>
-            <span class="s">&#39;`keep_last`. Got: before=</span><span class="si">%r</span><span class="s">, after=</span><span class="si">%r</span><span class="s">, keep_n=</span><span class="si">%r</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">before</span><span class="p">,</span> <span class="n">after</span><span class="p">,</span> <span class="n">keep_last</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BadClean</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="s1">&#39;Cannot pass a combination of `before` and `after` with&#39;</span>
+            <span class="s1">&#39;`keep_last`. Got: before=</span><span class="si">%r</span><span class="s1">, after=</span><span class="si">%r</span><span class="s1">, keep_n=</span><span class="si">%r</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
                 <span class="n">before</span><span class="p">,</span>
                 <span class="n">after</span><span class="p">,</span>
                 <span class="n">keep_last</span><span class="p">,</span>
             <span class="p">),</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">message</span>
 
 
@@ -631,16 +627,16 @@
 <span class="sd">    clean : callable</span>
 <span class="sd">        The function which cleans up data written with ``ingest``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">_bundles</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c"># the registered bundles</span>
-    <span class="c"># Expose _bundles through a proxy so that users cannot mutate this</span>
-    <span class="c"># accidentally. Users may go through `register` to update this which will</span>
-    <span class="c"># warn when trampling another bundle.</span>
+    <span class="n">_bundles</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># the registered bundles</span>
+    <span class="c1"># Expose _bundles through a proxy so that users cannot mutate this</span>
+    <span class="c1"># accidentally. Users may go through `register` to update this which will</span>
+    <span class="c1"># warn when trampling another bundle.</span>
     <span class="n">bundles</span> <span class="o">=</span> <span class="n">mappingproxy</span><span class="p">(</span><span class="n">_bundles</span><span class="p">)</span>
 
     <span class="nd">@curry</span>
     <span class="k">def</span> <span class="nf">register</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
                  <span class="n">f</span><span class="p">,</span>
-                 <span class="n">calendar_name</span><span class="o">=</span><span class="s">&#39;NYSE&#39;</span><span class="p">,</span>
+                 <span class="n">calendar_name</span><span class="o">=</span><span class="s1">&#39;NYSE&#39;</span><span class="p">,</span>
                  <span class="n">start_session</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">end_session</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">minutes_per_day</span><span class="o">=</span><span class="mi">390</span><span class="p">,</span>
@@ -711,14 +707,14 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">bundles</span><span class="p">:</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                <span class="s">&#39;Overwriting bundle with name </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">,</span>
+                <span class="s1">&#39;Overwriting bundle with name </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">,</span>
                 <span class="n">stacklevel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
             <span class="p">)</span>
 
-        <span class="c"># NOTE: We don&#39;t eagerly compute calendar values here because</span>
-        <span class="c"># `register` is called at module scope in zipline, and creating a</span>
-        <span class="c"># calendar currently takes between 0.5 and 1 seconds, which causes a</span>
-        <span class="c"># noticeable delay on the zipline CLI.</span>
+        <span class="c1"># NOTE: We don&#39;t eagerly compute calendar values here because</span>
+        <span class="c1"># `register` is called at module scope in zipline, and creating a</span>
+        <span class="c1"># calendar currently takes between 0.5 and 1 seconds, which causes a</span>
+        <span class="c1"># noticeable delay on the zipline CLI.</span>
         <span class="n">_bundles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">RegisteredBundle</span><span class="p">(</span>
             <span class="n">calendar_name</span><span class="o">=</span><span class="n">calendar_name</span><span class="p">,</span>
             <span class="n">start_session</span><span class="o">=</span><span class="n">start_session</span><span class="p">,</span>
@@ -790,7 +786,7 @@
 
         <span class="k">if</span> <span class="n">timestamp</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">timestamp</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
-        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">timestamp</span><span class="o">.</span><span class="n">tz_convert</span><span class="p">(</span><span class="s">&#39;utc&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">timestamp</span><span class="o">.</span><span class="n">tz_convert</span><span class="p">(</span><span class="s1">&#39;utc&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
 
         <span class="n">timestr</span> <span class="o">=</span> <span class="n">to_bundle_ingest_dirname</span><span class="p">(</span><span class="n">timestamp</span><span class="p">)</span>
         <span class="n">cachepath</span> <span class="o">=</span> <span class="n">cache_path</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">environ</span><span class="o">=</span><span class="n">environ</span><span class="p">)</span>
@@ -798,8 +794,8 @@
         <span class="n">pth</span><span class="o">.</span><span class="n">ensure_directory</span><span class="p">(</span><span class="n">cachepath</span><span class="p">)</span>
         <span class="k">with</span> <span class="n">dataframe_cache</span><span class="p">(</span><span class="n">cachepath</span><span class="p">,</span> <span class="n">clean_on_failure</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">cache</span><span class="p">,</span> \
                 <span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">stack</span><span class="p">:</span>
-            <span class="c"># we use `cleanup_on_failure=False` so that we don&#39;t purge the</span>
-            <span class="c"># cache directory if the load fails in the middle</span>
+            <span class="c1"># we use `cleanup_on_failure=False` so that we don&#39;t purge the</span>
+            <span class="c1"># cache directory if the load fails in the middle</span>
             <span class="k">if</span> <span class="n">bundle</span><span class="o">.</span><span class="n">create_writers</span><span class="p">:</span>
                 <span class="n">wd</span> <span class="o">=</span> <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">working_dir</span><span class="p">(</span>
                     <span class="n">pth</span><span class="o">.</span><span class="n">data_path</span><span class="p">([],</span> <span class="n">environ</span><span class="o">=</span><span class="n">environ</span><span class="p">))</span>
@@ -815,10 +811,10 @@
                     <span class="n">start_session</span><span class="p">,</span>
                     <span class="n">end_session</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="c"># Do an empty write to ensure that the daily ctables exist</span>
-                <span class="c"># when we create the SQLiteAdjustmentWriter below. The</span>
-                <span class="c"># SQLiteAdjustmentWriter needs to open the daily ctables so</span>
-                <span class="c"># that it can compute the adjustment ratios for the dividends.</span>
+                <span class="c1"># Do an empty write to ensure that the daily ctables exist</span>
+                <span class="c1"># when we create the SQLiteAdjustmentWriter below. The</span>
+                <span class="c1"># SQLiteAdjustmentWriter needs to open the daily ctables so</span>
+                <span class="c1"># that it can compute the adjustment ratios for the dividends.</span>
 
                 <span class="n">daily_bar_writer</span><span class="o">.</span><span class="n">write</span><span class="p">(())</span>
                 <span class="n">minute_bar_writer</span> <span class="o">=</span> <span class="n">BcolzMinuteBarWriter</span><span class="p">(</span>
@@ -840,7 +836,6 @@
                         <span class="n">wd</span><span class="o">.</span><span class="n">getpath</span><span class="p">(</span><span class="o">*</span><span class="n">adjustment_db_relative</span><span class="p">(</span>
                             <span class="n">name</span><span class="p">,</span> <span class="n">timestr</span><span class="p">,</span> <span class="n">environ</span><span class="o">=</span><span class="n">environ</span><span class="p">)),</span>
                         <span class="n">BcolzDailyBarReader</span><span class="p">(</span><span class="n">daily_bars_path</span><span class="p">),</span>
-                        <span class="n">calendar</span><span class="o">.</span><span class="n">all_sessions</span><span class="p">,</span>
                         <span class="n">overwrite</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
@@ -850,9 +845,9 @@
                 <span class="n">asset_db_writer</span> <span class="o">=</span> <span class="bp">None</span>
                 <span class="n">adjustment_db_writer</span> <span class="o">=</span> <span class="bp">None</span>
                 <span class="k">if</span> <span class="n">assets_versions</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&#39;Need to ingest a bundle that creates &#39;</span>
-                                     <span class="s">&#39;writers in order to downgrade the assets&#39;</span>
-                                     <span class="s">&#39; db.&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Need to ingest a bundle that creates &#39;</span>
+                                     <span class="s1">&#39;writers in order to downgrade the assets&#39;</span>
+                                     <span class="s1">&#39; db.&#39;</span><span class="p">)</span>
             <span class="n">bundle</span><span class="o">.</span><span class="n">ingest</span><span class="p">(</span>
                 <span class="n">environ</span><span class="p">,</span>
                 <span class="n">asset_db_writer</span><span class="p">,</span>
@@ -904,11 +899,11 @@
                 <span class="n">environ</span><span class="o">=</span><span class="n">environ</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s">&#39;errno&#39;</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">ENOENT</span><span class="p">)</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">ENOENT</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s1">&#39;errno&#39;</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">ENOENT</span><span class="p">)</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">ENOENT</span><span class="p">:</span>
                 <span class="k">raise</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s">&#39;no data for bundle {bundle!r} on or before {timestamp}</span><span class="se">\n</span><span class="s">&#39;</span>
-                <span class="s">&#39;maybe you need to run: $ zipline ingest -b {bundle}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="s1">&#39;no data for bundle {bundle!r} on or before {timestamp}</span><span class="se">\n</span><span class="s1">&#39;</span>
+                <span class="s1">&#39;maybe you need to run: $ zipline ingest -b {bundle}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                     <span class="n">bundle</span><span class="o">=</span><span class="n">bundle_name</span><span class="p">,</span>
                     <span class="n">timestamp</span><span class="o">=</span><span class="n">timestamp</span><span class="p">,</span>
                 <span class="p">),</span>

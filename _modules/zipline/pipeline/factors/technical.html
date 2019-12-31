@@ -414,7 +414,7 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.pipeline.factors.technical</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Technical Analysis Factors</span>
 <span class="sd">--------------------------</span>
 <span class="sd">&quot;&quot;&quot;</span>
@@ -430,7 +430,7 @@
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">numexpr</span> <span class="kn">import</span> <span class="n">evaluate</span>
 
-<span class="kn">from</span> <span class="nn">zipline.pipeline.data</span> <span class="kn">import</span> <span class="n">USEquityPricing</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.data</span> <span class="kn">import</span> <span class="n">EquityPricing</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.factors</span> <span class="kn">import</span> <span class="n">CustomFactor</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.mixins</span> <span class="kn">import</span> <span class="n">SingleInputMixin</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="n">expect_bounded</span>
@@ -445,9 +445,9 @@
 <span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="n">rolling_window</span>
 
 <span class="kn">from</span> <span class="nn">.basic</span> <span class="kn">import</span> <span class="n">exponential_weights</span>
-<span class="kn">from</span> <span class="nn">.basic</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c"># noqa reexport</span>
-    <span class="c"># These are re-exported here for backwards compatibility with the old</span>
-    <span class="c"># definition site.</span>
+<span class="kn">from</span> <span class="nn">.basic</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa reexport</span>
+    <span class="c1"># These are re-exported here for backwards compatibility with the old</span>
+    <span class="c1"># definition site.</span>
     <span class="n">LinearWeightedMovingAverage</span><span class="p">,</span>
     <span class="n">MaxDrawdown</span><span class="p">,</span>
     <span class="n">SimpleMovingAverage</span><span class="p">,</span>
@@ -456,16 +456,16 @@
 <span class="p">)</span>
 
 
-<div class="viewcode-block" id="RSI"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.RSI">[docs]</a><span class="k">class</span> <span class="nc">RSI</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">,</span> <span class="n">SingleInputMixin</span><span class="p">):</span>
+<div class="viewcode-block" id="RSI"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.RSI">[docs]</a><span class="k">class</span> <span class="nc">RSI</span><span class="p">(</span><span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">CustomFactor</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Relative Strength Index</span>
 
-<span class="sd">    **Default Inputs**: [USEquityPricing.close]</span>
+<span class="sd">    **Default Inputs**: :data:`zipline.pipeline.data.EquityPricing.close`</span>
 
 <span class="sd">    **Default Window Length**: 15</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">window_length</span> <span class="o">=</span> <span class="mi">15</span>
-    <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,)</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">EquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,)</span>
     <span class="n">window_safe</span> <span class="o">=</span> <span class="bp">True</span>
 
     <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">closes</span><span class="p">):</span>
@@ -473,8 +473,8 @@
         <span class="n">ups</span> <span class="o">=</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">clip</span><span class="p">(</span><span class="n">diffs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">inf</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="n">downs</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">nanmean</span><span class="p">(</span><span class="n">clip</span><span class="p">(</span><span class="n">diffs</span><span class="p">,</span> <span class="o">-</span><span class="n">inf</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">evaluate</span><span class="p">(</span>
-            <span class="s">&quot;100 - (100 / (1 + (ups / downs)))&quot;</span><span class="p">,</span>
-            <span class="n">local_dict</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;ups&#39;</span><span class="p">:</span> <span class="n">ups</span><span class="p">,</span> <span class="s">&#39;downs&#39;</span><span class="p">:</span> <span class="n">downs</span><span class="p">},</span>
+            <span class="s2">&quot;100 - (100 / (1 + (ups / downs)))&quot;</span><span class="p">,</span>
+            <span class="n">local_dict</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;ups&#39;</span><span class="p">:</span> <span class="n">ups</span><span class="p">,</span> <span class="s1">&#39;downs&#39;</span><span class="p">:</span> <span class="n">downs</span><span class="p">},</span>
             <span class="n">global_dict</span><span class="o">=</span><span class="p">{},</span>
             <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span>
         <span class="p">)</span></div>
@@ -485,7 +485,7 @@
 <span class="sd">    Bollinger Bands technical indicator.</span>
 <span class="sd">    https://en.wikipedia.org/wiki/Bollinger_Bands</span>
 
-<span class="sd">    **Default Inputs:** :data:`zipline.pipeline.data.USEquityPricing.close`</span>
+<span class="sd">    **Default Inputs:** :data:`zipline.pipeline.data.EquityPricing.close`</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -498,9 +498,9 @@
 <span class="sd">        The number of standard deviations to add or subtract to create the</span>
 <span class="sd">        upper and lower bands.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">params</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;k&#39;</span><span class="p">,)</span>
-    <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,)</span>
-    <span class="n">outputs</span> <span class="o">=</span> <span class="s">&#39;lower&#39;</span><span class="p">,</span> <span class="s">&#39;middle&#39;</span><span class="p">,</span> <span class="s">&#39;upper&#39;</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;k&#39;</span><span class="p">,)</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">EquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,)</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="s1">&#39;lower&#39;</span><span class="p">,</span> <span class="s1">&#39;middle&#39;</span><span class="p">,</span> <span class="s1">&#39;upper&#39;</span>
 
     <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">close</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
         <span class="n">difference</span> <span class="o">=</span> <span class="n">k</span> <span class="o">*</span> <span class="n">nanstd</span><span class="p">(</span><span class="n">close</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
@@ -512,37 +512,38 @@
 <span class="k">class</span> <span class="nc">Aroon</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Aroon technical indicator.</span>
-<span class="sd">    https://www.fidelity.com/learning-center/trading-investing/technical-analysis/technical-indicator-guide/aroon-indicator  # noqa</span>
+<span class="sd">    https://www.fidelity.com/learning-center/trading-investing/technical-analysis/technical-indicator-guide/aroon-indicator</span>
 
-<span class="sd">    **Defaults Inputs:** USEquityPricing.low, USEquityPricing.high</span>
+<span class="sd">    **Defaults Inputs:** :data:`zipline.pipeline.data.EquityPricing.low`, \</span>
+<span class="sd">                         :data:`zipline.pipeline.data.EquityPricing.high`</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    window_length : int &gt; 0</span>
 <span class="sd">        Length of the lookback window over which to compute the Aroon</span>
 <span class="sd">        indicator.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span> <span class="c1"># noqa</span>
 
-    <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">USEquityPricing</span><span class="o">.</span><span class="n">low</span><span class="p">,</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">high</span><span class="p">)</span>
-    <span class="n">outputs</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;down&#39;</span><span class="p">,</span> <span class="s">&#39;up&#39;</span><span class="p">)</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">EquityPricing</span><span class="o">.</span><span class="n">low</span><span class="p">,</span> <span class="n">EquityPricing</span><span class="o">.</span><span class="n">high</span><span class="p">)</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;down&#39;</span><span class="p">,</span> <span class="s1">&#39;up&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">lows</span><span class="p">,</span> <span class="n">highs</span><span class="p">):</span>
         <span class="n">wl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span>
         <span class="n">high_date_index</span> <span class="o">=</span> <span class="n">nanargmax</span><span class="p">(</span><span class="n">highs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="n">low_date_index</span> <span class="o">=</span> <span class="n">nanargmin</span><span class="p">(</span><span class="n">lows</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="n">evaluate</span><span class="p">(</span>
-            <span class="s">&#39;(100 * high_date_index) / (wl - 1)&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;(100 * high_date_index) / (wl - 1)&#39;</span><span class="p">,</span>
             <span class="n">local_dict</span><span class="o">=</span><span class="p">{</span>
-                <span class="s">&#39;high_date_index&#39;</span><span class="p">:</span> <span class="n">high_date_index</span><span class="p">,</span>
-                <span class="s">&#39;wl&#39;</span><span class="p">:</span> <span class="n">wl</span><span class="p">,</span>
+                <span class="s1">&#39;high_date_index&#39;</span><span class="p">:</span> <span class="n">high_date_index</span><span class="p">,</span>
+                <span class="s1">&#39;wl&#39;</span><span class="p">:</span> <span class="n">wl</span><span class="p">,</span>
             <span class="p">},</span>
             <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="o">.</span><span class="n">up</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">evaluate</span><span class="p">(</span>
-            <span class="s">&#39;(100 * low_date_index) / (wl - 1)&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;(100 * low_date_index) / (wl - 1)&#39;</span><span class="p">,</span>
             <span class="n">local_dict</span><span class="o">=</span><span class="p">{</span>
-                <span class="s">&#39;low_date_index&#39;</span><span class="p">:</span> <span class="n">low_date_index</span><span class="p">,</span>
-                <span class="s">&#39;wl&#39;</span><span class="p">:</span> <span class="n">wl</span><span class="p">,</span>
+                <span class="s1">&#39;low_date_index&#39;</span><span class="p">:</span> <span class="n">low_date_index</span><span class="p">,</span>
+                <span class="s1">&#39;wl&#39;</span><span class="p">:</span> <span class="n">wl</span><span class="p">,</span>
             <span class="p">},</span>
             <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="o">.</span><span class="n">down</span><span class="p">,</span>
         <span class="p">)</span>
@@ -557,9 +558,9 @@
 <span class="sd">    market analysis. It is recommended to use the slow stochastic oscillator</span>
 <span class="sd">    or a moving average of the %K [%D].</span>
 
-<span class="sd">    **Default Inputs:** :data: `zipline.pipeline.data.USEquityPricing.close`</span>
-<span class="sd">                        :data: `zipline.pipeline.data.USEquityPricing.low`</span>
-<span class="sd">                        :data: `zipline.pipeline.data.USEquityPricing.high`</span>
+<span class="sd">    **Default Inputs:** :data:`zipline.pipeline.data.EquityPricing.close`, \</span>
+<span class="sd">                        :data:`zipline.pipeline.data.EquityPricing.low`, \</span>
+<span class="sd">                        :data:`zipline.pipeline.data.EquityPricing.high`</span>
 
 <span class="sd">    **Default Window Length:** 14</span>
 
@@ -567,7 +568,7 @@
 <span class="sd">    -------</span>
 <span class="sd">    out: %K oscillator</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">low</span><span class="p">,</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">high</span><span class="p">)</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">EquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,</span> <span class="n">EquityPricing</span><span class="o">.</span><span class="n">low</span><span class="p">,</span> <span class="n">EquityPricing</span><span class="o">.</span><span class="n">high</span><span class="p">)</span>
     <span class="n">window_safe</span> <span class="o">=</span> <span class="bp">True</span>
     <span class="n">window_length</span> <span class="o">=</span> <span class="mi">14</span>
 
@@ -578,11 +579,11 @@
         <span class="n">today_closes</span> <span class="o">=</span> <span class="n">closes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
         <span class="n">evaluate</span><span class="p">(</span>
-            <span class="s">&#39;((tc - ll) / (hh - ll)) * 100&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;((tc - ll) / (hh - ll)) * 100&#39;</span><span class="p">,</span>
             <span class="n">local_dict</span><span class="o">=</span><span class="p">{</span>
-                <span class="s">&#39;tc&#39;</span><span class="p">:</span> <span class="n">today_closes</span><span class="p">,</span>
-                <span class="s">&#39;ll&#39;</span><span class="p">:</span> <span class="n">lowest_lows</span><span class="p">,</span>
-                <span class="s">&#39;hh&#39;</span><span class="p">:</span> <span class="n">highest_highs</span><span class="p">,</span>
+                <span class="s1">&#39;tc&#39;</span><span class="p">:</span> <span class="n">today_closes</span><span class="p">,</span>
+                <span class="s1">&#39;ll&#39;</span><span class="p">:</span> <span class="n">lowest_lows</span><span class="p">,</span>
+                <span class="s1">&#39;hh&#39;</span><span class="p">:</span> <span class="n">highest_highs</span><span class="p">,</span>
             <span class="p">},</span>
             <span class="n">global_dict</span><span class="o">=</span><span class="p">{},</span>
             <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span>
@@ -591,11 +592,12 @@
 
 <span class="k">class</span> <span class="nc">IchimokuKinkoHyo</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute the various metrics for the Ichimoku Kinko Hyo (Ichimoku Cloud).</span>
-<span class="sd">    http://stockcharts.com/school/doku.php?id=chart_school:technical_indicators:ichimoku_cloud  # noqa</span>
+<span class="sd">    http://stockcharts.com/school/doku.php?id=chart_school:technical_indicators:ichimoku_cloud</span>
 
-<span class="sd">    **Default Inputs:** :data:`zipline.pipeline.data.USEquityPricing.high`</span>
-<span class="sd">                        :data:`zipline.pipeline.data.USEquityPricing.low`</span>
-<span class="sd">                        :data:`zipline.pipeline.data.USEquityPricing.close`</span>
+<span class="sd">    **Default Inputs:** :data:`zipline.pipeline.data.EquityPricing.high`, \</span>
+<span class="sd">                        :data:`zipline.pipeline.data.EquityPricing.low`, \</span>
+<span class="sd">                        :data:`zipline.pipeline.data.EquityPricing.close`</span>
+
 <span class="sd">    **Default Window Length:** 52</span>
 
 <span class="sd">    Parameters</span>
@@ -608,20 +610,20 @@
 <span class="sd">        The length of the window for the kijou-sen.</span>
 <span class="sd">    chikou_span_length : int &gt;= 0, &lt;= window_length</span>
 <span class="sd">        The lag for the chikou span.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span> <span class="c1"># noqa</span>
 
     <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s">&#39;tenkan_sen_length&#39;</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span>
-        <span class="s">&#39;kijun_sen_length&#39;</span><span class="p">:</span> <span class="mi">26</span><span class="p">,</span>
-        <span class="s">&#39;chikou_span_length&#39;</span><span class="p">:</span> <span class="mi">26</span><span class="p">,</span>
+        <span class="s1">&#39;tenkan_sen_length&#39;</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span>
+        <span class="s1">&#39;kijun_sen_length&#39;</span><span class="p">:</span> <span class="mi">26</span><span class="p">,</span>
+        <span class="s1">&#39;chikou_span_length&#39;</span><span class="p">:</span> <span class="mi">26</span><span class="p">,</span>
     <span class="p">}</span>
-    <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">USEquityPricing</span><span class="o">.</span><span class="n">high</span><span class="p">,</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">low</span><span class="p">,</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">)</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">EquityPricing</span><span class="o">.</span><span class="n">high</span><span class="p">,</span> <span class="n">EquityPricing</span><span class="o">.</span><span class="n">low</span><span class="p">,</span> <span class="n">EquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">)</span>
     <span class="n">outputs</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="s">&#39;tenkan_sen&#39;</span><span class="p">,</span>
-        <span class="s">&#39;kijun_sen&#39;</span><span class="p">,</span>
-        <span class="s">&#39;senkou_span_a&#39;</span><span class="p">,</span>
-        <span class="s">&#39;senkou_span_b&#39;</span><span class="p">,</span>
-        <span class="s">&#39;chikou_span&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;tenkan_sen&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;kijun_sen&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;senkou_span_a&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;senkou_span_b&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;chikou_span&#39;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">window_length</span> <span class="o">=</span> <span class="mi">52</span>
 
@@ -630,7 +632,7 @@
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s">&#39;</span><span class="si">%s</span><span class="s"> must be &lt;= the window_length: </span><span class="si">%s</span><span class="s"> &gt; </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> must be &lt;= the window_length: </span><span class="si">%s</span><span class="s1"> &gt; </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
                         <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span><span class="p">,</span>
                     <span class="p">),</span>
                 <span class="p">)</span>
@@ -672,10 +674,10 @@
     <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">close</span><span class="p">):</span>
         <span class="n">today_close</span> <span class="o">=</span> <span class="n">close</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">prev_close</span> <span class="o">=</span> <span class="n">close</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">evaluate</span><span class="p">(</span><span class="s">&#39;((tc - pc) / pc) * 100&#39;</span><span class="p">,</span>
+        <span class="n">evaluate</span><span class="p">(</span><span class="s1">&#39;((tc - pc) / pc) * 100&#39;</span><span class="p">,</span>
                  <span class="n">local_dict</span><span class="o">=</span><span class="p">{</span>
-                     <span class="s">&#39;tc&#39;</span><span class="p">:</span> <span class="n">today_close</span><span class="p">,</span>
-                     <span class="s">&#39;pc&#39;</span><span class="p">:</span> <span class="n">prev_close</span>
+                     <span class="s1">&#39;tc&#39;</span><span class="p">:</span> <span class="n">today_close</span><span class="p">,</span>
+                     <span class="s1">&#39;pc&#39;</span><span class="p">:</span> <span class="n">prev_close</span>
                  <span class="p">},</span>
                  <span class="n">global_dict</span><span class="o">=</span><span class="p">{},</span>
                  <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span>
@@ -689,15 +691,16 @@
 <span class="sd">    A technical indicator originally developed by J. Welles Wilder, Jr.</span>
 <span class="sd">    Indicates the true degree of daily price change in an underlying.</span>
 
-<span class="sd">    **Default Inputs:** :data:`zipline.pipeline.data.USEquityPricing.high`</span>
-<span class="sd">                        :data:`zipline.pipeline.data.USEquityPricing.low`</span>
-<span class="sd">                        :data:`zipline.pipeline.data.USEquityPricing.close`</span>
+<span class="sd">    **Default Inputs:** :data:`zipline.pipeline.data.EquityPricing.high`, \</span>
+<span class="sd">                        :data:`zipline.pipeline.data.EquityPricing.low`, \</span>
+<span class="sd">                        :data:`zipline.pipeline.data.EquityPricing.close`</span>
+
 <span class="sd">    **Default Window Length:** 2</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">high</span><span class="p">,</span>
-        <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">low</span><span class="p">,</span>
-        <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,</span>
+        <span class="n">EquityPricing</span><span class="o">.</span><span class="n">high</span><span class="p">,</span>
+        <span class="n">EquityPricing</span><span class="o">.</span><span class="n">low</span><span class="p">,</span>
+        <span class="n">EquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">window_length</span> <span class="o">=</span> <span class="mi">2</span>
 
@@ -725,7 +728,7 @@
 <span class="sd">    reveals changes in the strength, direction, momentum, and duration of a</span>
 <span class="sd">    trend in a stock&#39;s price.</span>
 
-<span class="sd">    **Default Inputs:** :data:`zipline.pipeline.data.USEquityPricing.close`</span>
+<span class="sd">    **Default Inputs:** :data:`zipline.pipeline.data.EquityPricing.close`</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -742,19 +745,19 @@
 <span class="sd">    ``window_length`` parameter. ``window_length`` is inferred from</span>
 <span class="sd">    ``slow_period`` and ``signal_period``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,)</span>
-    <span class="c"># We don&#39;t use the default form of `params` here because we want to</span>
-    <span class="c"># dynamically calculate `window_length` from the period lengths in our</span>
-    <span class="c"># __new__.</span>
-    <span class="n">params</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;fast_period&#39;</span><span class="p">,</span> <span class="s">&#39;slow_period&#39;</span><span class="p">,</span> <span class="s">&#39;signal_period&#39;</span><span class="p">)</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">EquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,)</span>
+    <span class="c1"># We don&#39;t use the default form of `params` here because we want to</span>
+    <span class="c1"># dynamically calculate `window_length` from the period lengths in our</span>
+    <span class="c1"># __new__.</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;fast_period&#39;</span><span class="p">,</span> <span class="s1">&#39;slow_period&#39;</span><span class="p">,</span> <span class="s1">&#39;signal_period&#39;</span><span class="p">)</span>
 
     <span class="nd">@expect_bounded</span><span class="p">(</span>
-        <span class="n">__funcname</span><span class="o">=</span><span class="s">&#39;MACDSignal&#39;</span><span class="p">,</span>
-        <span class="n">fast_period</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span>  <span class="c"># These must all be &gt;= 1.</span>
+        <span class="n">__funcname</span><span class="o">=</span><span class="s1">&#39;MACDSignal&#39;</span><span class="p">,</span>
+        <span class="n">fast_period</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span>  <span class="c1"># These must all be &gt;= 1.</span>
         <span class="n">slow_period</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span>
         <span class="n">signal_period</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span>
     <span class="p">)</span>
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
                 <span class="n">fast_period</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
                 <span class="n">slow_period</span><span class="o">=</span><span class="mi">26</span><span class="p">,</span>
                 <span class="n">signal_period</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span>
@@ -763,15 +766,15 @@
 
         <span class="k">if</span> <span class="n">slow_period</span> <span class="o">&lt;=</span> <span class="n">fast_period</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s">&quot;&#39;slow_period&#39; must be greater than &#39;fast_period&#39;, but got</span><span class="se">\n</span><span class="s">&quot;</span>
-                <span class="s">&quot;slow_period={slow}, fast_period={fast}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="s2">&quot;&#39;slow_period&#39; must be greater than &#39;fast_period&#39;, but got</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;slow_period={slow}, fast_period={fast}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                     <span class="n">slow</span><span class="o">=</span><span class="n">slow_period</span><span class="p">,</span>
                     <span class="n">fast</span><span class="o">=</span><span class="n">fast_period</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="p">)</span>
 
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">MovingAverageConvergenceDivergenceSignal</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
-            <span class="n">cls</span><span class="p">,</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">MovingAverageConvergenceDivergenceSignal</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
             <span class="n">fast_period</span><span class="o">=</span><span class="n">fast_period</span><span class="p">,</span>
             <span class="n">slow_period</span><span class="o">=</span><span class="n">slow_period</span><span class="p">,</span>
             <span class="n">signal_period</span><span class="o">=</span><span class="n">signal_period</span><span class="p">,</span>
@@ -801,7 +804,7 @@
         <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ewma</span><span class="p">(</span><span class="n">macd</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">signal_period</span><span class="p">)</span>
 
 
-<span class="c"># Convenience aliases.</span>
+<span class="c1"># Convenience aliases.</span>
 <span class="n">MACDSignal</span> <span class="o">=</span> <span class="n">MovingAverageConvergenceDivergenceSignal</span>
 </pre></div>
 

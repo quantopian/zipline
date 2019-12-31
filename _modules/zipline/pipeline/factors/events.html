@@ -414,7 +414,7 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.pipeline.factors.events</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Factors describing information about event data (e.g. earnings</span>
 <span class="sd">announcements, acquisitions, dividends, etc.).</span>
 <span class="sd">&quot;&quot;&quot;</span>
@@ -443,19 +443,39 @@
 <span class="sd">    day will produce a value of 1.0.</span>
 
 <span class="sd">    Assets for which the event date is `NaT` will produce a value of `NaN`.</span>
+
+
+<span class="sd">    Example</span>
+<span class="sd">    -------</span>
+<span class="sd">    ``BusinessDaysSincePreviousEvent`` can be used to create an event-driven</span>
+<span class="sd">    factor. For instance, you may want to only trade assets that have</span>
+<span class="sd">    a data point with an asof_date in the last 5 business days. To do this,</span>
+<span class="sd">    you can create a ``BusinessDaysSincePreviousEvent`` factor, supplying</span>
+<span class="sd">    the relevant asof_date column from your dataset as input, like this::</span>
+
+<span class="sd">        # Factor computing number of days since most recent asof_date</span>
+<span class="sd">        # per asset.</span>
+<span class="sd">        days_since_event = BusinessDaysSincePreviousEvent(</span>
+<span class="sd">            inputs=[MyDataset.asof_date]</span>
+<span class="sd">        )</span>
+
+<span class="sd">        # Filter returning True for each asset whose most recent asof_date</span>
+<span class="sd">        # was in the last 5 business days.</span>
+<span class="sd">        recency_filter = (days_since_event &lt;= 5)</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">window_length</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">dtype</span> <span class="o">=</span> <span class="n">float64_dtype</span>
 
     <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
 
-        <span class="c"># Coerce from [ns] to [D] for numpy busday_count.</span>
+        <span class="c1"># Coerce from [ns] to [D] for numpy busday_count.</span>
         <span class="n">announce_dates</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)</span>
 
-        <span class="c"># Set masked values to NaT.</span>
+        <span class="c1"># Set masked values to NaT.</span>
         <span class="n">announce_dates</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">NaTD</span>
 
-        <span class="c"># Convert row labels into a column vector for broadcasted comparison.</span>
+        <span class="c1"># Convert row labels into a column vector for broadcasted comparison.</span>
         <span class="n">reference_dates</span> <span class="o">=</span> <span class="n">dates</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)[:,</span> <span class="n">newaxis</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">busday_count_mask_NaT</span><span class="p">(</span><span class="n">announce_dates</span><span class="p">,</span> <span class="n">reference_dates</span><span class="p">)</span></div>
 
@@ -484,13 +504,13 @@
 
     <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
 
-        <span class="c"># Coerce from [ns] to [D] for numpy busday_count.</span>
+        <span class="c1"># Coerce from [ns] to [D] for numpy busday_count.</span>
         <span class="n">announce_dates</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)</span>
 
-        <span class="c"># Set masked values to NaT.</span>
+        <span class="c1"># Set masked values to NaT.</span>
         <span class="n">announce_dates</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">NaTD</span>
 
-        <span class="c"># Convert row labels into a column vector for broadcasted comparison.</span>
+        <span class="c1"># Convert row labels into a column vector for broadcasted comparison.</span>
         <span class="n">reference_dates</span> <span class="o">=</span> <span class="n">dates</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)[:,</span> <span class="n">newaxis</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">busday_count_mask_NaT</span><span class="p">(</span><span class="n">reference_dates</span><span class="p">,</span> <span class="n">announce_dates</span><span class="p">)</span></div>
 </pre></div>

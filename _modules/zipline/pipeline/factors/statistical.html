@@ -414,7 +414,7 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.pipeline.factors.statistical</h1><div class="highlight"><pre>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">broadcast_arrays</span>
 <span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">linregress</span><span class="p">,</span>
@@ -426,7 +426,7 @@
 <span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="n">IncompatibleTerms</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.factors</span> <span class="kn">import</span> <span class="n">CustomFactor</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.filters</span> <span class="kn">import</span> <span class="n">SingleAsset</span>
-<span class="kn">from</span> <span class="nn">zipline.pipeline.mixins</span> <span class="kn">import</span> <span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">StandardOutputs</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.mixins</span> <span class="kn">import</span> <span class="n">StandardOutputs</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.sentinels</span> <span class="kn">import</span> <span class="n">NotSpecified</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="n">AssetExists</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="p">(</span>
@@ -447,11 +447,11 @@
 <span class="n">ALLOWED_DTYPES</span> <span class="o">=</span> <span class="p">(</span><span class="n">float64_dtype</span><span class="p">,</span> <span class="n">int64_dtype</span><span class="p">)</span>
 
 
-<span class="k">class</span> <span class="nc">_RollingCorrelation</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">,</span> <span class="n">SingleInputMixin</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">_RollingCorrelation</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">):</span>
 
     <span class="nd">@expect_dtypes</span><span class="p">(</span><span class="n">base_factor</span><span class="o">=</span><span class="n">ALLOWED_DTYPES</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">ALLOWED_DTYPES</span><span class="p">)</span>
     <span class="nd">@expect_bounded</span><span class="p">(</span><span class="n">correlation_length</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="bp">None</span><span class="p">))</span>
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
                 <span class="n">base_factor</span><span class="p">,</span>
                 <span class="n">target</span><span class="p">,</span>
                 <span class="n">correlation_length</span><span class="p">,</span>
@@ -459,8 +459,8 @@
         <span class="k">if</span> <span class="n">target</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">base_factor</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">target</span><span class="o">.</span><span class="n">mask</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">IncompatibleTerms</span><span class="p">(</span><span class="n">term_1</span><span class="o">=</span><span class="n">base_factor</span><span class="p">,</span> <span class="n">term_2</span><span class="o">=</span><span class="n">target</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">_RollingCorrelation</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
-            <span class="n">cls</span><span class="p">,</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">_RollingCorrelation</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
             <span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">base_factor</span><span class="p">,</span> <span class="n">target</span><span class="p">],</span>
             <span class="n">window_length</span><span class="o">=</span><span class="n">correlation_length</span><span class="p">,</span>
             <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
@@ -475,7 +475,7 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    base_factor : zipline.pipeline.factors.Factor</span>
+<span class="sd">    base_factor : zipline.pipeline.Factor</span>
 <span class="sd">        The factor for which to compute correlations of each of its columns</span>
 <span class="sd">        with `target`.</span>
 <span class="sd">    target : zipline.pipeline.Term with a numeric dtype</span>
@@ -504,10 +504,10 @@
     <span class="n">window_safe</span> <span class="o">=</span> <span class="bp">True</span>
 
     <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">base_data</span><span class="p">,</span> <span class="n">target_data</span><span class="p">):</span>
-        <span class="c"># If `target_data` is a Slice or single column of data, broadcast it</span>
-        <span class="c"># out to the same shape as `base_data`, then compute column-wise. This</span>
-        <span class="c"># is efficient because each column of the broadcasted array only refers</span>
-        <span class="c"># to a single memory location.</span>
+        <span class="c1"># If `target_data` is a Slice or single column of data, broadcast it</span>
+        <span class="c1"># out to the same shape as `base_data`, then compute column-wise. This</span>
+        <span class="c1"># is efficient because each column of the broadcasted array only refers</span>
+        <span class="c1"># to a single memory location.</span>
         <span class="n">target_data</span> <span class="o">=</span> <span class="n">broadcast_arrays</span><span class="p">(</span><span class="n">target_data</span><span class="p">,</span> <span class="n">base_data</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)):</span>
             <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">pearsonr</span><span class="p">(</span><span class="n">base_data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">],</span> <span class="n">target_data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
@@ -521,7 +521,7 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    base_factor : zipline.pipeline.factors.Factor</span>
+<span class="sd">    base_factor : zipline.pipeline.Factor</span>
 <span class="sd">        The factor for which to compute correlations of each of its columns</span>
 <span class="sd">        with `target`.</span>
 <span class="sd">    target : zipline.pipeline.Term with a numeric dtype</span>
@@ -550,16 +550,16 @@
     <span class="n">window_safe</span> <span class="o">=</span> <span class="bp">True</span>
 
     <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">base_data</span><span class="p">,</span> <span class="n">target_data</span><span class="p">):</span>
-        <span class="c"># If `target_data` is a Slice or single column of data, broadcast it</span>
-        <span class="c"># out to the same shape as `base_data`, then compute column-wise. This</span>
-        <span class="c"># is efficient because each column of the broadcasted array only refers</span>
-        <span class="c"># to a single memory location.</span>
+        <span class="c1"># If `target_data` is a Slice or single column of data, broadcast it</span>
+        <span class="c1"># out to the same shape as `base_data`, then compute column-wise. This</span>
+        <span class="c1"># is efficient because each column of the broadcasted array only refers</span>
+        <span class="c1"># to a single memory location.</span>
         <span class="n">target_data</span> <span class="o">=</span> <span class="n">broadcast_arrays</span><span class="p">(</span><span class="n">target_data</span><span class="p">,</span> <span class="n">base_data</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)):</span>
             <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">spearmanr</span><span class="p">(</span><span class="n">base_data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">],</span> <span class="n">target_data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
 
 
-<span class="k">class</span> <span class="nc">RollingLinearRegression</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">,</span> <span class="n">SingleInputMixin</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">RollingLinearRegression</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A Factor that performs an ordinary least-squares regression predicting the</span>
 <span class="sd">    columns of a given Factor from either the columns of another</span>
@@ -567,7 +567,7 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    dependent : zipline.pipeline.factors.Factor</span>
+<span class="sd">    dependent : zipline.pipeline.Factor</span>
 <span class="sd">        The factor whose columns are the predicted/dependent variable of each</span>
 <span class="sd">        regression with `independent`.</span>
 <span class="sd">    independent : zipline.pipeline.slice.Slice or zipline.pipeline.Factor</span>
@@ -591,11 +591,11 @@
 <span class="sd">    Most users should call Factor.linear_regression rather than directly</span>
 <span class="sd">    construct an instance of this class.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">outputs</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;alpha&#39;</span><span class="p">,</span> <span class="s">&#39;beta&#39;</span><span class="p">,</span> <span class="s">&#39;r_value&#39;</span><span class="p">,</span> <span class="s">&#39;p_value&#39;</span><span class="p">,</span> <span class="s">&#39;stderr&#39;</span><span class="p">]</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">,</span> <span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="s1">&#39;r_value&#39;</span><span class="p">,</span> <span class="s1">&#39;p_value&#39;</span><span class="p">,</span> <span class="s1">&#39;stderr&#39;</span><span class="p">]</span>
 
     <span class="nd">@expect_dtypes</span><span class="p">(</span><span class="n">dependent</span><span class="o">=</span><span class="n">ALLOWED_DTYPES</span><span class="p">,</span> <span class="n">independent</span><span class="o">=</span><span class="n">ALLOWED_DTYPES</span><span class="p">)</span>
     <span class="nd">@expect_bounded</span><span class="p">(</span><span class="n">regression_length</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="bp">None</span><span class="p">))</span>
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
                 <span class="n">dependent</span><span class="p">,</span>
                 <span class="n">independent</span><span class="p">,</span>
                 <span class="n">regression_length</span><span class="p">,</span>
@@ -603,8 +603,8 @@
         <span class="k">if</span> <span class="n">independent</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">dependent</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">independent</span><span class="o">.</span><span class="n">mask</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">IncompatibleTerms</span><span class="p">(</span><span class="n">term_1</span><span class="o">=</span><span class="n">dependent</span><span class="p">,</span> <span class="n">term_2</span><span class="o">=</span><span class="n">independent</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">RollingLinearRegression</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
-            <span class="n">cls</span><span class="p">,</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">RollingLinearRegression</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
             <span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">dependent</span><span class="p">,</span> <span class="n">independent</span><span class="p">],</span>
             <span class="n">window_length</span><span class="o">=</span><span class="n">regression_length</span><span class="p">,</span>
             <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
@@ -619,18 +619,18 @@
 
         <span class="k">def</span> <span class="nf">regress</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
             <span class="n">regr_results</span> <span class="o">=</span> <span class="n">linregress</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
-            <span class="c"># `linregress` returns its results in the following order:</span>
-            <span class="c"># slope, intercept, r-value, p-value, stderr</span>
+            <span class="c1"># `linregress` returns its results in the following order:</span>
+            <span class="c1"># slope, intercept, r-value, p-value, stderr</span>
             <span class="n">alpha</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">regr_results</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
             <span class="n">beta</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">regr_results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">r_value</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">regr_results</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
             <span class="n">p_value</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">regr_results</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
             <span class="n">stderr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">regr_results</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
 
-        <span class="c"># If `independent` is a Slice or single column of data, broadcast it</span>
-        <span class="c"># out to the same shape as `dependent`, then compute column-wise. This</span>
-        <span class="c"># is efficient because each column of the broadcasted array only refers</span>
-        <span class="c"># to a single memory location.</span>
+        <span class="c1"># If `independent` is a Slice or single column of data, broadcast it</span>
+        <span class="c1"># out to the same shape as `dependent`, then compute column-wise. This</span>
+        <span class="c1"># is efficient because each column of the broadcasted array only refers</span>
+        <span class="c1"># to a single memory location.</span>
         <span class="n">independent</span> <span class="o">=</span> <span class="n">broadcast_arrays</span><span class="p">(</span><span class="n">independent</span><span class="p">,</span> <span class="n">dependent</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)):</span>
             <span class="n">regress</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">dependent</span><span class="p">[:,</span> <span class="n">i</span><span class="p">],</span> <span class="n">x</span><span class="o">=</span><span class="n">independent</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])</span>
@@ -709,19 +709,19 @@
 <span class="sd">    :class:`zipline.pipeline.factors.RollingSpearmanOfReturns`</span>
 <span class="sd">    :class:`zipline.pipeline.factors.RollingLinearRegressionOfReturns`</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
                 <span class="n">target</span><span class="p">,</span>
                 <span class="n">returns_length</span><span class="p">,</span>
                 <span class="n">correlation_length</span><span class="p">,</span>
                 <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
-        <span class="c"># Use the `SingleAsset` filter here because it protects against</span>
-        <span class="c"># inputting a non-existent target asset.</span>
+        <span class="c1"># Use the `SingleAsset` filter here because it protects against</span>
+        <span class="c1"># inputting a non-existent target asset.</span>
         <span class="n">returns</span> <span class="o">=</span> <span class="n">Returns</span><span class="p">(</span>
             <span class="n">window_length</span><span class="o">=</span><span class="n">returns_length</span><span class="p">,</span>
             <span class="n">mask</span><span class="o">=</span><span class="p">(</span><span class="n">AssetExists</span><span class="p">()</span> <span class="o">|</span> <span class="n">SingleAsset</span><span class="p">(</span><span class="n">asset</span><span class="o">=</span><span class="n">target</span><span class="p">)),</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">RollingPearsonOfReturns</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
-            <span class="n">cls</span><span class="p">,</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">RollingPearsonOfReturns</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
             <span class="n">base_factor</span><span class="o">=</span><span class="n">returns</span><span class="p">,</span>
             <span class="n">target</span><span class="o">=</span><span class="n">returns</span><span class="p">[</span><span class="n">target</span><span class="p">],</span>
             <span class="n">correlation_length</span><span class="o">=</span><span class="n">correlation_length</span><span class="p">,</span>
@@ -759,19 +759,19 @@
 <span class="sd">    :class:`zipline.pipeline.factors.RollingPearsonOfReturns`</span>
 <span class="sd">    :class:`zipline.pipeline.factors.RollingLinearRegressionOfReturns`</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
                 <span class="n">target</span><span class="p">,</span>
                 <span class="n">returns_length</span><span class="p">,</span>
                 <span class="n">correlation_length</span><span class="p">,</span>
                 <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
-        <span class="c"># Use the `SingleAsset` filter here because it protects against</span>
-        <span class="c"># inputting a non-existent target asset.</span>
+        <span class="c1"># Use the `SingleAsset` filter here because it protects against</span>
+        <span class="c1"># inputting a non-existent target asset.</span>
         <span class="n">returns</span> <span class="o">=</span> <span class="n">Returns</span><span class="p">(</span>
             <span class="n">window_length</span><span class="o">=</span><span class="n">returns_length</span><span class="p">,</span>
             <span class="n">mask</span><span class="o">=</span><span class="p">(</span><span class="n">AssetExists</span><span class="p">()</span> <span class="o">|</span> <span class="n">SingleAsset</span><span class="p">(</span><span class="n">asset</span><span class="o">=</span><span class="n">target</span><span class="p">)),</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">RollingSpearmanOfReturns</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
-            <span class="n">cls</span><span class="p">,</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">RollingSpearmanOfReturns</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
             <span class="n">base_factor</span><span class="o">=</span><span class="n">returns</span><span class="p">,</span>
             <span class="n">target</span><span class="o">=</span><span class="n">returns</span><span class="p">[</span><span class="n">target</span><span class="p">],</span>
             <span class="n">correlation_length</span><span class="o">=</span><span class="n">correlation_length</span><span class="p">,</span>
@@ -816,7 +816,7 @@
 <span class="sd">      regression.</span>
 
 <span class="sd">    For more help on factors with multiple outputs, see</span>
-<span class="sd">    :class:`zipline.pipeline.factors.CustomFactor`.</span>
+<span class="sd">    :class:`zipline.pipeline.CustomFactor`.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
@@ -878,19 +878,19 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">window_safe</span> <span class="o">=</span> <span class="bp">True</span>
 
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
                 <span class="n">target</span><span class="p">,</span>
                 <span class="n">returns_length</span><span class="p">,</span>
                 <span class="n">regression_length</span><span class="p">,</span>
                 <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
-        <span class="c"># Use the `SingleAsset` filter here because it protects against</span>
-        <span class="c"># inputting a non-existent target asset.</span>
+        <span class="c1"># Use the `SingleAsset` filter here because it protects against</span>
+        <span class="c1"># inputting a non-existent target asset.</span>
         <span class="n">returns</span> <span class="o">=</span> <span class="n">Returns</span><span class="p">(</span>
             <span class="n">window_length</span><span class="o">=</span><span class="n">returns_length</span><span class="p">,</span>
             <span class="n">mask</span><span class="o">=</span><span class="p">(</span><span class="n">AssetExists</span><span class="p">()</span> <span class="o">|</span> <span class="n">SingleAsset</span><span class="p">(</span><span class="n">asset</span><span class="o">=</span><span class="n">target</span><span class="p">)),</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">RollingLinearRegressionOfReturns</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
-            <span class="n">cls</span><span class="p">,</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">RollingLinearRegressionOfReturns</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
             <span class="n">dependent</span><span class="o">=</span><span class="n">returns</span><span class="p">,</span>
             <span class="n">independent</span><span class="o">=</span><span class="n">returns</span><span class="p">[</span><span class="n">target</span><span class="p">],</span>
             <span class="n">regression_length</span><span class="o">=</span><span class="n">regression_length</span><span class="p">,</span>
@@ -917,20 +917,20 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">window_safe</span> <span class="o">=</span> <span class="bp">True</span>
     <span class="n">dtype</span> <span class="o">=</span> <span class="n">float64_dtype</span>
-    <span class="n">params</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;allowed_missing_count&#39;</span><span class="p">,)</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;allowed_missing_count&#39;</span><span class="p">,)</span>
 
     <span class="nd">@expect_types</span><span class="p">(</span>
         <span class="n">target</span><span class="o">=</span><span class="n">Asset</span><span class="p">,</span>
         <span class="n">regression_length</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
         <span class="n">allowed_missing_percentage</span><span class="o">=</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
-        <span class="n">__funcname</span><span class="o">=</span><span class="s">&#39;SimpleBeta&#39;</span><span class="p">,</span>
+        <span class="n">__funcname</span><span class="o">=</span><span class="s1">&#39;SimpleBeta&#39;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="nd">@expect_bounded</span><span class="p">(</span>
         <span class="n">regression_length</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span>
         <span class="n">allowed_missing_percentage</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
-        <span class="n">__funcname</span><span class="o">=</span><span class="s">&#39;SimpleBeta&#39;</span><span class="p">,</span>
+        <span class="n">__funcname</span><span class="o">=</span><span class="s1">&#39;SimpleBeta&#39;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
                 <span class="n">target</span><span class="p">,</span>
                 <span class="n">regression_length</span><span class="p">,</span>
                 <span class="n">allowed_missing_percentage</span><span class="o">=</span><span class="mf">0.25</span><span class="p">):</span>
@@ -941,8 +941,8 @@
         <span class="n">allowed_missing_count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
             <span class="n">allowed_missing_percentage</span> <span class="o">*</span> <span class="n">regression_length</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">SimpleBeta</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
-            <span class="n">cls</span><span class="p">,</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">SimpleBeta</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
             <span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">daily_returns</span><span class="p">,</span> <span class="n">daily_returns</span><span class="p">[</span><span class="n">target</span><span class="p">]],</span>
             <span class="n">window_length</span><span class="o">=</span><span class="n">regression_length</span><span class="p">,</span>
             <span class="n">allowed_missing_count</span><span class="o">=</span><span class="n">allowed_missing_count</span><span class="p">,</span>
@@ -963,11 +963,11 @@
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">graph_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;{}({!r}, {}, {})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
-            <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">symbol</span><span class="p">),</span>  <span class="c"># coerce from unicode to str in py2.</span>
+        <span class="k">return</span> <span class="s2">&quot;{}({!r}, {}, {})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">symbol</span><span class="p">),</span>  <span class="c1"># coerce from unicode to str in py2.</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;allowed_missing_count&#39;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;allowed_missing_count&#39;</span><span class="p">],</span>
         <span class="p">)</span>
 
     <span class="nd">@property</span>
@@ -976,12 +976,12 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">asset</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;{}({}, length={}, allowed_missing={})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;{}({}, length={}, allowed_missing={})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;allowed_missing_count&#39;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;allowed_missing_count&#39;</span><span class="p">],</span>
         <span class="p">)</span></div>
 
 
@@ -1006,7 +1006,7 @@
 <span class="sd">    slopes : np.array[M]</span>
 <span class="sd">        Linear regression coefficients for each column of ``dependents``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c"># Cache these as locals since we&#39;re going to call them multiple times.</span>
+    <span class="c1"># Cache these as locals since we&#39;re going to call them multiple times.</span>
     <span class="n">nan</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
     <span class="n">isnan</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span>
     <span class="n">N</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">dependents</span><span class="o">.</span><span class="n">shape</span>
@@ -1014,67 +1014,67 @@
     <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
         <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">nan</span><span class="p">)</span>
 
-    <span class="c"># Copy N times as a column vector and fill with nans to have the same</span>
-    <span class="c"># missing value pattern as the dependent variable.</span>
-    <span class="c">#</span>
-    <span class="c"># PERF_TODO: We could probably avoid the space blowup by doing this in</span>
-    <span class="c"># Cython.</span>
+    <span class="c1"># Copy N times as a column vector and fill with nans to have the same</span>
+    <span class="c1"># missing value pattern as the dependent variable.</span>
+    <span class="c1">#</span>
+    <span class="c1"># PERF_TODO: We could probably avoid the space blowup by doing this in</span>
+    <span class="c1"># Cython.</span>
 
-    <span class="c"># shape: (N, M)</span>
+    <span class="c1"># shape: (N, M)</span>
     <span class="n">independent</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
         <span class="n">isnan</span><span class="p">(</span><span class="n">dependents</span><span class="p">),</span>
         <span class="n">nan</span><span class="p">,</span>
         <span class="n">independent</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="c"># Calculate beta as Cov(X, Y) / Cov(X, X).</span>
-    <span class="c"># https://en.wikipedia.org/wiki/Simple_linear_regression#Fitting_the_regression_line  # noqa</span>
-    <span class="c">#</span>
-    <span class="c"># NOTE: The usual formula for covariance is::</span>
-    <span class="c">#</span>
-    <span class="c">#    mean((X - mean(X)) * (Y - mean(Y)))</span>
-    <span class="c">#</span>
-    <span class="c"># However, we don&#39;t actually need to take the mean of both sides of the</span>
-    <span class="c"># product, because of the folllowing equivalence::</span>
-    <span class="c">#</span>
-    <span class="c"># Let X_res = (X - mean(X)).</span>
-    <span class="c"># We have:</span>
-    <span class="c">#</span>
-    <span class="c">#     mean(X_res * (Y - mean(Y))) = mean(X_res * (Y - mean(Y)))</span>
-    <span class="c">#                             (1) = mean((X_res * Y) - (X_res * mean(Y)))</span>
-    <span class="c">#                             (2) = mean(X_res * Y) - mean(X_res * mean(Y))</span>
-    <span class="c">#                             (3) = mean(X_res * Y) - mean(X_res) * mean(Y)</span>
-    <span class="c">#                             (4) = mean(X_res * Y) - 0 * mean(Y)</span>
-    <span class="c">#                             (5) = mean(X_res * Y)</span>
-    <span class="c">#</span>
-    <span class="c">#</span>
-    <span class="c"># The tricky step in the above derivation is step (4). We know that</span>
-    <span class="c"># mean(X_res) is zero because, for any X:</span>
-    <span class="c">#</span>
-    <span class="c">#     mean(X - mean(X)) = mean(X) - mean(X) = 0.</span>
-    <span class="c">#</span>
-    <span class="c"># The upshot of this is that we only have to center one of `independent`</span>
-    <span class="c"># and `dependent` when calculating covariances. Since we need the centered</span>
-    <span class="c"># `independent` to calculate its variance in the next step, we choose to</span>
-    <span class="c"># center `independent`.</span>
+    <span class="c1"># Calculate beta as Cov(X, Y) / Cov(X, X).</span>
+    <span class="c1"># https://en.wikipedia.org/wiki/Simple_linear_regression#Fitting_the_regression_line  # noqa</span>
+    <span class="c1">#</span>
+    <span class="c1"># NOTE: The usual formula for covariance is::</span>
+    <span class="c1">#</span>
+    <span class="c1">#    mean((X - mean(X)) * (Y - mean(Y)))</span>
+    <span class="c1">#</span>
+    <span class="c1"># However, we don&#39;t actually need to take the mean of both sides of the</span>
+    <span class="c1"># product, because of the folllowing equivalence::</span>
+    <span class="c1">#</span>
+    <span class="c1"># Let X_res = (X - mean(X)).</span>
+    <span class="c1"># We have:</span>
+    <span class="c1">#</span>
+    <span class="c1">#     mean(X_res * (Y - mean(Y))) = mean(X_res * (Y - mean(Y)))</span>
+    <span class="c1">#                             (1) = mean((X_res * Y) - (X_res * mean(Y)))</span>
+    <span class="c1">#                             (2) = mean(X_res * Y) - mean(X_res * mean(Y))</span>
+    <span class="c1">#                             (3) = mean(X_res * Y) - mean(X_res) * mean(Y)</span>
+    <span class="c1">#                             (4) = mean(X_res * Y) - 0 * mean(Y)</span>
+    <span class="c1">#                             (5) = mean(X_res * Y)</span>
+    <span class="c1">#</span>
+    <span class="c1">#</span>
+    <span class="c1"># The tricky step in the above derivation is step (4). We know that</span>
+    <span class="c1"># mean(X_res) is zero because, for any X:</span>
+    <span class="c1">#</span>
+    <span class="c1">#     mean(X - mean(X)) = mean(X) - mean(X) = 0.</span>
+    <span class="c1">#</span>
+    <span class="c1"># The upshot of this is that we only have to center one of `independent`</span>
+    <span class="c1"># and `dependent` when calculating covariances. Since we need the centered</span>
+    <span class="c1"># `independent` to calculate its variance in the next step, we choose to</span>
+    <span class="c1"># center `independent`.</span>
 
-    <span class="c"># shape: (N, M)</span>
+    <span class="c1"># shape: (N, M)</span>
     <span class="n">ind_residual</span> <span class="o">=</span> <span class="n">independent</span> <span class="o">-</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">independent</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-    <span class="c"># shape: (M,)</span>
+    <span class="c1"># shape: (M,)</span>
     <span class="n">covariances</span> <span class="o">=</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">ind_residual</span> <span class="o">*</span> <span class="n">dependents</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-    <span class="c"># We end up with different variances in each column here because each</span>
-    <span class="c"># column may have a different subset of the data dropped due to missing</span>
-    <span class="c"># data in the corresponding dependent column.</span>
-    <span class="c"># shape: (M,)</span>
+    <span class="c1"># We end up with different variances in each column here because each</span>
+    <span class="c1"># column may have a different subset of the data dropped due to missing</span>
+    <span class="c1"># data in the corresponding dependent column.</span>
+    <span class="c1"># shape: (M,)</span>
     <span class="n">independent_variances</span> <span class="o">=</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">ind_residual</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-    <span class="c"># shape: (M,)</span>
+    <span class="c1"># shape: (M,)</span>
     <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">covariances</span><span class="p">,</span> <span class="n">independent_variances</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span>
 
-    <span class="c"># Write nans back to locations where we have more then allowed number of</span>
-    <span class="c"># missing entries.</span>
+    <span class="c1"># Write nans back to locations where we have more then allowed number of</span>
+    <span class="c1"># missing entries.</span>
     <span class="n">nanlocs</span> <span class="o">=</span> <span class="n">isnan</span><span class="p">(</span><span class="n">independent</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">allowed_missing</span>
     <span class="n">out</span><span class="p">[</span><span class="n">nanlocs</span><span class="p">]</span> <span class="o">=</span> <span class="n">nan</span>
 

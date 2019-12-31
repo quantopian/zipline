@@ -414,29 +414,25 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.pipeline.loaders.equity_pricing_loader</h1><div class="highlight"><pre>
-<span class="c"># Copyright 2015 Quantopian, Inc.</span>
-<span class="c">#</span>
-<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
-<span class="c"># you may not use this file except in compliance with the License.</span>
-<span class="c"># You may obtain a copy of the License at</span>
-<span class="c">#</span>
-<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
-<span class="c">#</span>
-<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
-<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
-<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
-<span class="c"># See the License for the specific language governing permissions and</span>
-<span class="c"># limitations under the License.</span>
-<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">iinfo</span><span class="p">,</span>
-    <span class="n">uint32</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span> <span class="nn">trading_calendars</span> <span class="kn">import</span> <span class="n">get_calendar</span>
+<span></span><span class="c1"># Copyright 2015 Quantopian, Inc.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
 
-<span class="kn">from</span> <span class="nn">zipline.data.us_equity_pricing</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">BcolzDailyBarReader</span><span class="p">,</span>
-    <span class="n">SQLiteAdjustmentReader</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">interface</span> <span class="kn">import</span> <span class="n">implements</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">iinfo</span><span class="p">,</span> <span class="n">uint32</span><span class="p">,</span> <span class="n">multiply</span>
+
+<span class="kn">from</span> <span class="nn">zipline.data.fx</span> <span class="kn">import</span> <span class="n">ExplodingFXRateReader</span>
 <span class="kn">from</span> <span class="nn">zipline.lib.adjusted_array</span> <span class="kn">import</span> <span class="n">AdjustedArray</span>
 
 <span class="kn">from</span> <span class="nn">.base</span> <span class="kn">import</span> <span class="n">PipelineLoader</span>
@@ -445,60 +441,84 @@
 <span class="n">UINT32_MAX</span> <span class="o">=</span> <span class="n">iinfo</span><span class="p">(</span><span class="n">uint32</span><span class="p">)</span><span class="o">.</span><span class="n">max</span>
 
 
-<div class="viewcode-block" id="USEquityPricingLoader"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.loaders.equity_pricing_loader.USEquityPricingLoader">[docs]</a><span class="k">class</span> <span class="nc">USEquityPricingLoader</span><span class="p">(</span><span class="n">PipelineLoader</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    PipelineLoader for US Equity Pricing data</span>
+<span class="k">class</span> <span class="nc">EquityPricingLoader</span><span class="p">(</span><span class="n">implements</span><span class="p">(</span><span class="n">PipelineLoader</span><span class="p">)):</span>
+    <span class="sd">&quot;&quot;&quot;A PipelineLoader for loading daily OHLCV data.</span>
 
-<span class="sd">    Delegates loading of baselines and adjustments.</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    raw_price_reader : zipline.data.session_bars.SessionBarReader</span>
+<span class="sd">        Reader providing raw prices.</span>
+<span class="sd">    adjustments_reader : zipline.data.adjustments.SQLiteAdjustmentReader</span>
+<span class="sd">        Reader providing price/volume adjustments.</span>
+<span class="sd">    fx_reader : zipline.data.fx.FXRateReader</span>
+<span class="sd">       Reader providing currency conversions.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw_price_loader</span><span class="p">,</span> <span class="n">adjustments_loader</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">raw_price_loader</span> <span class="o">=</span> <span class="n">raw_price_loader</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">adjustments_loader</span> <span class="o">=</span> <span class="n">adjustments_loader</span>
-
-        <span class="n">cal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_price_loader</span><span class="o">.</span><span class="n">trading_calendar</span> <span class="ow">or</span> \
-            <span class="n">get_calendar</span><span class="p">(</span><span class="s">&quot;NYSE&quot;</span><span class="p">)</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">_all_sessions</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">all_sessions</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">raw_price_reader</span><span class="p">,</span>
+                 <span class="n">adjustments_reader</span><span class="p">,</span>
+                 <span class="n">fx_reader</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">raw_price_reader</span> <span class="o">=</span> <span class="n">raw_price_reader</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adjustments_reader</span> <span class="o">=</span> <span class="n">adjustments_reader</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fx_reader</span> <span class="o">=</span> <span class="n">fx_reader</span>
 
     <span class="nd">@classmethod</span>
-<div class="viewcode-block" id="USEquityPricingLoader.from_files"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.loaders.equity_pricing_loader.USEquityPricingLoader.from_files">[docs]</a>    <span class="k">def</span> <span class="nf">from_files</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">pricing_path</span><span class="p">,</span> <span class="n">adjustments_path</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">without_fx</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">raw_price_reader</span><span class="p">,</span> <span class="n">adjustments_reader</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Create a loader from a bcolz equity pricing dir and a SQLite</span>
-<span class="sd">        adjustments path.</span>
+<span class="sd">        Construct an EquityPricingLoader without support for fx rates.</span>
+
+<span class="sd">        The returned loader will raise an error if requested to load</span>
+<span class="sd">        currency-converted columns.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        pricing_path : str</span>
-<span class="sd">            Path to a bcolz directory written by a BcolzDailyBarWriter.</span>
-<span class="sd">        adjusments_path : str</span>
-<span class="sd">            Path to an adjusments db written by a SQLiteAdjustmentWriter.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">cls</span><span class="p">(</span>
-            <span class="n">BcolzDailyBarReader</span><span class="p">(</span><span class="n">pricing_path</span><span class="p">),</span>
-            <span class="n">SQLiteAdjustmentReader</span><span class="p">(</span><span class="n">adjustments_path</span><span class="p">)</span>
-        <span class="p">)</span></div>
+<span class="sd">        raw_price_reader : zipline.data.session_bars.SessionBarReader</span>
+<span class="sd">            Reader providing raw prices.</span>
+<span class="sd">        adjustments_reader : zipline.data.adjustments.SQLiteAdjustmentReader</span>
+<span class="sd">            Reader providing price/volume adjustments.</span>
 
-    <span class="k">def</span> <span class="nf">load_adjusted_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
-        <span class="c"># load_adjusted_array is called with dates on which the user&#39;s algo</span>
-        <span class="c"># will be shown data, which means we need to return the data that would</span>
-        <span class="c"># be known at the start of each date.  We assume that the latest data</span>
-        <span class="c"># known on day N is the data from day (N - 1), so we shift all query</span>
-        <span class="c"># dates back by a day.</span>
-        <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span> <span class="o">=</span> <span class="n">shift_dates</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_all_sessions</span><span class="p">,</span> <span class="n">dates</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">shift</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        loader : EquityPricingLoader</span>
+<span class="sd">            A loader that can only provide currency-naive data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">raw_price_reader</span><span class="o">=</span><span class="n">raw_price_reader</span><span class="p">,</span>
+            <span class="n">adjustments_reader</span><span class="o">=</span><span class="n">adjustments_reader</span><span class="p">,</span>
+            <span class="n">fx_reader</span><span class="o">=</span><span class="n">ExplodingFXRateReader</span><span class="p">(),</span>
         <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">load_adjusted_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">sids</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="c1"># load_adjusted_array is called with dates on which the user&#39;s algo</span>
+        <span class="c1"># will be shown data, which means we need to return the data that would</span>
+        <span class="c1"># be known at the **start** of each date. We assume that the latest</span>
+        <span class="c1"># data known on day N is the data from day (N - 1), so we shift all</span>
+        <span class="c1"># query dates back by a trading session.</span>
+        <span class="n">sessions</span> <span class="o">=</span> <span class="n">domain</span><span class="o">.</span><span class="n">all_sessions</span><span class="p">()</span>
+        <span class="n">shifted_dates</span> <span class="o">=</span> <span class="n">shift_dates</span><span class="p">(</span><span class="n">sessions</span><span class="p">,</span> <span class="n">dates</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">shift</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
         <span class="n">colnames</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">]</span>
-        <span class="n">raw_arrays</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_price_loader</span><span class="o">.</span><span class="n">load_raw_arrays</span><span class="p">(</span>
+        <span class="n">raw_arrays</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_price_reader</span><span class="o">.</span><span class="n">load_raw_arrays</span><span class="p">(</span>
             <span class="n">colnames</span><span class="p">,</span>
-            <span class="n">start_date</span><span class="p">,</span>
-            <span class="n">end_date</span><span class="p">,</span>
-            <span class="n">assets</span><span class="p">,</span>
+            <span class="n">shifted_dates</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">shifted_dates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">sids</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">adjustments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjustments_loader</span><span class="o">.</span><span class="n">load_adjustments</span><span class="p">(</span>
+
+        <span class="c1"># Currency convert raw_arrays in place if necessary. We use shifted</span>
+        <span class="c1"># dates to load currency conversion rates to make them line up with</span>
+        <span class="c1"># dates used to fetch prices.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inplace_currency_convert</span><span class="p">(</span>
+            <span class="n">columns</span><span class="p">,</span>
+            <span class="n">raw_arrays</span><span class="p">,</span>
+            <span class="n">shifted_dates</span><span class="p">,</span>
+            <span class="n">sids</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">adjustments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjustments_reader</span><span class="o">.</span><span class="n">load_pricing_adjustments</span><span class="p">(</span>
             <span class="n">colnames</span><span class="p">,</span>
             <span class="n">dates</span><span class="p">,</span>
-            <span class="n">assets</span><span class="p">,</span>
+            <span class="n">sids</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
@@ -508,7 +528,66 @@
                 <span class="n">c_adjs</span><span class="p">,</span>
                 <span class="n">c</span><span class="o">.</span><span class="n">missing_value</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="k">return</span> <span class="n">out</span></div>
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">currency_aware</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Tell the pipeline engine that this loader supports currency</span>
+        <span class="c1"># conversion.</span>
+        <span class="k">return</span> <span class="bp">True</span>
+
+    <span class="k">def</span> <span class="nf">_inplace_currency_convert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">sids</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Currency convert raw data loaded for ``column``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        columns : list[zipline.pipeline.data.BoundColumn]</span>
+<span class="sd">            List of columns whose raw data has been loaded.</span>
+<span class="sd">        arrays : list[np.array]</span>
+<span class="sd">            List of arrays, parallel to ``columns`` containing data for the</span>
+<span class="sd">            column.</span>
+<span class="sd">        dates : pd.DatetimeIndex</span>
+<span class="sd">            Labels for rows of ``arrays``. These are the dates that should</span>
+<span class="sd">            be used to fetch fx rates for conversion.</span>
+<span class="sd">        sids : np.array[int64]</span>
+<span class="sd">            Labels for columns of ``arrays``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        Side Effects</span>
+<span class="sd">        ------------</span>
+<span class="sd">        Modifies ``arrays`` in place by applying currency conversions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Group columns by currency conversion spec.</span>
+        <span class="n">by_spec</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">column</span><span class="p">,</span> <span class="n">array</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">columns</span><span class="p">,</span> <span class="n">arrays</span><span class="p">):</span>
+            <span class="n">by_spec</span><span class="p">[</span><span class="n">column</span><span class="o">.</span><span class="n">currency_conversion</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+
+        <span class="c1"># Nothing to do for terms with no currency conversion.</span>
+        <span class="n">by_spec</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">by_spec</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">fx_reader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fx_reader</span>
+        <span class="n">base_currencies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_price_reader</span><span class="o">.</span><span class="n">currency_codes</span><span class="p">(</span><span class="n">sids</span><span class="p">)</span>
+
+        <span class="c1"># Columns with the same conversion spec will use the same multipliers.</span>
+        <span class="k">for</span> <span class="n">spec</span><span class="p">,</span> <span class="n">arrays</span> <span class="ow">in</span> <span class="n">by_spec</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">rates</span> <span class="o">=</span> <span class="n">fx_reader</span><span class="o">.</span><span class="n">get_rates</span><span class="p">(</span>
+                <span class="n">field</span><span class="o">=</span><span class="n">spec</span><span class="o">.</span><span class="n">field</span><span class="p">,</span>
+                <span class="n">quote</span><span class="o">=</span><span class="n">spec</span><span class="o">.</span><span class="n">currency</span><span class="o">.</span><span class="n">code</span><span class="p">,</span>
+                <span class="n">bases</span><span class="o">=</span><span class="n">base_currencies</span><span class="p">,</span>
+                <span class="n">dates</span><span class="o">=</span><span class="n">dates</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">arr</span> <span class="ow">in</span> <span class="n">arrays</span><span class="p">:</span>
+                <span class="n">multiply</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">rates</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">arr</span><span class="p">)</span>
+
+
+<span class="c1"># Backwards compat alias.</span>
+<span class="n">USEquityPricingLoader</span> <span class="o">=</span> <span class="n">EquityPricingLoader</span>
 </pre></div>
 
           </div>

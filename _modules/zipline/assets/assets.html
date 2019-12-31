@@ -414,19 +414,19 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.assets.assets</h1><div class="highlight"><pre>
-<span class="c"># Copyright 2016 Quantopian, Inc.</span>
-<span class="c">#</span>
-<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
-<span class="c"># you may not use this file except in compliance with the License.</span>
-<span class="c"># You may obtain a copy of the License at</span>
-<span class="c">#</span>
-<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
-<span class="c">#</span>
-<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
-<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
-<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
-<span class="c"># See the License for the specific language governing permissions and</span>
-<span class="c"># limitations under the License.</span>
+<span></span><span class="c1"># Copyright 2016 Quantopian, Inc.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
 
 <span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABCMeta</span>
 <span class="kn">import</span> <span class="nn">array</span>
@@ -448,22 +448,23 @@
     <span class="n">concat</span><span class="p">,</span>
     <span class="n">concatv</span><span class="p">,</span>
     <span class="n">curry</span><span class="p">,</span>
+    <span class="n">groupby</span><span class="p">,</span>
     <span class="n">merge</span><span class="p">,</span>
     <span class="n">partition_all</span><span class="p">,</span>
     <span class="n">sliding_window</span><span class="p">,</span>
     <span class="n">valmap</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">toolz.curried</span> <span class="kn">import</span> <span class="n">operator</span> <span class="k">as</span> <span class="n">op</span>
 
 <span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">EquitiesNotFound</span><span class="p">,</span>
     <span class="n">FutureContractsNotFound</span><span class="p">,</span>
-    <span class="n">MapAssetIdentifierIndexError</span><span class="p">,</span>
     <span class="n">MultipleSymbolsFound</span><span class="p">,</span>
+    <span class="n">MultipleSymbolsFoundForFuzzySymbol</span><span class="p">,</span>
     <span class="n">MultipleValuesFoundForField</span><span class="p">,</span>
     <span class="n">MultipleValuesFoundForSid</span><span class="p">,</span>
     <span class="n">NoValueForSid</span><span class="p">,</span>
     <span class="n">ValueNotFoundForField</span><span class="p">,</span>
+    <span class="n">SameSymbolUsedAcrossCountries</span><span class="p">,</span>
     <span class="n">SidsNotFound</span><span class="p">,</span>
     <span class="n">SymbolNotFound</span><span class="p">,</span>
 <span class="p">)</span>
@@ -486,33 +487,34 @@
 <span class="kn">from</span> <span class="nn">.asset_db_schema</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">ASSET_DB_VERSION</span>
 <span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.exchange_info</span> <span class="kn">import</span> <span class="n">ExchangeInfo</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.functional</span> <span class="kn">import</span> <span class="n">invert</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.memoize</span> <span class="kn">import</span> <span class="n">lazyval</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="n">as_column</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.preprocess</span> <span class="kn">import</span> <span class="n">preprocess</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.sqlite_utils</span> <span class="kn">import</span> <span class="n">group_into_chunks</span><span class="p">,</span> <span class="n">coerce_string_to_eng</span>
 
-<span class="n">log</span> <span class="o">=</span> <span class="n">Logger</span><span class="p">(</span><span class="s">&#39;assets.py&#39;</span><span class="p">)</span>
+<span class="n">log</span> <span class="o">=</span> <span class="n">Logger</span><span class="p">(</span><span class="s1">&#39;assets.py&#39;</span><span class="p">)</span>
 
-<span class="c"># A set of fields that need to be converted to strings before building an</span>
-<span class="c"># Asset to avoid unicode fields</span>
+<span class="c1"># A set of fields that need to be converted to strings before building an</span>
+<span class="c1"># Asset to avoid unicode fields</span>
 <span class="n">_asset_str_fields</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span>
-    <span class="s">&#39;symbol&#39;</span><span class="p">,</span>
-    <span class="s">&#39;asset_name&#39;</span><span class="p">,</span>
-    <span class="s">&#39;exchange&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;symbol&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;asset_name&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;exchange&#39;</span><span class="p">,</span>
 <span class="p">})</span>
 
-<span class="c"># A set of fields that need to be converted to timestamps in UTC</span>
+<span class="c1"># A set of fields that need to be converted to timestamps in UTC</span>
 <span class="n">_asset_timestamp_fields</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span>
-    <span class="s">&#39;start_date&#39;</span><span class="p">,</span>
-    <span class="s">&#39;end_date&#39;</span><span class="p">,</span>
-    <span class="s">&#39;first_traded&#39;</span><span class="p">,</span>
-    <span class="s">&#39;notice_date&#39;</span><span class="p">,</span>
-    <span class="s">&#39;expiration_date&#39;</span><span class="p">,</span>
-    <span class="s">&#39;auto_close_date&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;start_date&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;end_date&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;first_traded&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;notice_date&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;expiration_date&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;auto_close_date&#39;</span><span class="p">,</span>
 <span class="p">})</span>
 
-<span class="n">OwnershipPeriod</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s">&#39;OwnershipPeriod&#39;</span><span class="p">,</span> <span class="s">&#39;start end sid value&#39;</span><span class="p">)</span>
+<span class="n">OwnershipPeriod</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;OwnershipPeriod&#39;</span><span class="p">,</span> <span class="s1">&#39;start end sid value&#39;</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">merge_ownership_periods</span><span class="p">(</span><span class="n">mappings</span><span class="p">):</span>
@@ -537,10 +539,10 @@
                 <span class="mi">2</span><span class="p">,</span>
                 <span class="n">concatv</span><span class="p">(</span>
                     <span class="nb">sorted</span><span class="p">(</span><span class="n">v</span><span class="p">),</span>
-                    <span class="c"># concat with a fake ownership object to make the last</span>
-                    <span class="c"># end date be max timestamp</span>
+                    <span class="c1"># concat with a fake ownership object to make the last</span>
+                    <span class="c1"># end date be max timestamp</span>
                     <span class="p">[</span><span class="n">OwnershipPeriod</span><span class="p">(</span>
-                        <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="o">.</span><span class="n">max</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s">&#39;utc&#39;</span><span class="p">),</span>
+                        <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="o">.</span><span class="n">max</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s1">&#39;utc&#39;</span><span class="p">),</span>
                         <span class="bp">None</span><span class="p">,</span>
                         <span class="bp">None</span><span class="p">,</span>
                         <span class="bp">None</span><span class="p">,</span>
@@ -552,12 +554,7 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">build_ownership_map</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">key_from_row</span><span class="p">,</span> <span class="n">value_from_row</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Builds a dict mapping to lists of OwnershipPeriods, from a db table.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">rows</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
-
+<span class="k">def</span> <span class="nf">_build_ownership_map_from_rows</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">key_from_row</span><span class="p">,</span> <span class="n">value_from_row</span><span class="p">):</span>
     <span class="n">mappings</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
         <span class="n">mappings</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
@@ -565,14 +562,47 @@
             <span class="p">[],</span>
         <span class="p">)</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">OwnershipPeriod</span><span class="p">(</span>
-                <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">start_date</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&#39;ns&#39;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;utc&#39;</span><span class="p">),</span>
-                <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">end_date</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&#39;ns&#39;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;utc&#39;</span><span class="p">),</span>
+                <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">start_date</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;ns&#39;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s1">&#39;utc&#39;</span><span class="p">),</span>
+                <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">end_date</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;ns&#39;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s1">&#39;utc&#39;</span><span class="p">),</span>
                 <span class="n">row</span><span class="o">.</span><span class="n">sid</span><span class="p">,</span>
                 <span class="n">value_from_row</span><span class="p">(</span><span class="n">row</span><span class="p">),</span>
             <span class="p">),</span>
         <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">merge_ownership_periods</span><span class="p">(</span><span class="n">mappings</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">build_ownership_map</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">key_from_row</span><span class="p">,</span> <span class="n">value_from_row</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Builds a dict mapping to lists of OwnershipPeriods, from a db table.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_build_ownership_map_from_rows</span><span class="p">(</span>
+        <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">(),</span>
+        <span class="n">key_from_row</span><span class="p">,</span>
+        <span class="n">value_from_row</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">build_grouped_ownership_map</span><span class="p">(</span><span class="n">table</span><span class="p">,</span>
+                                <span class="n">key_from_row</span><span class="p">,</span>
+                                <span class="n">value_from_row</span><span class="p">,</span>
+                                <span class="n">group_key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Builds a dict mapping group keys to maps of keys to to lists of</span>
+<span class="sd">    OwnershipPeriods, from a db table.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">grouped_rows</span> <span class="o">=</span> <span class="n">groupby</span><span class="p">(</span>
+        <span class="n">group_key</span><span class="p">,</span>
+        <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">(),</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="n">key</span><span class="p">:</span> <span class="n">_build_ownership_map_from_rows</span><span class="p">(</span>
+            <span class="n">rows</span><span class="p">,</span>
+            <span class="n">key_from_row</span><span class="p">,</span>
+            <span class="n">value_from_row</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">rows</span> <span class="ow">in</span> <span class="n">grouped_rows</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">}</span>
 
 
 <span class="nd">@curry</span>
@@ -604,25 +634,25 @@
 <span class="sd">    Takes in a dict of Asset init args and converts dates to pd.Timestamps</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">_asset_timestamp_fields</span> <span class="o">&amp;</span> <span class="n">viewkeys</span><span class="p">(</span><span class="n">dict_</span><span class="p">):</span>
-        <span class="n">value</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">dict_</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">dict_</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">tz</span><span class="o">=</span><span class="s1">&#39;UTC&#39;</span><span class="p">)</span>
         <span class="n">dict_</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span> <span class="k">if</span> <span class="n">isnull</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">else</span> <span class="n">value</span>
     <span class="k">return</span> <span class="n">dict_</span>
 
 
 <span class="n">SID_TYPE_IDS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="c"># Asset would be 0,</span>
+    <span class="c1"># Asset would be 0,</span>
     <span class="n">ContinuousFuture</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
 <span class="p">}</span>
 
 <span class="n">CONTINUOUS_FUTURE_ROLL_STYLE_IDS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s">&#39;calendar&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-    <span class="s">&#39;volume&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s1">&#39;calendar&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s1">&#39;volume&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
 <span class="p">}</span>
 
 <span class="n">CONTINUOUS_FUTURE_ADJUSTMENT_STYLE_IDS</span> <span class="o">=</span> <span class="p">{</span>
     <span class="bp">None</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-    <span class="s">&#39;div&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-    <span class="s">&#39;add&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="s1">&#39;div&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s1">&#39;add&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
 <span class="p">}</span>
 
 
@@ -630,21 +660,21 @@
                                   <span class="n">offset</span><span class="p">,</span>
                                   <span class="n">roll_style</span><span class="p">,</span>
                                   <span class="n">adjustment_style</span><span class="p">):</span>
-    <span class="n">s</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">Struct</span><span class="p">(</span><span class="s">&quot;B 2B B B B 2B&quot;</span><span class="p">)</span>
-    <span class="c"># B - sid type</span>
-    <span class="c"># 2B - root symbol</span>
-    <span class="c"># B - offset (could be packed smaller since offsets of greater than 12 are</span>
-    <span class="c">#             probably unneeded.)</span>
-    <span class="c"># B - roll type</span>
-    <span class="c"># B - adjustment</span>
-    <span class="c"># 2B - empty space left for parameterized roll types</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">Struct</span><span class="p">(</span><span class="s2">&quot;B 2B B B B 2B&quot;</span><span class="p">)</span>
+    <span class="c1"># B - sid type</span>
+    <span class="c1"># 2B - root symbol</span>
+    <span class="c1"># B - offset (could be packed smaller since offsets of greater than 12 are</span>
+    <span class="c1">#             probably unneeded.)</span>
+    <span class="c1"># B - roll type</span>
+    <span class="c1"># B - adjustment</span>
+    <span class="c1"># 2B - empty space left for parameterized roll types</span>
 
-    <span class="c"># The root symbol currently supports 2 characters.  If 3 char root symbols</span>
-    <span class="c"># are needed, the size of the root symbol does not need to change, however</span>
-    <span class="c"># writing the string directly will need to change to a scheme of writing</span>
-    <span class="c"># the A-Z values in 5-bit chunks.</span>
-    <span class="n">a</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="s">&#39;B&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">s</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
-    <span class="n">rs</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="n">root_symbol</span><span class="p">,</span> <span class="s">&#39;ascii&#39;</span><span class="p">)</span>
+    <span class="c1"># The root symbol currently supports 2 characters.  If 3 char root symbols</span>
+    <span class="c1"># are needed, the size of the root symbol does not need to change, however</span>
+    <span class="c1"># writing the string directly will need to change to a scheme of writing</span>
+    <span class="c1"># the A-Z values in 5-bit chunks.</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">s</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+    <span class="n">rs</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="n">root_symbol</span><span class="p">,</span> <span class="s1">&#39;ascii&#39;</span><span class="p">)</span>
     <span class="n">values</span> <span class="o">=</span> <span class="p">(</span><span class="n">SID_TYPE_IDS</span><span class="p">[</span><span class="n">ContinuousFuture</span><span class="p">],</span>
               <span class="n">rs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
               <span class="n">rs</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
@@ -654,6 +684,9 @@
               <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
     <span class="n">s</span><span class="o">.</span><span class="n">pack_into</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">*</span><span class="n">values</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">binascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="mi">16</span><span class="p">)</span>
+
+
+<span class="n">Lifetimes</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;Lifetimes&#39;</span><span class="p">,</span> <span class="s1">&#39;sid start end&#39;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="AssetFinder"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder">[docs]</a><span class="k">class</span> <span class="nc">AssetFinder</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -679,84 +712,80 @@
 <span class="sd">    :class:`zipline.assets.AssetDBWriter`</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="nd">@preprocess</span><span class="p">(</span><span class="n">engine</span><span class="o">=</span><span class="n">coerce_string_to_eng</span><span class="p">(</span><span class="n">require_exists</span><span class="o">=</span><span class="bp">True</span><span class="p">))</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">future_chain_predicates</span><span class="o">=</span><span class="n">CHAIN_PREDICATES</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">future_chain_predicates</span><span class="o">=</span><span class="n">CHAIN_PREDICATES</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span>
         <span class="n">metadata</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">MetaData</span><span class="p">(</span><span class="n">bind</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
         <span class="n">metadata</span><span class="o">.</span><span class="n">reflect</span><span class="p">(</span><span class="n">only</span><span class="o">=</span><span class="n">asset_db_table_names</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">table_name</span> <span class="ow">in</span> <span class="n">asset_db_table_names</span><span class="p">:</span>
             <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">metadata</span><span class="o">.</span><span class="n">tables</span><span class="p">[</span><span class="n">table_name</span><span class="p">])</span>
 
-        <span class="c"># Check the version info of the db for compatibility</span>
+        <span class="c1"># Check the version info of the db for compatibility</span>
         <span class="n">check_version_info</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">version_info</span><span class="p">,</span> <span class="n">ASSET_DB_VERSION</span><span class="p">)</span>
 
-        <span class="c"># Cache for lookup of assets by sid, the objects in the asset lookup</span>
-        <span class="c"># may be shared with the results from equity and future lookup caches.</span>
-        <span class="c">#</span>
-        <span class="c"># The top level cache exists to minimize lookups on the asset type</span>
-        <span class="c"># routing.</span>
-        <span class="c">#</span>
-        <span class="c"># The caches are read through, i.e. accessing an asset through</span>
-        <span class="c"># retrieve_asset will populate the cache on first retrieval.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_caches</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_asset_cache</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asset_type_cache</span><span class="p">)</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{}</span>
+        <span class="c1"># Cache for lookup of assets by sid, the objects in the asset lookup</span>
+        <span class="c1"># may be shared with the results from equity and future lookup caches.</span>
+        <span class="c1">#</span>
+        <span class="c1"># The top level cache exists to minimize lookups on the asset type</span>
+        <span class="c1"># routing.</span>
+        <span class="c1">#</span>
+        <span class="c1"># The caches are read through, i.e. accessing an asset through</span>
+        <span class="c1"># retrieve_asset will populate the cache on first retrieval.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_asset_cache</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_asset_type_cache</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_caches</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_asset_cache</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asset_type_cache</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_future_chain_predicates</span> <span class="o">=</span> <span class="n">future_chain_predicates</span> \
             <span class="k">if</span> <span class="n">future_chain_predicates</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ordered_contracts</span> <span class="o">=</span> <span class="p">{}</span>
 
-        <span class="c"># Populated on first call to `lifetimes`.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_asset_lifetimes</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="c1"># Populated on first call to `lifetimes`.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_asset_lifetimes</span> <span class="o">=</span> <span class="p">{}</span>
 
-    <span class="k">def</span> <span class="nf">_reset_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Reset our asset caches.</span>
-
-<span class="sd">        You probably shouldn&#39;t call this method.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c"># This method exists as a workaround for the in-place mutating behavior</span>
-        <span class="c"># of `TradingAlgorithm._write_and_map_id_index_to_sids`.  No one else</span>
-        <span class="c"># should be calling this.</span>
-        <span class="k">for</span> <span class="n">cache</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_caches</span><span class="p">:</span>
-            <span class="n">cache</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">reload_symbol_maps</span><span class="p">()</span>
-
-<div class="viewcode-block" id="AssetFinder.reload_symbol_maps"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.reload_symbol_maps">[docs]</a>    <span class="k">def</span> <span class="nf">reload_symbol_maps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Clear the in memory symbol lookup maps.</span>
-
-<span class="sd">        This will make any changes to the underlying db available to the</span>
-<span class="sd">        symbol maps.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c"># clear the lazyval caches, the next access will requery</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">del</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">symbol_ownership_map</span><span class="p">[</span><span class="bp">self</span><span class="p">]</span>
-        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="k">pass</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">del</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">fuzzy_symbol_ownership_map</span><span class="p">[</span><span class="bp">self</span><span class="p">]</span>
-        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="k">pass</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">del</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">equity_supplementary_map</span><span class="p">[</span><span class="bp">self</span><span class="p">]</span>
-        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="k">pass</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">del</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">equity_supplementary_map_by_sid</span><span class="p">[</span><span class="bp">self</span><span class="p">]</span>
-        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="k">pass</span></div>
+    <span class="nd">@lazyval</span>
+    <span class="k">def</span> <span class="nf">exchange_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">es</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">exchanges</span><span class="o">.</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">name</span><span class="p">:</span> <span class="n">ExchangeInfo</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">canonical_name</span><span class="p">,</span> <span class="n">country_code</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">canonical_name</span><span class="p">,</span> <span class="n">country_code</span> <span class="ow">in</span> <span class="n">es</span>
+        <span class="p">}</span>
 
     <span class="nd">@lazyval</span>
     <span class="k">def</span> <span class="nf">symbol_ownership_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">build_ownership_map</span><span class="p">(</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">mappings</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbol_ownership_maps_by_country_code</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">ownership_periods</span> <span class="ow">in</span> <span class="n">mappings</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">ownership_periods</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="nd">@lazyval</span>
+    <span class="k">def</span> <span class="nf">symbol_ownership_maps_by_country_code</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">sid_to_country_code</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">((</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">equities</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">sid</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">exchanges</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">country_code</span><span class="p">,</span>
+            <span class="p">))</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">equities</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">exchange</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchanges</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">exchange</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">(),</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">build_grouped_ownership_map</span><span class="p">(</span>
             <span class="n">table</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">equity_symbol_mappings</span><span class="p">,</span>
             <span class="n">key_from_row</span><span class="o">=</span><span class="p">(</span>
                 <span class="k">lambda</span> <span class="n">row</span><span class="p">:</span> <span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">company_symbol</span><span class="p">,</span> <span class="n">row</span><span class="o">.</span><span class="n">share_class_symbol</span><span class="p">)</span>
             <span class="p">),</span>
             <span class="n">value_from_row</span><span class="o">=</span><span class="k">lambda</span> <span class="n">row</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">symbol</span><span class="p">,</span>
+            <span class="n">group_key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">row</span><span class="p">:</span> <span class="n">sid_to_country_code</span><span class="p">[</span><span class="n">row</span><span class="o">.</span><span class="n">sid</span><span class="p">],</span>
         <span class="p">)</span>
 
     <span class="nd">@lazyval</span>
-    <span class="k">def</span> <span class="nf">fuzzy_symbol_ownership_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">country_codes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbol_ownership_maps_by_country_code</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_fuzzify_symbol_ownership_map</span><span class="p">(</span><span class="n">ownership_map</span><span class="p">):</span>
         <span class="n">fuzzy_mappings</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="p">(</span><span class="n">cs</span><span class="p">,</span> <span class="n">scs</span><span class="p">),</span> <span class="n">owners</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbol_ownership_map</span><span class="p">):</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">cs</span><span class="p">,</span> <span class="n">scs</span><span class="p">),</span> <span class="n">owners</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">ownership_map</span><span class="p">):</span>
             <span class="n">fuzzy_owners</span> <span class="o">=</span> <span class="n">fuzzy_mappings</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
                 <span class="n">cs</span> <span class="o">+</span> <span class="n">scs</span><span class="p">,</span>
                 <span class="p">[],</span>
@@ -764,6 +793,17 @@
             <span class="n">fuzzy_owners</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">owners</span><span class="p">)</span>
             <span class="n">fuzzy_owners</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">fuzzy_mappings</span>
+
+    <span class="nd">@lazyval</span>
+    <span class="k">def</span> <span class="nf">fuzzy_symbol_ownership_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fuzzify_symbol_ownership_map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbol_ownership_map</span><span class="p">)</span>
+
+    <span class="nd">@lazyval</span>
+    <span class="k">def</span> <span class="nf">fuzzy_symbol_ownership_maps_by_country_code</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">valmap</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fuzzify_symbol_ownership_map</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">symbol_ownership_maps_by_country_code</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="nd">@lazyval</span>
     <span class="k">def</span> <span class="nf">equity_supplementary_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -872,28 +912,29 @@
 <span class="sd">        SidsNotFound</span>
 <span class="sd">            When a requested sid is not found and default_none=False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sids</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sids</span><span class="p">)</span>
         <span class="n">hits</span><span class="p">,</span> <span class="n">missing</span><span class="p">,</span> <span class="n">failures</span> <span class="o">=</span> <span class="p">{},</span> <span class="nb">set</span><span class="p">(),</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="n">sids</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">asset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asset_cache</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">default_none</span> <span class="ow">and</span> <span class="n">asset</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-                    <span class="c"># Bail early if we&#39;ve already cached that we don&#39;t know</span>
-                    <span class="c"># about an asset.</span>
+                    <span class="c1"># Bail early if we&#39;ve already cached that we don&#39;t know</span>
+                    <span class="c1"># about an asset.</span>
                     <span class="k">raise</span> <span class="n">SidsNotFound</span><span class="p">(</span><span class="n">sids</span><span class="o">=</span><span class="p">[</span><span class="n">sid</span><span class="p">])</span>
                 <span class="n">hits</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">asset</span>
             <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
                 <span class="n">missing</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
 
-        <span class="c"># All requests were cache hits.  Return requested sids in order.</span>
+        <span class="c1"># All requests were cache hits.  Return requested sids in order.</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">missing</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">[</span><span class="n">hits</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="n">sids</span><span class="p">]</span>
 
         <span class="n">update_hits</span> <span class="o">=</span> <span class="n">hits</span><span class="o">.</span><span class="n">update</span>
 
-        <span class="c"># Look up cache misses by type.</span>
+        <span class="c1"># Look up cache misses by type.</span>
         <span class="n">type_to_assets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_by_type</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span>
 
-        <span class="c"># Handle failures</span>
+        <span class="c1"># Handle failures</span>
         <span class="n">failures</span> <span class="o">=</span> <span class="p">{</span><span class="n">failure</span><span class="p">:</span> <span class="bp">None</span> <span class="k">for</span> <span class="n">failure</span> <span class="ow">in</span> <span class="n">type_to_assets</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="p">())}</span>
         <span class="n">update_hits</span><span class="p">(</span><span class="n">failures</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_asset_cache</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">failures</span><span class="p">)</span>
@@ -901,17 +942,17 @@
         <span class="k">if</span> <span class="n">failures</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">default_none</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">SidsNotFound</span><span class="p">(</span><span class="n">sids</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">failures</span><span class="p">))</span>
 
-        <span class="c"># We don&#39;t update the asset cache here because it should already be</span>
-        <span class="c"># updated by `self.retrieve_equities`.</span>
-        <span class="n">update_hits</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">retrieve_equities</span><span class="p">(</span><span class="n">type_to_assets</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;equity&#39;</span><span class="p">,</span> <span class="p">())))</span>
+        <span class="c1"># We don&#39;t update the asset cache here because it should already be</span>
+        <span class="c1"># updated by `self.retrieve_equities`.</span>
+        <span class="n">update_hits</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">retrieve_equities</span><span class="p">(</span><span class="n">type_to_assets</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;equity&#39;</span><span class="p">,</span> <span class="p">())))</span>
         <span class="n">update_hits</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_futures_contracts</span><span class="p">(</span><span class="n">type_to_assets</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;future&#39;</span><span class="p">,</span> <span class="p">()))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_futures_contracts</span><span class="p">(</span><span class="n">type_to_assets</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;future&#39;</span><span class="p">,</span> <span class="p">()))</span>
         <span class="p">)</span>
 
-        <span class="c"># We shouldn&#39;t know about any other asset types.</span>
+        <span class="c1"># We shouldn&#39;t know about any other asset types.</span>
         <span class="k">if</span> <span class="n">type_to_assets</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
-                <span class="s">&quot;Found asset types: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">list</span><span class="p">(</span><span class="n">type_to_assets</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                <span class="s2">&quot;Found asset types: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">list</span><span class="p">(</span><span class="n">type_to_assets</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
             <span class="p">)</span>
 
         <span class="k">return</span> <span class="p">[</span><span class="n">hits</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="n">sids</span><span class="p">]</span></div>
@@ -999,22 +1040,33 @@
 <span class="sd">        row per group which gives us the most recently active symbol for all</span>
 <span class="sd">        of the sids.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">symbol_cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">equity_symbol_mappings</span><span class="o">.</span><span class="n">c</span>
-        <span class="n">inner</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">symbol_cols</span><span class="o">.</span><span class="n">sid</span><span class="p">,)</span> <span class="o">+</span>
-            <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
-                <span class="n">op</span><span class="o">.</span><span class="n">getitem</span><span class="p">(</span><span class="n">symbol_cols</span><span class="p">),</span>
-                <span class="n">symbol_columns</span><span class="p">,</span>
-            <span class="p">)),</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">equity_symbol_mappings</span><span class="o">.</span><span class="n">c</span>
+
+        <span class="c1"># These are the columns we actually want.</span>
+        <span class="n">data_cols</span> <span class="o">=</span> <span class="p">(</span><span class="n">cols</span><span class="o">.</span><span class="n">sid</span><span class="p">,)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">cols</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">symbol_columns</span><span class="p">)</span>
+
+        <span class="c1"># Also select the max of end_date so that all non-grouped fields take</span>
+        <span class="c1"># on the value associated with the max end_date. The SQLite docs say</span>
+        <span class="c1"># this:</span>
+        <span class="c1">#</span>
+        <span class="c1"># When the min() or max() aggregate functions are used in an aggregate</span>
+        <span class="c1"># query, all bare columns in the result set take values from the input</span>
+        <span class="c1"># row which also contains the minimum or maximum. Only the built-in</span>
+        <span class="c1"># min() and max() functions work this way.</span>
+        <span class="c1">#</span>
+        <span class="c1"># See https://www.sqlite.org/lang_select.html#resultset, for more info.</span>
+        <span class="n">to_select</span> <span class="o">=</span> <span class="n">data_cols</span> <span class="o">+</span> <span class="p">(</span><span class="n">sa</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">cols</span><span class="o">.</span><span class="n">end_date</span><span class="p">),)</span>
+
+        <span class="k">return</span> <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+            <span class="n">to_select</span><span class="p">,</span>
         <span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-            <span class="n">symbol_cols</span><span class="o">.</span><span class="n">sid</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">sid_group</span><span class="p">)),</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span>
-            <span class="n">symbol_cols</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">asc</span><span class="p">(),</span>
+            <span class="n">cols</span><span class="o">.</span><span class="n">sid</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">sid_group</span><span class="p">))</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span>
+            <span class="n">cols</span><span class="o">.</span><span class="n">sid</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">inner</span><span class="o">.</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="n">inner</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">sid</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_lookup_most_recent_symbols</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sids</span><span class="p">):</span>
-        <span class="n">symbols</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="p">{</span>
             <span class="n">row</span><span class="o">.</span><span class="n">sid</span><span class="p">:</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">symbol_columns</span><span class="p">}</span>
             <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">concat</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
@@ -1023,16 +1075,9 @@
                 <span class="k">for</span> <span class="n">sid_group</span> <span class="ow">in</span> <span class="n">partition_all</span><span class="p">(</span>
                     <span class="n">SQLITE_MAX_VARIABLE_NUMBER</span><span class="p">,</span>
                     <span class="n">sids</span>
-                <span class="p">),</span>
+                <span class="p">)</span>
             <span class="p">)</span>
         <span class="p">}</span>
-
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sids</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="n">EquitiesNotFound</span><span class="p">(</span>
-                <span class="n">sids</span><span class="o">=</span><span class="nb">set</span><span class="p">(</span><span class="n">sids</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">symbols</span><span class="p">),</span>
-                <span class="n">plural</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-            <span class="p">)</span>
-        <span class="k">return</span> <span class="n">symbols</span>
 
     <span class="k">def</span> <span class="nf">_retrieve_asset_dicts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sids</span><span class="p">,</span> <span class="n">asset_tbl</span><span class="p">,</span> <span class="n">querying_equities</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">sids</span><span class="p">:</span>
@@ -1040,13 +1085,21 @@
 
         <span class="k">if</span> <span class="n">querying_equities</span><span class="p">:</span>
             <span class="k">def</span> <span class="nf">mkdict</span><span class="p">(</span><span class="n">row</span><span class="p">,</span>
+                       <span class="n">exchanges</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">exchange_info</span><span class="p">,</span>
                        <span class="n">symbols</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_lookup_most_recent_symbols</span><span class="p">(</span><span class="n">sids</span><span class="p">)):</span>
-                <span class="k">return</span> <span class="n">merge</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">symbols</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s">&#39;sid&#39;</span><span class="p">]])</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+                <span class="n">d</span><span class="p">[</span><span class="s1">&#39;exchange_info&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">exchanges</span><span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;exchange&#39;</span><span class="p">)]</span>
+                <span class="c1"># we are not required to have a symbol for every asset, if</span>
+                <span class="c1"># we don&#39;t have any symbols we will just use the empty string</span>
+                <span class="k">return</span> <span class="n">merge</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">symbols</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;sid&#39;</span><span class="p">],</span> <span class="p">{}))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">mkdict</span> <span class="o">=</span> <span class="nb">dict</span>
+            <span class="k">def</span> <span class="nf">mkdict</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">exchanges</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">exchange_info</span><span class="p">):</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+                <span class="n">d</span><span class="p">[</span><span class="s1">&#39;exchange_info&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">exchanges</span><span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;exchange&#39;</span><span class="p">)]</span>
+                <span class="k">return</span> <span class="n">d</span>
 
         <span class="k">for</span> <span class="n">assets</span> <span class="ow">in</span> <span class="n">group_into_chunks</span><span class="p">(</span><span class="n">sids</span><span class="p">):</span>
-            <span class="c"># Load misses from the db.</span>
+            <span class="c1"># Load misses from the db.</span>
             <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_select_assets_by_sid</span><span class="p">(</span><span class="n">asset_tbl</span><span class="p">,</span> <span class="n">assets</span><span class="p">)</span>
 
             <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">query</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
@@ -1073,7 +1126,7 @@
 <span class="sd">        assets : dict[int -&gt; Asset]</span>
 <span class="sd">            Dict mapping requested sids to the retrieved assets.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c"># Fastpath for empty request.</span>
+        <span class="c1"># Fastpath for empty request.</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">sids</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">{}</span>
 
@@ -1089,14 +1142,14 @@
 
         <span class="n">rows</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_asset_dicts</span><span class="p">(</span><span class="n">sids</span><span class="p">,</span> <span class="n">asset_tbl</span><span class="p">,</span> <span class="n">querying_equities</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
-            <span class="n">sid</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s">&#39;sid&#39;</span><span class="p">]</span>
+            <span class="n">sid</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;sid&#39;</span><span class="p">]</span>
             <span class="n">asset</span> <span class="o">=</span> <span class="n">asset_type</span><span class="p">(</span><span class="o">**</span><span class="n">filter_kwargs</span><span class="p">(</span><span class="n">row</span><span class="p">))</span>
             <span class="n">hits</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">asset</span>
 
-        <span class="c"># If we get here, it means something in our code thought that a</span>
-        <span class="c"># particular sid was an equity/future and called this function with a</span>
-        <span class="c"># concrete type, but we couldn&#39;t actually resolve the asset.  This is</span>
-        <span class="c"># an error in our code, not a user-input error.</span>
+        <span class="c1"># If we get here, it means something in our code thought that a</span>
+        <span class="c1"># particular sid was an equity/future and called this function with a</span>
+        <span class="c1"># concrete type, but we couldn&#39;t actually resolve the asset.  This is</span>
+        <span class="c1"># an error in our code, not a user-input error.</span>
         <span class="n">misses</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">sids</span><span class="p">)</span> <span class="o">-</span> <span class="n">viewkeys</span><span class="p">(</span><span class="n">hits</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">misses</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">querying_equities</span><span class="p">:</span>
@@ -1105,109 +1158,224 @@
                 <span class="k">raise</span> <span class="n">FutureContractsNotFound</span><span class="p">(</span><span class="n">sids</span><span class="o">=</span><span class="n">misses</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">hits</span>
 
-    <span class="k">def</span> <span class="nf">_lookup_symbol_strict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">):</span>
-        <span class="c"># split the symbol into the components, if there are no</span>
-        <span class="c"># company/share class parts then share_class_symbol will be empty</span>
+    <span class="k">def</span> <span class="nf">_lookup_symbol_strict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                              <span class="n">ownership_map</span><span class="p">,</span>
+                              <span class="n">multi_country</span><span class="p">,</span>
+                              <span class="n">symbol</span><span class="p">,</span>
+                              <span class="n">as_of_date</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resolve a symbol to an asset object without fuzzy matching.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ownership_map : dict[(str, str), list[OwnershipPeriod]]</span>
+<span class="sd">            The mapping from split symbols to ownership periods.</span>
+<span class="sd">        multi_country : bool</span>
+<span class="sd">            Does this mapping span multiple countries?</span>
+<span class="sd">        symbol : str</span>
+<span class="sd">            The symbol to look up.</span>
+<span class="sd">        as_of_date : datetime or None</span>
+<span class="sd">            If multiple assets have held this sid, which day should the</span>
+<span class="sd">            resolution be checked against? If this value is None and multiple</span>
+<span class="sd">            sids have held the ticker, then a MultipleSymbolsFound error will</span>
+<span class="sd">            be raised.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        asset : Asset</span>
+<span class="sd">            The asset that held the given symbol.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        SymbolNotFound</span>
+<span class="sd">            Raised when the symbol or symbol as_of_date pair do not map to</span>
+<span class="sd">            any assets.</span>
+<span class="sd">        MultipleSymbolsFound</span>
+<span class="sd">            Raised when multiple assets held the symbol. This happens if</span>
+<span class="sd">            multiple assets held the symbol at disjoint times and</span>
+<span class="sd">            ``as_of_date`` is None, or if multiple assets held the symbol at</span>
+<span class="sd">            the same time and``multi_country`` is True.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The resolution algorithm is as follows:</span>
+
+<span class="sd">        - Split the symbol into the company and share class component.</span>
+<span class="sd">        - Do a dictionary lookup of the</span>
+<span class="sd">          ``(company_symbol, share_class_symbol)`` in the provided ownership</span>
+<span class="sd">          map.</span>
+<span class="sd">        - If there is no entry in the dictionary, we don&#39;t know about this</span>
+<span class="sd">          symbol so raise a ``SymbolNotFound`` error.</span>
+<span class="sd">        - If ``as_of_date`` is None:</span>
+<span class="sd">          - If more there is more than one owner, raise</span>
+<span class="sd">            ``MultipleSymbolsFound``</span>
+<span class="sd">          - Otherwise, because the list mapped to a symbol cannot be empty,</span>
+<span class="sd">            return the single asset.</span>
+<span class="sd">        - Iterate through all of the owners:</span>
+<span class="sd">          - If the ``as_of_date`` is between the start and end of the ownership</span>
+<span class="sd">            period:</span>
+<span class="sd">            - If multi_country is False, return the found asset.</span>
+<span class="sd">            - Otherwise, put the asset in a list.</span>
+<span class="sd">        - At the end of the loop, if there are no candidate assets, raise a</span>
+<span class="sd">          ``SymbolNotFound``.</span>
+<span class="sd">        - If there is exactly one candidate, return it.</span>
+<span class="sd">        - Othewise, raise ``MultipleSymbolsFound`` because the ticker is not</span>
+<span class="sd">          unique across countries.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># split the symbol into the components, if there are no</span>
+        <span class="c1"># company/share class parts then share_class_symbol will be empty</span>
         <span class="n">company_symbol</span><span class="p">,</span> <span class="n">share_class_symbol</span> <span class="o">=</span> <span class="n">split_delimited_symbol</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">owners</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbol_ownership_map</span><span class="p">[</span>
-                <span class="n">company_symbol</span><span class="p">,</span>
-                <span class="n">share_class_symbol</span><span class="p">,</span>
-            <span class="p">]</span>
-            <span class="k">assert</span> <span class="n">owners</span><span class="p">,</span> <span class="s">&#39;empty owners list for </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">symbol</span>
+            <span class="n">owners</span> <span class="o">=</span> <span class="n">ownership_map</span><span class="p">[</span><span class="n">company_symbol</span><span class="p">,</span> <span class="n">share_class_symbol</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">owners</span><span class="p">,</span> <span class="s1">&#39;empty owners list for </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">symbol</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="c"># no equity has ever held this symbol</span>
+            <span class="c1"># no equity has ever held this symbol</span>
             <span class="k">raise</span> <span class="n">SymbolNotFound</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">as_of_date</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">owners</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="c"># more than one equity has held this ticker, this is ambigious</span>
-                <span class="c"># without the date</span>
-                <span class="k">raise</span> <span class="n">MultipleSymbolsFound</span><span class="p">(</span>
-                    <span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">,</span>
-                    <span class="n">options</span><span class="o">=</span><span class="nb">set</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
-                        <span class="n">compose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">,</span> <span class="n">attrgetter</span><span class="p">(</span><span class="s">&#39;sid&#39;</span><span class="p">)),</span>
-                        <span class="n">owners</span><span class="p">,</span>
-                    <span class="p">)),</span>
-                <span class="p">)</span>
+            <span class="c1"># exactly one equity has ever held this symbol, we may resolve</span>
+            <span class="c1"># without the date</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">owners</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="n">owners</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sid</span><span class="p">)</span>
 
-            <span class="c"># exactly one equity has ever held this symbol, we may resolve</span>
-            <span class="c"># without the date</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="n">owners</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sid</span><span class="p">)</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="n">owner</span><span class="o">.</span><span class="n">sid</span><span class="p">)</span> <span class="k">for</span> <span class="n">owner</span> <span class="ow">in</span> <span class="n">owners</span><span class="p">}</span>
 
+            <span class="k">if</span> <span class="n">multi_country</span><span class="p">:</span>
+                <span class="n">country_codes</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="n">attrgetter</span><span class="p">(</span><span class="s1">&#39;country_code&#39;</span><span class="p">),</span> <span class="n">options</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">country_codes</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">SameSymbolUsedAcrossCountries</span><span class="p">(</span>
+                        <span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">,</span>
+                        <span class="n">options</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">country_codes</span><span class="p">,</span> <span class="n">options</span><span class="p">))</span>
+                    <span class="p">)</span>
+
+            <span class="c1"># more than one equity has held this ticker, this</span>
+            <span class="c1"># is ambiguous without the date</span>
+            <span class="k">raise</span> <span class="n">MultipleSymbolsFound</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">)</span>
+
+        <span class="n">options</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">country_codes</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">sid</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">owners</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">start</span> <span class="o">&lt;=</span> <span class="n">as_of_date</span> <span class="o">&lt;</span> <span class="n">end</span><span class="p">:</span>
-                <span class="c"># find the equity that owned it on the given asof date</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
+                <span class="c1"># find the equity that owned it on the given asof date</span>
+                <span class="n">asset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
 
-        <span class="c"># no equity held the ticker on the given asof date</span>
-        <span class="k">raise</span> <span class="n">SymbolNotFound</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
+                <span class="c1"># if this asset owned the symbol on this asof date and we are</span>
+                <span class="c1"># only searching one country, return that asset</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">multi_country</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">asset</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">options</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">asset</span><span class="p">)</span>
+                    <span class="n">country_codes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">asset</span><span class="o">.</span><span class="n">country_code</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_lookup_symbol_fuzzy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">options</span><span class="p">:</span>
+            <span class="c1"># no equity held the ticker on the given asof date</span>
+            <span class="k">raise</span> <span class="n">SymbolNotFound</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
+
+        <span class="c1"># if there is one valid option given the asof date, return that option</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">options</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">options</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># if there&#39;s more than one option given the asof date, a country code</span>
+        <span class="c1"># must be passed to resolve the symbol to an asset</span>
+        <span class="k">raise</span> <span class="n">SameSymbolUsedAcrossCountries</span><span class="p">(</span>
+            <span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">,</span>
+            <span class="n">options</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">country_codes</span><span class="p">,</span> <span class="n">options</span><span class="p">))</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_lookup_symbol_fuzzy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                             <span class="n">ownership_map</span><span class="p">,</span>
+                             <span class="n">multi_country</span><span class="p">,</span>
+                             <span class="n">symbol</span><span class="p">,</span>
+                             <span class="n">as_of_date</span><span class="p">):</span>
         <span class="n">symbol</span> <span class="o">=</span> <span class="n">symbol</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
         <span class="n">company_symbol</span><span class="p">,</span> <span class="n">share_class_symbol</span> <span class="o">=</span> <span class="n">split_delimited_symbol</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">owners</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fuzzy_symbol_ownership_map</span><span class="p">[</span>
-                <span class="n">company_symbol</span> <span class="o">+</span> <span class="n">share_class_symbol</span>
-            <span class="p">]</span>
-            <span class="k">assert</span> <span class="n">owners</span><span class="p">,</span> <span class="s">&#39;empty owners list for </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">symbol</span>
+            <span class="n">owners</span> <span class="o">=</span> <span class="n">ownership_map</span><span class="p">[</span><span class="n">company_symbol</span> <span class="o">+</span> <span class="n">share_class_symbol</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">owners</span><span class="p">,</span> <span class="s1">&#39;empty owners list for </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">symbol</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="c"># no equity has ever held a symbol matching the fuzzy symbol</span>
+            <span class="c1"># no equity has ever held a symbol matching the fuzzy symbol</span>
             <span class="k">raise</span> <span class="n">SymbolNotFound</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">as_of_date</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">owners</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="c"># only one valid match</span>
+                <span class="c1"># only one valid match</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="n">owners</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sid</span><span class="p">)</span>
 
             <span class="n">options</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">sid</span><span class="p">,</span> <span class="n">sym</span> <span class="ow">in</span> <span class="n">owners</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">sym</span> <span class="o">==</span> <span class="n">symbol</span><span class="p">:</span>
-                    <span class="c"># there are multiple options, look for exact matches</span>
+                    <span class="c1"># there are multiple options, look for exact matches</span>
                     <span class="n">options</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="n">sid</span><span class="p">))</span>
 
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">options</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="c"># there was only one exact match</span>
+                <span class="c1"># there was only one exact match</span>
                 <span class="k">return</span> <span class="n">options</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-            <span class="c"># there are more than one exact match for this fuzzy symbol</span>
-            <span class="k">raise</span> <span class="n">MultipleSymbolsFound</span><span class="p">(</span>
+            <span class="c1"># there is more than one exact match for this fuzzy symbol</span>
+            <span class="k">raise</span> <span class="n">MultipleSymbolsFoundForFuzzySymbol</span><span class="p">(</span>
                 <span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">,</span>
-                <span class="n">options</span><span class="o">=</span><span class="nb">set</span><span class="p">(</span><span class="n">options</span><span class="p">),</span>
+                <span class="n">options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">retrieve_all</span><span class="p">(</span><span class="n">owner</span><span class="o">.</span><span class="n">sid</span> <span class="k">for</span> <span class="n">owner</span> <span class="ow">in</span> <span class="n">owners</span><span class="p">),</span>
             <span class="p">)</span>
 
         <span class="n">options</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">sid</span><span class="p">,</span> <span class="n">sym</span> <span class="ow">in</span> <span class="n">owners</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">start</span> <span class="o">&lt;=</span> <span class="n">as_of_date</span> <span class="o">&lt;</span> <span class="n">end</span><span class="p">:</span>
-                <span class="c"># see which fuzzy symbols were owned on the asof date.</span>
+                <span class="c1"># see which fuzzy symbols were owned on the asof date.</span>
                 <span class="n">options</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">sym</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">options</span><span class="p">:</span>
-            <span class="c"># no equity owned the fuzzy symbol on the date requested</span>
+            <span class="c1"># no equity owned the fuzzy symbol on the date requested</span>
             <span class="k">raise</span> <span class="n">SymbolNotFound</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
 
         <span class="n">sid_keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
-        <span class="c"># If there was only one owner, or there is a fuzzy and non-fuzzy which</span>
-        <span class="c"># map to the same sid, return it.</span>
+        <span class="c1"># If there was only one owner, or there is a fuzzy and non-fuzzy which</span>
+        <span class="c1"># map to the same sid, return it.</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">options</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="n">sid_keys</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
+        <span class="n">exact_options</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">sid</span><span class="p">,</span> <span class="n">sym</span> <span class="ow">in</span> <span class="n">options</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="c"># Possible to have a scenario where multiple fuzzy matches have the</span>
-            <span class="c"># same date. Want to find the one where symbol and share class</span>
-            <span class="c"># match.</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">company_symbol</span><span class="p">,</span> <span class="n">share_class_symbol</span><span class="p">)</span> <span class="o">==</span> \
-                    <span class="n">split_delimited_symbol</span><span class="p">(</span><span class="n">sym</span><span class="p">):</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
+            <span class="c1"># Possible to have a scenario where multiple fuzzy matches have the</span>
+            <span class="c1"># same date. Want to find the one where symbol and share class</span>
+            <span class="c1"># match.</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">company_symbol</span><span class="p">,</span> <span class="n">share_class_symbol</span><span class="p">)</span> <span class="o">==</span>
+                    <span class="n">split_delimited_symbol</span><span class="p">(</span><span class="n">sym</span><span class="p">)):</span>
+                <span class="n">asset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">multi_country</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">asset</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">exact_options</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">asset</span><span class="p">)</span>
 
-        <span class="c"># multiple equities held tickers matching the fuzzy ticker but</span>
-        <span class="c"># there are no exact matches</span>
-        <span class="k">raise</span> <span class="n">MultipleSymbolsFound</span><span class="p">(</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">exact_options</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">exact_options</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># multiple equities held tickers matching the fuzzy ticker but</span>
+        <span class="c1"># there are no exact matches</span>
+        <span class="k">raise</span> <span class="n">MultipleSymbolsFoundForFuzzySymbol</span><span class="p">(</span>
             <span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">,</span>
-            <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sid_keys</span><span class="p">],</span>
+            <span class="n">options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">retrieve_all</span><span class="p">(</span><span class="n">owner</span><span class="o">.</span><span class="n">sid</span> <span class="k">for</span> <span class="n">owner</span> <span class="ow">in</span> <span class="n">owners</span><span class="p">),</span>
         <span class="p">)</span>
 
-<div class="viewcode-block" id="AssetFinder.lookup_symbol"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.lookup_symbol">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_symbol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">,</span> <span class="n">fuzzy</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_choose_fuzzy_symbol_ownership_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">country_code</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">country_code</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fuzzy_symbol_ownership_map</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fuzzy_symbol_ownership_maps_by_country_code</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="n">country_code</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_choose_symbol_ownership_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">country_code</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">country_code</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbol_ownership_map</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbol_ownership_maps_by_country_code</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">country_code</span><span class="p">)</span>
+
+<div class="viewcode-block" id="AssetFinder.lookup_symbol"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.lookup_symbol">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_symbol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                      <span class="n">symbol</span><span class="p">,</span>
+                      <span class="n">as_of_date</span><span class="p">,</span>
+                      <span class="n">fuzzy</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                      <span class="n">country_code</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Lookup an equity by symbol.</span>
 
 <span class="sd">        Parameters</span>
@@ -1224,6 +1392,10 @@
 <span class="sd">            shareclasses. For example, some people may represent the ``A``</span>
 <span class="sd">            shareclass of ``BRK`` as ``BRK.A``, where others could write</span>
 <span class="sd">            ``BRK_A``.</span>
+<span class="sd">        country_code : str or None, optional</span>
+<span class="sd">            The country to limit searches to. If not provided, the search will</span>
+<span class="sd">            span all countries which increases the likelihood of an ambiguous</span>
+<span class="sd">            lookup.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1239,17 +1411,34 @@
 <span class="sd">            Raised when no ``as_of_date`` is given and more than one equity</span>
 <span class="sd">            has held ``symbol``. This is also raised when ``fuzzy=True`` and</span>
 <span class="sd">            there are multiple candidates for the given ``symbol`` on the</span>
-<span class="sd">            ``as_of_date``.</span>
+<span class="sd">            ``as_of_date``. Also raised when no ``country_code`` is given and</span>
+<span class="sd">            the symbol is ambiguous across multiple countries.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">symbol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;Cannot lookup asset for symbol of None for &quot;</span>
-                            <span class="s">&quot;as of date </span><span class="si">%s</span><span class="s">.&quot;</span> <span class="o">%</span> <span class="n">as_of_date</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Cannot lookup asset for symbol of None for &quot;</span>
+                            <span class="s2">&quot;as of date </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="n">as_of_date</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">fuzzy</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup_symbol_fuzzy</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup_symbol_strict</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">)</span></div>
+            <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup_symbol_fuzzy</span>
+            <span class="n">mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_choose_fuzzy_symbol_ownership_map</span><span class="p">(</span><span class="n">country_code</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup_symbol_strict</span>
+            <span class="n">mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_choose_symbol_ownership_map</span><span class="p">(</span><span class="n">country_code</span><span class="p">)</span>
 
-<div class="viewcode-block" id="AssetFinder.lookup_symbols"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.lookup_symbols">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_symbols</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbols</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">,</span> <span class="n">fuzzy</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">mapping</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SymbolNotFound</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">f</span><span class="p">(</span>
+            <span class="n">mapping</span><span class="p">,</span>
+            <span class="n">country_code</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">,</span>
+            <span class="n">symbol</span><span class="p">,</span>
+            <span class="n">as_of_date</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="AssetFinder.lookup_symbols"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.lookup_symbols">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_symbols</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                       <span class="n">symbols</span><span class="p">,</span>
+                       <span class="n">as_of_date</span><span class="p">,</span>
+                       <span class="n">fuzzy</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                       <span class="n">country_code</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Lookup a list of equities by symbol.</span>
 
@@ -1267,11 +1456,29 @@
 <span class="sd">            Forwarded to ``lookup_symbol``.</span>
 <span class="sd">        fuzzy : bool, optional</span>
 <span class="sd">            Forwarded to ``lookup_symbol``.</span>
+<span class="sd">        country_code : str or None, optional</span>
+<span class="sd">            The country to limit searches to. If not provided, the search will</span>
+<span class="sd">            span all countries which increases the likelihood of an ambiguous</span>
+<span class="sd">            lookup.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        equities : list[Equity]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">symbols</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+
+        <span class="n">multi_country</span> <span class="o">=</span> <span class="n">country_code</span> <span class="ow">is</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="n">fuzzy</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup_symbol_fuzzy</span>
+            <span class="n">mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_choose_fuzzy_symbol_ownership_map</span><span class="p">(</span><span class="n">country_code</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup_symbol_strict</span>
+            <span class="n">mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_choose_symbol_ownership_map</span><span class="p">(</span><span class="n">country_code</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">mapping</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SymbolNotFound</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
         <span class="n">memo</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">append_output</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">append</span>
@@ -1279,7 +1486,12 @@
             <span class="k">if</span> <span class="n">sym</span> <span class="ow">in</span> <span class="n">memo</span><span class="p">:</span>
                 <span class="n">append_output</span><span class="p">(</span><span class="n">memo</span><span class="p">[</span><span class="n">sym</span><span class="p">])</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">equity</span> <span class="o">=</span> <span class="n">memo</span><span class="p">[</span><span class="n">sym</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lookup_symbol</span><span class="p">(</span><span class="n">sym</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">,</span> <span class="n">fuzzy</span><span class="p">)</span>
+                <span class="n">equity</span> <span class="o">=</span> <span class="n">memo</span><span class="p">[</span><span class="n">sym</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span>
+                    <span class="n">mapping</span><span class="p">,</span>
+                    <span class="n">multi_country</span><span class="p">,</span>
+                    <span class="n">sym</span><span class="p">,</span>
+                    <span class="n">as_of_date</span><span class="p">,</span>
+                <span class="p">)</span>
                 <span class="n">append_output</span><span class="p">(</span><span class="n">equity</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">out</span></div>
 
@@ -1306,10 +1518,10 @@
         <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_select_asset_by_symbol</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">futures_contracts</span><span class="p">,</span> <span class="n">symbol</span><span class="p">)</span>\
                    <span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
 
-        <span class="c"># If no data found, raise an exception</span>
+        <span class="c1"># If no data found, raise an exception</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">data</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">SymbolNotFound</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s">&#39;sid&#39;</span><span class="p">])</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;sid&#39;</span><span class="p">])</span></div>
 
     <span class="k">def</span> <span class="nf">lookup_by_supplementary_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
@@ -1317,41 +1529,36 @@
                 <span class="n">field_name</span><span class="p">,</span>
                 <span class="n">value</span><span class="p">,</span>
             <span class="p">]</span>
-            <span class="k">assert</span> <span class="n">owners</span><span class="p">,</span> <span class="s">&#39;empty owners list for </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">field_name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">owners</span><span class="p">,</span> <span class="s1">&#39;empty owners list for </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">field_name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="c"># no equity has ever held this value</span>
+            <span class="c1"># no equity has ever held this value</span>
             <span class="k">raise</span> <span class="n">ValueNotFoundForField</span><span class="p">(</span><span class="n">field</span><span class="o">=</span><span class="n">field_name</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">as_of_date</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">owners</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="c"># more than one equity has held this value, this is ambigious</span>
-                <span class="c"># without the date</span>
+                <span class="c1"># more than one equity has held this value, this is ambigious</span>
+                <span class="c1"># without the date</span>
                 <span class="k">raise</span> <span class="n">MultipleValuesFoundForField</span><span class="p">(</span>
                     <span class="n">field</span><span class="o">=</span><span class="n">field_name</span><span class="p">,</span>
                     <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span>
                     <span class="n">options</span><span class="o">=</span><span class="nb">set</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
-                        <span class="n">compose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">,</span> <span class="n">attrgetter</span><span class="p">(</span><span class="s">&#39;sid&#39;</span><span class="p">)),</span>
+                        <span class="n">compose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">,</span> <span class="n">attrgetter</span><span class="p">(</span><span class="s1">&#39;sid&#39;</span><span class="p">)),</span>
                         <span class="n">owners</span><span class="p">,</span>
                     <span class="p">)),</span>
                 <span class="p">)</span>
-            <span class="c"># exactly one equity has ever held this value, we may resolve</span>
-            <span class="c"># without the date</span>
+            <span class="c1"># exactly one equity has ever held this value, we may resolve</span>
+            <span class="c1"># without the date</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="n">owners</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sid</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">sid</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">owners</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">start</span> <span class="o">&lt;=</span> <span class="n">as_of_date</span> <span class="o">&lt;</span> <span class="n">end</span><span class="p">:</span>
-                <span class="c"># find the equity that owned it on the given asof date</span>
+                <span class="c1"># find the equity that owned it on the given asof date</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
 
-        <span class="c"># no equity held the value on the given asof date</span>
+        <span class="c1"># no equity held the value on the given asof date</span>
         <span class="k">raise</span> <span class="n">ValueNotFoundForField</span><span class="p">(</span><span class="n">field</span><span class="o">=</span><span class="n">field_name</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">)</span>
 
-<div class="viewcode-block" id="AssetFinder.get_supplementary_field"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.get_supplementary_field">[docs]</a>    <span class="k">def</span> <span class="nf">get_supplementary_field</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">sid</span><span class="p">,</span>
-        <span class="n">field_name</span><span class="p">,</span>
-        <span class="n">as_of_date</span><span class="p">,</span>
-    <span class="p">):</span>
+<div class="viewcode-block" id="AssetFinder.get_supplementary_field"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.get_supplementary_field">[docs]</a>    <span class="k">def</span> <span class="nf">get_supplementary_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">,</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Get the value of a supplementary field for an asset.</span>
 
 <span class="sd">        Parameters</span>
@@ -1380,28 +1587,28 @@
                 <span class="n">field_name</span><span class="p">,</span>
                 <span class="n">sid</span><span class="p">,</span>
             <span class="p">]</span>
-            <span class="k">assert</span> <span class="n">periods</span><span class="p">,</span> <span class="s">&#39;empty periods list for </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">field_name</span><span class="p">,</span> <span class="n">sid</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">periods</span><span class="p">,</span> <span class="s1">&#39;empty periods list for </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">field_name</span><span class="p">,</span> <span class="n">sid</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">NoValueForSid</span><span class="p">(</span><span class="n">field</span><span class="o">=</span><span class="n">field_name</span><span class="p">,</span> <span class="n">sid</span><span class="o">=</span><span class="n">sid</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">as_of_date</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">periods</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="c"># This equity has held more than one value, this is ambigious</span>
-                <span class="c"># without the date</span>
+                <span class="c1"># This equity has held more than one value, this is ambigious</span>
+                <span class="c1"># without the date</span>
                 <span class="k">raise</span> <span class="n">MultipleValuesFoundForSid</span><span class="p">(</span>
                     <span class="n">field</span><span class="o">=</span><span class="n">field_name</span><span class="p">,</span>
                     <span class="n">sid</span><span class="o">=</span><span class="n">sid</span><span class="p">,</span>
                     <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="n">p</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">periods</span><span class="p">},</span>
                 <span class="p">)</span>
-            <span class="c"># this equity has only ever held this value, we may resolve</span>
-            <span class="c"># without the date</span>
+            <span class="c1"># this equity has only ever held this value, we may resolve</span>
+            <span class="c1"># without the date</span>
             <span class="k">return</span> <span class="n">periods</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
 
         <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">periods</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">start</span> <span class="o">&lt;=</span> <span class="n">as_of_date</span> <span class="o">&lt;</span> <span class="n">end</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">value</span>
 
-        <span class="c"># Could not find a value for this sid on the as_of_date.</span>
+        <span class="c1"># Could not find a value for this sid on the as_of_date.</span>
         <span class="k">raise</span> <span class="n">NoValueForSid</span><span class="p">(</span><span class="n">field</span><span class="o">=</span><span class="n">field_name</span><span class="p">,</span> <span class="n">sid</span><span class="o">=</span><span class="n">sid</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_get_contract_sids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root_symbol</span><span class="p">):</span>
@@ -1445,8 +1652,8 @@
                                  <span class="n">adjustment</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">adjustment</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ADJUSTMENT_STYLES</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s">&#39;Invalid adjustment style {!r}. Allowed adjustment styles are &#39;</span>
-                <span class="s">&#39;{}.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">adjustment</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">ADJUSTMENT_STYLES</span><span class="p">))</span>
+                <span class="s1">&#39;Invalid adjustment style {!r}. Allowed adjustment styles are &#39;</span>
+                <span class="s1">&#39;{}.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">adjustment</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">ADJUSTMENT_STYLES</span><span class="p">))</span>
             <span class="p">)</span>
 
         <span class="n">oc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ordered_contracts</span><span class="p">(</span><span class="n">root_symbol</span><span class="p">)</span>
@@ -1457,10 +1664,10 @@
                                             <span class="bp">None</span><span class="p">)</span>
         <span class="n">mul_sid</span> <span class="o">=</span> <span class="n">_encode_continuous_future_sid</span><span class="p">(</span><span class="n">root_symbol</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span>
                                                 <span class="n">roll_style</span><span class="p">,</span>
-                                                <span class="s">&#39;div&#39;</span><span class="p">)</span>
+                                                <span class="s1">&#39;div&#39;</span><span class="p">)</span>
         <span class="n">add_sid</span> <span class="o">=</span> <span class="n">_encode_continuous_future_sid</span><span class="p">(</span><span class="n">root_symbol</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span>
                                                 <span class="n">roll_style</span><span class="p">,</span>
-                                                <span class="s">&#39;add&#39;</span><span class="p">)</span>
+                                                <span class="s1">&#39;add&#39;</span><span class="p">)</span>
 
         <span class="n">cf_template</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
             <span class="n">ContinuousFuture</span><span class="p">,</span>
@@ -1469,23 +1676,23 @@
             <span class="n">roll_style</span><span class="o">=</span><span class="n">roll_style</span><span class="p">,</span>
             <span class="n">start_date</span><span class="o">=</span><span class="n">oc</span><span class="o">.</span><span class="n">start_date</span><span class="p">,</span>
             <span class="n">end_date</span><span class="o">=</span><span class="n">oc</span><span class="o">.</span><span class="n">end_date</span><span class="p">,</span>
-            <span class="n">exchange</span><span class="o">=</span><span class="n">exchange</span><span class="p">,</span>
+            <span class="n">exchange_info</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">exchange_info</span><span class="p">[</span><span class="n">exchange</span><span class="p">],</span>
         <span class="p">)</span>
 
         <span class="n">cf</span> <span class="o">=</span> <span class="n">cf_template</span><span class="p">(</span><span class="n">sid</span><span class="o">=</span><span class="n">sid</span><span class="p">)</span>
-        <span class="n">mul_cf</span> <span class="o">=</span> <span class="n">cf_template</span><span class="p">(</span><span class="n">sid</span><span class="o">=</span><span class="n">mul_sid</span><span class="p">,</span> <span class="n">adjustment</span><span class="o">=</span><span class="s">&#39;mul&#39;</span><span class="p">)</span>
-        <span class="n">add_cf</span> <span class="o">=</span> <span class="n">cf_template</span><span class="p">(</span><span class="n">sid</span><span class="o">=</span><span class="n">add_sid</span><span class="p">,</span> <span class="n">adjustment</span><span class="o">=</span><span class="s">&#39;add&#39;</span><span class="p">)</span>
+        <span class="n">mul_cf</span> <span class="o">=</span> <span class="n">cf_template</span><span class="p">(</span><span class="n">sid</span><span class="o">=</span><span class="n">mul_sid</span><span class="p">,</span> <span class="n">adjustment</span><span class="o">=</span><span class="s1">&#39;mul&#39;</span><span class="p">)</span>
+        <span class="n">add_cf</span> <span class="o">=</span> <span class="n">cf_template</span><span class="p">(</span><span class="n">sid</span><span class="o">=</span><span class="n">add_sid</span><span class="p">,</span> <span class="n">adjustment</span><span class="o">=</span><span class="s1">&#39;add&#39;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_asset_cache</span><span class="p">[</span><span class="n">cf</span><span class="o">.</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">cf</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_asset_cache</span><span class="p">[</span><span class="n">mul_cf</span><span class="o">.</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">mul_cf</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_asset_cache</span><span class="p">[</span><span class="n">add_cf</span><span class="o">.</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">add_cf</span>
 
-        <span class="k">return</span> <span class="p">{</span><span class="bp">None</span><span class="p">:</span> <span class="n">cf</span><span class="p">,</span> <span class="s">&#39;mul&#39;</span><span class="p">:</span> <span class="n">mul_cf</span><span class="p">,</span> <span class="s">&#39;add&#39;</span><span class="p">:</span> <span class="n">add_cf</span><span class="p">}[</span><span class="n">adjustment</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">{</span><span class="bp">None</span><span class="p">:</span> <span class="n">cf</span><span class="p">,</span> <span class="s1">&#39;mul&#39;</span><span class="p">:</span> <span class="n">mul_cf</span><span class="p">,</span> <span class="s1">&#39;add&#39;</span><span class="p">:</span> <span class="n">add_cf</span><span class="p">}[</span><span class="n">adjustment</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">_make_sids</span><span class="p">(</span><span class="n">tblattr</span><span class="p">):</span>
         <span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
             <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
-                <span class="n">itemgetter</span><span class="p">(</span><span class="s">&#39;sid&#39;</span><span class="p">),</span>
+                <span class="n">itemgetter</span><span class="p">(</span><span class="s1">&#39;sid&#39;</span><span class="p">),</span>
                 <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">((</span>
                     <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tblattr</span><span class="p">)</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">sid</span><span class="p">,</span>
                 <span class="p">))</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">(),</span>
@@ -1494,40 +1701,23 @@
         <span class="k">return</span> <span class="n">_</span>
 
     <span class="n">sids</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span>
-        <span class="n">_make_sids</span><span class="p">(</span><span class="s">&#39;asset_router&#39;</span><span class="p">),</span>
-        <span class="n">doc</span><span class="o">=</span><span class="s">&#39;All the sids in the asset finder.&#39;</span><span class="p">,</span>
+        <span class="n">_make_sids</span><span class="p">(</span><span class="s1">&#39;asset_router&#39;</span><span class="p">),</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;All the sids in the asset finder.&#39;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">equities_sids</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span>
-        <span class="n">_make_sids</span><span class="p">(</span><span class="s">&#39;equities&#39;</span><span class="p">),</span>
-        <span class="n">doc</span><span class="o">=</span><span class="s">&#39;All of the sids for equities in the asset finder.&#39;</span><span class="p">,</span>
+        <span class="n">_make_sids</span><span class="p">(</span><span class="s1">&#39;equities&#39;</span><span class="p">),</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;All of the sids for equities in the asset finder.&#39;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">futures_sids</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span>
-        <span class="n">_make_sids</span><span class="p">(</span><span class="s">&#39;futures_contracts&#39;</span><span class="p">),</span>
-        <span class="n">doc</span><span class="o">=</span><span class="s">&#39;All of the sids for futures consracts in the asset finder.&#39;</span><span class="p">,</span>
+        <span class="n">_make_sids</span><span class="p">(</span><span class="s1">&#39;futures_contracts&#39;</span><span class="p">),</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;All of the sids for futures consracts in the asset finder.&#39;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">del</span> <span class="n">_make_sids</span>
 
-    <span class="nd">@lazyval</span>
-    <span class="k">def</span> <span class="nf">_symbol_lookups</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        An iterable of symbol lookup functions to use with ``lookup_generic``</span>
-
-<span class="sd">        Attempts equities lookup, then futures.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">lookup_symbol</span><span class="p">,</span>
-            <span class="c"># lookup_future_symbol method does not use as_of date, since</span>
-            <span class="c"># symbols are unique.</span>
-            <span class="c">#</span>
-            <span class="c"># Wrap the function in a lambda so that both methods share a</span>
-            <span class="c"># signature, so that when the functions are iterated over</span>
-            <span class="c"># the consumer can use the same arguments with both methods.</span>
-            <span class="k">lambda</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">_</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">lookup_future_symbol</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span>
-        <span class="p">)</span>
-
     <span class="k">def</span> <span class="nf">_lookup_generic_scalar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                               <span class="n">asset_convertible</span><span class="p">,</span>
+                               <span class="n">obj</span><span class="p">,</span>
                                <span class="n">as_of_date</span><span class="p">,</span>
+                               <span class="n">country_code</span><span class="p">,</span>
                                <span class="n">matches</span><span class="p">,</span>
                                <span class="n">missing</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -1536,169 +1726,138 @@
 <span class="sd">        On success, append to matches.</span>
 <span class="sd">        On failure, append to missing.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">asset_convertible</span><span class="p">,</span> <span class="n">Asset</span><span class="p">):</span>
-            <span class="n">matches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">asset_convertible</span><span class="p">)</span>
-
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">asset_convertible</span><span class="p">,</span> <span class="n">Integral</span><span class="p">):</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">asset_convertible</span><span class="p">))</span>
-            <span class="k">except</span> <span class="n">SidsNotFound</span><span class="p">:</span>
-                <span class="n">missing</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">asset_convertible</span><span class="p">)</span>
-                <span class="k">return</span> <span class="bp">None</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup_generic_scalar_helper</span><span class="p">(</span>
+            <span class="n">obj</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">,</span> <span class="n">country_code</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">matches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">asset_convertible</span><span class="p">,</span> <span class="n">string_types</span><span class="p">):</span>
-            <span class="k">for</span> <span class="n">lookup</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_symbol_lookups</span><span class="p">:</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="n">matches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lookup</span><span class="p">(</span><span class="n">asset_convertible</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">))</span>
-                    <span class="k">return</span>
-                <span class="k">except</span> <span class="n">SymbolNotFound</span><span class="p">:</span>
-                    <span class="k">continue</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">missing</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">asset_convertible</span><span class="p">)</span>
-                <span class="k">return</span> <span class="bp">None</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">NotAssetConvertible</span><span class="p">(</span>
-                <span class="s">&quot;Input was </span><span class="si">%s</span><span class="s">, not AssetConvertible.&quot;</span>
-                <span class="o">%</span> <span class="n">asset_convertible</span>
-            <span class="p">)</span>
+            <span class="n">missing</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
 
-<div class="viewcode-block" id="AssetFinder.lookup_generic"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.lookup_generic">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_generic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                       <span class="n">asset_convertible_or_iterable</span><span class="p">,</span>
-                       <span class="n">as_of_date</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_lookup_generic_scalar_helper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">,</span> <span class="n">country_code</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="n">Asset</span><span class="p">,</span> <span class="n">ContinuousFuture</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="n">obj</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Integral</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">obj</span><span class="p">))</span>
+            <span class="k">except</span> <span class="n">SidsNotFound</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">None</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">string_types</span><span class="p">):</span>
+            <span class="c1"># Try to look up as an equity first.</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lookup_symbol</span><span class="p">(</span>
+                    <span class="n">symbol</span><span class="o">=</span><span class="n">obj</span><span class="p">,</span>
+                    <span class="n">as_of_date</span><span class="o">=</span><span class="n">as_of_date</span><span class="p">,</span>
+                    <span class="n">country_code</span><span class="o">=</span><span class="n">country_code</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="n">SymbolNotFound</span><span class="p">:</span>
+                <span class="c1"># Fall back to lookup as a Future</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># TODO: Support country_code for future_symbols?</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lookup_future_symbol</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">SymbolNotFound</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">None</span>
+
+        <span class="k">raise</span> <span class="n">NotAssetConvertible</span><span class="p">(</span><span class="s2">&quot;Input was </span><span class="si">%s</span><span class="s2">, not AssetConvertible.&quot;</span> <span class="o">%</span> <span class="n">obj</span><span class="p">)</span>
+
+<div class="viewcode-block" id="AssetFinder.lookup_generic"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.lookup_generic">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_generic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">,</span> <span class="n">country_code</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Convert a AssetConvertible or iterable of AssetConvertibles into</span>
-<span class="sd">        a list of Asset objects.</span>
+<span class="sd">        Convert an object into an Asset or sequence of Assets.</span>
 
 <span class="sd">        This method exists primarily as a convenience for implementing</span>
 <span class="sd">        user-facing APIs that can handle multiple kinds of input.  It should</span>
 <span class="sd">        not be used for internal code where we already know the expected types</span>
 <span class="sd">        of our inputs.</span>
 
-<span class="sd">        Returns a pair of objects, the first of which is the result of the</span>
-<span class="sd">        conversion, and the second of which is a list containing any values</span>
-<span class="sd">        that couldn&#39;t be resolved.</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        obj : int, str, Asset, ContinuousFuture, or iterable</span>
+<span class="sd">            The object to be converted into one or more Assets.</span>
+<span class="sd">            Integers are interpreted as sids. Strings are interpreted as</span>
+<span class="sd">            tickers. Assets and ContinuousFutures are returned unchanged.</span>
+<span class="sd">        as_of_date : pd.Timestamp or None</span>
+<span class="sd">            Timestamp to use to disambiguate ticker lookups. Has the same</span>
+<span class="sd">            semantics as in `lookup_symbol`.</span>
+<span class="sd">        country_code : str or None</span>
+<span class="sd">            ISO-3166 country code to use to disambiguate ticker lookups. Has</span>
+<span class="sd">            the same semantics as in `lookup_symbol`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        matches, missing : tuple</span>
+<span class="sd">            ``matches`` is the result of the conversion. ``missing`` is a list</span>
+<span class="sd">             containing any values that couldn&#39;t be resolved. If ``obj`` is not</span>
+<span class="sd">             an iterable, ``missing`` will be an empty list.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">matches</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">missing</span> <span class="o">=</span> <span class="p">[]</span>
 
-        <span class="c"># Interpret input as scalar.</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">asset_convertible_or_iterable</span><span class="p">,</span> <span class="n">AssetConvertible</span><span class="p">):</span>
+        <span class="c1"># Interpret input as scalar.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="n">AssetConvertible</span><span class="p">,</span> <span class="n">ContinuousFuture</span><span class="p">)):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_lookup_generic_scalar</span><span class="p">(</span>
-                <span class="n">asset_convertible</span><span class="o">=</span><span class="n">asset_convertible_or_iterable</span><span class="p">,</span>
+                <span class="n">obj</span><span class="o">=</span><span class="n">obj</span><span class="p">,</span>
                 <span class="n">as_of_date</span><span class="o">=</span><span class="n">as_of_date</span><span class="p">,</span>
+                <span class="n">country_code</span><span class="o">=</span><span class="n">country_code</span><span class="p">,</span>
                 <span class="n">matches</span><span class="o">=</span><span class="n">matches</span><span class="p">,</span>
                 <span class="n">missing</span><span class="o">=</span><span class="n">missing</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">matches</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">missing</span>
             <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
-                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">asset_convertible_or_iterable</span><span class="p">,</span> <span class="s">&#39;__int__&#39;</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="n">SidsNotFound</span><span class="p">(</span><span class="n">sids</span><span class="o">=</span><span class="p">[</span><span class="n">asset_convertible_or_iterable</span><span class="p">])</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;__int__&#39;</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="n">SidsNotFound</span><span class="p">(</span><span class="n">sids</span><span class="o">=</span><span class="p">[</span><span class="n">obj</span><span class="p">])</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="n">SymbolNotFound</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">asset_convertible_or_iterable</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="n">SymbolNotFound</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">obj</span><span class="p">)</span>
 
-        <span class="c"># If the input is a ContinuousFuture just return it as-is.</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">asset_convertible_or_iterable</span><span class="p">,</span> <span class="n">ContinuousFuture</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">asset_convertible_or_iterable</span><span class="p">,</span> <span class="n">missing</span>
-
-        <span class="c"># Interpret input as iterable.</span>
+        <span class="c1"># Interpret input as iterable.</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">iterator</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">asset_convertible_or_iterable</span><span class="p">)</span>
+            <span class="n">iterator</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">NotAssetConvertible</span><span class="p">(</span>
-                <span class="s">&quot;Input was not a AssetConvertible &quot;</span>
-                <span class="s">&quot;or iterable of AssetConvertible.&quot;</span>
+                <span class="s2">&quot;Input was not a AssetConvertible &quot;</span>
+                <span class="s2">&quot;or iterable of AssetConvertible.&quot;</span>
             <span class="p">)</span>
 
         <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">iterator</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">ContinuousFuture</span><span class="p">):</span>
-                <span class="n">matches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_lookup_generic_scalar</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">,</span> <span class="n">matches</span><span class="p">,</span> <span class="n">missing</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_lookup_generic_scalar</span><span class="p">(</span>
+                <span class="n">obj</span><span class="o">=</span><span class="n">obj</span><span class="p">,</span>
+                <span class="n">as_of_date</span><span class="o">=</span><span class="n">as_of_date</span><span class="p">,</span>
+                <span class="n">country_code</span><span class="o">=</span><span class="n">country_code</span><span class="p">,</span>
+                <span class="n">matches</span><span class="o">=</span><span class="n">matches</span><span class="p">,</span>
+                <span class="n">missing</span><span class="o">=</span><span class="n">missing</span><span class="p">,</span>
+            <span class="p">)</span>
+
         <span class="k">return</span> <span class="n">matches</span><span class="p">,</span> <span class="n">missing</span></div>
 
-<div class="viewcode-block" id="AssetFinder.map_identifier_index_to_sids"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.map_identifier_index_to_sids">[docs]</a>    <span class="k">def</span> <span class="nf">map_identifier_index_to_sids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_compute_asset_lifetimes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">country_codes</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        This method is for use in sanitizing a user&#39;s DataFrame or Panel</span>
-<span class="sd">        inputs.</span>
-
-<span class="sd">        Takes the given index of identifiers, checks their types, builds assets</span>
-<span class="sd">        if necessary, and returns a list of the sids that correspond to the</span>
-<span class="sd">        input index.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        index : Iterable</span>
-<span class="sd">            An iterable containing ints, strings, or Assets</span>
-<span class="sd">        as_of_date : pandas.Timestamp</span>
-<span class="sd">            A date to be used to resolve any dual-mapped symbols</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        List</span>
-<span class="sd">            A list of integer sids corresponding to the input index</span>
+<span class="sd">        Compute and cache a recarray of asset lifetimes.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c"># This method assumes that the type of the objects in the index is</span>
-        <span class="c"># consistent and can, therefore, be taken from the first identifier</span>
-        <span class="n">first_identifier</span> <span class="o">=</span> <span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-        <span class="c"># Ensure that input is AssetConvertible (integer, string, or Asset)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first_identifier</span><span class="p">,</span> <span class="n">AssetConvertible</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="n">MapAssetIdentifierIndexError</span><span class="p">(</span><span class="n">obj</span><span class="o">=</span><span class="n">first_identifier</span><span class="p">)</span>
-
-        <span class="c"># If sids are provided, no mapping is necessary</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first_identifier</span><span class="p">,</span> <span class="n">Integral</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">index</span>
-
-        <span class="c"># Look up all Assets for mapping</span>
-        <span class="n">matches</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">missing</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">identifier</span> <span class="ow">in</span> <span class="n">index</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_lookup_generic_scalar</span><span class="p">(</span><span class="n">identifier</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">,</span>
-                                        <span class="n">matches</span><span class="p">,</span> <span class="n">missing</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Missing assets for identifiers: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">missing</span><span class="p">)</span>
-
-        <span class="c"># Return a list of the sids of the found assets</span>
-        <span class="k">return</span> <span class="p">[</span><span class="n">asset</span><span class="o">.</span><span class="n">sid</span> <span class="k">for</span> <span class="n">asset</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">]</span></div>
-
-    <span class="k">def</span> <span class="nf">_compute_asset_lifetimes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Compute and cache a recarry of asset lifetimes.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sids</span> <span class="o">=</span> <span class="n">starts</span> <span class="o">=</span> <span class="n">ends</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">equities_cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">equities</span><span class="o">.</span><span class="n">c</span>
-        <span class="n">buf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-            <span class="nb">tuple</span><span class="p">(</span>
-                <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">((</span>
-                    <span class="n">equities_cols</span><span class="o">.</span><span class="n">sid</span><span class="p">,</span>
-                    <span class="n">equities_cols</span><span class="o">.</span><span class="n">start_date</span><span class="p">,</span>
-                    <span class="n">equities_cols</span><span class="o">.</span><span class="n">end_date</span><span class="p">,</span>
-                <span class="p">))</span><span class="o">.</span><span class="n">execute</span><span class="p">(),</span>
-            <span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;&lt;f8&#39;</span><span class="p">,</span>  <span class="c"># use doubles so we get NaNs</span>
-        <span class="p">)</span>
-        <span class="n">lifetimes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">(</span>
-            <span class="n">buf</span><span class="o">=</span><span class="n">buf</span><span class="p">,</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">buf</span><span class="p">),),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="p">[</span>
-                <span class="p">(</span><span class="s">&#39;sid&#39;</span><span class="p">,</span> <span class="s">&#39;&lt;f8&#39;</span><span class="p">),</span>
-                <span class="p">(</span><span class="s">&#39;start&#39;</span><span class="p">,</span> <span class="s">&#39;&lt;f8&#39;</span><span class="p">),</span>
-                <span class="p">(</span><span class="s">&#39;end&#39;</span><span class="p">,</span> <span class="s">&#39;&lt;f8&#39;</span><span class="p">)</span>
-            <span class="p">],</span>
-        <span class="p">)</span>
-        <span class="n">start</span> <span class="o">=</span> <span class="n">lifetimes</span><span class="o">.</span><span class="n">start</span>
-        <span class="n">end</span> <span class="o">=</span> <span class="n">lifetimes</span><span class="o">.</span><span class="n">end</span>
-        <span class="n">start</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">start</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c"># convert missing starts to 0</span>
-        <span class="n">end</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">end</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">max</span>  <span class="c"># convert missing end to INTMAX</span>
-        <span class="c"># Cast the results back down to int.</span>
-        <span class="k">return</span> <span class="n">lifetimes</span><span class="o">.</span><span class="n">astype</span><span class="p">([</span>
-            <span class="p">(</span><span class="s">&#39;sid&#39;</span><span class="p">,</span> <span class="s">&#39;&lt;i8&#39;</span><span class="p">),</span>
-            <span class="p">(</span><span class="s">&#39;start&#39;</span><span class="p">,</span> <span class="s">&#39;&lt;i8&#39;</span><span class="p">),</span>
-            <span class="p">(</span><span class="s">&#39;end&#39;</span><span class="p">,</span> <span class="s">&#39;&lt;i8&#39;</span><span class="p">),</span>
-        <span class="p">])</span>
+        <span class="k">if</span> <span class="n">country_codes</span><span class="p">:</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">((</span>
+                <span class="n">equities_cols</span><span class="o">.</span><span class="n">sid</span><span class="p">,</span>
+                <span class="n">equities_cols</span><span class="o">.</span><span class="n">start_date</span><span class="p">,</span>
+                <span class="n">equities_cols</span><span class="o">.</span><span class="n">end_date</span><span class="p">,</span>
+            <span class="p">))</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">exchanges</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">exchange</span> <span class="o">==</span> <span class="n">equities_cols</span><span class="o">.</span><span class="n">exchange</span><span class="p">)</span> <span class="o">&amp;</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">exchanges</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">country_code</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">country_codes</span><span class="p">))</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">results</span><span class="p">:</span>
+                <span class="n">sids</span><span class="p">,</span> <span class="n">starts</span><span class="p">,</span> <span class="n">ends</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">results</span><span class="p">)</span>
 
-<div class="viewcode-block" id="AssetFinder.lifetimes"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.lifetimes">[docs]</a>    <span class="k">def</span> <span class="nf">lifetimes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">include_start_date</span><span class="p">):</span>
+        <span class="n">sid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;i8&#39;</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">starts</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;f8&#39;</span><span class="p">)</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ends</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;f8&#39;</span><span class="p">)</span>
+        <span class="n">start</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">start</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># convert missing starts to 0</span>
+        <span class="n">end</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">end</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">max</span>  <span class="c1"># convert missing end to INTMAX</span>
+        <span class="k">return</span> <span class="n">Lifetimes</span><span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="n">start</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;i8&#39;</span><span class="p">),</span> <span class="n">end</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;i8&#39;</span><span class="p">))</span>
+
+<div class="viewcode-block" id="AssetFinder.lifetimes"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.lifetimes">[docs]</a>    <span class="k">def</span> <span class="nf">lifetimes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">include_start_date</span><span class="p">,</span> <span class="n">country_codes</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute a DataFrame representing asset lifetimes for the specified date</span>
 <span class="sd">        range.</span>
@@ -1715,6 +1874,8 @@
 <span class="sd">            this date?&quot;  For many financial metrics, (e.g. daily close), data</span>
 <span class="sd">            isn&#39;t available for an asset until the end of the asset&#39;s first</span>
 <span class="sd">            day.</span>
+<span class="sd">        country_codes : iterable[str]</span>
+<span class="sd">            The country codes to get lifetimes for.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1730,13 +1891,20 @@
 <span class="sd">        numpy.putmask</span>
 <span class="sd">        zipline.pipeline.engine.SimplePipelineEngine._compute_root_mask</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c"># This is a less than ideal place to do this, because if someone adds</span>
-        <span class="c"># assets to the finder after we&#39;ve touched lifetimes we won&#39;t have</span>
-        <span class="c"># those new assets available.  Mutability is not my favorite</span>
-        <span class="c"># programming feature.</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asset_lifetimes</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_asset_lifetimes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_asset_lifetimes</span><span class="p">()</span>
-        <span class="n">lifetimes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asset_lifetimes</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">country_codes</span><span class="p">,</span> <span class="n">string_types</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;Got string {!r} instead of an iterable of strings in &quot;</span>
+                <span class="s2">&quot;AssetFinder.lifetimes.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">country_codes</span><span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="c1"># normalize to a cache-key so that we can memoize results.</span>
+        <span class="n">country_codes</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">country_codes</span><span class="p">)</span>
+
+        <span class="n">lifetimes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asset_lifetimes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">country_codes</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">lifetimes</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_asset_lifetimes</span><span class="p">[</span><span class="n">country_codes</span><span class="p">]</span> <span class="o">=</span> <span class="n">lifetimes</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_compute_asset_lifetimes</span><span class="p">(</span><span class="n">country_codes</span><span class="p">)</span>
+            <span class="p">)</span>
 
         <span class="n">raw_dates</span> <span class="o">=</span> <span class="n">as_column</span><span class="p">(</span><span class="n">dates</span><span class="o">.</span><span class="n">asi8</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">include_start_date</span><span class="p">:</span>
@@ -1745,7 +1913,23 @@
             <span class="n">mask</span> <span class="o">=</span> <span class="n">lifetimes</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;</span> <span class="n">raw_dates</span>
         <span class="n">mask</span> <span class="o">&amp;=</span> <span class="p">(</span><span class="n">raw_dates</span> <span class="o">&lt;=</span> <span class="n">lifetimes</span><span class="o">.</span><span class="n">end</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">dates</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">lifetimes</span><span class="o">.</span><span class="n">sid</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">dates</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">lifetimes</span><span class="o">.</span><span class="n">sid</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AssetFinder.equities_sids_for_country_code"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.equities_sids_for_country_code">[docs]</a>    <span class="k">def</span> <span class="nf">equities_sids_for_country_code</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">country_code</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return all of the sids for a given country.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        country_code : str</span>
+<span class="sd">            An ISO 3166 alpha-2 country code.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple[int]</span>
+<span class="sd">            The sids whose exchanges are in this country.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_asset_lifetimes</span><span class="p">([</span><span class="n">country_code</span><span class="p">])</span><span class="o">.</span><span class="n">sid</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">sids</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span></div></div>
 
 
 <div class="viewcode-block" id="AssetConvertible"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetConvertible">[docs]</a><span class="k">class</span> <span class="nc">AssetConvertible</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">ABCMeta</span><span class="p">)):</span>
@@ -1760,7 +1944,7 @@
 
 <span class="n">AssetConvertible</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">Integral</span><span class="p">)</span>
 <span class="n">AssetConvertible</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">Asset</span><span class="p">)</span>
-<span class="c"># Use six.string_types for Python2/3 compatibility</span>
+<span class="c1"># Use six.string_types for Python2/3 compatibility</span>
 <span class="k">for</span> <span class="n">_type</span> <span class="ow">in</span> <span class="n">string_types</span><span class="p">:</span>
     <span class="n">AssetConvertible</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">_type</span><span class="p">)</span>
 

@@ -442,7 +442,7 @@
 </div></blockquote>
 <p>And several others. If you&#8217;d like to see all of the properties and methods available to you through the <code class="docutils literal"><span class="pre">TradingCalendar</span></code> API, please take a look at the <a class="reference external" href="http://www.zipline.io/appendix.html#trading-calendar-api">API Reference</a></p>
 <p>Now we&#8217;ll take a look at the London Stock Exchange Calendar <code class="xref py py-class docutils literal"><span class="pre">LSEExchangeCalendar</span></code> as an example below:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">LSEExchangeCalendar</span><span class="p">(</span><span class="n">TradingCalendar</span><span class="p">):</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">LSEExchangeCalendar</span><span class="p">(</span><span class="n">TradingCalendar</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">  Exchange calendar for the London Stock Exchange</span>
 
@@ -464,11 +464,11 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="s">&quot;LSE&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;LSE&quot;</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">tz</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">timezone</span><span class="p">(</span><span class="s">&#39;Europe/London&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">timezone</span><span class="p">(</span><span class="s1">&#39;Europe/London&#39;</span><span class="p">)</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">open_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -495,14 +495,14 @@
 </pre></div>
 </div>
 <p>You can create the <code class="docutils literal"><span class="pre">Holiday</span></code> objects mentioned in <code class="docutils literal"><span class="pre">def</span> <span class="pre">regular_holidays(self)`</span> <span class="pre">through</span> <span class="pre">the</span> <span class="pre">`pandas</span> <span class="pre">&lt;http://pandas.pydata.org/pandas-docs/stable/&gt;`__</span> <span class="pre">module,</span> <span class="pre">``pandas.tseries.holiday.Holiday</span></code>, and also take a look at the <a class="reference external" href="https://github.com/quantopian/zipline/blob/master/zipline/utils/calendars/exchange_calendar_lse.py">LSEExchangeCalendar</a> code as an example, or take a look at the code snippet below.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">pandas.tseries.holiday</span> <span class="kn">import</span> <span class="p">(</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pandas.tseries.holiday</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">Holiday</span><span class="p">,</span>
     <span class="n">DateOffset</span><span class="p">,</span>
     <span class="n">MO</span>
 <span class="p">)</span>
 
 <span class="n">SomeSpecialDay</span> <span class="o">=</span> <span class="n">Holiday</span><span class="p">(</span>
-    <span class="s">&quot;Some Special Day&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Some Special Day&quot;</span><span class="p">,</span>
     <span class="n">month</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
     <span class="n">day</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span>
     <span class="n">offset</span><span class="o">=</span><span class="n">DateOffSet</span><span class="p">(</span><span class="n">weekday</span><span class="o">=</span><span class="n">MO</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
@@ -514,22 +514,22 @@
 <h2>Building a Custom Trading Calendar<a class="headerlink" href="#building-a-custom-trading-calendar" title="Permalink to this headline">¶</a></h2>
 <p>Now we&#8217;ll build our own custom trading calendar. This calendar will be used for trading assets that can be traded on a 24/7 exchange calendar. This means that it will be open on Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, and Sunday, and the exchange will open at 12AM and close at 11:59PM. The timezone which we&#8217;ll use is UTC.</p>
 <p>First we&#8217;ll start off by importing some modules that will be useful to us.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="c"># for setting our open and close times</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="c1"># for setting our open and close times</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">time</span>
-<span class="c"># for setting our start and end sessions</span>
+<span class="c1"># for setting our start and end sessions</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
-<span class="c"># for setting which days of the week we trade on</span>
+<span class="c1"># for setting which days of the week we trade on</span>
 <span class="kn">from</span> <span class="nn">pandas.tseries.offsets</span> <span class="kn">import</span> <span class="n">CustomBusinessDay</span>
-<span class="c"># for setting our timezone</span>
+<span class="c1"># for setting our timezone</span>
 <span class="kn">from</span> <span class="nn">pytz</span> <span class="kn">import</span> <span class="n">timezone</span>
 
-<span class="c"># for creating and registering our calendar</span>
+<span class="c1"># for creating and registering our calendar</span>
 <span class="kn">from</span> <span class="nn">trading_calendars</span> <span class="kn">import</span> <span class="n">register_calendar</span><span class="p">,</span> <span class="n">TradingCalendar</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.memoize</span> <span class="kn">import</span> <span class="n">lazyval</span>
 </pre></div>
 </div>
 <p>And now we&#8217;ll actually build this calendar, which we&#8217;ll call <code class="docutils literal"><span class="pre">TFSExchangeCalendar</span></code>:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">TFSExchangeCalendar</span><span class="p">(</span><span class="n">TradingCalendar</span><span class="p">):</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">TFSExchangeCalendar</span><span class="p">(</span><span class="n">TradingCalendar</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">  An exchange calendar for trading assets 24/7.</span>
 
@@ -544,14 +544,14 @@
 <span class="sd">    when we run our algorithm and pass TFS to</span>
 <span class="sd">    the --trading-calendar CLI flag.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="s">&quot;TFS&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;TFS&quot;</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">tz</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    The timezone in which we&#39;ll be running our algorithm.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">timezone</span><span class="p">(</span><span class="s">&quot;UTC&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">timezone</span><span class="p">(</span><span class="s2">&quot;UTC&quot;</span><span class="p">)</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">open_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -572,7 +572,7 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    The days on which our exchange will be open.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">weekmask</span> <span class="o">=</span> <span class="s">&quot;Mon Tue Wed Thu Fri Sat Sun&quot;</span>
+    <span class="n">weekmask</span> <span class="o">=</span> <span class="s2">&quot;Mon Tue Wed Thu Fri Sat Sun&quot;</span>
     <span class="k">return</span> <span class="n">CustomBusinessDay</span><span class="p">(</span>
       <span class="n">weekmask</span><span class="o">=</span><span class="n">weekmask</span>
     <span class="p">)</span>

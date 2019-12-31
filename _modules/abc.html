@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Overview: module code &mdash; Zipline 1.3.0 documentation</title>
+  <title>abc &mdash; Zipline 1.3.0 documentation</title>
   
 
   
@@ -30,7 +30,8 @@
   
 
   
-    <link rel="top" title="Zipline 1.3.0 documentation" href="../index.html"/> 
+    <link rel="top" title="Zipline 1.3.0 documentation" href="../index.html"/>
+        <link rel="up" title="Module code" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -399,7 +400,9 @@
   <ul class="wy-breadcrumbs">
     <li><a href="../index.html">Docs</a> &raquo;</li>
       
-    <li>Overview: module code</li>
+          <li><a href="index.html">Module code</a> &raquo;</li>
+      
+    <li>abc</li>
       <li class="wy-breadcrumbs-aside">
         
           
@@ -410,50 +413,256 @@
 </div>
           <div role="main" class="document">
             
-  <h1>All modules for which code is available</h1>
-<ul><li><a href="abc.html">abc</a></li>
-<li><a href="trading_calendars/calendar_utils.html">trading_calendars.calendar_utils</a></li>
-<li><a href="trading_calendars/trading_calendar.html">trading_calendars.trading_calendar</a></li>
-<li><a href="zipline/_protocol.html">zipline._protocol</a></li>
-<li><a href="zipline/algorithm.html">zipline.algorithm</a></li>
-<li><a href="zipline/assets/_assets.html">zipline.assets._assets</a></li>
-<li><a href="zipline/assets/asset_writer.html">zipline.assets.asset_writer</a></li>
-<li><a href="zipline/assets/assets.html">zipline.assets.assets</a></li>
-<li><a href="zipline/data/adjustments.html">zipline.data.adjustments</a></li>
-<li><a href="zipline/data/bcolz_daily_bars.html">zipline.data.bcolz_daily_bars</a></li>
-<li><a href="zipline/data/bundles/core.html">zipline.data.bundles.core</a></li>
-<li><a href="zipline/data/data_portal.html">zipline.data.data_portal</a></li>
-<li><a href="zipline/data/minute_bars.html">zipline.data.minute_bars</a></li>
-<li><a href="zipline/finance/_finance_ext.html">zipline.finance._finance_ext</a></li>
-<li><a href="zipline/finance/blotter/blotter.html">zipline.finance.blotter.blotter</a></li>
-<li><a href="zipline/finance/blotter/simulation_blotter.html">zipline.finance.blotter.simulation_blotter</a></li>
-<li><a href="zipline/finance/cancel_policy.html">zipline.finance.cancel_policy</a></li>
-<li><a href="zipline/finance/commission.html">zipline.finance.commission</a></li>
-<li><a href="zipline/finance/execution.html">zipline.finance.execution</a></li>
-<li><a href="zipline/finance/ledger.html">zipline.finance.ledger</a></li>
-<li><a href="zipline/finance/metrics/core.html">zipline.finance.metrics.core</a></li>
-<li><a href="zipline/finance/metrics/metric.html">zipline.finance.metrics.metric</a></li>
-<li><a href="zipline/finance/slippage.html">zipline.finance.slippage</a></li>
-<li><a href="zipline/pipeline/data/dataset.html">zipline.pipeline.data.dataset</a></li>
-<li><a href="zipline/pipeline/data/equity_pricing.html">zipline.pipeline.data.equity_pricing</a></li>
-<li><a href="zipline/pipeline/engine.html">zipline.pipeline.engine</a></li>
-<li><a href="zipline/pipeline/factors/basic.html">zipline.pipeline.factors.basic</a></li>
-<li><a href="zipline/pipeline/factors/events.html">zipline.pipeline.factors.events</a></li>
-<li><a href="zipline/pipeline/factors/factor.html">zipline.pipeline.factors.factor</a></li>
-<li><a href="zipline/pipeline/factors/statistical.html">zipline.pipeline.factors.statistical</a></li>
-<li><a href="zipline/pipeline/factors/technical.html">zipline.pipeline.factors.technical</a></li>
-<li><a href="zipline/pipeline/filters/filter.html">zipline.pipeline.filters.filter</a></li>
-<li><a href="zipline/pipeline/filters/smoothing.html">zipline.pipeline.filters.smoothing</a></li>
-<li><a href="zipline/pipeline/loaders/equity_pricing_loader.html">zipline.pipeline.loaders.equity_pricing_loader</a></li>
-<li><a href="zipline/pipeline/pipeline.html">zipline.pipeline.pipeline</a></li>
-<li><a href="zipline/pipeline/term.html">zipline.pipeline.term</a></li>
-<li><a href="zipline/protocol.html">zipline.protocol</a></li>
-<li><a href="zipline/sources/benchmark_source.html">zipline.sources.benchmark_source</a></li>
-<li><a href="zipline/utils/cache.html">zipline.utils.cache</a></li>
-<li><a href="zipline/utils/cli.html">zipline.utils.cli</a></li>
-<li><a href="zipline/utils/events.html">zipline.utils.events</a></li>
-<li><a href="zipline/utils/run_algo.html">zipline.utils.run_algo</a></li>
-</ul>
+  <h1>Source code for abc</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2007 Google, Inc. All Rights Reserved.</span>
+<span class="c1"># Licensed to PSF under a Contributor Agreement.</span>
+
+<span class="sd">&quot;&quot;&quot;Abstract Base Classes (ABCs) according to PEP 3119.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">_weakrefset</span> <span class="kn">import</span> <span class="n">WeakSet</span>
+
+
+<span class="k">def</span> <span class="nf">abstractmethod</span><span class="p">(</span><span class="n">funcobj</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A decorator indicating abstract methods.</span>
+
+<span class="sd">    Requires that the metaclass is ABCMeta or derived from it.  A</span>
+<span class="sd">    class that has a metaclass derived from ABCMeta cannot be</span>
+<span class="sd">    instantiated unless all of its abstract methods are overridden.</span>
+<span class="sd">    The abstract methods can be called using any of the normal</span>
+<span class="sd">    &#39;super&#39; call mechanisms.</span>
+
+<span class="sd">    Usage:</span>
+
+<span class="sd">        class C(metaclass=ABCMeta):</span>
+<span class="sd">            @abstractmethod</span>
+<span class="sd">            def my_abstract_method(self, ...):</span>
+<span class="sd">                ...</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">funcobj</span><span class="o">.</span><span class="n">__isabstractmethod__</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="k">return</span> <span class="n">funcobj</span>
+
+
+<span class="k">class</span> <span class="nc">abstractclassmethod</span><span class="p">(</span><span class="nb">classmethod</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A decorator indicating abstract classmethods.</span>
+
+<span class="sd">    Similar to abstractmethod.</span>
+
+<span class="sd">    Usage:</span>
+
+<span class="sd">        class C(metaclass=ABCMeta):</span>
+<span class="sd">            @abstractclassmethod</span>
+<span class="sd">            def my_abstract_classmethod(cls, ...):</span>
+<span class="sd">                ...</span>
+
+<span class="sd">    &#39;abstractclassmethod&#39; is deprecated. Use &#39;classmethod&#39; with</span>
+<span class="sd">    &#39;abstractmethod&#39; instead.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">__isabstractmethod__</span> <span class="o">=</span> <span class="bp">True</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">callable</span><span class="p">):</span>
+        <span class="nb">callable</span><span class="o">.</span><span class="n">__isabstractmethod__</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="nb">callable</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">abstractstaticmethod</span><span class="p">(</span><span class="nb">staticmethod</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A decorator indicating abstract staticmethods.</span>
+
+<span class="sd">    Similar to abstractmethod.</span>
+
+<span class="sd">    Usage:</span>
+
+<span class="sd">        class C(metaclass=ABCMeta):</span>
+<span class="sd">            @abstractstaticmethod</span>
+<span class="sd">            def my_abstract_staticmethod(...):</span>
+<span class="sd">                ...</span>
+
+<span class="sd">    &#39;abstractstaticmethod&#39; is deprecated. Use &#39;staticmethod&#39; with</span>
+<span class="sd">    &#39;abstractmethod&#39; instead.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">__isabstractmethod__</span> <span class="o">=</span> <span class="bp">True</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">callable</span><span class="p">):</span>
+        <span class="nb">callable</span><span class="o">.</span><span class="n">__isabstractmethod__</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="nb">callable</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">abstractproperty</span><span class="p">(</span><span class="nb">property</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A decorator indicating abstract properties.</span>
+
+<span class="sd">    Requires that the metaclass is ABCMeta or derived from it.  A</span>
+<span class="sd">    class that has a metaclass derived from ABCMeta cannot be</span>
+<span class="sd">    instantiated unless all of its abstract properties are overridden.</span>
+<span class="sd">    The abstract properties can be called using any of the normal</span>
+<span class="sd">    &#39;super&#39; call mechanisms.</span>
+
+<span class="sd">    Usage:</span>
+
+<span class="sd">        class C(metaclass=ABCMeta):</span>
+<span class="sd">            @abstractproperty</span>
+<span class="sd">            def my_abstract_property(self):</span>
+<span class="sd">                ...</span>
+
+<span class="sd">    This defines a read-only property; you can also define a read-write</span>
+<span class="sd">    abstract property using the &#39;long&#39; form of property declaration:</span>
+
+<span class="sd">        class C(metaclass=ABCMeta):</span>
+<span class="sd">            def getx(self): ...</span>
+<span class="sd">            def setx(self, value): ...</span>
+<span class="sd">            x = abstractproperty(getx, setx)</span>
+
+<span class="sd">    &#39;abstractproperty&#39; is deprecated. Use &#39;property&#39; with &#39;abstractmethod&#39;</span>
+<span class="sd">    instead.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">__isabstractmethod__</span> <span class="o">=</span> <span class="bp">True</span>
+
+
+<span class="k">class</span> <span class="nc">ABCMeta</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Metaclass for defining Abstract Base Classes (ABCs).</span>
+
+<span class="sd">    Use this metaclass to create an ABC.  An ABC can be subclassed</span>
+<span class="sd">    directly, and then acts as a mix-in class.  You can also register</span>
+<span class="sd">    unrelated concrete classes (even built-in classes) and unrelated</span>
+<span class="sd">    ABCs as &#39;virtual subclasses&#39; -- these and their descendants will</span>
+<span class="sd">    be considered subclasses of the registering ABC by the built-in</span>
+<span class="sd">    issubclass() function, but the registering ABC won&#39;t show up in</span>
+<span class="sd">    their MRO (Method Resolution Order) nor will method</span>
+<span class="sd">    implementations defined by the registering ABC be callable (not</span>
+<span class="sd">    even via super()).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># A global counter that is incremented each time a class is</span>
+    <span class="c1"># registered as a virtual subclass of anything.  It forces the</span>
+    <span class="c1"># negative cache to be cleared before its next use.</span>
+    <span class="c1"># Note: this counter is private. Use `abc.get_cache_token()` for</span>
+    <span class="c1">#       external code.</span>
+    <span class="n">_abc_invalidation_counter</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="n">mcls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">namespace</span><span class="p">):</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">mcls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">namespace</span><span class="p">)</span>
+        <span class="c1"># Compute set of abstract method names</span>
+        <span class="n">abstracts</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span>
+                     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">namespace</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                     <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;__isabstractmethod__&quot;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)}</span>
+        <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">bases</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="s2">&quot;__abstractmethods__&quot;</span><span class="p">,</span> <span class="nb">set</span><span class="p">()):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;__isabstractmethod__&quot;</span><span class="p">,</span> <span class="bp">False</span><span class="p">):</span>
+                    <span class="n">abstracts</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">__abstractmethods__</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">abstracts</span><span class="p">)</span>
+        <span class="c1"># Set up inheritance registry</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_abc_registry</span> <span class="o">=</span> <span class="n">WeakSet</span><span class="p">()</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_abc_cache</span> <span class="o">=</span> <span class="n">WeakSet</span><span class="p">()</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_abc_negative_cache</span> <span class="o">=</span> <span class="n">WeakSet</span><span class="p">()</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_abc_negative_cache_version</span> <span class="o">=</span> <span class="n">ABCMeta</span><span class="o">.</span><span class="n">_abc_invalidation_counter</span>
+        <span class="k">return</span> <span class="bp">cls</span>
+
+    <span class="k">def</span> <span class="nf">register</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">subclass</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Register a virtual subclass of an ABC.</span>
+
+<span class="sd">        Returns the subclass, to allow usage as a class decorator.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">subclass</span><span class="p">,</span> <span class="nb">type</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Can only register classes&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">subclass</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">subclass</span>  <span class="c1"># Already a subclass</span>
+        <span class="c1"># Subtle: test for cycles *after* testing for &quot;already a subclass&quot;;</span>
+        <span class="c1"># this means we allow X.register(X) and interpret it as a no-op.</span>
+        <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">subclass</span><span class="p">):</span>
+            <span class="c1"># This would create a cycle, which is bad for the algorithm below</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Refusing to create an inheritance cycle&quot;</span><span class="p">)</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_abc_registry</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">subclass</span><span class="p">)</span>
+        <span class="n">ABCMeta</span><span class="o">.</span><span class="n">_abc_invalidation_counter</span> <span class="o">+=</span> <span class="mi">1</span>  <span class="c1"># Invalidate negative cache</span>
+        <span class="k">return</span> <span class="n">subclass</span>
+
+    <span class="k">def</span> <span class="nf">_dump_registry</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="nb">file</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Debug helper to print the ABC registry.&quot;&quot;&quot;</span>
+        <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Class: </span><span class="si">%s</span><span class="s2">.</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__module__</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__qualname__</span><span class="p">),</span> <span class="nb">file</span><span class="o">=</span><span class="nb">file</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Inv.counter: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ABCMeta</span><span class="o">.</span><span class="n">_abc_invalidation_counter</span><span class="p">,</span> <span class="nb">file</span><span class="o">=</span><span class="nb">file</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;_abc_&quot;</span><span class="p">):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                <span class="k">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">),</span> <span class="nb">file</span><span class="o">=</span><span class="nb">file</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__instancecheck__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">instance</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Override for isinstance(instance, cls).&quot;&quot;&quot;</span>
+        <span class="c1"># Inline the cache checking</span>
+        <span class="n">subclass</span> <span class="o">=</span> <span class="n">instance</span><span class="o">.</span><span class="vm">__class__</span>
+        <span class="k">if</span> <span class="n">subclass</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_abc_cache</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="n">subtype</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">subtype</span> <span class="ow">is</span> <span class="n">subclass</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_abc_negative_cache_version</span> <span class="o">==</span>
+                <span class="n">ABCMeta</span><span class="o">.</span><span class="n">_abc_invalidation_counter</span> <span class="ow">and</span>
+                <span class="n">subclass</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_abc_negative_cache</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">False</span>
+            <span class="c1"># Fall back to the subclass check.</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__subclasscheck__</span><span class="p">(</span><span class="n">subclass</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="fm">__subclasscheck__</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">{</span><span class="n">subclass</span><span class="p">,</span> <span class="n">subtype</span><span class="p">})</span>
+
+    <span class="k">def</span> <span class="fm">__subclasscheck__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">subclass</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Override for issubclass(subclass, cls).&quot;&quot;&quot;</span>
+        <span class="c1"># Check cache</span>
+        <span class="k">if</span> <span class="n">subclass</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_abc_cache</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="c1"># Check negative cache; may have to invalidate</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_abc_negative_cache_version</span> <span class="o">&lt;</span> <span class="n">ABCMeta</span><span class="o">.</span><span class="n">_abc_invalidation_counter</span><span class="p">:</span>
+            <span class="c1"># Invalidate the negative cache</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_abc_negative_cache</span> <span class="o">=</span> <span class="n">WeakSet</span><span class="p">()</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_abc_negative_cache_version</span> <span class="o">=</span> <span class="n">ABCMeta</span><span class="o">.</span><span class="n">_abc_invalidation_counter</span>
+        <span class="k">elif</span> <span class="n">subclass</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_abc_negative_cache</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+        <span class="c1"># Check the subclass hook</span>
+        <span class="n">ok</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__subclasshook__</span><span class="p">(</span><span class="n">subclass</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ok</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">NotImplemented</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ok</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ok</span><span class="p">:</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="n">_abc_cache</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">subclass</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="n">_abc_negative_cache</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">subclass</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">ok</span>
+        <span class="c1"># Check if it&#39;s a direct subclass</span>
+        <span class="k">if</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">subclass</span><span class="p">,</span> <span class="s1">&#39;__mro__&#39;</span><span class="p">,</span> <span class="p">()):</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_abc_cache</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">subclass</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="c1"># Check if it&#39;s a subclass of a registered class (recursive)</span>
+        <span class="k">for</span> <span class="n">rcls</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_abc_registry</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">subclass</span><span class="p">,</span> <span class="n">rcls</span><span class="p">):</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="n">_abc_cache</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">subclass</span><span class="p">)</span>
+                <span class="k">return</span> <span class="bp">True</span>
+        <span class="c1"># Check if it&#39;s a subclass of a subclass (recursive)</span>
+        <span class="k">for</span> <span class="n">scls</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__subclasses__</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">subclass</span><span class="p">,</span> <span class="n">scls</span><span class="p">):</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="n">_abc_cache</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">subclass</span><span class="p">)</span>
+                <span class="k">return</span> <span class="bp">True</span>
+        <span class="c1"># No dice; update negative cache</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_abc_negative_cache</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">subclass</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">False</span>
+
+
+<span class="k">class</span> <span class="nc">ABC</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">ABCMeta</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Helper class that provides a standard way to create an ABC using</span>
+<span class="sd">    inheritance.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+
+<span class="k">def</span> <span class="nf">get_cache_token</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Returns the current ABC cache token.</span>
+
+<span class="sd">    The token is an opaque object (supporting equality testing) identifying the</span>
+<span class="sd">    current version of the ABC cache for virtual subclasses. The token changes</span>
+<span class="sd">    with every call to ``register()`` on any ABC.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">ABCMeta</span><span class="o">.</span><span class="n">_abc_invalidation_counter</span>
+</pre></div>
 
           </div>
           <footer>

@@ -414,40 +414,135 @@
           <div role="main" class="document">
             
   <h1>Source code for trading_calendars.calendar_utils</h1><div class="highlight"><pre>
-<span class="kn">from</span> <span class="nn">trading_calendars.errors</span> <span class="kn">import</span> <span class="p">(</span>
+<span></span><span class="kn">from</span> <span class="nn">.always_open</span> <span class="kn">import</span> <span class="n">AlwaysOpenCalendar</span>
+<span class="kn">from</span> <span class="nn">.errors</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">CalendarNameCollision</span><span class="p">,</span>
     <span class="n">CyclicCalendarAlias</span><span class="p">,</span>
     <span class="n">InvalidCalendarName</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">trading_calendars.exchange_calendar_cfe</span> <span class="kn">import</span> <span class="n">CFEExchangeCalendar</span>
-<span class="kn">from</span> <span class="nn">trading_calendars.exchange_calendar_ice</span> <span class="kn">import</span> <span class="n">ICEExchangeCalendar</span>
-<span class="kn">from</span> <span class="nn">trading_calendars.exchange_calendar_nyse</span> <span class="kn">import</span> <span class="n">NYSEExchangeCalendar</span>
-<span class="kn">from</span> <span class="nn">trading_calendars.exchange_calendar_cme</span> <span class="kn">import</span> <span class="n">CMEExchangeCalendar</span>
-<span class="kn">from</span> <span class="nn">trading_calendars.exchange_calendar_bmf</span> <span class="kn">import</span> <span class="n">BMFExchangeCalendar</span>
-<span class="kn">from</span> <span class="nn">trading_calendars.exchange_calendar_lse</span> <span class="kn">import</span> <span class="n">LSEExchangeCalendar</span>
-<span class="kn">from</span> <span class="nn">trading_calendars.exchange_calendar_tsx</span> <span class="kn">import</span> <span class="n">TSXExchangeCalendar</span>
-<span class="kn">from</span> <span class="nn">trading_calendars.us_futures_calendar</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">QuantopianUSFuturesCalendar</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_asex</span> <span class="kn">import</span> <span class="n">ASEXExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_bvmf</span> <span class="kn">import</span> <span class="n">BVMFExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_cmes</span> <span class="kn">import</span> <span class="n">CMESExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_iepa</span> <span class="kn">import</span> <span class="n">IEPAExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xams</span> <span class="kn">import</span> <span class="n">XAMSExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xasx</span> <span class="kn">import</span> <span class="n">XASXExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xbkk</span> <span class="kn">import</span> <span class="n">XBKKExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xbog</span> <span class="kn">import</span> <span class="n">XBOGExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xbom</span> <span class="kn">import</span> <span class="n">XBOMExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xbru</span> <span class="kn">import</span> <span class="n">XBRUExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xbud</span> <span class="kn">import</span> <span class="n">XBUDExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xbue</span> <span class="kn">import</span> <span class="n">XBUEExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xcbf</span> <span class="kn">import</span> <span class="n">XCBFExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xcse</span> <span class="kn">import</span> <span class="n">XCSEExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xdub</span> <span class="kn">import</span> <span class="n">XDUBExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xfra</span> <span class="kn">import</span> <span class="n">XFRAExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xhel</span> <span class="kn">import</span> <span class="n">XHELExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xhkg</span> <span class="kn">import</span> <span class="n">XHKGExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xice</span> <span class="kn">import</span> <span class="n">XICEExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xidx</span> <span class="kn">import</span> <span class="n">XIDXExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xist</span> <span class="kn">import</span> <span class="n">XISTExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xjse</span> <span class="kn">import</span> <span class="n">XJSEExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xkar</span> <span class="kn">import</span> <span class="n">XKARExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xkls</span> <span class="kn">import</span> <span class="n">XKLSExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xkrx</span> <span class="kn">import</span> <span class="n">XKRXExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xlim</span> <span class="kn">import</span> <span class="n">XLIMExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xlis</span> <span class="kn">import</span> <span class="n">XLISExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xlon</span> <span class="kn">import</span> <span class="n">XLONExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xmad</span> <span class="kn">import</span> <span class="n">XMADExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xmex</span> <span class="kn">import</span> <span class="n">XMEXExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xmil</span> <span class="kn">import</span> <span class="n">XMILExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xmos</span> <span class="kn">import</span> <span class="n">XMOSExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xnys</span> <span class="kn">import</span> <span class="n">XNYSExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xnze</span> <span class="kn">import</span> <span class="n">XNZEExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xosl</span> <span class="kn">import</span> <span class="n">XOSLExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xpar</span> <span class="kn">import</span> <span class="n">XPARExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xphs</span> <span class="kn">import</span> <span class="n">XPHSExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xpra</span> <span class="kn">import</span> <span class="n">XPRAExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xses</span> <span class="kn">import</span> <span class="n">XSESExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xsgo</span> <span class="kn">import</span> <span class="n">XSGOExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xshg</span> <span class="kn">import</span> <span class="n">XSHGExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xsto</span> <span class="kn">import</span> <span class="n">XSTOExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xswx</span> <span class="kn">import</span> <span class="n">XSWXExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xtai</span> <span class="kn">import</span> <span class="n">XTAIExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xtks</span> <span class="kn">import</span> <span class="n">XTKSExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xtse</span> <span class="kn">import</span> <span class="n">XTSEExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xwar</span> <span class="kn">import</span> <span class="n">XWARExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.exchange_calendar_xwbo</span> <span class="kn">import</span> <span class="n">XWBOExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">.us_futures_calendar</span> <span class="kn">import</span> <span class="n">QuantopianUSFuturesCalendar</span>
+<span class="kn">from</span> <span class="nn">.weekday_calendar</span> <span class="kn">import</span> <span class="n">WeekdayCalendar</span>
 
 <span class="n">_default_calendar_factories</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s">&#39;NYSE&#39;</span><span class="p">:</span> <span class="n">NYSEExchangeCalendar</span><span class="p">,</span>
-    <span class="s">&#39;CME&#39;</span><span class="p">:</span> <span class="n">CMEExchangeCalendar</span><span class="p">,</span>
-    <span class="s">&#39;ICE&#39;</span><span class="p">:</span> <span class="n">ICEExchangeCalendar</span><span class="p">,</span>
-    <span class="s">&#39;CFE&#39;</span><span class="p">:</span> <span class="n">CFEExchangeCalendar</span><span class="p">,</span>
-    <span class="s">&#39;BMF&#39;</span><span class="p">:</span> <span class="n">BMFExchangeCalendar</span><span class="p">,</span>
-    <span class="s">&#39;LSE&#39;</span><span class="p">:</span> <span class="n">LSEExchangeCalendar</span><span class="p">,</span>
-    <span class="s">&#39;TSX&#39;</span><span class="p">:</span> <span class="n">TSXExchangeCalendar</span><span class="p">,</span>
-    <span class="s">&#39;us_futures&#39;</span><span class="p">:</span> <span class="n">QuantopianUSFuturesCalendar</span><span class="p">,</span>
+    <span class="c1"># Exchange calendars.</span>
+    <span class="s1">&#39;ASEX&#39;</span><span class="p">:</span> <span class="n">ASEXExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;BVMF&#39;</span><span class="p">:</span> <span class="n">BVMFExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;CMES&#39;</span><span class="p">:</span> <span class="n">CMESExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;IEPA&#39;</span><span class="p">:</span> <span class="n">IEPAExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XAMS&#39;</span><span class="p">:</span> <span class="n">XAMSExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XASX&#39;</span><span class="p">:</span> <span class="n">XASXExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XBKK&#39;</span><span class="p">:</span> <span class="n">XBKKExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XBOG&#39;</span><span class="p">:</span> <span class="n">XBOGExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XBOM&#39;</span><span class="p">:</span> <span class="n">XBOMExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XBRU&#39;</span><span class="p">:</span> <span class="n">XBRUExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XBUD&#39;</span><span class="p">:</span> <span class="n">XBUDExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XBUE&#39;</span><span class="p">:</span> <span class="n">XBUEExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XCBF&#39;</span><span class="p">:</span> <span class="n">XCBFExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XCSE&#39;</span><span class="p">:</span> <span class="n">XCSEExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XDUB&#39;</span><span class="p">:</span> <span class="n">XDUBExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XFRA&#39;</span><span class="p">:</span> <span class="n">XFRAExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XHEL&#39;</span><span class="p">:</span> <span class="n">XHELExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XHKG&#39;</span><span class="p">:</span> <span class="n">XHKGExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XICE&#39;</span><span class="p">:</span> <span class="n">XICEExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XIDX&#39;</span><span class="p">:</span> <span class="n">XIDXExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XIST&#39;</span><span class="p">:</span> <span class="n">XISTExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XJSE&#39;</span><span class="p">:</span> <span class="n">XJSEExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XKAR&#39;</span><span class="p">:</span> <span class="n">XKARExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XKLS&#39;</span><span class="p">:</span> <span class="n">XKLSExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XKRX&#39;</span><span class="p">:</span> <span class="n">XKRXExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XLIM&#39;</span><span class="p">:</span> <span class="n">XLIMExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XLIS&#39;</span><span class="p">:</span> <span class="n">XLISExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XLON&#39;</span><span class="p">:</span> <span class="n">XLONExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XMAD&#39;</span><span class="p">:</span> <span class="n">XMADExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XMEX&#39;</span><span class="p">:</span> <span class="n">XMEXExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XMIL&#39;</span><span class="p">:</span> <span class="n">XMILExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XMOS&#39;</span><span class="p">:</span> <span class="n">XMOSExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XNYS&#39;</span><span class="p">:</span> <span class="n">XNYSExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XNZE&#39;</span><span class="p">:</span> <span class="n">XNZEExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XOSL&#39;</span><span class="p">:</span> <span class="n">XOSLExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XPAR&#39;</span><span class="p">:</span> <span class="n">XPARExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XPHS&#39;</span><span class="p">:</span> <span class="n">XPHSExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XPRA&#39;</span><span class="p">:</span> <span class="n">XPRAExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XSES&#39;</span><span class="p">:</span> <span class="n">XSESExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XSGO&#39;</span><span class="p">:</span> <span class="n">XSGOExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XSHG&#39;</span><span class="p">:</span> <span class="n">XSHGExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XSTO&#39;</span><span class="p">:</span> <span class="n">XSTOExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XSWX&#39;</span><span class="p">:</span> <span class="n">XSWXExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XTAI&#39;</span><span class="p">:</span> <span class="n">XTAIExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XTKS&#39;</span><span class="p">:</span> <span class="n">XTKSExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XTSE&#39;</span><span class="p">:</span> <span class="n">XTSEExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XWAR&#39;</span><span class="p">:</span> <span class="n">XWARExchangeCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;XWBO&#39;</span><span class="p">:</span> <span class="n">XWBOExchangeCalendar</span><span class="p">,</span>
+    <span class="c1"># Miscellaneous calendars.</span>
+    <span class="s1">&#39;us_futures&#39;</span><span class="p">:</span> <span class="n">QuantopianUSFuturesCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;24/7&#39;</span><span class="p">:</span> <span class="n">AlwaysOpenCalendar</span><span class="p">,</span>
+    <span class="s1">&#39;24/5&#39;</span><span class="p">:</span> <span class="n">WeekdayCalendar</span><span class="p">,</span>
 <span class="p">}</span>
 <span class="n">_default_calendar_aliases</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s">&#39;NASDAQ&#39;</span><span class="p">:</span> <span class="s">&#39;NYSE&#39;</span><span class="p">,</span>
-    <span class="s">&#39;BATS&#39;</span><span class="p">:</span> <span class="s">&#39;NYSE&#39;</span><span class="p">,</span>
-    <span class="s">&#39;CBOT&#39;</span><span class="p">:</span> <span class="s">&#39;CME&#39;</span><span class="p">,</span>
-    <span class="s">&#39;COMEX&#39;</span><span class="p">:</span> <span class="s">&#39;CME&#39;</span><span class="p">,</span>
-    <span class="s">&#39;NYMEX&#39;</span><span class="p">:</span> <span class="s">&#39;CME&#39;</span><span class="p">,</span>
-    <span class="s">&#39;ICEUS&#39;</span><span class="p">:</span> <span class="s">&#39;ICE&#39;</span><span class="p">,</span>
-    <span class="s">&#39;NYFE&#39;</span><span class="p">:</span> <span class="s">&#39;ICE&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;NYSE&#39;</span><span class="p">:</span> <span class="s1">&#39;XNYS&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;NASDAQ&#39;</span><span class="p">:</span> <span class="s1">&#39;XNYS&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;BATS&#39;</span><span class="p">:</span> <span class="s1">&#39;XNYS&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;FWB&#39;</span><span class="p">:</span> <span class="s1">&#39;XFRA&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;LSE&#39;</span><span class="p">:</span> <span class="s1">&#39;XLON&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;TSX&#39;</span><span class="p">:</span> <span class="s1">&#39;XTSE&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;BMF&#39;</span><span class="p">:</span> <span class="s1">&#39;BVMF&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;CME&#39;</span><span class="p">:</span> <span class="s1">&#39;CMES&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;CBOT&#39;</span><span class="p">:</span> <span class="s1">&#39;CMES&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;COMEX&#39;</span><span class="p">:</span> <span class="s1">&#39;CMES&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;NYMEX&#39;</span><span class="p">:</span> <span class="s1">&#39;CMES&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;ICE&#39;</span><span class="p">:</span> <span class="s1">&#39;IEPA&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;ICEUS&#39;</span><span class="p">:</span> <span class="s1">&#39;IEPA&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;NYFE&#39;</span><span class="p">:</span> <span class="s1">&#39;IEPA&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;CFE&#39;</span><span class="p">:</span> <span class="s1">&#39;XCBF&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JKT&#39;</span><span class="p">:</span> <span class="s1">&#39;XIDX&#39;</span><span class="p">,</span>
 <span class="p">}</span>
 <span class="n">default_calendar_names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">_default_calendar_factories</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 
@@ -468,10 +563,10 @@
 <span class="sd">    aliases : dict[str -&gt; str]</span>
 <span class="sd">        Calendar name aliases.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">calendars</span><span class="p">,</span> <span class="n">calendar_factories</span><span class="p">,</span> <span class="n">aliases</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">calendars</span><span class="p">,</span> <span class="n">calendar_factories</span><span class="p">,</span> <span class="n">aliases</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_calendars</span> <span class="o">=</span> <span class="n">calendars</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_calendar_factories</span> <span class="o">=</span> <span class="n">calendar_factories</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span> <span class="o">=</span> <span class="n">aliases</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_calendar_factories</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">calendar_factories</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">aliases</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">get_calendar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -492,16 +587,16 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calendars</span><span class="p">[</span><span class="n">canonical_name</span><span class="p">]</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="c"># We haven&#39;t loaded this calendar yet, so make a new one.</span>
+            <span class="c1"># We haven&#39;t loaded this calendar yet, so make a new one.</span>
             <span class="k">pass</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">factory</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calendar_factories</span><span class="p">[</span><span class="n">canonical_name</span><span class="p">]</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="c"># We don&#39;t have a factory registered for this name.  Barf.</span>
+            <span class="c1"># We don&#39;t have a factory registered for this name.  Barf.</span>
             <span class="k">raise</span> <span class="n">InvalidCalendarName</span><span class="p">(</span><span class="n">calendar_name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
 
-        <span class="c"># Cache the calendar for future use.</span>
+        <span class="c1"># Cache the calendar for future use.</span>
         <span class="n">calendar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calendars</span><span class="p">[</span><span class="n">canonical_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">factory</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">calendar</span>
 
@@ -604,8 +699,8 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span> <span class="o">=</span> <span class="n">real_name</span>
 
-        <span class="c"># Ensure that the new alias doesn&#39;t create a cycle, and back it out if</span>
-        <span class="c"># we did.</span>
+        <span class="c1"># Ensure that the new alias doesn&#39;t create a cycle, and back it out if</span>
+        <span class="c1"># we did.</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">resolve_alias</span><span class="p">(</span><span class="n">alias</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">CyclicCalendarAlias</span><span class="p">:</span>
@@ -626,20 +721,18 @@
 <span class="sd">        canonical_name : str</span>
 <span class="sd">            The real name of the calendar to create/return.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c"># Use an OrderedDict as an ordered set so that we can return the order</span>
-        <span class="c"># of aliases in the event of a cycle.</span>
         <span class="n">seen</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="k">while</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">:</span>
             <span class="n">seen</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
             <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 
-            <span class="c"># This is O(N ** 2), but if there&#39;s an alias chain longer than 2,</span>
-            <span class="c"># something strange has happened.</span>
+            <span class="c1"># This is O(N ** 2), but if there&#39;s an alias chain longer than 2,</span>
+            <span class="c1"># something strange has happened.</span>
             <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
                 <span class="n">seen</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
                 <span class="k">raise</span> <span class="n">CyclicCalendarAlias</span><span class="p">(</span>
-                    <span class="n">cycle</span><span class="o">=</span><span class="s">&quot; -&gt; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">)</span>
+                    <span class="n">cycle</span><span class="o">=</span><span class="s2">&quot; -&gt; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">)</span>
                 <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">name</span>
@@ -666,9 +759,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
 
 
-<span class="c"># We maintain a global calendar dispatcher so that users can just do</span>
-<span class="c"># `register_calendar(&#39;my_calendar&#39;, calendar) and then use `get_calendar`</span>
-<span class="c"># without having to thread around a dispatcher.</span>
+<span class="c1"># We maintain a global calendar dispatcher so that users can just do</span>
+<span class="c1"># `register_calendar(&#39;my_calendar&#39;, calendar) and then use `get_calendar`</span>
+<span class="c1"># without having to thread around a dispatcher.</span>
 <span class="n">global_calendar_dispatcher</span> <span class="o">=</span> <span class="n">TradingCalendarDispatcher</span><span class="p">(</span>
     <span class="n">calendars</span><span class="o">=</span><span class="p">{},</span>
     <span class="n">calendar_factories</span><span class="o">=</span><span class="n">_default_calendar_factories</span><span class="p">,</span>
@@ -681,6 +774,7 @@
 <span class="n">register_calendar</span> <span class="o">=</span> <span class="n">global_calendar_dispatcher</span><span class="o">.</span><span class="n">register_calendar</span>
 <span class="n">register_calendar_type</span> <span class="o">=</span> <span class="n">global_calendar_dispatcher</span><span class="o">.</span><span class="n">register_calendar_type</span>
 <span class="n">register_calendar_alias</span> <span class="o">=</span> <span class="n">global_calendar_dispatcher</span><span class="o">.</span><span class="n">register_calendar_alias</span>
+<span class="n">resolve_alias</span> <span class="o">=</span> <span class="n">global_calendar_dispatcher</span><span class="o">.</span><span class="n">resolve_alias</span>
 </pre></div>
 
           </div>

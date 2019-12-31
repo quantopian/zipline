@@ -414,20 +414,20 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.data.data_portal</h1><div class="highlight"><pre>
-<span class="c">#</span>
-<span class="c"># Copyright 2016 Quantopian, Inc.</span>
-<span class="c">#</span>
-<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
-<span class="c"># you may not use this file except in compliance with the License.</span>
-<span class="c"># You may obtain a copy of the License at</span>
-<span class="c">#</span>
-<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
-<span class="c">#</span>
-<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
-<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
-<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
-<span class="c"># See the License for the specific language governing permissions and</span>
-<span class="c"># limitations under the License.</span>
+<span></span><span class="c1">#</span>
+<span class="c1"># Copyright 2016 Quantopian, Inc.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
 <span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">mul</span>
 
 <span class="kn">from</span> <span class="nn">logbook</span> <span class="kn">import</span> <span class="n">Logger</span>
@@ -468,7 +468,7 @@
     <span class="n">DailyHistoryLoader</span><span class="p">,</span>
     <span class="n">MinuteHistoryLoader</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">zipline.data.us_equity_pricing</span> <span class="kn">import</span> <span class="n">NoDataOnDate</span>
+<span class="kn">from</span> <span class="nn">zipline.data.bar_reader</span> <span class="kn">import</span> <span class="n">NoDataOnDate</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.math_utils</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">nansum</span><span class="p">,</span>
     <span class="n">nanmean</span><span class="p">,</span>
@@ -482,29 +482,29 @@
 <span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="n">HistoryWindowStartsBeforeData</span>
 
 
-<span class="n">log</span> <span class="o">=</span> <span class="n">Logger</span><span class="p">(</span><span class="s">&#39;DataPortal&#39;</span><span class="p">)</span>
+<span class="n">log</span> <span class="o">=</span> <span class="n">Logger</span><span class="p">(</span><span class="s1">&#39;DataPortal&#39;</span><span class="p">)</span>
 
 <span class="n">BASE_FIELDS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span>
-    <span class="s">&quot;open&quot;</span><span class="p">,</span>
-    <span class="s">&quot;high&quot;</span><span class="p">,</span>
-    <span class="s">&quot;low&quot;</span><span class="p">,</span>
-    <span class="s">&quot;close&quot;</span><span class="p">,</span>
-    <span class="s">&quot;volume&quot;</span><span class="p">,</span>
-    <span class="s">&quot;price&quot;</span><span class="p">,</span>
-    <span class="s">&quot;contract&quot;</span><span class="p">,</span>
-    <span class="s">&quot;sid&quot;</span><span class="p">,</span>
-    <span class="s">&quot;last_traded&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;open&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;high&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;low&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;close&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;volume&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;price&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;contract&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;sid&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;last_traded&quot;</span><span class="p">,</span>
 <span class="p">])</span>
 
 <span class="n">OHLCV_FIELDS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span>
-    <span class="s">&quot;open&quot;</span><span class="p">,</span> <span class="s">&quot;high&quot;</span><span class="p">,</span> <span class="s">&quot;low&quot;</span><span class="p">,</span> <span class="s">&quot;close&quot;</span><span class="p">,</span> <span class="s">&quot;volume&quot;</span>
+    <span class="s2">&quot;open&quot;</span><span class="p">,</span> <span class="s2">&quot;high&quot;</span><span class="p">,</span> <span class="s2">&quot;low&quot;</span><span class="p">,</span> <span class="s2">&quot;close&quot;</span><span class="p">,</span> <span class="s2">&quot;volume&quot;</span>
 <span class="p">])</span>
 
 <span class="n">OHLCVP_FIELDS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span>
-    <span class="s">&quot;open&quot;</span><span class="p">,</span> <span class="s">&quot;high&quot;</span><span class="p">,</span> <span class="s">&quot;low&quot;</span><span class="p">,</span> <span class="s">&quot;close&quot;</span><span class="p">,</span> <span class="s">&quot;volume&quot;</span><span class="p">,</span> <span class="s">&quot;price&quot;</span>
+    <span class="s2">&quot;open&quot;</span><span class="p">,</span> <span class="s2">&quot;high&quot;</span><span class="p">,</span> <span class="s2">&quot;low&quot;</span><span class="p">,</span> <span class="s2">&quot;close&quot;</span><span class="p">,</span> <span class="s2">&quot;volume&quot;</span><span class="p">,</span> <span class="s2">&quot;price&quot;</span>
 <span class="p">])</span>
 
-<span class="n">HISTORY_FREQUENCIES</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s">&quot;1m&quot;</span><span class="p">,</span> <span class="s">&quot;1d&quot;</span><span class="p">])</span>
+<span class="n">HISTORY_FREQUENCIES</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s2">&quot;1m&quot;</span><span class="p">,</span> <span class="s2">&quot;1d&quot;</span><span class="p">])</span>
 
 <span class="n">DEFAULT_MINUTE_HISTORY_PREFETCH</span> <span class="o">=</span> <span class="mi">1560</span>
 <span class="n">DEFAULT_DAILY_HISTORY_PREFETCH</span> <span class="o">=</span> <span class="mi">40</span>
@@ -554,7 +554,7 @@
 <span class="sd">    last_available_minute : pd.Timestamp, optional</span>
 <span class="sd">        The last minute to make available in minute-level data.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">asset_finder</span><span class="p">,</span>
                  <span class="n">trading_calendar</span><span class="p">,</span>
                  <span class="n">first_trading_day</span><span class="p">,</span>
@@ -574,12 +574,12 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_adjustment_reader</span> <span class="o">=</span> <span class="n">adjustment_reader</span>
 
-        <span class="c"># caches of sid -&gt; adjustment list</span>
+        <span class="c1"># caches of sid -&gt; adjustment list</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_splits_dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_mergers_dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dividends_dict</span> <span class="o">=</span> <span class="p">{}</span>
 
-        <span class="c"># Handle extra sources, like Fetcher.</span>
+        <span class="c1"># Handle extra sources, like Fetcher.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_augmented_sources_map</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_extra_source_df</span> <span class="o">=</span> <span class="bp">None</span>
 
@@ -588,7 +588,7 @@
         <span class="k">if</span> <span class="n">last_available_session</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_last_available_session</span> <span class="o">=</span> <span class="n">last_available_session</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="c"># Infer the last session from the provided readers.</span>
+            <span class="c1"># Infer the last session from the provided readers.</span>
             <span class="n">last_sessions</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="n">reader</span><span class="o">.</span><span class="n">last_available_dt</span>
                 <span class="k">for</span> <span class="n">reader</span> <span class="ow">in</span> <span class="p">[</span><span class="n">equity_daily_reader</span><span class="p">,</span> <span class="n">future_daily_reader</span><span class="p">]</span>
@@ -602,7 +602,7 @@
         <span class="k">if</span> <span class="n">last_available_minute</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_last_available_minute</span> <span class="o">=</span> <span class="n">last_available_minute</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="c"># Infer the last minute from the provided readers.</span>
+            <span class="c1"># Infer the last minute from the provided readers.</span>
             <span class="n">last_minutes</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="n">reader</span><span class="o">.</span><span class="n">last_available_dt</span>
                 <span class="k">for</span> <span class="n">reader</span> <span class="ow">in</span> <span class="p">[</span><span class="n">equity_minute_reader</span><span class="p">,</span> <span class="n">future_minute_reader</span><span class="p">]</span>
@@ -623,7 +623,7 @@
             <span class="n">future_daily_reader</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_roll_finders</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s">&#39;calendar&#39;</span><span class="p">:</span> <span class="n">CalendarRollFinder</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="p">,</span>
+            <span class="s1">&#39;calendar&#39;</span><span class="p">:</span> <span class="n">CalendarRollFinder</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="p">,</span>
                                            <span class="bp">self</span><span class="o">.</span><span class="n">asset_finder</span><span class="p">),</span>
         <span class="p">}</span>
 
@@ -645,7 +645,7 @@
 
         <span class="k">if</span> <span class="n">aligned_future_session_reader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">aligned_session_readers</span><span class="p">[</span><span class="n">Future</span><span class="p">]</span> <span class="o">=</span> <span class="n">aligned_future_session_reader</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_roll_finders</span><span class="p">[</span><span class="s">&#39;volume&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">VolumeRollFinder</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_roll_finders</span><span class="p">[</span><span class="s1">&#39;volume&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">VolumeRollFinder</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">asset_finder</span><span class="p">,</span>
                 <span class="n">aligned_future_session_reader</span><span class="p">,</span>
@@ -671,8 +671,8 @@
         <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_pricing_readers</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s">&#39;minute&#39;</span><span class="p">:</span> <span class="n">_dispatch_minute_reader</span><span class="p">,</span>
-            <span class="s">&#39;daily&#39;</span><span class="p">:</span> <span class="n">_dispatch_session_reader</span><span class="p">,</span>
+            <span class="s1">&#39;minute&#39;</span><span class="p">:</span> <span class="n">_dispatch_minute_reader</span><span class="p">,</span>
+            <span class="s1">&#39;daily&#39;</span><span class="p">:</span> <span class="n">_dispatch_session_reader</span><span class="p">,</span>
         <span class="p">}</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_daily_aggregator</span> <span class="o">=</span> <span class="n">DailyHistoryAggregator</span><span class="p">(</span>
@@ -699,7 +699,7 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span> <span class="o">=</span> <span class="n">first_trading_day</span>
 
-        <span class="c"># Get the first trading minute</span>
+        <span class="c1"># Get the first trading minute</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_minute</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">open_and_close_for_session</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span>
@@ -707,7 +707,7 @@
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
         <span class="p">)</span>
 
-        <span class="c"># Store the locs of the first day and first minute</span>
+        <span class="c1"># Store the locs of the first day and first minute</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day_loc</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">all_sessions</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="bp">None</span>
@@ -719,14 +719,14 @@
 
         <span class="k">if</span> <span class="n">reader</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">reader</span>
-        <span class="k">elif</span> <span class="n">reader</span><span class="o">.</span><span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&#39;minute&#39;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">reader</span><span class="o">.</span><span class="n">data_frequency</span> <span class="o">==</span> <span class="s1">&#39;minute&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">ReindexMinuteBarReader</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="p">,</span>
                 <span class="n">reader</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_first_available_session</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_last_available_session</span>
             <span class="p">)</span>
-        <span class="k">elif</span> <span class="n">reader</span><span class="o">.</span><span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&#39;session&#39;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">reader</span><span class="o">.</span><span class="n">data_frequency</span> <span class="o">==</span> <span class="s1">&#39;session&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">ReindexSessionBarReader</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="p">,</span>
                 <span class="n">reader</span><span class="p">,</span>
@@ -735,7 +735,7 @@
             <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_reindex_extra_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">source_date_index</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">source_date_index</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s">&#39;ffill&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">source_date_index</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;ffill&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DataPortal.handle_extra_source"><a class="viewcode-back" href="../../../appendix.html#zipline.data.data_portal.DataPortal.handle_extra_source">[docs]</a>    <span class="k">def</span> <span class="nf">handle_extra_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_df</span><span class="p">,</span> <span class="n">sim_params</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -747,64 +747,64 @@
         <span class="k">if</span> <span class="n">source_df</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="k">return</span>
 
-        <span class="c"># Normalize all the dates in the df</span>
+        <span class="c1"># Normalize all the dates in the df</span>
         <span class="n">source_df</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">source_df</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
 
-        <span class="c"># source_df&#39;s sid column can either consist of assets we know about</span>
-        <span class="c"># (such as sid(24)) or of assets we don&#39;t know about (such as</span>
-        <span class="c"># palladium).</span>
-        <span class="c">#</span>
-        <span class="c"># In both cases, we break up the dataframe into individual dfs</span>
-        <span class="c"># that only contain a single asset&#39;s information.  ie, if source_df</span>
-        <span class="c"># has data for PALLADIUM and GOLD, we split source_df into two</span>
-        <span class="c"># dataframes, one for each. (same applies if source_df has data for</span>
-        <span class="c"># AAPL and IBM).</span>
-        <span class="c">#</span>
-        <span class="c"># We then take each child df and reindex it to the simulation&#39;s date</span>
-        <span class="c"># range by forward-filling missing values. this makes reads simpler.</span>
-        <span class="c">#</span>
-        <span class="c"># Finally, we store the data. For each column, we store a mapping in</span>
-        <span class="c"># self.augmented_sources_map from the column to a dictionary of</span>
-        <span class="c"># asset -&gt; df.  In other words,</span>
-        <span class="c"># self.augmented_sources_map[&#39;days_to_cover&#39;][&#39;AAPL&#39;] gives us the df</span>
-        <span class="c"># holding that data.</span>
+        <span class="c1"># source_df&#39;s sid column can either consist of assets we know about</span>
+        <span class="c1"># (such as sid(24)) or of assets we don&#39;t know about (such as</span>
+        <span class="c1"># palladium).</span>
+        <span class="c1">#</span>
+        <span class="c1"># In both cases, we break up the dataframe into individual dfs</span>
+        <span class="c1"># that only contain a single asset&#39;s information.  ie, if source_df</span>
+        <span class="c1"># has data for PALLADIUM and GOLD, we split source_df into two</span>
+        <span class="c1"># dataframes, one for each. (same applies if source_df has data for</span>
+        <span class="c1"># AAPL and IBM).</span>
+        <span class="c1">#</span>
+        <span class="c1"># We then take each child df and reindex it to the simulation&#39;s date</span>
+        <span class="c1"># range by forward-filling missing values. this makes reads simpler.</span>
+        <span class="c1">#</span>
+        <span class="c1"># Finally, we store the data. For each column, we store a mapping in</span>
+        <span class="c1"># self.augmented_sources_map from the column to a dictionary of</span>
+        <span class="c1"># asset -&gt; df.  In other words,</span>
+        <span class="c1"># self.augmented_sources_map[&#39;days_to_cover&#39;][&#39;AAPL&#39;] gives us the df</span>
+        <span class="c1"># holding that data.</span>
         <span class="n">source_date_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">sessions_in_range</span><span class="p">(</span>
             <span class="n">sim_params</span><span class="o">.</span><span class="n">start_session</span><span class="p">,</span>
             <span class="n">sim_params</span><span class="o">.</span><span class="n">end_session</span>
         <span class="p">)</span>
 
-        <span class="c"># Break the source_df up into one dataframe per sid.  This lets</span>
-        <span class="c"># us (more easily) calculate accurate start/end dates for each sid,</span>
-        <span class="c"># de-dup data, and expand the data to fit the backtest start/end date.</span>
-        <span class="n">grouped_by_sid</span> <span class="o">=</span> <span class="n">source_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s">&quot;sid&quot;</span><span class="p">])</span>
+        <span class="c1"># Break the source_df up into one dataframe per sid.  This lets</span>
+        <span class="c1"># us (more easily) calculate accurate start/end dates for each sid,</span>
+        <span class="c1"># de-dup data, and expand the data to fit the backtest start/end date.</span>
+        <span class="n">grouped_by_sid</span> <span class="o">=</span> <span class="n">source_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;sid&quot;</span><span class="p">])</span>
         <span class="n">group_names</span> <span class="o">=</span> <span class="n">grouped_by_sid</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
         <span class="n">group_dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">group_name</span> <span class="ow">in</span> <span class="n">group_names</span><span class="p">:</span>
             <span class="n">group_dict</span><span class="p">[</span><span class="n">group_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">grouped_by_sid</span><span class="o">.</span><span class="n">get_group</span><span class="p">(</span><span class="n">group_name</span><span class="p">)</span>
 
-        <span class="c"># This will be the dataframe which we query to get fetcher assets at</span>
-        <span class="c"># any given time. Get&#39;s overwritten every time there&#39;s a new fetcher</span>
-        <span class="c"># call</span>
+        <span class="c1"># This will be the dataframe which we query to get fetcher assets at</span>
+        <span class="c1"># any given time. Get&#39;s overwritten every time there&#39;s a new fetcher</span>
+        <span class="c1"># call</span>
         <span class="n">extra_source_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
 
         <span class="k">for</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">df</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">group_dict</span><span class="p">):</span>
-            <span class="c"># Since we know this df only contains a single sid, we can safely</span>
-            <span class="c"># de-dupe by the index (dt). If minute granularity, will take the</span>
-            <span class="c"># last data point on any given day</span>
+            <span class="c1"># Since we know this df only contains a single sid, we can safely</span>
+            <span class="c1"># de-dupe by the index (dt). If minute granularity, will take the</span>
+            <span class="c1"># last data point on any given day</span>
             <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">last</span><span class="p">()</span>
 
-            <span class="c"># Reindex the dataframe based on the backtest start/end date.</span>
-            <span class="c"># This makes reads easier during the backtest.</span>
+            <span class="c1"># Reindex the dataframe based on the backtest start/end date.</span>
+            <span class="c1"># This makes reads easier during the backtest.</span>
             <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reindex_extra_source</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">source_date_index</span><span class="p">)</span>
 
-            <span class="k">for</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">difference</span><span class="p">([</span><span class="s">&#39;sid&#39;</span><span class="p">]):</span>
+            <span class="k">for</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">difference</span><span class="p">([</span><span class="s1">&#39;sid&#39;</span><span class="p">]):</span>
                 <span class="k">if</span> <span class="n">col_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_augmented_sources_map</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_augmented_sources_map</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
                 <span class="bp">self</span><span class="o">.</span><span class="n">_augmented_sources_map</span><span class="p">[</span><span class="n">col_name</span><span class="p">][</span><span class="n">identifier</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span>
 
-            <span class="c"># Append to extra_source_df the reindexed dataframe for the single</span>
-            <span class="c"># sid</span>
+            <span class="c1"># Append to extra_source_df the reindexed dataframe for the single</span>
+            <span class="c1"># sid</span>
             <span class="n">extra_source_df</span> <span class="o">=</span> <span class="n">extra_source_df</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_extra_source_df</span> <span class="o">=</span> <span class="n">extra_source_df</span></div>
@@ -828,9 +828,9 @@
 <span class="sd">        Internal method that determines if this asset/field combination</span>
 <span class="sd">        represents a fetcher value or a regular OHLCVP lookup.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c"># If we have an extra source with a column called &quot;price&quot;, only look</span>
-        <span class="c"># at it if it&#39;s on something like palladium and not AAPL (since our</span>
-        <span class="c"># own price data always wins when dealing with assets).</span>
+        <span class="c1"># If we have an extra source with a column called &quot;price&quot;, only look</span>
+        <span class="c1"># at it if it&#39;s on something like palladium and not AAPL (since our</span>
+        <span class="c1"># own price data always wins when dealing with assets).</span>
 
         <span class="k">return</span> <span class="ow">not</span> <span class="p">(</span><span class="n">field</span> <span class="ow">in</span> <span class="n">BASE_FIELDS</span> <span class="ow">and</span>
                     <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="p">(</span><span class="n">Asset</span><span class="p">,</span> <span class="n">ContinuousFuture</span><span class="p">))))</span>
@@ -855,35 +855,35 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_fetcher_value</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">BASE_FIELDS</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s">&quot;Invalid column: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">field</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Invalid column: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">field</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="n">dt</span> <span class="o">&lt;</span> <span class="n">asset</span><span class="o">.</span><span class="n">start_date</span> <span class="ow">or</span> \
-                <span class="p">(</span><span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&quot;daily&quot;</span> <span class="ow">and</span>
+                <span class="p">(</span><span class="n">data_frequency</span> <span class="o">==</span> <span class="s2">&quot;daily&quot;</span> <span class="ow">and</span>
                     <span class="n">session_label</span> <span class="o">&gt;</span> <span class="n">asset</span><span class="o">.</span><span class="n">end_date</span><span class="p">)</span> <span class="ow">or</span> \
-                <span class="p">(</span><span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&quot;minute&quot;</span> <span class="ow">and</span>
+                <span class="p">(</span><span class="n">data_frequency</span> <span class="o">==</span> <span class="s2">&quot;minute&quot;</span> <span class="ow">and</span>
                  <span class="n">session_label</span> <span class="o">&gt;</span> <span class="n">asset</span><span class="o">.</span><span class="n">end_date</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s">&quot;volume&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s2">&quot;volume&quot;</span><span class="p">:</span>
                 <span class="k">return</span> <span class="mi">0</span>
-            <span class="k">elif</span> <span class="n">field</span> <span class="o">==</span> <span class="s">&quot;contract&quot;</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="n">field</span> <span class="o">==</span> <span class="s2">&quot;contract&quot;</span><span class="p">:</span>
                 <span class="k">return</span> <span class="bp">None</span>
-            <span class="k">elif</span> <span class="n">field</span> <span class="o">!=</span> <span class="s">&quot;last_traded&quot;</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="n">field</span> <span class="o">!=</span> <span class="s2">&quot;last_traded&quot;</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span>
 
-        <span class="k">if</span> <span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&quot;daily&quot;</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s">&quot;contract&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">data_frequency</span> <span class="o">==</span> <span class="s2">&quot;daily&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s2">&quot;contract&quot;</span><span class="p">:</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_current_contract</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">session_label</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_daily_spot_value</span><span class="p">(</span>
                     <span class="n">asset</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">session_label</span><span class="p">,</span>
                 <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s">&quot;last_traded&quot;</span><span class="p">:</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_last_traded_dt</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="s">&#39;minute&#39;</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">field</span> <span class="o">==</span> <span class="s">&quot;price&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s2">&quot;last_traded&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_last_traded_dt</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="s1">&#39;minute&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">field</span> <span class="o">==</span> <span class="s2">&quot;price&quot;</span><span class="p">:</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_minute_spot_value</span><span class="p">(</span>
-                    <span class="n">asset</span><span class="p">,</span> <span class="s">&quot;close&quot;</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">ffill</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+                    <span class="n">asset</span><span class="p">,</span> <span class="s2">&quot;close&quot;</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">ffill</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
                 <span class="p">)</span>
-            <span class="k">elif</span> <span class="n">field</span> <span class="o">==</span> <span class="s">&quot;contract&quot;</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="n">field</span> <span class="o">==</span> <span class="s2">&quot;contract&quot;</span><span class="p">:</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_current_contract</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_minute_spot_value</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
@@ -919,13 +919,13 @@
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">assets</span><span class="p">,</span> <span class="p">(</span><span class="n">AssetConvertible</span><span class="p">,</span> <span class="n">PricingDataAssociable</span><span class="p">)):</span>
             <span class="n">assets_is_scalar</span> <span class="o">=</span> <span class="bp">True</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="c"># If &#39;assets&#39; was not one of the expected types then it should be</span>
-            <span class="c"># an iterable.</span>
+            <span class="c1"># If &#39;assets&#39; was not one of the expected types then it should be</span>
+            <span class="c1"># an iterable.</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="nb">iter</span><span class="p">(</span><span class="n">assets</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-                    <span class="s">&quot;Unexpected &#39;assets&#39; value of type {}.&quot;</span>
+                    <span class="s2">&quot;Unexpected &#39;assets&#39; value of type {}.&quot;</span>
                     <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">assets</span><span class="p">))</span>
                 <span class="p">)</span>
 
@@ -1016,12 +1016,12 @@
         <span class="n">adjustment_ratios_per_asset</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="k">def</span> <span class="nf">split_adj_factor</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">x</span> <span class="k">if</span> <span class="n">field</span> <span class="o">!=</span> <span class="s">&#39;volume&#39;</span> <span class="k">else</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">x</span>
+            <span class="k">return</span> <span class="n">x</span> <span class="k">if</span> <span class="n">field</span> <span class="o">!=</span> <span class="s1">&#39;volume&#39;</span> <span class="k">else</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">x</span>
 
         <span class="k">for</span> <span class="n">asset</span> <span class="ow">in</span> <span class="n">assets</span><span class="p">:</span>
             <span class="n">adjustments_for_asset</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">split_adjustments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_adjustment_list</span><span class="p">(</span>
-                <span class="n">asset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_splits_dict</span><span class="p">,</span> <span class="s">&quot;SPLITS&quot;</span>
+                <span class="n">asset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_splits_dict</span><span class="p">,</span> <span class="s2">&quot;SPLITS&quot;</span>
             <span class="p">)</span>
             <span class="k">for</span> <span class="n">adj_dt</span><span class="p">,</span> <span class="n">adj</span> <span class="ow">in</span> <span class="n">split_adjustments</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">dt</span> <span class="o">&lt;</span> <span class="n">adj_dt</span> <span class="o">&lt;=</span> <span class="n">perspective_dt</span><span class="p">:</span>
@@ -1029,9 +1029,9 @@
                 <span class="k">elif</span> <span class="n">adj_dt</span> <span class="o">&gt;</span> <span class="n">perspective_dt</span><span class="p">:</span>
                     <span class="k">break</span>
 
-            <span class="k">if</span> <span class="n">field</span> <span class="o">!=</span> <span class="s">&#39;volume&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">field</span> <span class="o">!=</span> <span class="s1">&#39;volume&#39;</span><span class="p">:</span>
                 <span class="n">merger_adjustments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_adjustment_list</span><span class="p">(</span>
-                    <span class="n">asset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mergers_dict</span><span class="p">,</span> <span class="s">&quot;MERGERS&quot;</span>
+                    <span class="n">asset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mergers_dict</span><span class="p">,</span> <span class="s2">&quot;MERGERS&quot;</span>
                 <span class="p">)</span>
                 <span class="k">for</span> <span class="n">adj_dt</span><span class="p">,</span> <span class="n">adj</span> <span class="ow">in</span> <span class="n">merger_adjustments</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">dt</span> <span class="o">&lt;</span> <span class="n">adj_dt</span> <span class="o">&lt;=</span> <span class="n">perspective_dt</span><span class="p">:</span>
@@ -1040,7 +1040,7 @@
                         <span class="k">break</span>
 
                 <span class="n">dividend_adjustments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_adjustment_list</span><span class="p">(</span>
-                    <span class="n">asset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dividends_dict</span><span class="p">,</span> <span class="s">&quot;DIVIDENDS&quot;</span><span class="p">,</span>
+                    <span class="n">asset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dividends_dict</span><span class="p">,</span> <span class="s2">&quot;DIVIDENDS&quot;</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="k">for</span> <span class="n">adj_dt</span><span class="p">,</span> <span class="n">adj</span> <span class="ow">in</span> <span class="n">dividend_adjustments</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">dt</span> <span class="o">&lt;</span> <span class="n">adj_dt</span> <span class="o">&lt;=</span> <span class="n">perspective_dt</span><span class="p">:</span>
@@ -1087,9 +1087,9 @@
 <span class="sd">            is &#39;last_traded&#39; the value will be a Timestamp.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">spot_value</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="c"># if this a fetcher field, we want to use perspective_dt (not dt)</span>
-            <span class="c"># because we want the new value as of midnight (fetcher only works</span>
-            <span class="c"># on a daily basis, all timestamps are on midnight)</span>
+            <span class="c1"># if this a fetcher field, we want to use perspective_dt (not dt)</span>
+            <span class="c1"># because we want the new value as of midnight (fetcher only works</span>
+            <span class="c1"># on a daily basis, all timestamps are on midnight)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_extra_source</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span>
                                      <span class="bp">self</span><span class="o">.</span><span class="n">_augmented_sources_map</span><span class="p">):</span>
                 <span class="n">spot_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_spot_value</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">perspective_dt</span><span class="p">,</span>
@@ -1105,36 +1105,36 @@
         <span class="k">return</span> <span class="n">spot_value</span></div>
 
     <span class="k">def</span> <span class="nf">_get_minute_spot_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">column</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">ffill</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
-        <span class="n">reader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_pricing_reader</span><span class="p">(</span><span class="s">&#39;minute&#39;</span><span class="p">)</span>
+        <span class="n">reader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_pricing_reader</span><span class="p">(</span><span class="s1">&#39;minute&#39;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">ffill</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="n">asset</span><span class="o">.</span><span class="n">sid</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">column</span><span class="p">)</span>
             <span class="k">except</span> <span class="n">NoDataOnDate</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">column</span> <span class="o">!=</span> <span class="s">&#39;volume&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">column</span> <span class="o">!=</span> <span class="s1">&#39;volume&#39;</span><span class="p">:</span>
                     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">return</span> <span class="mi">0</span>
 
-        <span class="c"># At this point the pairing of column=&#39;close&#39; and ffill=True is</span>
-        <span class="c"># assumed.</span>
+        <span class="c1"># At this point the pairing of column=&#39;close&#39; and ffill=True is</span>
+        <span class="c1"># assumed.</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="c"># Optimize the best case scenario of a liquid asset</span>
-            <span class="c"># returning a valid price.</span>
+            <span class="c1"># Optimize the best case scenario of a liquid asset</span>
+            <span class="c1"># returning a valid price.</span>
             <span class="n">result</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="n">asset</span><span class="o">.</span><span class="n">sid</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">column</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
                 <span class="k">return</span> <span class="n">result</span>
         <span class="k">except</span> <span class="n">NoDataOnDate</span><span class="p">:</span>
-            <span class="c"># Handling of no data for the desired date is done by the</span>
-            <span class="c"># forward filling logic.</span>
-            <span class="c"># The last trade may occur on a previous day.</span>
+            <span class="c1"># Handling of no data for the desired date is done by the</span>
+            <span class="c1"># forward filling logic.</span>
+            <span class="c1"># The last trade may occur on a previous day.</span>
             <span class="k">pass</span>
-        <span class="c"># If forward filling, we want the last minute with values (up to</span>
-        <span class="c"># and including dt).</span>
+        <span class="c1"># If forward filling, we want the last minute with values (up to</span>
+        <span class="c1"># and including dt).</span>
         <span class="n">query_dt</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">get_last_traded_dt</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">query_dt</span><span class="p">):</span>
-            <span class="c"># no last traded dt, bail</span>
+            <span class="c1"># no last traded dt, bail</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
 
         <span class="n">result</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="n">asset</span><span class="o">.</span><span class="n">sid</span><span class="p">,</span> <span class="n">query_dt</span><span class="p">,</span> <span class="n">column</span><span class="p">)</span>
@@ -1142,16 +1142,16 @@
         <span class="k">if</span> <span class="p">(</span><span class="n">dt</span> <span class="o">==</span> <span class="n">query_dt</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">date</span><span class="p">()</span> <span class="o">==</span> <span class="n">query_dt</span><span class="o">.</span><span class="n">date</span><span class="p">()):</span>
             <span class="k">return</span> <span class="n">result</span>
 
-        <span class="c"># the value we found came from a different day, so we have to</span>
-        <span class="c"># adjust the data if there are any adjustments on that day barrier</span>
+        <span class="c1"># the value we found came from a different day, so we have to</span>
+        <span class="c1"># adjust the data if there are any adjustments on that day barrier</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_adjusted_value</span><span class="p">(</span>
             <span class="n">asset</span><span class="p">,</span> <span class="n">column</span><span class="p">,</span> <span class="n">query_dt</span><span class="p">,</span>
-            <span class="n">dt</span><span class="p">,</span> <span class="s">&quot;minute&quot;</span><span class="p">,</span> <span class="n">spot_value</span><span class="o">=</span><span class="n">result</span>
+            <span class="n">dt</span><span class="p">,</span> <span class="s2">&quot;minute&quot;</span><span class="p">,</span> <span class="n">spot_value</span><span class="o">=</span><span class="n">result</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_get_daily_spot_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">column</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
-        <span class="n">reader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_pricing_reader</span><span class="p">(</span><span class="s">&#39;daily&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">column</span> <span class="o">==</span> <span class="s">&quot;last_traded&quot;</span><span class="p">:</span>
+        <span class="n">reader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_pricing_reader</span><span class="p">(</span><span class="s1">&#39;daily&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">column</span> <span class="o">==</span> <span class="s2">&quot;last_traded&quot;</span><span class="p">:</span>
             <span class="n">last_traded_dt</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">get_last_traded_dt</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">isnull</span><span class="p">(</span><span class="n">last_traded_dt</span><span class="p">):</span>
@@ -1159,25 +1159,25 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">last_traded_dt</span>
         <span class="k">elif</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">OHLCV_FIELDS</span><span class="p">:</span>
-            <span class="c"># don&#39;t forward fill</span>
+            <span class="c1"># don&#39;t forward fill</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">column</span><span class="p">)</span>
             <span class="k">except</span> <span class="n">NoDataOnDate</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-        <span class="k">elif</span> <span class="n">column</span> <span class="o">==</span> <span class="s">&quot;price&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">column</span> <span class="o">==</span> <span class="s2">&quot;price&quot;</span><span class="p">:</span>
             <span class="n">found_dt</span> <span class="o">=</span> <span class="n">dt</span>
             <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">value</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span>
-                        <span class="n">asset</span><span class="p">,</span> <span class="n">found_dt</span><span class="p">,</span> <span class="s">&quot;close&quot;</span>
+                        <span class="n">asset</span><span class="p">,</span> <span class="n">found_dt</span><span class="p">,</span> <span class="s2">&quot;close&quot;</span>
                     <span class="p">)</span>
                     <span class="k">if</span> <span class="ow">not</span> <span class="n">isnull</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
                         <span class="k">if</span> <span class="n">dt</span> <span class="o">==</span> <span class="n">found_dt</span><span class="p">:</span>
                             <span class="k">return</span> <span class="n">value</span>
                         <span class="k">else</span><span class="p">:</span>
-                            <span class="c"># adjust if needed</span>
+                            <span class="c1"># adjust if needed</span>
                             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_adjusted_value</span><span class="p">(</span>
-                                <span class="n">asset</span><span class="p">,</span> <span class="n">column</span><span class="p">,</span> <span class="n">found_dt</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="s">&quot;minute&quot;</span><span class="p">,</span>
+                                <span class="n">asset</span><span class="p">,</span> <span class="n">column</span><span class="p">,</span> <span class="n">found_dt</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="s2">&quot;minute&quot;</span><span class="p">,</span>
                                 <span class="n">spot_value</span><span class="o">=</span><span class="n">value</span>
                             <span class="p">)</span>
                     <span class="k">else</span><span class="p">:</span>
@@ -1233,11 +1233,11 @@
                                        <span class="n">end_dt</span><span class="p">,</span>
                                        <span class="n">field_to_use</span><span class="p">,</span>
                                        <span class="n">data_frequency</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&#39;daily&#39;</span><span class="p">:</span>
-            <span class="c"># two cases where we use daily data for the whole range:</span>
-            <span class="c"># 1) the history window ends at midnight utc.</span>
-            <span class="c"># 2) the last desired day of the window is after the</span>
-            <span class="c"># last trading day, use daily data for the whole range.</span>
+        <span class="k">if</span> <span class="n">data_frequency</span> <span class="o">==</span> <span class="s1">&#39;daily&#39;</span><span class="p">:</span>
+            <span class="c1"># two cases where we use daily data for the whole range:</span>
+            <span class="c1"># 1) the history window ends at midnight utc.</span>
+            <span class="c1"># 2) the last desired day of the window is after the</span>
+            <span class="c1"># last trading day, use daily data for the whole range.</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_daily_window_data</span><span class="p">(</span>
                 <span class="n">assets</span><span class="p">,</span>
                 <span class="n">field_to_use</span><span class="p">,</span>
@@ -1245,34 +1245,34 @@
                 <span class="n">extra_slot</span><span class="o">=</span><span class="bp">False</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="c"># minute mode, requesting &#39;1d&#39;</span>
+            <span class="c1"># minute mode, requesting &#39;1d&#39;</span>
             <span class="n">daily_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_daily_window_data</span><span class="p">(</span>
                 <span class="n">assets</span><span class="p">,</span>
                 <span class="n">field_to_use</span><span class="p">,</span>
                 <span class="n">days_for_window</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
             <span class="p">)</span>
 
-            <span class="k">if</span> <span class="n">field_to_use</span> <span class="o">==</span> <span class="s">&#39;open&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">field_to_use</span> <span class="o">==</span> <span class="s1">&#39;open&#39;</span><span class="p">:</span>
                 <span class="n">minute_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_daily_aggregator</span><span class="o">.</span><span class="n">opens</span><span class="p">(</span>
                     <span class="n">assets</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">field_to_use</span> <span class="o">==</span> <span class="s">&#39;high&#39;</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="n">field_to_use</span> <span class="o">==</span> <span class="s1">&#39;high&#39;</span><span class="p">:</span>
                 <span class="n">minute_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_daily_aggregator</span><span class="o">.</span><span class="n">highs</span><span class="p">(</span>
                     <span class="n">assets</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">field_to_use</span> <span class="o">==</span> <span class="s">&#39;low&#39;</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="n">field_to_use</span> <span class="o">==</span> <span class="s1">&#39;low&#39;</span><span class="p">:</span>
                 <span class="n">minute_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_daily_aggregator</span><span class="o">.</span><span class="n">lows</span><span class="p">(</span>
                     <span class="n">assets</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">field_to_use</span> <span class="o">==</span> <span class="s">&#39;close&#39;</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="n">field_to_use</span> <span class="o">==</span> <span class="s1">&#39;close&#39;</span><span class="p">:</span>
                 <span class="n">minute_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_daily_aggregator</span><span class="o">.</span><span class="n">closes</span><span class="p">(</span>
                     <span class="n">assets</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">field_to_use</span> <span class="o">==</span> <span class="s">&#39;volume&#39;</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="n">field_to_use</span> <span class="o">==</span> <span class="s1">&#39;volume&#39;</span><span class="p">:</span>
                 <span class="n">minute_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_daily_aggregator</span><span class="o">.</span><span class="n">volumes</span><span class="p">(</span>
                     <span class="n">assets</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">field_to_use</span> <span class="o">==</span> <span class="s">&#39;sid&#39;</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="n">field_to_use</span> <span class="o">==</span> <span class="s1">&#39;sid&#39;</span><span class="p">:</span>
                 <span class="n">minute_value</span> <span class="o">=</span> <span class="p">[</span>
                     <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_current_contract</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">))</span>
                     <span class="k">for</span> <span class="n">asset</span> <span class="ow">in</span> <span class="n">assets</span><span class="p">]</span>
 
-            <span class="c"># append the partial day.</span>
+            <span class="c1"># append the partial day.</span>
             <span class="n">daily_data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">minute_value</span>
 
             <span class="k">return</span> <span class="n">daily_data</span>
@@ -1305,7 +1305,7 @@
 <span class="sd">        Internal method that returns a dataframe containing history bars</span>
 <span class="sd">        of minute frequency for the given sids.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c"># get all the minutes for this window</span>
+        <span class="c1"># get all the minutes for this window</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">minutes_for_window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">minutes_window</span><span class="p">(</span>
                 <span class="n">end_dt</span><span class="p">,</span> <span class="o">-</span><span class="n">bar_count</span>
@@ -1366,49 +1366,49 @@
 <span class="sd">        -------</span>
 <span class="sd">        A dataframe containing the requested data.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">OHLCVP_FIELDS</span> <span class="ow">and</span> <span class="n">field</span> <span class="o">!=</span> <span class="s">&#39;sid&#39;</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Invalid field: {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">field</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">OHLCVP_FIELDS</span> <span class="ow">and</span> <span class="n">field</span> <span class="o">!=</span> <span class="s1">&#39;sid&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid field: {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">field</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="n">bar_count</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s">&quot;bar_count must be &gt;= 1, but got {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bar_count</span><span class="p">)</span>
+                <span class="s2">&quot;bar_count must be &gt;= 1, but got {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bar_count</span><span class="p">)</span>
             <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">frequency</span> <span class="o">==</span> <span class="s">&quot;1d&quot;</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s">&quot;price&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">frequency</span> <span class="o">==</span> <span class="s2">&quot;1d&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s2">&quot;price&quot;</span><span class="p">:</span>
                 <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_history_daily_window</span><span class="p">(</span><span class="n">assets</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">,</span> <span class="n">bar_count</span><span class="p">,</span>
-                                                    <span class="s">&quot;close&quot;</span><span class="p">,</span> <span class="n">data_frequency</span><span class="p">)</span>
+                                                    <span class="s2">&quot;close&quot;</span><span class="p">,</span> <span class="n">data_frequency</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_history_daily_window</span><span class="p">(</span><span class="n">assets</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">,</span> <span class="n">bar_count</span><span class="p">,</span>
                                                     <span class="n">field</span><span class="p">,</span> <span class="n">data_frequency</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">frequency</span> <span class="o">==</span> <span class="s">&quot;1m&quot;</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s">&quot;price&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">frequency</span> <span class="o">==</span> <span class="s2">&quot;1m&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s2">&quot;price&quot;</span><span class="p">:</span>
                 <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_history_minute_window</span><span class="p">(</span><span class="n">assets</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">,</span> <span class="n">bar_count</span><span class="p">,</span>
-                                                     <span class="s">&quot;close&quot;</span><span class="p">)</span>
+                                                     <span class="s2">&quot;close&quot;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_history_minute_window</span><span class="p">(</span><span class="n">assets</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">,</span> <span class="n">bar_count</span><span class="p">,</span>
                                                      <span class="n">field</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Invalid frequency: {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">frequency</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid frequency: {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">frequency</span><span class="p">))</span>
 
-        <span class="c"># forward-fill price</span>
-        <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s">&quot;price&quot;</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">frequency</span> <span class="o">==</span> <span class="s">&quot;1m&quot;</span><span class="p">:</span>
-                <span class="n">ffill_data_frequency</span> <span class="o">=</span> <span class="s">&#39;minute&#39;</span>
-            <span class="k">elif</span> <span class="n">frequency</span> <span class="o">==</span> <span class="s">&quot;1d&quot;</span><span class="p">:</span>
-                <span class="n">ffill_data_frequency</span> <span class="o">=</span> <span class="s">&#39;daily&#39;</span>
+        <span class="c1"># forward-fill price</span>
+        <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s2">&quot;price&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">frequency</span> <span class="o">==</span> <span class="s2">&quot;1m&quot;</span><span class="p">:</span>
+                <span class="n">ffill_data_frequency</span> <span class="o">=</span> <span class="s1">&#39;minute&#39;</span>
+            <span class="k">elif</span> <span class="n">frequency</span> <span class="o">==</span> <span class="s2">&quot;1d&quot;</span><span class="p">:</span>
+                <span class="n">ffill_data_frequency</span> <span class="o">=</span> <span class="s1">&#39;daily&#39;</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
-                    <span class="s">&quot;Only 1d and 1m are supported for forward-filling.&quot;</span><span class="p">)</span>
+                    <span class="s2">&quot;Only 1d and 1m are supported for forward-filling.&quot;</span><span class="p">)</span>
 
             <span class="n">assets_with_leading_nan</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">isnull</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]))[</span><span class="mi">0</span><span class="p">]</span>
 
             <span class="n">history_start</span><span class="p">,</span> <span class="n">history_end</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
-            <span class="k">if</span> <span class="n">ffill_data_frequency</span> <span class="o">==</span> <span class="s">&#39;daily&#39;</span> <span class="ow">and</span> <span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&#39;minute&#39;</span><span class="p">:</span>
-                <span class="c"># When we&#39;re looking for a daily value, but we haven&#39;t seen any</span>
-                <span class="c"># volume in today&#39;s minute bars yet, we need to use the</span>
-                <span class="c"># previous day&#39;s ffilled daily price. Using today&#39;s daily price</span>
-                <span class="c"># could yield a value from later today.</span>
+            <span class="k">if</span> <span class="n">ffill_data_frequency</span> <span class="o">==</span> <span class="s1">&#39;daily&#39;</span> <span class="ow">and</span> <span class="n">data_frequency</span> <span class="o">==</span> <span class="s1">&#39;minute&#39;</span><span class="p">:</span>
+                <span class="c1"># When we&#39;re looking for a daily value, but we haven&#39;t seen any</span>
+                <span class="c1"># volume in today&#39;s minute bars yet, we need to use the</span>
+                <span class="c1"># previous day&#39;s ffilled daily price. Using today&#39;s daily price</span>
+                <span class="c1"># could yield a value from later today.</span>
                 <span class="n">history_start</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">day</span>
 
             <span class="n">initial_values</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1431,21 +1431,21 @@
                         <span class="p">)</span>
                     <span class="p">)</span>
 
-            <span class="c"># Set leading values for assets that were missing data, then ffill.</span>
-            <span class="n">df</span><span class="o">.</span><span class="n">ix</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">assets_with_leading_nan</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="c1"># Set leading values for assets that were missing data, then ffill.</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">assets_with_leading_nan</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
                 <span class="n">initial_values</span><span class="p">,</span>
                 <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span>
             <span class="p">)</span>
-            <span class="n">df</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s">&#39;ffill&#39;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;ffill&#39;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
-            <span class="c"># forward-filling will incorrectly produce values after the end of</span>
-            <span class="c"># an asset&#39;s lifetime, so write NaNs back over the asset&#39;s</span>
-            <span class="c"># end_date.</span>
+            <span class="c1"># forward-filling will incorrectly produce values after the end of</span>
+            <span class="c1"># an asset&#39;s lifetime, so write NaNs back over the asset&#39;s</span>
+            <span class="c1"># end_date.</span>
             <span class="n">normed_index</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
             <span class="k">for</span> <span class="n">asset</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">history_end</span> <span class="o">&gt;=</span> <span class="n">asset</span><span class="o">.</span><span class="n">end_date</span><span class="p">:</span>
-                    <span class="c"># if the window extends past the asset&#39;s end date, set</span>
-                    <span class="c"># all post-end-date values to NaN in that asset&#39;s series</span>
+                    <span class="c1"># if the window extends past the asset&#39;s end date, set</span>
+                    <span class="c1"># all post-end-date values to NaN in that asset&#39;s series</span>
                     <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">normed_index</span> <span class="o">&gt;</span> <span class="n">asset</span><span class="o">.</span><span class="n">end_date</span><span class="p">,</span> <span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="n">nan</span>
         <span class="k">return</span> <span class="n">df</span></div>
 
@@ -1515,15 +1515,15 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">bar_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">days_in_window</span><span class="p">)</span>
-        <span class="c"># create an np.array of size bar_count</span>
-        <span class="n">dtype</span> <span class="o">=</span> <span class="n">float64</span> <span class="k">if</span> <span class="n">field</span> <span class="o">!=</span> <span class="s">&#39;sid&#39;</span> <span class="k">else</span> <span class="n">int64</span>
+        <span class="c1"># create an np.array of size bar_count</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">float64</span> <span class="k">if</span> <span class="n">field</span> <span class="o">!=</span> <span class="s1">&#39;sid&#39;</span> <span class="k">else</span> <span class="n">int64</span>
         <span class="k">if</span> <span class="n">extra_slot</span><span class="p">:</span>
             <span class="n">return_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">bar_count</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">assets</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">return_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">bar_count</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">assets</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">field</span> <span class="o">!=</span> <span class="s">&quot;volume&quot;</span><span class="p">:</span>
-            <span class="c"># volumes default to 0, so we don&#39;t need to put NaNs in the array</span>
+        <span class="k">if</span> <span class="n">field</span> <span class="o">!=</span> <span class="s2">&quot;volume&quot;</span><span class="p">:</span>
+            <span class="c1"># volumes default to 0, so we don&#39;t need to put NaNs in the array</span>
             <span class="n">return_array</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">NAN</span>
 
         <span class="k">if</span> <span class="n">bar_count</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
@@ -1591,12 +1591,12 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adjustment_reader</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">assets</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">[]</span>
 
-        <span class="c"># convert dt to # of seconds since epoch, because that&#39;s what we use</span>
-        <span class="c"># in the adjustments db</span>
+        <span class="c1"># convert dt to # of seconds since epoch, because that&#39;s what we use</span>
+        <span class="c1"># in the adjustments db</span>
         <span class="n">seconds</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">value</span> <span class="o">/</span> <span class="mf">1e9</span><span class="p">)</span>
 
         <span class="n">splits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adjustment_reader</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-            <span class="s">&quot;SELECT sid, ratio FROM SPLITS WHERE effective_date = ?&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;SELECT sid, ratio FROM SPLITS WHERE effective_date = ?&quot;</span><span class="p">,</span>
             <span class="p">(</span><span class="n">seconds</span><span class="p">,))</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
 
         <span class="n">splits</span> <span class="o">=</span> <span class="p">[</span><span class="n">split</span> <span class="k">for</span> <span class="n">split</span> <span class="ow">in</span> <span class="n">splits</span> <span class="k">if</span> <span class="n">split</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">assets</span><span class="p">]</span>
@@ -1634,20 +1634,20 @@
         <span class="n">end_dt</span> <span class="o">=</span> <span class="n">trading_days</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">/</span> <span class="mf">1e9</span>
 
         <span class="n">dividends</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adjustment_reader</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-            <span class="s">&quot;SELECT * FROM stock_dividend_payouts WHERE sid = ? AND &quot;</span>
-            <span class="s">&quot;ex_date &gt; ? AND pay_date &lt; ?&quot;</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">sid</span><span class="p">),</span> <span class="n">start_dt</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">,))</span><span class="o">.</span>\
+            <span class="s2">&quot;SELECT * FROM stock_dividend_payouts WHERE sid = ? AND &quot;</span>
+            <span class="s2">&quot;ex_date &gt; ? AND pay_date &lt; ?&quot;</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">sid</span><span class="p">),</span> <span class="n">start_dt</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">,))</span><span class="o">.</span>\
             <span class="n">fetchall</span><span class="p">()</span>
 
         <span class="n">dividend_info</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">dividend_tuple</span> <span class="ow">in</span> <span class="n">dividends</span><span class="p">:</span>
             <span class="n">dividend_info</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
-                <span class="s">&quot;declared_date&quot;</span><span class="p">:</span> <span class="n">dividend_tuple</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-                <span class="s">&quot;ex_date&quot;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">dividend_tuple</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="s">&quot;s&quot;</span><span class="p">),</span>
-                <span class="s">&quot;pay_date&quot;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">dividend_tuple</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="s">&quot;s&quot;</span><span class="p">),</span>
-                <span class="s">&quot;payment_sid&quot;</span><span class="p">:</span> <span class="n">dividend_tuple</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
-                <span class="s">&quot;ratio&quot;</span><span class="p">:</span> <span class="n">dividend_tuple</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
-                <span class="s">&quot;record_date&quot;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">dividend_tuple</span><span class="p">[</span><span class="mi">6</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="s">&quot;s&quot;</span><span class="p">),</span>
-                <span class="s">&quot;sid&quot;</span><span class="p">:</span> <span class="n">dividend_tuple</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span>
+                <span class="s2">&quot;declared_date&quot;</span><span class="p">:</span> <span class="n">dividend_tuple</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="s2">&quot;ex_date&quot;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">dividend_tuple</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;s&quot;</span><span class="p">),</span>
+                <span class="s2">&quot;pay_date&quot;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">dividend_tuple</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;s&quot;</span><span class="p">),</span>
+                <span class="s2">&quot;payment_sid&quot;</span><span class="p">:</span> <span class="n">dividend_tuple</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+                <span class="s2">&quot;ratio&quot;</span><span class="p">:</span> <span class="n">dividend_tuple</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+                <span class="s2">&quot;record_date&quot;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">dividend_tuple</span><span class="p">[</span><span class="mi">6</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;s&quot;</span><span class="p">),</span>
+                <span class="s2">&quot;sid&quot;</span><span class="p">:</span> <span class="n">dividend_tuple</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span>
             <span class="p">})</span>
 
         <span class="k">return</span> <span class="n">dividend_info</span></div>
@@ -1666,15 +1666,15 @@
 <span class="sd">        -------</span>
 <span class="sd">        list: a list of Asset objects.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c"># return a list of assets for the current date, as defined by the</span>
-        <span class="c"># fetcher source</span>
+        <span class="c1"># return a list of assets for the current date, as defined by the</span>
+        <span class="c1"># fetcher source</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extra_source_df</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">[]</span>
 
         <span class="n">day</span> <span class="o">=</span> <span class="n">normalize_date</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">day</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extra_source_df</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
-            <span class="n">assets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extra_source_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">day</span><span class="p">][</span><span class="s">&#39;sid&#39;</span><span class="p">]</span>
+            <span class="n">assets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extra_source_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">day</span><span class="p">][</span><span class="s1">&#39;sid&#39;</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">[]</span>
 
@@ -1683,51 +1683,51 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">[</span><span class="n">assets</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">assets</span><span class="p">,</span> <span class="n">Asset</span><span class="p">)</span> <span class="k">else</span> <span class="p">[]</span></div>
 
-    <span class="c"># cache size picked somewhat loosely.  this code exists purely to</span>
-    <span class="c"># handle deprecated API.</span>
+    <span class="c1"># cache size picked somewhat loosely.  this code exists purely to</span>
+    <span class="c1"># handle deprecated API.</span>
     <span class="nd">@weak_lru_cache</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">_get_minute_count_for_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ending_minute</span><span class="p">,</span> <span class="n">days_count</span><span class="p">):</span>
-        <span class="c"># This function works in three steps.</span>
-        <span class="c"># Step 1. Count the minutes from ``ending_minute`` to the start of its</span>
-        <span class="c">#         session.</span>
-        <span class="c"># Step 2. Count the minutes from the prior ``days_count - 1`` sessions.</span>
-        <span class="c"># Step 3. Return the sum of the results from steps (1) and (2).</span>
+        <span class="c1"># This function works in three steps.</span>
+        <span class="c1"># Step 1. Count the minutes from ``ending_minute`` to the start of its</span>
+        <span class="c1">#         session.</span>
+        <span class="c1"># Step 2. Count the minutes from the prior ``days_count - 1`` sessions.</span>
+        <span class="c1"># Step 3. Return the sum of the results from steps (1) and (2).</span>
 
-        <span class="c"># Example (NYSE Calendar)</span>
-        <span class="c">#     ending_minute = 2016-12-28 9:40 AM US/Eastern</span>
-        <span class="c">#     days_count = 3</span>
-        <span class="c"># Step 1. Calculate that there are 10 minutes in the ending session.</span>
-        <span class="c"># Step 2. Calculate that there are 390 + 210 = 600 minutes in the prior</span>
-        <span class="c">#         two sessions. (Prior sessions are 2015-12-23 and 2015-12-24.)</span>
-        <span class="c">#         2015-12-24 is a half day.</span>
-        <span class="c"># Step 3. Return 600 + 10 = 610.</span>
+        <span class="c1"># Example (NYSE Calendar)</span>
+        <span class="c1">#     ending_minute = 2016-12-28 9:40 AM US/Eastern</span>
+        <span class="c1">#     days_count = 3</span>
+        <span class="c1"># Step 1. Calculate that there are 10 minutes in the ending session.</span>
+        <span class="c1"># Step 2. Calculate that there are 390 + 210 = 600 minutes in the prior</span>
+        <span class="c1">#         two sessions. (Prior sessions are 2015-12-23 and 2015-12-24.)</span>
+        <span class="c1">#         2015-12-24 is a half day.</span>
+        <span class="c1"># Step 3. Return 600 + 10 = 610.</span>
 
         <span class="n">cal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span>
 
         <span class="n">ending_session</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">minute_to_session_label</span><span class="p">(</span>
             <span class="n">ending_minute</span><span class="p">,</span>
-            <span class="n">direction</span><span class="o">=</span><span class="s">&quot;none&quot;</span><span class="p">,</span>  <span class="c"># It&#39;s an error to pass a non-trading minute.</span>
+            <span class="n">direction</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span>  <span class="c1"># It&#39;s an error to pass a non-trading minute.</span>
         <span class="p">)</span>
 
-        <span class="c"># Assume that calendar days are always full of contiguous minutes,</span>
-        <span class="c"># which means we can just take 1 + (number of minutes between the last</span>
-        <span class="c"># minute and the start of the session). We add one so that we include</span>
-        <span class="c"># the ending minute in the total.</span>
+        <span class="c1"># Assume that calendar days are always full of contiguous minutes,</span>
+        <span class="c1"># which means we can just take 1 + (number of minutes between the last</span>
+        <span class="c1"># minute and the start of the session). We add one so that we include</span>
+        <span class="c1"># the ending minute in the total.</span>
         <span class="n">ending_session_minute_count</span> <span class="o">=</span> <span class="n">timedelta_to_integral_minutes</span><span class="p">(</span>
             <span class="n">ending_minute</span> <span class="o">-</span> <span class="n">cal</span><span class="o">.</span><span class="n">open_and_close_for_session</span><span class="p">(</span><span class="n">ending_session</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
 
         <span class="k">if</span> <span class="n">days_count</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="c"># We just need sessions for the active day.</span>
+            <span class="c1"># We just need sessions for the active day.</span>
             <span class="k">return</span> <span class="n">ending_session_minute_count</span>
 
-        <span class="c"># XXX: We&#39;re subtracting 2 here to account for two offsets:</span>
-        <span class="c"># 1. We only want ``days_count - 1`` sessions, since we&#39;ve already</span>
-        <span class="c">#    accounted for the ending session above.</span>
-        <span class="c"># 2. The API of ``sessions_window`` is to return one more session than</span>
-        <span class="c">#    the requested number.  I don&#39;t think any consumers actually want</span>
-        <span class="c">#    that behavior, but it&#39;s the tested and documented behavior right</span>
-        <span class="c">#    now, so we have to request one less session than we actually want.</span>
+        <span class="c1"># XXX: We&#39;re subtracting 2 here to account for two offsets:</span>
+        <span class="c1"># 1. We only want ``days_count - 1`` sessions, since we&#39;ve already</span>
+        <span class="c1">#    accounted for the ending session above.</span>
+        <span class="c1"># 2. The API of ``sessions_window`` is to return one more session than</span>
+        <span class="c1">#    the requested number.  I don&#39;t think any consumers actually want</span>
+        <span class="c1">#    that behavior, but it&#39;s the tested and documented behavior right</span>
+        <span class="c1">#    now, so we have to request one less session than we actually want.</span>
         <span class="n">completed_sessions</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">sessions_window</span><span class="p">(</span>
             <span class="n">cal</span><span class="o">.</span><span class="n">previous_session_label</span><span class="p">(</span><span class="n">ending_session</span><span class="p">),</span>
             <span class="mi">2</span> <span class="o">-</span> <span class="n">days_count</span><span class="p">,</span>
@@ -1743,15 +1743,15 @@
 
     <span class="k">def</span> <span class="nf">get_simple_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">transform_name</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">data_frequency</span><span class="p">,</span>
                              <span class="n">bars</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">transform_name</span> <span class="o">==</span> <span class="s">&quot;returns&quot;</span><span class="p">:</span>
-            <span class="c"># returns is always calculated over the last 2 days, regardless</span>
-            <span class="c"># of the simulation&#39;s data frequency.</span>
+        <span class="k">if</span> <span class="n">transform_name</span> <span class="o">==</span> <span class="s2">&quot;returns&quot;</span><span class="p">:</span>
+            <span class="c1"># returns is always calculated over the last 2 days, regardless</span>
+            <span class="c1"># of the simulation&#39;s data frequency.</span>
             <span class="n">hst</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_history_window</span><span class="p">(</span>
                 <span class="p">[</span><span class="n">asset</span><span class="p">],</span>
                 <span class="n">dt</span><span class="p">,</span>
                 <span class="mi">2</span><span class="p">,</span>
-                <span class="s">&quot;1d&quot;</span><span class="p">,</span>
-                <span class="s">&quot;price&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;1d&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;price&quot;</span><span class="p">,</span>
                 <span class="n">data_frequency</span><span class="p">,</span>
                 <span class="n">ffill</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
             <span class="p">)[</span><span class="n">asset</span><span class="p">]</span>
@@ -1759,15 +1759,15 @@
             <span class="k">return</span> <span class="p">(</span><span class="n">hst</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">hst</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">hst</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="n">bars</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;bars cannot be None!&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;bars cannot be None!&quot;</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&quot;minute&quot;</span><span class="p">:</span>
-            <span class="n">freq_str</span> <span class="o">=</span> <span class="s">&quot;1m&quot;</span>
+        <span class="k">if</span> <span class="n">data_frequency</span> <span class="o">==</span> <span class="s2">&quot;minute&quot;</span><span class="p">:</span>
+            <span class="n">freq_str</span> <span class="o">=</span> <span class="s2">&quot;1m&quot;</span>
             <span class="n">calculated_bar_count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_minute_count_for_transform</span><span class="p">(</span>
                 <span class="n">dt</span><span class="p">,</span> <span class="n">bars</span>
             <span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">freq_str</span> <span class="o">=</span> <span class="s">&quot;1d&quot;</span>
+            <span class="n">freq_str</span> <span class="o">=</span> <span class="s2">&quot;1d&quot;</span>
             <span class="n">calculated_bar_count</span> <span class="o">=</span> <span class="n">bars</span>
 
         <span class="n">price_arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_history_window</span><span class="p">(</span>
@@ -1775,22 +1775,22 @@
             <span class="n">dt</span><span class="p">,</span>
             <span class="n">calculated_bar_count</span><span class="p">,</span>
             <span class="n">freq_str</span><span class="p">,</span>
-            <span class="s">&quot;price&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;price&quot;</span><span class="p">,</span>
             <span class="n">data_frequency</span><span class="p">,</span>
             <span class="n">ffill</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
         <span class="p">)[</span><span class="n">asset</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="n">transform_name</span> <span class="o">==</span> <span class="s">&quot;mavg&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">transform_name</span> <span class="o">==</span> <span class="s2">&quot;mavg&quot;</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">price_arr</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">transform_name</span> <span class="o">==</span> <span class="s">&quot;stddev&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">transform_name</span> <span class="o">==</span> <span class="s2">&quot;stddev&quot;</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">nanstd</span><span class="p">(</span><span class="n">price_arr</span><span class="p">,</span> <span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">transform_name</span> <span class="o">==</span> <span class="s">&quot;vwap&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">transform_name</span> <span class="o">==</span> <span class="s2">&quot;vwap&quot;</span><span class="p">:</span>
             <span class="n">volume_arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_history_window</span><span class="p">(</span>
                 <span class="p">[</span><span class="n">asset</span><span class="p">],</span>
                 <span class="n">dt</span><span class="p">,</span>
                 <span class="n">calculated_bar_count</span><span class="p">,</span>
                 <span class="n">freq_str</span><span class="p">,</span>
-                <span class="s">&quot;volume&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;volume&quot;</span><span class="p">,</span>
                 <span class="n">data_frequency</span><span class="p">,</span>
                 <span class="n">ffill</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
             <span class="p">)[</span><span class="n">asset</span><span class="p">]</span>

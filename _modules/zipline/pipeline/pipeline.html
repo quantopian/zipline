@@ -414,6 +414,7 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.pipeline.pipeline</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">six</span>
 
 <span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="n">UnsupportedPipelineOutput</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="p">(</span>
@@ -422,7 +423,8 @@
     <span class="n">optional</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">.graph</span> <span class="kn">import</span> <span class="n">ExecutionPlan</span><span class="p">,</span> <span class="n">TermGraph</span>
+<span class="kn">from</span> <span class="nn">.domain</span> <span class="kn">import</span> <span class="n">Domain</span><span class="p">,</span> <span class="n">GENERIC</span><span class="p">,</span> <span class="n">infer_domain</span>
+<span class="kn">from</span> <span class="nn">.graph</span> <span class="kn">import</span> <span class="n">ExecutionPlan</span><span class="p">,</span> <span class="n">TermGraph</span><span class="p">,</span> <span class="n">SCREEN_NAME</span>
 <span class="kn">from</span> <span class="nn">.filters</span> <span class="kn">import</span> <span class="n">Filter</span>
 <span class="kn">from</span> <span class="nn">.term</span> <span class="kn">import</span> <span class="n">AssetExists</span><span class="p">,</span> <span class="n">ComputableTerm</span><span class="p">,</span> <span class="n">Term</span>
 
@@ -433,29 +435,31 @@
 <span class="sd">    compiled and executed by a PipelineEngine.</span>
 
 <span class="sd">    A Pipeline has two important attributes: &#39;columns&#39;, a dictionary of named</span>
-<span class="sd">    `Term` instances, and &#39;screen&#39;, a Filter representing criteria for</span>
+<span class="sd">    :class:`~zipline.pipeline.Term` instances, and &#39;screen&#39;, a</span>
+<span class="sd">    :class:`~zipline.pipeline.Filter` representing criteria for</span>
 <span class="sd">    including an asset in the results of a Pipeline.</span>
 
 <span class="sd">    To compute a pipeline in the context of a TradingAlgorithm, users must call</span>
 <span class="sd">    ``attach_pipeline`` in their ``initialize`` function to register that the</span>
-<span class="sd">    pipeline should be computed each trading day.  The outputs of a pipeline on</span>
-<span class="sd">    a given day can be accessed by calling ``pipeline_output`` in</span>
-<span class="sd">    ``handle_data`` or ``before_trading_start``.</span>
+<span class="sd">    pipeline should be computed each trading day. The most recent outputs of an</span>
+<span class="sd">    attached pipeline can be retrieved by calling ``pipeline_output`` from</span>
+<span class="sd">    ``handle_data``, ``before_trading_start``, or a scheduled function.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    columns : dict, optional</span>
 <span class="sd">        Initial columns.</span>
-<span class="sd">    screen : zipline.pipeline.term.Filter, optional</span>
+<span class="sd">    screen : zipline.pipeline.Filter, optional</span>
 <span class="sd">        Initial screen.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;_columns&#39;</span><span class="p">,</span> <span class="s">&#39;_screen&#39;</span><span class="p">,</span> <span class="s">&#39;__weakref__&#39;</span><span class="p">)</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;_columns&#39;</span><span class="p">,</span> <span class="s1">&#39;_screen&#39;</span><span class="p">,</span> <span class="s1">&#39;_domain&#39;</span><span class="p">,</span> <span class="s1">&#39;__weakref__&#39;</span><span class="p">)</span>
 
     <span class="nd">@expect_types</span><span class="p">(</span>
         <span class="n">columns</span><span class="o">=</span><span class="n">optional</span><span class="p">(</span><span class="nb">dict</span><span class="p">),</span>
         <span class="n">screen</span><span class="o">=</span><span class="n">optional</span><span class="p">(</span><span class="n">Filter</span><span class="p">),</span>
+        <span class="n">domain</span><span class="o">=</span><span class="n">Domain</span>
     <span class="p">)</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">screen</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">screen</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="n">GENERIC</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">columns</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">columns</span> <span class="o">=</span> <span class="p">{}</span>
 
@@ -464,35 +468,55 @@
             <span class="n">validate_column</span><span class="p">(</span><span class="n">column_name</span><span class="p">,</span> <span class="n">term</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">ComputableTerm</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-                    <span class="s">&quot;Column {column_name!r} contains an invalid pipeline term &quot;</span>
-                    <span class="s">&quot;({term}). Did you mean to append &#39;.latest&#39;?&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="s2">&quot;Column {column_name!r} contains an invalid pipeline term &quot;</span>
+                    <span class="s2">&quot;({term}). Did you mean to append &#39;.latest&#39;?&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                         <span class="n">column_name</span><span class="o">=</span><span class="n">column_name</span><span class="p">,</span> <span class="n">term</span><span class="o">=</span><span class="n">term</span><span class="p">,</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span> <span class="o">=</span> <span class="n">columns</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_screen</span> <span class="o">=</span> <span class="n">screen</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_domain</span> <span class="o">=</span> <span class="n">domain</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">columns</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        The columns registered with this pipeline.</span>
+        <span class="sd">&quot;&quot;&quot;The output columns of this pipeline.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        columns : dict[str, zipline.pipeline.ComputableTerm]</span>
+<span class="sd">            Map from column name to expression computing that column&#39;s output.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">screen</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        The screen applied to the rows of this pipeline.</span>
+<span class="sd">        The screen of this pipeline.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        screen : zipline.pipeline.Filter or None</span>
+<span class="sd">            Term defining the screen for this pipeline. If ``screen`` is a</span>
+<span class="sd">            filter, rows that do not pass the filter (i.e., rows for which the</span>
+<span class="sd">            filter computed ``False``) will be dropped from the output of this</span>
+<span class="sd">            pipeline before returning results.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Setting a screen on a Pipeline does not change the values produced for</span>
+<span class="sd">        any rows: it only affects whether a given row is returned. Computing a</span>
+<span class="sd">        pipeline with a screen is logically equivalent to computing the</span>
+<span class="sd">        pipeline without the screen and then, as a post-processing-step,</span>
+<span class="sd">        filtering out any rows for which the screen computed ``False``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_screen</span>
 
     <span class="nd">@expect_types</span><span class="p">(</span><span class="n">term</span><span class="o">=</span><span class="n">Term</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
 <div class="viewcode-block" id="Pipeline.add"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.Pipeline.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Add a column.</span>
+        <span class="sd">&quot;&quot;&quot;Add a column.</span>
 
-<span class="sd">        The results of computing `term` will show up as a column in the</span>
+<span class="sd">        The results of computing ``term`` will show up as a column in the</span>
 <span class="sd">        DataFrame produced by running this pipeline.</span>
 
 <span class="sd">        Parameters</span>
@@ -512,20 +536,19 @@
             <span class="k">if</span> <span class="n">overwrite</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s">&quot;Column &#39;{}&#39; already exists.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Column &#39;{}&#39; already exists.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">ComputableTerm</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-                <span class="s">&quot;{term} is not a valid pipeline column. Did you mean to &quot;</span>
-                <span class="s">&quot;append &#39;.latest&#39;?&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">term</span><span class="o">=</span><span class="n">term</span><span class="p">)</span>
+                <span class="s2">&quot;{term} is not a valid pipeline column. Did you mean to &quot;</span>
+                <span class="s2">&quot;append &#39;.latest&#39;?&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">term</span><span class="o">=</span><span class="n">term</span><span class="p">)</span>
             <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">term</span></div>
 
     <span class="nd">@expect_types</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
 <div class="viewcode-block" id="Pipeline.remove"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.Pipeline.remove">[docs]</a>    <span class="k">def</span> <span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Remove a column.</span>
+        <span class="sd">&quot;&quot;&quot;Remove a column.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -539,15 +562,14 @@
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        removed : zipline.pipeline.term.Term</span>
+<span class="sd">        removed : zipline.pipeline.Term</span>
 <span class="sd">            The removed term.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
 
     <span class="nd">@expect_types</span><span class="p">(</span><span class="n">screen</span><span class="o">=</span><span class="n">Filter</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">))</span>
 <div class="viewcode-block" id="Pipeline.set_screen"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.Pipeline.set_screen">[docs]</a>    <span class="k">def</span> <span class="nf">set_screen</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">screen</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Set a screen on this Pipeline.</span>
+        <span class="sd">&quot;&quot;&quot;Set a screen on this Pipeline.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -559,19 +581,18 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_screen</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">overwrite</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s">&quot;set_screen() called with overwrite=False and screen already &quot;</span>
-                <span class="s">&quot;set.</span><span class="se">\n</span><span class="s">&quot;</span>
-                <span class="s">&quot;If you want to apply multiple filters as a screen use &quot;</span>
-                <span class="s">&quot;set_screen(filter1 &amp; filter2 &amp; ...).</span><span class="se">\n</span><span class="s">&quot;</span>
-                <span class="s">&quot;If you want to replace the previous screen with a new one, &quot;</span>
-                <span class="s">&quot;use set_screen(new_filter, overwrite=True).&quot;</span>
+                <span class="s2">&quot;set_screen() called with overwrite=False and screen already &quot;</span>
+                <span class="s2">&quot;set.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;If you want to apply multiple filters as a screen use &quot;</span>
+                <span class="s2">&quot;set_screen(filter1 &amp; filter2 &amp; ...).</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;If you want to replace the previous screen with a new one, &quot;</span>
+                <span class="s2">&quot;use set_screen(new_filter, overwrite=True).&quot;</span>
             <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_screen</span> <span class="o">=</span> <span class="n">screen</span></div>
 
 <div class="viewcode-block" id="Pipeline.to_execution_plan"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.Pipeline.to_execution_plan">[docs]</a>    <span class="k">def</span> <span class="nf">to_execution_plan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                          <span class="n">screen_name</span><span class="p">,</span>
+                          <span class="n">domain</span><span class="p">,</span>
                           <span class="n">default_screen</span><span class="p">,</span>
-                          <span class="n">all_dates</span><span class="p">,</span>
                           <span class="n">start_date</span><span class="p">,</span>
                           <span class="n">end_date</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -579,9 +600,9 @@
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        screen_name : str</span>
-<span class="sd">            Name to supply for self.screen.</span>
-<span class="sd">        default_screen : zipline.pipeline.term.Term</span>
+<span class="sd">        domain : zipline.pipeline.domain.Domain</span>
+<span class="sd">            Domain on which the pipeline will be executed.</span>
+<span class="sd">        default_screen : zipline.pipeline.Term</span>
 <span class="sd">            Term to use as a screen if self.screen is None.</span>
 <span class="sd">        all_dates : pd.DatetimeIndex</span>
 <span class="sd">            A calendar of dates to use to calculate starts and ends for each</span>
@@ -590,40 +611,53 @@
 <span class="sd">            The first date of requested output.</span>
 <span class="sd">        end_date : pd.Timestamp</span>
 <span class="sd">            The last date of requested output.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        graph : zipline.pipeline.graph.ExecutionPlan</span>
+<span class="sd">            Graph encoding term dependencies, including metadata about extra</span>
+<span class="sd">            row requirements.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_domain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">GENERIC</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_domain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">domain</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+                <span class="s2">&quot;Attempted to compile Pipeline with domain {} to execution &quot;</span>
+                <span class="s2">&quot;plan with different domain {}.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_domain</span><span class="p">,</span> <span class="n">domain</span><span class="p">)</span>
+            <span class="p">)</span>
+
         <span class="k">return</span> <span class="n">ExecutionPlan</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_graph_terms</span><span class="p">(</span><span class="n">screen_name</span><span class="p">,</span> <span class="n">default_screen</span><span class="p">),</span>
-            <span class="n">all_dates</span><span class="p">,</span>
-            <span class="n">start_date</span><span class="p">,</span>
-            <span class="n">end_date</span><span class="p">,</span>
+            <span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">,</span>
+            <span class="n">terms</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_prepare_graph_terms</span><span class="p">(</span><span class="n">default_screen</span><span class="p">),</span>
+            <span class="n">start_date</span><span class="o">=</span><span class="n">start_date</span><span class="p">,</span>
+            <span class="n">end_date</span><span class="o">=</span><span class="n">end_date</span><span class="p">,</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="Pipeline.to_simple_graph"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.Pipeline.to_simple_graph">[docs]</a>    <span class="k">def</span> <span class="nf">to_simple_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">screen_name</span><span class="p">,</span> <span class="n">default_screen</span><span class="p">):</span>
+<div class="viewcode-block" id="Pipeline.to_simple_graph"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.Pipeline.to_simple_graph">[docs]</a>    <span class="k">def</span> <span class="nf">to_simple_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">default_screen</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compile into a simple TermGraph with no extra row metadata.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        screen_name : str</span>
-<span class="sd">            Name to supply for self.screen.</span>
-<span class="sd">        default_screen : zipline.pipeline.term.Term</span>
+<span class="sd">        default_screen : zipline.pipeline.Term</span>
 <span class="sd">            Term to use as a screen if self.screen is None.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">TermGraph</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_graph_terms</span><span class="p">(</span><span class="n">screen_name</span><span class="p">,</span> <span class="n">default_screen</span><span class="p">)</span>
-        <span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">_prepare_graph_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">screen_name</span><span class="p">,</span> <span class="n">default_screen</span><span class="p">):</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        graph : zipline.pipeline.graph.TermGraph</span>
+<span class="sd">            Graph encoding term dependencies.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">TermGraph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_prepare_graph_terms</span><span class="p">(</span><span class="n">default_screen</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">_prepare_graph_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">default_screen</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Helper for to_graph and to_execution_plan.&quot;&quot;&quot;</span>
         <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">screen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span>
         <span class="k">if</span> <span class="n">screen</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">screen</span> <span class="o">=</span> <span class="n">default_screen</span>
-        <span class="n">columns</span><span class="p">[</span><span class="n">screen_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">screen</span>
+        <span class="n">columns</span><span class="p">[</span><span class="n">SCREEN_NAME</span><span class="p">]</span> <span class="o">=</span> <span class="n">screen</span>
         <span class="k">return</span> <span class="n">columns</span>
 
-    <span class="nd">@expect_element</span><span class="p">(</span><span class="n">format</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;svg&#39;</span><span class="p">,</span> <span class="s">&#39;png&#39;</span><span class="p">,</span> <span class="s">&#39;jpeg&#39;</span><span class="p">))</span>
-<div class="viewcode-block" id="Pipeline.show_graph"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.Pipeline.show_graph">[docs]</a>    <span class="k">def</span> <span class="nf">show_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">format</span><span class="o">=</span><span class="s">&#39;svg&#39;</span><span class="p">):</span>
+    <span class="nd">@expect_element</span><span class="p">(</span><span class="n">format</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;svg&#39;</span><span class="p">,</span> <span class="s1">&#39;png&#39;</span><span class="p">,</span> <span class="s1">&#39;jpeg&#39;</span><span class="p">))</span>
+<div class="viewcode-block" id="Pipeline.show_graph"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.Pipeline.show_graph">[docs]</a>    <span class="k">def</span> <span class="nf">show_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">format</span><span class="o">=</span><span class="s1">&#39;svg&#39;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Render this Pipeline as a DAG.</span>
 
@@ -632,23 +666,85 @@
 <span class="sd">        format : {&#39;svg&#39;, &#39;png&#39;, &#39;jpeg&#39;}</span>
 <span class="sd">            Image format to render with.  Default is &#39;svg&#39;.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_simple_graph</span><span class="p">(</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">AssetExists</span><span class="p">())</span>
-        <span class="k">if</span> <span class="n">format</span> <span class="o">==</span> <span class="s">&#39;svg&#39;</span><span class="p">:</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_simple_graph</span><span class="p">(</span><span class="n">AssetExists</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">format</span> <span class="o">==</span> <span class="s1">&#39;svg&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">g</span><span class="o">.</span><span class="n">svg</span>
-        <span class="k">elif</span> <span class="n">format</span> <span class="o">==</span> <span class="s">&#39;png&#39;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">format</span> <span class="o">==</span> <span class="s1">&#39;png&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">g</span><span class="o">.</span><span class="n">png</span>
-        <span class="k">elif</span> <span class="n">format</span> <span class="o">==</span> <span class="s">&#39;jpeg&#39;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">format</span> <span class="o">==</span> <span class="s1">&#39;jpeg&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">g</span><span class="o">.</span><span class="n">jpeg</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="c"># We should never get here because of the expect_element decorator</span>
-            <span class="c"># above.</span>
-            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s">&quot;Unknown graph format </span><span class="si">%r</span><span class="s">.&quot;</span> <span class="o">%</span> <span class="n">format</span><span class="p">)</span></div>
+            <span class="c1"># We should never get here because of the expect_element decorator</span>
+            <span class="c1"># above.</span>
+            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;Unknown graph format </span><span class="si">%r</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="n">format</span><span class="p">)</span></div>
 
     <span class="nd">@staticmethod</span>
-    <span class="nd">@expect_types</span><span class="p">(</span><span class="n">term</span><span class="o">=</span><span class="n">Term</span><span class="p">,</span> <span class="n">column_name</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+    <span class="nd">@expect_types</span><span class="p">(</span><span class="n">term</span><span class="o">=</span><span class="n">Term</span><span class="p">,</span> <span class="n">column_name</span><span class="o">=</span><span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">validate_column</span><span class="p">(</span><span class="n">column_name</span><span class="p">,</span> <span class="n">term</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">term</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">UnsupportedPipelineOutput</span><span class="p">(</span><span class="n">column_name</span><span class="o">=</span><span class="n">column_name</span><span class="p">,</span> <span class="n">term</span><span class="o">=</span><span class="n">term</span><span class="p">)</span></div>
+            <span class="k">raise</span> <span class="n">UnsupportedPipelineOutput</span><span class="p">(</span><span class="n">column_name</span><span class="o">=</span><span class="n">column_name</span><span class="p">,</span> <span class="n">term</span><span class="o">=</span><span class="n">term</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_output_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A list of terms that are outputs of this pipeline.</span>
+
+<span class="sd">        Includes all terms registered as data outputs of the pipeline, plus the</span>
+<span class="sd">        screen, if present.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">terms</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">itervalues</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_columns</span><span class="p">))</span>
+        <span class="n">screen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span>
+        <span class="k">if</span> <span class="n">screen</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">terms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">screen</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">terms</span>
+
+    <span class="nd">@expect_types</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">Domain</span><span class="p">)</span>
+<div class="viewcode-block" id="Pipeline.domain"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.Pipeline.domain">[docs]</a>    <span class="k">def</span> <span class="nf">domain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">default</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the domain for this pipeline.</span>
+
+<span class="sd">        - If an explicit domain was provided at construction time, use it.</span>
+<span class="sd">        - Otherwise, infer a domain from the registered columns.</span>
+<span class="sd">        - If no domain can be inferred, return ``default``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        default : zipline.pipeline.domain.Domain</span>
+<span class="sd">            Domain to use if no domain can be inferred from this pipeline by</span>
+<span class="sd">            itself.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        domain : zipline.pipeline.domain.Domain</span>
+<span class="sd">            The domain for the pipeline.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        AmbiguousDomain</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the terms in ``self`` conflict with self._domain.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Always compute our inferred domain to ensure that it&#39;s compatible</span>
+        <span class="c1"># with our explicit domain.</span>
+        <span class="n">inferred</span> <span class="o">=</span> <span class="n">infer_domain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_terms</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">inferred</span> <span class="ow">is</span> <span class="n">GENERIC</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_domain</span> <span class="ow">is</span> <span class="n">GENERIC</span><span class="p">:</span>
+            <span class="c1"># Both generic. Fall back to default.</span>
+            <span class="k">return</span> <span class="n">default</span>
+        <span class="k">elif</span> <span class="n">inferred</span> <span class="ow">is</span> <span class="n">GENERIC</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_domain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">GENERIC</span><span class="p">:</span>
+            <span class="c1"># Use the non-generic domain.</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_domain</span>
+        <span class="k">elif</span> <span class="n">inferred</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">GENERIC</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_domain</span> <span class="ow">is</span> <span class="n">GENERIC</span><span class="p">:</span>
+            <span class="c1"># Use the non-generic domain.</span>
+            <span class="k">return</span> <span class="n">inferred</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Both non-generic. They have to match.</span>
+            <span class="k">if</span> <span class="n">inferred</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_domain</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Conflicting domains in Pipeline. Inferred {}, but {} was &quot;</span>
+                    <span class="s2">&quot;passed at construction.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">inferred</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_domain</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">inferred</span></div></div>
 </pre></div>
 
           </div>

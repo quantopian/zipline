@@ -421,30 +421,38 @@
 <div class="section" id="creating-a-development-environment">
 <h2>Creating a Development Environment<a class="headerlink" href="#creating-a-development-environment" title="Permalink to this headline">¶</a></h2>
 <p>First, you&#8217;ll need to clone Zipline by running:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>git clone git@github.com:your-github-username/zipline.git
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ git clone git@github.com:your-github-username/zipline.git
 </pre></div>
 </div>
 <p>Then check out to a new branch where you can make your changes:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>git checkout -b some-short-descriptive-name
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ git checkout -b some-short-descriptive-name
 </pre></div>
 </div>
 <p>If you don&#8217;t already have them, you&#8217;ll need some C library dependencies. You can follow the <a class="reference external" href="install.html">install guide</a> to get the appropriate dependencies.</p>
-<p>The following section assumes you already have virtualenvwrapper and pip installed on your system. Suggested installation of Python library dependencies used for development:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>mkvirtualenv zipline
-<span class="nv">$ </span>./etc/ordered_pip.sh ./etc/requirements.txt
-<span class="nv">$ </span>pip install -r ./etc/requirements_dev.txt
-<span class="nv">$ </span>pip install -r ./etc/requirements_blaze.txt
+<p>Once you&#8217;ve created and activated a <a class="reference external" href="https://docs.python.org/3/library/venv.html">virtual environment</a>, run the <code class="docutils literal"><span class="pre">etc/dev-install</span></code> script to install all development dependencies in their required order:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ python3 -m venv venv
+$ <span class="nb">source</span> venv/bin/activate
+$ etc/dev-install
 </pre></div>
 </div>
-<p>Finally, you can build the C extensions by running:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>python setup.py build_ext --inplace
+<p>Or, using <a class="reference external" href="https://virtualenvwrapper.readthedocs.io/en/latest/">virtualenvwrapper</a>:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ mkvirtualenv zipline
+$ etc/dev-install
+</pre></div>
+</div>
+<p>After installation, you should be able to use the <code class="docutils literal"><span class="pre">zipline</span></code> command line interface from your virtualenv:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ zipline --help
 </pre></div>
 </div>
 <p>To finish, make sure <a class="reference external" href="#style-guide-running-tests">tests</a> pass.</p>
 <p>If you get an error running nosetests after setting up a fresh virtualenv, please try running</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="c"># where zipline is the name of your virtualenv</span>
-<span class="nv">$ </span>deactivate zipline
-<span class="nv">$ </span>workon zipline
+<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="c1"># where zipline is the name of your virtualenv</span>
+$ deactivate zipline
+$ workon zipline
+</pre></div>
+</div>
+<p>During development, you can rebuild the C extensions by running:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ python setup.py build_ext --inplace
 </pre></div>
 </div>
 </div>
@@ -456,28 +464,28 @@
 <h2>Style Guide &amp; Running Tests<a class="headerlink" href="#style-guide-running-tests" title="Permalink to this headline">¶</a></h2>
 <p>We use <a class="reference external" href="http://flake8.pycqa.org/en/latest/">flake8</a> for checking style requirements and <a class="reference external" href="http://nose.readthedocs.io/en/latest/">nosetests</a> to run Zipline tests. Our <a class="reference external" href="https://en.wikipedia.org/wiki/Continuous_integration">continuous integration</a> tools will run these commands.</p>
 <p>Before submitting patches or pull requests, please ensure that your changes pass when running:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>flake8 zipline tests
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ flake8 zipline tests
 </pre></div>
 </div>
 <p>In order to run tests locally, you&#8217;ll need <a class="reference external" href="https://mrjbq7.github.io/ta-lib/install.html">TA-lib</a>, which you can install on Linux by running:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
-<span class="nv">$ </span>tar -xvzf ta-lib-0.4.0-src.tar.gz
-<span class="nv">$ </span><span class="nb">cd </span>ta-lib/
-<span class="nv">$ </span>./configure --prefix<span class="o">=</span>/usr
-<span class="nv">$ </span>make
-<span class="nv">$ </span>sudo make install
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
+$ tar -xvzf ta-lib-0.4.0-src.tar.gz
+$ <span class="nb">cd</span> ta-lib/
+$ ./configure --prefix<span class="o">=</span>/usr
+$ make
+$ sudo make install
 </pre></div>
 </div>
 <p>And for <code class="docutils literal"><span class="pre">TA-lib</span></code> on OS X you can just run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>brew install ta-lib
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ brew install ta-lib
 </pre></div>
 </div>
 <p>Then run <code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span></code> TA-lib:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>pip install -r ./etc/requirements_talib.txt
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ pip install -r ./etc/requirements_talib.txt
 </pre></div>
 </div>
 <p>You should now be free to run tests:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>nosetests
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ nosetests
 </pre></div>
 </div>
 </div>
@@ -497,21 +505,21 @@
 <h2>Contributing to the Docs<a class="headerlink" href="#contributing-to-the-docs" title="Permalink to this headline">¶</a></h2>
 <p>If you&#8217;d like to contribute to the documentation on zipline.io, you can navigate to <code class="docutils literal"><span class="pre">docs/source/</span></code> where each <a class="reference external" href="https://en.wikipedia.org/wiki/ReStructuredText">reStructuredText</a> (<code class="docutils literal"><span class="pre">.rst</span></code>) file is a separate section there. To add a section, create a new file called <code class="docutils literal"><span class="pre">some-descriptive-name.rst</span></code> and add <code class="docutils literal"><span class="pre">some-descriptive-name</span></code> to <code class="docutils literal"><span class="pre">appendix.rst</span></code>. To edit a section, simply open up one of the existing files, make your changes, and save them.</p>
 <p>We use <a class="reference external" href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> to generate documentation for Zipline, which you will need to install by running:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>pip install -r ./etc/requirements_docs.txt
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ pip install -r ./etc/requirements_docs.txt
 </pre></div>
 </div>
 <p>To build and view the docs locally, run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="c"># assuming you&#39;re in the Zipline root directory</span>
-<span class="nv">$ </span><span class="nb">cd </span>docs
-<span class="nv">$ </span>make html
-<span class="nv">$ </span><span class="o">{</span>BROWSER<span class="o">}</span> build/html/index.html
+<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="c1"># assuming you&#39;re in the Zipline root directory</span>
+$ <span class="nb">cd</span> docs
+$ make html
+$ <span class="o">{</span>BROWSER<span class="o">}</span> build/html/index.html
 </pre></div>
 </div>
 </div>
 <div class="section" id="commit-messages">
 <h2>Commit messages<a class="headerlink" href="#commit-messages" title="Permalink to this headline">¶</a></h2>
 <p>Standard prefixes to start a commit message:</p>
-<div class="highlight-text"><div class="highlight"><pre>BLD: change related to building Zipline
+<div class="highlight-text"><div class="highlight"><pre><span></span>BLD: change related to building Zipline
 BUG: bug fix
 DEP: deprecate something, or remove a deprecated object
 DEV: development tool or utility
@@ -528,7 +536,7 @@ PERF: performance enhancements
 <p>Some commit style guidelines:</p>
 <p>Commit lines should be no longer than <a class="reference external" href="https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project">72 characters</a>. The first line of the commit should include one of the above prefixes. There should be an empty line between the commit subject and the body of the commit. In general, the message should be in the imperative tense. Best practice is to include not only what the change is, but why the change was made.</p>
 <p><strong>Example:</strong></p>
-<div class="highlight-text"><div class="highlight"><pre>MAINT: Remove unused calculations of max_leverage, et al.
+<div class="highlight-text"><div class="highlight"><pre><span></span>MAINT: Remove unused calculations of max_leverage, et al.
 
 In the performance period the max_leverage, max_capital_used,
 cumulative_capital_used were calculated but not used.

@@ -493,11 +493,11 @@ had existed previously, but wasn&#8217;t well-documented.)</li>
 and pass the name on the command line via the <code class="docutils literal"><span class="pre">--blotter</span></code> flag.</li>
 </ol>
 <p>An example usage of <strong>(2)</strong> might look like this:</p>
-<div class="highlight-python" id="zipline-extension-py"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">zipline.extensions</span> <span class="kn">import</span> <span class="n">register</span>
+<div class="highlight-python" id="zipline-extension-py"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">zipline.extensions</span> <span class="kn">import</span> <span class="n">register</span>
 <span class="kn">from</span> <span class="nn">zipline.finance.blotter</span> <span class="kn">import</span> <span class="n">Blotter</span><span class="p">,</span> <span class="n">SimulationBlotter</span>
 <span class="kn">from</span> <span class="nn">zipline.finance.cancel_policy</span> <span class="kn">import</span> <span class="n">EODCancel</span>
 
-<span class="nd">@register</span><span class="p">(</span><span class="n">Blotter</span><span class="p">,</span> <span class="s">&#39;my-blotter&#39;</span><span class="p">)</span>
+<span class="nd">@register</span><span class="p">(</span><span class="n">Blotter</span><span class="p">,</span> <span class="s1">&#39;my-blotter&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">my_blotter</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;Create a SimulationBlotter with a non-default cancel policy.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -506,7 +506,7 @@ and pass the name on the command line via the <code class="docutils literal"><sp
 </div>
 <p>To use this factory when running zipline from the command line, we would invoke
 zipline like this:</p>
-<div class="highlight-python"><div class="highlight"><pre>$ zipline run --blotter my-blotter &lt;...other-args...&gt;
+<div class="highlight-python"><div class="highlight"><pre><span></span>$ zipline run --blotter my-blotter &lt;...other-args...&gt;
 </pre></div>
 </div>
 <p>As part of this change, the <a class="reference internal" href="appendix.html#zipline.finance.blotter.blotter.Blotter" title="zipline.finance.blotter.blotter.Blotter"><code class="xref py py-class docutils literal"><span class="pre">Blotter</span></code></a>
@@ -521,14 +521,14 @@ command-line interface. Custom command-line arguments are passed via the <code c
 flag followed by a <code class="docutils literal"><span class="pre">key=value</span></code> pair. Arguments passed this way can be
 accessed from Python code (e.g., an algorithm or an extension) via attributes
 of <code class="docutils literal"><span class="pre">zipline.extension_args</span></code>. For example, if zipline is invoked like this:</p>
-<div class="highlight-python"><div class="highlight"><pre>$ zipline -x argle=bargle run ...
+<div class="highlight-python"><div class="highlight"><pre><span></span>$ zipline -x argle=bargle run ...
 </pre></div>
 </div>
 <p>then the result of <code class="docutils literal"><span class="pre">zipline.extension_args.argle</span></code> would be the string
 <code class="docutils literal"><span class="pre">&quot;bargle&quot;</span></code>.</p>
 <p>Custom arguments can be grouped into namespaces by including <code class="docutils literal"><span class="pre">.</span></code> characters
 in keys. For example, if zipline is invoked like this:</p>
-<div class="highlight-python"><div class="highlight"><pre>$ zipline -x argle.bargle=foo
+<div class="highlight-python"><div class="highlight"><pre><span></span>$ zipline -x argle.bargle=foo
 </pre></div>
 </div>
 <p>then <code class="docutils literal"><span class="pre">zipline.extension_args.argle</span></code> will contain an object with a <code class="docutils literal"><span class="pre">bargle</span></code>
@@ -562,10 +562,10 @@ details. (<a class="reference external" href="https://github.com/quantopian/zipl
 <div class="section" id="bug-fixes">
 <h3>Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li>Fixed a bug in <code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.winsorize()</span></code> where NaN values
+<li>Fixed a bug in <a class="reference internal" href="appendix.html#zipline.pipeline.Factor.winsorize" title="zipline.pipeline.Factor.winsorize"><code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.winsorize()</span></code></a> where NaN values
 were incorrectly included in value counts when determining cutoff thresholds
 for winsorization. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/2138">#2138</a>)</li>
-<li>Fixed a crash in <code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.top()</span></code> with a count of 1 and no
+<li>Fixed a crash in <a class="reference internal" href="appendix.html#zipline.pipeline.Factor.top" title="zipline.pipeline.Factor.top"><code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.top()</span></code></a> with a count of 1 and no
 groupby. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/2218">#2218</a>)</li>
 <li>Fixed a bug where calling <code class="docutils literal"><span class="pre">data.history</span></code> with a negative lookback would
 fetch prices from the future. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/2164">#2164</a>)</li>
@@ -966,9 +966,9 @@ doing computations asset-wise (<a class="reference external" href="https://githu
 <li>Filters have been made window_safe by default. Now they can be passed in as
 arguments to other Filters, Factors and Classifiers (<a class="reference external" href="https://github.com/quantopian/zipline/issues/1338">#1338</a>).</li>
 <li>Added an optional <code class="docutils literal"><span class="pre">groupby</span></code> parameter to
-<a class="reference internal" href="appendix.html#zipline.pipeline.factors.Factor.rank" title="zipline.pipeline.factors.Factor.rank"><code class="xref py py-meth docutils literal"><span class="pre">rank()</span></code></a>,
-<a class="reference internal" href="appendix.html#zipline.pipeline.factors.Factor.top" title="zipline.pipeline.factors.Factor.top"><code class="xref py py-meth docutils literal"><span class="pre">top()</span></code></a>, and
-<a class="reference internal" href="appendix.html#zipline.pipeline.factors.Factor.bottom" title="zipline.pipeline.factors.Factor.bottom"><code class="xref py py-meth docutils literal"><span class="pre">bottom()</span></code></a>. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/1349">#1349</a>).</li>
+<code class="xref py py-meth docutils literal"><span class="pre">rank()</span></code>,
+<code class="xref py py-meth docutils literal"><span class="pre">top()</span></code>, and
+<code class="xref py py-meth docutils literal"><span class="pre">bottom()</span></code>. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/1349">#1349</a>).</li>
 <li>Added new pipeline filters, <a class="reference internal" href="appendix.html#zipline.pipeline.filters.All" title="zipline.pipeline.filters.All"><code class="xref py py-class docutils literal"><span class="pre">All</span></code></a> and
 <a class="reference internal" href="appendix.html#zipline.pipeline.filters.Any" title="zipline.pipeline.filters.Any"><code class="xref py py-class docutils literal"><span class="pre">Any</span></code></a>, which takes another filter and
 returns True if an asset produced a True for any/all days in the previous
@@ -1125,7 +1125,7 @@ commissions on a per-order basis (<a class="reference external" href="https://gi
 </li>
 <li><p class="first">Attribute accesses on <a class="reference internal" href="appendix.html#zipline.pipeline.CustomFactor" title="zipline.pipeline.CustomFactor"><code class="xref py py-class docutils literal"><span class="pre">CustomFactors</span></code></a>
 defining multiple outputs will now correctly return an output slice when the
-output is also the name of a <a class="reference internal" href="appendix.html#zipline.pipeline.factors.Factor" title="zipline.pipeline.factors.Factor"><code class="xref py py-class docutils literal"><span class="pre">Factor</span></code></a> method
+output is also the name of a <code class="xref py py-class docutils literal"><span class="pre">Factor</span></code> method
 (<a class="reference external" href="https://github.com/quantopian/zipline/issues/1214">#1214</a>).</p>
 </li>
 <li><p class="first">Replaced deprecated usage of <code class="docutils literal"><span class="pre">pandas.io.data</span></code> with <code class="docutils literal"><span class="pre">pandas_datareader</span></code>
@@ -1211,7 +1211,7 @@ algorithm. This also allows us to cache the data between runs.</p>
 <p>By default, the <code class="docutils literal"><span class="pre">quantopian-quandl</span></code> bundle will be used which pulls data from
 Quantopian&#8217;s mirror of the quandl <a class="reference external" href="https://www.quandl.com/data/WIKI">WIKI dataset</a>. New bundles may be registered with
 <a class="reference internal" href="appendix.html#zipline.data.bundles.register" title="zipline.data.bundles.register"><code class="xref py py-func docutils literal"><span class="pre">zipline.data.bundles.register()</span></code></a> like:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="nd">@zipline.data.bundles.register</span><span class="p">(</span><span class="s">&#39;my-new-bundle&#39;</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="nd">@zipline.data.bundles.register</span><span class="p">(</span><span class="s1">&#39;my-new-bundle&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">my_new_bundle_ingest</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span>
                          <span class="n">asset_db_writer</span><span class="p">,</span>
                          <span class="n">minute_bar_writer</span><span class="p">,</span>
@@ -1238,7 +1238,7 @@ argument to <code class="docutils literal"><span class="pre">$</span> <span clas
 signifies that loaders for that column should emit windowed iterators over the
 experimental new <code class="xref py py-class docutils literal"><span class="pre">LabelArray</span></code> class.</p>
 <p>Several new <code class="xref py py-class docutils literal"><span class="pre">Classifier</span></code> methods have also been added
-for constructing <code class="xref py py-class docutils literal"><span class="pre">Filter</span></code> instances based on string
+for constructing <a class="reference internal" href="appendix.html#zipline.pipeline.Filter" title="zipline.pipeline.Filter"><code class="xref py py-class docutils literal"><span class="pre">Filter</span></code></a> instances based on string
 operations.  The new methods are:</p>
 <blockquote>
 <div><ul class="simple">
@@ -1322,7 +1322,7 @@ implements the Bollinger Bands technical indicator:
 <ul class="simple">
 <li>Added a new <code class="xref py py-class docutils literal"><span class="pre">zipline.lib.labelarray.LabelArray</span></code> class for efficiently
 representing and computing on string data with numpy.  This class is
-conceptually similar to <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.Categorical.html#pandas.Categorical" title="(in pandas v0.23.3)"><code class="xref py py-class docutils literal"><span class="pre">pandas.Categorical</span></code></a>, in that it represents
+conceptually similar to <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Categorical.html#pandas.Categorical" title="(in pandas v0.25.3)"><code class="xref py py-class docutils literal"><span class="pre">pandas.Categorical</span></code></a>, in that it represents
 string arrays as arrays of indices into a (smaller) array of unique string
 values. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/1174">#1174</a>)</li>
 </ul>
@@ -1419,14 +1419,14 @@ term representing grouping keys.  Classifiers are primarily used by passing
 them as the <code class="docutils literal"><span class="pre">groupby</span></code> parameter to factor normalization methods.
 (<a class="reference external" href="https://github.com/quantopian/zipline/issues/1046">#1046</a>)</li>
 <li>Added factor normalization methods:
-<code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.demean()</span></code> and
-<code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.zscore()</span></code>. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/1046">#1046</a>)</li>
-<li>Added <code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.quantiles()</span></code>, a method for computing a
+<a class="reference internal" href="appendix.html#zipline.pipeline.Factor.demean" title="zipline.pipeline.Factor.demean"><code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.demean()</span></code></a> and
+<a class="reference internal" href="appendix.html#zipline.pipeline.Factor.zscore" title="zipline.pipeline.Factor.zscore"><code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.zscore()</span></code></a>. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/1046">#1046</a>)</li>
+<li>Added <a class="reference internal" href="appendix.html#zipline.pipeline.Factor.quantiles" title="zipline.pipeline.Factor.quantiles"><code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.quantiles()</span></code></a>, a method for computing a
 Classifier from a Factor by partitioning into equally-sized buckets. Also
 added helpers for common quantile sizes
-(<code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.quartiles()</span></code>,
-<code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.quartiles()</span></code>, and
-<code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.deciles()</span></code>) (<a class="reference external" href="https://github.com/quantopian/zipline/issues/1075">#1075</a>).</li>
+(<a class="reference internal" href="appendix.html#zipline.pipeline.Factor.quartiles" title="zipline.pipeline.Factor.quartiles"><code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.quartiles()</span></code></a>,
+<a class="reference internal" href="appendix.html#zipline.pipeline.Factor.quartiles" title="zipline.pipeline.Factor.quartiles"><code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.quartiles()</span></code></a>, and
+<a class="reference internal" href="appendix.html#zipline.pipeline.Factor.deciles" title="zipline.pipeline.Factor.deciles"><code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.deciles()</span></code></a>) (<a class="reference external" href="https://github.com/quantopian/zipline/issues/1075">#1075</a>).</li>
 </ul>
 </div>
 <div class="section" id="id45">
@@ -1514,7 +1514,7 @@ passed the <a class="reference internal" href="appendix.html#zipline.protocol.Ba
 be used for the duration of all of the functions scheduled to run. This can be
 passed to <code class="xref py py-class docutils literal"><span class="pre">TradingAlgorithm</span></code> by the keyword argument
 <code class="docutils literal"><span class="pre">create_event_context</span></code> (<a class="reference external" href="https://github.com/quantopian/zipline/issues/828">#828</a>).</li>
-<li>Added support for <a class="reference internal" href="appendix.html#zipline.pipeline.factors.Factor" title="zipline.pipeline.factors.Factor"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.Factor</span></code></a> instances with
+<li>Added support for <code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.Factor</span></code> instances with
 <code class="docutils literal"><span class="pre">datetime64[ns]</span></code> dtypes. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/905">#905</a>)</li>
 <li>Added a new <code class="xref py py-class docutils literal"><span class="pre">EarningsCalendar</span></code> dataset
 for use in the Pipeline API.  This dataset provides an abstract interface for
@@ -1527,10 +1527,10 @@ implementation can be found in
 <code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.BusinessDaysUntilNextEarnings</span></code> and
 <code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.BusinessDaysSincePreviousEarnings</span></code>.  These
 factors use the new <code class="docutils literal"><span class="pre">EarningsCalendar</span></code> dataset. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/905">#905</a>).</li>
-<li>Added <a class="reference internal" href="appendix.html#zipline.pipeline.factors.Factor.isnan" title="zipline.pipeline.factors.Factor.isnan"><code class="xref py py-meth docutils literal"><span class="pre">isnan()</span></code></a>,
-<a class="reference internal" href="appendix.html#zipline.pipeline.factors.Factor.notnan" title="zipline.pipeline.factors.Factor.notnan"><code class="xref py py-meth docutils literal"><span class="pre">notnan()</span></code></a> and
-<a class="reference internal" href="appendix.html#zipline.pipeline.factors.Factor.isfinite" title="zipline.pipeline.factors.Factor.isfinite"><code class="xref py py-meth docutils literal"><span class="pre">isfinite()</span></code></a> methods to
-<a class="reference internal" href="appendix.html#zipline.pipeline.factors.Factor" title="zipline.pipeline.factors.Factor"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.Factor</span></code></a> (<a class="reference external" href="https://github.com/quantopian/zipline/issues/861">#861</a>).</li>
+<li>Added <code class="xref py py-meth docutils literal"><span class="pre">isnan()</span></code>,
+<code class="xref py py-meth docutils literal"><span class="pre">notnan()</span></code> and
+<code class="xref py py-meth docutils literal"><span class="pre">isfinite()</span></code> methods to
+<code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.Factor</span></code> (<a class="reference external" href="https://github.com/quantopian/zipline/issues/861">#861</a>).</li>
 <li>Added <a class="reference internal" href="appendix.html#zipline.pipeline.factors.Returns" title="zipline.pipeline.factors.Returns"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.Returns</span></code></a>, a built-in factor which
 calculates the percent change in close price over the given
 window_length. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/884">#884</a>).</li>
@@ -1547,7 +1547,7 @@ type into another before passing them to the function (<a class="reference exter
 <li>Added <code class="xref py py-func docutils literal"><span class="pre">optionally()</span></code> to wrap other
 preprocessor functions to explicitly allow <code class="docutils literal"><span class="pre">None</span></code> (<a class="reference external" href="https://github.com/quantopian/zipline/issues/947">#947</a>).</li>
 <li>Added <code class="xref py py-func docutils literal"><span class="pre">ensure_timezone()</span></code> to allow string
-arguments to get converted into <a class="reference external" href="http://docs.python.org/dev/library/datetime.html#datetime.tzinfo" title="(in Python v3.8)"><code class="xref py py-class docutils literal"><span class="pre">datetime.tzinfo</span></code></a> objects. This also
+arguments to get converted into <a class="reference external" href="http://docs.python.org/dev/library/datetime.html#datetime.tzinfo" title="(in Python v3.9)"><code class="xref py py-class docutils literal"><span class="pre">datetime.tzinfo</span></code></a> objects. This also
 allows <code class="docutils literal"><span class="pre">tzinfo</span></code> objects to be passed directly (<a class="reference external" href="https://github.com/quantopian/zipline/issues/947">#947</a>).</li>
 <li>Added two optional arguments, <code class="docutils literal"><span class="pre">data_query_time</span></code> and <code class="docutils literal"><span class="pre">data_query_tz</span></code> to
 <code class="xref py py-class docutils literal"><span class="pre">BlazeLoader</span></code> and
@@ -1559,9 +1559,9 @@ loading from the resource. For example, if I want to simulate executing my
 data that is timestamped on or after <code class="docutils literal"><span class="pre">8:45</span></code> will not seen on that day in the
 simulation. The data will be made available on the next day (<a class="reference external" href="https://github.com/quantopian/zipline/issues/947">#947</a>).</li>
 <li><code class="docutils literal"><span class="pre">BoundColumn.latest</span></code> now returns a
-<a class="reference internal" href="appendix.html#zipline.pipeline.filters.Filter" title="zipline.pipeline.filters.Filter"><code class="xref py py-class docutils literal"><span class="pre">Filter</span></code></a> for columns of dtype
+<code class="xref py py-class docutils literal"><span class="pre">Filter</span></code> for columns of dtype
 <code class="docutils literal"><span class="pre">bool</span></code> (<a class="reference external" href="https://github.com/quantopian/zipline/issues/962">#962</a>).</li>
-<li>Added support for <a class="reference internal" href="appendix.html#zipline.pipeline.factors.Factor" title="zipline.pipeline.factors.Factor"><code class="xref py py-class docutils literal"><span class="pre">Factor</span></code></a> instances with
+<li>Added support for <code class="xref py py-class docutils literal"><span class="pre">Factor</span></code> instances with
 <code class="docutils literal"><span class="pre">int64</span></code> dtype.  <code class="xref py py-class docutils literal"><span class="pre">Column</span></code> now requires
 a <code class="docutils literal"><span class="pre">missing_value</span></code> when dtype is integral. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/962">#962</a>)</li>
 <li>It is also now possible to specify custom <code class="docutils literal"><span class="pre">missing_value</span></code> values for
@@ -1595,7 +1595,7 @@ in future releases.</li>
 the <code class="docutils literal"><span class="pre">len</span></code> of a <code class="xref py py-class docutils literal"><span class="pre">SIDData</span></code> object. This would cause
 us to think that the object was not empty even when it was (<a class="reference external" href="https://github.com/quantopian/zipline/issues/826">#826</a>).</li>
 <li>Fixes an error raised in calculating beta when benchmark data were sparse.
-Instead <code class="xref py py-data docutils literal"><span class="pre">numpy.nan</span></code> is returned (<a class="reference external" href="https://github.com/quantopian/zipline/issues/859">#859</a>).</li>
+Instead <a class="reference external" href="http://docs.scipy.org/doc/numpy/reference/constants.html#numpy.nan" title="(in NumPy v1.17)"><code class="xref py py-data docutils literal"><span class="pre">numpy.nan</span></code></a> is returned (<a class="reference external" href="https://github.com/quantopian/zipline/issues/859">#859</a>).</li>
 <li>Fixed an issue pickling <code class="xref py py-func docutils literal"><span class="pre">sentinel()</span></code> objects
 (<a class="reference external" href="https://github.com/quantopian/zipline/issues/872">#872</a>).</li>
 <li>Fixed spurious warnings on first download of treasury data (:issue <cite>922</cite>).</li>
@@ -1615,7 +1615,7 @@ reported the total_positions_value when creating a
 <li>Fixed issues around KeyErrors coming from history and BarData on 32-bit
 python, where Assets did not compare properly with int64s (<a class="reference external" href="https://github.com/quantopian/zipline/issues/959">#959</a>).</li>
 <li>Fixed a bug where boolean operators were not properly implemented on
-<code class="xref py py-class docutils literal"><span class="pre">Filter</span></code> (<a class="reference external" href="https://github.com/quantopian/zipline/issues/991">#991</a>).</li>
+<a class="reference internal" href="appendix.html#zipline.pipeline.Filter" title="zipline.pipeline.Filter"><code class="xref py py-class docutils literal"><span class="pre">Filter</span></code></a> (<a class="reference external" href="https://github.com/quantopian/zipline/issues/991">#991</a>).</li>
 <li>Installation of zipline no longer downgrades numpy to 1.9.2 silently and
 unconditionally (<a class="reference external" href="https://github.com/quantopian/zipline/issues/969">#969</a>).</li>
 </ul>
@@ -1736,7 +1736,7 @@ pypi. There are no code changes in this version.</p>
 <li><p class="first">Account object: Adds an account object to context to track information about
 the trading account.
 Example:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">context</span><span class="o">.</span><span class="n">account</span><span class="o">.</span><span class="n">settled_cash</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">context</span><span class="o">.</span><span class="n">account</span><span class="o">.</span><span class="n">settled_cash</span>
 </pre></div>
 </div>
 <p>Returns the settled cash value that is stored on the account object.
@@ -1765,7 +1765,7 @@ current time and apply the transform over the set of minutes.
 <code class="docutils literal"><span class="pre">returns</span></code> takes no parameters and will return the daily returns of
 the given asset.
 Example:</p>
-<div class="code python highlight-python"><div class="highlight"><pre><span class="n">data</span><span class="p">[</span><span class="n">security</span><span class="p">]</span><span class="o">.</span><span class="n">stddev</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<div class="code python highlight-python"><div class="highlight"><pre><span></span><span class="n">data</span><span class="p">[</span><span class="n">security</span><span class="p">]</span><span class="o">.</span><span class="n">stddev</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>(<a class="reference external" href="https://github.com/quantopian/zipline/issues/429">#429</a>).</p>
@@ -1790,19 +1790,19 @@ of other important MVs.
 Also adds <code class="docutils literal"><span class="pre">context.get_market_value()</span></code>, which enables this
 functionality.
 For example:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="c"># this is how it works today (and this still works)</span>
-<span class="c"># put 50% of my portfolio in AAPL</span>
-<span class="n">order_percent</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
-<span class="c"># note that if this were a fully invested portfolio, it would become 150% levered.</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="c1"># this is how it works today (and this still works)</span>
+<span class="c1"># put 50% of my portfolio in AAPL</span>
+<span class="n">order_percent</span><span class="p">(</span><span class="s1">&#39;AAPL&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+<span class="c1"># note that if this were a fully invested portfolio, it would become 150% levered.</span>
 
-<span class="c"># take half of my available cash and buy AAPL</span>
-<span class="n">order_percent</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">percent_of</span><span class="o">=</span><span class="s">&#39;cash&#39;</span><span class="p">)</span>
+<span class="c1"># take half of my available cash and buy AAPL</span>
+<span class="n">order_percent</span><span class="p">(</span><span class="s1">&#39;AAPL&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">percent_of</span><span class="o">=</span><span class="s1">&#39;cash&#39;</span><span class="p">)</span>
 
-<span class="c"># rebalance my short position, as a percentage of my current short</span>
-<span class="n">book_target_percent</span><span class="p">(</span><span class="s">&#39;MSFT&#39;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">percent_of</span><span class="o">=</span><span class="s">&#39;shorts&#39;</span><span class="p">)</span>
+<span class="c1"># rebalance my short position, as a percentage of my current short</span>
+<span class="n">book_target_percent</span><span class="p">(</span><span class="s1">&#39;MSFT&#39;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">percent_of</span><span class="o">=</span><span class="s1">&#39;shorts&#39;</span><span class="p">)</span>
 
-<span class="c"># rebalance within a custom group of stocks</span>
-<span class="n">tech_stocks</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">,</span> <span class="s">&#39;MSFT&#39;</span><span class="p">,</span> <span class="s">&#39;GOOGL&#39;</span><span class="p">)</span>
+<span class="c1"># rebalance within a custom group of stocks</span>
+<span class="n">tech_stocks</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;AAPL&#39;</span><span class="p">,</span> <span class="s1">&#39;MSFT&#39;</span><span class="p">,</span> <span class="s1">&#39;GOOGL&#39;</span><span class="p">)</span>
 <span class="n">tech_filter</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">sid</span> <span class="ow">in</span> <span class="n">tech_stocks</span>
 <span class="k">for</span> <span class="n">stock</span> <span class="ow">in</span> <span class="n">tech_stocks</span><span class="p">:</span>
     <span class="n">order_target_percent</span><span class="p">(</span><span class="n">stock</span><span class="p">,</span> <span class="mi">1</span><span class="o">/</span><span class="mi">3</span><span class="p">,</span> <span class="n">percent_of_fn</span><span class="o">=</span><span class="n">tech_filter</span><span class="p">)</span>
@@ -1946,7 +1946,7 @@ tutorial</a>.</li>
 <ul>
 <li><p class="first">CLI: Adds a CLI and IPython magic for zipline.
 Example:</p>
-<div class="highlight-python"><div class="highlight"><pre>python run_algo.py -f dual_moving_avg.py --symbols AAPL --start 2011-1-1 --end 2012-1-1 -o dma.pickle
+<div class="highlight-python"><div class="highlight"><pre><span></span>python run_algo.py -f dual_moving_avg.py --symbols AAPL --start 2011-1-1 --end 2012-1-1 -o dma.pickle
 </pre></div>
 </div>
 <p>Grabs the data from yahoo finance, runs the file
@@ -1958,7 +1958,7 @@ and outputs the perf <code class="docutils literal"><span class="pre">DataFrame<
 <ul>
 <li><p class="first">IPython magic command (at the top of an IPython notebook cell).
 Example:</p>
-<div class="highlight-python"><div class="highlight"><pre>%%zipline --symbols AAPL --start 2011-1-1 --end 2012-1-1 -o perf
+<div class="highlight-python"><div class="highlight"><pre><span></span>%%zipline --symbols AAPL --start 2011-1-1 --end 2012-1-1 -o perf
 </pre></div>
 </div>
 <p>Does the same as above except instead of executing the file looks
@@ -1976,10 +1976,10 @@ dollar value, of any single order placed by this algorithm for a
 given sid. If <code class="docutils literal"><span class="pre">sid</span></code> is None, then the rule is applied to any order
 placed by the algorithm.
 Example:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
-    <span class="c"># Algorithm will raise an exception if we attempt to place an</span>
-    <span class="c"># order which would cause us to hold more than 10 shares</span>
-    <span class="c"># or 1000 dollars worth of sid(24).</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="c1"># Algorithm will raise an exception if we attempt to place an</span>
+    <span class="c1"># order which would cause us to hold more than 10 shares</span>
+    <span class="c1"># or 1000 dollars worth of sid(24).</span>
     <span class="n">set_max_order_size</span><span class="p">(</span><span class="n">sid</span><span class="p">(</span><span class="mi">24</span><span class="p">),</span> <span class="n">max_shares</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">max_notional</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -1989,9 +1989,9 @@ dollar value, of any position held by the algorithm for a given
 sid. If <code class="docutils literal"><span class="pre">sid</span></code> is None, then the rule is applied to any position
 held by the algorithm.
 Example:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
-    <span class="c"># Algorithm will raise an exception if we attempt to order more than</span>
-    <span class="c"># 10 shares or 1000 dollars worth of sid(24) in a single order.</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="c1"># Algorithm will raise an exception if we attempt to order more than</span>
+    <span class="c1"># 10 shares or 1000 dollars worth of sid(24) in a single order.</span>
     <span class="n">set_max_order_size</span><span class="p">(</span><span class="n">sid</span><span class="p">(</span><span class="mi">24</span><span class="p">),</span> <span class="n">max_shares</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">max_notional</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">)</span>
 
 <span class="sb">``</span><span class="n">set_max_order_count</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_count</span><span class="p">)</span><span class="sb">``</span>
@@ -2000,8 +2000,8 @@ Example:</p>
 <span class="n">Example</span><span class="p">:</span>
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
-    <span class="c"># Algorithm will raise an exception if more than 50 orders are placed in a day.</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="c1"># Algorithm will raise an exception if more than 50 orders are placed in a day.</span>
     <span class="n">set_max_order_count</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -2009,9 +2009,9 @@ Example:</p>
 Set a rule specifying that the
 algorithm may not hold short positions.
 Example:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
-    <span class="c"># Algorithm will raise an exception if it attempts to place</span>
-    <span class="c"># an order that would cause it to hold a short position.</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="c1"># Algorithm will raise an exception if it attempts to place</span>
+    <span class="c1"># an order that would cause it to hold a short position.</span>
     <span class="n">set_long_only</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -2024,9 +2024,9 @@ returns a list of all <code class="docutils literal"><span class="pre">TradingAl
 The record() function can now take positional args before the
 kwargs. All original usage and functionality is the same, but now
 these extra usages will work:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">name</span> <span class="o">=</span> <span class="s">&#39;Dynamically_Generated_String&#39;</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Dynamically_Generated_String&#39;</span>
 <span class="n">record</span><span class="p">(</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">...</span> <span class="p">)</span>
-<span class="n">record</span><span class="p">(</span> <span class="n">name</span><span class="p">,</span> <span class="n">value1</span><span class="p">,</span> <span class="s">&#39;name2&#39;</span><span class="p">,</span> <span class="n">value2</span><span class="p">,</span> <span class="n">name3</span><span class="o">=</span><span class="n">value3</span><span class="p">,</span> <span class="n">name4</span><span class="o">=</span><span class="n">value4</span> <span class="p">)</span>
+<span class="n">record</span><span class="p">(</span> <span class="n">name</span><span class="p">,</span> <span class="n">value1</span><span class="p">,</span> <span class="s1">&#39;name2&#39;</span><span class="p">,</span> <span class="n">value2</span><span class="p">,</span> <span class="n">name3</span><span class="o">=</span><span class="n">value3</span><span class="p">,</span> <span class="n">name4</span><span class="o">=</span><span class="n">value4</span> <span class="p">)</span>
 </pre></div>
 </div>
 <p>The requirements are simply that the poritional args occur only
@@ -2070,7 +2070,7 @@ environment (<a class="reference external" href="https://github.com/quantopian/z
 <ul>
 <li><p class="first">The following dependencies have been updated (zipline might work with
 other versions too):</p>
-<div class="highlight-diff"><div class="highlight"><pre><span class="gd">-pytz==2013.9</span>
+<div class="highlight-diff"><div class="highlight"><pre><span></span><span class="gd">-pytz==2013.9</span>
 <span class="gi">+pytz==2014.4</span>
 <span class="gi">+numpy==1.8.1</span>
 <span class="gd">-numpy==1.8.0</span>
@@ -2112,7 +2112,7 @@ other versions too):</p>
 <h3>Contributors<a class="headerlink" href="#contributors" title="Permalink to this headline">¶</a></h3>
 <p>The following people have contributed to this release, ordered by
 numbers of commit:</p>
-<div class="highlight-python"><div class="highlight"><pre>38  Scott Sanderson
+<div class="highlight-python"><div class="highlight"><pre><span></span>38  Scott Sanderson
 29  Thomas Wiecki
 26  Eddie Hebert
  6  Delaney Granizo-Mackenzie
@@ -2170,7 +2170,7 @@ position.)</p>
 <li><p class="first">Starts on the path of parity with the script syntax in Quantopian&#8217;s IDE
 on <a class="reference external" href="https://quantopian.com">https://quantopian.com</a>
 Example:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span> <span class="kn">import</span> <span class="nn">pytz</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span> <span class="kn">import</span> <span class="nn">pytz</span>
 <span class="kn">from</span> <span class="nn">zipline</span> <span class="kn">import</span> <span class="n">TradingAlgorithm</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.factory</span> <span class="kn">import</span> <span class="n">load_from_yahoo</span>
 
@@ -2180,15 +2180,15 @@ Example:</p>
     <span class="n">context</span><span class="o">.</span><span class="n">test</span> <span class="o">=</span> <span class="mi">10</span>
 
 <span class="k">def</span> <span class="nf">handle_date</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-    <span class="n">order</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="n">order</span><span class="p">(</span><span class="s1">&#39;AAPL&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
     <span class="k">print</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">test</span><span class="p">)</span>
 
-<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">pylab</span> <span class="kn">as</span> <span class="nn">pl</span>
     <span class="n">start</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2008</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
     <span class="n">end</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2010</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">load_from_yahoo</span><span class="p">(</span>
-        <span class="n">stocks</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;AAPL&#39;</span><span class="p">],</span>
+        <span class="n">stocks</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;AAPL&#39;</span><span class="p">],</span>
         <span class="n">indexes</span><span class="o">=</span><span class="p">{},</span>
         <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
         <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">)</span>
@@ -2247,13 +2247,13 @@ available on the Quantopian platform.</p>
 function/decorator, but with a hopefully more precise specification of
 the frequency and period of the previous bar data that is captured.
 Example usage:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">history</span><span class="p">,</span> <span class="n">add_history</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">history</span><span class="p">,</span> <span class="n">add_history</span>
 
 <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
-    <span class="n">add_history</span><span class="p">(</span><span class="n">bar_count</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s">&#39;1d&#39;</span><span class="p">,</span> <span class="n">field</span><span class="o">=</span><span class="s">&#39;price&#39;</span><span class="p">)</span>
+    <span class="n">add_history</span><span class="p">(</span><span class="n">bar_count</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s1">&#39;1d&#39;</span><span class="p">,</span> <span class="n">field</span><span class="o">=</span><span class="s1">&#39;price&#39;</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">handle_data</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-    <span class="n">prices</span> <span class="o">=</span> <span class="n">history</span><span class="p">(</span><span class="n">bar_count</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s">&#39;1d&#39;</span><span class="p">,</span> <span class="n">field</span><span class="o">=</span><span class="s">&#39;price&#39;</span><span class="p">)</span>
+    <span class="n">prices</span> <span class="o">=</span> <span class="n">history</span><span class="p">(</span><span class="n">bar_count</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s1">&#39;1d&#39;</span><span class="p">,</span> <span class="n">field</span><span class="o">=</span><span class="s1">&#39;price&#39;</span><span class="p">)</span>
     <span class="n">context</span><span class="o">.</span><span class="n">last_prices</span> <span class="o">=</span> <span class="n">prices</span>
 </pre></div>
 </div>
@@ -2439,7 +2439,7 @@ In the case that <code class="docutils literal"><span class="pre">data_frequency
 For those who prefer building with <a class="reference external" href="http://conda.pydata.org/">http://conda.pydata.org/</a> to compiling
 locally with pip.
 The following should install Zipline on many systems.</p>
-<div class="highlight-python"><div class="highlight"><pre>conda install -c quantopian zipline
+<div class="highlight-python"><div class="highlight"><pre><span></span>conda install -c quantopian zipline
 </pre></div>
 </div>
 </li>
@@ -2449,7 +2449,7 @@ The following should install Zipline on many systems.</p>
 <h3>Contributors<a class="headerlink" href="#id81" title="Permalink to this headline">¶</a></h3>
 <p>The following people have contributed to this release, ordered by
 numbers of commit:</p>
-<div class="highlight-python"><div class="highlight"><pre>49  Eddie Hebert
+<div class="highlight-python"><div class="highlight"><pre><span></span>49  Eddie Hebert
 28  Thomas Wiecki
 11  Richard Frank
  2  Jamie Kirkpatrick

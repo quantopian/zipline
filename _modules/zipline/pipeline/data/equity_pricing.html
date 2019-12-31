@@ -414,23 +414,29 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.pipeline.data.equity_pricing</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Dataset representing OHLCV data.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="n">float64_dtype</span>
 
+<span class="kn">from</span> <span class="nn">..domain</span> <span class="kn">import</span> <span class="n">US_EQUITIES</span>
 <span class="kn">from</span> <span class="nn">.dataset</span> <span class="kn">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">DataSet</span>
 
 
-<div class="viewcode-block" id="USEquityPricing"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.data.USEquityPricing">[docs]</a><span class="k">class</span> <span class="nc">USEquityPricing</span><span class="p">(</span><span class="n">DataSet</span><span class="p">):</span>
+<div class="viewcode-block" id="EquityPricing"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.data.EquityPricing">[docs]</a><span class="k">class</span> <span class="nc">EquityPricing</span><span class="p">(</span><span class="n">DataSet</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Dataset representing daily trading prices and volumes.</span>
+<span class="sd">    :class:`~zipline.pipeline.data.DataSet` containing daily trading prices and</span>
+<span class="sd">    volumes.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="nb">open</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
     <span class="n">high</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
     <span class="n">low</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
     <span class="n">close</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
     <span class="n">volume</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span></div>
+
+
+<span class="c1"># Backwards compat alias.</span>
+<span class="n">USEquityPricing</span> <span class="o">=</span> <span class="n">EquityPricing</span><span class="o">.</span><span class="n">specialize</span><span class="p">(</span><span class="n">US_EQUITIES</span><span class="p">)</span>
 </pre></div>
 
           </div>

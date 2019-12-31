@@ -423,24 +423,24 @@
 <div class="section" id="updating-the-release-notes">
 <h2>Updating the Release Notes<a class="headerlink" href="#updating-the-release-notes" title="Permalink to this headline">¶</a></h2>
 <p>When we are ready to ship a new release of zipline, edit the <a class="reference internal" href="releases.html"><em>Release Notes</em></a>
-page. We will have been maintaining a whatsnew file while working on the release
+page. We will have been maintaining a <code class="docutils literal"><span class="pre">whatsnew</span></code> file while working on the release
 with the new version. First, find that file in:
 <code class="docutils literal"><span class="pre">docs/source/whatsnew/&lt;version&gt;.txt</span></code>. It will be the highest version number.
 Edit the release date field to be today&#8217;s date in the format:</p>
-<div class="highlight-python"><div class="highlight"><pre>&lt;month&gt; &lt;day&gt;, &lt;year&gt;
+<div class="highlight-python"><div class="highlight"><pre><span></span>&lt;month&gt; &lt;day&gt;, &lt;year&gt;
 </pre></div>
 </div>
 <p>for example, November 6, 2015.
-Remove the active development warning from the whatsnew, since it will no
+Remove the active development warning from the <code class="docutils literal"><span class="pre">whatsnew</span></code>, since it will no
 longer be pending release.
 Update the title of the release from &#8220;Development&#8221; to &#8220;Release x.x.x&#8221; and
 update the underline of the title to match the title&#8217;s width.</p>
 <p>If you are renaming the release at this point, you&#8217;ll need to git mv the file
 and also update releases.rst to reference the renamed file.</p>
 <p>To build and view the docs locally, run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span><span class="nb">cd </span>docs
-<span class="nv">$ </span>make html
-<span class="nv">$ </span><span class="o">{</span>BROWSER<span class="o">}</span> build/html/index.html
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> docs
+$ make html
+$ <span class="o">{</span>BROWSER<span class="o">}</span> build/html/index.html
 </pre></div>
 </div>
 </div>
@@ -452,7 +452,7 @@ namespace is populated at import time by decorators on TradingAlgorithm
 methods. Those functions are therefore hidden from static analysis tools, but
 we can generate static files to make them available. Under <strong>Python 3</strong>, run
 the following to generate any stub files:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>python etc/gen_type_stubs.py
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ python etc/gen_type_stubs.py
 </pre></div>
 </div>
 <div class="admonition note">
@@ -474,8 +474,8 @@ manage the <code class="docutils literal"><span class="pre">__version__</span></
 this information from our version control&#8217;s tags to ensure that they stay in
 sync and to have very fine grained version strings for development installs.</p>
 <p>To upgrade the version use the git tag command like:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>git tag &lt;major&gt;.&lt;minor&gt;.&lt;micro&gt;
-<span class="nv">$ </span>git push <span class="o">&amp;&amp;</span> git push --tags
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ git tag &lt;major&gt;.&lt;minor&gt;.&lt;micro&gt;
+$ git push <span class="o">&amp;&amp;</span> git push --tags
 </pre></div>
 </div>
 <p>This will push the the code and the tag information.</p>
@@ -487,15 +487,15 @@ choose the tag you just pushed, and publish the release.</p>
 <div class="section" id="sdist">
 <h3><code class="docutils literal"><span class="pre">sdist</span></code><a class="headerlink" href="#sdist" title="Permalink to this headline">¶</a></h3>
 <p>To build the <code class="docutils literal"><span class="pre">sdist</span></code> (source distribution) run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>python setup.py sdist
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ python setup.py sdist
 </pre></div>
 </div>
 <p>from the zipline root. This will create a gzipped tarball that includes all the
 python, cython, and miscellaneous files needed to install zipline. To test that
 the source dist worked correctly, <code class="docutils literal"><span class="pre">cd</span></code> into an empty directory, create a new
 virtualenv and then run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>pip install &lt;zipline-root&gt;/dist/zipline-&lt;major&gt;.&lt;minor&gt;.&lt;micro&gt;.tar.gz
-<span class="nv">$ </span>python -c <span class="s1">&#39;import zipline;print(zipline.__version__)&#39;</span>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ pip install &lt;zipline-root&gt;/dist/zipline-&lt;major&gt;.&lt;minor&gt;.&lt;micro&gt;.tar.gz
+$ python -c <span class="s1">&#39;import zipline;print(zipline.__version__)&#39;</span>
 </pre></div>
 </div>
 <p>This should print the version we are expecting to release.</p>
@@ -508,8 +508,8 @@ all the required packages.</p>
 </div>
 <p>Now that we have tested the package locally, it should be tested using the test
 PyPI server.</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>pip install twine
-<span class="nv">$ </span>twine upload --repository-url https://test.pypi.org/legacy/ dist/zipline-&lt;version-number&gt;.tar.gz
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ pip install twine
+$ twine upload --repository-url https://test.pypi.org/legacy/ dist/zipline-&lt;version-number&gt;.tar.gz
 </pre></div>
 </div>
 <p>Twine will prompt you for a username and password, which you should have access
@@ -528,14 +528,14 @@ debugging packaging problems on the test server.</p>
 </div>
 <p>This will upload zipline to the pypi test server. To test installing from pypi,
 create a new virtualenv, <code class="docutils literal"><span class="pre">cd</span></code> into a clean directory and then run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>pip install --extra-index-url https://testpypi.python.org/pypi zipline
-<span class="nv">$ </span>python -c <span class="s1">&#39;import zipline;print(zipline.__version__)&#39;</span>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ pip install --extra-index-url https://test.pypi.org/simple zipline
+$ python -c <span class="s1">&#39;import zipline;print(zipline.__version__)&#39;</span>
 </pre></div>
 </div>
 <p>This should pull the package you just uploaded and then print the version
 number.</p>
 <p>Now that we have tested locally and on PyPI test, it is time to upload to PyPI:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>python setup.py sdist upload
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ twine upload dist/zipline-&lt;version-number&gt;.tar.gz
 </pre></div>
 </div>
 </div>
@@ -550,7 +550,7 @@ they were compiled.</p>
 <h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h2>
 <p>To update <a class="reference external" href="http://www.zipline.io/index.html">zipline.io</a>, checkout the
 latest master and run:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">python</span> <span class="o">&lt;</span><span class="n">zipline_root</span><span class="o">&gt;/</span><span class="n">docs</span><span class="o">/</span><span class="n">deploy</span><span class="o">.</span><span class="n">py</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">&lt;</span><span class="n">zipline_root</span><span class="o">&gt;/</span><span class="n">docs</span><span class="o">/</span><span class="n">deploy</span><span class="o">.</span><span class="n">py</span>
 </pre></div>
 </div>
 <p>This will build the documentation, checkout a fresh copy of the <code class="docutils literal"><span class="pre">gh-pages</span></code>
@@ -565,31 +565,33 @@ correct arguments.</p>
 <p>Now, using our browser of choice, view the <code class="docutils literal"><span class="pre">index.html</span></code> page and verify that
 the docs look correct.</p>
 <p>Once we are happy, push the updated docs to the GitHub <code class="docutils literal"><span class="pre">gh-pages</span></code> branch.</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>git add .
-<span class="nv">$ </span>git commit -m <span class="s2">&quot;DOC: update zipline.io&quot;</span>
-<span class="nv">$ </span>git push origin gh-pages
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ git add .
+$ git commit -m <span class="s2">&quot;DOC: update zipline.io&quot;</span>
+$ git push origin gh-pages
 </pre></div>
 </div>
 <p><a class="reference external" href="http://www.zipline.io/index.html">zipline.io</a> will update in a few moments.</p>
 </div>
 <div class="section" id="uploading-conda-packages">
 <h2>Uploading conda packages<a class="headerlink" href="#uploading-conda-packages" title="Permalink to this headline">¶</a></h2>
-<p>Travis and AppVeyor build zipline conda packages for us.  Once they have built
-and uploaded to anaconda.org the packages (and their dependencies) for the
+<p><a class="reference external" href="https://travis-ci.org/quantopian/zipline">Travis</a> and
+<a class="reference external" href="https://ci.appveyor.com/project/quantopian/zipline/branch/master">AppVeyor</a>
+build zipline conda packages for us (for Linux/OSX and Windows respectively).
+Once they have built and uploaded to anaconda.org the zipline packages for the
 release commit to master, we should move those packages from the &#8220;ci&#8221; label to
-the &#8220;main&#8221; label.  You can do this from the anaconda.org web interface.  This
-is also a good time to remove all the old &#8220;ci&#8221; packages from anaconda.</p>
-<p>Travis and AppVeyor only build and upload linux-64 and win-64 packages.  We&#8217;ll
-need to build and upload osx-64 packages manually on an OSX machine.</p>
+the &#8220;main&#8221; label. We should also do this for any packages we uploaded for
+zipline&#8217;s dependencies. You can do this from the
+<a class="reference external" href="https://anaconda.org/Quantopian/repo">anaconda.org web interface</a>.
+This is also a good time to remove all the old &#8220;ci&#8221; packages from anaconda.</p>
 <p>To build the conda packages for zipline locally, run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>python etc/conda_build_matrix.py
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ python etc/conda_build_matrix.py
 </pre></div>
 </div>
 <p>If all of the builds succeed, then this will not print anything and exit with
 <code class="docutils literal"><span class="pre">EXIT_SUCCESS</span></code>. If there are build issues, we must address them and decide
 what to do.</p>
 <p>Once all of the builds in the matrix pass, we can upload them to anaconda with:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>python etc/conda_build_matrix.py --upload
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ python etc/conda_build_matrix.py --upload
 </pre></div>
 </div>
 <p>If you would like to test this command by uploading to a different user, this
@@ -597,14 +599,14 @@ may be specified with the <code class="docutils literal"><span class="pre">--use
 </div>
 <div class="section" id="next-commit">
 <h2>Next Commit<a class="headerlink" href="#next-commit" title="Permalink to this headline">¶</a></h2>
-<p>Push a new commit post-release that adds the whatsnew for the next release,
+<p>Push a new commit post-release that adds the <code class="docutils literal"><span class="pre">whatsnew</span></code> for the next release,
 which should be titled according to a micro version increment. If that next
 release turns out to be a major/minor version increment, the file can be
 renamed when that&#8217;s decided. You can use <code class="docutils literal"><span class="pre">docs/source/whatsnew/skeleton.txt</span></code>
 as a template for the new file.</p>
-<p>Include the whatsnew file in <code class="docutils literal"><span class="pre">docs/source/releases.rst</span></code>. New releases should
+<p>Include the <code class="docutils literal"><span class="pre">whatsnew</span></code> file in <code class="docutils literal"><span class="pre">docs/source/releases.rst</span></code>. New releases should
 appear at the top. The syntax for this is:</p>
-<div class="highlight-python"><div class="highlight"><pre>.. include:: whatsnew/&lt;version&gt;.txt
+<div class="highlight-python"><div class="highlight"><pre><span></span>.. include:: whatsnew/&lt;version&gt;.txt
 </pre></div>
 </div>
 </div>

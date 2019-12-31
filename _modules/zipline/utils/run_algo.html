@@ -414,9 +414,8 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.utils.run_algo</h1><div class="highlight"><pre>
-<span class="kn">import</span> <span class="nn">click</span>
+<span></span><span class="kn">import</span> <span class="nn">click</span>
 <span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 
@@ -428,16 +427,17 @@
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
     <span class="n">PYGMENTS</span> <span class="o">=</span> <span class="bp">False</span>
 <span class="kn">import</span> <span class="nn">six</span>
-<span class="kn">from</span> <span class="nn">toolz</span> <span class="kn">import</span> <span class="n">valfilter</span><span class="p">,</span> <span class="n">concatv</span>
+<span class="kn">from</span> <span class="nn">toolz</span> <span class="kn">import</span> <span class="n">concatv</span>
 <span class="kn">from</span> <span class="nn">trading_calendars</span> <span class="kn">import</span> <span class="n">get_calendar</span>
 
 <span class="kn">from</span> <span class="nn">zipline.data</span> <span class="kn">import</span> <span class="n">bundles</span>
+<span class="kn">from</span> <span class="nn">zipline.data.loader</span> <span class="kn">import</span> <span class="n">load_market_data</span>
 <span class="kn">from</span> <span class="nn">zipline.data.data_portal</span> <span class="kn">import</span> <span class="n">DataPortal</span>
 <span class="kn">from</span> <span class="nn">zipline.finance</span> <span class="kn">import</span> <span class="n">metrics</span>
-<span class="kn">from</span> <span class="nn">zipline.finance.trading</span> <span class="kn">import</span> <span class="n">TradingEnvironment</span>
+<span class="kn">from</span> <span class="nn">zipline.finance.trading</span> <span class="kn">import</span> <span class="n">SimulationParameters</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.data</span> <span class="kn">import</span> <span class="n">USEquityPricing</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.loaders</span> <span class="kn">import</span> <span class="n">USEquityPricingLoader</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.factory</span> <span class="kn">import</span> <span class="n">create_simulation_parameters</span>
+
 <span class="kn">import</span> <span class="nn">zipline.utils.paths</span> <span class="kn">as</span> <span class="nn">pth</span>
 <span class="kn">from</span> <span class="nn">zipline.extensions</span> <span class="kn">import</span> <span class="n">load</span>
 <span class="kn">from</span> <span class="nn">zipline.algorithm</span> <span class="kn">import</span> <span class="n">TradingAlgorithm</span>
@@ -458,14 +458,14 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">exit_code</span> <span class="o">=</span> <span class="mi">1</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyfunc_msg</span><span class="p">,</span> <span class="n">cmdline_msg</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyfunc_msg</span><span class="p">,</span> <span class="n">cmdline_msg</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">cmdline_msg</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">cmdline_msg</span> <span class="o">=</span> <span class="n">pyfunc_msg</span>
 
-        <span class="nb">super</span><span class="p">(</span><span class="n">_RunAlgoError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">cmdline_msg</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">_RunAlgoError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">cmdline_msg</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pyfunc_msg</span> <span class="o">=</span> <span class="n">pyfunc_msg</span>
 
-    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pyfunc_msg</span>
 
 
@@ -478,7 +478,6 @@
          <span class="n">defines</span><span class="p">,</span>
          <span class="n">data_frequency</span><span class="p">,</span>
          <span class="n">capital_base</span><span class="p">,</span>
-         <span class="n">data</span><span class="p">,</span>
          <span class="n">bundle</span><span class="p">,</span>
          <span class="n">bundle_timestamp</span><span class="p">,</span>
          <span class="n">start</span><span class="p">,</span>
@@ -489,38 +488,42 @@
          <span class="n">metrics_set</span><span class="p">,</span>
          <span class="n">local_namespace</span><span class="p">,</span>
          <span class="n">environ</span><span class="p">,</span>
-         <span class="n">blotter</span><span class="p">):</span>
+         <span class="n">blotter</span><span class="p">,</span>
+         <span class="n">benchmark_returns</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Run a backtest for the given algorithm.</span>
 
 <span class="sd">    This is shared between the cli and :func:`zipline.run_algo`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">benchmark_returns</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">benchmark_returns</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">load_market_data</span><span class="p">(</span><span class="n">environ</span><span class="o">=</span><span class="n">environ</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">algotext</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">local_namespace</span><span class="p">:</span>
-            <span class="n">ip</span> <span class="o">=</span> <span class="n">get_ipython</span><span class="p">()</span>  <span class="c"># noqa</span>
+            <span class="n">ip</span> <span class="o">=</span> <span class="n">get_ipython</span><span class="p">()</span>  <span class="c1"># noqa</span>
             <span class="n">namespace</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">user_ns</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">namespace</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="k">for</span> <span class="n">assign</span> <span class="ow">in</span> <span class="n">defines</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">assign</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;=&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">assign</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s">&#39;invalid define </span><span class="si">%r</span><span class="s">, should be of the form name=value&#39;</span> <span class="o">%</span>
+                    <span class="s1">&#39;invalid define </span><span class="si">%r</span><span class="s1">, should be of the form name=value&#39;</span> <span class="o">%</span>
                     <span class="n">assign</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="c"># evaluate in the same namespace so names may refer to</span>
-                <span class="c"># eachother</span>
+                <span class="c1"># evaluate in the same namespace so names may refer to</span>
+                <span class="c1"># eachother</span>
                 <span class="n">namespace</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">namespace</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s">&#39;failed to execute definition for name </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">e</span><span class="p">),</span>
+                    <span class="s1">&#39;failed to execute definition for name </span><span class="si">%r</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">e</span><span class="p">),</span>
                 <span class="p">)</span>
     <span class="k">elif</span> <span class="n">defines</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">_RunAlgoError</span><span class="p">(</span>
-            <span class="s">&#39;cannot pass define without `algotext`&#39;</span><span class="p">,</span>
-            <span class="s">&quot;cannot pass &#39;-D&#39; / &#39;--define&#39; without &#39;-t&#39; / &#39;--algotext&#39;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;cannot pass define without `algotext`&#39;</span><span class="p">,</span>
+            <span class="s2">&quot;cannot pass &#39;-D&#39; / &#39;--define&#39; without &#39;-t&#39; / &#39;--algotext&#39;&quot;</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">namespace</span> <span class="o">=</span> <span class="p">{}</span>
@@ -539,71 +542,46 @@
             <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">algotext</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">trading_calendar</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="n">trading_calendar</span> <span class="o">=</span> <span class="n">get_calendar</span><span class="p">(</span><span class="s">&#39;NYSE&#39;</span><span class="p">)</span>
+        <span class="n">trading_calendar</span> <span class="o">=</span> <span class="n">get_calendar</span><span class="p">(</span><span class="s1">&#39;XNYS&#39;</span><span class="p">)</span>
 
-    <span class="c"># date parameter validation</span>
+    <span class="c1"># date parameter validation</span>
     <span class="k">if</span> <span class="n">trading_calendar</span><span class="o">.</span><span class="n">session_distance</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">_RunAlgoError</span><span class="p">(</span>
-            <span class="s">&#39;There are no trading days between </span><span class="si">%s</span><span class="s"> and </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="s1">&#39;There are no trading days between </span><span class="si">%s</span><span class="s1"> and </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
                 <span class="n">start</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span>
                 <span class="n">end</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span>
             <span class="p">),</span>
         <span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">bundle</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="n">bundle_data</span> <span class="o">=</span> <span class="n">bundles</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
-            <span class="n">bundle</span><span class="p">,</span>
-            <span class="n">environ</span><span class="p">,</span>
-            <span class="n">bundle_timestamp</span><span class="p">,</span>
-        <span class="p">)</span>
+    <span class="n">bundle_data</span> <span class="o">=</span> <span class="n">bundles</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+        <span class="n">bundle</span><span class="p">,</span>
+        <span class="n">environ</span><span class="p">,</span>
+        <span class="n">bundle_timestamp</span><span class="p">,</span>
+    <span class="p">)</span>
 
-        <span class="n">prefix</span><span class="p">,</span> <span class="n">connstr</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
-            <span class="s">r&#39;sqlite:///&#39;</span><span class="p">,</span>
-            <span class="nb">str</span><span class="p">(</span><span class="n">bundle_data</span><span class="o">.</span><span class="n">asset_finder</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">url</span><span class="p">),</span>
-            <span class="n">maxsplit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="k">if</span> <span class="n">prefix</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s">&quot;invalid url </span><span class="si">%r</span><span class="s">, must begin with &#39;sqlite:///&#39;&quot;</span> <span class="o">%</span>
-                <span class="nb">str</span><span class="p">(</span><span class="n">bundle_data</span><span class="o">.</span><span class="n">asset_finder</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">url</span><span class="p">),</span>
-            <span class="p">)</span>
-        <span class="n">env</span> <span class="o">=</span> <span class="n">TradingEnvironment</span><span class="p">(</span>
-            <span class="n">asset_db_path</span><span class="o">=</span><span class="n">connstr</span><span class="p">,</span>
-            <span class="n">environ</span><span class="o">=</span><span class="n">environ</span><span class="p">,</span>
-            <span class="n">trading_calendar</span><span class="o">=</span><span class="n">trading_calendar</span><span class="p">,</span>
-            <span class="n">trading_day</span><span class="o">=</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
-            <span class="n">trading_days</span><span class="o">=</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">first_trading_day</span> <span class="o">=</span>\
-            <span class="n">bundle_data</span><span class="o">.</span><span class="n">equity_minute_bar_reader</span><span class="o">.</span><span class="n">first_trading_day</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="n">DataPortal</span><span class="p">(</span>
-            <span class="n">env</span><span class="o">.</span><span class="n">asset_finder</span><span class="p">,</span>
-            <span class="n">trading_calendar</span><span class="o">=</span><span class="n">trading_calendar</span><span class="p">,</span>
-            <span class="n">first_trading_day</span><span class="o">=</span><span class="n">first_trading_day</span><span class="p">,</span>
-            <span class="n">equity_minute_reader</span><span class="o">=</span><span class="n">bundle_data</span><span class="o">.</span><span class="n">equity_minute_bar_reader</span><span class="p">,</span>
-            <span class="n">equity_daily_reader</span><span class="o">=</span><span class="n">bundle_data</span><span class="o">.</span><span class="n">equity_daily_bar_reader</span><span class="p">,</span>
-            <span class="n">adjustment_reader</span><span class="o">=</span><span class="n">bundle_data</span><span class="o">.</span><span class="n">adjustment_reader</span><span class="p">,</span>
-        <span class="p">)</span>
+    <span class="n">first_trading_day</span> <span class="o">=</span> \
+        <span class="n">bundle_data</span><span class="o">.</span><span class="n">equity_minute_bar_reader</span><span class="o">.</span><span class="n">first_trading_day</span>
 
-        <span class="n">pipeline_loader</span> <span class="o">=</span> <span class="n">USEquityPricingLoader</span><span class="p">(</span>
-            <span class="n">bundle_data</span><span class="o">.</span><span class="n">equity_daily_bar_reader</span><span class="p">,</span>
-            <span class="n">bundle_data</span><span class="o">.</span><span class="n">adjustment_reader</span><span class="p">,</span>
-        <span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">DataPortal</span><span class="p">(</span>
+        <span class="n">bundle_data</span><span class="o">.</span><span class="n">asset_finder</span><span class="p">,</span>
+        <span class="n">trading_calendar</span><span class="o">=</span><span class="n">trading_calendar</span><span class="p">,</span>
+        <span class="n">first_trading_day</span><span class="o">=</span><span class="n">first_trading_day</span><span class="p">,</span>
+        <span class="n">equity_minute_reader</span><span class="o">=</span><span class="n">bundle_data</span><span class="o">.</span><span class="n">equity_minute_bar_reader</span><span class="p">,</span>
+        <span class="n">equity_daily_reader</span><span class="o">=</span><span class="n">bundle_data</span><span class="o">.</span><span class="n">equity_daily_bar_reader</span><span class="p">,</span>
+        <span class="n">adjustment_reader</span><span class="o">=</span><span class="n">bundle_data</span><span class="o">.</span><span class="n">adjustment_reader</span><span class="p">,</span>
+    <span class="p">)</span>
 
-        <span class="k">def</span> <span class="nf">choose_loader</span><span class="p">(</span><span class="n">column</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">pipeline_loader</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s">&quot;No PipelineLoader registered for column </span><span class="si">%s</span><span class="s">.&quot;</span> <span class="o">%</span> <span class="n">column</span>
-            <span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">env</span> <span class="o">=</span> <span class="n">TradingEnvironment</span><span class="p">(</span>
-            <span class="n">environ</span><span class="o">=</span><span class="n">environ</span><span class="p">,</span>
-            <span class="n">trading_calendar</span><span class="o">=</span><span class="n">trading_calendar</span><span class="p">,</span>
-            <span class="n">trading_day</span><span class="o">=</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
-            <span class="n">trading_days</span><span class="o">=</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+    <span class="n">pipeline_loader</span> <span class="o">=</span> <span class="n">USEquityPricingLoader</span><span class="o">.</span><span class="n">without_fx</span><span class="p">(</span>
+        <span class="n">bundle_data</span><span class="o">.</span><span class="n">equity_daily_bar_reader</span><span class="p">,</span>
+        <span class="n">bundle_data</span><span class="o">.</span><span class="n">adjustment_reader</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">choose_loader</span><span class="p">(</span><span class="n">column</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pipeline_loader</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;No PipelineLoader registered for column </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="n">column</span>
         <span class="p">)</span>
-        <span class="n">choose_loader</span> <span class="o">=</span> <span class="bp">None</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">metrics_set</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
@@ -619,41 +597,39 @@
 
     <span class="n">perf</span> <span class="o">=</span> <span class="n">TradingAlgorithm</span><span class="p">(</span>
         <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
-        <span class="n">env</span><span class="o">=</span><span class="n">env</span><span class="p">,</span>
+        <span class="n">data_portal</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
         <span class="n">get_pipeline_loader</span><span class="o">=</span><span class="n">choose_loader</span><span class="p">,</span>
         <span class="n">trading_calendar</span><span class="o">=</span><span class="n">trading_calendar</span><span class="p">,</span>
-        <span class="n">sim_params</span><span class="o">=</span><span class="n">create_simulation_parameters</span><span class="p">(</span>
-            <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
-            <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">,</span>
+        <span class="n">sim_params</span><span class="o">=</span><span class="n">SimulationParameters</span><span class="p">(</span>
+            <span class="n">start_session</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+            <span class="n">end_session</span><span class="o">=</span><span class="n">end</span><span class="p">,</span>
+            <span class="n">trading_calendar</span><span class="o">=</span><span class="n">trading_calendar</span><span class="p">,</span>
             <span class="n">capital_base</span><span class="o">=</span><span class="n">capital_base</span><span class="p">,</span>
             <span class="n">data_frequency</span><span class="o">=</span><span class="n">data_frequency</span><span class="p">,</span>
-            <span class="n">trading_calendar</span><span class="o">=</span><span class="n">trading_calendar</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="n">metrics_set</span><span class="o">=</span><span class="n">metrics_set</span><span class="p">,</span>
         <span class="n">blotter</span><span class="o">=</span><span class="n">blotter</span><span class="p">,</span>
+        <span class="n">benchmark_returns</span><span class="o">=</span><span class="n">benchmark_returns</span><span class="p">,</span>
         <span class="o">**</span><span class="p">{</span>
-            <span class="s">&#39;initialize&#39;</span><span class="p">:</span> <span class="n">initialize</span><span class="p">,</span>
-            <span class="s">&#39;handle_data&#39;</span><span class="p">:</span> <span class="n">handle_data</span><span class="p">,</span>
-            <span class="s">&#39;before_trading_start&#39;</span><span class="p">:</span> <span class="n">before_trading_start</span><span class="p">,</span>
-            <span class="s">&#39;analyze&#39;</span><span class="p">:</span> <span class="n">analyze</span><span class="p">,</span>
+            <span class="s1">&#39;initialize&#39;</span><span class="p">:</span> <span class="n">initialize</span><span class="p">,</span>
+            <span class="s1">&#39;handle_data&#39;</span><span class="p">:</span> <span class="n">handle_data</span><span class="p">,</span>
+            <span class="s1">&#39;before_trading_start&#39;</span><span class="p">:</span> <span class="n">before_trading_start</span><span class="p">,</span>
+            <span class="s1">&#39;analyze&#39;</span><span class="p">:</span> <span class="n">analyze</span><span class="p">,</span>
         <span class="p">}</span> <span class="k">if</span> <span class="n">algotext</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="p">{</span>
-            <span class="s">&#39;algo_filename&#39;</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">algofile</span><span class="p">,</span> <span class="s">&#39;name&#39;</span><span class="p">,</span> <span class="s">&#39;&lt;algorithm&gt;&#39;</span><span class="p">),</span>
-            <span class="s">&#39;script&#39;</span><span class="p">:</span> <span class="n">algotext</span><span class="p">,</span>
+            <span class="s1">&#39;algo_filename&#39;</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">algofile</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;algorithm&gt;&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;script&#39;</span><span class="p">:</span> <span class="n">algotext</span><span class="p">,</span>
         <span class="p">}</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
-        <span class="n">data</span><span class="p">,</span>
-        <span class="n">overwrite_sim_params</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 
-    <span class="k">if</span> <span class="n">output</span> <span class="o">==</span> <span class="s">&#39;-&#39;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">output</span> <span class="o">==</span> <span class="s1">&#39;-&#39;</span><span class="p">:</span>
         <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">perf</span><span class="p">))</span>
-    <span class="k">elif</span> <span class="n">output</span> <span class="o">!=</span> <span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">:</span>  <span class="c"># make the zipline magic not write any data</span>
+    <span class="k">elif</span> <span class="n">output</span> <span class="o">!=</span> <span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">:</span>  <span class="c1"># make the zipline magic not write any data</span>
         <span class="n">perf</span><span class="o">.</span><span class="n">to_pickle</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">perf</span>
 
 
-<span class="c"># All of the loaded extensions. We don&#39;t want to load an extension twice.</span>
+<span class="c1"># All of the loaded extensions. We don&#39;t want to load an extension twice.</span>
 <span class="n">_loaded_extensions</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
 
 
@@ -680,28 +656,28 @@
     <span class="k">if</span> <span class="n">default</span><span class="p">:</span>
         <span class="n">default_extension_path</span> <span class="o">=</span> <span class="n">pth</span><span class="o">.</span><span class="n">default_extension</span><span class="p">(</span><span class="n">environ</span><span class="o">=</span><span class="n">environ</span><span class="p">)</span>
         <span class="n">pth</span><span class="o">.</span><span class="n">ensure_file</span><span class="p">(</span><span class="n">default_extension_path</span><span class="p">)</span>
-        <span class="c"># put the default extension first so other extensions can depend on</span>
-        <span class="c"># the order they are loaded</span>
+        <span class="c1"># put the default extension first so other extensions can depend on</span>
+        <span class="c1"># the order they are loaded</span>
         <span class="n">extensions</span> <span class="o">=</span> <span class="n">concatv</span><span class="p">([</span><span class="n">default_extension_path</span><span class="p">],</span> <span class="n">extensions</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">ext</span> <span class="ow">in</span> <span class="n">extensions</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">ext</span> <span class="ow">in</span> <span class="n">_loaded_extensions</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">reload</span><span class="p">:</span>
             <span class="k">continue</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="c"># load all of the zipline extensionss</span>
-            <span class="k">if</span> <span class="n">ext</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&#39;.py&#39;</span><span class="p">):</span>
+            <span class="c1"># load all of the zipline extensionss</span>
+            <span class="k">if</span> <span class="n">ext</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.py&#39;</span><span class="p">):</span>
                 <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                     <span class="n">ns</span> <span class="o">=</span> <span class="p">{}</span>
-                    <span class="n">six</span><span class="o">.</span><span class="n">exec_</span><span class="p">(</span><span class="nb">compile</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">ext</span><span class="p">,</span> <span class="s">&#39;exec&#39;</span><span class="p">),</span> <span class="n">ns</span><span class="p">,</span> <span class="n">ns</span><span class="p">)</span>
+                    <span class="n">six</span><span class="o">.</span><span class="n">exec_</span><span class="p">(</span><span class="nb">compile</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">ext</span><span class="p">,</span> <span class="s1">&#39;exec&#39;</span><span class="p">),</span> <span class="n">ns</span><span class="p">,</span> <span class="n">ns</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="nb">__import__</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">strict</span><span class="p">:</span>
-                <span class="c"># if `strict` we should raise the actual exception and fail</span>
+                <span class="c1"># if `strict` we should raise the actual exception and fail</span>
                 <span class="k">raise</span>
-            <span class="c"># without `strict` we should just log the failure</span>
+            <span class="c1"># without `strict` we should just log the failure</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                <span class="s">&#39;Failed to load extension: </span><span class="si">%r</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ext</span><span class="p">,</span> <span class="n">e</span><span class="p">),</span>
+                <span class="s1">&#39;Failed to load extension: </span><span class="si">%r</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ext</span><span class="p">,</span> <span class="n">e</span><span class="p">),</span>
                 <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -715,17 +691,17 @@
                   <span class="n">handle_data</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                   <span class="n">before_trading_start</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                   <span class="n">analyze</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                  <span class="n">data_frequency</span><span class="o">=</span><span class="s">&#39;daily&#39;</span><span class="p">,</span>
-                  <span class="n">data</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                  <span class="n">bundle</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                  <span class="n">data_frequency</span><span class="o">=</span><span class="s1">&#39;daily&#39;</span><span class="p">,</span>
+                  <span class="n">bundle</span><span class="o">=</span><span class="s1">&#39;quantopian-quandl&#39;</span><span class="p">,</span>
                   <span class="n">bundle_timestamp</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                   <span class="n">trading_calendar</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                  <span class="n">metrics_set</span><span class="o">=</span><span class="s">&#39;default&#39;</span><span class="p">,</span>
+                  <span class="n">metrics_set</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span>
+                  <span class="n">benchmark_returns</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                   <span class="n">default_extension</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
                   <span class="n">extensions</span><span class="o">=</span><span class="p">(),</span>
                   <span class="n">strict_extensions</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
                   <span class="n">environ</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">,</span>
-                  <span class="n">blotter</span><span class="o">=</span><span class="s">&#39;default&#39;</span><span class="p">):</span>
+                  <span class="n">blotter</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Run a trading algorithm.</span>
 
@@ -754,19 +730,12 @@
 <span class="sd">        performance data.</span>
 <span class="sd">    data_frequency : {&#39;daily&#39;, &#39;minute&#39;}, optional</span>
 <span class="sd">        The data frequency to run the algorithm at.</span>
-<span class="sd">    data : pd.DataFrame, pd.Panel, or DataPortal, optional</span>
-<span class="sd">        The ohlcv data to run the backtest with.</span>
-<span class="sd">        This argument is mutually exclusive with:</span>
-<span class="sd">        ``bundle``</span>
-<span class="sd">        ``bundle_timestamp``</span>
 <span class="sd">    bundle : str, optional</span>
 <span class="sd">        The name of the data bundle to use to load the data to run the backtest</span>
 <span class="sd">        with. This defaults to &#39;quantopian-quandl&#39;.</span>
-<span class="sd">        This argument is mutually exclusive with ``data``.</span>
 <span class="sd">    bundle_timestamp : datetime, optional</span>
 <span class="sd">        The datetime to lookup the bundle data for. This defaults to the</span>
 <span class="sd">        current time.</span>
-<span class="sd">        This argument is mutually exclusive with ``data``.</span>
 <span class="sd">    trading_calendar : TradingCalendar, optional</span>
 <span class="sd">        The trading calendar to use for your backtest.</span>
 <span class="sd">    metrics_set : iterable[Metric] or str, optional</span>
@@ -803,25 +772,6 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">load_extensions</span><span class="p">(</span><span class="n">default_extension</span><span class="p">,</span> <span class="n">extensions</span><span class="p">,</span> <span class="n">strict_extensions</span><span class="p">,</span> <span class="n">environ</span><span class="p">)</span>
 
-    <span class="n">non_none_data</span> <span class="o">=</span> <span class="n">valfilter</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="p">{</span>
-        <span class="s">&#39;data&#39;</span><span class="p">:</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">,</span>
-        <span class="s">&#39;bundle&#39;</span><span class="p">:</span> <span class="n">bundle</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="p">})</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">non_none_data</span><span class="p">:</span>
-        <span class="c"># if neither data nor bundle are passed use &#39;quantopian-quandl&#39;</span>
-        <span class="n">bundle</span> <span class="o">=</span> <span class="s">&#39;quantopian-quandl&#39;</span>
-
-    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">non_none_data</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s">&#39;must specify one of `data`, `data_portal`, or `bundle`,&#39;</span>
-            <span class="s">&#39; got: </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">non_none_data</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="k">elif</span> <span class="s">&#39;bundle&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">non_none_data</span> <span class="ow">and</span> <span class="n">bundle_timestamp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s">&#39;cannot specify `bundle_timestamp` without passing `bundle`&#39;</span><span class="p">,</span>
-        <span class="p">)</span>
-
     <span class="k">return</span> <span class="n">_run</span><span class="p">(</span>
         <span class="n">handle_data</span><span class="o">=</span><span class="n">handle_data</span><span class="p">,</span>
         <span class="n">initialize</span><span class="o">=</span><span class="n">initialize</span><span class="p">,</span>
@@ -832,7 +782,6 @@
         <span class="n">defines</span><span class="o">=</span><span class="p">(),</span>
         <span class="n">data_frequency</span><span class="o">=</span><span class="n">data_frequency</span><span class="p">,</span>
         <span class="n">capital_base</span><span class="o">=</span><span class="n">capital_base</span><span class="p">,</span>
-        <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
         <span class="n">bundle</span><span class="o">=</span><span class="n">bundle</span><span class="p">,</span>
         <span class="n">bundle_timestamp</span><span class="o">=</span><span class="n">bundle_timestamp</span><span class="p">,</span>
         <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
@@ -844,6 +793,7 @@
         <span class="n">local_namespace</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
         <span class="n">environ</span><span class="o">=</span><span class="n">environ</span><span class="p">,</span>
         <span class="n">blotter</span><span class="o">=</span><span class="n">blotter</span><span class="p">,</span>
+        <span class="n">benchmark_returns</span><span class="o">=</span><span class="n">benchmark_returns</span><span class="p">,</span>
     <span class="p">)</span></div>
 </pre></div>
 

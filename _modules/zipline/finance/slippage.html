@@ -414,20 +414,20 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.finance.slippage</h1><div class="highlight"><pre>
-<span class="c">#</span>
-<span class="c"># Copyright 2017 Quantopian, Inc.</span>
-<span class="c">#</span>
-<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
-<span class="c"># you may not use this file except in compliance with the License.</span>
-<span class="c"># You may obtain a copy of the License at</span>
-<span class="c">#</span>
-<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
-<span class="c">#</span>
-<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
-<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
-<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
-<span class="c"># See the License for the specific language governing permissions and</span>
-<span class="c"># limitations under the License.</span>
+<span></span><span class="c1">#</span>
+<span class="c1"># Copyright 2017 Quantopian, Inc.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
 
 <span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">abstractmethod</span>
@@ -481,14 +481,14 @@
 <span class="sd">    the limit price (for a sell).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">order</span><span class="o">.</span><span class="n">limit</span><span class="p">:</span>
-        <span class="c"># this is tricky! if an order with a limit price has reached</span>
-        <span class="c"># the limit price, we will try to fill the order. do not fill</span>
-        <span class="c"># these shares if the impacted price is worse than the limit</span>
-        <span class="c"># price. return early to avoid creating the transaction.</span>
+        <span class="c1"># this is tricky! if an order with a limit price has reached</span>
+        <span class="c1"># the limit price, we will try to fill the order. do not fill</span>
+        <span class="c1"># these shares if the impacted price is worse than the limit</span>
+        <span class="c1"># price. return early to avoid creating the transaction.</span>
 
-        <span class="c"># buy order is worse if the impacted price is greater than</span>
-        <span class="c"># the limit price. sell order is worse if the impacted price</span>
-        <span class="c"># is less than the limit price</span>
+        <span class="c1"># buy order is worse if the impacted price is greater than</span>
+        <span class="c1"># the limit price. sell order is worse if the impacted price</span>
+        <span class="c1"># is less than the limit price</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">direction</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">fill_price</span> <span class="o">&gt;</span> <span class="n">order</span><span class="o">.</span><span class="n">limit</span><span class="p">)</span> <span class="ow">or</span> \
                 <span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">direction</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">fill_price</span> <span class="o">&lt;</span> <span class="n">order</span><span class="o">.</span><span class="n">limit</span><span class="p">):</span>
             <span class="k">return</span> <span class="bp">True</span>
@@ -497,13 +497,40 @@
 
 
 <div class="viewcode-block" id="SlippageModel"><a class="viewcode-back" href="../../../appendix.html#zipline.finance.slippage.SlippageModel">[docs]</a><span class="k">class</span> <span class="nc">SlippageModel</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">FinancialModelMeta</span><span class="p">)):</span>
-    <span class="sd">&quot;&quot;&quot;Abstract interface for defining a slippage model.</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Abstract base class for slippage models.</span>
+
+<span class="sd">    Slippage models are responsible for the rates and prices at which orders</span>
+<span class="sd">    fill during a simulation.</span>
+
+<span class="sd">    To implement a new slippage model, create a subclass of</span>
+<span class="sd">    :class:`~zipline.finance.slippage.SlippageModel` and implement</span>
+<span class="sd">    :meth:`process_order`.</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    process_order(data, order)</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    volume_for_bar : int</span>
+<span class="sd">        Number of shares that have already been filled for the</span>
+<span class="sd">        currently-filling asset in the current minute. This attribute is</span>
+<span class="sd">        maintained automatically by the base class. It can be used by</span>
+<span class="sd">        subclasses to keep track of the total amount filled if there are</span>
+<span class="sd">        multiple open orders for a single asset.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Subclasses that define their own constructors should call</span>
+<span class="sd">    ``super(&lt;subclass name&gt;, self).__init__()`` before performing other</span>
+<span class="sd">    initialization.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c"># Asset types that are compatible with the given model.</span>
+    <span class="c1"># Asset types that are compatible with the given model.</span>
     <span class="n">allowed_asset_types</span> <span class="o">=</span> <span class="p">(</span><span class="n">Equity</span><span class="p">,</span> <span class="n">Future</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_volume_for_bar</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="nd">@property</span>
@@ -512,44 +539,62 @@
 
     <span class="nd">@abstractmethod</span>
 <div class="viewcode-block" id="SlippageModel.process_order"><a class="viewcode-back" href="../../../appendix.html#zipline.finance.slippage.SlippageModel.process_order">[docs]</a>    <span class="k">def</span> <span class="nf">process_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Process how orders get filled.</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the number of shares and price to fill for ``order`` in the</span>
+<span class="sd">        current minute.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        data : BarData</span>
+<span class="sd">        data : zipline.protocol.BarData</span>
 <span class="sd">            The data for the given bar.</span>
-<span class="sd">        order : Order</span>
+<span class="sd">        order : zipline.finance.order.Order</span>
 <span class="sd">            The order to simulate.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        execution_price : float</span>
-<span class="sd">            The price to execute the trade at.</span>
+<span class="sd">            The price of the fill.</span>
 <span class="sd">        execution_volume : int</span>
-<span class="sd">            The number of shares that could be filled. This may not be all</span>
-<span class="sd">            the shares ordered in which case the order will be filled over</span>
-<span class="sd">            multiple bars.</span>
+<span class="sd">            The number of shares that should be filled. Must be between ``0``</span>
+<span class="sd">            and ``order.amount - order.filled``. If the amount filled is less</span>
+<span class="sd">            than the amount remaining, ``order`` will remain open and will be</span>
+<span class="sd">            passed again to this method in the next minute.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        zipline.finance.slippage.LiquidityExceeded</span>
+<span class="sd">            May be raised if no more orders should be processed for the current</span>
+<span class="sd">            asset during the current bar.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Before this method is called, :attr:`volume_for_bar` will be set to the</span>
+<span class="sd">        number of shares that have already been filled for ``order.asset`` in</span>
+<span class="sd">        the current minute.</span>
+
+<span class="sd">        :meth:`process_order` is not called by the base class on bars for which</span>
+<span class="sd">        there was no historical volume.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&#39;process_order&#39;</span><span class="p">)</span></div>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;process_order&#39;</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">simulate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">orders_for_asset</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_volume_for_bar</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">volume</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="s">&quot;volume&quot;</span><span class="p">)</span>
+        <span class="n">volume</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="s2">&quot;volume&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">volume</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span>
 
-        <span class="c"># can use the close price, since we verified there&#39;s volume in this</span>
-        <span class="c"># bar.</span>
-        <span class="n">price</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="s">&quot;close&quot;</span><span class="p">)</span>
+        <span class="c1"># can use the close price, since we verified there&#39;s volume in this</span>
+        <span class="c1"># bar.</span>
+        <span class="n">price</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="s2">&quot;close&quot;</span><span class="p">)</span>
 
-        <span class="c"># BEGIN</span>
-        <span class="c">#</span>
-        <span class="c"># Remove this block after fixing data to ensure volume always has</span>
-        <span class="c"># corresponding price.</span>
+        <span class="c1"># BEGIN</span>
+        <span class="c1">#</span>
+        <span class="c1"># Remove this block after fixing data to ensure volume always has</span>
+        <span class="c1"># corresponding price.</span>
         <span class="k">if</span> <span class="n">isnull</span><span class="p">(</span><span class="n">price</span><span class="p">):</span>
             <span class="k">return</span>
-        <span class="c"># END</span>
+        <span class="c1"># END</span>
         <span class="n">dt</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current_dt</span>
 
         <span class="k">for</span> <span class="n">order</span> <span class="ow">in</span> <span class="n">orders_for_asset</span><span class="p">:</span>
@@ -582,7 +627,7 @@
                 <span class="k">yield</span> <span class="n">order</span><span class="p">,</span> <span class="n">txn</span>
 
     <span class="k">def</span> <span class="nf">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span></div>
 
 
 <span class="k">class</span> <span class="nc">NoSlippage</span><span class="p">(</span><span class="n">SlippageModel</span><span class="p">):</span>
@@ -596,7 +641,7 @@
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">process_order</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">(</span>
-            <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s">&#39;close&#39;</span><span class="p">),</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s1">&#39;close&#39;</span><span class="p">),</span>
             <span class="n">order</span><span class="o">.</span><span class="n">amount</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -617,60 +662,83 @@
 
 <div class="viewcode-block" id="VolumeShareSlippage"><a class="viewcode-back" href="../../../appendix.html#zipline.finance.slippage.VolumeShareSlippage">[docs]</a><span class="k">class</span> <span class="nc">VolumeShareSlippage</span><span class="p">(</span><span class="n">SlippageModel</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Model slippage as a function of the volume of contracts traded.</span>
+<span class="sd">    Model slippage as a quadratic function of percentage of historical volume.</span>
+
+<span class="sd">    Orders to buy will be filled at::</span>
+
+<span class="sd">       price * (1 + price_impact * (volume_share ** 2))</span>
+
+<span class="sd">    Orders to sell will be filled at::</span>
+
+<span class="sd">       price * (1 - price_impact * (volume_share ** 2))</span>
+
+<span class="sd">    where ``price`` is the close price for the bar, and ``volume_share`` is the</span>
+<span class="sd">    percentage of minutely volume filled, up to a max of ``volume_limit``.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    volume_limit : float, optional</span>
+<span class="sd">        Maximum percent of historical volume that can fill in each bar. 0.5</span>
+<span class="sd">        means 50% of historical volume. 1.0 means 100%. Default is 0.025 (i.e.,</span>
+<span class="sd">        2.5%).</span>
+<span class="sd">    price_impact : float, optional</span>
+<span class="sd">        Scaling coefficient for price impact. Larger values will result in more</span>
+<span class="sd">        simulated price impact. Smaller values will result in less simulated</span>
+<span class="sd">        price impact. Default is 0.1.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">volume_limit</span><span class="o">=</span><span class="n">DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">volume_limit</span><span class="o">=</span><span class="n">DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT</span><span class="p">,</span>
                  <span class="n">price_impact</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
 
-        <span class="nb">super</span><span class="p">(</span><span class="n">VolumeShareSlippage</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">VolumeShareSlippage</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">volume_limit</span> <span class="o">=</span> <span class="n">volume_limit</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">price_impact</span> <span class="o">=</span> <span class="n">price_impact</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;&quot;&quot;</span>
-<span class="s">{class_name}(</span>
-<span class="s">    volume_limit={volume_limit},</span>
-<span class="s">    price_impact={price_impact})</span>
-<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">class_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">{class_name}(</span>
+<span class="s2">    volume_limit={volume_limit},</span>
+<span class="s2">    price_impact={price_impact})</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">class_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
                    <span class="n">volume_limit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">volume_limit</span><span class="p">,</span>
                    <span class="n">price_impact</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">price_impact</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">process_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
-        <span class="n">volume</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s">&quot;volume&quot;</span><span class="p">)</span>
+        <span class="n">volume</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s2">&quot;volume&quot;</span><span class="p">)</span>
 
         <span class="n">max_volume</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume_limit</span> <span class="o">*</span> <span class="n">volume</span>
 
-        <span class="c"># price impact accounts for the total volume of transactions</span>
-        <span class="c"># created against the current minute bar</span>
+        <span class="c1"># price impact accounts for the total volume of transactions</span>
+        <span class="c1"># created against the current minute bar</span>
         <span class="n">remaining_volume</span> <span class="o">=</span> <span class="n">max_volume</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume_for_bar</span>
         <span class="k">if</span> <span class="n">remaining_volume</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="c"># we can&#39;t fill any more transactions</span>
+            <span class="c1"># we can&#39;t fill any more transactions</span>
             <span class="k">raise</span> <span class="n">LiquidityExceeded</span><span class="p">()</span>
 
-        <span class="c"># the current order amount will be the min of the</span>
-        <span class="c"># volume available in the bar or the open amount.</span>
+        <span class="c1"># the current order amount will be the min of the</span>
+        <span class="c1"># volume available in the bar or the open amount.</span>
         <span class="n">cur_volume</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">remaining_volume</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">open_amount</span><span class="p">)))</span>
 
         <span class="k">if</span> <span class="n">cur_volume</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span>
 
-        <span class="c"># tally the current amount into our total amount ordered.</span>
-        <span class="c"># total amount will be used to calculate price impact</span>
+        <span class="c1"># tally the current amount into our total amount ordered.</span>
+        <span class="c1"># total amount will be used to calculate price impact</span>
         <span class="n">total_volume</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume_for_bar</span> <span class="o">+</span> <span class="n">cur_volume</span>
 
         <span class="n">volume_share</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">total_volume</span> <span class="o">/</span> <span class="n">volume</span><span class="p">,</span>
                            <span class="bp">self</span><span class="o">.</span><span class="n">volume_limit</span><span class="p">)</span>
 
-        <span class="n">price</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s">&quot;close&quot;</span><span class="p">)</span>
+        <span class="n">price</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s2">&quot;close&quot;</span><span class="p">)</span>
 
-        <span class="c"># BEGIN</span>
-        <span class="c">#</span>
-        <span class="c"># Remove this block after fixing data to ensure volume always has</span>
-        <span class="c"># corresponding price.</span>
+        <span class="c1"># BEGIN</span>
+        <span class="c1">#</span>
+        <span class="c1"># Remove this block after fixing data to ensure volume always has</span>
+        <span class="c1"># corresponding price.</span>
         <span class="k">if</span> <span class="n">isnull</span><span class="p">(</span><span class="n">price</span><span class="p">):</span>
             <span class="k">return</span>
-        <span class="c"># END</span>
+        <span class="c1"># END</span>
 
         <span class="n">simulated_impact</span> <span class="o">=</span> <span class="n">volume_share</span> <span class="o">**</span> <span class="mi">2</span> \
             <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">copysign</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">price_impact</span><span class="p">,</span> <span class="n">order</span><span class="o">.</span><span class="n">direction</span><span class="p">)</span> \
@@ -688,24 +756,33 @@
 
 <div class="viewcode-block" id="FixedSlippage"><a class="viewcode-back" href="../../../appendix.html#zipline.finance.slippage.FixedSlippage">[docs]</a><span class="k">class</span> <span class="nc">FixedSlippage</span><span class="p">(</span><span class="n">SlippageModel</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Model slippage as a fixed spread.</span>
+<span class="sd">    Simple model assuming a fixed-size spread for all assets.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    spread : float, optional</span>
-<span class="sd">        spread / 2 will be added to buys and subtracted from sells.</span>
+<span class="sd">        Size of the assumed spread for all assets.</span>
+<span class="sd">        Orders to buy will be filled at ``close + (spread / 2)``.</span>
+<span class="sd">        Orders to sell will be filled at ``close - (spread / 2)``.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This model does not impose limits on the size of fills. An order for an</span>
+<span class="sd">    asset will always be filled as soon as any trading activity occurs in the</span>
+<span class="sd">    order&#39;s asset, even if the size of the order is greater than the historical</span>
+<span class="sd">    volume.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spread</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">FixedSlippage</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spread</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">FixedSlippage</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">spread</span> <span class="o">=</span> <span class="n">spread</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&#39;{class_name}(spread={spread})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="n">class_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span> <span class="n">spread</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">spread</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;{class_name}(spread={spread})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">class_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">spread</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">spread</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">process_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
-        <span class="n">price</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s">&quot;close&quot;</span><span class="p">)</span>
+        <span class="n">price</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s2">&quot;close&quot;</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="p">(</span>
             <span class="n">price</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spread</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">order</span><span class="o">.</span><span class="n">direction</span><span class="p">),</span>
@@ -721,8 +798,8 @@
 
     <span class="n">NO_DATA_VOLATILITY_SLIPPAGE_IMPACT</span> <span class="o">=</span> <span class="mf">10.0</span> <span class="o">/</span> <span class="mi">10000</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">MarketImpactBase</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MarketImpactBase</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_window_data_cache</span> <span class="o">=</span> <span class="n">ExpiringCache</span><span class="p">()</span>
 
     <span class="nd">@abstractmethod</span>
@@ -739,7 +816,7 @@
 <span class="sd">        ------</span>
 <span class="sd">        int : the number of shares</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&#39;get_txn_volume&#39;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;get_txn_volume&#39;</span><span class="p">)</span>
 
     <span class="nd">@abstractmethod</span>
     <span class="k">def</span> <span class="nf">get_simulated_impact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -759,25 +836,25 @@
 <span class="sd">        current_volume : Volume of the asset being ordered for the current bar.</span>
 <span class="sd">        txn_volume : Number of shares/contracts being ordered.</span>
 <span class="sd">        mean_volume : Trailing ADV of the asset.</span>
-<span class="sd">        volatility : Annualized daily volatility of volume.</span>
+<span class="sd">        volatility : Annualized daily volatility of returns.</span>
 
 <span class="sd">        Return</span>
 <span class="sd">        ------</span>
 <span class="sd">        int : impact on the current price.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&#39;get_simulated_impact&#39;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;get_simulated_impact&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">process_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">order</span><span class="o">.</span><span class="n">open_amount</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span>
 
-        <span class="n">minute_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;volume&#39;</span><span class="p">,</span> <span class="s">&#39;high&#39;</span><span class="p">,</span> <span class="s">&#39;low&#39;</span><span class="p">])</span>
+        <span class="n">minute_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;volume&#39;</span><span class="p">,</span> <span class="s1">&#39;high&#39;</span><span class="p">,</span> <span class="s1">&#39;low&#39;</span><span class="p">])</span>
         <span class="n">mean_volume</span><span class="p">,</span> <span class="n">volatility</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_window_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
 
-        <span class="c"># Price to use is the average of the minute bar&#39;s open and close.</span>
-        <span class="n">price</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">minute_data</span><span class="p">[</span><span class="s">&#39;high&#39;</span><span class="p">],</span> <span class="n">minute_data</span><span class="p">[</span><span class="s">&#39;low&#39;</span><span class="p">]])</span>
+        <span class="c1"># Price to use is the average of the minute bar&#39;s open and close.</span>
+        <span class="n">price</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">minute_data</span><span class="p">[</span><span class="s1">&#39;high&#39;</span><span class="p">],</span> <span class="n">minute_data</span><span class="p">[</span><span class="s1">&#39;low&#39;</span><span class="p">]])</span>
 
-        <span class="n">volume</span> <span class="o">=</span> <span class="n">minute_data</span><span class="p">[</span><span class="s">&#39;volume&#39;</span><span class="p">]</span>
+        <span class="n">volume</span> <span class="o">=</span> <span class="n">minute_data</span><span class="p">[</span><span class="s1">&#39;volume&#39;</span><span class="p">]</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">volume</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span>
 
@@ -785,14 +862,14 @@
             <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_txn_volume</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">order</span><span class="p">),</span> <span class="nb">abs</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">open_amount</span><span class="p">))</span>
         <span class="p">)</span>
 
-        <span class="c"># If the computed transaction volume is zero or a decimal value, &#39;int&#39;</span>
-        <span class="c"># will round it down to zero. In that case just bail.</span>
+        <span class="c1"># If the computed transaction volume is zero or a decimal value, &#39;int&#39;</span>
+        <span class="c1"># will round it down to zero. In that case just bail.</span>
         <span class="k">if</span> <span class="n">txn_volume</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span>
 
         <span class="k">if</span> <span class="n">mean_volume</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">volatility</span><span class="p">):</span>
-            <span class="c"># If this is the first day the contract exists or there is no</span>
-            <span class="c"># volume history, default to a conservative estimate of impact.</span>
+            <span class="c1"># If this is the first day the contract exists or there is no</span>
+            <span class="c1"># volume history, default to a conservative estimate of impact.</span>
             <span class="n">simulated_impact</span> <span class="o">=</span> <span class="n">price</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">NO_DATA_VOLATILITY_SLIPPAGE_IMPACT</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">simulated_impact</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_simulated_impact</span><span class="p">(</span>
@@ -833,31 +910,31 @@
             <span class="n">values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_window_data_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">current_session</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="c"># Add a day because we want &#39;window_length&#39; complete days,</span>
-                <span class="c"># excluding the current day.</span>
+                <span class="c1"># Add a day because we want &#39;window_length&#39; complete days,</span>
+                <span class="c1"># excluding the current day.</span>
                 <span class="n">volume_history</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">history</span><span class="p">(</span>
-                    <span class="n">asset</span><span class="p">,</span> <span class="s">&#39;volume&#39;</span><span class="p">,</span> <span class="n">window_length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s">&#39;1d&#39;</span><span class="p">,</span>
+                    <span class="n">asset</span><span class="p">,</span> <span class="s1">&#39;volume&#39;</span><span class="p">,</span> <span class="n">window_length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;1d&#39;</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">close_history</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">history</span><span class="p">(</span>
-                    <span class="n">asset</span><span class="p">,</span> <span class="s">&#39;close&#39;</span><span class="p">,</span> <span class="n">window_length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s">&#39;1d&#39;</span><span class="p">,</span>
+                    <span class="n">asset</span><span class="p">,</span> <span class="s1">&#39;close&#39;</span><span class="p">,</span> <span class="n">window_length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;1d&#39;</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="k">except</span> <span class="n">HistoryWindowStartsBeforeData</span><span class="p">:</span>
-                <span class="c"># If there is not enough data to do a full history call, return</span>
-                <span class="c"># values as if there was no data.</span>
+                <span class="c1"># If there is not enough data to do a full history call, return</span>
+                <span class="c1"># values as if there was no data.</span>
                 <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span>
 
-            <span class="c"># Exclude the first value of the percent change array because it is</span>
-            <span class="c"># always just NaN.</span>
+            <span class="c1"># Exclude the first value of the percent change array because it is</span>
+            <span class="c1"># always just NaN.</span>
             <span class="n">close_volatility</span> <span class="o">=</span> <span class="n">close_history</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pct_change</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">std</span><span class="p">(</span>
                 <span class="n">skipna</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">values</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="s">&#39;volume&#39;</span><span class="p">:</span> <span class="n">volume_history</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
-                <span class="s">&#39;close&#39;</span><span class="p">:</span> <span class="n">close_volatility</span> <span class="o">*</span> <span class="n">SQRT_252</span><span class="p">,</span>
+                <span class="s1">&#39;volume&#39;</span><span class="p">:</span> <span class="n">volume_history</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
+                <span class="s1">&#39;close&#39;</span><span class="p">:</span> <span class="n">close_volatility</span> <span class="o">*</span> <span class="n">SQRT_252</span><span class="p">,</span>
             <span class="p">}</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_window_data_cache</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">current_session</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">values</span><span class="p">[</span><span class="s">&#39;volume&#39;</span><span class="p">],</span> <span class="n">values</span><span class="p">[</span><span class="s">&#39;close&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">values</span><span class="p">[</span><span class="s1">&#39;volume&#39;</span><span class="p">],</span> <span class="n">values</span><span class="p">[</span><span class="s1">&#39;close&#39;</span><span class="p">]</span>
 
 
 <span class="k">class</span> <span class="nc">VolatilityVolumeShare</span><span class="p">(</span><span class="n">MarketImpactBase</span><span class="p">):</span>
@@ -870,9 +947,9 @@
 
 <span class="sd">        MI = eta * sigma * sqrt(psi)</span>
 
-<span class="sd">    Eta is a constant which varies by root symbol.</span>
-<span class="sd">    Sigma is 20-day annualized volatility.</span>
-<span class="sd">    Psi is the volume traded in the given bar divided by 20-day ADV.</span>
+<span class="sd">    - ``eta`` is a constant which varies by root symbol.</span>
+<span class="sd">    - ``sigma`` is 20-day annualized volatility.</span>
+<span class="sd">    - ``psi`` is the volume traded in the given bar divided by 20-day ADV.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -888,30 +965,30 @@
     <span class="n">NO_DATA_VOLATILITY_SLIPPAGE_IMPACT</span> <span class="o">=</span> <span class="mf">7.5</span> <span class="o">/</span> <span class="mi">10000</span>
     <span class="n">allowed_asset_types</span> <span class="o">=</span> <span class="p">(</span><span class="n">Future</span><span class="p">,)</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">volume_limit</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="n">ROOT_SYMBOL_TO_ETA</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">VolatilityVolumeShare</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">volume_limit</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="n">ROOT_SYMBOL_TO_ETA</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">VolatilityVolumeShare</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">volume_limit</span> <span class="o">=</span> <span class="n">volume_limit</span>
 
-        <span class="c"># If &#39;eta&#39; is a constant, use a dummy mapping to treat it as a</span>
-        <span class="c"># dictionary that always returns the same value.</span>
-        <span class="c"># NOTE: This dictionary does not handle unknown root symbols, so it may</span>
-        <span class="c"># be worth revisiting this behavior.</span>
+        <span class="c1"># If &#39;eta&#39; is a constant, use a dummy mapping to treat it as a</span>
+        <span class="c1"># dictionary that always returns the same value.</span>
+        <span class="c1"># NOTE: This dictionary does not handle unknown root symbols, so it may</span>
+        <span class="c1"># be worth revisiting this behavior.</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eta</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_eta</span> <span class="o">=</span> <span class="n">DummyMapping</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">eta</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="c"># Eta is a dictionary. If the user&#39;s dictionary does not provide a</span>
-            <span class="c"># value for a certain contract, fall back on the pre-defined eta</span>
-            <span class="c"># values per root symbol.</span>
+            <span class="c1"># Eta is a dictionary. If the user&#39;s dictionary does not provide a</span>
+            <span class="c1"># value for a certain contract, fall back on the pre-defined eta</span>
+            <span class="c1"># values per root symbol.</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_eta</span> <span class="o">=</span> <span class="n">merge</span><span class="p">(</span><span class="n">ROOT_SYMBOL_TO_ETA</span><span class="p">,</span> <span class="n">eta</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_eta</span><span class="p">,</span> <span class="n">DummyMapping</span><span class="p">):</span>
-            <span class="c"># Eta is a constant, so extract it.</span>
-            <span class="n">eta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eta</span><span class="p">[</span><span class="s">&#39;dummy key&#39;</span><span class="p">]</span>
+            <span class="c1"># Eta is a constant, so extract it.</span>
+            <span class="n">eta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eta</span><span class="p">[</span><span class="s1">&#39;dummy key&#39;</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">eta</span> <span class="o">=</span> <span class="s">&#39;&lt;varies&gt;&#39;</span>
-        <span class="k">return</span> <span class="s">&#39;{class_name}(volume_limit={volume_limit}, eta={eta})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="n">class_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+            <span class="n">eta</span> <span class="o">=</span> <span class="s1">&#39;&lt;varies&gt;&#39;</span>
+        <span class="k">return</span> <span class="s1">&#39;{class_name}(volume_limit={volume_limit}, eta={eta})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">class_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
             <span class="n">volume_limit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">volume_limit</span><span class="p">,</span>
             <span class="n">eta</span><span class="o">=</span><span class="n">eta</span><span class="p">,</span>
         <span class="p">)</span>
@@ -928,65 +1005,81 @@
 
         <span class="n">market_impact</span> <span class="o">=</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">volatility</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">psi</span><span class="p">)</span>
 
-        <span class="c"># We divide by 10,000 because this model computes to basis points.</span>
-        <span class="c"># To convert from bps to % we need to divide by 100, then again to</span>
-        <span class="c"># convert from % to fraction.</span>
+        <span class="c1"># We divide by 10,000 because this model computes to basis points.</span>
+        <span class="c1"># To convert from bps to % we need to divide by 100, then again to</span>
+        <span class="c1"># convert from % to fraction.</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">current_price</span> <span class="o">*</span> <span class="n">market_impact</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10000</span>
 
     <span class="k">def</span> <span class="nf">get_txn_volume</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
-        <span class="n">volume</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s">&#39;volume&#39;</span><span class="p">)</span>
+        <span class="n">volume</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s1">&#39;volume&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">volume</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume_limit</span>
 
 
 <span class="k">class</span> <span class="nc">FixedBasisPointsSlippage</span><span class="p">(</span><span class="n">SlippageModel</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Model slippage as a fixed percentage of fill price. Executes the full</span>
-<span class="sd">    order immediately.</span>
+<span class="sd">    Model slippage as a fixed percentage difference from historical minutely</span>
+<span class="sd">    close price, limiting the size of fills to a fixed percentage of historical</span>
+<span class="sd">    minutely volume.</span>
 
-<span class="sd">    Orders to buy will be filled at: `price + (price * basis_points * 0.0001)`.</span>
-<span class="sd">    Orders to sell will be filled at:</span>
-<span class="sd">        `price - (price * basis_points * 0.0001)`.</span>
+<span class="sd">    Orders to buy are filled at::</span>
+
+<span class="sd">        historical_price * (1 + (basis_points * 0.0001))</span>
+
+<span class="sd">    Orders to sell are filled at::</span>
+
+<span class="sd">        historical_price * (1 - (basis_points * 0.0001))</span>
+
+<span class="sd">    Fill sizes are capped at::</span>
+
+<span class="sd">        historical_volume * volume_limit</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    basis_points : float, optional</span>
-<span class="sd">        Number of basis points of slippage to apply on each execution.</span>
-
+<span class="sd">        Number of basis points of slippage to apply for each fill. Default</span>
+<span class="sd">        is 5 basis points.</span>
 <span class="sd">    volume_limit : float, optional</span>
-<span class="sd">        fraction of the trading volume that can be filled each minute.</span>
+<span class="sd">        Fraction of trading volume that can be filled each minute. Default is</span>
+<span class="sd">        10% of trading volume.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    - A basis point is one one-hundredth of a percent.</span>
+<span class="sd">    - This class, default-constructed, is zipline&#39;s default slippage model for</span>
+<span class="sd">      equities.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="nd">@expect_bounded</span><span class="p">(</span>
         <span class="n">basis_points</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span>
-        <span class="n">__funcname</span><span class="o">=</span><span class="s">&#39;FixedBasisPointsSlippage&#39;</span><span class="p">,</span>
+        <span class="n">__funcname</span><span class="o">=</span><span class="s1">&#39;FixedBasisPointsSlippage&#39;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="nd">@expect_strictly_bounded</span><span class="p">(</span>
         <span class="n">volume_limit</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span>
-        <span class="n">__funcname</span><span class="o">=</span><span class="s">&#39;FixedBasisPointsSlippage&#39;</span><span class="p">,</span>
+        <span class="n">__funcname</span><span class="o">=</span><span class="s1">&#39;FixedBasisPointsSlippage&#39;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basis_points</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">volume_limit</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">FixedBasisPointsSlippage</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basis_points</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">volume_limit</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">FixedBasisPointsSlippage</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">basis_points</span> <span class="o">=</span> <span class="n">basis_points</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">percentage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">basis_points</span> <span class="o">/</span> <span class="mf">10000.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">volume_limit</span> <span class="o">=</span> <span class="n">volume_limit</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;&quot;&quot;</span>
-<span class="s">{class_name}(</span>
-<span class="s">    basis_points={basis_points},</span>
-<span class="s">    volume_limit={volume_limit},</span>
-<span class="s">)</span>
-<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="n">class_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">{class_name}(</span>
+<span class="s2">    basis_points={basis_points},</span>
+<span class="s2">    volume_limit={volume_limit},</span>
+<span class="s2">)</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">class_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
             <span class="n">basis_points</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">basis_points</span><span class="p">,</span>
             <span class="n">volume_limit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">volume_limit</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">process_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
 
-        <span class="n">volume</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s">&quot;volume&quot;</span><span class="p">)</span>
+        <span class="n">volume</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s2">&quot;volume&quot;</span><span class="p">)</span>
         <span class="n">max_volume</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">volume_limit</span> <span class="o">*</span> <span class="n">volume</span><span class="p">)</span>
 
-        <span class="n">price</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s">&quot;close&quot;</span><span class="p">)</span>
+        <span class="n">price</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s2">&quot;close&quot;</span><span class="p">)</span>
         <span class="n">shares_to_fill</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">open_amount</span><span class="p">),</span>
                              <span class="n">max_volume</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume_for_bar</span><span class="p">)</span>
 

@@ -414,7 +414,7 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.finance.metrics.core</h1><div class="highlight"><pre>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span></span><span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 
 <span class="kn">from</span> <span class="nn">zipline.utils.compat</span> <span class="kn">import</span> <span class="n">mappingproxy</span>
 
@@ -437,9 +437,9 @@
 <span class="sd">        The function which loads the ingested metrics sets back into memory.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">_metrics_sets</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="c"># Expose _metrics_sets through a proxy so that users cannot mutate this</span>
-    <span class="c"># accidentally. Users may go through `register` to update this which will</span>
-    <span class="c"># warn when trampling another metrics set.</span>
+    <span class="c1"># Expose _metrics_sets through a proxy so that users cannot mutate this</span>
+    <span class="c1"># accidentally. Users may go through `register` to update this which will</span>
+    <span class="c1"># warn when trampling another metrics set.</span>
     <span class="n">metrics_sets</span> <span class="o">=</span> <span class="n">mappingproxy</span><span class="p">(</span><span class="n">_metrics_sets</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">register</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
@@ -462,11 +462,11 @@
 <span class="sd">        zipline.finance.metrics.unregister_metrics_set</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">function</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="c"># allow as decorator with just name.</span>
+            <span class="c1"># allow as decorator with just name.</span>
             <span class="k">return</span> <span class="n">partial</span><span class="p">(</span><span class="n">register</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">_metrics_sets</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&#39;metrics set </span><span class="si">%r</span><span class="s"> is already registered&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;metrics set </span><span class="si">%r</span><span class="s1"> is already registered&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
 
         <span class="n">_metrics_sets</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">function</span>
 
@@ -488,7 +488,7 @@
             <span class="k">del</span> <span class="n">_metrics_sets</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s">&#39;metrics set </span><span class="si">%r</span><span class="s"> was not already registered&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">,</span>
+                <span class="s1">&#39;metrics set </span><span class="si">%r</span><span class="s1"> was not already registered&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">,</span>
             <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
@@ -508,7 +508,7 @@
             <span class="n">function</span> <span class="o">=</span> <span class="n">_metrics_sets</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s">&#39;no metrics set registered as </span><span class="si">%r</span><span class="s">, options are: </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                <span class="s1">&#39;no metrics set registered as </span><span class="si">%r</span><span class="s1">, options are: </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
                     <span class="n">name</span><span class="p">,</span>
                     <span class="nb">sorted</span><span class="p">(</span><span class="n">_metrics_sets</span><span class="p">),</span>
                 <span class="p">),</span>

@@ -414,20 +414,20 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.sources.benchmark_source</h1><div class="highlight"><pre>
-<span class="c">#</span>
-<span class="c"># Copyright 2018 Quantopian, Inc.</span>
-<span class="c">#</span>
-<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
-<span class="c"># you may not use this file except in compliance with the License.</span>
-<span class="c"># You may obtain a copy of the License at</span>
-<span class="c">#</span>
-<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
-<span class="c">#</span>
-<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
-<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
-<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
-<span class="c"># See the License for the specific language governing permissions and</span>
-<span class="c"># limitations under the License.</span>
+<span></span><span class="c1">#</span>
+<span class="c1"># Copyright 2018 Quantopian, Inc.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
 
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
 
@@ -439,12 +439,12 @@
 
 
 <div class="viewcode-block" id="BenchmarkSource"><a class="viewcode-back" href="../../../appendix.html#zipline.sources.benchmark_source.BenchmarkSource">[docs]</a><span class="k">class</span> <span class="nc">BenchmarkSource</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">benchmark_asset</span><span class="p">,</span>
                  <span class="n">trading_calendar</span><span class="p">,</span>
                  <span class="n">sessions</span><span class="p">,</span>
                  <span class="n">data_portal</span><span class="p">,</span>
-                 <span class="n">emission_rate</span><span class="o">=</span><span class="s">&quot;daily&quot;</span><span class="p">,</span>
+                 <span class="n">emission_rate</span><span class="o">=</span><span class="s2">&quot;daily&quot;</span><span class="p">,</span>
                  <span class="n">benchmark_returns</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">benchmark_asset</span> <span class="o">=</span> <span class="n">benchmark_asset</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span> <span class="o">=</span> <span class="n">sessions</span>
@@ -467,9 +467,9 @@
                 <span class="n">sessions</span><span class="p">,</span>
             <span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">emission_rate</span> <span class="o">==</span> <span class="s">&quot;minute&quot;</span><span class="p">:</span>
-                <span class="c"># we need to take the env&#39;s benchmark returns, which are daily,</span>
-                <span class="c"># and resample them to minute</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">emission_rate</span> <span class="o">==</span> <span class="s2">&quot;minute&quot;</span><span class="p">:</span>
+                <span class="c1"># we need to take the env&#39;s benchmark returns, which are daily,</span>
+                <span class="c1"># and resample them to minute</span>
                 <span class="n">minutes</span> <span class="o">=</span> <span class="n">trading_calendar</span><span class="o">.</span><span class="n">minutes_for_sessions_in_range</span><span class="p">(</span>
                     <span class="n">sessions</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                     <span class="n">sessions</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
@@ -477,15 +477,15 @@
 
                 <span class="n">minute_series</span> <span class="o">=</span> <span class="n">daily_series</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span>
                     <span class="n">index</span><span class="o">=</span><span class="n">minutes</span><span class="p">,</span>
-                    <span class="n">method</span><span class="o">=</span><span class="s">&quot;ffill&quot;</span>
+                    <span class="n">method</span><span class="o">=</span><span class="s2">&quot;ffill&quot;</span>
                 <span class="p">)</span>
 
                 <span class="bp">self</span><span class="o">.</span><span class="n">_precalculated_series</span> <span class="o">=</span> <span class="n">minute_series</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_precalculated_series</span> <span class="o">=</span> <span class="n">daily_series</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Must provide either benchmark_asset or &quot;</span>
-                            <span class="s">&quot;benchmark_returns.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Must provide either benchmark_asset or &quot;</span>
+                            <span class="s2">&quot;benchmark_returns.&quot;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="BenchmarkSource.get_value"><a class="viewcode-back" href="../../../appendix.html#zipline.sources.benchmark_source.BenchmarkSource.get_value">[docs]</a>    <span class="k">def</span> <span class="nf">get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Look up the returns for a given dt.</span>
@@ -561,9 +561,9 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_daily_returns</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span></div>
 
     <span class="k">def</span> <span class="nf">_validate_benchmark</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">benchmark_asset</span><span class="p">):</span>
-        <span class="c"># check if this security has a stock dividend.  if so, raise an</span>
-        <span class="c"># error suggesting that the user pick a different asset to use</span>
-        <span class="c"># as benchmark.</span>
+        <span class="c1"># check if this security has a stock dividend.  if so, raise an</span>
+        <span class="c1"># error suggesting that the user pick a different asset to use</span>
+        <span class="c1"># as benchmark.</span>
         <span class="n">stock_dividends</span> <span class="o">=</span> \
             <span class="bp">self</span><span class="o">.</span><span class="n">data_portal</span><span class="o">.</span><span class="n">get_stock_dividends</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmark_asset</span><span class="p">,</span>
                                                  <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span><span class="p">)</span>
@@ -571,11 +571,11 @@
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">stock_dividends</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">InvalidBenchmarkAsset</span><span class="p">(</span>
                 <span class="n">sid</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmark_asset</span><span class="p">),</span>
-                <span class="n">dt</span><span class="o">=</span><span class="n">stock_dividends</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&quot;ex_date&quot;</span><span class="p">]</span>
+                <span class="n">dt</span><span class="o">=</span><span class="n">stock_dividends</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;ex_date&quot;</span><span class="p">]</span>
             <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">benchmark_asset</span><span class="o">.</span><span class="n">start_date</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
-            <span class="c"># the asset started trading after the first simulation day</span>
+            <span class="c1"># the asset started trading after the first simulation day</span>
             <span class="k">raise</span> <span class="n">BenchmarkAssetNotAvailableTooEarly</span><span class="p">(</span>
                 <span class="n">sid</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmark_asset</span><span class="p">),</span>
                 <span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sessions</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
@@ -583,7 +583,7 @@
             <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">benchmark_asset</span><span class="o">.</span><span class="n">end_date</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
-            <span class="c"># the asset stopped trading before the last simulation day</span>
+            <span class="c1"># the asset stopped trading before the last simulation day</span>
             <span class="k">raise</span> <span class="n">BenchmarkAssetNotAvailableTooLate</span><span class="p">(</span>
                 <span class="n">sid</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmark_asset</span><span class="p">),</span>
                 <span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sessions</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
@@ -595,7 +595,7 @@
         <span class="k">return</span> <span class="p">(</span><span class="n">g</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">downsample_minute_return_series</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">downsample_minute_return_series</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
                                         <span class="n">trading_calendar</span><span class="p">,</span>
                                         <span class="n">minutely_returns</span><span class="p">):</span>
         <span class="n">sessions</span> <span class="o">=</span> <span class="n">trading_calendar</span><span class="o">.</span><span class="n">minute_index_to_session_labels</span><span class="p">(</span>
@@ -649,7 +649,7 @@
 <span class="sd">        daily_returns : pd.Series</span>
 <span class="sd">            the partial daily returns for each minute</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">emission_rate</span> <span class="o">==</span> <span class="s">&quot;minute&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">emission_rate</span> <span class="o">==</span> <span class="s2">&quot;minute&quot;</span><span class="p">:</span>
             <span class="n">minutes</span> <span class="o">=</span> <span class="n">trading_calendar</span><span class="o">.</span><span class="n">minutes_for_sessions_in_range</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
             <span class="p">)</span>
@@ -657,8 +657,8 @@
                 <span class="p">[</span><span class="n">asset</span><span class="p">],</span>
                 <span class="n">minutes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
                 <span class="n">bar_count</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">minutes</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
-                <span class="n">frequency</span><span class="o">=</span><span class="s">&quot;1m&quot;</span><span class="p">,</span>
-                <span class="n">field</span><span class="o">=</span><span class="s">&quot;price&quot;</span><span class="p">,</span>
+                <span class="n">frequency</span><span class="o">=</span><span class="s2">&quot;1m&quot;</span><span class="p">,</span>
+                <span class="n">field</span><span class="o">=</span><span class="s2">&quot;price&quot;</span><span class="p">,</span>
                 <span class="n">data_frequency</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">emission_rate</span><span class="p">,</span>
                 <span class="n">ffill</span><span class="o">=</span><span class="bp">True</span>
             <span class="p">)[</span><span class="n">asset</span><span class="p">]</span>
@@ -673,16 +673,16 @@
 
         <span class="n">start_date</span> <span class="o">=</span> <span class="n">asset</span><span class="o">.</span><span class="n">start_date</span>
         <span class="k">if</span> <span class="n">start_date</span> <span class="o">&lt;</span> <span class="n">trading_days</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
-            <span class="c"># get the window of close prices for benchmark_asset from the</span>
-            <span class="c"># last trading day of the simulation, going up to one day</span>
-            <span class="c"># before the simulation start day (so that we can get the %</span>
-            <span class="c"># change on day 1)</span>
+            <span class="c1"># get the window of close prices for benchmark_asset from the</span>
+            <span class="c1"># last trading day of the simulation, going up to one day</span>
+            <span class="c1"># before the simulation start day (so that we can get the %</span>
+            <span class="c1"># change on day 1)</span>
             <span class="n">benchmark_series</span> <span class="o">=</span> <span class="n">data_portal</span><span class="o">.</span><span class="n">get_history_window</span><span class="p">(</span>
                 <span class="p">[</span><span class="n">asset</span><span class="p">],</span>
                 <span class="n">trading_days</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
                 <span class="n">bar_count</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">trading_days</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
-                <span class="n">frequency</span><span class="o">=</span><span class="s">&quot;1d&quot;</span><span class="p">,</span>
-                <span class="n">field</span><span class="o">=</span><span class="s">&quot;price&quot;</span><span class="p">,</span>
+                <span class="n">frequency</span><span class="o">=</span><span class="s2">&quot;1d&quot;</span><span class="p">,</span>
+                <span class="n">field</span><span class="o">=</span><span class="s2">&quot;price&quot;</span><span class="p">,</span>
                 <span class="n">data_frequency</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">emission_rate</span><span class="p">,</span>
                 <span class="n">ffill</span><span class="o">=</span><span class="bp">True</span>
             <span class="p">)[</span><span class="n">asset</span><span class="p">]</span>
@@ -690,30 +690,30 @@
             <span class="n">returns</span> <span class="o">=</span> <span class="n">benchmark_series</span><span class="o">.</span><span class="n">pct_change</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]</span>
             <span class="k">return</span> <span class="n">returns</span><span class="p">,</span> <span class="n">returns</span>
         <span class="k">elif</span> <span class="n">start_date</span> <span class="o">==</span> <span class="n">trading_days</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
-            <span class="c"># Attempt to handle case where stock data starts on first</span>
-            <span class="c"># day, in this case use the open to close return.</span>
+            <span class="c1"># Attempt to handle case where stock data starts on first</span>
+            <span class="c1"># day, in this case use the open to close return.</span>
             <span class="n">benchmark_series</span> <span class="o">=</span> <span class="n">data_portal</span><span class="o">.</span><span class="n">get_history_window</span><span class="p">(</span>
                 <span class="p">[</span><span class="n">asset</span><span class="p">],</span>
                 <span class="n">trading_days</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
                 <span class="n">bar_count</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">trading_days</span><span class="p">),</span>
-                <span class="n">frequency</span><span class="o">=</span><span class="s">&quot;1d&quot;</span><span class="p">,</span>
-                <span class="n">field</span><span class="o">=</span><span class="s">&quot;price&quot;</span><span class="p">,</span>
+                <span class="n">frequency</span><span class="o">=</span><span class="s2">&quot;1d&quot;</span><span class="p">,</span>
+                <span class="n">field</span><span class="o">=</span><span class="s2">&quot;price&quot;</span><span class="p">,</span>
                 <span class="n">data_frequency</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">emission_rate</span><span class="p">,</span>
                 <span class="n">ffill</span><span class="o">=</span><span class="bp">True</span>
             <span class="p">)[</span><span class="n">asset</span><span class="p">]</span>
 
-            <span class="c"># get a minute history window of the first day</span>
+            <span class="c1"># get a minute history window of the first day</span>
             <span class="n">first_open</span> <span class="o">=</span> <span class="n">data_portal</span><span class="o">.</span><span class="n">get_spot_value</span><span class="p">(</span>
                 <span class="n">asset</span><span class="p">,</span>
-                <span class="s">&#39;open&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;open&#39;</span><span class="p">,</span>
                 <span class="n">trading_days</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                <span class="s">&#39;daily&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;daily&#39;</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">first_close</span> <span class="o">=</span> <span class="n">data_portal</span><span class="o">.</span><span class="n">get_spot_value</span><span class="p">(</span>
                 <span class="n">asset</span><span class="p">,</span>
-                <span class="s">&#39;close&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;close&#39;</span><span class="p">,</span>
                 <span class="n">trading_days</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                <span class="s">&#39;daily&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;daily&#39;</span><span class="p">,</span>
             <span class="p">)</span>
 
             <span class="n">first_day_return</span> <span class="o">=</span> <span class="p">(</span><span class="n">first_close</span> <span class="o">-</span> <span class="n">first_open</span><span class="p">)</span> <span class="o">/</span> <span class="n">first_open</span>
@@ -723,8 +723,8 @@
             <span class="k">return</span> <span class="n">returns</span><span class="p">,</span> <span class="n">returns</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s">&#39;cannot set benchmark to asset that does not exist during&#39;</span>
-                <span class="s">&#39; the simulation period (asset start date=</span><span class="si">%r</span><span class="s">)&#39;</span> <span class="o">%</span> <span class="n">start_date</span>
+                <span class="s1">&#39;cannot set benchmark to asset that does not exist during&#39;</span>
+                <span class="s1">&#39; the simulation period (asset start date=</span><span class="si">%r</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="n">start_date</span>
             <span class="p">)</span></div>
 </pre></div>
 

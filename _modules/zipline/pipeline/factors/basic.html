@@ -414,12 +414,13 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.pipeline.factors.basic</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;Simple common factors.</span>
+<span></span><span class="sd">&quot;&quot;&quot;Simple common factors.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Number</span>
 <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">arange</span><span class="p">,</span>
     <span class="n">average</span><span class="p">,</span>
+    <span class="n">copyto</span><span class="p">,</span>
     <span class="n">exp</span><span class="p">,</span>
     <span class="n">fmax</span><span class="p">,</span>
     <span class="n">full</span><span class="p">,</span>
@@ -428,9 +429,10 @@
     <span class="n">NINF</span><span class="p">,</span>
     <span class="n">sqrt</span><span class="p">,</span>
     <span class="nb">sum</span> <span class="k">as</span> <span class="n">np_sum</span><span class="p">,</span>
+    <span class="n">unique</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">zipline.pipeline.data</span> <span class="kn">import</span> <span class="n">USEquityPricing</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.data</span> <span class="kn">import</span> <span class="n">EquityPricing</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="n">expect_types</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.math_utils</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">nanargmax</span><span class="p">,</span>
@@ -452,36 +454,64 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculates the percent change in close price over the given window_length.</span>
 
-<span class="sd">    **Default Inputs**: [USEquityPricing.close]</span>
+<span class="sd">    **Default Inputs**: [EquityPricing.close]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">]</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">EquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">]</span>
     <span class="n">window_safe</span> <span class="o">=</span> <span class="bp">True</span>
 
     <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Returns</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_validate</span><span class="p">()</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s">&quot;&#39;Returns&#39; expected a window length of at least 2, but was &quot;</span>
-                <span class="s">&quot;given {window_length}. For daily returns, use a window &quot;</span>
-                <span class="s">&quot;length of 2.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">window_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">window_length</span><span class="p">)</span>
+                <span class="s2">&quot;&#39;Returns&#39; expected a window length of at least 2, but was &quot;</span>
+                <span class="s2">&quot;given {window_length}. For daily returns, use a window &quot;</span>
+                <span class="s2">&quot;length of 2.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">window_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">window_length</span><span class="p">)</span>
             <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">close</span><span class="p">):</span>
         <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span><span class="n">close</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">close</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">close</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
 
 
+<span class="k">class</span> <span class="nc">PercentChange</span><span class="p">(</span><span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">CustomFactor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the percent change over the given window_length.</span>
+
+<span class="sd">    **Default Inputs:** None</span>
+
+<span class="sd">    **Default Window Length:** None</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Percent change is calculated as ``(new - old) / abs(old)``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">window_safe</span> <span class="o">=</span> <span class="bp">True</span>
+
+    <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PercentChange</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_validate</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;&#39;PercentChange&#39; expected a window length&quot;</span>
+                <span class="s2">&quot;of at least 2, but was given {window_length}. &quot;</span>
+                <span class="s2">&quot;For daily percent change, use a window &quot;</span>
+                <span class="s2">&quot;length of 2.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">window_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">window_length</span><span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+
 <div class="viewcode-block" id="DailyReturns"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.DailyReturns">[docs]</a><span class="k">class</span> <span class="nc">DailyReturns</span><span class="p">(</span><span class="n">Returns</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculates daily percent change in close price.</span>
 
-<span class="sd">    **Default Inputs**: [USEquityPricing.close]</span>
+<span class="sd">    **Default Inputs**: [EquityPricing.close]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">]</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">EquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">]</span>
     <span class="n">window_safe</span> <span class="o">=</span> <span class="bp">True</span>
     <span class="n">window_length</span> <span class="o">=</span> <span class="mi">2</span></div>
 
 
-<div class="viewcode-block" id="SimpleMovingAverage"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.SimpleMovingAverage">[docs]</a><span class="k">class</span> <span class="nc">SimpleMovingAverage</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">,</span> <span class="n">SingleInputMixin</span><span class="p">):</span>
+<div class="viewcode-block" id="SimpleMovingAverage"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.SimpleMovingAverage">[docs]</a><span class="k">class</span> <span class="nc">SimpleMovingAverage</span><span class="p">(</span><span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">CustomFactor</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Average Value of an arbitrary column</span>
 
@@ -489,9 +519,9 @@
 
 <span class="sd">    **Default Window Length**: None</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c"># numpy&#39;s nan functions throw warnings when passed an array containing only</span>
-    <span class="c"># nans, but they still returns the desired value (nan), so we ignore the</span>
-    <span class="c"># warning.</span>
+    <span class="c1"># numpy&#39;s nan functions throw warnings when passed an array containing only</span>
+    <span class="c1"># nans, but they still returns the desired value (nan), so we ignore the</span>
+    <span class="c1"># warning.</span>
     <span class="n">ctx</span> <span class="o">=</span> <span class="n">ignore_nanwarnings</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
@@ -514,14 +544,14 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Volume Weighted Average Price</span>
 
-<span class="sd">    **Default Inputs:** [USEquityPricing.close, USEquityPricing.volume]</span>
+<span class="sd">    **Default Inputs:** [EquityPricing.close, EquityPricing.volume]</span>
 
 <span class="sd">    **Default Window Length:** None</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">volume</span><span class="p">)</span></div>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">EquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,</span> <span class="n">EquityPricing</span><span class="o">.</span><span class="n">volume</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="MaxDrawdown"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.MaxDrawdown">[docs]</a><span class="k">class</span> <span class="nc">MaxDrawdown</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">,</span> <span class="n">SingleInputMixin</span><span class="p">):</span>
+<div class="viewcode-block" id="MaxDrawdown"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.MaxDrawdown">[docs]</a><span class="k">class</span> <span class="nc">MaxDrawdown</span><span class="p">(</span><span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">CustomFactor</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Max Drawdown</span>
 
@@ -536,7 +566,7 @@
         <span class="n">drawdowns</span><span class="p">[</span><span class="n">isnan</span><span class="p">(</span><span class="n">drawdowns</span><span class="p">)]</span> <span class="o">=</span> <span class="n">NINF</span>
         <span class="n">drawdown_ends</span> <span class="o">=</span> <span class="n">nanargmax</span><span class="p">(</span><span class="n">drawdowns</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-        <span class="c"># TODO: Accelerate this loop in Cython or Numba.</span>
+        <span class="c1"># TODO: Accelerate this loop in Cython or Numba.</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">drawdown_ends</span><span class="p">):</span>
             <span class="n">peak</span> <span class="o">=</span> <span class="n">nanmax</span><span class="p">(</span><span class="n">data</span><span class="p">[:</span><span class="n">end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">])</span>
             <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">peak</span> <span class="o">-</span> <span class="n">data</span><span class="p">[</span><span class="n">end</span><span class="p">,</span> <span class="n">i</span><span class="p">])</span> <span class="o">/</span> <span class="n">data</span><span class="p">[</span><span class="n">end</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span></div>
@@ -546,11 +576,11 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Average Daily Dollar Volume</span>
 
-<span class="sd">    **Default Inputs:** [USEquityPricing.close, USEquityPricing.volume]</span>
+<span class="sd">    **Default Inputs:** [EquityPricing.close, EquityPricing.volume]</span>
 
 <span class="sd">    **Default Window Length:** None</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">volume</span><span class="p">]</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">EquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,</span> <span class="n">EquityPricing</span><span class="o">.</span><span class="n">volume</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">close</span><span class="p">,</span> <span class="n">volume</span><span class="p">):</span>
         <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">nansum</span><span class="p">(</span><span class="n">close</span> <span class="o">*</span> <span class="n">volume</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">close</span><span class="p">)</span></div>
@@ -607,11 +637,11 @@
 <span class="sd">    from_halflife</span>
 <span class="sd">    from_center_of_mass</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">params</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;decay_rate&#39;</span><span class="p">,)</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;decay_rate&#39;</span><span class="p">,)</span>
 
     <span class="nd">@classmethod</span>
     <span class="nd">@expect_types</span><span class="p">(</span><span class="n">span</span><span class="o">=</span><span class="n">Number</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">from_span</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">window_length</span><span class="p">,</span> <span class="n">span</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">from_span</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">window_length</span><span class="p">,</span> <span class="n">span</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Convenience constructor for passing `decay_rate` in terms of `span`.</span>
 
@@ -624,12 +654,12 @@
 
 <span class="sd">            # Equivalent to:</span>
 <span class="sd">            # my_ewma = EWMA(</span>
-<span class="sd">            #    inputs=[USEquityPricing.close],</span>
+<span class="sd">            #    inputs=[EquityPricing.close],</span>
 <span class="sd">            #    window_length=30,</span>
 <span class="sd">            #    decay_rate=(1 - (2.0 / (1 + 15.0))),</span>
 <span class="sd">            # )</span>
 <span class="sd">            my_ewma = EWMA.from_span(</span>
-<span class="sd">                inputs=[USEquityPricing.close],</span>
+<span class="sd">                inputs=[EquityPricing.close],</span>
 <span class="sd">                window_length=30,</span>
 <span class="sd">                span=15,</span>
 <span class="sd">            )</span>
@@ -642,13 +672,13 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">span</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s">&quot;`span` must be a positive number. </span><span class="si">%s</span><span class="s"> was passed.&quot;</span> <span class="o">%</span> <span class="n">span</span>
+                <span class="s2">&quot;`span` must be a positive number. </span><span class="si">%s</span><span class="s2"> was passed.&quot;</span> <span class="o">%</span> <span class="n">span</span>
             <span class="p">)</span>
 
         <span class="n">decay_rate</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">span</span><span class="p">)))</span>
         <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">decay_rate</span> <span class="o">&lt;=</span> <span class="mf">1.0</span>
 
-        <span class="k">return</span> <span class="n">cls</span><span class="p">(</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
             <span class="n">window_length</span><span class="o">=</span><span class="n">window_length</span><span class="p">,</span>
             <span class="n">decay_rate</span><span class="o">=</span><span class="n">decay_rate</span><span class="p">,</span>
@@ -657,7 +687,7 @@
 
     <span class="nd">@classmethod</span>
     <span class="nd">@expect_types</span><span class="p">(</span><span class="n">halflife</span><span class="o">=</span><span class="n">Number</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">from_halflife</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">window_length</span><span class="p">,</span> <span class="n">halflife</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">from_halflife</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">window_length</span><span class="p">,</span> <span class="n">halflife</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Convenience constructor for passing ``decay_rate`` in terms of half</span>
 <span class="sd">        life.</span>
@@ -671,12 +701,12 @@
 
 <span class="sd">            # Equivalent to:</span>
 <span class="sd">            # my_ewma = EWMA(</span>
-<span class="sd">            #    inputs=[USEquityPricing.close],</span>
+<span class="sd">            #    inputs=[EquityPricing.close],</span>
 <span class="sd">            #    window_length=30,</span>
 <span class="sd">            #    decay_rate=np.exp(np.log(0.5) / 15),</span>
 <span class="sd">            # )</span>
 <span class="sd">            my_ewma = EWMA.from_halflife(</span>
-<span class="sd">                inputs=[USEquityPricing.close],</span>
+<span class="sd">                inputs=[EquityPricing.close],</span>
 <span class="sd">                window_length=30,</span>
 <span class="sd">                halflife=15,</span>
 <span class="sd">            )</span>
@@ -689,12 +719,12 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">halflife</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s">&quot;`span` must be a positive number. </span><span class="si">%s</span><span class="s"> was passed.&quot;</span> <span class="o">%</span> <span class="n">halflife</span>
+                <span class="s2">&quot;`span` must be a positive number. </span><span class="si">%s</span><span class="s2"> was passed.&quot;</span> <span class="o">%</span> <span class="n">halflife</span>
             <span class="p">)</span>
         <span class="n">decay_rate</span> <span class="o">=</span> <span class="n">exp</span><span class="p">(</span><span class="n">log</span><span class="p">(</span><span class="o">.</span><span class="mi">5</span><span class="p">)</span> <span class="o">/</span> <span class="n">halflife</span><span class="p">)</span>
         <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">decay_rate</span> <span class="o">&lt;=</span> <span class="mf">1.0</span>
 
-        <span class="k">return</span> <span class="n">cls</span><span class="p">(</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
             <span class="n">window_length</span><span class="o">=</span><span class="n">window_length</span><span class="p">,</span>
             <span class="n">decay_rate</span><span class="o">=</span><span class="n">decay_rate</span><span class="p">,</span>
@@ -702,7 +732,7 @@
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_center_of_mass</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">from_center_of_mass</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
                             <span class="n">inputs</span><span class="p">,</span>
                             <span class="n">window_length</span><span class="p">,</span>
                             <span class="n">center_of_mass</span><span class="p">,</span>
@@ -720,12 +750,12 @@
 
 <span class="sd">            # Equivalent to:</span>
 <span class="sd">            # my_ewma = EWMA(</span>
-<span class="sd">            #    inputs=[USEquityPricing.close],</span>
+<span class="sd">            #    inputs=[EquityPricing.close],</span>
 <span class="sd">            #    window_length=30,</span>
 <span class="sd">            #    decay_rate=(1 - (1 / 15.0)),</span>
 <span class="sd">            # )</span>
 <span class="sd">            my_ewma = EWMA.from_center_of_mass(</span>
-<span class="sd">                inputs=[USEquityPricing.close],</span>
+<span class="sd">                inputs=[EquityPricing.close],</span>
 <span class="sd">                window_length=30,</span>
 <span class="sd">                center_of_mass=15,</span>
 <span class="sd">            )</span>
@@ -736,7 +766,7 @@
 <span class="sd">        :class:`ExponentialWeightedMovingAverage` and</span>
 <span class="sd">        :class:`ExponentialWeightedMovingStdDev`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">cls</span><span class="p">(</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
             <span class="n">window_length</span><span class="o">=</span><span class="n">window_length</span><span class="p">,</span>
             <span class="n">decay_rate</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">center_of_mass</span><span class="p">))),</span>
@@ -772,7 +802,7 @@
 
 <span class="sd">    See Also</span>
 <span class="sd">    --------</span>
-<span class="sd">    :func:`pandas.ewma`</span>
+<span class="sd">    :meth:`pandas.DataFrame.ewm`</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">decay_rate</span><span class="p">):</span>
         <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">average</span><span class="p">(</span>
@@ -810,7 +840,7 @@
 
 <span class="sd">    See Also</span>
 <span class="sd">    --------</span>
-<span class="sd">    :func:`pandas.ewmstd`</span>
+<span class="sd">    :func:`pandas.DataFrame.ewm`</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">decay_rate</span><span class="p">):</span>
@@ -826,7 +856,7 @@
         <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">variance</span> <span class="o">*</span> <span class="n">bias_correction</span><span class="p">)</span></div>
 
 
-<span class="k">class</span> <span class="nc">LinearWeightedMovingAverage</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">,</span> <span class="n">SingleInputMixin</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">LinearWeightedMovingAverage</span><span class="p">(</span><span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">CustomFactor</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Weighted Average Value of an arbitrary column</span>
 
@@ -834,24 +864,24 @@
 
 <span class="sd">    **Default Window Length**: None</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c"># numpy&#39;s nan functions throw warnings when passed an array containing only</span>
-    <span class="c"># nans, but they still returns the desired value (nan), so we ignore the</span>
-    <span class="c"># warning.</span>
+    <span class="c1"># numpy&#39;s nan functions throw warnings when passed an array containing only</span>
+    <span class="c1"># nans, but they still returns the desired value (nan), so we ignore the</span>
+    <span class="c1"># warning.</span>
     <span class="n">ctx</span> <span class="o">=</span> <span class="n">ignore_nanwarnings</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
         <span class="n">ndays</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-        <span class="c"># Initialize weights array</span>
+        <span class="c1"># Initialize weights array</span>
         <span class="n">weights</span> <span class="o">=</span> <span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ndays</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float64_dtype</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ndays</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
-        <span class="c"># Compute normalizer</span>
+        <span class="c1"># Compute normalizer</span>
         <span class="n">normalizer</span> <span class="o">=</span> <span class="p">(</span><span class="n">ndays</span> <span class="o">*</span> <span class="p">(</span><span class="n">ndays</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span>
 
-        <span class="c"># Weight the data</span>
+        <span class="c1"># Weight the data</span>
         <span class="n">weighted_data</span> <span class="o">=</span> <span class="n">data</span> <span class="o">*</span> <span class="n">weights</span>
 
-        <span class="c"># Compute weighted averages</span>
+        <span class="c1"># Compute weighted averages</span>
         <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">nansum</span><span class="p">(</span><span class="n">weighted_data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">normalizer</span>
 
 
@@ -861,7 +891,7 @@
 <span class="sd">    the standard deviation of daily returns.</span>
 <span class="sd">    https://en.wikipedia.org/wiki/Volatility_(finance)</span>
 
-<span class="sd">    **Default Inputs:** :data:`zipline.pipeline.factors.Returns(window_length=2)`  # noqa</span>
+<span class="sd">    **Default Inputs:** [Returns(window_length=2)]</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -870,14 +900,46 @@
 <span class="sd">        trading days in a normal year.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">Returns</span><span class="p">(</span><span class="n">window_length</span><span class="o">=</span><span class="mi">2</span><span class="p">)]</span>
-    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;annualization_factor&#39;</span><span class="p">:</span> <span class="mf">252.0</span><span class="p">}</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;annualization_factor&#39;</span><span class="p">:</span> <span class="mf">252.0</span><span class="p">}</span>
     <span class="n">window_length</span> <span class="o">=</span> <span class="mi">252</span>
 
     <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">returns</span><span class="p">,</span> <span class="n">annualization_factor</span><span class="p">):</span>
         <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">nanstd</span><span class="p">(</span><span class="n">returns</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">annualization_factor</span> <span class="o">**</span> <span class="o">.</span><span class="mi">5</span><span class="p">)</span>
 
 
-<span class="c"># Convenience aliases</span>
+<span class="k">class</span> <span class="nc">PeerCount</span><span class="p">(</span><span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">CustomFactor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Peer Count of distinct categories in a given classifier.  This factor</span>
+<span class="sd">    is returned by the classifier instance method peer_count()</span>
+
+<span class="sd">    **Default Inputs:** None</span>
+
+<span class="sd">    **Default Window Length:** 1</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">window_length</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PeerCount</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_validate</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;&#39;PeerCount&#39; expected a window length of 1, but was given&quot;</span>
+                <span class="s2">&quot;{window_length}.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">window_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">window_length</span><span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">classifier_values</span><span class="p">):</span>
+        <span class="c1"># Convert classifier array to group label int array</span>
+        <span class="n">group_labels</span><span class="p">,</span> <span class="n">null_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">_to_integral</span><span class="p">(</span>
+            <span class="n">classifier_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">inverse</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="n">unique</span><span class="p">(</span>  <span class="c1"># Get counts, idx of unique groups</span>
+            <span class="n">group_labels</span><span class="p">,</span>
+            <span class="n">return_counts</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+            <span class="n">return_inverse</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">copyto</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">counts</span><span class="p">[</span><span class="n">inverse</span><span class="p">],</span> <span class="n">where</span><span class="o">=</span><span class="p">(</span><span class="n">group_labels</span> <span class="o">!=</span> <span class="n">null_label</span><span class="p">))</span>
+
+
+<span class="c1"># Convenience aliases</span>
 <span class="n">EWMA</span> <span class="o">=</span> <span class="n">ExponentialWeightedMovingAverage</span>
 <span class="n">EWMSTD</span> <span class="o">=</span> <span class="n">ExponentialWeightedMovingStdDev</span>
 </pre></div>

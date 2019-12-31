@@ -414,7 +414,7 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.pipeline.filters.smoothing</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Filters that apply smoothing operations on other filters.</span>
 
 <span class="sd">These are generally useful for controlling/minimizing turnover on existing</span>
@@ -461,7 +461,7 @@
 <span class="sd">    **Default Window Length:** None</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">params</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;N&#39;</span><span class="p">,)</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;N&#39;</span><span class="p">,)</span>
 
     <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">arg</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
         <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">N</span><span class="p">)</span></div>

@@ -425,43 +425,42 @@ Python package.</p>
 <li>Zipline ships several C extensions that require access to the CPython C API.
 In order to build the C extensions, <code class="docutils literal"><span class="pre">pip</span></code> needs access to the CPython
 header files for your Python installation.</li>
-<li>Zipline depends on <a class="reference external" href="http://www.numpy.org/">numpy</a>, the core library for
-numerical array computing in Python.  Numpy depends on having the <a class="reference external" href="http://www.netlib.org/lapack">LAPACK</a> linear algebra routines available.</li>
+<li>Zipline depends on <a class="reference external" href="https://www.numpy.org/">numpy</a>, the core library for
+numerical array computing in Python.  Numpy depends on having the <a class="reference external" href="https://www.netlib.org/lapack">LAPACK</a> linear algebra routines available.</li>
 </ol>
 <p>Because LAPACK and the CPython headers are non-Python dependencies, the correct
 way to install them varies from platform to platform.  If you&#8217;d rather use a
 single tool to install Python and non-Python dependencies, or if you&#8217;re already
-using <a class="reference external" href="http://continuum.io/downloads">Anaconda</a> as your Python distribution,
+using <a class="reference external" href="https://www.anaconda.com/distribution/">Anaconda</a> as your Python distribution,
 you can skip to the <a class="reference internal" href="#conda"><span>Installing with Conda</span></a> section.</p>
 <p>Once you&#8217;ve installed the necessary additional dependencies (see below for
 your particular platform), you should be able to simply run</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>pip install zipline
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ pip install zipline
 </pre></div>
 </div>
 <p>If you use Python for anything other than Zipline, we <strong>strongly</strong> recommend
-that you install in a <a class="reference external" href="https://virtualenv.readthedocs.org/en/latest">virtualenv</a>.  The <a class="reference external" href="http://docs.python-guide.org/en/latest/">Hitchhiker&#8217;s Guide to
-Python</a> provides an <a class="reference external" href="http://docs.python-guide.org/en/latest/dev/virtualenvs/">excellent tutorial on virtualenv</a>.</p>
+that you install in a <a class="reference external" href="https://virtualenv.readthedocs.org/en/latest">virtualenv</a>.  The <a class="reference external" href="https://docs.python-guide.org/en/latest/">Hitchhiker&#8217;s Guide to
+Python</a> provides an <a class="reference external" href="https://docs.python-guide.org/en/latest/dev/virtualenvs/">excellent tutorial on virtualenv</a>.</p>
 <div class="section" id="gnu-linux">
 <h3>GNU/Linux<a class="headerlink" href="#gnu-linux" title="Permalink to this headline">¶</a></h3>
-<p>On <a class="reference external" href="https://www.debian.org/misc/children-distros">Debian-derived</a> Linux distributions, you can acquire all the necessary
+<p>On <a class="reference external" href="https://www.debian.org/derivatives/">Debian-derived</a> Linux distributions, you can acquire all the necessary
 binary dependencies from <code class="docutils literal"><span class="pre">apt</span></code> by running:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>sudo apt-get install libatlas-base-dev python-dev gfortran pkg-config libfreetype6-dev
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ sudo apt-get install libatlas-base-dev python-dev gfortran pkg-config libfreetype6-dev
 </pre></div>
 </div>
 <p>On recent <a class="reference external" href="https://en.wikipedia.org/wiki/Red_Hat_Enterprise_Linux_derivatives">RHEL-derived</a> derived Linux distributions (e.g. Fedora), the
 following should be sufficient to acquire the necessary additional
 dependencies:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>sudo dnf install atlas-devel gcc-c++ gcc-gfortran libgfortran python-devel redhat-rep-config
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ sudo dnf install atlas-devel gcc-c++ gcc-gfortran libgfortran python-devel redhat-rep-config
 </pre></div>
 </div>
 <p>On <a class="reference external" href="https://www.archlinux.org/">Arch Linux</a>, you can acquire the additional dependencies via <code class="docutils literal"><span class="pre">pacman</span></code>:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>pacman -S lapack gcc gcc-fortran pkg-config
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ pacman -S lapack gcc gcc-fortran pkg-config
 </pre></div>
 </div>
-<p>There are also AUR packages available for installing <a class="reference external" href="https://aur.archlinux.org/packages/python34/">Python 3.4</a> (Arch&#8217;s default python is now
-3.5, but Zipline only currently supports 3.4), and <a class="reference external" href="https://aur.archlinux.org/packages/ta-lib/">ta-lib</a>, an optional Zipline dependency.
+<p>There are also AUR packages available for installing <a class="reference external" href="https://aur.archlinux.org/packages/ta-lib/">ta-lib</a>, an optional Zipline dependency.
 Python 2 is also installable via:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>pacman -S python2
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ pacman -S python2
 </pre></div>
 </div>
 </div>
@@ -470,12 +469,12 @@ Python 2 is also installable via:</p>
 <p>The version of Python shipped with OSX by default is generally out of date, and
 has a number of quirks because it&#8217;s used directly by the operating system.  For
 these reasons, many developers choose to install and use a separate Python
-installation. The <a class="reference external" href="http://docs.python-guide.org/en/latest/">Hitchhiker&#8217;s Guide to Python</a> provides an excellent guide
-to <a class="reference external" href="http://docs.python-guide.org/en/latest/">Installing Python on OSX</a>, which
-explains how to install Python with the <a class="reference external" href="http://brew.sh">Homebrew</a> manager.</p>
+installation. The <a class="reference external" href="https://docs.python-guide.org/en/latest/">Hitchhiker&#8217;s Guide to Python</a> provides an excellent guide
+to <a class="reference external" href="https://docs.python-guide.org/en/latest/">Installing Python on OSX</a>, which
+explains how to install Python with the <a class="reference external" href="https://brew.sh">Homebrew</a> manager.</p>
 <p>Assuming you&#8217;ve installed Python with Homebrew, you&#8217;ll also likely need the
 following brew packages:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>brew install freetype pkg-config gcc openssl
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ brew install freetype pkg-config gcc openssl
 </pre></div>
 </div>
 </div>
@@ -488,17 +487,17 @@ following brew packages:</p>
 <div class="section" id="installing-with-conda">
 <span id="conda"></span><h2>Installing with <code class="docutils literal"><span class="pre">conda</span></code><a class="headerlink" href="#installing-with-conda" title="Permalink to this headline">¶</a></h2>
 <p>Another way to install Zipline is via the <code class="docutils literal"><span class="pre">conda</span></code> package manager, which
-comes as part of Continuum Analytics&#8217; <a class="reference external" href="http://continuum.io/downloads">Anaconda</a> distribution.</p>
+comes as part of Continuum Analytics&#8217; <a class="reference external" href="https://www.anaconda.com/distribution/">Anaconda</a> distribution.</p>
 <p>The primary advantage of using Conda over <code class="docutils literal"><span class="pre">pip</span></code> is that conda natively
 understands the complex binary dependencies of packages like <code class="docutils literal"><span class="pre">numpy</span></code> and
 <code class="docutils literal"><span class="pre">scipy</span></code>.  This means that <code class="docutils literal"><span class="pre">conda</span></code> can install Zipline and its dependencies
 without requiring the use of a second tool to acquire Zipline&#8217;s non-Python
 dependencies.</p>
-<p>For instructions on how to install <code class="docutils literal"><span class="pre">conda</span></code>, see the <a class="reference external" href="http://conda.pydata.org/docs/download.html">Conda Installation
+<p>For instructions on how to install <code class="docutils literal"><span class="pre">conda</span></code>, see the <a class="reference external" href="https://conda.io/projects/conda/en/latest/user-guide/install/index.html">Conda Installation
 Documentation</a></p>
 <p>Once <code class="docutils literal"><span class="pre">conda</span></code> has been set up you can install Zipline from our <code class="docutils literal"><span class="pre">Quantopian</span></code>
 channel:</p>
-<div class="highlight-bash"><div class="highlight"><pre>conda install -c Quantopian zipline
+<div class="highlight-bash"><div class="highlight"><pre><span></span>conda install -c Quantopian zipline
 </pre></div>
 </div>
 <div class="section" id="managing-conda-environments">
@@ -507,32 +506,32 @@ channel:</p>
 Installing Zipline in <code class="docutils literal"><span class="pre">conda</span></code> environments will not interfere your default
 Python deployment or site-packages, which will prevent any possible conflict
 with your global libraries. For more information on <code class="docutils literal"><span class="pre">conda</span></code> environment, see
-the <a class="reference external" href="https://conda.io/docs/user-guide/tasks/manage-environments.html">Conda User Guide</a></p>
+the <a class="reference external" href="https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html">Conda User Guide</a></p>
 <p>Assuming <code class="docutils literal"><span class="pre">conda</span></code> has been set up, you can create a <code class="docutils literal"><span class="pre">conda</span></code> environment:</p>
 <ul class="simple">
 <li>Python 2.7:</li>
 </ul>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>conda create -n env_zipline <span class="nv">python</span><span class="o">=</span>2.7
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ conda create -n env_zipline <span class="nv">python</span><span class="o">=</span><span class="m">2</span>.7
 </pre></div>
 </div>
 <ul class="simple">
 <li>Python 3.5:</li>
 </ul>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>conda create -n env_zipline <span class="nv">python</span><span class="o">=</span>3.5
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ conda create -n env_zipline <span class="nv">python</span><span class="o">=</span><span class="m">3</span>.5
 </pre></div>
 </div>
 <p>Now you have set up an isolated environment called <code class="docutils literal"><span class="pre">env_zipline</span></code>, a sandbox-like
 structure to install Zipline. Then you should activate the conda environment
 by using the command</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span><span class="nb">source </span>activate env_zipline
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ <span class="nb">source</span> activate env_zipline
 </pre></div>
 </div>
 <p>You can install Zipline by running</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="o">(</span>env_zipline<span class="o">)</span> <span class="nv">$ </span>conda install -c Quantopian zipline
+<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="o">(</span>env_zipline<span class="o">)</span> $ conda install -c Quantopian zipline
 </pre></div>
 </div>
 <p>To deactivate the <code class="docutils literal"><span class="pre">conda</span></code> environment:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="o">(</span>env_zipline<span class="o">)</span> <span class="nv">$ </span><span class="nb">source </span>deactivate
+<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="o">(</span>env_zipline<span class="o">)</span> $ <span class="nb">source</span> deactivate
 </pre></div>
 </div>
 </div>

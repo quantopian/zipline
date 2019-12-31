@@ -462,11 +462,11 @@ Quantopian docs</a>.</p>
 <h2>My First Algorithm<a class="headerlink" href="#my-first-algorithm" title="Permalink to this headline">¶</a></h2>
 <p>Lets take a look at a very simple algorithm from the <code class="docutils literal"><span class="pre">examples</span></code>
 directory, <code class="docutils literal"><span class="pre">buyapple.py</span></code>:</p>
-<div class="highlight-python"><div class="highlight"><pre>from zipline.examples import buyapple
+<div class="highlight-python"><div class="highlight"><pre><span></span>from zipline.examples import buyapple
 buyapple??
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">order</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">symbol</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">order</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">symbol</span>
 
 
 <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
@@ -474,8 +474,8 @@ buyapple??
 
 
 <span class="k">def</span> <span class="nf">handle_data</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-    <span class="n">order</span><span class="p">(</span><span class="n">symbol</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">),</span> <span class="mi">10</span><span class="p">)</span>
-    <span class="n">record</span><span class="p">(</span><span class="n">AAPL</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">symbol</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">),</span> <span class="s">&#39;price&#39;</span><span class="p">))</span>
+    <span class="n">order</span><span class="p">(</span><span class="n">symbol</span><span class="p">(</span><span class="s1">&#39;AAPL&#39;</span><span class="p">),</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="n">record</span><span class="p">(</span><span class="n">AAPL</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">symbol</span><span class="p">(</span><span class="s1">&#39;AAPL&#39;</span><span class="p">),</span> <span class="s1">&#39;price&#39;</span><span class="p">))</span>
 </pre></div>
 </div>
 <p>As you can see, we first have to import some functions we would like to
@@ -503,7 +503,7 @@ interfaces: A command-line interface, <code class="docutils literal"><span class
 <h3>Ingesting Data<a class="headerlink" href="#ingesting-data" title="Permalink to this headline">¶</a></h3>
 <p>If you haven&#8217;t ingested the data, you&#8217;ll need a <a class="reference external" href="https://docs.quandl.com/docs#section-authentication">Quandl</a> API key to
 ingest the default bundle. Then run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ QUANDL_API_KEY</span><span class="o">=</span>&lt;yourkey&gt; zipline ingest <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ <span class="nv">QUANDL_API_KEY</span><span class="o">=</span>&lt;yourkey&gt; zipline ingest <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span>
 </pre></div>
 </div>
 <p>where <code class="docutils literal"><span class="pre">&lt;bundle&gt;</span></code> is the name of the bundle to ingest, defaulting to
@@ -516,10 +516,10 @@ more detail.</p>
 <p>After you installed zipline you should be able to execute the following
 from your command line (e.g. <code class="docutils literal"><span class="pre">cmd.exe</span></code> on Windows, or the Terminal app
 on OSX):</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>zipline run --help
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ zipline run --help
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre>Usage: zipline run [OPTIONS]
+<div class="highlight-python"><div class="highlight"><pre><span></span>Usage: zipline run [OPTIONS]
 
 Run a backtest for the given algorithm.
 
@@ -565,10 +565,10 @@ supply the command line args all the time (see the .conf files in the examples
 directory).</p>
 <p>Thus, to execute our algorithm from above and save the results to
 <code class="docutils literal"><span class="pre">buyapple_out.pickle</span></code> we would call <code class="docutils literal"><span class="pre">zipline</span> <span class="pre">run</span></code> as follows:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">zipline</span> <span class="n">run</span> <span class="o">-</span><span class="n">f</span> <span class="o">../../</span><span class="n">zipline</span><span class="o">/</span><span class="n">examples</span><span class="o">/</span><span class="n">buyapple</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span><span class="n">o</span> <span class="n">buyapple_out</span><span class="o">.</span><span class="n">pickle</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">zipline</span> <span class="n">run</span> <span class="o">-</span><span class="n">f</span> <span class="o">../../</span><span class="n">zipline</span><span class="o">/</span><span class="n">examples</span><span class="o">/</span><span class="n">buyapple</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span><span class="n">o</span> <span class="n">buyapple_out</span><span class="o">.</span><span class="n">pickle</span>
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre>AAPL
+<div class="highlight-python"><div class="highlight"><pre><span></span>AAPL
 [2018-01-03 04:30:50.150039] WARNING: Loader: Refusing to download new benchmark data because a download succeeded at 2018-01-03 04:01:34+00:00.
 [2018-01-03 04:30:50.191479] WARNING: Loader: Refusing to download new treasury data because a download succeeded at 2018-01-03 04:01:35+00:00.
 [2018-01-03 04:30:51.843465] INFO: Performance: Simulated 503 trading days out of 503.
@@ -595,8 +595,8 @@ use <code class="docutils literal"><span class="pre">pandas</span></code> from i
 rows. Note that <code class="docutils literal"><span class="pre">zipline</span></code> makes heavy usage of <code class="docutils literal"><span class="pre">pandas</span></code>, especially
 for data input and outputting so it&#8217;s worth spending some time to learn
 it.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
-<span class="n">perf</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_pickle</span><span class="p">(</span><span class="s">&#39;buyapple_out.pickle&#39;</span><span class="p">)</span> <span class="c"># read in perf DataFrame</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="n">perf</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_pickle</span><span class="p">(</span><span class="s1">&#39;buyapple_out.pickle&#39;</span><span class="p">)</span> <span class="c1"># read in perf DataFrame</span>
 <span class="n">perf</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -860,22 +860,22 @@ information about the state of your algorithm. The very first column
 and allows us to plot the price of apple. For example, we could easily
 examine now how our portfolio value changed over time compared to the
 AAPL stock price.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="o">%</span><span class="n">pylab</span> <span class="n">inline</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="o">%</span><span class="n">pylab</span> <span class="n">inline</span>
 <span class="n">figsize</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
 
 <span class="n">ax1</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">211</span><span class="p">)</span>
 <span class="n">perf</span><span class="o">.</span><span class="n">portfolio_value</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax1</span><span class="p">)</span>
-<span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;Portfolio Value&#39;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Portfolio Value&#39;</span><span class="p">)</span>
 <span class="n">ax2</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">212</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="n">ax1</span><span class="p">)</span>
 <span class="n">perf</span><span class="o">.</span><span class="n">AAPL</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax2</span><span class="p">)</span>
-<span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;AAPL Stock Price&#39;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;AAPL Stock Price&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre>Populating the interactive namespace from numpy and matplotlib
+<div class="highlight-python"><div class="highlight"><pre><span></span>Populating the interactive namespace from numpy and matplotlib
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre>&lt;matplotlib.text.Text at 0x10c48c198&gt;
+<div class="highlight-python"><div class="highlight"><pre><span></span>&lt;matplotlib.text.Text at 0x10c48c198&gt;
 </pre></div>
 </div>
 <img alt="_images/tutorial_11_2.png" src="_images/tutorial_11_2.png" />
@@ -899,18 +899,18 @@ the same arguments as the command line interface described above. Thus
 to run the algorithm from above with the same parameters we just have to
 execute the following cell after importing <code class="docutils literal"><span class="pre">zipline</span></code> to register the
 magic.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="o">%</span><span class="n">load_ext</span> <span class="n">zipline</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="o">%</span><span class="n">load_ext</span> <span class="n">zipline</span>
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre><span class="o">%%</span><span class="n">zipline</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">zipline</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span>
 <span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">record</span>
 
 <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
     <span class="k">pass</span>
 
 <span class="k">def</span> <span class="nf">handle_data</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-    <span class="n">order</span><span class="p">(</span><span class="n">symbol</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">),</span> <span class="mi">10</span><span class="p">)</span>
-    <span class="n">record</span><span class="p">(</span><span class="n">AAPL</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="n">symbol</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">)]</span><span class="o">.</span><span class="n">price</span><span class="p">)</span>
+    <span class="n">order</span><span class="p">(</span><span class="n">symbol</span><span class="p">(</span><span class="s1">&#39;AAPL&#39;</span><span class="p">),</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="n">record</span><span class="p">(</span><span class="n">AAPL</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="n">symbol</span><span class="p">(</span><span class="s1">&#39;AAPL&#39;</span><span class="p">)]</span><span class="o">.</span><span class="n">price</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Note that we did not have to specify an input file as above since the
@@ -918,7 +918,7 @@ magic will use the contents of the cell and look for your algorithm
 functions there. Also, instead of defining an output file we are
 specifying a variable name with <code class="docutils literal"><span class="pre">-o</span></code> that will be created in the name
 space and contain the performance <code class="docutils literal"><span class="pre">DataFrame</span></code> we looked at above.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">_</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">_</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
 </div>
 <div style="max-height: 1000px; max-width: 1500px; overflow: auto;">
@@ -1197,7 +1197,7 @@ but note that you need to have minute-level data for using <code class="docutils
 a more detailed description of <code class="docutils literal"><span class="pre">history()</span></code>&#8216;s features, see the
 <a class="reference external" href="https://www.quantopian.com/help#ide-history">Quantopian docs</a>.
 Let&#8217;s look at the strategy which should make this clear:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="o">%%</span><span class="n">zipline</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2014</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span><span class="n">o</span> <span class="n">dma</span><span class="o">.</span><span class="n">pickle</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">zipline</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2014</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span><span class="n">o</span> <span class="n">dma</span><span class="o">.</span><span class="n">pickle</span>
 
 
 <span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">order_target</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">symbol</span>
@@ -1205,31 +1205,31 @@ Let&#8217;s look at the strategy which should make this clear:</p>
 
 <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
     <span class="n">context</span><span class="o">.</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">context</span><span class="o">.</span><span class="n">asset</span> <span class="o">=</span> <span class="n">symbol</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">)</span>
+    <span class="n">context</span><span class="o">.</span><span class="n">asset</span> <span class="o">=</span> <span class="n">symbol</span><span class="p">(</span><span class="s1">&#39;AAPL&#39;</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">handle_data</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-    <span class="c"># Skip first 300 days to get full windows</span>
+    <span class="c1"># Skip first 300 days to get full windows</span>
     <span class="n">context</span><span class="o">.</span><span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">i</span> <span class="o">&lt;</span> <span class="mi">300</span><span class="p">:</span>
         <span class="k">return</span>
 
-    <span class="c"># Compute averages</span>
-    <span class="c"># data.history() has to be called with the same params</span>
-    <span class="c"># from above and returns a pandas dataframe.</span>
-    <span class="n">short_mavg</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">history</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">,</span> <span class="n">bar_count</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s">&quot;1d&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-    <span class="n">long_mavg</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">history</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">,</span> <span class="n">bar_count</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s">&quot;1d&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="c1"># Compute averages</span>
+    <span class="c1"># data.history() has to be called with the same params</span>
+    <span class="c1"># from above and returns a pandas dataframe.</span>
+    <span class="n">short_mavg</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">history</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s1">&#39;price&#39;</span><span class="p">,</span> <span class="n">bar_count</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s2">&quot;1d&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">long_mavg</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">history</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s1">&#39;price&#39;</span><span class="p">,</span> <span class="n">bar_count</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s2">&quot;1d&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
 
-    <span class="c"># Trading logic</span>
+    <span class="c1"># Trading logic</span>
     <span class="k">if</span> <span class="n">short_mavg</span> <span class="o">&gt;</span> <span class="n">long_mavg</span><span class="p">:</span>
-        <span class="c"># order_target orders as many shares as needed to</span>
-        <span class="c"># achieve the desired number of shares.</span>
+        <span class="c1"># order_target orders as many shares as needed to</span>
+        <span class="c1"># achieve the desired number of shares.</span>
         <span class="n">order_target</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">short_mavg</span> <span class="o">&lt;</span> <span class="n">long_mavg</span><span class="p">:</span>
         <span class="n">order_target</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
-    <span class="c"># Save values for later inspection</span>
-    <span class="n">record</span><span class="p">(</span><span class="n">AAPL</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">),</span>
+    <span class="c1"># Save values for later inspection</span>
+    <span class="n">record</span><span class="p">(</span><span class="n">AAPL</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s1">&#39;price&#39;</span><span class="p">),</span>
            <span class="n">short_mavg</span><span class="o">=</span><span class="n">short_mavg</span><span class="p">,</span>
            <span class="n">long_mavg</span><span class="o">=</span><span class="n">long_mavg</span><span class="p">)</span>
 
@@ -1238,21 +1238,21 @@ Let&#8217;s look at the strategy which should make this clear:</p>
     <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
     <span class="n">ax1</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">211</span><span class="p">)</span>
     <span class="n">perf</span><span class="o">.</span><span class="n">portfolio_value</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax1</span><span class="p">)</span>
-    <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;portfolio value in $&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;portfolio value in $&#39;</span><span class="p">)</span>
 
     <span class="n">ax2</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">212</span><span class="p">)</span>
-    <span class="n">perf</span><span class="p">[</span><span class="s">&#39;AAPL&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax2</span><span class="p">)</span>
-    <span class="n">perf</span><span class="p">[[</span><span class="s">&#39;short_mavg&#39;</span><span class="p">,</span> <span class="s">&#39;long_mavg&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax2</span><span class="p">)</span>
+    <span class="n">perf</span><span class="p">[</span><span class="s1">&#39;AAPL&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax2</span><span class="p">)</span>
+    <span class="n">perf</span><span class="p">[[</span><span class="s1">&#39;short_mavg&#39;</span><span class="p">,</span> <span class="s1">&#39;long_mavg&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax2</span><span class="p">)</span>
 
     <span class="n">perf_trans</span> <span class="o">=</span> <span class="n">perf</span><span class="o">.</span><span class="n">ix</span><span class="p">[[</span><span class="n">t</span> <span class="o">!=</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">perf</span><span class="o">.</span><span class="n">transactions</span><span class="p">]]</span>
-    <span class="n">buys</span> <span class="o">=</span> <span class="n">perf_trans</span><span class="o">.</span><span class="n">ix</span><span class="p">[[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;amount&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">perf_trans</span><span class="o">.</span><span class="n">transactions</span><span class="p">]]</span>
+    <span class="n">buys</span> <span class="o">=</span> <span class="n">perf_trans</span><span class="o">.</span><span class="n">ix</span><span class="p">[[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;amount&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">perf_trans</span><span class="o">.</span><span class="n">transactions</span><span class="p">]]</span>
     <span class="n">sells</span> <span class="o">=</span> <span class="n">perf_trans</span><span class="o">.</span><span class="n">ix</span><span class="p">[</span>
-        <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;amount&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">perf_trans</span><span class="o">.</span><span class="n">transactions</span><span class="p">]]</span>
+        <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;amount&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">perf_trans</span><span class="o">.</span><span class="n">transactions</span><span class="p">]]</span>
     <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">buys</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">perf</span><span class="o">.</span><span class="n">short_mavg</span><span class="o">.</span><span class="n">ix</span><span class="p">[</span><span class="n">buys</span><span class="o">.</span><span class="n">index</span><span class="p">],</span>
-             <span class="s">&#39;^&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s">&#39;m&#39;</span><span class="p">)</span>
+             <span class="s1">&#39;^&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;m&#39;</span><span class="p">)</span>
     <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">sells</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">perf</span><span class="o">.</span><span class="n">short_mavg</span><span class="o">.</span><span class="n">ix</span><span class="p">[</span><span class="n">sells</span><span class="o">.</span><span class="n">index</span><span class="p">],</span>
-             <span class="s">&#39;v&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">)</span>
-    <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;price in $&#39;</span><span class="p">)</span>
+             <span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;price in $&#39;</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>

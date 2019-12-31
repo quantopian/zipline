@@ -414,49 +414,97 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.pipeline.engine</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Compute Engine definitions for the Pipeline API.</span>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">ABCMeta</span><span class="p">,</span>
-    <span class="n">abstractmethod</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span> <span class="nn">uuid</span> <span class="kn">import</span> <span class="n">uuid4</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Computation engines for executing Pipelines.</span>
 
-<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">iteritems</span><span class="p">,</span>
-    <span class="n">with_metaclass</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">array</span>
+<span class="sd">This module defines the core computation algorithms for executing Pipelines.</span>
+
+<span class="sd">The primary entrypoint of this file is SimplePipelineEngine.run_pipeline, which</span>
+<span class="sd">implements the following algorithm for executing pipelines:</span>
+
+<span class="sd">1. Determine the domain of the pipeline. The domain determines the</span>
+<span class="sd">   top-level set of dates and assets that serve as row- and</span>
+<span class="sd">   column-labels for the computations performed by this</span>
+<span class="sd">   pipeline. This logic lives in</span>
+<span class="sd">   zipline.pipeline.domain.infer_domain.</span>
+
+<span class="sd">2. Build a dependency graph of all terms in `pipeline`, with</span>
+<span class="sd">   information about how many extra rows each term needs from its</span>
+<span class="sd">   inputs. At this point we also **specialize** any generic</span>
+<span class="sd">   LoadableTerms to the domain determined in (1). This logic lives in</span>
+<span class="sd">   zipline.pipeline.graph.TermGraph and</span>
+<span class="sd">   zipline.pipeline.graph.ExecutionPlan.</span>
+
+<span class="sd">3. Combine the domain computed in (2) with our AssetFinder to produce</span>
+<span class="sd">   a &quot;lifetimes matrix&quot;. The lifetimes matrix is a DataFrame of</span>
+<span class="sd">   booleans whose labels are dates x assets. Each entry corresponds</span>
+<span class="sd">   to a (date, asset) pair and indicates whether the asset in</span>
+<span class="sd">   question was tradable on the date in question. This logic</span>
+<span class="sd">   primarily lives in AssetFinder.lifetimes.</span>
+
+<span class="sd">4. Call self._populate_initial_workspace, which produces a</span>
+<span class="sd">   &quot;workspace&quot; dictionary containing cached or otherwise pre-computed</span>
+<span class="sd">   terms. By default, the initial workspace contains the lifetimes</span>
+<span class="sd">   matrix and its date labels.</span>
+
+<span class="sd">5. Topologically sort the graph constructed in (1) to produce an</span>
+<span class="sd">   execution order for any terms that were not pre-populated.  This</span>
+<span class="sd">   logic lives in TermGraph.</span>
+
+<span class="sd">6. Iterate over the terms in the order computed in (5). For each term:</span>
+
+<span class="sd">   a. Fetch the term&#39;s inputs from the workspace, possibly removing</span>
+<span class="sd">      unneeded leading rows from the input (see ExecutionPlan.offset</span>
+<span class="sd">      for details on why we might have extra leading rows).</span>
+
+<span class="sd">   b. Call ``term._compute`` with the inputs. Store the results into</span>
+<span class="sd">      the workspace.</span>
+
+<span class="sd">   c. Decrement &quot;reference counts&quot; on the term&#39;s inputs, and remove</span>
+<span class="sd">      their results from the workspace if the refcount hits 0. This</span>
+<span class="sd">      significantly reduces the maximum amount of memory that we</span>
+<span class="sd">      consume during execution</span>
+
+<span class="sd">   This logic lives in SimplePipelineEngine.compute_chunk.</span>
+
+<span class="sd">7. Extract the pipeline&#39;s outputs from the workspace and convert them</span>
+<span class="sd">   into &quot;narrow&quot; format, with output labels dictated by the Pipeline&#39;s</span>
+<span class="sd">   screen. This logic lives in SimplePipelineEngine._to_narrow.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABCMeta</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+
+<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">iteritems</span><span class="p">,</span> <span class="n">with_metaclass</span><span class="p">,</span> <span class="n">viewkeys</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">array</span><span class="p">,</span> <span class="n">arange</span>
 <span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">MultiIndex</span>
-<span class="kn">from</span> <span class="nn">toolz</span> <span class="kn">import</span> <span class="n">groupby</span><span class="p">,</span> <span class="n">juxt</span>
-<span class="kn">from</span> <span class="nn">toolz.curried.operator</span> <span class="kn">import</span> <span class="n">getitem</span>
+<span class="kn">from</span> <span class="nn">toolz</span> <span class="kn">import</span> <span class="n">groupby</span>
 
 <span class="kn">from</span> <span class="nn">zipline.lib.adjusted_array</span> <span class="kn">import</span> <span class="n">ensure_adjusted_array</span><span class="p">,</span> <span class="n">ensure_ndarray</span>
 <span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="n">NoFurtherDataError</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="n">expect_types</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">as_column</span><span class="p">,</span>
     <span class="n">repeat_first_axis</span><span class="p">,</span>
     <span class="n">repeat_last_axis</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.pandas_utils</span> <span class="kn">import</span> <span class="n">explode</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.string_formatting</span> <span class="kn">import</span> <span class="n">bulleted_list</span>
 
+<span class="kn">from</span> <span class="nn">.domain</span> <span class="kn">import</span> <span class="n">Domain</span><span class="p">,</span> <span class="n">GENERIC</span>
+<span class="kn">from</span> <span class="nn">.graph</span> <span class="kn">import</span> <span class="n">maybe_specialize</span>
+<span class="kn">from</span> <span class="nn">.hooks</span> <span class="kn">import</span> <span class="n">DelegatingHooks</span>
 <span class="kn">from</span> <span class="nn">.term</span> <span class="kn">import</span> <span class="n">AssetExists</span><span class="p">,</span> <span class="n">InputDates</span><span class="p">,</span> <span class="n">LoadableTerm</span>
 
 <span class="kn">from</span> <span class="nn">zipline.utils.date_utils</span> <span class="kn">import</span> <span class="n">compute_date_range_chunks</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.pandas_utils</span> <span class="kn">import</span> <span class="n">categorical_df_concat</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.sharedoc</span> <span class="kn">import</span> <span class="n">copydoc</span>
 
 
 <div class="viewcode-block" id="PipelineEngine"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.engine.PipelineEngine">[docs]</a><span class="k">class</span> <span class="nc">PipelineEngine</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">ABCMeta</span><span class="p">)):</span></div>
 
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">run_pipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">run_pipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">,</span> <span class="n">hooks</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Compute values for ``pipeline`` between ``start_date`` and</span>
-<span class="sd">        ``end_date``.</span>
-
-<span class="sd">        Returns a DataFrame with a MultiIndex of (date, asset) pairs.</span>
+<span class="sd">        Compute values for ``pipeline`` from ``start_date`` to ``end_date``.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -466,6 +514,8 @@
 <span class="sd">            Start date of the computed matrix.</span>
 <span class="sd">        end_date : pd.Timestamp</span>
 <span class="sd">            End date of the computed matrix.</span>
+<span class="sd">        hooks : list[implements(PipelineHooks)], optional</span>
+<span class="sd">            Hooks for instrumenting Pipeline execution.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -474,21 +524,28 @@
 
 <span class="sd">            The ``result`` columns correspond to the entries of</span>
 <span class="sd">            `pipeline.columns`, which should be a dictionary mapping strings to</span>
-<span class="sd">            instances of :class:`zipline.pipeline.term.Term`.</span>
+<span class="sd">            instances of :class:`zipline.pipeline.Term`.</span>
 
 <span class="sd">            For each date between ``start_date`` and ``end_date``, ``result``</span>
 <span class="sd">            will contain a row for each asset that passed `pipeline.screen`.</span>
 <span class="sd">            A screen of ``None`` indicates that a row should be returned for</span>
 <span class="sd">            each asset that existed each day.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&quot;run_pipeline&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;run_pipeline&quot;</span><span class="p">)</span>
 
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">run_chunked_pipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">,</span> <span class="n">chunksize</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">run_chunked_pipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                             <span class="n">pipeline</span><span class="p">,</span>
+                             <span class="n">start_date</span><span class="p">,</span>
+                             <span class="n">end_date</span><span class="p">,</span>
+                             <span class="n">chunksize</span><span class="p">,</span>
+                             <span class="n">hooks</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Compute values for `pipeline` in number of days equal to `chunksize`</span>
-<span class="sd">        and return stitched up result. Computing in chunks is useful for</span>
-<span class="sd">        pipelines computed over a long period of time.</span>
+<span class="sd">        Compute values for ``pipeline`` from ``start_date`` to ``end_date``, in</span>
+<span class="sd">        date chunks of size ``chunksize``.</span>
+
+<span class="sd">        Chunked execution reduces memory consumption, and may reduce</span>
+<span class="sd">        computation time depending on the contents of your pipeline.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -500,6 +557,8 @@
 <span class="sd">            The end date to run the pipeline for.</span>
 <span class="sd">        chunksize : int</span>
 <span class="sd">            The number of days to execute at a time.</span>
+<span class="sd">        hooks : list[implements(PipelineHooks)], optional</span>
+<span class="sd">            Hooks for instrumenting Pipeline execution.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -508,7 +567,7 @@
 
 <span class="sd">            The ``result`` columns correspond to the entries of</span>
 <span class="sd">            `pipeline.columns`, which should be a dictionary mapping strings to</span>
-<span class="sd">            instances of :class:`zipline.pipeline.term.Term`.</span>
+<span class="sd">            instances of :class:`zipline.pipeline.Term`.</span>
 
 <span class="sd">            For each date between ``start_date`` and ``end_date``, ``result``</span>
 <span class="sd">            will contain a row for each asset that passed `pipeline.screen`.</span>
@@ -519,7 +578,7 @@
 <span class="sd">        --------</span>
 <span class="sd">        :meth:`zipline.pipeline.engine.PipelineEngine.run_pipeline`</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&quot;run_chunked_pipeline&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;run_chunked_pipeline&quot;</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">NoEngineRegistered</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
@@ -533,16 +592,21 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A PipelineEngine that doesn&#39;t do anything.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">run_pipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">run_pipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">,</span> <span class="n">hooks</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">NoEngineRegistered</span><span class="p">(</span>
-            <span class="s">&quot;Attempted to run a pipeline but no pipeline &quot;</span>
-            <span class="s">&quot;resources were registered.&quot;</span>
+            <span class="s2">&quot;Attempted to run a pipeline but no pipeline &quot;</span>
+            <span class="s2">&quot;resources were registered.&quot;</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">run_chunked_pipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">,</span> <span class="n">chunksize</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">run_chunked_pipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                             <span class="n">pipeline</span><span class="p">,</span>
+                             <span class="n">start_date</span><span class="p">,</span>
+                             <span class="n">end_date</span><span class="p">,</span>
+                             <span class="n">chunksize</span><span class="p">,</span>
+                             <span class="n">hooks</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">NoEngineRegistered</span><span class="p">(</span>
-            <span class="s">&quot;Attempted to run a chunked pipeline but no pipeline &quot;</span>
-            <span class="s">&quot;resources were registered.&quot;</span>
+            <span class="s2">&quot;Attempted to run a chunked pipeline but no pipeline &quot;</span>
+            <span class="s2">&quot;resources were registered.&quot;</span>
         <span class="p">)</span>
 
 
@@ -588,9 +652,6 @@
 <span class="sd">    get_loader : callable</span>
 <span class="sd">        A function that is given a loadable term and returns a PipelineLoader</span>
 <span class="sd">        to use to retrieve raw data for that term.</span>
-<span class="sd">    calendar : DatetimeIndex</span>
-<span class="sd">        Array of dates to consider as trading days when computing a range</span>
-<span class="sd">        between a fixed start and end.</span>
 <span class="sd">    asset_finder : zipline.assets.AssetFinder</span>
 <span class="sd">        An AssetFinder instance.  We depend on the AssetFinder to determine</span>
 <span class="sd">        which assets are in the top-level universe at any point in time.</span>
@@ -599,27 +660,34 @@
 <span class="sd">        computing a pipeline. See</span>
 <span class="sd">        :func:`zipline.pipeline.engine.default_populate_initial_workspace`</span>
 <span class="sd">        for more info.</span>
+<span class="sd">    default_hooks : list, optional</span>
+<span class="sd">        List of hooks that should be used to instrument all pipelines executed</span>
+<span class="sd">        by this engine.</span>
 
 <span class="sd">    See Also</span>
 <span class="sd">    --------</span>
 <span class="sd">    :func:`zipline.pipeline.engine.default_populate_initial_workspace`</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">__slots__</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="s">&#39;_get_loader&#39;</span><span class="p">,</span>
-        <span class="s">&#39;_calendar&#39;</span><span class="p">,</span>
-        <span class="s">&#39;_finder&#39;</span><span class="p">,</span>
-        <span class="s">&#39;_root_mask_term&#39;</span><span class="p">,</span>
-        <span class="s">&#39;_root_mask_dates_term&#39;</span><span class="p">,</span>
-        <span class="s">&#39;_populate_initial_workspace&#39;</span><span class="p">,</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s1">&#39;_get_loader&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;_finder&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;_root_mask_term&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;_root_mask_dates_term&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;_populate_initial_workspace&#39;</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+    <span class="nd">@expect_types</span><span class="p">(</span>
+        <span class="n">default_domain</span><span class="o">=</span><span class="n">Domain</span><span class="p">,</span>
+        <span class="n">__funcname</span><span class="o">=</span><span class="s1">&#39;SimplePipelineEngine&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">get_loader</span><span class="p">,</span>
-                 <span class="n">calendar</span><span class="p">,</span>
                  <span class="n">asset_finder</span><span class="p">,</span>
-                 <span class="n">populate_initial_workspace</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+                 <span class="n">default_domain</span><span class="o">=</span><span class="n">GENERIC</span><span class="p">,</span>
+                 <span class="n">populate_initial_workspace</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">default_hooks</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_get_loader</span> <span class="o">=</span> <span class="n">get_loader</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_calendar</span> <span class="o">=</span> <span class="n">calendar</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_finder</span> <span class="o">=</span> <span class="n">asset_finder</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_root_mask_term</span> <span class="o">=</span> <span class="n">AssetExists</span><span class="p">()</span>
@@ -628,49 +696,38 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_populate_initial_workspace</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">populate_initial_workspace</span> <span class="ow">or</span> <span class="n">default_populate_initial_workspace</span>
         <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_default_domain</span> <span class="o">=</span> <span class="n">default_domain</span>
 
-<div class="viewcode-block" id="SimplePipelineEngine.run_pipeline"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.engine.SimplePipelineEngine.run_pipeline">[docs]</a>    <span class="k">def</span> <span class="nf">run_pipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">default_hooks</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_default_hooks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_default_hooks</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">default_hooks</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SimplePipelineEngine.run_chunked_pipeline"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.engine.SimplePipelineEngine.run_chunked_pipeline">[docs]</a>    <span class="k">def</span> <span class="nf">run_chunked_pipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                             <span class="n">pipeline</span><span class="p">,</span>
+                             <span class="n">start_date</span><span class="p">,</span>
+                             <span class="n">end_date</span><span class="p">,</span>
+                             <span class="n">chunksize</span><span class="p">,</span>
+                             <span class="n">hooks</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Compute a pipeline.</span>
+<span class="sd">        Compute values for ``pipeline`` from ``start_date`` to ``end_date``, in</span>
+<span class="sd">        date chunks of size ``chunksize``.</span>
 
-<span class="sd">        The algorithm implemented here can be broken down into the following</span>
-<span class="sd">        stages:</span>
-
-<span class="sd">        0. Build a dependency graph of all terms in `pipeline`.  Topologically</span>
-<span class="sd">           sort the graph to determine an order in which we can compute the</span>
-<span class="sd">           terms.</span>
-
-<span class="sd">        1. Ask our AssetFinder for a &quot;lifetimes matrix&quot;, which should contain,</span>
-<span class="sd">           for each date between start_date and end_date, a boolean value for</span>
-<span class="sd">           each known asset indicating whether the asset existed on that date.</span>
-
-<span class="sd">        2. Compute each term in the dependency order determined in (0), caching</span>
-<span class="sd">           the results in a a dictionary to that they can be fed into future</span>
-<span class="sd">           terms.</span>
-
-<span class="sd">        3. For each date, determine the number of assets passing</span>
-<span class="sd">           pipeline.screen.  The sum, N, of all these values is the total</span>
-<span class="sd">           number of rows in our output frame, so we pre-allocate an output</span>
-<span class="sd">           array of length N for each factor in `terms`.</span>
-
-<span class="sd">        4. Fill in the arrays allocated in (3) by copying computed values from</span>
-<span class="sd">           our output cache into the corresponding rows.</span>
-
-<span class="sd">        5. Stick the values computed in (4) into a DataFrame and return it.</span>
-
-<span class="sd">        Step 0 is performed by ``Pipeline.to_graph``.</span>
-<span class="sd">        Step 1 is performed in ``SimplePipelineEngine._compute_root_mask``.</span>
-<span class="sd">        Step 2 is performed in ``SimplePipelineEngine.compute_chunk``.</span>
-<span class="sd">        Steps 3, 4, and 5 are performed in ``SimplePiplineEngine._to_narrow``.</span>
+<span class="sd">        Chunked execution reduces memory consumption, and may reduce</span>
+<span class="sd">        computation time depending on the contents of your pipeline.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        pipeline : zipline.pipeline.Pipeline</span>
+<span class="sd">        pipeline : Pipeline</span>
 <span class="sd">            The pipeline to run.</span>
 <span class="sd">        start_date : pd.Timestamp</span>
-<span class="sd">            Start date of the computed matrix.</span>
+<span class="sd">            The start date to run the pipeline for.</span>
 <span class="sd">        end_date : pd.Timestamp</span>
-<span class="sd">            End date of the computed matrix.</span>
+<span class="sd">            The end date to run the pipeline for.</span>
+<span class="sd">        chunksize : int</span>
+<span class="sd">            The number of days to execute at a time.</span>
+<span class="sd">        hooks : list[implements(PipelineHooks)], optional</span>
+<span class="sd">            Hooks for instrumenting Pipeline execution.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -679,7 +736,7 @@
 
 <span class="sd">            The ``result`` columns correspond to the entries of</span>
 <span class="sd">            `pipeline.columns`, which should be a dictionary mapping strings to</span>
-<span class="sd">            instances of :class:`zipline.pipeline.term.Term`.</span>
+<span class="sd">            instances of :class:`zipline.pipeline.Term`.</span>
 
 <span class="sd">            For each date between ``start_date`` and ``end_date``, ``result``</span>
 <span class="sd">            will contain a row for each asset that passed `pipeline.screen`.</span>
@@ -689,76 +746,135 @@
 <span class="sd">        See Also</span>
 <span class="sd">        --------</span>
 <span class="sd">        :meth:`zipline.pipeline.engine.PipelineEngine.run_pipeline`</span>
-<span class="sd">        :meth:`zipline.pipeline.engine.PipelineEngine.run_chunked_pipeline`</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">end_date</span> <span class="o">&lt;</span> <span class="n">start_date</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s">&quot;start_date must be before or equal to end_date </span><span class="se">\n</span><span class="s">&quot;</span>
-                <span class="s">&quot;start_date=</span><span class="si">%s</span><span class="s">, end_date=</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">)</span>
-            <span class="p">)</span>
-
-        <span class="n">screen_name</span> <span class="o">=</span> <span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span>
-        <span class="n">graph</span> <span class="o">=</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">to_execution_plan</span><span class="p">(</span>
-            <span class="n">screen_name</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_root_mask_term</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_calendar</span><span class="p">,</span>
+        <span class="n">domain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_domain</span><span class="p">(</span><span class="n">pipeline</span><span class="p">)</span>
+        <span class="n">ranges</span> <span class="o">=</span> <span class="n">compute_date_range_chunks</span><span class="p">(</span>
+            <span class="n">domain</span><span class="o">.</span><span class="n">all_sessions</span><span class="p">(),</span>
             <span class="n">start_date</span><span class="p">,</span>
             <span class="n">end_date</span><span class="p">,</span>
+            <span class="n">chunksize</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">extra_rows</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">extra_rows</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_root_mask_term</span><span class="p">]</span>
-        <span class="n">root_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_root_mask</span><span class="p">(</span><span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">,</span> <span class="n">extra_rows</span><span class="p">)</span>
-        <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">root_mask_values</span> <span class="o">=</span> <span class="n">explode</span><span class="p">(</span><span class="n">root_mask</span><span class="p">)</span>
+        <span class="n">hooks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_hooks</span><span class="p">(</span><span class="n">hooks</span><span class="p">)</span>
 
-        <span class="n">initial_workspace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_initial_workspace</span><span class="p">(</span>
+        <span class="n">run_pipeline</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_run_pipeline_impl</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">hooks</span><span class="o">=</span><span class="n">hooks</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">hooks</span><span class="o">.</span><span class="n">running_pipeline</span><span class="p">(</span><span class="n">pipeline</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">):</span>
+            <span class="n">chunks</span> <span class="o">=</span> <span class="p">[</span><span class="n">run_pipeline</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">ranges</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># OPTIMIZATION: Don&#39;t make an extra copy in `categorical_df_concat`</span>
+            <span class="c1"># if we don&#39;t have to.</span>
+            <span class="k">return</span> <span class="n">chunks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Filter out empty chunks. Empty dataframes lose dtype information,</span>
+        <span class="c1"># which makes concatenation fail.</span>
+        <span class="n">nonempty_chunks</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chunks</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">categorical_df_concat</span><span class="p">(</span><span class="n">nonempty_chunks</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SimplePipelineEngine.run_pipeline"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.engine.SimplePipelineEngine.run_pipeline">[docs]</a>    <span class="k">def</span> <span class="nf">run_pipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">,</span> <span class="n">hooks</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute values for ``pipeline`` from ``start_date`` to ``end_date``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pipeline : zipline.pipeline.Pipeline</span>
+<span class="sd">            The pipeline to run.</span>
+<span class="sd">        start_date : pd.Timestamp</span>
+<span class="sd">            Start date of the computed matrix.</span>
+<span class="sd">        end_date : pd.Timestamp</span>
+<span class="sd">            End date of the computed matrix.</span>
+<span class="sd">        hooks : list[implements(PipelineHooks)], optional</span>
+<span class="sd">            Hooks for instrumenting Pipeline execution.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        result : pd.DataFrame</span>
+<span class="sd">            A frame of computed results.</span>
+
+<span class="sd">            The ``result`` columns correspond to the entries of</span>
+<span class="sd">            `pipeline.columns`, which should be a dictionary mapping strings to</span>
+<span class="sd">            instances of :class:`zipline.pipeline.Term`.</span>
+
+<span class="sd">            For each date between ``start_date`` and ``end_date``, ``result``</span>
+<span class="sd">            will contain a row for each asset that passed `pipeline.screen`.</span>
+<span class="sd">            A screen of ``None`` indicates that a row should be returned for</span>
+<span class="sd">            each asset that existed each day.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hooks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_hooks</span><span class="p">(</span><span class="n">hooks</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">hooks</span><span class="o">.</span><span class="n">running_pipeline</span><span class="p">(</span><span class="n">pipeline</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_pipeline_impl</span><span class="p">(</span>
+                <span class="n">pipeline</span><span class="p">,</span>
+                <span class="n">start_date</span><span class="p">,</span>
+                <span class="n">end_date</span><span class="p">,</span>
+                <span class="n">hooks</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_run_pipeline_impl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">,</span> <span class="n">hooks</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Shared core for ``run_pipeline`` and ``run_chunked_pipeline``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># See notes at the top of this module for a description of the</span>
+        <span class="c1"># algorithm implemented here.</span>
+        <span class="k">if</span> <span class="n">end_date</span> <span class="o">&lt;</span> <span class="n">start_date</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;start_date must be before or equal to end_date </span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;start_date=</span><span class="si">%s</span><span class="s2">, end_date=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">domain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_domain</span><span class="p">(</span><span class="n">pipeline</span><span class="p">)</span>
+
+        <span class="n">plan</span> <span class="o">=</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">to_execution_plan</span><span class="p">(</span>
+            <span class="n">domain</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_root_mask_term</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">extra_rows</span> <span class="o">=</span> <span class="n">plan</span><span class="o">.</span><span class="n">extra_rows</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_root_mask_term</span><span class="p">]</span>
+        <span class="n">root_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_root_mask</span><span class="p">(</span>
+            <span class="n">domain</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">,</span> <span class="n">extra_rows</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">dates</span><span class="p">,</span> <span class="n">sids</span><span class="p">,</span> <span class="n">root_mask_values</span> <span class="o">=</span> <span class="n">explode</span><span class="p">(</span><span class="n">root_mask</span><span class="p">)</span>
+
+        <span class="n">workspace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_initial_workspace</span><span class="p">(</span>
             <span class="p">{</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_root_mask_term</span><span class="p">:</span> <span class="n">root_mask_values</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_root_mask_dates_term</span><span class="p">:</span> <span class="n">as_column</span><span class="p">(</span><span class="n">dates</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
             <span class="p">},</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_root_mask_term</span><span class="p">,</span>
-            <span class="n">graph</span><span class="p">,</span>
+            <span class="n">plan</span><span class="p">,</span>
             <span class="n">dates</span><span class="p">,</span>
-            <span class="n">assets</span><span class="p">,</span>
+            <span class="n">sids</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_chunk</span><span class="p">(</span>
-            <span class="n">graph</span><span class="p">,</span>
-            <span class="n">dates</span><span class="p">,</span>
-            <span class="n">assets</span><span class="p">,</span>
-            <span class="n">initial_workspace</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">refcounts</span> <span class="o">=</span> <span class="n">plan</span><span class="o">.</span><span class="n">initial_refcounts</span><span class="p">(</span><span class="n">workspace</span><span class="p">)</span>
+        <span class="n">execution_order</span> <span class="o">=</span> <span class="n">plan</span><span class="o">.</span><span class="n">execution_order</span><span class="p">(</span><span class="n">workspace</span><span class="p">,</span> <span class="n">refcounts</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">hooks</span><span class="o">.</span><span class="n">computing_chunk</span><span class="p">(</span><span class="n">execution_order</span><span class="p">,</span>
+                                   <span class="n">start_date</span><span class="p">,</span>
+                                   <span class="n">end_date</span><span class="p">):</span>
+
+            <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_chunk</span><span class="p">(</span>
+                <span class="n">graph</span><span class="o">=</span><span class="n">plan</span><span class="p">,</span>
+                <span class="n">dates</span><span class="o">=</span><span class="n">dates</span><span class="p">,</span>
+                <span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">,</span>
+                <span class="n">workspace</span><span class="o">=</span><span class="n">workspace</span><span class="p">,</span>
+                <span class="n">refcounts</span><span class="o">=</span><span class="n">refcounts</span><span class="p">,</span>
+                <span class="n">execution_order</span><span class="o">=</span><span class="n">execution_order</span><span class="p">,</span>
+                <span class="n">hooks</span><span class="o">=</span><span class="n">hooks</span><span class="p">,</span>
+            <span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_narrow</span><span class="p">(</span>
-            <span class="n">graph</span><span class="o">.</span><span class="n">outputs</span><span class="p">,</span>
+            <span class="n">plan</span><span class="o">.</span><span class="n">outputs</span><span class="p">,</span>
             <span class="n">results</span><span class="p">,</span>
-            <span class="n">results</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">screen_name</span><span class="p">),</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">screen_name</span><span class="p">),</span>
             <span class="n">dates</span><span class="p">[</span><span class="n">extra_rows</span><span class="p">:],</span>
-            <span class="n">assets</span><span class="p">,</span>
-        <span class="p">)</span></div>
-
-    <span class="nd">@copydoc</span><span class="p">(</span><span class="n">PipelineEngine</span><span class="o">.</span><span class="n">run_chunked_pipeline</span><span class="p">)</span>
-<div class="viewcode-block" id="SimplePipelineEngine.run_chunked_pipeline"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.engine.SimplePipelineEngine.run_chunked_pipeline">[docs]</a>    <span class="k">def</span> <span class="nf">run_chunked_pipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">,</span> <span class="n">chunksize</span><span class="p">):</span>
-        <span class="n">ranges</span> <span class="o">=</span> <span class="n">compute_date_range_chunks</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_calendar</span><span class="p">,</span>
-            <span class="n">start_date</span><span class="p">,</span>
-            <span class="n">end_date</span><span class="p">,</span>
-            <span class="n">chunksize</span><span class="p">,</span>
+            <span class="n">sids</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">chunks</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">run_pipeline</span><span class="p">(</span><span class="n">pipeline</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">ranges</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="c"># OPTIMIZATION: Don&#39;t make an extra copy in `categorical_df_concat`</span>
-            <span class="c"># if we don&#39;t have to.</span>
-            <span class="k">return</span> <span class="n">chunks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-        <span class="k">return</span> <span class="n">categorical_df_concat</span><span class="p">(</span><span class="n">chunks</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span></div>
-
-    <span class="k">def</span> <span class="nf">_compute_root_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">,</span> <span class="n">extra_rows</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_compute_root_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">,</span> <span class="n">extra_rows</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute a lifetimes matrix from our AssetFinder, then drop columns that</span>
 <span class="sd">        didn&#39;t exist at all during the query dates.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
+<span class="sd">        domain : zipline.pipeline.domain.Domain</span>
+<span class="sd">            Domain for which we&#39;re computing a pipeline.</span>
 <span class="sd">        start_date : pd.Timestamp</span>
 <span class="sd">            Base start date for the matrix.</span>
 <span class="sd">        end_date : pd.Timestamp</span>
@@ -777,60 +893,66 @@
 <span class="sd">            that existed for at least one day between `start_date` and</span>
 <span class="sd">            `end_date`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">calendar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calendar</span>
-        <span class="n">finder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_finder</span>
-        <span class="n">start_idx</span><span class="p">,</span> <span class="n">end_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calendar</span><span class="o">.</span><span class="n">slice_locs</span><span class="p">(</span><span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">)</span>
+        <span class="n">sessions</span> <span class="o">=</span> <span class="n">domain</span><span class="o">.</span><span class="n">all_sessions</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">start_date</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sessions</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Pipeline start date ({}) is not a trading session for &quot;</span>
+                <span class="s2">&quot;domain {}.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">start_date</span><span class="p">,</span> <span class="n">domain</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">end_date</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sessions</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Pipeline end date {} is not a trading session for &quot;</span>
+                <span class="s2">&quot;domain {}.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">end_date</span><span class="p">,</span> <span class="n">domain</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">start_idx</span><span class="p">,</span> <span class="n">end_idx</span> <span class="o">=</span> <span class="n">sessions</span><span class="o">.</span><span class="n">slice_locs</span><span class="p">(</span><span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">start_idx</span> <span class="o">&lt;</span> <span class="n">extra_rows</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">NoFurtherDataError</span><span class="o">.</span><span class="n">from_lookback_window</span><span class="p">(</span>
-                <span class="n">initial_message</span><span class="o">=</span><span class="s">&quot;Insufficient data to compute Pipeline:&quot;</span><span class="p">,</span>
-                <span class="n">first_date</span><span class="o">=</span><span class="n">calendar</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">initial_message</span><span class="o">=</span><span class="s2">&quot;Insufficient data to compute Pipeline:&quot;</span><span class="p">,</span>
+                <span class="n">first_date</span><span class="o">=</span><span class="n">sessions</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                 <span class="n">lookback_start</span><span class="o">=</span><span class="n">start_date</span><span class="p">,</span>
                 <span class="n">lookback_length</span><span class="o">=</span><span class="n">extra_rows</span><span class="p">,</span>
             <span class="p">)</span>
 
-        <span class="c"># Build lifetimes matrix reaching back to `extra_rows` days before</span>
-        <span class="c"># `start_date.`</span>
+        <span class="c1"># NOTE: This logic should probably be delegated to the domain once we</span>
+        <span class="c1">#       start adding more complex domains.</span>
+        <span class="c1">#</span>
+        <span class="c1"># Build lifetimes matrix reaching back to `extra_rows` days before</span>
+        <span class="c1"># `start_date.`</span>
+        <span class="n">finder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_finder</span>
         <span class="n">lifetimes</span> <span class="o">=</span> <span class="n">finder</span><span class="o">.</span><span class="n">lifetimes</span><span class="p">(</span>
-            <span class="n">calendar</span><span class="p">[</span><span class="n">start_idx</span> <span class="o">-</span> <span class="n">extra_rows</span><span class="p">:</span><span class="n">end_idx</span><span class="p">],</span>
-            <span class="n">include_start_date</span><span class="o">=</span><span class="bp">False</span>
+            <span class="n">sessions</span><span class="p">[</span><span class="n">start_idx</span> <span class="o">-</span> <span class="n">extra_rows</span><span class="p">:</span><span class="n">end_idx</span><span class="p">],</span>
+            <span class="n">include_start_date</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+            <span class="n">country_codes</span><span class="o">=</span><span class="p">(</span><span class="n">domain</span><span class="o">.</span><span class="n">country_code</span><span class="p">,),</span>
         <span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">lifetimes</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">extra_rows</span><span class="p">]</span> <span class="o">!=</span> <span class="n">start_date</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s">&#39;The first date of the lifetimes matrix does not match the&#39;</span>
-                <span class="s">&#39; start date of the pipeline. Did you forget to align the&#39;</span>
-                <span class="s">&#39; start_date to the trading calendar?&#39;</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="n">lifetimes</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">end_date</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s">&#39;The last date of the lifetimes matrix does not match the&#39;</span>
-                <span class="s">&#39; start date of the pipeline. Did you forget to align the&#39;</span>
-                <span class="s">&#39; end_date to the trading calendar?&#39;</span>
-            <span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">lifetimes</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">unique</span><span class="p">:</span>
             <span class="n">columns</span> <span class="o">=</span> <span class="n">lifetimes</span><span class="o">.</span><span class="n">columns</span>
             <span class="n">duplicated</span> <span class="o">=</span> <span class="n">columns</span><span class="p">[</span><span class="n">columns</span><span class="o">.</span><span class="n">duplicated</span><span class="p">()]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
-            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s">&quot;Duplicated sids: </span><span class="si">%d</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">duplicated</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;Duplicated sids: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">duplicated</span><span class="p">)</span>
 
-        <span class="c"># Filter out columns that didn&#39;t exist from the farthest look back</span>
-        <span class="c"># window through the end of the requested dates.</span>
+        <span class="c1"># Filter out columns that didn&#39;t exist from the farthest look back</span>
+        <span class="c1"># window through the end of the requested dates.</span>
         <span class="n">existed</span> <span class="o">=</span> <span class="n">lifetimes</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
         <span class="n">ret</span> <span class="o">=</span> <span class="n">lifetimes</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">existed</span><span class="p">]</span>
-        <span class="n">shape</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">num_assets</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">num_assets</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s">&quot;Found only empty asset-days between {} and {}.</span><span class="se">\n</span><span class="s">&quot;</span>
-                <span class="s">&quot;This probably means that either your asset db is out of date&quot;</span>
-                <span class="s">&quot; or that you&#39;re trying to run a Pipeline during a period with&quot;</span>
-                <span class="s">&quot; no market days.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">),</span>
+                <span class="s2">&quot;Failed to find any assets with country_code {!r} that traded &quot;</span>
+                <span class="s2">&quot;between {} and {}.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;This probably means that your asset db is old or that it has &quot;</span>
+                <span class="s2">&quot;incorrect country/exchange metadata.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">domain</span><span class="o">.</span><span class="n">country_code</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">,</span>
+                <span class="p">)</span>
             <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">ret</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_inputs_for_term</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">workspace</span><span class="p">,</span> <span class="n">graph</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_inputs_for_term</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">workspace</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">refcounts</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute inputs for the given term.</span>
 
@@ -840,10 +962,16 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">offsets</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">offset</span>
         <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># We need to specialize here because we don&#39;t change ComputableTerm</span>
+        <span class="c1"># after resolving domains, so they can still contain generic terms as</span>
+        <span class="c1"># inputs.</span>
+        <span class="n">specialized</span> <span class="o">=</span> <span class="p">[</span><span class="n">maybe_specialize</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">domain</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">term</span><span class="o">.</span><span class="n">inputs</span><span class="p">]</span>
+
         <span class="k">if</span> <span class="n">term</span><span class="o">.</span><span class="n">windowed</span><span class="p">:</span>
-            <span class="c"># If term is windowed, then all input data should be instances of</span>
-            <span class="c"># AdjustedArray.</span>
-            <span class="k">for</span> <span class="n">input_</span> <span class="ow">in</span> <span class="n">term</span><span class="o">.</span><span class="n">inputs</span><span class="p">:</span>
+            <span class="c1"># If term is windowed, then all input data should be instances of</span>
+            <span class="c1"># AdjustedArray.</span>
+            <span class="k">for</span> <span class="n">input_</span> <span class="ow">in</span> <span class="n">specialized</span><span class="p">:</span>
                 <span class="n">adjusted_array</span> <span class="o">=</span> <span class="n">ensure_adjusted_array</span><span class="p">(</span>
                     <span class="n">workspace</span><span class="p">[</span><span class="n">input_</span><span class="p">],</span> <span class="n">input_</span><span class="o">.</span><span class="n">missing_value</span><span class="p">,</span>
                 <span class="p">)</span>
@@ -851,78 +979,117 @@
                     <span class="n">adjusted_array</span><span class="o">.</span><span class="n">traverse</span><span class="p">(</span>
                         <span class="n">window_length</span><span class="o">=</span><span class="n">term</span><span class="o">.</span><span class="n">window_length</span><span class="p">,</span>
                         <span class="n">offset</span><span class="o">=</span><span class="n">offsets</span><span class="p">[</span><span class="n">term</span><span class="p">,</span> <span class="n">input_</span><span class="p">],</span>
+                        <span class="c1"># If the refcount for the input is &gt; 1, we will need</span>
+                        <span class="c1"># to traverse this array again so we must copy.</span>
+                        <span class="c1"># If the refcount for the input == 0, this is the last</span>
+                        <span class="c1"># traversal that will happen so we can invalidate</span>
+                        <span class="c1"># the AdjustedArray and mutate the data in place.</span>
+                        <span class="n">copy</span><span class="o">=</span><span class="n">refcounts</span><span class="p">[</span><span class="n">input_</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">,</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="c"># If term is not windowed, input_data may be an AdjustedArray or</span>
-            <span class="c"># np.ndarray.  Coerce the former to the latter.</span>
-            <span class="k">for</span> <span class="n">input_</span> <span class="ow">in</span> <span class="n">term</span><span class="o">.</span><span class="n">inputs</span><span class="p">:</span>
+            <span class="c1"># If term is not windowed, input_data may be an AdjustedArray or</span>
+            <span class="c1"># np.ndarray. Coerce the former to the latter.</span>
+            <span class="k">for</span> <span class="n">input_</span> <span class="ow">in</span> <span class="n">specialized</span><span class="p">:</span>
                 <span class="n">input_data</span> <span class="o">=</span> <span class="n">ensure_ndarray</span><span class="p">(</span><span class="n">workspace</span><span class="p">[</span><span class="n">input_</span><span class="p">])</span>
                 <span class="n">offset</span> <span class="o">=</span> <span class="n">offsets</span><span class="p">[</span><span class="n">term</span><span class="p">,</span> <span class="n">input_</span><span class="p">]</span>
-                <span class="c"># OPTIMIZATION: Don&#39;t make a copy by doing input_data[0:] if</span>
-                <span class="c"># offset is zero.</span>
+                <span class="c1"># OPTIMIZATION: Don&#39;t make a copy by doing input_data[0:] if</span>
+                <span class="c1"># offset is zero.</span>
                 <span class="k">if</span> <span class="n">offset</span><span class="p">:</span>
                     <span class="n">input_data</span> <span class="o">=</span> <span class="n">input_data</span><span class="p">[</span><span class="n">offset</span><span class="p">:]</span>
                 <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">input_data</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">out</span>
 
-    <span class="k">def</span> <span class="nf">get_loader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_loader</span><span class="p">(</span><span class="n">term</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">compute_chunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">initial_workspace</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">compute_chunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                      <span class="n">graph</span><span class="p">,</span>
+                      <span class="n">dates</span><span class="p">,</span>
+                      <span class="n">sids</span><span class="p">,</span>
+                      <span class="n">workspace</span><span class="p">,</span>
+                      <span class="n">refcounts</span><span class="p">,</span>
+                      <span class="n">execution_order</span><span class="p">,</span>
+                      <span class="n">hooks</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute the Pipeline terms in the graph for the requested start and end</span>
 <span class="sd">        dates.</span>
 
+<span class="sd">        This is where we do the actual work of running a pipeline.</span>
+
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        graph : zipline.pipeline.graph.TermGraph</span>
+<span class="sd">        graph : zipline.pipeline.graph.ExecutionPlan</span>
+<span class="sd">            Dependency graph of the terms to be executed.</span>
 <span class="sd">        dates : pd.DatetimeIndex</span>
 <span class="sd">            Row labels for our root mask.</span>
-<span class="sd">        assets : pd.Int64Index</span>
+<span class="sd">        sids : pd.Int64Index</span>
 <span class="sd">            Column labels for our root mask.</span>
-<span class="sd">        initial_workspace : dict</span>
+<span class="sd">        workspace : dict</span>
 <span class="sd">            Map from term -&gt; output.</span>
 <span class="sd">            Must contain at least entry for `self._root_mask_term` whose shape</span>
 <span class="sd">            is `(len(dates), len(assets))`, but may contain additional</span>
 <span class="sd">            pre-computed terms for testing or optimization purposes.</span>
+<span class="sd">        refcounts : dict[Term, int]</span>
+<span class="sd">            Dictionary mapping terms to number of dependent terms. When a</span>
+<span class="sd">            term&#39;s refcount hits 0, it can be safely discarded from</span>
+<span class="sd">            ``workspace``. See TermGraph.decref_dependencies for more info.</span>
+<span class="sd">        execution_order : list[Term]</span>
+<span class="sd">            Order in which to execute terms.</span>
+<span class="sd">        hooks : implements(PipelineHooks)</span>
+<span class="sd">            Hooks to instrument pipeline execution.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        results : dict</span>
 <span class="sd">            Dictionary mapping requested results to outputs.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_compute_chunk_params</span><span class="p">(</span><span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">initial_workspace</span><span class="p">)</span>
-        <span class="n">get_loader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_loader</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_compute_chunk_params</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">sids</span><span class="p">,</span> <span class="n">workspace</span><span class="p">)</span>
 
-        <span class="c"># Copy the supplied initial workspace so we don&#39;t mutate it in place.</span>
-        <span class="n">workspace</span> <span class="o">=</span> <span class="n">initial_workspace</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="n">refcounts</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">initial_refcounts</span><span class="p">(</span><span class="n">workspace</span><span class="p">)</span>
-        <span class="n">execution_order</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">execution_order</span><span class="p">(</span><span class="n">refcounts</span><span class="p">)</span>
+        <span class="n">get_loader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_loader</span>
 
-        <span class="c"># If loadable terms share the same loader and extra_rows, load them all</span>
-        <span class="c"># together.</span>
-        <span class="n">loadable_terms</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">loadable_terms</span>
-        <span class="n">loader_group_key</span> <span class="o">=</span> <span class="n">juxt</span><span class="p">(</span><span class="n">get_loader</span><span class="p">,</span> <span class="n">getitem</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">extra_rows</span><span class="p">))</span>
+        <span class="c1"># Copy the supplied initial workspace so we don&#39;t mutate it in place.</span>
+        <span class="n">workspace</span> <span class="o">=</span> <span class="n">workspace</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">domain</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">domain</span>
+
+        <span class="c1"># Many loaders can fetch data more efficiently if we ask them to</span>
+        <span class="c1"># retrieve all their inputs at once. For example, a loader backed by a</span>
+        <span class="c1"># SQL database can fetch multiple columns from the database in a single</span>
+        <span class="c1"># query.</span>
+        <span class="c1">#</span>
+        <span class="c1"># To enable these loaders to fetch their data efficiently, we group</span>
+        <span class="c1"># together requests for LoadableTerms if they are provided by the same</span>
+        <span class="c1"># loader and they require the same number of extra rows.</span>
+        <span class="c1">#</span>
+        <span class="c1"># The extra rows condition is a simplification: we don&#39;t currently have</span>
+        <span class="c1"># a mechanism for asking a loader to fetch different windows of data</span>
+        <span class="c1"># for different terms, so we only batch requests together when they&#39;re</span>
+        <span class="c1"># going to produce data for the same set of dates. That may change in</span>
+        <span class="c1"># the future if we find a loader that can still benefit significantly</span>
+        <span class="c1"># from batching unequal-length requests.</span>
+        <span class="k">def</span> <span class="nf">loader_group_key</span><span class="p">(</span><span class="n">term</span><span class="p">):</span>
+            <span class="n">loader</span> <span class="o">=</span> <span class="n">get_loader</span><span class="p">(</span><span class="n">term</span><span class="p">)</span>
+            <span class="n">extra_rows</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">extra_rows</span><span class="p">[</span><span class="n">term</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">loader</span><span class="p">,</span> <span class="n">extra_rows</span>
+
+        <span class="c1"># Only produce loader groups for the terms we expect to load.  This</span>
+        <span class="c1"># ensures that we can run pipelines for graphs where we don&#39;t have a</span>
+        <span class="c1"># loader registered for an atomic term if all the dependencies of that</span>
+        <span class="c1"># term were supplied in the initial workspace.</span>
+        <span class="n">will_be_loaded</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">loadable_terms</span> <span class="o">-</span> <span class="n">viewkeys</span><span class="p">(</span><span class="n">workspace</span><span class="p">)</span>
         <span class="n">loader_groups</span> <span class="o">=</span> <span class="n">groupby</span><span class="p">(</span>
             <span class="n">loader_group_key</span><span class="p">,</span>
-            <span class="c"># Only produce loader groups for the terms we expect to load.  This</span>
-            <span class="c"># ensures that we can run pipelines for graphs where we don&#39;t have</span>
-            <span class="c"># a loader registered for an atomic term if all the dependencies of</span>
-            <span class="c"># that term were supplied in the initial workspace.</span>
-            <span class="p">(</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">execution_order</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">loadable_terms</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">execution_order</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">will_be_loaded</span><span class="p">),</span>
         <span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">execution_order</span><span class="p">(</span><span class="n">refcounts</span><span class="p">):</span>
-            <span class="c"># `term` may have been supplied in `initial_workspace`, and in the</span>
-            <span class="c"># future we may pre-compute loadable terms coming from the same</span>
-            <span class="c"># dataset.  In either case, we will already have an entry for this</span>
-            <span class="c"># term, which we shouldn&#39;t re-compute.</span>
+        <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">execution_order</span><span class="p">:</span>
+            <span class="c1"># `term` may have been supplied in `initial_workspace`, or we may</span>
+            <span class="c1"># have loaded `term` as part of a batch with another term coming</span>
+            <span class="c1"># from the same loader (see note on loader_group_key above). In</span>
+            <span class="c1"># either case, we already have the term computed, so don&#39;t</span>
+            <span class="c1"># recompute.</span>
             <span class="k">if</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">workspace</span><span class="p">:</span>
                 <span class="k">continue</span>
 
-            <span class="c"># Asset labels are always the same, but date labels vary by how</span>
-            <span class="c"># many extra rows are needed.</span>
+            <span class="c1"># Asset labels are always the same, but date labels vary by how</span>
+            <span class="c1"># many extra rows are needed.</span>
             <span class="n">mask</span><span class="p">,</span> <span class="n">mask_dates</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">mask_and_dates_for_term</span><span class="p">(</span>
                 <span class="n">term</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_root_mask_term</span><span class="p">,</span>
@@ -931,41 +1098,51 @@
             <span class="p">)</span>
 
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">LoadableTerm</span><span class="p">):</span>
+                <span class="n">loader</span> <span class="o">=</span> <span class="n">get_loader</span><span class="p">(</span><span class="n">term</span><span class="p">)</span>
                 <span class="n">to_load</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
                     <span class="n">loader_groups</span><span class="p">[</span><span class="n">loader_group_key</span><span class="p">(</span><span class="n">term</span><span class="p">)],</span>
                     <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">dataset</span>
                 <span class="p">)</span>
-                <span class="n">loader</span> <span class="o">=</span> <span class="n">get_loader</span><span class="p">(</span><span class="n">term</span><span class="p">)</span>
-                <span class="n">loaded</span> <span class="o">=</span> <span class="n">loader</span><span class="o">.</span><span class="n">load_adjusted_array</span><span class="p">(</span>
-                    <span class="n">to_load</span><span class="p">,</span> <span class="n">mask_dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span>
-                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_can_load</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">to_load</span><span class="p">)</span>
+                <span class="k">with</span> <span class="n">hooks</span><span class="o">.</span><span class="n">loading_terms</span><span class="p">(</span><span class="n">to_load</span><span class="p">):</span>
+                    <span class="n">loaded</span> <span class="o">=</span> <span class="n">loader</span><span class="o">.</span><span class="n">load_adjusted_array</span><span class="p">(</span>
+                        <span class="n">domain</span><span class="p">,</span> <span class="n">to_load</span><span class="p">,</span> <span class="n">mask_dates</span><span class="p">,</span> <span class="n">sids</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span>
+                    <span class="p">)</span>
                 <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">loaded</span><span class="p">)</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="n">to_load</span><span class="p">),</span> <span class="p">(</span>
-                    <span class="s">&#39;loader did not return an AdjustedArray for each column</span><span class="se">\n</span><span class="s">&#39;</span>
-                    <span class="s">&#39;expected: </span><span class="si">%r</span><span class="se">\n</span><span class="s">&#39;</span>
-                    <span class="s">&#39;got:      </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">to_load</span><span class="p">),</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">loaded</span><span class="p">))</span>
+                    <span class="s1">&#39;loader did not return an AdjustedArray for each column</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;expected: </span><span class="si">%r</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;got:      </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">to_load</span><span class="p">),</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">loaded</span><span class="p">))</span>
                 <span class="p">)</span>
                 <span class="n">workspace</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">loaded</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">workspace</span><span class="p">[</span><span class="n">term</span><span class="p">]</span> <span class="o">=</span> <span class="n">term</span><span class="o">.</span><span class="n">_compute</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_inputs_for_term</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">workspace</span><span class="p">,</span> <span class="n">graph</span><span class="p">),</span>
-                    <span class="n">mask_dates</span><span class="p">,</span>
-                    <span class="n">assets</span><span class="p">,</span>
-                    <span class="n">mask</span><span class="p">,</span>
-                <span class="p">)</span>
+                <span class="k">with</span> <span class="n">hooks</span><span class="o">.</span><span class="n">computing_term</span><span class="p">(</span><span class="n">term</span><span class="p">):</span>
+                    <span class="n">workspace</span><span class="p">[</span><span class="n">term</span><span class="p">]</span> <span class="o">=</span> <span class="n">term</span><span class="o">.</span><span class="n">_compute</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_inputs_for_term</span><span class="p">(</span>
+                            <span class="n">term</span><span class="p">,</span>
+                            <span class="n">workspace</span><span class="p">,</span>
+                            <span class="n">graph</span><span class="p">,</span>
+                            <span class="n">domain</span><span class="p">,</span>
+                            <span class="n">refcounts</span><span class="p">,</span>
+                        <span class="p">),</span>
+                        <span class="n">mask_dates</span><span class="p">,</span>
+                        <span class="n">sids</span><span class="p">,</span>
+                        <span class="n">mask</span><span class="p">,</span>
+                    <span class="p">)</span>
                 <span class="k">if</span> <span class="n">term</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
                     <span class="k">assert</span> <span class="n">workspace</span><span class="p">[</span><span class="n">term</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">mask</span><span class="o">.</span><span class="n">shape</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">assert</span> <span class="n">workspace</span><span class="p">[</span><span class="n">term</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
 
-                <span class="c"># Decref dependencies of ``term``, and clear any terms whose</span>
-                <span class="c"># refcounts hit 0.</span>
-                <span class="k">for</span> <span class="n">garbage_term</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">decref_dependencies</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">refcounts</span><span class="p">):</span>
-                    <span class="k">del</span> <span class="n">workspace</span><span class="p">[</span><span class="n">garbage_term</span><span class="p">]</span>
+                <span class="c1"># Decref dependencies of ``term``, and clear any terms</span>
+                <span class="c1"># whose refcounts hit 0.</span>
+                <span class="k">for</span> <span class="n">garbage</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">decref_dependencies</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">refcounts</span><span class="p">):</span>
+                    <span class="k">del</span> <span class="n">workspace</span><span class="p">[</span><span class="n">garbage</span><span class="p">]</span>
 
+        <span class="c1"># At this point, all the output terms are in the workspace.</span>
         <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">graph_extra_rows</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">extra_rows</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">outputs</span><span class="p">):</span>
-            <span class="c"># Truncate off extra rows from outputs.</span>
+            <span class="c1"># Truncate off extra rows from outputs.</span>
             <span class="n">out</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">workspace</span><span class="p">[</span><span class="n">term</span><span class="p">][</span><span class="n">graph_extra_rows</span><span class="p">[</span><span class="n">term</span><span class="p">]:]</span>
         <span class="k">return</span> <span class="n">out</span>
 
@@ -1001,12 +1178,12 @@
 <span class="sd">        will contain the value of data[colname][date, asset].</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-            <span class="c"># Manually handle the empty DataFrame case. This is a workaround</span>
-            <span class="c"># to pandas failing to tz_localize an empty dataframe with a</span>
-            <span class="c"># MultiIndex. It also saves us the work of applying a known-empty</span>
-            <span class="c"># mask to each array.</span>
-            <span class="c">#</span>
-            <span class="c"># Slicing `dates` here to preserve pandas metadata.</span>
+            <span class="c1"># Manually handle the empty DataFrame case. This is a workaround</span>
+            <span class="c1"># to pandas failing to tz_localize an empty dataframe with a</span>
+            <span class="c1"># MultiIndex. It also saves us the work of applying a known-empty</span>
+            <span class="c1"># mask to each array.</span>
+            <span class="c1">#</span>
+            <span class="c1"># Slicing `dates` here to preserve pandas metadata.</span>
             <span class="n">empty_dates</span> <span class="o">=</span> <span class="n">dates</span><span class="p">[:</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">empty_assets</span> <span class="o">=</span> <span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">DataFrame</span><span class="p">(</span>
@@ -1017,52 +1194,164 @@
                 <span class="n">index</span><span class="o">=</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_arrays</span><span class="p">([</span><span class="n">empty_dates</span><span class="p">,</span> <span class="n">empty_assets</span><span class="p">]),</span>
             <span class="p">)</span>
 
-        <span class="n">resolved_assets</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_finder</span><span class="o">.</span><span class="n">retrieve_all</span><span class="p">(</span><span class="n">assets</span><span class="p">))</span>
-        <span class="n">dates_kept</span> <span class="o">=</span> <span class="n">repeat_last_axis</span><span class="p">(</span><span class="n">dates</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">assets</span><span class="p">))[</span><span class="n">mask</span><span class="p">]</span>
-        <span class="n">assets_kept</span> <span class="o">=</span> <span class="n">repeat_first_axis</span><span class="p">(</span><span class="n">resolved_assets</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dates</span><span class="p">))[</span><span class="n">mask</span><span class="p">]</span>
-
         <span class="n">final_columns</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
-            <span class="c"># Each term that computed an output has its postprocess method</span>
-            <span class="c"># called on the filtered result.</span>
-            <span class="c">#</span>
-            <span class="c"># As of Mon May 2 15:38:47 2016, we only use this to convert</span>
-            <span class="c"># LabelArrays into categoricals.</span>
+            <span class="c1"># Each term that computed an output has its postprocess method</span>
+            <span class="c1"># called on the filtered result.</span>
+            <span class="c1">#</span>
+            <span class="c1"># As of Mon May 2 15:38:47 2016, we only use this to convert</span>
+            <span class="c1"># LabelArrays into categoricals.</span>
             <span class="n">final_columns</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">terms</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">postprocess</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">mask</span><span class="p">])</span>
 
-        <span class="k">return</span> <span class="n">DataFrame</span><span class="p">(</span>
-            <span class="n">data</span><span class="o">=</span><span class="n">final_columns</span><span class="p">,</span>
-            <span class="n">index</span><span class="o">=</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_arrays</span><span class="p">([</span><span class="n">dates_kept</span><span class="p">,</span> <span class="n">assets_kept</span><span class="p">]),</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s">&#39;UTC&#39;</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">resolved_assets</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_finder</span><span class="o">.</span><span class="n">retrieve_all</span><span class="p">(</span><span class="n">assets</span><span class="p">))</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">_pipeline_output_index</span><span class="p">(</span><span class="n">dates</span><span class="p">,</span> <span class="n">resolved_assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_validate_compute_chunk_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">initial_workspace</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">final_columns</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validate_compute_chunk_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                       <span class="n">graph</span><span class="p">,</span>
+                                       <span class="n">dates</span><span class="p">,</span>
+                                       <span class="n">sids</span><span class="p">,</span>
+                                       <span class="n">initial_workspace</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Verify that the values passed to compute_chunk are well-formed.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">root</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_root_mask_term</span>
-        <span class="n">clsname</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span>
+        <span class="n">clsname</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
 
-        <span class="c"># Writing this out explicitly so this errors in testing if we change</span>
-        <span class="c"># the name without updating this line.</span>
-        <span class="n">compute_chunk_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_chunk</span><span class="o">.</span><span class="n">__name__</span>
+        <span class="c1"># Writing this out explicitly so this errors in testing if we change</span>
+        <span class="c1"># the name without updating this line.</span>
+        <span class="n">compute_chunk_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_chunk</span><span class="o">.</span><span class="vm">__name__</span>
         <span class="k">if</span> <span class="n">root</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">initial_workspace</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
-                <span class="s">&quot;root_mask values not supplied to {cls}.{method}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="n">cls</span><span class="o">=</span><span class="n">clsname</span><span class="p">,</span>
+                <span class="s2">&quot;root_mask values not supplied to {cls}.{method}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">cls</span><span class="o">=</span><span class="n">clsname</span><span class="p">,</span>
                     <span class="n">method</span><span class="o">=</span><span class="n">compute_chunk_name</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="p">)</span>
 
         <span class="n">shape</span> <span class="o">=</span> <span class="n">initial_workspace</span><span class="p">[</span><span class="n">root</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
-        <span class="n">implied_shape</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dates</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">assets</span><span class="p">)</span>
+        <span class="n">implied_shape</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dates</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">sids</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">shape</span> <span class="o">!=</span> <span class="n">implied_shape</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
-                <span class="s">&quot;root_mask shape is {shape}, but received dates/assets &quot;</span>
-                <span class="s">&quot;imply that shape should be {implied}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="s2">&quot;root_mask shape is {shape}, but received dates/assets &quot;</span>
+                <span class="s2">&quot;imply that shape should be {implied}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                     <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
                     <span class="n">implied</span><span class="o">=</span><span class="n">implied_shape</span><span class="p">,</span>
                 <span class="p">)</span>
-            <span class="p">)</span></div>
+            <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">initial_workspace</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_special_root_term</span><span class="p">(</span><span class="n">term</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">term</span><span class="o">.</span><span class="n">domain</span> <span class="ow">is</span> <span class="n">GENERIC</span><span class="p">:</span>
+                <span class="c1"># XXX: We really shouldn&#39;t allow **any** generic terms to be</span>
+                <span class="c1"># populated in the initial workspace. A generic term, by</span>
+                <span class="c1"># definition, can&#39;t correspond to concrete data until it&#39;s</span>
+                <span class="c1"># paired with a domain, and populate_initial_workspace isn&#39;t</span>
+                <span class="c1"># given the domain of execution, so it can&#39;t possibly know what</span>
+                <span class="c1"># data to use when populating a generic term.</span>
+                <span class="c1">#</span>
+                <span class="c1"># In our current implementation, however, we don&#39;t have a good</span>
+                <span class="c1"># way to represent specializations of ComputableTerms that take</span>
+                <span class="c1"># only generic inputs, so there&#39;s no good way for the initial</span>
+                <span class="c1"># workspace to provide data for such terms except by populating</span>
+                <span class="c1"># the generic ComputableTerm.</span>
+                <span class="c1">#</span>
+                <span class="c1"># The right fix for the above is to implement &quot;full</span>
+                <span class="c1"># specialization&quot;, i.e., implementing ``specialize`` uniformly</span>
+                <span class="c1"># across all terms, not just LoadableTerms. Having full</span>
+                <span class="c1"># specialization will also remove the need for all of the</span>
+                <span class="c1"># remaining ``maybe_specialize`` calls floating around in this</span>
+                <span class="c1"># file.</span>
+                <span class="c1">#</span>
+                <span class="c1"># In the meantime, disallowing ComputableTerms in the initial</span>
+                <span class="c1"># workspace would break almost every test in</span>
+                <span class="c1"># `test_filter`/`test_factor`/`test_classifier`, and fixing</span>
+                <span class="c1"># them would require updating all those tests to compute with</span>
+                <span class="c1"># more specialized terms. Once we have full specialization, we</span>
+                <span class="c1"># can fix all the tests without a large volume of edits by</span>
+                <span class="c1"># simply specializing their workspaces, so for now I&#39;m leaving</span>
+                <span class="c1"># this in place as a somewhat sharp edge.</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">LoadableTerm</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;Loadable workspace terms must be specialized to a &quot;</span>
+                        <span class="s2">&quot;domain, but got generic term {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">term</span><span class="p">)</span>
+                    <span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">term</span><span class="o">.</span><span class="n">domain</span> <span class="o">!=</span> <span class="n">graph</span><span class="o">.</span><span class="n">domain</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Initial workspace term {} has domain {}. &quot;</span>
+                    <span class="s2">&quot;Does not match pipeline domain {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">term</span><span class="p">,</span> <span class="n">term</span><span class="o">.</span><span class="n">domain</span><span class="p">,</span> <span class="n">graph</span><span class="o">.</span><span class="n">domain</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">resolve_domain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Resolve a concrete domain for ``pipeline``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">domain</span> <span class="o">=</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">domain</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_default_domain</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">domain</span> <span class="ow">is</span> <span class="n">GENERIC</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Unable to determine domain for Pipeline.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;Pass domain=&lt;desired domain&gt; to your Pipeline to set a &quot;</span>
+                <span class="s2">&quot;domain.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">domain</span>
+
+    <span class="k">def</span> <span class="nf">_is_special_root_term</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">term</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">_root_mask_term</span>
+            <span class="ow">or</span> <span class="n">term</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">_root_mask_dates_term</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_resolve_hooks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hooks</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">hooks</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">hooks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">return</span> <span class="n">DelegatingHooks</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_default_hooks</span> <span class="o">+</span> <span class="n">hooks</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_ensure_can_load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">terms</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Ensure that ``loader`` can load ``terms``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">loader</span><span class="o">.</span><span class="n">currency_aware</span><span class="p">:</span>
+            <span class="n">bad</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">terms</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">currency_conversion</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">bad</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Requested currency conversion is not supported for the &quot;</span>
+                    <span class="s2">&quot;following terms:</span><span class="se">\n</span><span class="s2">{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bulleted_list</span><span class="p">(</span><span class="n">bad</span><span class="p">))</span>
+                <span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_pipeline_output_index</span><span class="p">(</span><span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a MultiIndex for a pipeline output.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dates : pd.DatetimeIndex</span>
+<span class="sd">        Row labels for ``mask``.</span>
+<span class="sd">    assets : pd.Index</span>
+<span class="sd">        Column labels for ``mask``.</span>
+<span class="sd">    mask : np.ndarray[bool]</span>
+<span class="sd">        Mask array indicating date/asset pairs that should be included in</span>
+<span class="sd">        output index.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    index : pd.MultiIndex</span>
+<span class="sd">        MultiIndex  containing (date,  asset) pairs  corresponding to  ``True``</span>
+<span class="sd">        values in ``mask``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">date_labels</span> <span class="o">=</span> <span class="n">repeat_last_axis</span><span class="p">(</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dates</span><span class="p">)),</span> <span class="nb">len</span><span class="p">(</span><span class="n">assets</span><span class="p">))[</span><span class="n">mask</span><span class="p">]</span>
+    <span class="n">asset_labels</span> <span class="o">=</span> <span class="n">repeat_first_axis</span><span class="p">(</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">assets</span><span class="p">)),</span> <span class="nb">len</span><span class="p">(</span><span class="n">dates</span><span class="p">))[</span><span class="n">mask</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">MultiIndex</span><span class="p">(</span>
+        <span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">],</span>
+        <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="n">date_labels</span><span class="p">,</span> <span class="n">asset_labels</span><span class="p">],</span>
+        <span class="c1"># TODO: We should probably add names for these.</span>
+        <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">],</span>
+        <span class="n">verify_integrity</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+    <span class="p">)</span>
 </pre></div>
 
           </div>

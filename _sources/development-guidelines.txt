@@ -27,20 +27,30 @@ If you don't already have them, you'll need some C library dependencies. You can
 
 __ install.html
 
-The following section assumes you already have virtualenvwrapper and pip installed on your system. Suggested installation of Python library dependencies used for development:
+Once you've created and activated a `virtual environment`__, run the ``etc/dev-install`` script to install all development dependencies in their required order:
+
+__ https://docs.python.org/3/library/venv.html
+
+.. code-block:: bash
+
+   $ python3 -m venv venv
+   $ source venv/bin/activate
+   $ etc/dev-install
+
+Or, using `virtualenvwrapper`__:
+
+__ https://virtualenvwrapper.readthedocs.io/en/latest/
 
 .. code-block:: bash
 
    $ mkvirtualenv zipline
-   $ ./etc/ordered_pip.sh ./etc/requirements.txt
-   $ pip install -r ./etc/requirements_dev.txt
-   $ pip install -r ./etc/requirements_blaze.txt 
+   $ etc/dev-install
 
-Finally, you can build the C extensions by running:
+After installation, you should be able to use the ``zipline`` command line interface from your virtualenv:
 
 .. code-block:: bash
 
-   $ python setup.py build_ext --inplace
+   $ zipline --help
 
 To finish, make sure `tests`__ pass.
 
@@ -53,6 +63,12 @@ If you get an error running nosetests after setting up a fresh virtualenv, pleas
    # where zipline is the name of your virtualenv
    $ deactivate zipline
    $ workon zipline
+
+During development, you can rebuild the C extensions by running:
+
+.. code-block:: bash
+
+   $ python setup.py build_ext --inplace
 
 
 Development with Docker

@@ -424,12 +424,12 @@ backtests and store the data for future runs.</p>
 <p>Zipline comes with a few bundles by default as well as the ability to register
 new bundles. To see which bundles we have available, we may run the
 <code class="docutils literal"><span class="pre">bundles</span></code> command, for example:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>zipline bundles
-my-custom-bundle 2016-05-05 20:35:19.809398
-my-custom-bundle 2016-05-05 20:34:53.654082
-my-custom-bundle 2016-05-05 20:34:48.401767
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ zipline bundles
+my-custom-bundle <span class="m">2016</span>-05-05 <span class="m">20</span>:35:19.809398
+my-custom-bundle <span class="m">2016</span>-05-05 <span class="m">20</span>:34:53.654082
+my-custom-bundle <span class="m">2016</span>-05-05 <span class="m">20</span>:34:48.401767
 quandl &lt;no ingestions&gt;
-quantopian-quandl 2016-05-05 20:06:40.894956
+quantopian-quandl <span class="m">2016</span>-05-05 <span class="m">20</span>:06:40.894956
 </pre></div>
 </div>
 <p>The output here shows that there are 3 bundles available:</p>
@@ -453,7 +453,7 @@ data will be written is <code class="docutils literal"><span class="pre">$ZIPLIN
 <code class="docutils literal"><span class="pre">ZIPLINE_ROOT=~/.zipline</span></code>. The ingestion step may take some time as it could
 involve downloading and processing a lot of data. You&#8217;ll need a
 <a class="reference external" href="https://docs.quandl.com/docs#section-authentication">Quandl</a> API key to ingest the default bundle. This can be run with:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ QUANDL_API_KEY</span><span class="o">=</span>&lt;yourkey&gt; zipline ingest <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ <span class="nv">QUANDL_API_KEY</span><span class="o">=</span>&lt;yourkey&gt; zipline ingest <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span>
 </pre></div>
 </div>
 <p>where <code class="docutils literal"><span class="pre">&lt;bundle&gt;</span></code> is the name of the bundle to ingest, defaulting to <code class="docutils literal"><span class="pre">quandl</span></code>.</p>
@@ -471,17 +471,17 @@ we can list all of the ingestions with the <a class="reference internal" href="#
 command: <code class="docutils literal"><span class="pre">clean</span></code>, which will clear data bundles based on some time
 constraints.</p>
 <p>For example:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="c"># clean everything older than &lt;date&gt;</span>
-<span class="nv">$ </span>zipline clean <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span> --before &lt;date&gt;
+<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="c1"># clean everything older than &lt;date&gt;</span>
+$ zipline clean <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span> --before &lt;date&gt;
 
-<span class="c"># clean everything newer than &lt;date&gt;</span>
-<span class="nv">$ </span>zipline clean <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span> --after &lt;date&gt;
+<span class="c1"># clean everything newer than &lt;date&gt;</span>
+$ zipline clean <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span> --after &lt;date&gt;
 
-<span class="c"># keep everything in the range of [before, after] and delete the rest</span>
-<span class="nv">$ </span>zipline clean <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span> --before &lt;date&gt; --after &lt;after&gt;
+<span class="c1"># keep everything in the range of [before, after] and delete the rest</span>
+$ zipline clean <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span> --before &lt;date&gt; --after &lt;after&gt;
 
-<span class="c"># clean all but the last &lt;int&gt; runs</span>
-<span class="nv">$ </span>zipline clean <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span> --keep-last &lt;int&gt;
+<span class="c1"># clean all but the last &lt;int&gt; runs</span>
+$ zipline clean <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span> --keep-last &lt;int&gt;
 </pre></div>
 </div>
 </div>
@@ -490,7 +490,7 @@ constraints.</p>
 <p>Now that the data has been ingested we can use it to run backtests with the
 <code class="docutils literal"><span class="pre">run</span></code> command. The bundle to use can be specified with the <code class="docutils literal"><span class="pre">--bundle</span></code> option
 like:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>zipline run --bundle &lt;bundle&gt; --algofile algo.py ...
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ zipline run --bundle &lt;bundle&gt; --algofile algo.py ...
 </pre></div>
 </div>
 <p>We may also specify the date to use to look up the bundle data with the
@@ -512,13 +512,13 @@ includes daily pricing data, splits, cash dividends, and asset metadata. To
 ingest the <code class="docutils literal"><span class="pre">quandl</span></code> data bundle we recommend creating an account on quandl.com
 to get an API key to be able to make more API requests per day. Once we have an
 API key we may run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ QUANDL_API_KEY</span><span class="o">=</span>&lt;api-key&gt; zipline ingest -b quandl
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ <span class="nv">QUANDL_API_KEY</span><span class="o">=</span>&lt;api-key&gt; zipline ingest -b quandl
 </pre></div>
 </div>
 <p>though we may still run <code class="docutils literal"><span class="pre">ingest</span></code> as an anonymous quandl user (with no API
 key). We may also set the <code class="docutils literal"><span class="pre">QUANDL_DOWNLOAD_ATTEMPTS</span></code> environment variable to
 an integer which is the number of attempts that should be made to download data
-from quandls servers. By default <code class="docutils literal"><span class="pre">QUANDL_DOWNLOAD_ATTEMPTS</span></code> will be 5, meaning
+from quandl&#8217;s servers. By default <code class="docutils literal"><span class="pre">QUANDL_DOWNLOAD_ATTEMPTS</span></code> will be 5, meaning
 that we will retry each attempt 5 times.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
@@ -542,7 +542,7 @@ writers that will write the data to the correct location transactionally. If an
 ingestion fails part way through the bundle will not be written in an incomplete
 state.</p>
 <p>The signature of the ingest function should be:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">ingest</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">ingest</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span>
        <span class="n">asset_db_writer</span><span class="p">,</span>
        <span class="n">minute_bar_writer</span><span class="p">,</span>
        <span class="n">daily_bar_writer</span><span class="p">,</span>
@@ -559,7 +559,7 @@ state.</p>
 <h3><code class="docutils literal"><span class="pre">environ</span></code><a class="headerlink" href="#environ" title="Permalink to this headline">¶</a></h3>
 <p><code class="docutils literal"><span class="pre">environ</span></code> is a mapping representing the environment variables to use. This is
 where any custom arguments needed for the ingestion should be passed, for
-example: the <code class="docutils literal"><span class="pre">quandl</span></code> bundle uses the enviornment to pass the API key and the
+example: the <code class="docutils literal"><span class="pre">quandl</span></code> bundle uses the environment to pass the API key and the
 download retry attempt count.</p>
 </div>
 <div class="section" id="asset-db-writer">
@@ -597,13 +597,13 @@ as the dates are strictly increasing.</p>
 <div class="section" id="daily-bar-writer">
 <h3><code class="docutils literal"><span class="pre">daily_bar_writer</span></code><a class="headerlink" href="#daily-bar-writer" title="Permalink to this headline">¶</a></h3>
 <p><code class="docutils literal"><span class="pre">daily_bar_writer</span></code> is an instance of
-<a class="reference internal" href="appendix.html#zipline.data.us_equity_pricing.BcolzDailyBarWriter" title="zipline.data.us_equity_pricing.BcolzDailyBarWriter"><code class="xref py py-class docutils literal"><span class="pre">BcolzDailyBarWriter</span></code></a>. This writer is
+<a class="reference internal" href="appendix.html#zipline.data.bcolz_daily_bars.BcolzDailyBarWriter" title="zipline.data.bcolz_daily_bars.BcolzDailyBarWriter"><code class="xref py py-class docutils literal"><span class="pre">BcolzDailyBarWriter</span></code></a>. This writer is
 used to convert data into zipline&#8217;s internal bcolz format to later be read by a
-<a class="reference internal" href="appendix.html#zipline.data.us_equity_pricing.BcolzDailyBarReader" title="zipline.data.us_equity_pricing.BcolzDailyBarReader"><code class="xref py py-class docutils literal"><span class="pre">BcolzDailyBarReader</span></code></a>. If daily data is
+<a class="reference internal" href="appendix.html#zipline.data.bcolz_daily_bars.BcolzDailyBarReader" title="zipline.data.bcolz_daily_bars.BcolzDailyBarReader"><code class="xref py py-class docutils literal"><span class="pre">BcolzDailyBarReader</span></code></a>. If daily data is
 provided, users should call
 <code class="xref py py-meth docutils literal"><span class="pre">write()</span></code> with an iterable of
 (sid dataframe) tuples. The <code class="docutils literal"><span class="pre">show_progress</span></code> argument should also be forwarded
-to this method. If the data shource does not provide daily data, then there is
+to this method. If the data source does not provide daily data, then there is
 no need to call the write method. It is also acceptable to pass an empty
 iterable to <a class="reference internal" href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.write" title="zipline.data.minute_bars.BcolzMinuteBarWriter.write"><code class="xref py py-meth docutils literal"><span class="pre">write()</span></code></a> to
 signal that there is no daily data. If no daily data is provided but minute data
@@ -620,10 +620,10 @@ iterable.</p>
 <div class="section" id="adjustment-writer">
 <h3><code class="docutils literal"><span class="pre">adjustment_writer</span></code><a class="headerlink" href="#adjustment-writer" title="Permalink to this headline">¶</a></h3>
 <p><code class="docutils literal"><span class="pre">adjustment_writer</span></code> is an instance of
-<a class="reference internal" href="appendix.html#zipline.data.us_equity_pricing.SQLiteAdjustmentWriter" title="zipline.data.us_equity_pricing.SQLiteAdjustmentWriter"><code class="xref py py-class docutils literal"><span class="pre">SQLiteAdjustmentWriter</span></code></a>. This writer is
+<a class="reference internal" href="appendix.html#zipline.data.adjustments.SQLiteAdjustmentWriter" title="zipline.data.adjustments.SQLiteAdjustmentWriter"><code class="xref py py-class docutils literal"><span class="pre">SQLiteAdjustmentWriter</span></code></a>. This writer is
 used to store splits, mergers, dividends, and stock dividends. The data should
 be provided as dataframes and passed to
-<a class="reference internal" href="appendix.html#zipline.data.us_equity_pricing.SQLiteAdjustmentWriter.write" title="zipline.data.us_equity_pricing.SQLiteAdjustmentWriter.write"><code class="xref py py-meth docutils literal"><span class="pre">write()</span></code></a>. Each of
+<a class="reference internal" href="appendix.html#zipline.data.adjustments.SQLiteAdjustmentWriter.write" title="zipline.data.adjustments.SQLiteAdjustmentWriter.write"><code class="xref py py-meth docutils literal"><span class="pre">write()</span></code></a>. Each of
 these fields are optional, but the writer can accept as much of the data as you
 have.</p>
 </div>
@@ -635,12 +635,12 @@ help some bundles generate queries for the days needed.</p>
 </div>
 <div class="section" id="start-session">
 <h3><code class="docutils literal"><span class="pre">start_session</span></code><a class="headerlink" href="#start-session" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal"><span class="pre">start_session</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.23.3)"><code class="xref py py-class docutils literal"><span class="pre">pandas.Timestamp</span></code></a> object indicating the first
+<p><code class="docutils literal"><span class="pre">start_session</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.25.3)"><code class="xref py py-class docutils literal"><span class="pre">pandas.Timestamp</span></code></a> object indicating the first
 day that the bundle should load data for.</p>
 </div>
 <div class="section" id="end-session">
 <h3><code class="docutils literal"><span class="pre">end_session</span></code><a class="headerlink" href="#end-session" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal"><span class="pre">end_session</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.23.3)"><code class="xref py py-class docutils literal"><span class="pre">pandas.Timestamp</span></code></a> object indicating the last day
+<p><code class="docutils literal"><span class="pre">end_session</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.25.3)"><code class="xref py py-class docutils literal"><span class="pre">pandas.Timestamp</span></code></a> object indicating the last day
 that the bundle should load data for.</p>
 </div>
 <div class="section" id="cache">
@@ -651,7 +651,7 @@ an ingestion crashes part way through. The idea is that the ingest function
 should check the cache for raw data, if it doesn&#8217;t exist in the cache, it should
 acquire it and then store it in the cache. Then it can parse and write the
 data. The cache will be cleared only after a successful load, this prevents the
-ingest function from needing to redownload all the data if there is some bug in
+ingest function from needing to re-download all the data if there is some bug in
 the parsing. If it is very fast to get the data, for example if it is coming
 from another local file, then there is no need to use this cache.</p>
 </div>
@@ -681,7 +681,7 @@ bundle uses this to directly untar the bundle into the <code class="docutils lit
 from <code class="docutils literal"><span class="pre">.csv</span></code> files. The format of the files should be in OHLCV format, with dates,
 dividends, and splits. A sample is provided below. There are other samples for testing
 purposes in <code class="docutils literal"><span class="pre">zipline/tests/resources/csvdir_samples</span></code>.</p>
-<div class="highlight-text"><div class="highlight"><pre>date,open,high,low,close,volume,dividend,split
+<div class="highlight-text"><div class="highlight"><pre><span></span>date,open,high,low,close,volume,dividend,split
 2012-01-03,58.485714,58.92857,58.42857,58.747143,75555200,0.0,1.0
 2012-01-04,58.57143,59.240002,58.468571,59.062859,65005500,0.0,1.0
 2012-01-05,59.278572,59.792858,58.952858,59.718571,67817400,0.0,1.0
@@ -693,41 +693,41 @@ purposes in <code class="docutils literal"><span class="pre">zipline/tests/resou
 </div>
 <p>Once you have your data in the correct format, you can edit your <code class="docutils literal"><span class="pre">extension.py</span></code> file in
 <code class="docutils literal"><span class="pre">~/.zipline/extension.py</span></code> and import the csvdir bundle, along with <code class="docutils literal"><span class="pre">pandas</span></code>.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
 
 <span class="kn">from</span> <span class="nn">zipline.data.bundles</span> <span class="kn">import</span> <span class="n">register</span>
 <span class="kn">from</span> <span class="nn">zipline.data.bundles.csvdir</span> <span class="kn">import</span> <span class="n">csvdir_equities</span>
 </pre></div>
 </div>
 <p>We&#8217;ll then want to specify the start and end sessions of our bundle data:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">start_session</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s">&#39;2016-1-1&#39;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;utc&#39;</span><span class="p">)</span>
-<span class="n">end_session</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s">&#39;2018-1-1&#39;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;utc&#39;</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">start_session</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s1">&#39;2016-1-1&#39;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s1">&#39;utc&#39;</span><span class="p">)</span>
+<span class="n">end_session</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s1">&#39;2018-1-1&#39;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s1">&#39;utc&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>And then we can <code class="docutils literal"><span class="pre">register()</span></code> our bundle, and pass the location of the directory in which
 our <code class="docutils literal"><span class="pre">.csv</span></code> files exist:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">register</span><span class="p">(</span>
-    <span class="s">&#39;custom-csvdir-bundle&#39;</span><span class="p">,</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">register</span><span class="p">(</span>
+    <span class="s1">&#39;custom-csvdir-bundle&#39;</span><span class="p">,</span>
     <span class="n">csvdir_equities</span><span class="p">(</span>
-        <span class="p">[</span><span class="s">&#39;daily&#39;</span><span class="p">],</span>
-        <span class="s">&#39;/path/to/your/csvs&#39;</span><span class="p">,</span>
+        <span class="p">[</span><span class="s1">&#39;daily&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;/path/to/your/csvs&#39;</span><span class="p">,</span>
     <span class="p">),</span>
-    <span class="n">calendar_name</span><span class="o">=</span><span class="s">&#39;NYSE&#39;</span><span class="p">,</span> <span class="c"># US equities</span>
+    <span class="n">calendar_name</span><span class="o">=</span><span class="s1">&#39;NYSE&#39;</span><span class="p">,</span> <span class="c1"># US equities</span>
     <span class="n">start_session</span><span class="o">=</span><span class="n">start_session</span><span class="p">,</span>
     <span class="n">end_session</span><span class="o">=</span><span class="n">end_session</span>
 <span class="p">)</span>
 </pre></div>
 </div>
 <p>To finally ingest our data, we can run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>zipline ingest -b custom-csvdir-bundle
-Loading custom pricing data:   <span class="o">[</span><span class="c">############------------------------]   33% | FAKE: sid 0</span>
-Loading custom pricing data:   <span class="o">[</span><span class="c">########################------------]   66% | FAKE1: sid 1</span>
-Loading custom pricing data:   <span class="o">[</span><span class="c">####################################]  100% | FAKE2: sid 2</span>
-Loading custom pricing data:   <span class="o">[</span><span class="c">####################################]  100%</span>
-Merging daily equity files:  <span class="o">[</span><span class="c">####################################]</span>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ zipline ingest -b custom-csvdir-bundle
+Loading custom pricing data:   <span class="o">[</span><span class="c1">############------------------------]   33% | FAKE: sid 0</span>
+Loading custom pricing data:   <span class="o">[</span><span class="c1">########################------------]   66% | FAKE1: sid 1</span>
+Loading custom pricing data:   <span class="o">[</span><span class="c1">####################################]  100% | FAKE2: sid 2</span>
+Loading custom pricing data:   <span class="o">[</span><span class="c1">####################################]  100%</span>
+Merging daily equity files:  <span class="o">[</span><span class="c1">####################################]</span>
 
-<span class="c"># optionally, we can pass the location of our csvs via the command line</span>
-<span class="nv">$ CSVDIR</span><span class="o">=</span>/path/to/your/csvs zipline ingest -b custom-csvdir-bundle
+<span class="c1"># optionally, we can pass the location of our csvs via the command line</span>
+$ <span class="nv">CSVDIR</span><span class="o">=</span>/path/to/your/csvs zipline ingest -b custom-csvdir-bundle
 </pre></div>
 </div>
 <p>If you would like to use equities that are not in the NYSE calendar, or the existing zipline calendars,

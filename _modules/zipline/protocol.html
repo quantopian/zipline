@@ -414,27 +414,27 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.protocol</h1><div class="highlight"><pre>
-<span class="c">#</span>
-<span class="c"># Copyright 2016 Quantopian, Inc.</span>
-<span class="c">#</span>
-<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
-<span class="c"># you may not use this file except in compliance with the License.</span>
-<span class="c"># You may obtain a copy of the License at</span>
-<span class="c">#</span>
-<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
-<span class="c">#</span>
-<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
-<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
-<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
-<span class="c"># See the License for the specific language governing permissions and</span>
-<span class="c"># limitations under the License.</span>
+<span></span><span class="c1">#</span>
+<span class="c1"># Copyright 2016 Quantopian, Inc.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
 <span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
 
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
 
 <span class="kn">from</span> <span class="nn">.assets</span> <span class="kn">import</span> <span class="n">Asset</span>
 <span class="kn">from</span> <span class="nn">.utils.enum</span> <span class="kn">import</span> <span class="n">enum</span>
-<span class="kn">from</span> <span class="nn">._protocol</span> <span class="kn">import</span> <span class="n">BarData</span><span class="p">,</span> <span class="n">InnerPosition</span>  <span class="c"># noqa</span>
+<span class="kn">from</span> <span class="nn">._protocol</span> <span class="kn">import</span> <span class="n">BarData</span><span class="p">,</span> <span class="n">InnerPosition</span>  <span class="c1"># noqa</span>
 
 
 <span class="k">class</span> <span class="nc">MutableView</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -445,81 +445,81 @@
 <span class="sd">    ob : any</span>
 <span class="sd">        The object to take a view over.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c"># add slots so we don&#39;t accidentally add attributes to the view instead of</span>
-    <span class="c"># ``ob``</span>
-    <span class="n">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;_mutable_view_ob&#39;</span><span class="p">,)</span>
+    <span class="c1"># add slots so we don&#39;t accidentally add attributes to the view instead of</span>
+    <span class="c1"># ``ob``</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;_mutable_view_ob&#39;</span><span class="p">,)</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ob</span><span class="p">):</span>
-        <span class="nb">object</span><span class="o">.</span><span class="n">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&#39;_mutable_view_ob&#39;</span><span class="p">,</span> <span class="n">ob</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ob</span><span class="p">):</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_mutable_view_ob&#39;</span><span class="p">,</span> <span class="n">ob</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mutable_view_ob</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
         <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mutable_view_ob</span><span class="p">)[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">(</span><span class="si">%r</span><span class="s">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mutable_view_ob</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">(</span><span class="si">%r</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mutable_view_ob</span><span class="p">)</span>
 
 
-<span class="c"># Datasource type should completely determine the other fields of a</span>
-<span class="c"># message with its type.</span>
+<span class="c1"># Datasource type should completely determine the other fields of a</span>
+<span class="c1"># message with its type.</span>
 <span class="n">DATASOURCE_TYPE</span> <span class="o">=</span> <span class="n">enum</span><span class="p">(</span>
-    <span class="s">&#39;AS_TRADED_EQUITY&#39;</span><span class="p">,</span>
-    <span class="s">&#39;MERGER&#39;</span><span class="p">,</span>
-    <span class="s">&#39;SPLIT&#39;</span><span class="p">,</span>
-    <span class="s">&#39;DIVIDEND&#39;</span><span class="p">,</span>
-    <span class="s">&#39;TRADE&#39;</span><span class="p">,</span>
-    <span class="s">&#39;TRANSACTION&#39;</span><span class="p">,</span>
-    <span class="s">&#39;ORDER&#39;</span><span class="p">,</span>
-    <span class="s">&#39;EMPTY&#39;</span><span class="p">,</span>
-    <span class="s">&#39;DONE&#39;</span><span class="p">,</span>
-    <span class="s">&#39;CUSTOM&#39;</span><span class="p">,</span>
-    <span class="s">&#39;BENCHMARK&#39;</span><span class="p">,</span>
-    <span class="s">&#39;COMMISSION&#39;</span><span class="p">,</span>
-    <span class="s">&#39;CLOSE_POSITION&#39;</span>
+    <span class="s1">&#39;AS_TRADED_EQUITY&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;MERGER&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;SPLIT&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;DIVIDEND&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;TRADE&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;TRANSACTION&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;ORDER&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;EMPTY&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;DONE&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;CUSTOM&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;BENCHMARK&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;COMMISSION&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;CLOSE_POSITION&#39;</span>
 <span class="p">)</span>
 
-<span class="c"># Expected fields/index values for a dividend Series.</span>
+<span class="c1"># Expected fields/index values for a dividend Series.</span>
 <span class="n">DIVIDEND_FIELDS</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s">&#39;declared_date&#39;</span><span class="p">,</span>
-    <span class="s">&#39;ex_date&#39;</span><span class="p">,</span>
-    <span class="s">&#39;gross_amount&#39;</span><span class="p">,</span>
-    <span class="s">&#39;net_amount&#39;</span><span class="p">,</span>
-    <span class="s">&#39;pay_date&#39;</span><span class="p">,</span>
-    <span class="s">&#39;payment_sid&#39;</span><span class="p">,</span>
-    <span class="s">&#39;ratio&#39;</span><span class="p">,</span>
-    <span class="s">&#39;sid&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;declared_date&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;ex_date&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;gross_amount&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;net_amount&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;pay_date&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;payment_sid&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;ratio&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;sid&#39;</span><span class="p">,</span>
 <span class="p">]</span>
-<span class="c"># Expected fields/index values for a dividend payment Series.</span>
+<span class="c1"># Expected fields/index values for a dividend payment Series.</span>
 <span class="n">DIVIDEND_PAYMENT_FIELDS</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s">&#39;id&#39;</span><span class="p">,</span>
-    <span class="s">&#39;payment_sid&#39;</span><span class="p">,</span>
-    <span class="s">&#39;cash_amount&#39;</span><span class="p">,</span>
-    <span class="s">&#39;share_count&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;id&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;payment_sid&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;cash_amount&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;share_count&#39;</span><span class="p">,</span>
 <span class="p">]</span>
 
 
 <span class="k">class</span> <span class="nc">Event</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initial_values</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initial_values</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">initial_values</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">initial_values</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">initial_values</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s">&#39;__dict__&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">__dict__</span>
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s1">&#39;__dict__&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="vm">__dict__</span>
 
-    <span class="k">def</span> <span class="nf">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span>
+    <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;Event({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;Event({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">to_series</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">_deprecated_getitem_method</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">attrs</span><span class="p">):</span>
@@ -540,11 +540,11 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">attrs</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">attrs</span><span class="p">)</span>
     <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="s">&quot;&#39;{name}[{attr!r}]&#39; is deprecated, please use&quot;</span>
-        <span class="s">&quot; &#39;{name}.{attr}&#39; instead&quot;</span>
+        <span class="s2">&quot;&#39;{name}[{attr!r}]&#39; is deprecated, please use&quot;</span>
+        <span class="s2">&quot; &#39;{name}.{attr}&#39; instead&quot;</span>
     <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;``__getitem__`` is deprecated, please use attribute access instead.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="n">key</span><span class="p">),</span> <span class="ne">DeprecationWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
@@ -552,32 +552,32 @@
             <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
         <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">__getitem__</span>
+    <span class="k">return</span> <span class="fm">__getitem__</span>
 
 
 <span class="k">class</span> <span class="nc">Order</span><span class="p">(</span><span class="n">Event</span><span class="p">):</span>
-    <span class="c"># If you are adding new attributes, don&#39;t update this set. This method</span>
-    <span class="c"># is deprecated to normal attribute access so we don&#39;t want to encourage</span>
-    <span class="c"># new usages.</span>
-    <span class="n">__getitem__</span> <span class="o">=</span> <span class="n">_deprecated_getitem_method</span><span class="p">(</span>
-        <span class="s">&#39;order&#39;</span><span class="p">,</span> <span class="p">{</span>
-            <span class="s">&#39;dt&#39;</span><span class="p">,</span>
-            <span class="s">&#39;sid&#39;</span><span class="p">,</span>
-            <span class="s">&#39;amount&#39;</span><span class="p">,</span>
-            <span class="s">&#39;stop&#39;</span><span class="p">,</span>
-            <span class="s">&#39;limit&#39;</span><span class="p">,</span>
-            <span class="s">&#39;id&#39;</span><span class="p">,</span>
-            <span class="s">&#39;filled&#39;</span><span class="p">,</span>
-            <span class="s">&#39;commission&#39;</span><span class="p">,</span>
-            <span class="s">&#39;stop_reached&#39;</span><span class="p">,</span>
-            <span class="s">&#39;limit_reached&#39;</span><span class="p">,</span>
-            <span class="s">&#39;created&#39;</span><span class="p">,</span>
+    <span class="c1"># If you are adding new attributes, don&#39;t update this set. This method</span>
+    <span class="c1"># is deprecated to normal attribute access so we don&#39;t want to encourage</span>
+    <span class="c1"># new usages.</span>
+    <span class="fm">__getitem__</span> <span class="o">=</span> <span class="n">_deprecated_getitem_method</span><span class="p">(</span>
+        <span class="s1">&#39;order&#39;</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s1">&#39;dt&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;sid&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;amount&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;stop&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;limit&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;id&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;filled&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;commission&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;stop_reached&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;limit_reached&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;created&#39;</span><span class="p">,</span>
         <span class="p">},</span>
     <span class="p">)</span>
 
 
 <div class="viewcode-block" id="Portfolio"><a class="viewcode-back" href="../../appendix.html#zipline.protocol.Portfolio">[docs]</a><span class="k">class</span> <span class="nc">Portfolio</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;The portfolio at a given time.</span>
+    <span class="sd">&quot;&quot;&quot;Object providing read-only access to current portfolio state.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -586,9 +586,21 @@
 <span class="sd">    capital_base : float</span>
 <span class="sd">        The starting value for the portfolio. This will be used as the starting</span>
 <span class="sd">        cash, current cash, and portfolio value.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    positions : zipline.protocol.Positions</span>
+<span class="sd">        Dict-like object containing information about currently-held positions.</span>
+<span class="sd">    cash : float</span>
+<span class="sd">        Amount of cash currently held in portfolio.</span>
+<span class="sd">    portfolio_value : float</span>
+<span class="sd">        Current liquidation value of the portfolio&#39;s holdings.</span>
+<span class="sd">        This is equal to ``cash + sum(shares * price)``</span>
+<span class="sd">    starting_cash : float</span>
+<span class="sd">        Amount of cash in the portfolio at the start of the backtest.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_date</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">capital_base</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_date</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">capital_base</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
         <span class="n">self_</span> <span class="o">=</span> <span class="n">MutableView</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="n">self_</span><span class="o">.</span><span class="n">cash_flow</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="n">self_</span><span class="o">.</span><span class="n">starting_cash</span> <span class="o">=</span> <span class="n">capital_base</span>
@@ -605,26 +617,26 @@
     <span class="k">def</span> <span class="nf">capital_used</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cash_flow</span>
 
-    <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s">&#39;cannot mutate Portfolio objects&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;cannot mutate Portfolio objects&#39;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;Portfolio({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;Portfolio({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
 
-    <span class="c"># If you are adding new attributes, don&#39;t update this set. This method</span>
-    <span class="c"># is deprecated to normal attribute access so we don&#39;t want to encourage</span>
-    <span class="c"># new usages.</span>
-    <span class="n">__getitem__</span> <span class="o">=</span> <span class="n">_deprecated_getitem_method</span><span class="p">(</span>
-        <span class="s">&#39;portfolio&#39;</span><span class="p">,</span> <span class="p">{</span>
-            <span class="s">&#39;capital_used&#39;</span><span class="p">,</span>
-            <span class="s">&#39;starting_cash&#39;</span><span class="p">,</span>
-            <span class="s">&#39;portfolio_value&#39;</span><span class="p">,</span>
-            <span class="s">&#39;pnl&#39;</span><span class="p">,</span>
-            <span class="s">&#39;returns&#39;</span><span class="p">,</span>
-            <span class="s">&#39;cash&#39;</span><span class="p">,</span>
-            <span class="s">&#39;positions&#39;</span><span class="p">,</span>
-            <span class="s">&#39;start_date&#39;</span><span class="p">,</span>
-            <span class="s">&#39;positions_value&#39;</span><span class="p">,</span>
+    <span class="c1"># If you are adding new attributes, don&#39;t update this set. This method</span>
+    <span class="c1"># is deprecated to normal attribute access so we don&#39;t want to encourage</span>
+    <span class="c1"># new usages.</span>
+    <span class="fm">__getitem__</span> <span class="o">=</span> <span class="n">_deprecated_getitem_method</span><span class="p">(</span>
+        <span class="s1">&#39;portfolio&#39;</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s1">&#39;capital_used&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;starting_cash&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;portfolio_value&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;pnl&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;returns&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;cash&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;positions&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;start_date&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;positions_value&#39;</span><span class="p">,</span>
         <span class="p">},</span>
     <span class="p">)</span>
 
@@ -657,139 +669,159 @@
 <span class="sd">    account values as reported by the broker.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">self_</span> <span class="o">=</span> <span class="n">MutableView</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="n">self_</span><span class="o">.</span><span class="n">settled_cash</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="n">self_</span><span class="o">.</span><span class="n">accrued_interest</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="n">self_</span><span class="o">.</span><span class="n">buying_power</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s">&#39;inf&#39;</span><span class="p">)</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">buying_power</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)</span>
         <span class="n">self_</span><span class="o">.</span><span class="n">equity_with_loan</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="n">self_</span><span class="o">.</span><span class="n">total_positions_value</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="n">self_</span><span class="o">.</span><span class="n">total_positions_exposure</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="n">self_</span><span class="o">.</span><span class="n">regt_equity</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="n">self_</span><span class="o">.</span><span class="n">regt_margin</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s">&#39;inf&#39;</span><span class="p">)</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">regt_margin</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)</span>
         <span class="n">self_</span><span class="o">.</span><span class="n">initial_margin_requirement</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="n">self_</span><span class="o">.</span><span class="n">maintenance_margin_requirement</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="n">self_</span><span class="o">.</span><span class="n">available_funds</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="n">self_</span><span class="o">.</span><span class="n">excess_liquidity</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="n">self_</span><span class="o">.</span><span class="n">cushion</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="n">self_</span><span class="o">.</span><span class="n">day_trades_remaining</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s">&#39;inf&#39;</span><span class="p">)</span>
+        <span class="n">self_</span><span class="o">.</span><span class="n">day_trades_remaining</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)</span>
         <span class="n">self_</span><span class="o">.</span><span class="n">leverage</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="n">self_</span><span class="o">.</span><span class="n">net_leverage</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="n">self_</span><span class="o">.</span><span class="n">net_liquidation</span> <span class="o">=</span> <span class="mf">0.0</span>
 
-    <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s">&#39;cannot mutate Account objects&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;cannot mutate Account objects&#39;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;Account({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;Account({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
 
-    <span class="c"># If you are adding new attributes, don&#39;t update this set. This method</span>
-    <span class="c"># is deprecated to normal attribute access so we don&#39;t want to encourage</span>
-    <span class="c"># new usages.</span>
-    <span class="n">__getitem__</span> <span class="o">=</span> <span class="n">_deprecated_getitem_method</span><span class="p">(</span>
-        <span class="s">&#39;account&#39;</span><span class="p">,</span> <span class="p">{</span>
-            <span class="s">&#39;settled_cash&#39;</span><span class="p">,</span>
-            <span class="s">&#39;accrued_interest&#39;</span><span class="p">,</span>
-            <span class="s">&#39;buying_power&#39;</span><span class="p">,</span>
-            <span class="s">&#39;equity_with_loan&#39;</span><span class="p">,</span>
-            <span class="s">&#39;total_positions_value&#39;</span><span class="p">,</span>
-            <span class="s">&#39;total_positions_exposure&#39;</span><span class="p">,</span>
-            <span class="s">&#39;regt_equity&#39;</span><span class="p">,</span>
-            <span class="s">&#39;regt_margin&#39;</span><span class="p">,</span>
-            <span class="s">&#39;initial_margin_requirement&#39;</span><span class="p">,</span>
-            <span class="s">&#39;maintenance_margin_requirement&#39;</span><span class="p">,</span>
-            <span class="s">&#39;available_funds&#39;</span><span class="p">,</span>
-            <span class="s">&#39;excess_liquidity&#39;</span><span class="p">,</span>
-            <span class="s">&#39;cushion&#39;</span><span class="p">,</span>
-            <span class="s">&#39;day_trades_remaining&#39;</span><span class="p">,</span>
-            <span class="s">&#39;leverage&#39;</span><span class="p">,</span>
-            <span class="s">&#39;net_leverage&#39;</span><span class="p">,</span>
-            <span class="s">&#39;net_liquidation&#39;</span><span class="p">,</span>
+    <span class="c1"># If you are adding new attributes, don&#39;t update this set. This method</span>
+    <span class="c1"># is deprecated to normal attribute access so we don&#39;t want to encourage</span>
+    <span class="c1"># new usages.</span>
+    <span class="fm">__getitem__</span> <span class="o">=</span> <span class="n">_deprecated_getitem_method</span><span class="p">(</span>
+        <span class="s1">&#39;account&#39;</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s1">&#39;settled_cash&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;accrued_interest&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;buying_power&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;equity_with_loan&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;total_positions_value&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;total_positions_exposure&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;regt_equity&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;regt_margin&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;initial_margin_requirement&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;maintenance_margin_requirement&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;available_funds&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;excess_liquidity&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;cushion&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;day_trades_remaining&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;leverage&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;net_leverage&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;net_liquidation&#39;</span><span class="p">,</span>
         <span class="p">},</span>
     <span class="p">)</span></div>
 
 
 <span class="k">class</span> <span class="nc">Position</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="n">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;_underlying_position&#39;</span><span class="p">,)</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A position held by an algorithm.</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">underlying_position</span><span class="p">):</span>
-        <span class="nb">object</span><span class="o">.</span><span class="n">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&#39;_underlying_position&#39;</span><span class="p">,</span> <span class="n">underlying_position</span><span class="p">)</span>
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    asset : zipline.assets.Asset</span>
+<span class="sd">        The held asset.</span>
+<span class="sd">    amount : int</span>
+<span class="sd">        Number of shares held. Short positions are represented with negative</span>
+<span class="sd">        values.</span>
+<span class="sd">    cost_basis : float</span>
+<span class="sd">        Average price at which currently-held shares were acquired.</span>
+<span class="sd">    last_sale_price : float</span>
+<span class="sd">        Most recent price for the position.</span>
+<span class="sd">    last_sale_date : pd.Timestamp</span>
+<span class="sd">        Datetime at which ``last_sale_price`` was last updated.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;_underlying_position&#39;</span><span class="p">,)</span>
 
-    <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">underlying_position</span><span class="p">):</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_underlying_position&#39;</span><span class="p">,</span> <span class="n">underlying_position</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_underlying_position</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s">&#39;cannot mutate Position objects&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;cannot mutate Position objects&#39;</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">sid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="c"># for backwards compatibility</span>
+        <span class="c1"># for backwards compatibility</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">asset</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&#39;Position(</span><span class="si">%r</span><span class="s">)&#39;</span> <span class="o">%</span> <span class="p">{</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;Position(</span><span class="si">%r</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">{</span>
             <span class="n">k</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span>
-                <span class="s">&#39;asset&#39;</span><span class="p">,</span>
-                <span class="s">&#39;amount&#39;</span><span class="p">,</span>
-                <span class="s">&#39;cost_basis&#39;</span><span class="p">,</span>
-                <span class="s">&#39;last_sale_price&#39;</span><span class="p">,</span>
-                <span class="s">&#39;last_sale_date&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;asset&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;amount&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;cost_basis&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;last_sale_price&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;last_sale_date&#39;</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">}</span>
 
-    <span class="c"># If you are adding new attributes, don&#39;t update this set. This method</span>
-    <span class="c"># is deprecated to normal attribute access so we don&#39;t want to encourage</span>
-    <span class="c"># new usages.</span>
-    <span class="n">__getitem__</span> <span class="o">=</span> <span class="n">_deprecated_getitem_method</span><span class="p">(</span>
-        <span class="s">&#39;position&#39;</span><span class="p">,</span> <span class="p">{</span>
-            <span class="s">&#39;sid&#39;</span><span class="p">,</span>
-            <span class="s">&#39;amount&#39;</span><span class="p">,</span>
-            <span class="s">&#39;cost_basis&#39;</span><span class="p">,</span>
-            <span class="s">&#39;last_sale_price&#39;</span><span class="p">,</span>
-            <span class="s">&#39;last_sale_date&#39;</span><span class="p">,</span>
+    <span class="c1"># If you are adding new attributes, don&#39;t update this set. This method</span>
+    <span class="c1"># is deprecated to normal attribute access so we don&#39;t want to encourage</span>
+    <span class="c1"># new usages.</span>
+    <span class="fm">__getitem__</span> <span class="o">=</span> <span class="n">_deprecated_getitem_method</span><span class="p">(</span>
+        <span class="s1">&#39;position&#39;</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s1">&#39;sid&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;amount&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;cost_basis&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;last_sale_price&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;last_sale_date&#39;</span><span class="p">,</span>
         <span class="p">},</span>
     <span class="p">)</span>
 
 
-<span class="c"># Copied from Position and renamed.  This is used to handle cases where a user</span>
-<span class="c"># does something like `context.portfolio.positions[100]` instead of</span>
-<span class="c"># `context.portfolio.positions[sid(100)]`.</span>
+<span class="c1"># Copied from Position and renamed.  This is used to handle cases where a user</span>
+<span class="c1"># does something like `context.portfolio.positions[100]` instead of</span>
+<span class="c1"># `context.portfolio.positions[sid(100)]`.</span>
 <span class="k">class</span> <span class="nc">_DeprecatedSidLookupPosition</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sid</span> <span class="o">=</span> <span class="n">sid</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">amount</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cost_basis</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c"># per share</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cost_basis</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># per share</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">last_sale_price</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">last_sale_date</span> <span class="o">=</span> <span class="bp">None</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;_DeprecatedSidLookupPosition({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;_DeprecatedSidLookupPosition({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
 
-    <span class="c"># If you are adding new attributes, don&#39;t update this set. This method</span>
-    <span class="c"># is deprecated to normal attribute access so we don&#39;t want to encourage</span>
-    <span class="c"># new usages.</span>
-    <span class="n">__getitem__</span> <span class="o">=</span> <span class="n">_deprecated_getitem_method</span><span class="p">(</span>
-        <span class="s">&#39;position&#39;</span><span class="p">,</span> <span class="p">{</span>
-            <span class="s">&#39;sid&#39;</span><span class="p">,</span>
-            <span class="s">&#39;amount&#39;</span><span class="p">,</span>
-            <span class="s">&#39;cost_basis&#39;</span><span class="p">,</span>
-            <span class="s">&#39;last_sale_price&#39;</span><span class="p">,</span>
-            <span class="s">&#39;last_sale_date&#39;</span><span class="p">,</span>
+    <span class="c1"># If you are adding new attributes, don&#39;t update this set. This method</span>
+    <span class="c1"># is deprecated to normal attribute access so we don&#39;t want to encourage</span>
+    <span class="c1"># new usages.</span>
+    <span class="fm">__getitem__</span> <span class="o">=</span> <span class="n">_deprecated_getitem_method</span><span class="p">(</span>
+        <span class="s1">&#39;position&#39;</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s1">&#39;sid&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;amount&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;cost_basis&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;last_sale_price&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;last_sale_date&#39;</span><span class="p">,</span>
         <span class="p">},</span>
     <span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">Positions</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
-    <span class="k">def</span> <span class="nf">__missing__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A dict-like object containing the algorithm&#39;s current positions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__missing__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">Asset</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">Position</span><span class="p">(</span><span class="n">InnerPosition</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
-            <span class="n">warn</span><span class="p">(</span><span class="s">&quot;Referencing positions by integer is deprecated.&quot;</span>
-                 <span class="s">&quot; Use an asset instead.&quot;</span><span class="p">)</span>
+            <span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Referencing positions by integer is deprecated.&quot;</span>
+                 <span class="s2">&quot; Use an asset instead.&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">warn</span><span class="p">(</span><span class="s">&quot;Position lookup expected a value of type Asset but got {0}&quot;</span>
-                 <span class="s">&quot; instead.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">))</span>
+            <span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Position lookup expected a value of type Asset but got {0}&quot;</span>
+                 <span class="s2">&quot; instead.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="n">_DeprecatedSidLookupPosition</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
 </pre></div>

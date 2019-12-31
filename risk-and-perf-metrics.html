@@ -439,7 +439,7 @@ algorithm.</p>
 <h3>Command Line and IPython Magic<a class="headerlink" href="#command-line-and-ipython-magic" title="Permalink to this headline">¶</a></h3>
 <p>When running with the command line or IPython magic interfaces, the metrics set
 may be selected by passing the <code class="docutils literal"><span class="pre">--metrics-set</span></code> argument. For example:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>zipline run algorithm.py -s 2014-01-01 -e 2014-02-01 --metrics-set my-metrics-set
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ zipline run algorithm.py -s <span class="m">2014</span>-01-01 -e <span class="m">2014</span>-02-01 --metrics-set my-metrics-set
 </pre></div>
 </div>
 </div>
@@ -448,7 +448,7 @@ may be selected by passing the <code class="docutils literal"><span class="pre">
 <p>When running through the <a class="reference internal" href="appendix.html#zipline.run_algorithm" title="zipline.run_algorithm"><code class="xref py py-func docutils literal"><span class="pre">run_algorithm()</span></code></a> interface, the metrics
 set may be passed with the <code class="docutils literal"><span class="pre">metrics_set</span></code> argument. This may either be the name
 of a registered metrics set, or a set of metric object. For example:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">run_algorithm</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">metrics_set</span><span class="o">=</span><span class="s">&#39;my-metrics-set&#39;</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">run_algorithm</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">metrics_set</span><span class="o">=</span><span class="s1">&#39;my-metrics-set&#39;</span><span class="p">)</span>
 <span class="n">run_algorithm</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">metrics_set</span><span class="o">=</span><span class="p">{</span><span class="n">MyMetric</span><span class="p">(),</span> <span class="n">MyOtherMetric</span><span class="p">(),</span> <span class="o">...</span><span class="p">})</span>
 </pre></div>
 </div>
@@ -461,7 +461,7 @@ runtime of a backtest. When actively developing an algorithm, it is often
 helpful to skip these computations to speed up the debugging cycle. To disable
 the calculation and reporting of all metrics, users may select the built-in
 metrics set <code class="docutils literal"><span class="pre">none</span></code>. For example:</p>
-<div class="highlight-python"><div class="highlight"><pre>$ zipline run algorithm.py -s 2014-01-01 -e 2014-02-01 --metrics-set none
+<div class="highlight-python"><div class="highlight"><pre><span></span>$ zipline run algorithm.py -s 2014-01-01 -e 2014-02-01 --metrics-set none
 </pre></div>
 </div>
 </div>
@@ -489,7 +489,7 @@ consistent between <code class="docutils literal"><span class="pre">start_of_sim
 constructor. This method should initialize any caches needed for the duration of
 a single simulation.</p>
 <p>The <code class="docutils literal"><span class="pre">start_of_simulation</span></code> method should have the following signature:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">start_of_simulation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">start_of_simulation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                         <span class="n">ledger</span><span class="p">,</span>
                         <span class="n">emission_rate</span><span class="p">,</span>
                         <span class="n">trading_calendar</span><span class="p">,</span>
@@ -508,7 +508,7 @@ called at all.</p>
 <p><code class="docutils literal"><span class="pre">trading_calendar</span></code> is an instance of
 <a class="reference internal" href="appendix.html#zipline.utils.calendars.TradingCalendar" title="zipline.utils.calendars.TradingCalendar"><code class="xref py py-class docutils literal"><span class="pre">TradingCalendar</span></code></a> which is the trading calendar
 being used by the simulation.</p>
-<p><code class="docutils literal"><span class="pre">sessions</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.DatetimeIndex.html#pandas.DatetimeIndex" title="(in pandas v0.23.3)"><code class="xref py py-class docutils literal"><span class="pre">pandas.DatetimeIndex</span></code></a> which is holds the session
+<p><code class="docutils literal"><span class="pre">sessions</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DatetimeIndex.html#pandas.DatetimeIndex" title="(in pandas v0.25.3)"><code class="xref py py-class docutils literal"><span class="pre">pandas.DatetimeIndex</span></code></a> which is holds the session
 labels, in sorted order, that the simulation will execute.</p>
 <p><code class="docutils literal"><span class="pre">benchmark_source</span></code> is an instance of
 <a class="reference internal" href="appendix.html#zipline.sources.benchmark_source.BenchmarkSource" title="zipline.sources.benchmark_source.BenchmarkSource"><code class="xref py py-class docutils literal"><span class="pre">BenchmarkSource</span></code></a> which is the
@@ -518,7 +518,7 @@ interface to the returns of the benchmark specified by
 <div class="section" id="end-of-simulation">
 <h3><code class="docutils literal"><span class="pre">end_of_simulation</span></code><a class="headerlink" href="#end-of-simulation" title="Permalink to this headline">¶</a></h3>
 <p>The <code class="docutils literal"><span class="pre">end_of_simulation</span></code> method should have the following signature:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">end_of_simulation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">end_of_simulation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                       <span class="n">packet</span><span class="p">,</span>
                       <span class="n">ledger</span><span class="p">,</span>
                       <span class="n">trading_calendar</span><span class="p">,</span>
@@ -536,7 +536,7 @@ metric into.</p>
 <p><code class="docutils literal"><span class="pre">trading_calendar</span></code> is an instance of
 <a class="reference internal" href="appendix.html#zipline.utils.calendars.TradingCalendar" title="zipline.utils.calendars.TradingCalendar"><code class="xref py py-class docutils literal"><span class="pre">TradingCalendar</span></code></a> which is the trading calendar
 being used by the simulation.</p>
-<p><code class="docutils literal"><span class="pre">sessions</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.DatetimeIndex.html#pandas.DatetimeIndex" title="(in pandas v0.23.3)"><code class="xref py py-class docutils literal"><span class="pre">pandas.DatetimeIndex</span></code></a> which is holds the session
+<p><code class="docutils literal"><span class="pre">sessions</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DatetimeIndex.html#pandas.DatetimeIndex" title="(in pandas v0.25.3)"><code class="xref py py-class docutils literal"><span class="pre">pandas.DatetimeIndex</span></code></a> which is holds the session
 labels, in sorted order, that the simulation has executed.</p>
 <p><code class="docutils literal"><span class="pre">data_portal</span></code> is an instance of <a class="reference internal" href="appendix.html#zipline.data.data_portal.DataPortal" title="zipline.data.data_portal.DataPortal"><code class="xref py py-class docutils literal"><span class="pre">DataPortal</span></code></a>
 which is the metric&#8217;s interface to pricing data.</p>
@@ -552,7 +552,7 @@ interface to the returns of the benchmark specified by
 of any futures owned move between trading sessions or if a capital change
 occurs.</p>
 <p>The <code class="docutils literal"><span class="pre">start_of_session</span></code> method should have the following signature:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">start_of_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">start_of_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                      <span class="n">ledger</span><span class="p">,</span>
                      <span class="n">session_label</span><span class="p">,</span>
                      <span class="n">data_portal</span><span class="p">):</span>
@@ -562,7 +562,7 @@ occurs.</p>
 <p><code class="docutils literal"><span class="pre">ledger</span></code> is an instance of <a class="reference internal" href="appendix.html#zipline.finance.ledger.Ledger" title="zipline.finance.ledger.Ledger"><code class="xref py py-class docutils literal"><span class="pre">Ledger</span></code></a> which is
 maintaining the simulation&#8217;s state. This may be used to lookup the algorithm&#8217;s
 current portfolio values.</p>
-<p><code class="docutils literal"><span class="pre">session_label</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.23.3)"><code class="xref py py-class docutils literal"><span class="pre">Timestamp</span></code></a> which is the label of the
+<p><code class="docutils literal"><span class="pre">session_label</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.25.3)"><code class="xref py py-class docutils literal"><span class="pre">Timestamp</span></code></a> which is the label of the
 session which is about to run.</p>
 <p><code class="docutils literal"><span class="pre">data_portal</span></code> is an instance of <a class="reference internal" href="appendix.html#zipline.data.data_portal.DataPortal" title="zipline.data.data_portal.DataPortal"><code class="xref py py-class docutils literal"><span class="pre">DataPortal</span></code></a>
 which is the metric&#8217;s interface to pricing data.</p>
@@ -570,7 +570,7 @@ which is the metric&#8217;s interface to pricing data.</p>
 <div class="section" id="end-of-session">
 <h3><code class="docutils literal"><span class="pre">end_of_session</span></code><a class="headerlink" href="#end-of-session" title="Permalink to this headline">¶</a></h3>
 <p>The <code class="docutils literal"><span class="pre">end_of_session</span></code> method should have the following signature:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">end_of_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">end_of_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                    <span class="n">packet</span><span class="p">,</span>
                    <span class="n">ledger</span><span class="p">,</span>
                    <span class="n">session_label</span><span class="p">,</span>
@@ -586,9 +586,9 @@ to the current time.</p>
 <p><code class="docutils literal"><span class="pre">ledger</span></code> is an instance of <a class="reference internal" href="appendix.html#zipline.finance.ledger.Ledger" title="zipline.finance.ledger.Ledger"><code class="xref py py-class docutils literal"><span class="pre">Ledger</span></code></a> which is
 maintaining the simulation&#8217;s state. This may be used to lookup the algorithm&#8217;s
 current portfolio values.</p>
-<p><code class="docutils literal"><span class="pre">session_label</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.23.3)"><code class="xref py py-class docutils literal"><span class="pre">Timestamp</span></code></a> which is the label of the
+<p><code class="docutils literal"><span class="pre">session_label</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.25.3)"><code class="xref py py-class docutils literal"><span class="pre">Timestamp</span></code></a> which is the label of the
 session which is has just completed.</p>
-<p><code class="docutils literal"><span class="pre">session_ix</span></code> is an <a class="reference external" href="http://docs.python.org/dev/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-class docutils literal"><span class="pre">int</span></code></a> which is the index of the current trading
+<p><code class="docutils literal"><span class="pre">session_ix</span></code> is an <a class="reference external" href="http://docs.python.org/dev/library/functions.html#int" title="(in Python v3.9)"><code class="xref py py-class docutils literal"><span class="pre">int</span></code></a> which is the index of the current trading
 session being run. This is provided to allow for efficient access to the daily
 returns through <code class="docutils literal"><span class="pre">ledger.daily_returns_array[:session_ix</span> <span class="pre">+</span> <span class="pre">1]</span></code>.</p>
 <p><code class="docutils literal"><span class="pre">data_portal</span></code> is an instance of <a class="reference internal" href="appendix.html#zipline.data.data_portal.DataPortal" title="zipline.data.data_portal.DataPortal"><code class="xref py py-class docutils literal"><span class="pre">DataPortal</span></code></a>
@@ -601,7 +601,7 @@ which is the metric&#8217;s interface to pricing data</p>
 <p class="last"><code class="docutils literal"><span class="pre">end_of_bar</span></code> is only called when <code class="docutils literal"><span class="pre">emission_mode</span></code> is <code class="docutils literal"><span class="pre">minute</span></code>.</p>
 </div>
 <p>The <code class="docutils literal"><span class="pre">end_of_bar</span></code> method should have the following signature:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">end_of_bar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">end_of_bar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                <span class="n">packet</span><span class="p">,</span>
                <span class="n">ledger</span><span class="p">,</span>
                <span class="n">dt</span><span class="p">,</span>
@@ -617,9 +617,9 @@ to the current time.</p>
 <p><code class="docutils literal"><span class="pre">ledger</span></code> is an instance of <a class="reference internal" href="appendix.html#zipline.finance.ledger.Ledger" title="zipline.finance.ledger.Ledger"><code class="xref py py-class docutils literal"><span class="pre">Ledger</span></code></a> which is
 maintaining the simulation&#8217;s state. This may be used to lookup the algorithm&#8217;s
 current portfolio values.</p>
-<p><code class="docutils literal"><span class="pre">dt</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.23.3)"><code class="xref py py-class docutils literal"><span class="pre">Timestamp</span></code></a> which is the label of bar that has just
+<p><code class="docutils literal"><span class="pre">dt</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.25.3)"><code class="xref py py-class docutils literal"><span class="pre">Timestamp</span></code></a> which is the label of bar that has just
 completed.</p>
-<p><code class="docutils literal"><span class="pre">session_ix</span></code> is an <a class="reference external" href="http://docs.python.org/dev/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-class docutils literal"><span class="pre">int</span></code></a> which is the index of the current trading
+<p><code class="docutils literal"><span class="pre">session_ix</span></code> is an <a class="reference external" href="http://docs.python.org/dev/library/functions.html#int" title="(in Python v3.9)"><code class="xref py py-class docutils literal"><span class="pre">int</span></code></a> which is the index of the current trading
 session being run. This is provided to allow for efficient access to the daily
 returns through <code class="docutils literal"><span class="pre">ledger.daily_returns_array[:session_ix</span> <span class="pre">+</span> <span class="pre">1]</span></code>.</p>
 <p><code class="docutils literal"><span class="pre">data_portal</span></code> is an instance of <a class="reference internal" href="appendix.html#zipline.data.data_portal.DataPortal" title="zipline.data.data_portal.DataPortal"><code class="xref py py-class docutils literal"><span class="pre">DataPortal</span></code></a>
@@ -631,9 +631,9 @@ which is the metric&#8217;s interface to pricing data.</p>
 <p>Users may use <a class="reference internal" href="appendix.html#zipline.finance.metrics.register" title="zipline.finance.metrics.register"><code class="xref py py-func docutils literal"><span class="pre">zipline.finance.metrics.register()</span></code></a> to register a new metrics
 set. This may be used to decorate a function taking no arguments which returns a
 new set of metric object instances. For example:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">zipline.finance</span> <span class="kn">import</span> <span class="n">metrics</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">zipline.finance</span> <span class="kn">import</span> <span class="n">metrics</span>
 
-<span class="nd">@metrics.register</span><span class="p">(</span><span class="s">&#39;my-metrics-set&#39;</span><span class="p">)</span>
+<span class="nd">@metrics.register</span><span class="p">(</span><span class="s1">&#39;my-metrics-set&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">my_metrics_set</span><span class="p">():</span>
     <span class="k">return</span> <span class="p">{</span><span class="n">MyMetric</span><span class="p">(),</span> <span class="n">MyOtherMetric</span><span class="p">(),</span> <span class="o">...</span><span class="p">}</span>
 </pre></div>

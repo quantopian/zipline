@@ -414,20 +414,20 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.assets.asset_writer</h1><div class="highlight"><pre>
-<span class="c">#</span>
-<span class="c"># Copyright 2015 Quantopian, Inc.</span>
-<span class="c">#</span>
-<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
-<span class="c"># you may not use this file except in compliance with the License.</span>
-<span class="c"># You may obtain a copy of the License at</span>
-<span class="c">#</span>
-<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
-<span class="c">#</span>
-<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
-<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
-<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
-<span class="c"># See the License for the specific language governing permissions and</span>
-<span class="c"># limitations under the License.</span>
+<span></span><span class="c1">#</span>
+<span class="c1"># Copyright 2015 Quantopian, Inc.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
 <span class="kn">import</span> <span class="nn">re</span>
 
@@ -446,7 +446,7 @@
     <span class="n">equity_symbol_mappings</span><span class="p">,</span>
     <span class="n">equity_supplementary_mappings</span> <span class="k">as</span> <span class="n">equity_supplementary_mappings_table</span><span class="p">,</span>
     <span class="n">futures_contracts</span> <span class="k">as</span> <span class="n">futures_contracts_table</span><span class="p">,</span>
-    <span class="n">futures_exchanges</span><span class="p">,</span>
+    <span class="n">exchanges</span> <span class="k">as</span> <span class="n">exchanges_table</span><span class="p">,</span>
     <span class="n">futures_root_symbols</span><span class="p">,</span>
     <span class="n">metadata</span><span class="p">,</span>
     <span class="n">version_info</span><span class="p">,</span>
@@ -456,83 +456,136 @@
 <span class="kn">from</span> <span class="nn">zipline.utils.range</span> <span class="kn">import</span> <span class="n">from_tuple</span><span class="p">,</span> <span class="n">intersecting_ranges</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.sqlite_utils</span> <span class="kn">import</span> <span class="n">coerce_string_to_eng</span>
 
-<span class="c"># Define a namedtuple for use with the load_data and _load_data methods</span>
+<span class="c1"># Define a namedtuple for use with the load_data and _load_data methods</span>
 <span class="n">AssetData</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
-    <span class="s">&#39;AssetData&#39;</span><span class="p">,</span> <span class="p">(</span>
-        <span class="s">&#39;equities&#39;</span><span class="p">,</span>
-        <span class="s">&#39;equities_mappings&#39;</span><span class="p">,</span>
-        <span class="s">&#39;futures&#39;</span><span class="p">,</span>
-        <span class="s">&#39;exchanges&#39;</span><span class="p">,</span>
-        <span class="s">&#39;root_symbols&#39;</span><span class="p">,</span>
-        <span class="s">&#39;equity_supplementary_mappings&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;AssetData&#39;</span><span class="p">,</span> <span class="p">(</span>
+        <span class="s1">&#39;equities&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;equities_mappings&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;futures&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;exchanges&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;root_symbols&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;equity_supplementary_mappings&#39;</span><span class="p">,</span>
     <span class="p">),</span>
 <span class="p">)</span>
 
 <span class="n">SQLITE_MAX_VARIABLE_NUMBER</span> <span class="o">=</span> <span class="mi">999</span>
 
 <span class="n">symbol_columns</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span>
-    <span class="s">&#39;symbol&#39;</span><span class="p">,</span>
-    <span class="s">&#39;company_symbol&#39;</span><span class="p">,</span>
-    <span class="s">&#39;share_class_symbol&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;symbol&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;company_symbol&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;share_class_symbol&#39;</span><span class="p">,</span>
 <span class="p">})</span>
-<span class="n">mapping_columns</span> <span class="o">=</span> <span class="n">symbol_columns</span> <span class="o">|</span> <span class="p">{</span><span class="s">&#39;start_date&#39;</span><span class="p">,</span> <span class="s">&#39;end_date&#39;</span><span class="p">}</span>
+<span class="n">mapping_columns</span> <span class="o">=</span> <span class="n">symbol_columns</span> <span class="o">|</span> <span class="p">{</span><span class="s1">&#39;start_date&#39;</span><span class="p">,</span> <span class="s1">&#39;end_date&#39;</span><span class="p">}</span>
 
-<span class="c"># Default values for the equities DataFrame</span>
+
+<span class="n">_index_columns</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;equities&#39;</span><span class="p">:</span> <span class="s1">&#39;sid&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;equity_supplementary_mappings&#39;</span><span class="p">:</span> <span class="s1">&#39;sid&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;futures&#39;</span><span class="p">:</span> <span class="s1">&#39;sid&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;exchanges&#39;</span><span class="p">:</span> <span class="s1">&#39;exchange&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;root_symbols&#39;</span><span class="p">:</span> <span class="s1">&#39;root_symbol&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span> <span class="nf">_normalize_index_columns_in_place</span><span class="p">(</span><span class="n">equities</span><span class="p">,</span>
+                                      <span class="n">equity_supplementary_mappings</span><span class="p">,</span>
+                                      <span class="n">futures</span><span class="p">,</span>
+                                      <span class="n">exchanges</span><span class="p">,</span>
+                                      <span class="n">root_symbols</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update dataframes in place to set indentifier columns as indices.</span>
+
+<span class="sd">    For each input frame, if the frame has a column with the same name as its</span>
+<span class="sd">    associated index column, set that column as the index.</span>
+
+<span class="sd">    Otherwise, assume the index already contains identifiers.</span>
+
+<span class="sd">    If frames are passed as None, they&#39;re ignored.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">frame</span><span class="p">,</span> <span class="n">column_name</span> <span class="ow">in</span> <span class="p">((</span><span class="n">equities</span><span class="p">,</span> <span class="s1">&#39;sid&#39;</span><span class="p">),</span>
+                               <span class="p">(</span><span class="n">equity_supplementary_mappings</span><span class="p">,</span> <span class="s1">&#39;sid&#39;</span><span class="p">),</span>
+                               <span class="p">(</span><span class="n">futures</span><span class="p">,</span> <span class="s1">&#39;sid&#39;</span><span class="p">),</span>
+                               <span class="p">(</span><span class="n">exchanges</span><span class="p">,</span> <span class="s1">&#39;exchange&#39;</span><span class="p">),</span>
+                               <span class="p">(</span><span class="n">root_symbols</span><span class="p">,</span> <span class="s1">&#39;root_symbol&#39;</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">frame</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">column_name</span> <span class="ow">in</span> <span class="n">frame</span><span class="p">:</span>
+            <span class="n">frame</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="n">column_name</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_default_none</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">column</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">None</span>
+
+
+<span class="k">def</span> <span class="nf">_no_default</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">column</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;no default value for column </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">column</span><span class="p">)</span>
+
+
+<span class="c1"># Default values for the equities DataFrame</span>
 <span class="n">_equities_defaults</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s">&#39;symbol&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="s">&#39;asset_name&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="s">&#39;start_date&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-    <span class="s">&#39;end_date&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">,</span>
-    <span class="s">&#39;first_traded&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="s">&#39;auto_close_date&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="c"># the canonical exchange name, like &quot;NYSE&quot;</span>
-    <span class="s">&#39;exchange&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="c"># optional, something like &quot;New York Stock Exchange&quot;</span>
-    <span class="s">&#39;exchange_full&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+    <span class="s1">&#39;symbol&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="s1">&#39;asset_name&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="s1">&#39;start_date&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">df</span><span class="p">,</span> <span class="n">col</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s1">&#39;end_date&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">df</span><span class="p">,</span> <span class="n">col</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">,</span>
+    <span class="s1">&#39;first_traded&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="s1">&#39;auto_close_date&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="c1"># the full exchange name</span>
+    <span class="s1">&#39;exchange&#39;</span><span class="p">:</span> <span class="n">_no_default</span><span class="p">,</span>
 <span class="p">}</span>
 
-<span class="c"># Default values for the futures DataFrame</span>
+<span class="c1"># the defaults for ``equities`` in ``write_direct``</span>
+<span class="n">_direct_equities_defaults</span> <span class="o">=</span> <span class="n">_equities_defaults</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="k">del</span> <span class="n">_direct_equities_defaults</span><span class="p">[</span><span class="s1">&#39;symbol&#39;</span><span class="p">]</span>
+
+<span class="c1"># Default values for the futures DataFrame</span>
 <span class="n">_futures_defaults</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s">&#39;symbol&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="s">&#39;root_symbol&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="s">&#39;asset_name&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="s">&#39;start_date&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-    <span class="s">&#39;end_date&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">,</span>
-    <span class="s">&#39;first_traded&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="s">&#39;exchange&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="s">&#39;notice_date&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="s">&#39;expiration_date&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="s">&#39;auto_close_date&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="s">&#39;tick_size&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="s">&#39;multiplier&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s1">&#39;symbol&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="s1">&#39;root_symbol&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="s1">&#39;asset_name&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="s1">&#39;start_date&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">df</span><span class="p">,</span> <span class="n">col</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s1">&#39;end_date&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">df</span><span class="p">,</span> <span class="n">col</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">,</span>
+    <span class="s1">&#39;first_traded&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="s1">&#39;exchange&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="s1">&#39;notice_date&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="s1">&#39;expiration_date&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="s1">&#39;auto_close_date&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="s1">&#39;tick_size&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="s1">&#39;multiplier&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">df</span><span class="p">,</span> <span class="n">col</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
 <span class="p">}</span>
 
-<span class="c"># Default values for the exchanges DataFrame</span>
+<span class="c1"># Default values for the exchanges DataFrame</span>
 <span class="n">_exchanges_defaults</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s">&#39;timezone&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+    <span class="s1">&#39;canonical_name&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">df</span><span class="p">,</span> <span class="n">col</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+    <span class="s1">&#39;country_code&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">df</span><span class="p">,</span> <span class="n">col</span><span class="p">:</span> <span class="s1">&#39;??&#39;</span><span class="p">,</span>
 <span class="p">}</span>
 
-<span class="c"># Default values for the root_symbols DataFrame</span>
+<span class="c1"># Default values for the root_symbols DataFrame</span>
 <span class="n">_root_symbols_defaults</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s">&#39;root_symbol_id&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="s">&#39;sector&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="s">&#39;description&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="s">&#39;exchange&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+    <span class="s1">&#39;sector&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="s1">&#39;description&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="s1">&#39;exchange&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
 <span class="p">}</span>
 
-<span class="c"># Default values for the equity_supplementary_mappings DataFrame</span>
+<span class="c1"># Default values for the equity_supplementary_mappings DataFrame</span>
 <span class="n">_equity_supplementary_mappings_defaults</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s">&#39;sid&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="s">&#39;value&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="s">&#39;field&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="s">&#39;start_date&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-    <span class="s">&#39;end_date&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">,</span>
+    <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="s1">&#39;field&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="s1">&#39;start_date&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">df</span><span class="p">,</span> <span class="n">col</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s1">&#39;end_date&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">df</span><span class="p">,</span> <span class="n">col</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">,</span>
 <span class="p">}</span>
 
+<span class="c1"># Default values for the equity_symbol_mappings DataFrame</span>
+<span class="n">_equity_symbol_mappings_defaults</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;sid&#39;</span><span class="p">:</span> <span class="n">_no_default</span><span class="p">,</span>
+    <span class="s1">&#39;company_symbol&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="s1">&#39;share_class_symbol&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="s1">&#39;symbol&#39;</span><span class="p">:</span> <span class="n">_default_none</span><span class="p">,</span>
+    <span class="s1">&#39;start_date&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">df</span><span class="p">,</span> <span class="n">col</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s1">&#39;end_date&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">df</span><span class="p">,</span> <span class="n">col</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">,</span>
+<span class="p">}</span>
 
-<span class="c"># Fuzzy symbol delimiters that may break up a company symbol and share class</span>
-<span class="n">_delimited_symbol_delimiters_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s">r&#39;[./\-_]&#39;</span><span class="p">)</span>
-<span class="n">_delimited_symbol_default_triggers</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">})</span>
+<span class="c1"># Fuzzy symbol delimiters that may break up a company symbol and share class</span>
+<span class="n">_delimited_symbol_delimiters_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[./\-_]&#39;</span><span class="p">)</span>
+<span class="n">_delimited_symbol_default_triggers</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">})</span>
 
 
 <span class="k">def</span> <span class="nf">split_delimited_symbol</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
@@ -553,9 +606,9 @@
 <span class="sd">    share_class_symbol : str</span>
 <span class="sd">        The share class part of a symbol.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c"># return blank strings for any bad fuzzy symbols, like NaN or None</span>
+    <span class="c1"># return blank strings for any bad fuzzy symbols, like NaN or None</span>
     <span class="k">if</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">_delimited_symbol_default_triggers</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span>
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span>
 
     <span class="n">symbol</span> <span class="o">=</span> <span class="n">symbol</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
 
@@ -565,13 +618,13 @@
         <span class="n">maxsplit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="c"># Break the list up in to its two components, the company symbol and the</span>
-    <span class="c"># share class symbol</span>
+    <span class="c1"># Break the list up in to its two components, the company symbol and the</span>
+    <span class="c1"># share class symbol</span>
     <span class="n">company_symbol</span> <span class="o">=</span> <span class="n">split_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">split_list</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">share_class_symbol</span> <span class="o">=</span> <span class="n">split_list</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">share_class_symbol</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+        <span class="n">share_class_symbol</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
 
     <span class="k">return</span> <span class="n">company_symbol</span><span class="p">,</span> <span class="n">share_class_symbol</span>
 
@@ -589,8 +642,9 @@
 <span class="sd">        processed</span>
 <span class="sd">    defaults : dict</span>
 <span class="sd">        A dict where the keys are the names of the columns of the desired</span>
-<span class="sd">        output DataFrame and the values are the default values to insert in the</span>
-<span class="sd">        DataFrame if no user data is provided</span>
+<span class="sd">        output DataFrame and the values are a function from dataframe and</span>
+<span class="sd">        column name to the default values to insert in the DataFrame if no user</span>
+<span class="sd">        data is provided</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -598,26 +652,26 @@
 <span class="sd">        A DataFrame containing all user-provided metadata, and default values</span>
 <span class="sd">        wherever user-provided metadata was missing</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c"># The columns provided.</span>
+    <span class="c1"># The columns provided.</span>
     <span class="n">cols</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">data_subset</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
     <span class="n">desired_cols</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">defaults</span><span class="p">)</span>
 
-    <span class="c"># Drop columns with unrecognised headers.</span>
+    <span class="c1"># Drop columns with unrecognised headers.</span>
     <span class="n">data_subset</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">cols</span> <span class="o">-</span> <span class="n">desired_cols</span><span class="p">,</span>
                      <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                      <span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
-    <span class="c"># Get those columns which we need but</span>
-    <span class="c"># for which no data has been supplied.</span>
+    <span class="c1"># Get those columns which we need but</span>
+    <span class="c1"># for which no data has been supplied.</span>
     <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">desired_cols</span> <span class="o">-</span> <span class="n">cols</span><span class="p">:</span>
-        <span class="c"># write the default value for any missing columns</span>
-        <span class="n">data_subset</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">defaults</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
+        <span class="c1"># write the default value for any missing columns</span>
+        <span class="n">data_subset</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">defaults</span><span class="p">[</span><span class="n">col</span><span class="p">](</span><span class="n">data_subset</span><span class="p">,</span> <span class="n">col</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">data_subset</span>
 
 
 <span class="k">def</span> <span class="nf">_check_asset_group</span><span class="p">(</span><span class="n">group</span><span class="p">):</span>
-    <span class="n">row</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s">&#39;end_date&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">row</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s1">&#39;end_date&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">row</span><span class="o">.</span><span class="n">start_date</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">start_date</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
     <span class="n">row</span><span class="o">.</span><span class="n">end_date</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
     <span class="n">row</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">symbol_columns</span><span class="p">),</span> <span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
@@ -626,18 +680,83 @@
 
 <span class="k">def</span> <span class="nf">_format_range</span><span class="p">(</span><span class="n">r</span><span class="p">):</span>
     <span class="k">return</span> <span class="p">(</span>
-        <span class="nb">str</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&#39;ns&#39;</span><span class="p">)),</span>
-        <span class="nb">str</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">stop</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&#39;ns&#39;</span><span class="p">)),</span>
+        <span class="nb">str</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;ns&#39;</span><span class="p">)),</span>
+        <span class="nb">str</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">stop</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;ns&#39;</span><span class="p">)),</span>
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_split_symbol_mappings</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_check_symbol_mappings</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">exchanges</span><span class="p">,</span> <span class="n">asset_exchange</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Check that there are no cases where multiple symbols resolve to the same</span>
+<span class="sd">    asset at the same time in the same country.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    df : pd.DataFrame</span>
+<span class="sd">        The equity symbol mappings table.</span>
+<span class="sd">    exchanges : pd.DataFrame</span>
+<span class="sd">        The exchanges table.</span>
+<span class="sd">    asset_exchange : pd.Series</span>
+<span class="sd">        A series that maps sids to the exchange the asset is in.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        Raised when there are ambiguous symbol mappings.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mappings</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;sid&#39;</span><span class="p">)[</span><span class="nb">list</span><span class="p">(</span><span class="n">mapping_columns</span><span class="p">)]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">mappings</span><span class="p">[</span><span class="s1">&#39;country_code&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">exchanges</span><span class="p">[</span><span class="s1">&#39;country_code&#39;</span><span class="p">][</span>
+        <span class="n">asset_exchange</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;sid&#39;</span><span class="p">]]</span>
+    <span class="p">]</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">ambigious</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">check_intersections</span><span class="p">(</span><span class="n">persymbol</span><span class="p">):</span>
+        <span class="n">intersections</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">intersecting_ranges</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
+            <span class="n">from_tuple</span><span class="p">,</span>
+            <span class="nb">zip</span><span class="p">(</span><span class="n">persymbol</span><span class="o">.</span><span class="n">start_date</span><span class="p">,</span> <span class="n">persymbol</span><span class="o">.</span><span class="n">end_date</span><span class="p">),</span>
+        <span class="p">)))</span>
+        <span class="k">if</span> <span class="n">intersections</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">persymbol</span><span class="p">[</span>
+                <span class="p">[</span><span class="s1">&#39;start_date&#39;</span><span class="p">,</span> <span class="s1">&#39;end_date&#39;</span><span class="p">]</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;datetime64[ns]&#39;</span><span class="p">)</span>
+            <span class="c1"># indent the dataframe string, also compute this early because</span>
+            <span class="c1"># ``persymbol`` is a view and ``astype`` doesn&#39;t copy the index</span>
+            <span class="c1"># correctly in pandas 0.22</span>
+            <span class="n">msg_component</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">  &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">splitlines</span><span class="p">())</span>
+            <span class="n">ambigious</span><span class="p">[</span><span class="n">persymbol</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">intersections</span><span class="p">,</span> <span class="n">msg_component</span>
+
+    <span class="n">mappings</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="s1">&#39;country_code&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">check_intersections</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ambigious</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;Ambiguous ownership for </span><span class="si">%d</span><span class="s1"> symbol</span><span class="si">%s</span><span class="s1">, multiple assets held the&#39;</span>
+            <span class="s1">&#39; following symbols:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">ambigious</span><span class="p">),</span>
+                <span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ambigious</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="s1">&#39;s&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> (</span><span class="si">%s</span><span class="s1">):</span><span class="se">\n</span><span class="s1">  intersections: </span><span class="si">%s</span><span class="se">\n</span><span class="s1">  </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                        <span class="n">symbol</span><span class="p">,</span>
+                        <span class="n">country_code</span><span class="p">,</span>
+                        <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">_format_range</span><span class="p">,</span> <span class="n">intersections</span><span class="p">)),</span>
+                        <span class="n">cs</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">country_code</span><span class="p">),</span> <span class="p">(</span><span class="n">intersections</span><span class="p">,</span> <span class="n">cs</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span>
+                        <span class="n">ambigious</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
+                        <span class="n">key</span><span class="o">=</span><span class="n">first</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_split_symbol_mappings</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">exchanges</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Split out the symbol: sid mappings from the raw data.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    df : pd.DataFrame</span>
 <span class="sd">        The dataframe with multiple rows for each symbol: sid pair.</span>
+<span class="sd">    exchanges : pd.DataFrame</span>
+<span class="sd">        The exchanges table.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -649,42 +768,19 @@
 <span class="sd">        end_date.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">mappings</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">mapping_columns</span><span class="p">)]</span>
-    <span class="n">ambigious</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">mappings</span><span class="o">.</span><span class="n">symbol</span><span class="o">.</span><span class="n">unique</span><span class="p">():</span>
-        <span class="n">persymbol</span> <span class="o">=</span> <span class="n">mappings</span><span class="p">[</span><span class="n">mappings</span><span class="o">.</span><span class="n">symbol</span> <span class="o">==</span> <span class="n">symbol</span><span class="p">]</span>
-        <span class="n">intersections</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">intersecting_ranges</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
-            <span class="n">from_tuple</span><span class="p">,</span>
-            <span class="nb">zip</span><span class="p">(</span><span class="n">persymbol</span><span class="o">.</span><span class="n">start_date</span><span class="p">,</span> <span class="n">persymbol</span><span class="o">.</span><span class="n">end_date</span><span class="p">),</span>
-        <span class="p">)))</span>
-        <span class="k">if</span> <span class="n">intersections</span><span class="p">:</span>
-            <span class="n">ambigious</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">intersections</span><span class="p">,</span>
-                <span class="n">persymbol</span><span class="p">[[</span><span class="s">&#39;start_date&#39;</span><span class="p">,</span> <span class="s">&#39;end_date&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;datetime64[ns]&#39;</span><span class="p">),</span>
-            <span class="p">)</span>
+    <span class="k">with</span> <span class="n">pd</span><span class="o">.</span><span class="n">option_context</span><span class="p">(</span><span class="s1">&#39;mode.chained_assignment&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
+        <span class="n">mappings</span><span class="p">[</span><span class="s1">&#39;sid&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mappings</span><span class="o">.</span><span class="n">index</span>
+    <span class="n">mappings</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">ambigious</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s">&#39;Ambiguous ownership for </span><span class="si">%d</span><span class="s"> symbol</span><span class="si">%s</span><span class="s">, multiple assets held the&#39;</span>
-            <span class="s">&#39; following symbols:</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span>
-                <span class="nb">len</span><span class="p">(</span><span class="n">ambigious</span><span class="p">),</span>
-                <span class="s">&#39;&#39;</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ambigious</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="s">&#39;s&#39;</span><span class="p">,</span>
-                <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                    <span class="s">&#39;</span><span class="si">%s</span><span class="s">:</span><span class="se">\n</span><span class="s">  intersections: </span><span class="si">%s</span><span class="se">\n</span><span class="s">  </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span>
-                        <span class="n">symbol</span><span class="p">,</span>
-                        <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">_format_range</span><span class="p">,</span> <span class="n">intersections</span><span class="p">)),</span>
-                        <span class="c"># indent the dataframe string</span>
-                        <span class="s">&#39;</span><span class="se">\n</span><span class="s">  &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()),</span>
-                    <span class="p">)</span>
-                    <span class="k">for</span> <span class="n">symbol</span><span class="p">,</span> <span class="p">(</span><span class="n">intersections</span><span class="p">,</span> <span class="n">df</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span>
-                        <span class="n">ambigious</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
-                        <span class="n">key</span><span class="o">=</span><span class="n">first</span><span class="p">,</span>
-                    <span class="p">),</span>
-                <span class="p">),</span>
-            <span class="p">)</span>
-        <span class="p">)</span>
+    <span class="c1"># take the most recent sid-&gt;exchange mapping based on end date</span>
+    <span class="n">asset_exchange</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span>
+        <span class="p">[</span><span class="s1">&#39;exchange&#39;</span><span class="p">,</span> <span class="s1">&#39;end_date&#39;</span><span class="p">]</span>
+    <span class="p">]</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s1">&#39;end_date&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="s1">&#39;exchange&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nth</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">_check_symbol_mappings</span><span class="p">(</span><span class="n">mappings</span><span class="p">,</span> <span class="n">exchanges</span><span class="p">,</span> <span class="n">asset_exchange</span><span class="p">)</span>
     <span class="k">return</span> <span class="p">(</span>
         <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">_check_asset_group</span><span class="p">),</span>
-        <span class="n">df</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">mapping_columns</span><span class="p">)],</span>
+        <span class="n">mappings</span><span class="p">,</span>
     <span class="p">)</span>
 
 
@@ -703,9 +799,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">index</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">dt_series</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">index</span><span class="o">.</span><span class="n">tzinfo</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="n">index</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s1">&#39;UTC&#39;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">index</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">tz_convert</span><span class="p">(</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">tz_convert</span><span class="p">(</span><span class="s1">&#39;UTC&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">index</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
 
 
@@ -728,16 +824,16 @@
 <span class="sd">        If the version is in the table and not equal to ASSET_DB_VERSION.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c"># Read the version out of the table</span>
+    <span class="c1"># Read the version out of the table</span>
     <span class="n">version_from_table</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
         <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">((</span><span class="n">version_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">version</span><span class="p">,)),</span>
     <span class="p">)</span><span class="o">.</span><span class="n">scalar</span><span class="p">()</span>
 
-    <span class="c"># A db without a version is considered v0</span>
+    <span class="c1"># A db without a version is considered v0</span>
     <span class="k">if</span> <span class="n">version_from_table</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
         <span class="n">version_from_table</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="c"># Raise an error if the versions do not match</span>
+    <span class="c1"># Raise an error if the versions do not match</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">version_from_table</span> <span class="o">!=</span> <span class="n">expected_version</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">AssetDBVersionError</span><span class="p">(</span><span class="n">db_version</span><span class="o">=</span><span class="n">version_from_table</span><span class="p">,</span>
                                   <span class="n">expected_version</span><span class="o">=</span><span class="n">expected_version</span><span class="p">)</span>
@@ -757,7 +853,7 @@
 <span class="sd">        The version to write in to the database</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sa</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">version_table</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;version&#39;</span><span class="p">:</span> <span class="n">version_value</span><span class="p">}))</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sa</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">version_table</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;version&#39;</span><span class="p">:</span> <span class="n">version_value</span><span class="p">}))</span>
 
 
 <span class="k">class</span> <span class="nc">_empty</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -775,8 +871,217 @@
     <span class="n">DEFAULT_CHUNK_SIZE</span> <span class="o">=</span> <span class="n">SQLITE_MAX_VARIABLE_NUMBER</span>
 
     <span class="nd">@preprocess</span><span class="p">(</span><span class="n">engine</span><span class="o">=</span><span class="n">coerce_string_to_eng</span><span class="p">(</span><span class="n">require_exists</span><span class="o">=</span><span class="bp">False</span><span class="p">))</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span>
+
+    <span class="k">def</span> <span class="nf">_real_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                    <span class="n">equities</span><span class="p">,</span>
+                    <span class="n">equity_symbol_mappings</span><span class="p">,</span>
+                    <span class="n">equity_supplementary_mappings</span><span class="p">,</span>
+                    <span class="n">futures</span><span class="p">,</span>
+                    <span class="n">exchanges</span><span class="p">,</span>
+                    <span class="n">root_symbols</span><span class="p">,</span>
+                    <span class="n">chunk_size</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">begin</span><span class="p">()</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
+            <span class="c1"># Create SQL tables if they do not exist.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">init_db</span><span class="p">(</span><span class="n">conn</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">exchanges</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_write_df_to_table</span><span class="p">(</span>
+                    <span class="n">exchanges_table</span><span class="p">,</span>
+                    <span class="n">exchanges</span><span class="p">,</span>
+                    <span class="n">conn</span><span class="p">,</span>
+                    <span class="n">chunk_size</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">root_symbols</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_write_df_to_table</span><span class="p">(</span>
+                    <span class="n">futures_root_symbols</span><span class="p">,</span>
+                    <span class="n">root_symbols</span><span class="p">,</span>
+                    <span class="n">conn</span><span class="p">,</span>
+                    <span class="n">chunk_size</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">equity_supplementary_mappings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_write_df_to_table</span><span class="p">(</span>
+                    <span class="n">equity_supplementary_mappings_table</span><span class="p">,</span>
+                    <span class="n">equity_supplementary_mappings</span><span class="p">,</span>
+                    <span class="n">conn</span><span class="p">,</span>
+                    <span class="n">chunk_size</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">futures</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_write_assets</span><span class="p">(</span>
+                    <span class="s1">&#39;future&#39;</span><span class="p">,</span>
+                    <span class="n">futures</span><span class="p">,</span>
+                    <span class="n">conn</span><span class="p">,</span>
+                    <span class="n">chunk_size</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">equities</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_write_assets</span><span class="p">(</span>
+                    <span class="s1">&#39;equity&#39;</span><span class="p">,</span>
+                    <span class="n">equities</span><span class="p">,</span>
+                    <span class="n">conn</span><span class="p">,</span>
+                    <span class="n">chunk_size</span><span class="p">,</span>
+                    <span class="n">mapping_data</span><span class="o">=</span><span class="n">equity_symbol_mappings</span><span class="p">,</span>
+                <span class="p">)</span>
+
+<div class="viewcode-block" id="AssetDBWriter.write_direct"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetDBWriter.write_direct">[docs]</a>    <span class="k">def</span> <span class="nf">write_direct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                     <span class="n">equities</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                     <span class="n">equity_symbol_mappings</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                     <span class="n">equity_supplementary_mappings</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                     <span class="n">futures</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                     <span class="n">exchanges</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                     <span class="n">root_symbols</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                     <span class="n">chunk_size</span><span class="o">=</span><span class="n">DEFAULT_CHUNK_SIZE</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Write asset metadata to a sqlite database in the format that it is</span>
+<span class="sd">        stored in the assets db.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        equities : pd.DataFrame, optional</span>
+<span class="sd">            The equity metadata. The columns for this dataframe are:</span>
+
+<span class="sd">              symbol : str</span>
+<span class="sd">                  The ticker symbol for this equity.</span>
+<span class="sd">              asset_name : str</span>
+<span class="sd">                  The full name for this asset.</span>
+<span class="sd">              start_date : datetime</span>
+<span class="sd">                  The date when this asset was created.</span>
+<span class="sd">              end_date : datetime, optional</span>
+<span class="sd">                  The last date we have trade data for this asset.</span>
+<span class="sd">              first_traded : datetime, optional</span>
+<span class="sd">                  The first date we have trade data for this asset.</span>
+<span class="sd">              auto_close_date : datetime, optional</span>
+<span class="sd">                  The date on which to close any positions in this asset.</span>
+<span class="sd">              exchange : str</span>
+<span class="sd">                  The exchange where this asset is traded.</span>
+
+<span class="sd">            The index of this dataframe should contain the sids.</span>
+<span class="sd">        futures : pd.DataFrame, optional</span>
+<span class="sd">            The future contract metadata. The columns for this dataframe are:</span>
+
+<span class="sd">              symbol : str</span>
+<span class="sd">                  The ticker symbol for this futures contract.</span>
+<span class="sd">              root_symbol : str</span>
+<span class="sd">                  The root symbol, or the symbol with the expiration stripped</span>
+<span class="sd">                  out.</span>
+<span class="sd">              asset_name : str</span>
+<span class="sd">                  The full name for this asset.</span>
+<span class="sd">              start_date : datetime, optional</span>
+<span class="sd">                  The date when this asset was created.</span>
+<span class="sd">              end_date : datetime, optional</span>
+<span class="sd">                  The last date we have trade data for this asset.</span>
+<span class="sd">              first_traded : datetime, optional</span>
+<span class="sd">                  The first date we have trade data for this asset.</span>
+<span class="sd">              exchange : str</span>
+<span class="sd">                  The exchange where this asset is traded.</span>
+<span class="sd">              notice_date : datetime</span>
+<span class="sd">                  The date when the owner of the contract may be forced</span>
+<span class="sd">                  to take physical delivery of the contract&#39;s asset.</span>
+<span class="sd">              expiration_date : datetime</span>
+<span class="sd">                  The date when the contract expires.</span>
+<span class="sd">              auto_close_date : datetime</span>
+<span class="sd">                  The date when the broker will automatically close any</span>
+<span class="sd">                  positions in this contract.</span>
+<span class="sd">              tick_size : float</span>
+<span class="sd">                  The minimum price movement of the contract.</span>
+<span class="sd">              multiplier: float</span>
+<span class="sd">                  The amount of the underlying asset represented by this</span>
+<span class="sd">                  contract.</span>
+<span class="sd">        exchanges : pd.DataFrame, optional</span>
+<span class="sd">            The exchanges where assets can be traded. The columns of this</span>
+<span class="sd">            dataframe are:</span>
+
+<span class="sd">              exchange : str</span>
+<span class="sd">                  The full name of the exchange.</span>
+<span class="sd">              canonical_name : str</span>
+<span class="sd">                  The canonical name of the exchange.</span>
+<span class="sd">              country_code : str</span>
+<span class="sd">                  The ISO 3166 alpha-2 country code of the exchange.</span>
+<span class="sd">        root_symbols : pd.DataFrame, optional</span>
+<span class="sd">            The root symbols for the futures contracts. The columns for this</span>
+<span class="sd">            dataframe are:</span>
+
+<span class="sd">              root_symbol : str</span>
+<span class="sd">                  The root symbol name.</span>
+<span class="sd">              root_symbol_id : int</span>
+<span class="sd">                  The unique id for this root symbol.</span>
+<span class="sd">              sector : string, optional</span>
+<span class="sd">                  The sector of this root symbol.</span>
+<span class="sd">              description : string, optional</span>
+<span class="sd">                  A short description of this root symbol.</span>
+<span class="sd">              exchange : str</span>
+<span class="sd">                  The exchange where this root symbol is traded.</span>
+<span class="sd">        equity_supplementary_mappings : pd.DataFrame, optional</span>
+<span class="sd">            Additional mappings from values of abitrary type to assets.</span>
+<span class="sd">        chunk_size : int, optional</span>
+<span class="sd">            The amount of rows to write to the SQLite table at once.</span>
+<span class="sd">            This defaults to the default number of bind params in sqlite.</span>
+<span class="sd">            If you have compiled sqlite3 with more bind or less params you may</span>
+<span class="sd">            want to pass that value here.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">equities</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">equities</span> <span class="o">=</span> <span class="n">_generate_output_dataframe</span><span class="p">(</span>
+                <span class="n">equities</span><span class="p">,</span>
+                <span class="n">_direct_equities_defaults</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">equity_symbol_mappings</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s1">&#39;equities provided with no symbol mapping data&#39;</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="n">equity_symbol_mappings</span> <span class="o">=</span> <span class="n">_generate_output_dataframe</span><span class="p">(</span>
+                <span class="n">equity_symbol_mappings</span><span class="p">,</span>
+                <span class="n">_equity_symbol_mappings_defaults</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">_check_symbol_mappings</span><span class="p">(</span>
+                <span class="n">equity_symbol_mappings</span><span class="p">,</span>
+                <span class="n">exchanges</span><span class="p">,</span>
+                <span class="n">equities</span><span class="p">[</span><span class="s1">&#39;exchange&#39;</span><span class="p">],</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">equity_supplementary_mappings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">equity_supplementary_mappings</span> <span class="o">=</span> <span class="n">_generate_output_dataframe</span><span class="p">(</span>
+                <span class="n">equity_supplementary_mappings</span><span class="p">,</span>
+                <span class="n">_equity_supplementary_mappings_defaults</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">futures</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">futures</span> <span class="o">=</span> <span class="n">_generate_output_dataframe</span><span class="p">(</span><span class="n">_futures_defaults</span><span class="p">,</span> <span class="n">futures</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">exchanges</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">exchanges</span> <span class="o">=</span> <span class="n">_generate_output_dataframe</span><span class="p">(</span>
+                <span class="n">exchanges</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;exchange&#39;</span><span class="p">),</span>
+                <span class="n">_exchanges_defaults</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">root_symbols</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">root_symbols</span> <span class="o">=</span> <span class="n">_generate_output_dataframe</span><span class="p">(</span>
+                <span class="n">root_symbols</span><span class="p">,</span>
+                <span class="n">_root_symbols_defaults</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Set named identifier columns as indices, if provided.</span>
+        <span class="n">_normalize_index_columns_in_place</span><span class="p">(</span>
+            <span class="n">equities</span><span class="o">=</span><span class="n">equities</span><span class="p">,</span>
+            <span class="n">equity_supplementary_mappings</span><span class="o">=</span><span class="n">equity_supplementary_mappings</span><span class="p">,</span>
+            <span class="n">futures</span><span class="o">=</span><span class="n">futures</span><span class="p">,</span>
+            <span class="n">exchanges</span><span class="o">=</span><span class="n">exchanges</span><span class="p">,</span>
+            <span class="n">root_symbols</span><span class="o">=</span><span class="n">root_symbols</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_real_write</span><span class="p">(</span>
+            <span class="n">equities</span><span class="o">=</span><span class="n">equities</span><span class="p">,</span>
+            <span class="n">equity_symbol_mappings</span><span class="o">=</span><span class="n">equity_symbol_mappings</span><span class="p">,</span>
+            <span class="n">equity_supplementary_mappings</span><span class="o">=</span><span class="n">equity_supplementary_mappings</span><span class="p">,</span>
+            <span class="n">futures</span><span class="o">=</span><span class="n">futures</span><span class="p">,</span>
+            <span class="n">exchanges</span><span class="o">=</span><span class="n">exchanges</span><span class="p">,</span>
+            <span class="n">root_symbols</span><span class="o">=</span><span class="n">root_symbols</span><span class="p">,</span>
+            <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 <div class="viewcode-block" id="AssetDBWriter.write"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetDBWriter.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
               <span class="n">equities</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
@@ -844,9 +1149,11 @@
 <span class="sd">            dataframe are:</span>
 
 <span class="sd">              exchange : str</span>
-<span class="sd">                  The name of the exchange.</span>
-<span class="sd">              timezone : str</span>
-<span class="sd">                  The timezone of the exchange.</span>
+<span class="sd">                  The full name of the exchange.</span>
+<span class="sd">              canonical_name : str</span>
+<span class="sd">                  The canonical name of the exchange.</span>
+<span class="sd">              country_code : str</span>
+<span class="sd">                  The ISO 3166 alpha-2 country code of the exchange.</span>
 <span class="sd">        root_symbols : pd.DataFrame, optional</span>
 <span class="sd">            The root symbols for the futures contracts. The columns for this</span>
 <span class="sd">            dataframe are:</span>
@@ -873,75 +1180,50 @@
 <span class="sd">        --------</span>
 <span class="sd">        zipline.assets.asset_finder</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">begin</span><span class="p">()</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
-            <span class="c"># Create SQL tables if they do not exist.</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">init_db</span><span class="p">(</span><span class="n">conn</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">exchanges</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">exchange_names</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">df</span><span class="p">[</span><span class="s1">&#39;exchange&#39;</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">df</span> <span class="ow">in</span> <span class="p">(</span><span class="n">equities</span><span class="p">,</span> <span class="n">futures</span><span class="p">,</span> <span class="n">root_symbols</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
+            <span class="p">]</span>
+            <span class="k">if</span> <span class="n">exchange_names</span><span class="p">:</span>
+                <span class="n">exchanges</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+                    <span class="s1">&#39;exchange&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">exchange_names</span><span class="p">)</span><span class="o">.</span><span class="n">unique</span><span class="p">(),</span>
+                <span class="p">})</span>
 
-            <span class="c"># Get the data to add to SQL.</span>
-            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_data</span><span class="p">(</span>
-                <span class="n">equities</span> <span class="k">if</span> <span class="n">equities</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span>
-                <span class="n">futures</span> <span class="k">if</span> <span class="n">futures</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span>
-                <span class="n">exchanges</span> <span class="k">if</span> <span class="n">exchanges</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span>
-                <span class="n">root_symbols</span> <span class="k">if</span> <span class="n">root_symbols</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span>
-                <span class="p">(</span>
-                    <span class="n">equity_supplementary_mappings</span>
-                    <span class="k">if</span> <span class="n">equity_supplementary_mappings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
-                    <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
-                <span class="p">),</span>
-            <span class="p">)</span>
-            <span class="c"># Write the data to SQL.</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_write_df_to_table</span><span class="p">(</span>
-                <span class="n">futures_exchanges</span><span class="p">,</span>
-                <span class="n">data</span><span class="o">.</span><span class="n">exchanges</span><span class="p">,</span>
-                <span class="n">conn</span><span class="p">,</span>
-                <span class="n">chunk_size</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_write_df_to_table</span><span class="p">(</span>
-                <span class="n">futures_root_symbols</span><span class="p">,</span>
-                <span class="n">data</span><span class="o">.</span><span class="n">root_symbols</span><span class="p">,</span>
-                <span class="n">conn</span><span class="p">,</span>
-                <span class="n">chunk_size</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_write_df_to_table</span><span class="p">(</span>
-                <span class="n">equity_supplementary_mappings_table</span><span class="p">,</span>
-                <span class="n">data</span><span class="o">.</span><span class="n">equity_supplementary_mappings</span><span class="p">,</span>
-                <span class="n">conn</span><span class="p">,</span>
-                <span class="n">chunk_size</span><span class="p">,</span>
-                <span class="n">idx</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_write_assets</span><span class="p">(</span>
-                <span class="s">&#39;future&#39;</span><span class="p">,</span>
-                <span class="n">data</span><span class="o">.</span><span class="n">futures</span><span class="p">,</span>
-                <span class="n">conn</span><span class="p">,</span>
-                <span class="n">chunk_size</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_write_assets</span><span class="p">(</span>
-                <span class="s">&#39;equity&#39;</span><span class="p">,</span>
-                <span class="n">data</span><span class="o">.</span><span class="n">equities</span><span class="p">,</span>
-                <span class="n">conn</span><span class="p">,</span>
-                <span class="n">chunk_size</span><span class="p">,</span>
-                <span class="n">mapping_data</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">equities_mappings</span><span class="p">,</span>
-            <span class="p">)</span></div>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_data</span><span class="p">(</span>
+            <span class="n">equities</span> <span class="k">if</span> <span class="n">equities</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span>
+            <span class="n">futures</span> <span class="k">if</span> <span class="n">futures</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span>
+            <span class="n">exchanges</span> <span class="k">if</span> <span class="n">exchanges</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span>
+            <span class="n">root_symbols</span> <span class="k">if</span> <span class="n">root_symbols</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span>
+            <span class="p">(</span>
+                <span class="n">equity_supplementary_mappings</span>
+                <span class="k">if</span> <span class="n">equity_supplementary_mappings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
+                <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_real_write</span><span class="p">(</span>
+            <span class="n">equities</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">equities</span><span class="p">,</span>
+            <span class="n">equity_symbol_mappings</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">equities_mappings</span><span class="p">,</span>
+            <span class="n">equity_supplementary_mappings</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">equity_supplementary_mappings</span><span class="p">,</span>
+            <span class="n">futures</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">futures</span><span class="p">,</span>
+            <span class="n">root_symbols</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">root_symbols</span><span class="p">,</span>
+            <span class="n">exchanges</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">exchanges</span><span class="p">,</span>
+            <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">_write_df_to_table</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">tbl</span><span class="p">,</span>
-        <span class="n">df</span><span class="p">,</span>
-        <span class="n">txn</span><span class="p">,</span>
-        <span class="n">chunk_size</span><span class="p">,</span>
-        <span class="n">idx</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-        <span class="n">idx_label</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_write_df_to_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tbl</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">txn</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">):</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">column</span><span class="p">,</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">dtypes</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;M&#39;</span><span class="p">:</span>
+                <span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">=</span> <span class="n">_dt_to_epoch_ns</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">])</span>
+
         <span class="n">df</span><span class="o">.</span><span class="n">to_sql</span><span class="p">(</span>
             <span class="n">tbl</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
             <span class="n">txn</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span>
-            <span class="n">index</span><span class="o">=</span><span class="n">idx</span><span class="p">,</span>
-            <span class="n">index_label</span><span class="o">=</span><span class="p">(</span>
-                <span class="n">idx_label</span>
-                <span class="k">if</span> <span class="n">idx_label</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span>
-                <span class="n">first</span><span class="p">(</span><span class="n">tbl</span><span class="o">.</span><span class="n">primary_key</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
-            <span class="p">),</span>
-            <span class="n">if_exists</span><span class="o">=</span><span class="s">&#39;append&#39;</span><span class="p">,</span>
+            <span class="n">index</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+            <span class="n">index_label</span><span class="o">=</span><span class="n">first</span><span class="p">(</span><span class="n">tbl</span><span class="o">.</span><span class="n">primary_key</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">if_exists</span><span class="o">=</span><span class="s1">&#39;append&#39;</span><span class="p">,</span>
             <span class="n">chunksize</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -951,27 +1233,26 @@
                       <span class="n">txn</span><span class="p">,</span>
                       <span class="n">chunk_size</span><span class="p">,</span>
                       <span class="n">mapping_data</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">asset_type</span> <span class="o">==</span> <span class="s">&#39;future&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">asset_type</span> <span class="o">==</span> <span class="s1">&#39;future&#39;</span><span class="p">:</span>
             <span class="n">tbl</span> <span class="o">=</span> <span class="n">futures_contracts_table</span>
             <span class="k">if</span> <span class="n">mapping_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&#39;no mapping data expected for futures&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;no mapping data expected for futures&#39;</span><span class="p">)</span>
 
-        <span class="k">elif</span> <span class="n">asset_type</span> <span class="o">==</span> <span class="s">&#39;equity&#39;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">asset_type</span> <span class="o">==</span> <span class="s1">&#39;equity&#39;</span><span class="p">:</span>
             <span class="n">tbl</span> <span class="o">=</span> <span class="n">equities_table</span>
             <span class="k">if</span> <span class="n">mapping_data</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&#39;mapping data required for equities&#39;</span><span class="p">)</span>
-            <span class="c"># write the symbol mapping data.</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;mapping data required for equities&#39;</span><span class="p">)</span>
+            <span class="c1"># write the symbol mapping data.</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_write_df_to_table</span><span class="p">(</span>
                 <span class="n">equity_symbol_mappings</span><span class="p">,</span>
                 <span class="n">mapping_data</span><span class="p">,</span>
                 <span class="n">txn</span><span class="p">,</span>
                 <span class="n">chunk_size</span><span class="p">,</span>
-                <span class="n">idx_label</span><span class="o">=</span><span class="s">&#39;sid&#39;</span><span class="p">,</span>
             <span class="p">)</span>
 
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s">&quot;asset_type must be in {&#39;future&#39;, &#39;equity&#39;}, got: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span>
+                <span class="s2">&quot;asset_type must be in {&#39;future&#39;, &#39;equity&#39;}, got: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span>
                 <span class="n">asset_type</span><span class="p">,</span>
             <span class="p">)</span>
 
@@ -983,7 +1264,7 @@
         <span class="p">})</span><span class="o">.</span><span class="n">to_sql</span><span class="p">(</span>
             <span class="n">asset_router</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
             <span class="n">txn</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span>
-            <span class="n">if_exists</span><span class="o">=</span><span class="s">&#39;append&#39;</span><span class="p">,</span>
+            <span class="n">if_exists</span><span class="o">=</span><span class="s1">&#39;append&#39;</span><span class="p">,</span>
             <span class="n">index</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
             <span class="n">chunksize</span><span class="o">=</span><span class="n">chunk_size</span>
         <span class="p">)</span>
@@ -1028,7 +1309,7 @@
 
             <span class="n">tables_already_exist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_tables_present</span><span class="p">(</span><span class="n">txn</span><span class="p">)</span>
 
-            <span class="c"># Create the SQL tables if they do not already exist.</span>
+            <span class="c1"># Create the SQL tables if they do not already exist.</span>
             <span class="n">metadata</span><span class="o">.</span><span class="n">create_all</span><span class="p">(</span><span class="n">txn</span><span class="p">,</span> <span class="n">checkfirst</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">tables_already_exist</span><span class="p">:</span>
@@ -1036,57 +1317,57 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">write_version_info</span><span class="p">(</span><span class="n">txn</span><span class="p">,</span> <span class="n">version_info</span><span class="p">,</span> <span class="n">ASSET_DB_VERSION</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">_normalize_equities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">equities</span><span class="p">):</span>
-        <span class="c"># HACK: If &#39;company_name&#39; is provided, map it to asset_name</span>
-        <span class="k">if</span> <span class="p">(</span><span class="s">&#39;company_name&#39;</span> <span class="ow">in</span> <span class="n">equities</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span>
-                <span class="s">&#39;asset_name&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">equities</span><span class="o">.</span><span class="n">columns</span><span class="p">):</span>
-            <span class="n">equities</span><span class="p">[</span><span class="s">&#39;asset_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">equities</span><span class="p">[</span><span class="s">&#39;company_name&#39;</span><span class="p">]</span>
+    <span class="k">def</span> <span class="nf">_normalize_equities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">equities</span><span class="p">,</span> <span class="n">exchanges</span><span class="p">):</span>
+        <span class="c1"># HACK: If &#39;company_name&#39; is provided, map it to asset_name</span>
+        <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;company_name&#39;</span> <span class="ow">in</span> <span class="n">equities</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span>
+                <span class="s1">&#39;asset_name&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">equities</span><span class="o">.</span><span class="n">columns</span><span class="p">):</span>
+            <span class="n">equities</span><span class="p">[</span><span class="s1">&#39;asset_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">equities</span><span class="p">[</span><span class="s1">&#39;company_name&#39;</span><span class="p">]</span>
 
-        <span class="c"># remap &#39;file_name&#39; to &#39;symbol&#39; if provided</span>
-        <span class="k">if</span> <span class="s">&#39;file_name&#39;</span> <span class="ow">in</span> <span class="n">equities</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-            <span class="n">equities</span><span class="p">[</span><span class="s">&#39;symbol&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">equities</span><span class="p">[</span><span class="s">&#39;file_name&#39;</span><span class="p">]</span>
+        <span class="c1"># remap &#39;file_name&#39; to &#39;symbol&#39; if provided</span>
+        <span class="k">if</span> <span class="s1">&#39;file_name&#39;</span> <span class="ow">in</span> <span class="n">equities</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">equities</span><span class="p">[</span><span class="s1">&#39;symbol&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">equities</span><span class="p">[</span><span class="s1">&#39;file_name&#39;</span><span class="p">]</span>
 
         <span class="n">equities_output</span> <span class="o">=</span> <span class="n">_generate_output_dataframe</span><span class="p">(</span>
             <span class="n">data_subset</span><span class="o">=</span><span class="n">equities</span><span class="p">,</span>
             <span class="n">defaults</span><span class="o">=</span><span class="n">_equities_defaults</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="c"># Split symbols to company_symbols and share_class_symbols</span>
-        <span class="n">tuple_series</span> <span class="o">=</span> <span class="n">equities_output</span><span class="p">[</span><span class="s">&#39;symbol&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">split_delimited_symbol</span><span class="p">)</span>
+        <span class="c1"># Split symbols to company_symbols and share_class_symbols</span>
+        <span class="n">tuple_series</span> <span class="o">=</span> <span class="n">equities_output</span><span class="p">[</span><span class="s1">&#39;symbol&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">split_delimited_symbol</span><span class="p">)</span>
         <span class="n">split_symbols</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
             <span class="n">tuple_series</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
-            <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;company_symbol&#39;</span><span class="p">,</span> <span class="s">&#39;share_class_symbol&#39;</span><span class="p">],</span>
+            <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;company_symbol&#39;</span><span class="p">,</span> <span class="s1">&#39;share_class_symbol&#39;</span><span class="p">],</span>
             <span class="n">index</span><span class="o">=</span><span class="n">tuple_series</span><span class="o">.</span><span class="n">index</span>
         <span class="p">)</span>
         <span class="n">equities_output</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">((</span><span class="n">equities_output</span><span class="p">,</span> <span class="n">split_symbols</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-        <span class="c"># Upper-case all symbol data</span>
+        <span class="c1"># Upper-case all symbol data</span>
         <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">symbol_columns</span><span class="p">:</span>
             <span class="n">equities_output</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">equities_output</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
 
-        <span class="c"># Convert date columns to UNIX Epoch integers (nanoseconds)</span>
-        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;start_date&#39;</span><span class="p">,</span>
-                    <span class="s">&#39;end_date&#39;</span><span class="p">,</span>
-                    <span class="s">&#39;first_traded&#39;</span><span class="p">,</span>
-                    <span class="s">&#39;auto_close_date&#39;</span><span class="p">):</span>
+        <span class="c1"># Convert date columns to UNIX Epoch integers (nanoseconds)</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;start_date&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;end_date&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;first_traded&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;auto_close_date&#39;</span><span class="p">):</span>
             <span class="n">equities_output</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">_dt_to_epoch_ns</span><span class="p">(</span><span class="n">equities_output</span><span class="p">[</span><span class="n">col</span><span class="p">])</span>
 
-        <span class="k">return</span> <span class="n">_split_symbol_mappings</span><span class="p">(</span><span class="n">equities_output</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_split_symbol_mappings</span><span class="p">(</span><span class="n">equities_output</span><span class="p">,</span> <span class="n">exchanges</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_normalize_futures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">futures</span><span class="p">):</span>
         <span class="n">futures_output</span> <span class="o">=</span> <span class="n">_generate_output_dataframe</span><span class="p">(</span>
             <span class="n">data_subset</span><span class="o">=</span><span class="n">futures</span><span class="p">,</span>
             <span class="n">defaults</span><span class="o">=</span><span class="n">_futures_defaults</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;symbol&#39;</span><span class="p">,</span> <span class="s">&#39;root_symbol&#39;</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="s1">&#39;root_symbol&#39;</span><span class="p">):</span>
             <span class="n">futures_output</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">futures_output</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
 
-        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;start_date&#39;</span><span class="p">,</span>
-                    <span class="s">&#39;end_date&#39;</span><span class="p">,</span>
-                    <span class="s">&#39;first_traded&#39;</span><span class="p">,</span>
-                    <span class="s">&#39;notice_date&#39;</span><span class="p">,</span>
-                    <span class="s">&#39;expiration_date&#39;</span><span class="p">,</span>
-                    <span class="s">&#39;auto_close_date&#39;</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;start_date&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;end_date&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;first_traded&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;notice_date&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;expiration_date&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;auto_close_date&#39;</span><span class="p">):</span>
             <span class="n">futures_output</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">_dt_to_epoch_ns</span><span class="p">(</span><span class="n">futures_output</span><span class="p">[</span><span class="n">col</span><span class="p">])</span>
 
         <span class="k">return</span> <span class="n">futures_output</span>
@@ -1097,34 +1378,30 @@
             <span class="n">defaults</span><span class="o">=</span><span class="n">_equity_supplementary_mappings_defaults</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;start_date&#39;</span><span class="p">,</span> <span class="s">&#39;end_date&#39;</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;start_date&#39;</span><span class="p">,</span> <span class="s1">&#39;end_date&#39;</span><span class="p">):</span>
             <span class="n">mappings_output</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">_dt_to_epoch_ns</span><span class="p">(</span><span class="n">mappings_output</span><span class="p">[</span><span class="n">col</span><span class="p">])</span>
 
         <span class="k">return</span> <span class="n">mappings_output</span>
 
-    <span class="k">def</span> <span class="nf">_load_data</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">equities</span><span class="p">,</span>
-        <span class="n">futures</span><span class="p">,</span>
-        <span class="n">exchanges</span><span class="p">,</span>
-        <span class="n">root_symbols</span><span class="p">,</span>
-        <span class="n">equity_supplementary_mappings</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_load_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                   <span class="n">equities</span><span class="p">,</span>
+                   <span class="n">futures</span><span class="p">,</span>
+                   <span class="n">exchanges</span><span class="p">,</span>
+                   <span class="n">root_symbols</span><span class="p">,</span>
+                   <span class="n">equity_supplementary_mappings</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Returns a standard set of pandas.DataFrames:</span>
 <span class="sd">        equities, futures, exchanges, root_symbols</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c"># Check whether identifier columns have been provided.</span>
-        <span class="c"># If they have, set the index to this column.</span>
-        <span class="c"># If not, assume the index already cotains the identifier information.</span>
-        <span class="k">for</span> <span class="n">df</span><span class="p">,</span> <span class="n">id_col</span> <span class="ow">in</span> <span class="p">[(</span><span class="n">equities</span><span class="p">,</span> <span class="s">&#39;sid&#39;</span><span class="p">),</span>
-                           <span class="p">(</span><span class="n">futures</span><span class="p">,</span> <span class="s">&#39;sid&#39;</span><span class="p">),</span>
-                           <span class="p">(</span><span class="n">exchanges</span><span class="p">,</span> <span class="s">&#39;exchange&#39;</span><span class="p">),</span>
-                           <span class="p">(</span><span class="n">root_symbols</span><span class="p">,</span> <span class="s">&#39;root_symbol&#39;</span><span class="p">)]:</span>
-            <span class="k">if</span> <span class="n">id_col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-                <span class="n">df</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="n">id_col</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="c1"># Set named identifier columns as indices, if provided.</span>
+        <span class="n">_normalize_index_columns_in_place</span><span class="p">(</span>
+            <span class="n">equities</span><span class="o">=</span><span class="n">equities</span><span class="p">,</span>
+            <span class="n">equity_supplementary_mappings</span><span class="o">=</span><span class="n">equity_supplementary_mappings</span><span class="p">,</span>
+            <span class="n">futures</span><span class="o">=</span><span class="n">futures</span><span class="p">,</span>
+            <span class="n">exchanges</span><span class="o">=</span><span class="n">exchanges</span><span class="p">,</span>
+            <span class="n">root_symbols</span><span class="o">=</span><span class="n">root_symbols</span><span class="p">,</span>
+        <span class="p">)</span>
 
-        <span class="n">equities_output</span><span class="p">,</span> <span class="n">equities_mappings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normalize_equities</span><span class="p">(</span><span class="n">equities</span><span class="p">)</span>
         <span class="n">futures_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normalize_futures</span><span class="p">(</span><span class="n">futures</span><span class="p">)</span>
 
         <span class="n">equity_supplementary_mappings_output</span> <span class="o">=</span> <span class="p">(</span>
@@ -1136,6 +1413,11 @@
         <span class="n">exchanges_output</span> <span class="o">=</span> <span class="n">_generate_output_dataframe</span><span class="p">(</span>
             <span class="n">data_subset</span><span class="o">=</span><span class="n">exchanges</span><span class="p">,</span>
             <span class="n">defaults</span><span class="o">=</span><span class="n">_exchanges_defaults</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">equities_output</span><span class="p">,</span> <span class="n">equities_mappings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normalize_equities</span><span class="p">(</span>
+            <span class="n">equities</span><span class="p">,</span>
+            <span class="n">exchanges_output</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">root_symbols_output</span> <span class="o">=</span> <span class="n">_generate_output_dataframe</span><span class="p">(</span>

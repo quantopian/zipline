@@ -414,7 +414,7 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.pipeline.filters.filter</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">filter.py</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
@@ -482,9 +482,9 @@
 <span class="sd">    Returns a function &quot;binary_operator&quot; suitable for implementing functions</span>
 <span class="sd">    like __and__ or __or__.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c"># When combining a Filter with a NumericalExpression, we use this</span>
-    <span class="c"># attrgetter instance to defer to the commuted interpretation of the</span>
-    <span class="c"># NumericalExpression operator.</span>
+    <span class="c1"># When combining a Filter with a NumericalExpression, we use this</span>
+    <span class="c1"># attrgetter instance to defer to the commuted interpretation of the</span>
+    <span class="c1"># NumericalExpression operator.</span>
     <span class="n">commuted_method_getter</span> <span class="o">=</span> <span class="n">attrgetter</span><span class="p">(</span><span class="n">method_name_for_op</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">commute</span><span class="o">=</span><span class="bp">True</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">binary_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
@@ -493,7 +493,7 @@
                 <span class="n">op</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">return</span> <span class="n">NumExprFilter</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-                <span class="s">&quot;({left}) {op} ({right})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="s2">&quot;({left}) {op} ({right})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                     <span class="n">left</span><span class="o">=</span><span class="n">self_expr</span><span class="p">,</span>
                     <span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span>
                     <span class="n">right</span><span class="o">=</span><span class="n">other_expr</span><span class="p">,</span>
@@ -501,30 +501,30 @@
                 <span class="n">new_inputs</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">NumericalExpression</span><span class="p">):</span>
-            <span class="c"># NumericalExpression overrides numerical ops to correctly handle</span>
-            <span class="c"># merging of inputs.  Look up and call the appropriate</span>
-            <span class="c"># right-binding operator with ourself as the input.</span>
+            <span class="c1"># NumericalExpression overrides numerical ops to correctly handle</span>
+            <span class="c1"># merging of inputs.  Look up and call the appropriate</span>
+            <span class="c1"># right-binding operator with ourself as the input.</span>
             <span class="k">return</span> <span class="n">commuted_method_getter</span><span class="p">(</span><span class="n">other</span><span class="p">)(</span><span class="bp">self</span><span class="p">)</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Term</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">bool_dtype</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">BadBinaryOperator</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span> <span class="ow">is</span> <span class="n">other</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">NumExprFilter</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-                    <span class="s">&quot;x_0 {op} x_0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span>
+                    <span class="s2">&quot;x_0 {op} x_0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span>
                     <span class="p">(</span><span class="bp">self</span><span class="p">,),</span>
                 <span class="p">)</span>
             <span class="k">return</span> <span class="n">NumExprFilter</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-                <span class="s">&quot;x_0 {op} x_1&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span>
+                <span class="s2">&quot;x_0 {op} x_1&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span>
                 <span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">),</span>
             <span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>  <span class="c"># Note that this is true for bool as well</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>  <span class="c1"># Note that this is true for bool as well</span>
             <span class="k">return</span> <span class="n">NumExprFilter</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-                <span class="s">&quot;x_0 {op} {constant}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span> <span class="n">constant</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">other</span><span class="p">)),</span>
+                <span class="s2">&quot;x_0 {op} {constant}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span> <span class="n">constant</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">other</span><span class="p">)),</span>
                 <span class="n">binds</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="p">,),</span>
             <span class="p">)</span>
         <span class="k">raise</span> <span class="n">BadBinaryOperator</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
 
-    <span class="n">binary_operator</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="s">&quot;Binary Operator: &#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="n">op</span>
+    <span class="n">binary_operator</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;Binary Operator: &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span> <span class="o">%</span> <span class="n">op</span>
     <span class="k">return</span> <span class="n">binary_operator</span>
 
 
@@ -532,27 +532,27 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Factory function for making unary operator methods for Filters.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">valid_ops</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;~&#39;</span><span class="p">}</span>
+    <span class="n">valid_ops</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;~&#39;</span><span class="p">}</span>
     <span class="k">if</span> <span class="n">op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_ops</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Invalid unary operator </span><span class="si">%s</span><span class="s">.&quot;</span> <span class="o">%</span> <span class="n">op</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid unary operator </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="n">op</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">unary_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="c"># This can&#39;t be hoisted up a scope because the types returned by</span>
-        <span class="c"># unary_op_return_type aren&#39;t defined when the top-level function is</span>
-        <span class="c"># invoked.</span>
+        <span class="c1"># This can&#39;t be hoisted up a scope because the types returned by</span>
+        <span class="c1"># unary_op_return_type aren&#39;t defined when the top-level function is</span>
+        <span class="c1"># invoked.</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">NumericalExpression</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">NumExprFilter</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-                <span class="s">&quot;{op}({expr})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span> <span class="n">expr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_expr</span><span class="p">),</span>
+                <span class="s2">&quot;{op}({expr})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span> <span class="n">expr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_expr</span><span class="p">),</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">NumExprFilter</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s">&quot;{op}x_0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span> <span class="p">(</span><span class="bp">self</span><span class="p">,))</span>
+            <span class="k">return</span> <span class="n">NumExprFilter</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;{op}x_0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span> <span class="p">(</span><span class="bp">self</span><span class="p">,))</span>
 
-    <span class="n">unary_operator</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="s">&quot;Unary Operator: &#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="n">op</span>
+    <span class="n">unary_operator</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;Unary Operator: &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span> <span class="o">%</span> <span class="n">op</span>
     <span class="k">return</span> <span class="n">unary_operator</span>
 
 
-<div class="viewcode-block" id="Filter"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.filters.Filter">[docs]</a><span class="k">class</span> <span class="nc">Filter</span><span class="p">(</span><span class="n">RestrictedDTypeMixin</span><span class="p">,</span> <span class="n">ComputableTerm</span><span class="p">):</span>
+<div class="viewcode-block" id="Filter"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Filter">[docs]</a><span class="k">class</span> <span class="nc">Filter</span><span class="p">(</span><span class="n">RestrictedDTypeMixin</span><span class="p">,</span> <span class="n">ComputableTerm</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Pipeline expression computing a boolean output.</span>
 
@@ -600,11 +600,11 @@
 <span class="sd">    output of a Pipeline and for reducing memory consumption of Pipeline</span>
 <span class="sd">    results.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c"># Filters are window-safe by default, since a yes/no decision means the</span>
-    <span class="c"># same thing from all temporal perspectives.</span>
+    <span class="c1"># Filters are window-safe by default, since a yes/no decision means the</span>
+    <span class="c1"># same thing from all temporal perspectives.</span>
     <span class="n">window_safe</span> <span class="o">=</span> <span class="bp">True</span>
 
-    <span class="c"># Used by RestrictedDTypeMixin</span>
+    <span class="c1"># Used by RestrictedDTypeMixin</span>
     <span class="n">ALLOWED_DTYPES</span> <span class="o">=</span> <span class="n">FILTER_DTYPES</span>
     <span class="n">dtype</span> <span class="o">=</span> <span class="n">bool_dtype</span>
 
@@ -622,15 +622,15 @@
         <span class="p">}</span>
     <span class="p">)</span>
 
-    <span class="n">__invert__</span> <span class="o">=</span> <span class="n">unary_operator</span><span class="p">(</span><span class="s">&#39;~&#39;</span><span class="p">)</span>
+    <span class="fm">__invert__</span> <span class="o">=</span> <span class="n">unary_operator</span><span class="p">(</span><span class="s1">&#39;~&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="c"># Run superclass validation first so that we handle `dtype not passed`</span>
-        <span class="c"># before this.</span>
+        <span class="c1"># Run superclass validation first so that we handle `dtype not passed`</span>
+        <span class="c1"># before this.</span>
         <span class="n">retval</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Filter</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_validate</span><span class="p">()</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">bool_dtype</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">UnsupportedDataType</span><span class="p">(</span>
-                <span class="n">typename</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+                <span class="n">typename</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
                 <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">retval</span>
@@ -650,7 +650,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">expr</span><span class="p">,</span> <span class="n">binds</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">expr</span><span class="p">,</span> <span class="n">binds</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Helper for creating new NumExprFactors.</span>
 
@@ -658,7 +658,7 @@
 <span class="sd">        forwards `bool` as the dtype, since Filters can only be of boolean</span>
 <span class="sd">        dtype.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">cls</span><span class="p">(</span><span class="n">expr</span><span class="o">=</span><span class="n">expr</span><span class="p">,</span> <span class="n">binds</span><span class="o">=</span><span class="n">binds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">bool_dtype</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">expr</span><span class="o">=</span><span class="n">expr</span><span class="p">,</span> <span class="n">binds</span><span class="o">=</span><span class="n">binds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">bool_dtype</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -683,9 +683,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">window_length</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">term</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">NullFilter</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
-            <span class="n">cls</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">term</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">NullFilter</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
             <span class="n">inputs</span><span class="o">=</span><span class="p">(</span><span class="n">term</span><span class="p">,),</span>
         <span class="p">)</span>
 
@@ -707,9 +707,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">window_length</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">term</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">NotNullFilter</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
-            <span class="n">cls</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">term</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">NotNullFilter</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
             <span class="n">inputs</span><span class="o">=</span><span class="p">(</span><span class="n">term</span><span class="p">,),</span>
         <span class="p">)</span>
 
@@ -735,9 +735,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">window_length</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">factor</span><span class="p">,</span> <span class="n">min_percentile</span><span class="p">,</span> <span class="n">max_percentile</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">PercentileFilter</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
-            <span class="n">cls</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">factor</span><span class="p">,</span> <span class="n">min_percentile</span><span class="p">,</span> <span class="n">max_percentile</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">PercentileFilter</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
             <span class="n">inputs</span><span class="o">=</span><span class="p">(</span><span class="n">factor</span><span class="p">,),</span>
             <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
             <span class="n">min_percentile</span><span class="o">=</span><span class="n">min_percentile</span><span class="p">,</span>
@@ -750,9 +750,9 @@
         <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">PercentileFilter</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_static_identity</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">min_percentile</span><span class="p">,</span> <span class="n">max_percentile</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_static_identity</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">min_percentile</span><span class="p">,</span> <span class="n">max_percentile</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">(</span>
-            <span class="nb">super</span><span class="p">(</span><span class="n">PercentileFilter</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_static_identity</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span>
+            <span class="nb">super</span><span class="p">(</span><span class="n">PercentileFilter</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_static_identity</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span>
             <span class="n">min_percentile</span><span class="p">,</span>
             <span class="n">max_percentile</span><span class="p">,</span>
         <span class="p">)</span>
@@ -774,15 +774,15 @@
 <span class="sd">        For each row in the input, compute a mask of all values falling between</span>
 <span class="sd">        the given percentiles.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c"># TODO: Review whether there&#39;s a better way of handling small numbers</span>
-        <span class="c"># of columns.</span>
+        <span class="c1"># TODO: Review whether there&#39;s a better way of handling small numbers</span>
+        <span class="c1"># of columns.</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">float64</span><span class="p">)</span>
         <span class="n">data</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">nan</span>
 
-        <span class="c"># FIXME: np.nanpercentile **should** support computing multiple bounds</span>
-        <span class="c"># at once, but there&#39;s a bug in the logic for multiple bounds in numpy</span>
-        <span class="c"># 1.9.2.  It will be fixed in 1.10.</span>
-        <span class="c"># c.f. https://github.com/numpy/numpy/pull/5981</span>
+        <span class="c1"># FIXME: np.nanpercentile **should** support computing multiple bounds</span>
+        <span class="c1"># at once, but there&#39;s a bug in the logic for multiple bounds in numpy</span>
+        <span class="c1"># 1.9.2.  It will be fixed in 1.10.</span>
+        <span class="c1"># c.f. https://github.com/numpy/numpy/pull/5981</span>
         <span class="n">lower_bounds</span> <span class="o">=</span> <span class="n">nanpercentile</span><span class="p">(</span>
             <span class="n">data</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_min_percentile</span><span class="p">,</span>
@@ -798,8 +798,9 @@
         <span class="k">return</span> <span class="p">(</span><span class="n">lower_bounds</span> <span class="o">&lt;=</span> <span class="n">data</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">data</span> <span class="o">&lt;=</span> <span class="n">upper_bounds</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">graph_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;{}:\l  min: {}, max: {}\l&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+        <span class="c1"># Graphviz interprets `\l` as &quot;divide label into lines, left-justified&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;{}:</span><span class="se">\\</span><span class="s2">l  min: {}, max: {}</span><span class="se">\\</span><span class="s2">l&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_min_percentile</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_max_percentile</span><span class="p">,</span>
         <span class="p">)</span>
@@ -813,9 +814,9 @@
 <span class="sd">    ----------</span>
 <span class="sd">    inputs : iterable, optional</span>
 <span class="sd">        An iterable of `BoundColumn` instances (e.g. USEquityPricing.close),</span>
-<span class="sd">        describing the data to load and pass to `self.compute`.  If this</span>
+<span class="sd">        describing the data to load and pass to ``self.compute``.  If this</span>
 <span class="sd">        argument is passed to the CustomFilter constructor, we look for a</span>
-<span class="sd">        class-level attribute named `inputs`.</span>
+<span class="sd">        class-level attribute named ``inputs``.</span>
 <span class="sd">    window_length : int, optional</span>
 <span class="sd">        Number of rows to pass for each input.  If this argument is not passed</span>
 <span class="sd">        to the CustomFilter constructor, we look for a class-level attribute</span>
@@ -824,7 +825,7 @@
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
 <span class="sd">    Users implementing their own Filters should subclass CustomFilter and</span>
-<span class="sd">    implement a method named `compute` with the following signature:</span>
+<span class="sd">    implement a method named ``compute`` with the following signature:</span>
 
 <span class="sd">    .. code-block:: python</span>
 
@@ -835,7 +836,7 @@
 <span class="sd">    an array of sids, an output array, and an input array for each expression</span>
 <span class="sd">    passed as inputs to the CustomFilter constructor.</span>
 
-<span class="sd">    The specific types of the values passed to `compute` are as follows::</span>
+<span class="sd">    The specific types of the values passed to ``compute`` are as follows::</span>
 
 <span class="sd">        today : np.datetime64[ns]</span>
 <span class="sd">            Row label for the last row of all arrays passed as `inputs`.</span>
@@ -848,12 +849,12 @@
 <span class="sd">            Raw data arrays corresponding to the values of `self.inputs`.</span>
 
 <span class="sd">    See the documentation for</span>
-<span class="sd">    :class:`~zipline.pipeline.factors.factor.CustomFactor` for more details on</span>
+<span class="sd">    :class:`~zipline.pipeline.CustomFactor` for more details on</span>
 <span class="sd">    implementing a custom ``compute`` method.</span>
 
 <span class="sd">    See Also</span>
 <span class="sd">    --------</span>
-<span class="sd">    zipline.pipeline.factors.factor.CustomFactor</span>
+<span class="sd">    zipline.pipeline.CustomFactor</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
@@ -861,15 +862,15 @@
         <span class="k">except</span> <span class="n">UnsupportedDataType</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">in</span> <span class="n">CLASSIFIER_DTYPES</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">UnsupportedDataType</span><span class="p">(</span>
-                    <span class="n">typename</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+                    <span class="n">typename</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
                     <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                    <span class="n">hint</span><span class="o">=</span><span class="s">&#39;Did you mean to create a CustomClassifier?&#39;</span><span class="p">,</span>
+                    <span class="n">hint</span><span class="o">=</span><span class="s1">&#39;Did you mean to create a CustomClassifier?&#39;</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">in</span> <span class="n">FACTOR_DTYPES</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">UnsupportedDataType</span><span class="p">(</span>
-                    <span class="n">typename</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+                    <span class="n">typename</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
                     <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                    <span class="n">hint</span><span class="o">=</span><span class="s">&#39;Did you mean to create a CustomFactor?&#39;</span><span class="p">,</span>
+                    <span class="n">hint</span><span class="o">=</span><span class="s1">&#39;Did you mean to create a CustomFactor?&#39;</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="k">raise</span>
 
@@ -887,13 +888,13 @@
 <span class="sd">    opargs : tuple[hashable]</span>
 <span class="sd">        Additional argument to apply to ``op``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">params</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;op&#39;</span><span class="p">,</span> <span class="s">&#39;opargs&#39;</span><span class="p">)</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;op&#39;</span><span class="p">,</span> <span class="s1">&#39;opargs&#39;</span><span class="p">)</span>
     <span class="n">window_length</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="nd">@expect_types</span><span class="p">(</span><span class="n">term</span><span class="o">=</span><span class="n">Term</span><span class="p">,</span> <span class="n">opargs</span><span class="o">=</span><span class="nb">tuple</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">term</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">opargs</span><span class="p">):</span>
-        <span class="nb">hash</span><span class="p">(</span><span class="n">opargs</span><span class="p">)</span>  <span class="c"># fail fast if opargs isn&#39;t hashable.</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">ArrayPredicate</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">term</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">opargs</span><span class="p">):</span>
+        <span class="nb">hash</span><span class="p">(</span><span class="n">opargs</span><span class="p">)</span>  <span class="c1"># fail fast if opargs isn&#39;t hashable.</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">ArrayPredicate</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
             <span class="n">ArrayPredicate</span><span class="p">,</span>
             <span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span>
             <span class="n">opargs</span><span class="o">=</span><span class="n">opargs</span><span class="p">,</span>
@@ -904,13 +905,14 @@
     <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
         <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">params</span><span class="p">[</span><span class="s">&#39;op&#39;</span><span class="p">](</span><span class="n">data</span><span class="p">,</span> <span class="o">*</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;opargs&#39;</span><span class="p">])</span> <span class="o">&amp;</span> <span class="n">mask</span>
+        <span class="k">return</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;op&#39;</span><span class="p">](</span><span class="n">data</span><span class="p">,</span> <span class="o">*</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;opargs&#39;</span><span class="p">])</span> <span class="o">&amp;</span> <span class="n">mask</span>
 
     <span class="k">def</span> <span class="nf">graph_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;{}:\l  op: {}.{}()&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;op&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">__module__</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;op&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+        <span class="c1"># Graphviz interprets `\l` as &quot;divide label into lines, left-justified&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;{}:</span><span class="se">\\</span><span class="s2">l  op: {}.{}()&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;op&#39;</span><span class="p">]</span><span class="o">.</span><span class="vm">__module__</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;op&#39;</span><span class="p">]</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
         <span class="p">)</span>
 
 
@@ -921,31 +923,31 @@
     <span class="k">pass</span>
 
 
-<div class="viewcode-block" id="SingleAsset"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.filters.SingleAsset">[docs]</a><span class="k">class</span> <span class="nc">SingleAsset</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
+<div class="viewcode-block" id="SingleAsset"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.SingleAsset">[docs]</a><span class="k">class</span> <span class="nc">SingleAsset</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A Filter that computes to True only for the given asset.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">inputs</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">window_length</span> <span class="o">=</span> <span class="mi">1</span>
 
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">asset</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">SingleAsset</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">asset</span><span class="o">=</span><span class="n">asset</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">asset</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">SingleAsset</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">asset</span><span class="o">=</span><span class="n">asset</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_asset</span> <span class="o">=</span> <span class="n">asset</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">SingleAsset</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_static_identity</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_static_identity</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">(</span>
-            <span class="nb">super</span><span class="p">(</span><span class="n">SingleAsset</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_static_identity</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">asset</span><span class="p">,</span>
+            <span class="nb">super</span><span class="p">(</span><span class="n">SingleAsset</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_static_identity</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">asset</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
         <span class="n">is_my_asset</span> <span class="o">=</span> <span class="p">(</span><span class="n">assets</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asset</span><span class="o">.</span><span class="n">sid</span><span class="p">)</span>
         <span class="n">out</span> <span class="o">=</span> <span class="n">repeat_first_axis</span><span class="p">(</span><span class="n">is_my_asset</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">mask</span><span class="p">))</span>
-        <span class="c"># Raise an exception if `self._asset` does not exist for the entirety</span>
-        <span class="c"># of the timeframe over which we are computing.</span>
+        <span class="c1"># Raise an exception if `self._asset` does not exist for the entirety</span>
+        <span class="c1"># of the timeframe over which we are computing.</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">is_my_asset</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">or</span> <span class="p">((</span><span class="n">out</span> <span class="o">&amp;</span> <span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mask</span><span class="p">)):</span>
             <span class="k">raise</span> <span class="n">NonExistentAssetInTimeFrame</span><span class="p">(</span>
                 <span class="n">asset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_asset</span><span class="p">,</span> <span class="n">start_date</span><span class="o">=</span><span class="n">dates</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">end_date</span><span class="o">=</span><span class="n">dates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
@@ -953,10 +955,11 @@
         <span class="k">return</span> <span class="n">out</span>
 
     <span class="k">def</span> <span class="nf">graph_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;SingleAsset:\l  asset: {!r}\l&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_asset</span><span class="p">)</span></div>
+        <span class="c1"># Graphviz interprets `\l` as &quot;divide label into lines, left-justified&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;SingleAsset:</span><span class="se">\\</span><span class="s2">l  asset: {!r}</span><span class="se">\\</span><span class="s2">l&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_asset</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="StaticSids"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.filters.StaticSids">[docs]</a><span class="k">class</span> <span class="nc">StaticSids</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
+<div class="viewcode-block" id="StaticSids"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.StaticSids">[docs]</a><span class="k">class</span> <span class="nc">StaticSids</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A Filter that computes True for a specific set of predetermined sids.</span>
 
@@ -971,18 +974,18 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">inputs</span> <span class="o">=</span> <span class="p">()</span>
     <span class="n">window_length</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">params</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;sids&#39;</span><span class="p">,)</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;sids&#39;</span><span class="p">,)</span>
 
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">sids</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">sids</span><span class="p">):</span>
         <span class="n">sids</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">sids</span><span class="p">)</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">StaticSids</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">StaticSids</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">sids</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
-        <span class="n">my_columns</span> <span class="o">=</span> <span class="n">sids</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s">&#39;sids&#39;</span><span class="p">])</span>
+        <span class="n">my_columns</span> <span class="o">=</span> <span class="n">sids</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;sids&#39;</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">repeat_first_axis</span><span class="p">(</span><span class="n">my_columns</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">mask</span><span class="p">))</span> <span class="o">&amp;</span> <span class="n">mask</span></div>
 
 
-<div class="viewcode-block" id="StaticAssets"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.filters.StaticAssets">[docs]</a><span class="k">class</span> <span class="nc">StaticAssets</span><span class="p">(</span><span class="n">StaticSids</span><span class="p">):</span>
+<div class="viewcode-block" id="StaticAssets"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.StaticAssets">[docs]</a><span class="k">class</span> <span class="nc">StaticAssets</span><span class="p">(</span><span class="n">StaticSids</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A Filter that computes True for a specific set of predetermined assets.</span>
 
@@ -995,19 +998,19 @@
 <span class="sd">    assets : iterable[Asset]</span>
 <span class="sd">        An iterable of assets for which to filter.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">assets</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">assets</span><span class="p">):</span>
         <span class="n">sids</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">asset</span><span class="o">.</span><span class="n">sid</span> <span class="k">for</span> <span class="n">asset</span> <span class="ow">in</span> <span class="n">assets</span><span class="p">)</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">StaticAssets</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">sids</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">StaticAssets</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">sids</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="AllPresent"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.filters.AllPresent">[docs]</a><span class="k">class</span> <span class="nc">AllPresent</span><span class="p">(</span><span class="n">CustomFilter</span><span class="p">,</span> <span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">StandardOutputs</span><span class="p">):</span>
+<div class="viewcode-block" id="AllPresent"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.AllPresent">[docs]</a><span class="k">class</span> <span class="nc">AllPresent</span><span class="p">(</span><span class="n">CustomFilter</span><span class="p">,</span> <span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">StandardOutputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Pipeline filter indicating input term has data for a given window.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">Filter</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-                <span class="s">&quot;Input to filter `AllPresent` cannot be a Filter.&quot;</span>
+                <span class="s2">&quot;Input to filter `AllPresent` cannot be a Filter.&quot;</span>
             <span class="p">)</span>
 
         <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">AllPresent</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_validate</span><span class="p">()</span>
@@ -1027,20 +1030,20 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">window_length</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">factor</span><span class="p">,</span> <span class="n">groupby</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">factor</span><span class="p">,</span> <span class="n">groupby</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">groupby</span> <span class="ow">is</span> <span class="n">NotSpecified</span><span class="p">:</span>
             <span class="kn">from</span> <span class="nn">zipline.pipeline.classifiers</span> <span class="kn">import</span> <span class="n">Everything</span>
             <span class="n">groupby</span> <span class="o">=</span> <span class="n">Everything</span><span class="p">()</span>
 
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">MaximumFilter</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
-            <span class="n">cls</span><span class="p">,</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">MaximumFilter</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
             <span class="n">inputs</span><span class="o">=</span><span class="p">(</span><span class="n">factor</span><span class="p">,</span> <span class="n">groupby</span><span class="p">),</span>
             <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
-        <span class="c"># XXX: We&#39;re doing a lot of unncessary work here if `groupby` isn&#39;t</span>
-        <span class="c"># specified.</span>
+        <span class="c1"># XXX: We&#39;re doing a lot of unncessary work here if `groupby` isn&#39;t</span>
+        <span class="c1"># specified.</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">group_labels</span><span class="p">,</span> <span class="n">null_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">_to_integral</span><span class="p">(</span><span class="n">arrays</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="n">effective_mask</span> <span class="o">=</span> <span class="p">(</span>
@@ -1050,24 +1053,27 @@
         <span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">uint8</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">grouped_masked_is_maximal</span><span class="p">(</span>
-            <span class="c"># Unconditionally view the data as int64.</span>
-            <span class="c"># This is safe because casting from float64 to int64 is an</span>
-            <span class="c"># order-preserving operation.</span>
+            <span class="c1"># Unconditionally view the data as int64.</span>
+            <span class="c1"># This is safe because casting from float64 to int64 is an</span>
+            <span class="c1"># order-preserving operation.</span>
             <span class="n">data</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">int64_dtype</span><span class="p">),</span>
-            <span class="c"># PERF: Consider supporting different sizes of group labels.</span>
+            <span class="c1"># PERF: Consider supporting different sizes of group labels.</span>
             <span class="n">group_labels</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">int64_dtype</span><span class="p">),</span>
             <span class="n">effective_mask</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;Maximum({!r}, groupby={!r}, mask={!r})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;Maximum({}, groupby={}, mask={})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">recursive_repr</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">recursive_repr</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">recursive_repr</span><span class="p">(),</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">graph_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;Maximum:\l  groupby: {}\l  mask: {}\l&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
-            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+        <span class="c1"># Graphviz interprets `\l` as &quot;divide label into lines, left-justified&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;Maximum:</span><span class="se">\\</span><span class="s2">l  groupby: {}</span><span class="se">\\</span><span class="s2">l  mask: {}</span><span class="se">\\</span><span class="s2">l&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">recursive_repr</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">recursive_repr</span><span class="p">(),</span>
         <span class="p">)</span>
 </pre></div>
 

@@ -414,29 +414,41 @@
           <div role="main" class="document">
             
   <h1>Source code for zipline.pipeline.data.dataset</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">dataset.py</span>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">total_ordering</span>
+<span></span><span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span><span class="p">,</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">repeat</span>
+<span class="kn">from</span> <span class="nn">textwrap</span> <span class="kn">import</span> <span class="n">dedent</span>
+<span class="kn">from</span> <span class="nn">weakref</span> <span class="kn">import</span> <span class="n">WeakKeyDictionary</span>
+
 <span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">iteritems</span><span class="p">,</span>
     <span class="n">with_metaclass</span><span class="p">,</span>
 <span class="p">)</span>
-
 <span class="kn">from</span> <span class="nn">toolz</span> <span class="kn">import</span> <span class="n">first</span>
 
+<span class="kn">from</span> <span class="nn">zipline.currency</span> <span class="kn">import</span> <span class="n">Currency</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.classifiers</span> <span class="kn">import</span> <span class="n">Classifier</span><span class="p">,</span> <span class="n">Latest</span> <span class="k">as</span> <span class="n">LatestClassifier</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.domain</span> <span class="kn">import</span> <span class="n">Domain</span><span class="p">,</span> <span class="n">GENERIC</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.factors</span> <span class="kn">import</span> <span class="n">Factor</span><span class="p">,</span> <span class="n">Latest</span> <span class="k">as</span> <span class="n">LatestFactor</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.filters</span> <span class="kn">import</span> <span class="n">Filter</span><span class="p">,</span> <span class="n">Latest</span> <span class="k">as</span> <span class="n">LatestFilter</span>
-<span class="kn">from</span> <span class="nn">zipline.pipeline.sentinels</span> <span class="kn">import</span> <span class="n">NotSpecified</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.sentinels</span> <span class="kn">import</span> <span class="n">NotSpecified</span><span class="p">,</span> <span class="n">sentinel</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">AssetExists</span><span class="p">,</span>
     <span class="n">LoadableTerm</span><span class="p">,</span>
     <span class="n">validate_dtype</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="n">ensure_dtype</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.formatting</span> <span class="kn">import</span> <span class="n">s</span><span class="p">,</span> <span class="n">plural</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">coerce_types</span><span class="p">,</span>
+    <span class="n">ensure_dtype</span><span class="p">,</span>
+    <span class="n">expect_types</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="n">NoDefaultMissingValue</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.preprocess</span> <span class="kn">import</span> <span class="n">preprocess</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.string_formatting</span> <span class="kn">import</span> <span class="n">bulleted_list</span>
+
+
+<span class="n">IsSpecialization</span> <span class="o">=</span> <span class="n">sentinel</span><span class="p">(</span><span class="s1">&#39;IsSpecialization&#39;</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">Column</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -444,7 +456,7 @@
 <span class="sd">    An abstract column of data, not yet associated with a dataset.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="nd">@preprocess</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">ensure_dtype</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">dtype</span><span class="p">,</span>
                  <span class="n">missing_value</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">,</span>
                  <span class="n">doc</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
@@ -475,32 +487,32 @@
 <span class="sd">    This exists so that subclasses of DataSets don&#39;t share columns with their</span>
 <span class="sd">    parent classes.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">missing_value</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">doc</span><span class="p">,</span> <span class="n">metadata</span><span class="p">):</span>
-        <span class="c"># Validating and calculating default missing values here guarantees</span>
-        <span class="c"># that we fail quickly if the user passes an unsupporte dtype or fails</span>
-        <span class="c"># to provide a missing value for a dtype that requires one</span>
-        <span class="c"># (e.g. int64), but still enables us to provide an error message that</span>
-        <span class="c"># points to the name of the failing column.</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">missing_value</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">doc</span><span class="p">,</span> <span class="n">metadata</span><span class="p">):</span>
+        <span class="c1"># Validating and calculating default missing values here guarantees</span>
+        <span class="c1"># that we fail quickly if the user passes an unsupporte dtype or fails</span>
+        <span class="c1"># to provide a missing value for a dtype that requires one</span>
+        <span class="c1"># (e.g. int64), but still enables us to provide an error message that</span>
+        <span class="c1"># points to the name of the failing column.</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span> <span class="o">=</span> <span class="n">validate_dtype</span><span class="p">(</span>
-                <span class="n">termname</span><span class="o">=</span><span class="s">&quot;Column(name={name!r})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">),</span>
+                <span class="n">termname</span><span class="o">=</span><span class="s2">&quot;Column(name={name!r})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">),</span>
                 <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
                 <span class="n">missing_value</span><span class="o">=</span><span class="n">missing_value</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="n">NoDefaultMissingValue</span><span class="p">:</span>
-            <span class="c"># Re-raise with a more specific message.</span>
+            <span class="c1"># Re-raise with a more specific message.</span>
             <span class="k">raise</span> <span class="n">NoDefaultMissingValue</span><span class="p">(</span>
-                <span class="s">&quot;Failed to create Column with name {name!r} and&quot;</span>
-                <span class="s">&quot; dtype {dtype} because no missing_value was provided</span><span class="se">\n\n</span><span class="s">&quot;</span>
-                <span class="s">&quot;Columns with dtype {dtype} require a missing_value.</span><span class="se">\n</span><span class="s">&quot;</span>
-                <span class="s">&quot;Please pass missing_value to Column() or use a different&quot;</span>
-                <span class="s">&quot; dtype.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+                <span class="s2">&quot;Failed to create Column with name {name!r} and&quot;</span>
+                <span class="s2">&quot; dtype {dtype} because no missing_value was provided</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;Columns with dtype {dtype} require a missing_value.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;Please pass missing_value to Column() or use a different&quot;</span>
+                <span class="s2">&quot; dtype.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
             <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">doc</span> <span class="o">=</span> <span class="n">doc</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="n">metadata</span>
 
-    <span class="k">def</span> <span class="nf">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Produce a concrete BoundColumn object when accessed.</span>
 
@@ -514,6 +526,7 @@
             <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
             <span class="n">doc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">doc</span><span class="p">,</span>
             <span class="n">metadata</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">,</span>
+            <span class="n">currency_conversion</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
         <span class="p">)</span>
 
 
@@ -521,34 +534,43 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A column of data that&#39;s been concretely bound to a particular dataset.</span>
 
-<span class="sd">    Instances of this class are dynamically created upon access to attributes</span>
-<span class="sd">    of DataSets (for example, USEquityPricing.close is an instance of this</span>
-<span class="sd">    class).</span>
-
 <span class="sd">    Attributes</span>
 <span class="sd">    ----------</span>
 <span class="sd">    dtype : numpy.dtype</span>
 <span class="sd">        The dtype of data produced when this column is loaded.</span>
-<span class="sd">    latest : zipline.pipeline.data.Factor or zipline.pipeline.data.Filter</span>
-<span class="sd">        A Filter, Factor, or Classifier computing the most recently known value</span>
-<span class="sd">        of this column on each date.</span>
-
-<span class="sd">        Produces a Filter if self.dtype == ``np.bool_``.</span>
-<span class="sd">        Produces a Classifier if self.dtype == ``np.int64``</span>
-<span class="sd">        Otherwise produces a Factor.</span>
+<span class="sd">    latest : zipline.pipeline.LoadableTerm</span>
+<span class="sd">        A :class:`~zipline.pipeline.Filter`, :class:`~zipline.pipeline.Factor`,</span>
+<span class="sd">        or :class:`~zipline.pipeline.Classifier` computing the most recently</span>
+<span class="sd">        known value of this column on each date.</span>
+<span class="sd">        See :class:`zipline.pipeline.mixins.LatestMixin` for more details.</span>
 <span class="sd">    dataset : zipline.pipeline.data.DataSet</span>
 <span class="sd">        The dataset to which this column is bound.</span>
 <span class="sd">    name : str</span>
 <span class="sd">        The name of this column.</span>
 <span class="sd">    metadata : dict</span>
 <span class="sd">        Extra metadata associated with this column.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Instances of this class are dynamically created upon access to attributes</span>
+<span class="sd">    of :class:`~zipline.pipeline.data.DataSet`. For example,</span>
+<span class="sd">    :attr:`~zipline.pipeline.data.EquityPricing.close` is an instance of this</span>
+<span class="sd">    class. Pipeline API users should never construct instances of this</span>
+<span class="sd">    directly.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">mask</span> <span class="o">=</span> <span class="n">AssetExists</span><span class="p">()</span>
     <span class="n">window_safe</span> <span class="o">=</span> <span class="bp">True</span>
 
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">missing_value</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">doc</span><span class="p">,</span> <span class="n">metadata</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">BoundColumn</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
-            <span class="n">cls</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="p">,</span>
+                <span class="n">missing_value</span><span class="p">,</span>
+                <span class="n">dataset</span><span class="p">,</span>
+                <span class="n">name</span><span class="p">,</span>
+                <span class="n">doc</span><span class="p">,</span>
+                <span class="n">metadata</span><span class="p">,</span>
+                <span class="n">currency_conversion</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">BoundColumn</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
             <span class="n">domain</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">domain</span><span class="p">,</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
             <span class="n">missing_value</span><span class="o">=</span><span class="n">missing_value</span><span class="p">,</span>
@@ -557,24 +579,111 @@
             <span class="n">ndim</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span>
             <span class="n">doc</span><span class="o">=</span><span class="n">doc</span><span class="p">,</span>
             <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
+            <span class="n">currency_conversion</span><span class="o">=</span><span class="n">currency_conversion</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">doc</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+              <span class="n">dataset</span><span class="p">,</span>
+              <span class="n">name</span><span class="p">,</span>
+              <span class="n">doc</span><span class="p">,</span>
+              <span class="n">metadata</span><span class="p">,</span>
+              <span class="n">currency_conversion</span><span class="p">,</span>
+              <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span> <span class="o">=</span> <span class="n">dataset</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="n">doc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">doc</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span> <span class="o">=</span> <span class="n">metadata</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_currency_conversion</span> <span class="o">=</span> <span class="n">currency_conversion</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">BoundColumn</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_static_identity</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">doc</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_static_identity</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+                         <span class="n">dataset</span><span class="p">,</span>
+                         <span class="n">name</span><span class="p">,</span>
+                         <span class="n">doc</span><span class="p">,</span>
+                         <span class="n">metadata</span><span class="p">,</span>
+                         <span class="n">currency_conversion</span><span class="p">,</span>
+                         <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">(</span>
-            <span class="nb">super</span><span class="p">(</span><span class="n">BoundColumn</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_static_identity</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span>
+            <span class="nb">super</span><span class="p">(</span><span class="n">BoundColumn</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_static_identity</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span>
             <span class="n">dataset</span><span class="p">,</span>
             <span class="n">name</span><span class="p">,</span>
             <span class="n">doc</span><span class="p">,</span>
             <span class="nb">frozenset</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="n">first</span><span class="p">)),</span>
+            <span class="n">currency_conversion</span><span class="p">,</span>
         <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__lt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Can&#39;t compare &#39;{}&#39; with &#39;{}&#39;. (Did you mean to use &#39;.latest&#39;?)&quot;</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qualname</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+
+    <span class="fm">__gt__</span> <span class="o">=</span> <span class="fm">__le__</span> <span class="o">=</span> <span class="fm">__ge__</span> <span class="o">=</span> <span class="fm">__lt__</span>
+
+    <span class="k">def</span> <span class="nf">_replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">kw</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">missing_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span><span class="p">,</span>
+            <span class="n">dataset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span>
+            <span class="n">doc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">,</span>
+            <span class="n">metadata</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="p">,</span>
+            <span class="n">currency_conversion</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_currency_conversion</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">kw</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">specialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">domain</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Specialize ``self`` to a concrete domain.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">domain</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_replace</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span><span class="o">.</span><span class="n">specialize</span><span class="p">(</span><span class="n">domain</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">unspecialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Unspecialize a column to its generic form.</span>
+
+<span class="sd">        This is equivalent to ``column.specialize(GENERIC)``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">specialize</span><span class="p">(</span><span class="n">GENERIC</span><span class="p">)</span>
+
+    <span class="nd">@coerce_types</span><span class="p">(</span><span class="n">currency</span><span class="o">=</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Currency</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">fx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">currency</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a currency-converted version of this column.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        currency : str or zipline.currency.Currency</span>
+<span class="sd">            Currency into which to convert this column&#39;s data.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        column : BoundColumn</span>
+<span class="sd">            Column producing the same data as ``self``, but currency-converted</span>
+<span class="sd">            into ``currency``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">conversion</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_currency_conversion</span>
+        <span class="k">if</span> <span class="n">conversion</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">conversion</span><span class="o">.</span><span class="n">currency</span> <span class="o">==</span> <span class="n">currency</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_replace</span><span class="p">(</span>
+            <span class="n">currency_conversion</span><span class="o">=</span><span class="n">CurrencyConversion</span><span class="p">(</span>
+                <span class="n">currency</span><span class="o">=</span><span class="n">currency</span><span class="p">,</span>
+                <span class="c1"># TODO: Figure out what to do with this.</span>
+                <span class="c1"># For now, only support converting with mid. We might</span>
+                <span class="c1"># eventually support other fields</span>
+                <span class="n">field</span><span class="o">=</span><span class="s1">&#39;mid&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">currency_conversion</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Specification for currency conversions applied for this term.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_currency_conversion</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -604,7 +713,7 @@
 
 <span class="sd">        Generated by doing &#39;.&#39;.join([self.dataset.__name__, self.name]).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="s">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">])</span>
+        <span class="k">return</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">qualname</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">])</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">latest</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -614,7 +723,7 @@
         <span class="k">elif</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="n">Classifier</span><span class="o">.</span><span class="n">ALLOWED_DTYPES</span><span class="p">:</span>
             <span class="n">Latest</span> <span class="o">=</span> <span class="n">LatestClassifier</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="n">Factor</span><span class="o">.</span><span class="n">ALLOWED_DTYPES</span><span class="p">,</span> <span class="s">&quot;Unknown dtype </span><span class="si">%s</span><span class="s">.&quot;</span> <span class="o">%</span> <span class="n">dtype</span>
+            <span class="k">assert</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="n">Factor</span><span class="o">.</span><span class="n">ALLOWED_DTYPES</span><span class="p">,</span> <span class="s2">&quot;Unknown dtype </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="n">dtype</span>
             <span class="n">Latest</span> <span class="o">=</span> <span class="n">LatestFactor</span>
 
         <span class="k">return</span> <span class="n">Latest</span><span class="p">(</span>
@@ -624,16 +733,17 @@
             <span class="n">ndim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&quot;{qualname}::{dtype}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;{qualname}::{dtype}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
             <span class="n">qualname</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">qualname</span><span class="p">,</span>
             <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">graph_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Short repr to use when rendering Pipeline graphs.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="s">&quot;BoundColumn:\l  Dataset: {}\l  Column: {}\l&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+        <span class="c1"># Graphviz interprets `\l` as &quot;divide label into lines, left-justified&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;BoundColumn:</span><span class="se">\\</span><span class="s2">l  Dataset: {}</span><span class="se">\\</span><span class="s2">l  Column: {}</span><span class="se">\\</span><span class="s2">l&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
         <span class="p">)</span>
 
@@ -642,29 +752,140 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">qualname</span>
 
 
-<span class="nd">@total_ordering</span>
 <span class="k">class</span> <span class="nc">DataSetMeta</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Metaclass for DataSets</span>
 
-<span class="sd">    Supplies name and dataset information to Column attributes.</span>
+<span class="sd">    Supplies name and dataset information to Column attributes, and manages</span>
+<span class="sd">    families of specialized dataset.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="n">mcls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dict_</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bases</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># Disallowing multiple inheritance makes it easier for us to</span>
+            <span class="c1"># determine whether a given dataset is the root for its family of</span>
+            <span class="c1"># specializations.</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Multiple dataset inheritance is not supported.&quot;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">mcls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dict_</span><span class="p">):</span>
-        <span class="n">newtype</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DataSetMeta</span><span class="p">,</span> <span class="n">mcls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">mcls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dict_</span><span class="p">)</span>
-        <span class="c"># collect all of the column names that we inherit from our parents</span>
+        <span class="c1"># This marker is set in the class dictionary by `specialize` below.</span>
+        <span class="n">is_specialization</span> <span class="o">=</span> <span class="n">dict_</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">IsSpecialization</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
+
+        <span class="n">newtype</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DataSetMeta</span><span class="p">,</span> <span class="n">mcls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">mcls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dict_</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">newtype</span><span class="o">.</span><span class="n">domain</span><span class="p">,</span> <span class="n">Domain</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;Expected a Domain for {}.domain, but got {} instead.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">newtype</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+                    <span class="nb">type</span><span class="p">(</span><span class="n">newtype</span><span class="o">.</span><span class="n">domain</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Collect all of the column names that we inherit from our parents.</span>
         <span class="n">column_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span><span class="o">.</span><span class="n">union</span><span class="p">(</span>
-            <span class="o">*</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="s">&#39;_column_names&#39;</span><span class="p">,</span> <span class="p">())</span> <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">bases</span><span class="p">)</span>
+            <span class="o">*</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="s1">&#39;_column_names&#39;</span><span class="p">,</span> <span class="p">())</span> <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">bases</span><span class="p">)</span>
         <span class="p">)</span>
+
+        <span class="c1"># Collect any new columns from this dataset.</span>
         <span class="k">for</span> <span class="n">maybe_colname</span><span class="p">,</span> <span class="n">maybe_column</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">dict_</span><span class="p">):</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">maybe_column</span><span class="p">,</span> <span class="n">Column</span><span class="p">):</span>
-                <span class="c"># add column names defined on our class</span>
+                <span class="c1"># add column names defined on our class</span>
                 <span class="n">bound_column_descr</span> <span class="o">=</span> <span class="n">maybe_column</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">maybe_colname</span><span class="p">)</span>
                 <span class="nb">setattr</span><span class="p">(</span><span class="n">newtype</span><span class="p">,</span> <span class="n">maybe_colname</span><span class="p">,</span> <span class="n">bound_column_descr</span><span class="p">)</span>
                 <span class="n">column_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">maybe_colname</span><span class="p">)</span>
 
         <span class="n">newtype</span><span class="o">.</span><span class="n">_column_names</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">column_names</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_specialization</span><span class="p">:</span>
+            <span class="c1"># This is the new root of a family of specializations. Store the</span>
+            <span class="c1"># memoized dictionary for family on this type.</span>
+            <span class="n">newtype</span><span class="o">.</span><span class="n">_domain_specializations</span> <span class="o">=</span> <span class="n">WeakKeyDictionary</span><span class="p">({</span>
+                <span class="n">newtype</span><span class="o">.</span><span class="n">domain</span><span class="p">:</span> <span class="n">newtype</span><span class="p">,</span>
+            <span class="p">})</span>
+
         <span class="k">return</span> <span class="n">newtype</span>
+
+    <span class="nd">@expect_types</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">Domain</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">specialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">domain</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Specialize a generic DataSet to a concrete domain.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        domain : zipline.pipeline.domain.Domain</span>
+<span class="sd">            Domain to which we should generate a specialization.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        specialized : type</span>
+<span class="sd">            A new :class:`~zipline.pipeline.data.DataSet` subclass with the</span>
+<span class="sd">            same columns as ``self``, but specialized to ``domain``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># We&#39;re already the specialization to this domain, so just return self.</span>
+        <span class="k">if</span> <span class="n">domain</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_domain_specializations</span><span class="p">[</span><span class="n">domain</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_can_create_new_specialization</span><span class="p">(</span><span class="n">domain</span><span class="p">):</span>
+                <span class="c1"># This either means we&#39;re already a specialization and trying</span>
+                <span class="c1"># to create a new specialization, or we&#39;re the generic version</span>
+                <span class="c1"># of a root-specialized dataset, which we don&#39;t want to create</span>
+                <span class="c1"># new specializations of.</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Can&#39;t specialize {dataset} to new domain {new}.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">dataset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+                        <span class="n">current</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="p">,</span>
+                        <span class="n">new</span><span class="o">=</span><span class="n">domain</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">new_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_specialization</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_domain_specializations</span><span class="p">[</span><span class="n">domain</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_type</span>
+            <span class="k">return</span> <span class="n">new_type</span>
+
+    <span class="k">def</span> <span class="nf">unspecialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Unspecialize a dataset to its generic form.</span>
+
+<span class="sd">        This is equivalent to ``dataset.specialize(GENERIC)``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">specialize</span><span class="p">(</span><span class="n">GENERIC</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_can_create_new_specialization</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">domain</span><span class="p">):</span>
+        <span class="c1"># Always allow specializing to a generic domain.</span>
+        <span class="k">if</span> <span class="n">domain</span> <span class="ow">is</span> <span class="n">GENERIC</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="s1">&#39;_domain_specializations&#39;</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="c1"># This branch is True if we&#39;re the root of a family.</span>
+            <span class="c1"># Allow specialization if we&#39;re generic.</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span> <span class="ow">is</span> <span class="n">GENERIC</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># If we&#39;re not the root of a family, we can&#39;t create any new</span>
+            <span class="c1"># specializations.</span>
+            <span class="k">return</span> <span class="bp">False</span>
+
+    <span class="k">def</span> <span class="nf">_create_specialization</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">domain</span><span class="p">):</span>
+        <span class="c1"># These are all assertions because we should have handled these cases</span>
+        <span class="c1"># already in specialize().</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">Domain</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">domain</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_domain_specializations</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;Domain specializations should be memoized!&quot;</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">domain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">GENERIC</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span> <span class="ow">is</span> <span class="n">GENERIC</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s2">&quot;Can&#39;t specialize dataset with domain {} to domain {}.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Create a new subclass of ``self`` with the given domain.</span>
+        <span class="c1"># Mark that it&#39;s a specialization so that we know not to create a new</span>
+        <span class="c1"># family for it.</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="n">bases</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="p">,)</span>
+        <span class="n">dict_</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;domain&#39;</span><span class="p">:</span> <span class="n">domain</span><span class="p">,</span> <span class="n">IsSpecialization</span><span class="p">:</span> <span class="bp">True</span><span class="p">}</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dict_</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="vm">__module__</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__module__</span>
+        <span class="k">return</span> <span class="n">out</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">columns</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -672,30 +893,61 @@
             <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">colname</span><span class="p">)</span> <span class="k">for</span> <span class="n">colname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_column_names</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__lt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">qualname</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span> <span class="ow">is</span> <span class="n">GENERIC</span><span class="p">:</span>
+            <span class="n">specialization_key</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">specialization_key</span> <span class="o">=</span> <span class="s1">&#39;&lt;&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">country_code</span> <span class="o">+</span> <span class="s1">&#39;&gt;&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="n">specialization_key</span>
+
+    <span class="c1"># NOTE: We used to use `functools.total_ordering` to account for all of the</span>
+    <span class="c1">#       other rich comparison methods, but it has issues in python 3 and</span>
+    <span class="c1">#       this method is only used for test purposes, so for now we will just</span>
+    <span class="c1">#       keep this in isolation. If we ever need any of the other comparison</span>
+    <span class="c1">#       methods we will have to implement them individually.</span>
+    <span class="k">def</span> <span class="fm">__lt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">id</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s">&#39;&lt;DataSet: </span><span class="si">%r</span><span class="s">&gt;&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">__name__</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;DataSet: </span><span class="si">%r</span><span class="s1">, domain=</span><span class="si">%s</span><span class="s1">&gt;&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="DataSet"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.data.DataSet">[docs]</a><span class="k">class</span> <span class="nc">DataSet</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">DataSetMeta</span><span class="p">,</span> <span class="nb">object</span><span class="p">)):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Base class for describing inputs to Pipeline expressions.</span>
+<span class="sd">    Base class for Pipeline datasets.</span>
 
-<span class="sd">    A DataSet is a collection of :class:`zipline.pipeline.data.Column` that</span>
-<span class="sd">    describes a collection of logically-related inputs to the Pipeline API.</span>
+<span class="sd">    A :class:`DataSet` is defined by two parts:</span>
 
-<span class="sd">    To create a new Pipeline dataset, subclass from this class and create</span>
-<span class="sd">    columns at class scope for each attribute of your dataset. Each column</span>
-<span class="sd">    requires a dtype that describes the type of data that should be produced by</span>
-<span class="sd">    a loader for the dataset. Integer columns must also provide a</span>
-<span class="sd">    ``missing_value`` to be used when no value is available for a given</span>
+<span class="sd">    1. A collection of :class:`~zipline.pipeline.data.Column` objects that</span>
+<span class="sd">       describe the queryable attributes of the dataset.</span>
+
+<span class="sd">    2. A :class:`~zipline.pipeline.domain.Domain` describing the assets and</span>
+<span class="sd">       calendar of the data represented by the :class:`DataSet`.</span>
+
+<span class="sd">    To create a new Pipeline dataset, define a subclass of :class:`DataSet` and</span>
+<span class="sd">    set one or more :class:`Column` objects as class-level attributes. Each</span>
+<span class="sd">    column requires a ``np.dtype`` that describes the type of data that should</span>
+<span class="sd">    be produced by a loader for the dataset. Integer columns must also provide</span>
+<span class="sd">    a &quot;missing value&quot; to be used when no value is available for a given</span>
 <span class="sd">    asset/date combination.</span>
+
+<span class="sd">    By default, the domain of a dataset is the special singleton value,</span>
+<span class="sd">    :data:`~zipline.pipeline.domain.GENERIC`, which means that they can be used</span>
+<span class="sd">    in a Pipeline running on **any** domain.</span>
+
+<span class="sd">    In some cases, it may be preferable to restrict a dataset to only allow</span>
+<span class="sd">    support a single domain. For example, a DataSet may describe data from a</span>
+<span class="sd">    vendor that only covers the US. To restrict a dataset to a specific domain,</span>
+<span class="sd">    define a `domain` attribute at class scope.</span>
+
+<span class="sd">    You can also define a domain-specific version of a generic DataSet by</span>
+<span class="sd">    calling its ``specialize`` method with the domain of interest.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
-<span class="sd">    The built-in USEquityPricing dataset is defined as follows::</span>
+<span class="sd">    The built-in EquityPricing dataset is defined as follows::</span>
 
 <span class="sd">        class EquityPricing(DataSet):</span>
 <span class="sd">            open = Column(float)</span>
@@ -703,6 +955,12 @@
 <span class="sd">            low = Column(float)</span>
 <span class="sd">            close = Column(float)</span>
 <span class="sd">            volume = Column(float)</span>
+
+<span class="sd">    The built-in USEquityPricing dataset is a specialization of</span>
+<span class="sd">    EquityPricing. It is defined as::</span>
+
+<span class="sd">        from zipline.pipeline.domain import US_EQUITIES</span>
+<span class="sd">        USEquityPricing = EquityPricing.specialize(US_EQUITIES)</span>
 
 <span class="sd">    Columns can have types other than float. A dataset containing assorted</span>
 <span class="sd">    company metadata might be defined like this::</span>
@@ -713,8 +971,8 @@
 <span class="sd">            # value for floats is NaN.</span>
 <span class="sd">            shares_outstanding = Column(float)</span>
 
-<span class="sd">            # Use object-dtype for string columns. The default missing value</span>
-<span class="sd">            # for object-dtype columns is None.</span>
+<span class="sd">            # Use object for string columns. The default missing value for</span>
+<span class="sd">            # object-dtype columns is None.</span>
 <span class="sd">            ticker = Column(object)</span>
 
 <span class="sd">            # Use integers for integer-valued categorical data like sector or</span>
@@ -722,7 +980,8 @@
 <span class="sd">            # value.</span>
 <span class="sd">            sector_code = Column(int, missing_value=-1)</span>
 
-<span class="sd">            # The default missing value for bool-dtype columns is False.</span>
+<span class="sd">            # Use bool for boolean-valued flags. Note that the default missing</span>
+<span class="sd">            # value for bool-dtype columns is False.</span>
 <span class="sd">            is_primary_share = Column(bool)</span>
 
 <span class="sd">    Notes</span>
@@ -732,8 +991,369 @@
 <span class="sd">    numeric. Doing so enables the use of `NaN` as a natural missing value,</span>
 <span class="sd">    which has useful propagation semantics.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">domain</span> <span class="o">=</span> <span class="bp">None</span>
-    <span class="n">ndim</span> <span class="o">=</span> <span class="mi">2</span></div>
+    <span class="n">domain</span> <span class="o">=</span> <span class="n">GENERIC</span>
+    <span class="n">ndim</span> <span class="o">=</span> <span class="mi">2</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="DataSet.get_column"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.data.DataSet.get_column">[docs]</a>    <span class="k">def</span> <span class="nf">get_column</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Look up a column by name.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            Name of the column to look up.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        column : zipline.pipeline.data.BoundColumn</span>
+<span class="sd">            Column with the given name.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        AttributeError</span>
+<span class="sd">            If no column with the given name exists.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">clsdict</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">maybe_column</span> <span class="o">=</span> <span class="n">clsdict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">maybe_column</span><span class="p">,</span> <span class="n">_BoundColumnDescr</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+                <span class="s2">&quot;{dset} has no column {colname!r}:</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;Possible choices are:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;{choices}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">dset</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">qualname</span><span class="p">,</span>
+                    <span class="n">colname</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">choices</span><span class="o">=</span><span class="n">bulleted_list</span><span class="p">(</span>
+                        <span class="nb">sorted</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_column_names</span><span class="p">),</span>
+                        <span class="n">max_count</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                    <span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Resolve column descriptor into a BoundColumn.</span>
+        <span class="k">return</span> <span class="n">maybe_column</span><span class="o">.</span><span class="fm">__get__</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span></div></div>
+
+
+<span class="c1"># This attribute is set by DataSetMeta to mark that a class is the root of a</span>
+<span class="c1"># family of datasets with diffent domains. We don&#39;t want that behavior for the</span>
+<span class="c1"># base DataSet class, and we also don&#39;t want to accidentally use a shared</span>
+<span class="c1"># version of this attribute if we fail to set this in a subclass somewhere.</span>
+<span class="k">del</span> <span class="n">DataSet</span><span class="o">.</span><span class="n">_domain_specializations</span>
+
+
+<span class="k">class</span> <span class="nc">DataSetFamilyLookupError</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Exception thrown when a column is accessed on a DataSetFamily</span>
+<span class="sd">    instead of on the result of a slice.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    family_name : str</span>
+<span class="sd">        The name of the DataSetFamily on which the access occurred.</span>
+<span class="sd">    column_name : str</span>
+<span class="sd">        The name of the column accessed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">family_name</span><span class="p">,</span> <span class="n">column_name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">family_name</span> <span class="o">=</span> <span class="n">family_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">column_name</span> <span class="o">=</span> <span class="n">column_name</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># NOTE: when ``aggregate`` is added, remember to update this message</span>
+        <span class="k">return</span> <span class="n">dedent</span><span class="p">(</span>
+            <span class="sd">&quot;&quot;&quot;\</span>
+<span class="sd">            Attempted to access column {c} from DataSetFamily {d}:</span>
+
+<span class="sd">            To work with dataset families, you must first select a</span>
+<span class="sd">            slice using the ``slice`` method:</span>
+
+<span class="sd">                {d}.slice(...).{c}</span>
+<span class="sd">            &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">column_name</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">family_name</span><span class="p">)</span>
+        <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_DataSetFamilyColumn</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Descriptor used to raise a helpful error when a column is accessed on a</span>
+<span class="sd">    DataSetFamily instead of on the result of a slice.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    column_names : str</span>
+<span class="sd">        The name of the column.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column_name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">column_name</span> <span class="o">=</span> <span class="n">column_name</span>
+
+    <span class="k">def</span> <span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">DataSetFamilyLookupError</span><span class="p">(</span>
+            <span class="n">owner</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">column_name</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">DataSetFamilyMeta</span><span class="p">(</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dict_</span><span class="p">):</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">dict_</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Column</span><span class="p">):</span>
+                <span class="c1"># capture all the columns off the DataSetFamily class</span>
+                <span class="c1"># and replace them with a descriptor that will raise a helpful</span>
+                <span class="c1"># error message. The columns will get added to the BaseSlice</span>
+                <span class="c1"># for this type.</span>
+                <span class="n">columns</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+                <span class="n">dict_</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">_DataSetFamilyColumn</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+        <span class="n">is_abstract</span> <span class="o">=</span> <span class="n">dict_</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;_abstract&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
+
+        <span class="bp">self</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DataSetFamilyMeta</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
+            <span class="n">name</span><span class="p">,</span>
+            <span class="n">bases</span><span class="p">,</span>
+            <span class="n">dict_</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_abstract</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">extra_dims</span> <span class="o">=</span> <span class="n">extra_dims</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([</span>
+                <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">OrderedDict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">extra_dims</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">])</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">extra_dims</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s1">&#39;DataSetFamily must be defined with non-empty&#39;</span>
+                    <span class="s1">&#39; extra_dims, or with `_abstract = True`&#39;</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="k">class</span> <span class="nc">BaseSlice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_SliceType</span><span class="p">):</span>
+                <span class="n">dataset_family</span> <span class="o">=</span> <span class="bp">self</span>
+
+                <span class="n">ndim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">slice_ndim</span>
+                <span class="n">domain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span>
+
+                <span class="nb">locals</span><span class="p">()</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+
+            <span class="n">BaseSlice</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">BaseSlice&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_SliceType</span> <span class="o">=</span> <span class="n">BaseSlice</span>
+
+        <span class="c1"># each type gets a unique cache</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_slice_cache</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;DataSetFamily: </span><span class="si">%r</span><span class="s1">, extra_dims=</span><span class="si">%r</span><span class="s1">&gt;&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">extra_dims</span><span class="p">),</span>
+        <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">DataSetFamilySlice</span><span class="p">(</span><span class="n">DataSet</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Marker type for slices of a</span>
+<span class="sd">    :class:`zipline.pipeline.data.dataset.DataSetFamily` objects</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+
+<span class="c1"># XXX: This docstring was mostly written when the abstraction here was</span>
+<span class="c1"># &quot;MultiDimensionalDataSet&quot;. It probably needs some rewriting.</span>
+<span class="k">class</span> <span class="nc">DataSetFamily</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">DataSetFamilyMeta</span><span class="p">)):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for Pipeline dataset families.</span>
+
+<span class="sd">    Dataset families are used to represent data where the unique identifier for</span>
+<span class="sd">    a row requires more than just asset and date coordinates. A</span>
+<span class="sd">    :class:`DataSetFamily` can also be thought of as a collection of</span>
+<span class="sd">    :class:`~zipline.pipeline.data.DataSet` objects, each of which has the same</span>
+<span class="sd">    columns, domain, and ndim.</span>
+
+<span class="sd">    :class:`DataSetFamily` objects are defined with by one or more</span>
+<span class="sd">    :class:`~zipline.pipeline.data.Column` objects, plus one additional field:</span>
+<span class="sd">    ``extra_dims``.</span>
+
+<span class="sd">    The ``extra_dims`` field defines coordinates other than asset and date that</span>
+<span class="sd">    must be fixed to produce a logical timeseries. The column objects determine</span>
+<span class="sd">    columns that will be shared by slices of the family.</span>
+
+<span class="sd">    ``extra_dims`` are represented as an ordered dictionary where the keys are</span>
+<span class="sd">    the dimension name, and the values are a set of unique values along that</span>
+<span class="sd">    dimension.</span>
+
+<span class="sd">    To work with a :class:`DataSetFamily` in a pipeline expression, one must</span>
+<span class="sd">    choose a specific value for each of the extra dimensions using the</span>
+<span class="sd">    :meth:`~zipline.pipeline.data.DataSetFamily.slice` method.</span>
+<span class="sd">    For example, given a :class:`DataSetFamily`:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">       class SomeDataSet(DataSetFamily):</span>
+<span class="sd">           extra_dims = [</span>
+<span class="sd">               (&#39;dimension_0&#39;, {&#39;a&#39;, &#39;b&#39;, &#39;c&#39;}),</span>
+<span class="sd">               (&#39;dimension_1&#39;, {&#39;d&#39;, &#39;e&#39;, &#39;f&#39;}),</span>
+<span class="sd">           ]</span>
+
+<span class="sd">           column_0 = Column(float)</span>
+<span class="sd">           column_1 = Column(bool)</span>
+
+<span class="sd">    This dataset might represent a table with the following columns:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">      sid :: int64</span>
+<span class="sd">      asof_date :: datetime64[ns]</span>
+<span class="sd">      timestamp :: datetime64[ns]</span>
+<span class="sd">      dimension_0 :: str</span>
+<span class="sd">      dimension_1 :: str</span>
+<span class="sd">      column_0 :: float64</span>
+<span class="sd">      column_1 :: bool</span>
+
+<span class="sd">    Here we see the implicit ``sid``, ``asof_date`` and ``timestamp`` columns</span>
+<span class="sd">    as well as the extra dimensions columns.</span>
+
+<span class="sd">    This :class:`DataSetFamily` can be converted to a regular :class:`DataSet`</span>
+<span class="sd">    with:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">       DataSetSlice = SomeDataSet.slice(dimension_0=&#39;a&#39;, dimension_1=&#39;e&#39;)</span>
+
+<span class="sd">    This sliced dataset represents the rows from the higher dimensional dataset</span>
+<span class="sd">    where ``(dimension_0 == &#39;a&#39;) &amp; (dimension_1 == &#39;e&#39;)``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_abstract</span> <span class="o">=</span> <span class="bp">True</span>  <span class="c1"># Removed by metaclass</span>
+
+    <span class="n">domain</span> <span class="o">=</span> <span class="n">GENERIC</span>
+    <span class="n">slice_ndim</span> <span class="o">=</span> <span class="mi">2</span>
+
+    <span class="n">_SliceType</span> <span class="o">=</span> <span class="n">DataSetFamilySlice</span>
+
+    <span class="nd">@type.__call__</span>
+    <span class="k">class</span> <span class="nc">extra_dims</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;OrderedDict[str, frozenset] of dimension name -&gt; unique values</span>
+
+<span class="sd">        May be defined on subclasses as an iterable of pairs: the</span>
+<span class="sd">        metaclass converts this attribute to an OrderedDict.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">__isabstractmethod__</span> <span class="o">=</span> <span class="bp">True</span>
+
+        <span class="k">def</span> <span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_canonical_key</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">extra_dims</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">extra_dims</span>
+        <span class="n">dimensions_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">extra_dims</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">dimensions_set</span><span class="p">:</span>
+            <span class="n">extra</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-</span> <span class="n">dimensions_set</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> does not have the following </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span>
+                <span class="s1">&#39;Valid dimensions are: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+                    <span class="n">s</span><span class="p">(</span><span class="s1">&#39;dimension&#39;</span><span class="p">,</span> <span class="n">extra</span><span class="p">),</span>
+                    <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">extra</span><span class="p">),</span>
+                    <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">extra_dims</span><span class="p">),</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">extra_dims</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> has </span><span class="si">%d</span><span class="s1"> extra </span><span class="si">%s</span><span class="s1"> but </span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> given&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">extra_dims</span><span class="p">),</span>
+                    <span class="n">s</span><span class="p">(</span><span class="s1">&#39;dimension&#39;</span><span class="p">,</span> <span class="n">extra_dims</span><span class="p">),</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">),</span>
+                    <span class="n">plural</span><span class="p">(</span><span class="s1">&#39;was&#39;</span><span class="p">,</span> <span class="s1">&#39;were&#39;</span><span class="p">,</span> <span class="n">args</span><span class="p">),</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="n">missing</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">extra_dims</span><span class="p">,</span> <span class="n">repeat</span><span class="p">(</span><span class="n">missing</span><span class="p">)))</span>
+        <span class="n">to_add</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">extra_dims</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+        <span class="n">coords</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">to_add</span><span class="p">)</span>
+        <span class="n">added</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">to_add</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">added</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> got multiple values for dimension </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                        <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+                        <span class="n">coords</span><span class="p">,</span>
+                    <span class="p">),</span>
+                <span class="p">)</span>
+            <span class="n">coords</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="n">added</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="n">missing</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">coords</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="n">missing</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+            <span class="n">missing</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s1">&#39;no coordinate provided to </span><span class="si">%s</span><span class="s1"> for the following </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+                    <span class="n">s</span><span class="p">(</span><span class="s1">&#39;dimension&#39;</span><span class="p">,</span> <span class="n">missing</span><span class="p">),</span>
+                    <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">missing</span><span class="p">),</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="c1"># validate that all of the provided values exist along their given</span>
+        <span class="c1"># dimensions</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">coords</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">extra_dims</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s1">&#39;</span><span class="si">%r</span><span class="s1"> is not a value along the </span><span class="si">%s</span><span class="s1"> dimension of </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                        <span class="n">value</span><span class="p">,</span>
+                        <span class="n">key</span><span class="p">,</span>
+                        <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+                    <span class="p">),</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">coords</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_make_dataset</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Construct a new dataset given the coordinates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">class</span> <span class="nc">Slice</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_SliceType</span><span class="p">):</span>
+            <span class="n">extra_coords</span> <span class="o">=</span> <span class="n">coords</span>
+
+        <span class="n">Slice</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.slice(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">coords</span><span class="o">.</span><span class="n">items</span><span class="p">()),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">Slice</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">slice</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Take a slice of a DataSetFamily to produce a dataset</span>
+<span class="sd">        indexed by asset and date.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        *args</span>
+<span class="sd">        **kwargs</span>
+<span class="sd">            The coordinates to fix along each extra dimension.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dataset : DataSet</span>
+<span class="sd">            A regular pipeline dataset indexed by asset and date.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The extra dimensions coords used to produce the result are available</span>
+<span class="sd">        under the ``extra_coords`` attribute.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">coords</span><span class="p">,</span> <span class="n">hash_key</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_canonical_key</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_slice_cache</span><span class="p">[</span><span class="n">hash_key</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+        <span class="n">Slice</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_make_dataset</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_slice_cache</span><span class="p">[</span><span class="n">hash_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">Slice</span>
+        <span class="k">return</span> <span class="n">Slice</span>
+
+
+<span class="n">CurrencyConversion</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s1">&#39;CurrencyConversion&#39;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s1">&#39;currency&#39;</span><span class="p">,</span> <span class="s1">&#39;field&#39;</span><span class="p">],</span>
+<span class="p">)</span>
 </pre></div>
 
           </div>
