@@ -40,62 +40,15 @@ Features
 Installation
 ============
 
-Installing With ``pip``
------------------------
+Zipline currently supports Python 2.7 and Python 3.5, and may be installed via
+either pip or conda.
 
-Assuming you have all required (see note below) non-Python dependencies, you
-can install Zipline with ``pip`` via:
+**Note:** Installing Zipline is slightly more involved than the average Python
+package. See the full `Zipline Install Documentation`_ for detailed
+instructions.
 
-.. code-block:: bash
-
-    $ pip install zipline
-
-**Note:** Installing Zipline via ``pip`` is slightly more involved than the
-average Python package.  Simply running ``pip install zipline`` will likely
-fail if you've never installed any scientific Python packages before.
-
-There are two reasons for the additional complexity:
-
-1. Zipline ships several C extensions that require access to the CPython C API.
-   In order to build the C extensions, ``pip`` needs access to the CPython
-   header files for your Python installation.
-
-2. Zipline depends on `numpy <https://www.numpy.org/>`_, the core library for
-   numerical array computing in Python.  Numpy depends on having the `LAPACK
-   <https://www.netlib.org/lapack/>`_ linear algebra routines available.
-
-Because LAPACK and the CPython headers are binary dependencies, the correct way
-to install them varies from platform to platform.  On Linux, users generally
-acquire these dependencies via a package manager like ``apt``, ``yum``, or
-``pacman``.  On OSX, `Homebrew <https://brew.sh/>`_ is a popular choice
-providing similar functionality.
-
-See the full `Zipline Install Documentation`_ for more information on acquiring
-binary dependencies for your specific platform.
-
-conda
------
-
-Another way to install Zipline is via the ``conda`` package manager, which
-comes as part of `Anaconda <https://www.anaconda.com/distribution/>`_ or can be
-installed via ``pip install conda``.
-
-Once set up, you can install Zipline from our ``Quantopian`` channel:
-
-.. code-block:: bash
-
-    $ conda install -c Quantopian zipline
-
-Currently supported platforms include:
-
--  GNU/Linux 64-bit
--  OSX 64-bit
--  Windows 64-bit
-
-.. note::
-
-   Windows 32-bit may work; however, it is not currently included in
-   continuous integration tests.
+For a development installation (used to develop Zipline itself), create and
+activate a virtualenv, then run the ``etc/dev-install`` script.
 
 Quickstart
 ==========
