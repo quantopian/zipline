@@ -19,7 +19,8 @@ class FXRateReader(Interface):
             Array of codes of the currencies from which to convert. A single
             currency may appear multiple times.
         dts : pd.DatetimeIndex
-            Datetimes for which to load rates.
+            Datetimes for which to load rates. Must be sorted in ascending
+            order.
 
         Returns
         -------

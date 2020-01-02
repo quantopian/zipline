@@ -165,6 +165,8 @@ class HDF5FXRateReader(implements(FXRateReader)):
 
     def get_rates(self, rate, quote, bases, dts):
         """Get rates to convert ``bases`` into ``quote``.
+
+        See :class:`zipline.data.fx.base.FXRateReader` for details.
         """
         if rate == 'default':
             rate = self._default_rate
