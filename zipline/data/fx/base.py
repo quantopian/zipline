@@ -1,5 +1,9 @@
 from interface import Interface
 
+from zipline.utils.sentinel import sentinel
+
+DEFAULT_FX_RATE = sentinel('DEFAULT_FX_RATE')
+
 
 class FXRateReader(Interface):
 
@@ -11,8 +15,9 @@ class FXRateReader(Interface):
         ----------
         rate : str
             Rate type to load. Readers intended for use with the Pipeline API
-            should support ``'default'``, which will be used by default for
-            Pipeline API terms that don't specify a specific rate.
+            should support at least ``zipline.data.fx.DEFAULT_FX_RATE``, which
+            will be used by default for Pipeline API terms that don't specify a
+            specific rate.
         quote : str
             Currency code of the currency into to convert.
         bases : np.array[object]
@@ -25,7 +30,9 @@ class FXRateReader(Interface):
         Returns
         -------
         rates : np.array
-            Array of shape ``(len(dts), len(bases))`` containing fx rates.
+            Array of shape ``(len(dts), len(bases))`` containing foreign
+            exchange rates mapping currencies from ``bases`` to ``quote``.
+
             The row at index i corresponds to the dt in dts[i].
             The column at index j corresponds to the base currency in bases[j].
         """

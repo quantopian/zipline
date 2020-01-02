@@ -11,6 +11,7 @@ from six import (
 from toolz import first
 
 from zipline.currency import Currency
+from zipline.data.fx import DEFAULT_FX_RATE
 from zipline.pipeline.classifiers import Classifier, Latest as LatestClassifier
 from zipline.pipeline.domain import Domain, GENERIC
 from zipline.pipeline.factors import Factor, Latest as LatestFactor
@@ -256,9 +257,7 @@ class BoundColumn(LoadableTerm):
         return self._replace(
             currency_conversion=CurrencyConversion(
                 currency=currency,
-                # TODO: Eventually we should support users passing in
-                # alternative fields.
-                field='default',
+                field=DEFAULT_FX_RATE,
             )
         )
 

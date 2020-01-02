@@ -2,7 +2,7 @@
 """
 from interface import implements
 
-from .base import FXRateReader
+from .base import FXRateReader, DEFAULT_FX_RATE
 
 
 class InMemoryFXRateReader(implements(FXRateReader)):
@@ -29,7 +29,7 @@ class InMemoryFXRateReader(implements(FXRateReader)):
 
         See :class:`zipline.data.fx.base.FXRateReader` for details.
         """
-        if rate == 'default':
+        if rate == DEFAULT_FX_RATE:
             rate = self._default_rate
 
         df = self._data[rate][quote]

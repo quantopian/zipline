@@ -102,14 +102,13 @@ import six
 
 from zipline.utils.memoize import lazyval
 
-from .base import FXRateReader
+from .base import FXRateReader, DEFAULT_FX_RATE
 
 INDEX = 'index'
 DATA = 'data'
 CURRENCIES = 'currencies'
 DTS = 'dts'
 RATES = 'rates'
-DEFAULT = 'default'
 
 log = Logger(__name__)
 
@@ -122,7 +121,7 @@ class HDF5FXRateReader(implements(FXRateReader)):
     group : h5py.Group
         Top-level group written by an :class:`HDF5FXRateWriter`.
     default_rate : str
-        Rate to use when ``get_rates`` is called with a rate of 'default'.
+        Rate to use when ``get_rates`` is called requesting the default rate.
     """
 
     def __init__(self, group, default_rate):
@@ -168,7 +167,7 @@ class HDF5FXRateReader(implements(FXRateReader)):
 
         See :class:`zipline.data.fx.base.FXRateReader` for details.
         """
-        if rate == 'default':
+        if rate == DEFAULT_FX_RATE:
             rate = self._default_rate
 
         self._check_dts(self.dts, dts)

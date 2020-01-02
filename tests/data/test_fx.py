@@ -4,6 +4,7 @@ import h5py
 import pandas as pd
 import numpy as np
 
+from zipline.data.fx import DEFAULT_FX_RATE
 from zipline.data.fx.hdf5 import HDF5FXRateReader, HDF5FXRateWriter
 
 from zipline.testing.predicates import assert_equal
@@ -62,8 +63,8 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
     def get_expected_rate_scalar(cls, rate, quote, base, dt):
         """Get the expected FX rate for the given scalar coordinates.
         """
-        if rate == 'default':
-            rate = 'london_mid'
+        if rate == DEFAULT_FX_RATE:
+            rate = cls.FX_RATES_DEFAULT_RATE
 
         col = cls.fx_rates[rate][quote][base]
         # PERF: We call this function a lot in this suite, and get_loc is
@@ -116,7 +117,7 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
         rand = np.random.RandomState(42)
 
         dates = pd.date_range(self.FX_RATES_START_DATE, self.FX_RATES_END_DATE)
-        rates = self.FX_RATES_RATE_NAMES + ['default']
+        rates = self.FX_RATES_RATE_NAMES + [DEFAULT_FX_RATE]
         currencies = self.FX_RATES_CURRENCIES
 
         # For every combination of rate name and quote currency...
@@ -160,7 +161,7 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
                 london_rates.index,
             )
             default_result = self.reader.get_rates(
-                'default',
+                DEFAULT_FX_RATE,
                 currency,
                 london_rates.columns,
                 london_rates.index,
