@@ -172,10 +172,15 @@ class HDF5FXRateReader(implements(FXRateReader)):
 
         self._check_dts(self.dts, dts)
 
-        row_ixs = self.dts.searchsorted(dts, side='right') - 1
-        col_ixs = self.currencies.get_indexer(bases)
+        date_ixs = self.dts.searchsorted(dts, side='right') - 1
+        currency_ixs = self.currencies.get_indexer(bases)
 
-        return self._read_rate_block(rate, quote, row_ixs, col_ixs)
+        return self._read_rate_block(
+            rate,
+            quote,
+            row_ixs=date_ixs,
+            col_ixs=currency_ixs,
+        )
 
     def _read_rate_block(self, rate, quote, row_ixs, col_ixs):
         try:
@@ -186,10 +191,16 @@ class HDF5FXRateReader(implements(FXRateReader)):
                 .format(rate, quote)
             )
 
-        # There aren't many columns in the output array, so it's easier to pull
-        # all columns and reindex in memory. For rows, however, a quick and
-        # easy optimization is to pull just the slice from min(row_ixs) to
-        # max(row_ixs).
+        # OPTIMIZATION: Row indices correspond to dates, which must be in
+        # sorted order. Rather than reading the entire dataset from h5, we can
+        # read just the interval from min_row to max_row inclusive.
+        #
+        # We don't bother with a similar optimization for columns because in
+        # expectation we're going to load most of the
+
+        # array, so it's easier to pull all columns and reindex in memory. For
+        # rows, however, a quick and easy optimization is to pull just the
+        # slice from min(row_ixs) to max(row_ixs).
         min_row = row_ixs[0]
         max_row = row_ixs[-1]
         rows = dataset[min_row:max_row + 1]  # +1 to be inclusive of end
