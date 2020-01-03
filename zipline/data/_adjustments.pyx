@@ -76,10 +76,14 @@ cdef set _get_sids_from_table(object db,
         Set of sets
     """
 
-    cdef object cursor = db.execute(
+    cdef object cursor = db.cursor()
+    cursor.arraysize = 500
+    
+    cursor.execute(
         SID_QUERIES[tablename],
         (start_date, end_date),
     )
+
     cdef set out = set()
     cdef tuple result
     for result in cursor.fetchall():
@@ -108,6 +112,7 @@ cdef _adjustments(object adjustments_db,
                   Int64Index_t assets):
 
     c = adjustments_db.cursor()
+    c.arraysize = 500
 
     splits_to_query = [str(a) for a in assets if a in split_sids]
     splits_results = []
