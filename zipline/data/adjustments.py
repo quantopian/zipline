@@ -209,6 +209,7 @@ class SQLiteAdjustmentReader(object):
     def get_adjustments_for_sid(self, table_name, sid):
         t = (sid,)
         c = self.conn.cursor()
+        c.arraysize = 500
         adjustments_for_sid = c.execute(
             "SELECT effective_date, ratio FROM %s WHERE sid = ?" %
             table_name, t).fetchall()
@@ -221,6 +222,7 @@ class SQLiteAdjustmentReader(object):
     def get_dividends_with_ex_date(self, assets, date, asset_finder):
         seconds = date.value / int(1e9)
         c = self.conn.cursor()
+        c.arraysize = 500
 
         divs = []
         for chunk in group_into_chunks(assets):
@@ -243,6 +245,7 @@ class SQLiteAdjustmentReader(object):
     def get_stock_dividends_with_ex_date(self, assets, date, asset_finder):
         seconds = date.value / int(1e9)
         c = self.conn.cursor()
+        c.arraysize = 500
 
         stock_divs = []
         for chunk in group_into_chunks(assets):
