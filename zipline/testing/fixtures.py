@@ -14,6 +14,7 @@ from trading_calendars import (
     get_calendar,
     register_calendar_alias,
 )
+import h5py
 
 import zipline
 from zipline.algorithm import TradingAlgorithm
@@ -51,7 +52,11 @@ from ..data.data_portal import (
     DEFAULT_MINUTE_HISTORY_PREFETCH,
     DEFAULT_DAILY_HISTORY_PREFETCH,
 )
-from ..data.fx import InMemoryFXRateReader
+from ..data.fx import (
+    InMemoryFXRateReader,
+    HDF5FXRateReader,
+    HDF5FXRateWriter,
+)
 from ..data.hdf5_daily_bars import (
     HDF5DailyBarReader,
     HDF5DailyBarWriter,
@@ -2160,3 +2165,31 @@ class WithFXRates(object):
             out[rate_name] = cls.make_fx_rates_from_reference(reference)
 
         return out
+
+    @classmethod
+    def write_h5_fx_rates(cls, path):
+        """Write cls.fx_rates to disk with an HDF5FXRateWriter.
+
+        Returns an HDF5FXRateReader that reader from written data.
+        """
+        sessions = cls.fx_rates_sessions
+
+        # Write in-memory data to h5 file.
+        with h5py.File(path, 'w') as h5_file:
+            writer = HDF5FXRateWriter(h5_file)
+            fx_data = ((rate, quote, quote_frame.values)
+                       for rate, rate_dict in cls.fx_rates.items()
+                       for quote, quote_frame in rate_dict.items())
+
+            writer.write(
+                dts=sessions.values,
+                currencies=np.array(cls.FX_RATES_CURRENCIES, dtype='S3'),
+                data=fx_data,
+            )
+
+        h5_file = cls.enter_class_context(h5py.File(path, 'r'))
+
+        return HDF5FXRateReader(
+            h5_file,
+            default_rate=cls.FX_RATES_DEFAULT_RATE,
+        )

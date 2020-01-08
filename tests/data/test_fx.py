@@ -1,11 +1,9 @@
 import itertools
 
-import h5py
 import pandas as pd
 import numpy as np
 
 from zipline.data.fx import DEFAULT_FX_RATE
-from zipline.data.fx.hdf5 import HDF5FXRateReader, HDF5FXRateWriter
 
 from zipline.testing.predicates import assert_equal
 import zipline.testing.fixtures as zp_fixtures
@@ -205,30 +203,8 @@ class HDF5FXReaderTestCase(zp_fixtures.WithTmpDir,
     @classmethod
     def init_class_fixtures(cls):
         super(HDF5FXReaderTestCase, cls).init_class_fixtures()
-
         path = cls.tmpdir.getpath('fx_rates.h5')
-
-        # Set by WithFXRates.
-        sessions = cls.fx_rates_sessions
-
-        # Write in-memory data to h5 file.
-        with h5py.File(path, 'w') as h5_file:
-            writer = HDF5FXRateWriter(h5_file)
-            fx_data = ((rate, quote, quote_frame.values)
-                       for rate, rate_dict in cls.fx_rates.items()
-                       for quote, quote_frame in rate_dict.items())
-
-            writer.write(
-                dts=sessions.values,
-                currencies=np.array(cls.FX_RATES_CURRENCIES, dtype='S3'),
-                data=fx_data,
-            )
-
-        h5_file = cls.enter_class_context(h5py.File(path, 'r'))
-        cls.h5_fx_reader = HDF5FXRateReader(
-            h5_file,
-            default_rate=cls.FX_RATES_DEFAULT_RATE,
-        )
+        cls.h5_fx_reader = cls.write_h5_fx_rates(path)
 
     @property
     def reader(self):
