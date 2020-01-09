@@ -105,6 +105,8 @@ from zipline.utils.memoize import lazyval
 
 from .base import FXRateReader, DEFAULT_FX_RATE
 
+HDF5_FX_VERSION = 0
+
 INDEX = 'index'
 DATA = 'data'
 CURRENCIES = 'currencies'
@@ -129,6 +131,13 @@ class HDF5FXRateReader(implements(FXRateReader)):
         self._group = group
         self._default_rate = default_rate
 
+        if self.version != HDF5_FX_VERSION:
+            raise ValueError(
+                "FX Reader version ({}) != File Version ({})".format(
+                    HDF5_FX_VERSION, self.version,
+                )
+            )
+
     @classmethod
     def from_path(cls, path, default_rate):
         """
@@ -143,6 +152,14 @@ class HDF5FXRateReader(implements(FXRateReader)):
             rate.
         """
         return cls(h5py.File(path), default_rate=default_rate)
+
+    @lazyval
+    def version(self):
+        try:
+            return self._group.attrs['version']
+        except KeyError:
+            # TODO: Remove this.
+            return 0
 
     @lazyval
     def dts(self):
@@ -249,8 +266,13 @@ class HDF5FXRateWriter(object):
             contain a table of rates where each column is a timeseries of rates
             mapping its column label's currency to ``quote_currency``.
         """
+        self._write_metadata()
         self._write_index_group(dts, currencies)
         self._write_data_group(dts, currencies, data)
+
+    def _write_metadata(self):
+        self._group.attrs['version'] = HDF5_FX_VERSION
+        self._group.attrs['last_updated_utc'] = str(pd.Timestamp.utcnow())
 
     def _write_index_group(self, dts, currencies):
         """Write content of /index.
