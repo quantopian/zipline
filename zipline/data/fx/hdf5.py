@@ -97,6 +97,7 @@ row i in a data node is the ith element of /index/dts.
 from interface import implements
 import h5py
 from logbook import Logger
+import numpy as np
 import pandas as pd
 import six
 
@@ -176,17 +177,9 @@ class HDF5FXRateReader(implements(FXRateReader)):
 
         self._check_dts(self.dts, dts)
 
-        date_ixs = self.dts.searchsorted(dts, side='right') - 1
-        currency_ixs = self.currencies.get_indexer(bases)
+        row_ixs = self.dts.searchsorted(dts, side='right') - 1
+        col_ixs = self.currencies.get_indexer(bases)
 
-        return self._read_rate_block(
-            rate,
-            quote,
-            row_ixs=date_ixs,
-            col_ixs=currency_ixs,
-        )
-
-    def _read_rate_block(self, rate, quote, row_ixs, col_ixs):
         try:
             dataset = self._group[DATA][rate][quote][RATES]
         except KeyError:
@@ -209,7 +202,12 @@ class HDF5FXRateReader(implements(FXRateReader)):
         max_row = row_ixs[-1]
         rows = dataset[min_row:max_row + 1]  # +1 to be inclusive of end
 
-        return rows[row_ixs - min_row][:, col_ixs]
+        out = rows[row_ixs - min_row][:, col_ixs]
+
+        # get_indexer returns -1 for failed lookups. Fill these in with NaN.
+        out[:, col_ixs == -1] = np.nan
+
+        return out
 
     def _check_dts(self, stored, requested):
         """Validate that requested dates are in bounds for what we have stored.

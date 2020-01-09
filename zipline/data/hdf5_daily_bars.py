@@ -107,6 +107,7 @@ import pandas as pd
 from six import iteritems, raise_from, viewkeys
 from six.moves import reduce
 
+from zipline.currency import MISSING_CURRENCY_CODE
 from zipline.data.bar_reader import (
     NoDataAfterDate,
     NoDataBeforeDate,
@@ -713,18 +714,15 @@ class HDF5DailyBarReader(CurrencyAwareSessionBarReader):
         # Find the index of requested sids in our stored sids.
         ixs = self.sids.searchsorted(sids, side='left')
 
+        result = self._currency_codes[ixs]
+
         # searchsorted returns the index of the next lowest sid if the lookup
-        # fails. Check for this case and raise an error.
+        # fails. Fill these sids with the special "missing" sentinel.
         not_found = (self.sids[ixs] != sids)
 
-        if not_found.any():
-            # TODO: Should we return an unknown sentinel here?
-            missing = sids[not_found]
-            raise ValueError(
-                "Unable to find currency codes for sids:\n{}".format(missing)
-            )
+        result[not_found] = MISSING_CURRENCY_CODE
 
-        return self._currency_codes[ixs]
+        return result
 
     @property
     def last_available_dt(self):
