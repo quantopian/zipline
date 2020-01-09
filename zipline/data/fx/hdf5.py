@@ -129,15 +129,19 @@ class HDF5FXRateReader(implements(FXRateReader)):
         self._default_rate = default_rate
 
     @classmethod
-    def from_path(cls, path):
-        """Construct from a file path.
+    def from_path(cls, path, default_rate):
+        """
+        Construct from a file path.
 
         Parameters
         ----------
         path : str
             Path to an HDF5 fx rates file.
+        default_rate : str
+            Rate to use when ``get_rates`` is called requesting the default
+            rate.
         """
-        return cls(h5py.File(path))
+        return cls(h5py.File(path), default_rate=default_rate)
 
     @lazyval
     def dts(self):
