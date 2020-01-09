@@ -165,10 +165,11 @@ class HDF5FXRateReader(implements(FXRateReader)):
     def dts(self):
         """Row labels for rate groups.
         """
-        return pd.DatetimeIndex(
-            self._group[INDEX][DTS][:].astype('M8[ns]'),
-            tz='UTC',
-        )
+        raw_dts = self._group[INDEX][DTS][:].astype('M8[ns]')
+        if not is_sorted_ascending(raw_dts):
+            raise ValueError("dts are not sorted for {}!".format(self._group))
+
+        return pd.DatetimeIndex(raw_dts, tz='UTC')
 
     @lazyval
     def currencies(self):
@@ -244,6 +245,9 @@ class HDF5FXRateReader(implements(FXRateReader)):
                 .format(request_end, data_end)
             )
 
+        if not is_sorted_ascending(requested):
+            raise ValueError("Requested fx rates with non-ascending dts.")
+
 
 class HDF5FXRateWriter(object):
     """Writer class for HDF5 files consumed by HDF5FXRateReader.
@@ -305,3 +309,7 @@ class HDF5FXRateWriter(object):
 
     def _log_writing(self, *path):
         log.debug("Writing {}", '/'.join(path))
+
+
+def is_sorted_ascending(array):
+    return (np.maximum.accumulate(array) <= array).all()
