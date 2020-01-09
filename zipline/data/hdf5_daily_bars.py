@@ -710,14 +710,13 @@ class HDF5DailyBarReader(CurrencyAwareSessionBarReader):
         currency_codes : np.array[S3]
             Array of currency codes for listing currencies of ``sids``.
         """
-        all_sids = sids
+        # Find the index of requested sids in our stored sids.
+        ixs = self.sids.searchsorted(sids, side='left')
 
-        # For each sid in ``sids``, find its index in ``all_sids``.
-        ixs = all_sids.searchsorted(sids, side='left')
+        # searchsorted returns the index of the next lowest sid if the lookup
+        # fails. Check for this case and raise an error.
+        not_found = (self.sids[ixs] != sids)
 
-        # searchsorted will return the index of the next lowest sid if the
-        # lookup fails. Check for this case and raise an error.
-        not_found = (all_sids[ixs] != sids)
         if not_found.any():
             # TODO: Should we return an unknown sentinel here?
             missing = sids[not_found]

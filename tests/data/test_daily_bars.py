@@ -59,7 +59,7 @@ from zipline.pipeline.loaders.synthetic import (
     expected_bar_values_2d,
     make_bar_data,
 )
-from zipline.testing import seconds_to_timestamp
+from zipline.testing import seconds_to_timestamp, powerset
 from zipline.testing.fixtures import (
     WithAssetFinder,
     WithBcolzEquityDailyBarReader,
@@ -522,13 +522,24 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
             )
 
     def test_listing_currency(self):
-        assets = np.array(list(self.assets))
-        # TODO: Test loading codes for missing assets.
-        results = self.daily_bar_reader.currency_codes(assets)
-        expected = self.make_equity_daily_bar_currency_codes(
-            self.DAILY_BARS_TEST_QUERY_COUNTRY_CODE, assets,
+        # Test loading on all assets.
+        all_assets = np.array(list(self.assets))
+        all_results = self.daily_bar_reader.currency_codes(all_assets)
+        all_expected = self.make_equity_daily_bar_currency_codes(
+            self.DAILY_BARS_TEST_QUERY_COUNTRY_CODE, all_assets,
         ).values
-        assert_equal(results, expected)
+        assert_equal(all_results, all_expected)
+
+        # Check all possible subsets of assets.
+        for indices in map(list, powerset(range(len(all_assets)))):
+            # Empty queries aren't currently supported.
+            if not indices:
+                continue
+            assets = all_assets[indices]
+            results = self.daily_bar_reader.currency_codes(assets)
+            expected = all_expected[indices]
+
+            assert_equal(results, expected)
 
 
 class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
