@@ -81,7 +81,7 @@ install:
 
   # XXX: With TRAVIS and CI both set, pip installing bcolz tries to compile it with coverage on py2, which fails to link against gcov on OSX.
   # https://github.com/Blosc/bcolz/blob/8234a7505da5188dbaf415b7e36d4609d2c8c2f1/setup.py#L134-L136
-  - TRAVIS='' EXTERNAL_REQUIREMENTS='coveralls' etc/dev-install --cache-dir="$HOME/.cache/.pip/pip_np$CONDA_NPY"
+  - TRAVIS='' EXTERNAL_REQUIREMENTS='coveralls' PIP_CACHE_DIR="$HOME/.cache/.pip/pip_np$CONDA_NPY" etc/dev-install
 
 before_script:
   - pip freeze | sort
