@@ -65,8 +65,8 @@ class WithBarDataChecks(object):
         try:
             self.assertEqual(val1, val2)
         except AssertionError:
-            if val1 is pd.NaT:
-                self.assertTrue(val2 is pd.NaT)
+            if pd.isnull(val1):
+                self.assertTrue(pd.isnull(val2))
             elif np.isnan(val1):
                 self.assertTrue(np.isnan(val2))
             else:
@@ -276,7 +276,7 @@ class TestMinuteBarData(WithCreateBarData,
                     elif field == "volume":
                         self.assertEqual(0, asset_value)
                     elif field == "last_traded":
-                        self.assertTrue(asset_value is pd.NaT)
+                        self.assertTrue(pd.isnull(asset_value))
 
     def test_regular_minute(self):
         minutes = self.trading_calendar.minutes_for_session(
@@ -364,7 +364,7 @@ class TestMinuteBarData(WithCreateBarData,
                         self.assertEqual(minute, asset1_value)
 
                         if idx < 9:
-                            self.assertTrue(asset2_value is pd.NaT)
+                            self.assertTrue(pd.isnull(asset2_value))
                         elif asset2_has_data:
                             self.assertEqual(minute, asset2_value)
                         else:
@@ -1040,7 +1040,7 @@ class TestDailyBarData(WithCreateBarData,
                 elif field == "volume":
                     self.assertEqual(0, asset_value)
                 elif field == "last_traded":
-                    self.assertTrue(asset_value is pd.NaT)
+                    self.assertTrue(pd.isnull(asset_value))
 
     def test_semi_active_day(self):
         # on self.equity_daily_bar_days[0], only asset1 has data
@@ -1075,7 +1075,7 @@ class TestDailyBarData(WithCreateBarData,
 
         self.assertEqual(0, bar_data.current(self.ASSET2, "volume"))
         self.assertTrue(
-            bar_data.current(self.ASSET2, "last_traded") is pd.NaT
+            pd.isnull(bar_data.current(self.ASSET2, "last_traded"))
         )
 
     def test_fully_active_day(self):

@@ -643,7 +643,7 @@ class BcolzMinuteBarWriter(object):
             # No need to pad.
             return
 
-        if last_date == pd.NaT:
+        if pd.isnull(last_date):
             # If there is no data, determine how many days to add so that
             # desired days are written to the correct slots.
             days_to_zerofill = tds[tds.slice_indexer(end=date)]

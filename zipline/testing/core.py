@@ -1031,7 +1031,7 @@ def assert_timestamp_equal(left, right, compare_nat_equal=True, msg=""):
     msg : str, optional
         A message to forward to `pd.util.testing.assert_equal`.
     """
-    if compare_nat_equal and left is pd.NaT and right is pd.NaT:
+    if compare_nat_equal and pd.isnull(left) and pd.isnull(right):
         return
     return pd.util.testing.assert_equal(left, right, msg=msg)
 

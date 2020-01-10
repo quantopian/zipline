@@ -599,7 +599,7 @@ cdef class BarData:
                 data_portal.get_spot_value(asset, "last_traded", adjusted_dt,
                                            self.data_frequency)
 
-            return not (last_traded_dt is pd.NaT)
+            return not (pd.isnull(last_traded_dt))
 
     @check_parameters(('assets', 'fields', 'bar_count',
                        'frequency'),
