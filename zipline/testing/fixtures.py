@@ -14,11 +14,13 @@ from trading_calendars import (
     get_calendar,
     register_calendar_alias,
 )
+import h5py
 
 import zipline
 from zipline.algorithm import TradingAlgorithm
 from zipline.assets import Equity, Future
 from zipline.assets.continuous_futures import CHAIN_PREDICATES
+from zipline.data.fx import DEFAULT_FX_RATE
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.utils.memoize import classlazyval
 from zipline.pipeline import SimplePipelineEngine
@@ -51,7 +53,11 @@ from ..data.data_portal import (
     DEFAULT_MINUTE_HISTORY_PREFETCH,
     DEFAULT_DAILY_HISTORY_PREFETCH,
 )
-from ..data.fx import InMemoryFXRateReader
+from ..data.fx import (
+    InMemoryFXRateReader,
+    HDF5FXRateReader,
+    HDF5FXRateWriter,
+)
 from ..data.hdf5_daily_bars import (
     HDF5DailyBarReader,
     HDF5DailyBarWriter,
@@ -2147,8 +2153,6 @@ class WithFXRates(object):
     def make_fx_rates(cls, rate_names, currencies, sessions):
         rng = np.random.RandomState(42)
 
-        currencies = sorted(currencies)
-
         out = {}
         for rate_name in rate_names:
             cols = {}
@@ -2160,3 +2164,71 @@ class WithFXRates(object):
             out[rate_name] = cls.make_fx_rates_from_reference(reference)
 
         return out
+
+    @classmethod
+    def write_h5_fx_rates(cls, path):
+        """Write cls.fx_rates to disk with an HDF5FXRateWriter.
+
+        Returns an HDF5FXRateReader that reader from written data.
+        """
+        sessions = cls.fx_rates_sessions
+
+        # Write in-memory data to h5 file.
+        with h5py.File(path, 'w') as h5_file:
+            writer = HDF5FXRateWriter(h5_file)
+            fx_data = ((rate, quote, quote_frame.values)
+                       for rate, rate_dict in cls.fx_rates.items()
+                       for quote, quote_frame in rate_dict.items())
+
+            writer.write(
+                dts=sessions.values,
+                currencies=np.array(cls.FX_RATES_CURRENCIES, dtype='S3'),
+                data=fx_data,
+            )
+
+        h5_file = cls.enter_class_context(h5py.File(path, 'r'))
+
+        return HDF5FXRateReader(
+            h5_file,
+            default_rate=cls.FX_RATES_DEFAULT_RATE,
+        )
+
+    @classmethod
+    def get_expected_fx_rate_scalar(cls, rate, quote, base, dt):
+        """Get the expected FX rate for the given scalar coordinates.
+        """
+        if rate == DEFAULT_FX_RATE:
+            rate = cls.FX_RATES_DEFAULT_RATE
+
+        col = cls.fx_rates[rate][quote][base]
+        # PERF: We call this function a lot in some suites, and get_loc is
+        # surprisingly expensive, so optimizing it has a meaningful impact on
+        # overall suite performance. See test_fast_get_loc_ffilled_for
+        # assurance that this behaves the same as get_loc.
+        ix = fast_get_loc_ffilled(col.index.values, dt.asm8)
+        return col.values[ix]
+
+    @classmethod
+    def get_expected_fx_rates(cls, rate, quote, bases, dts):
+        """Get an array of expected FX rates for the given indices.
+        """
+        out = np.empty((len(dts), len(bases)), dtype='float64')
+
+        for i, dt in enumerate(dts):
+            for j, base in enumerate(bases):
+                out[i, j] = cls.get_expected_fx_rate_scalar(
+                    rate, quote, base, dt,
+                )
+
+        return out
+
+
+def fast_get_loc_ffilled(dts, dt):
+    """
+    Equivalent to dts.get_loc(dt, method='ffill'), but with reasonable
+    microperformance.
+    """
+    ix = dts.searchsorted(dt, side='right') - 1
+    if ix < 0:
+        raise KeyError(dt)
+    return ix

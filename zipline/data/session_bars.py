@@ -51,5 +51,8 @@ class CurrencyAwareSessionBarReader(SessionBarReader):
         Returns
         -------
         currency_codes : np.array[S3]
-            Array of currency codes for listing currencies of ``sids``.
+            Array of currency codes for listing currencies of
+            ``sids``. Implementations should return
+            zipline.currency.MISSING_CURRENCY_CODE for sids whose currency is
+            unknown.
         """

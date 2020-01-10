@@ -16,11 +16,17 @@ from collections import defaultdict
 from interface import implements
 from numpy import iinfo, uint32, multiply
 
+from zipline.currency import MISSING_CURRENCY_CODE
 from zipline.data.fx import ExplodingFXRateReader
 from zipline.lib.adjusted_array import AdjustedArray
+from zipline.utils.numpy_utils import (
+    repeat_first_axis,
+    bytes_array_to_native_str_object_array,
+)
 
 from .base import PipelineLoader
 from .utils import shift_dates
+from ..data.equity_pricing import EquityPricing
 
 UINT32_MAX = iinfo(uint32).max
 
@@ -81,9 +87,12 @@ class EquityPricingLoader(implements(PipelineLoader)):
         sessions = domain.all_sessions()
         shifted_dates = shift_dates(sessions, dates[0], dates[-1], shift=1)
 
-        colnames = [c.name for c in columns]
-        raw_arrays = self.raw_price_reader.load_raw_arrays(
-            colnames,
+        ohlcv_cols, currency_cols = self._split_column_types(columns)
+        del columns  # From here on we should use ohlcv_cols or currency_cols.
+        ohlcv_colnames = [c.name for c in ohlcv_cols]
+
+        raw_ohlcv_arrays = self.raw_price_reader.load_raw_arrays(
+            ohlcv_colnames,
             shifted_dates[0],
             shifted_dates[-1],
             sids,
@@ -93,25 +102,40 @@ class EquityPricingLoader(implements(PipelineLoader)):
         # dates to load currency conversion rates to make them line up with
         # dates used to fetch prices.
         self._inplace_currency_convert(
-            columns,
-            raw_arrays,
+            ohlcv_cols,
+            raw_ohlcv_arrays,
             shifted_dates,
             sids,
         )
 
         adjustments = self.adjustments_reader.load_pricing_adjustments(
-            colnames,
+            ohlcv_colnames,
             dates,
             sids,
         )
 
         out = {}
-        for c, c_raw, c_adjs in zip(columns, raw_arrays, adjustments):
+        for c, c_raw, c_adjs in zip(ohlcv_cols, raw_ohlcv_arrays, adjustments):
             out[c] = AdjustedArray(
                 c_raw.astype(c.dtype),
                 c_adjs,
                 c.missing_value,
             )
+
+        for c in currency_cols:
+            codes_1d = bytes_array_to_native_str_object_array(
+                self.raw_price_reader.currency_codes(sids)
+            )
+            # XXX: Should this just be the contract of `currency_codes`?
+            codes_1d[codes_1d == MISSING_CURRENCY_CODE] = None
+
+            codes = repeat_first_axis(codes_1d, len(dates))
+            out[c] = AdjustedArray(
+                codes,
+                adjustments={},
+                missing_value=None,
+            )
+
         return out
 
     @property
@@ -168,6 +192,33 @@ class EquityPricingLoader(implements(PipelineLoader)):
             )
             for arr in arrays:
                 multiply(arr, rates, out=arr)
+
+    def _split_column_types(self, columns):
+        """Split out currency columns from OHLCV columns.
+
+        Parameters
+        ----------
+        columns : list[zipline.pipeline.data.BoundColumn]
+            Columns to be loaded by ``load_adjusted_array``.
+
+        Returns
+        -------
+        ohlcv_columns : list[zipline.pipeline.data.BoundColumn]
+            Price and volume columns from ``columns``.
+        currency_columns : list[zipline.pipeline.data.BoundColumn]
+            Currency code column from ``columns``, if present.
+        """
+        currency_name = EquityPricing.currency.name
+
+        ohlcv = []
+        currency = []
+        for c in columns:
+            if c.name == currency_name:
+                currency.append(c)
+            else:
+                ohlcv.append(c)
+
+        return ohlcv, currency
 
 
 # Backwards compat alias.

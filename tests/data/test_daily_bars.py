@@ -36,6 +36,7 @@ from six.moves import range
 from toolz import merge
 from trading_calendars import get_calendar
 
+from zipline.currency import MISSING_CURRENCY_CODE
 from zipline.data.bar_reader import (
     NoDataAfterDate,
     NoDataBeforeDate,
@@ -59,7 +60,7 @@ from zipline.pipeline.loaders.synthetic import (
     expected_bar_values_2d,
     make_bar_data,
 )
-from zipline.testing import seconds_to_timestamp
+from zipline.testing import seconds_to_timestamp, powerset
 from zipline.testing.fixtures import (
     WithAssetFinder,
     WithBcolzEquityDailyBarReader,
@@ -522,13 +523,45 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
             )
 
     def test_listing_currency(self):
-        assets = np.array(list(self.assets))
-        # TODO: Test loading codes for missing assets.
-        results = self.daily_bar_reader.currency_codes(assets)
-        expected = self.make_equity_daily_bar_currency_codes(
-            self.DAILY_BARS_TEST_QUERY_COUNTRY_CODE, assets,
+        # Test loading on all assets.
+        all_assets = np.array(list(self.assets))
+        all_results = self.daily_bar_reader.currency_codes(all_assets)
+        all_expected = self.make_equity_daily_bar_currency_codes(
+            self.DAILY_BARS_TEST_QUERY_COUNTRY_CODE, all_assets,
         ).values
-        assert_equal(results, expected)
+        assert_equal(all_results, all_expected)
+
+        # Check all possible subsets of assets.
+        for indices in map(list, powerset(range(len(all_assets)))):
+            # Empty queries aren't currently supported.
+            if not indices:
+                continue
+            assets = all_assets[indices]
+            results = self.daily_bar_reader.currency_codes(assets)
+            expected = all_expected[indices]
+
+            assert_equal(results, expected)
+
+    def test_listing_currency_for_nonexistent_asset(self):
+        reader = self.daily_bar_reader
+
+        valid_sid = max(self.assets)
+        valid_currency = reader.currency_codes(np.array([valid_sid]))[0]
+        invalid_sids = [-1, -2]
+
+        # XXX: We currently require at least one valid sid here, because the
+        # MultiCountryDailyBarReader needs one valid sid to be able to dispatch
+        # to a child reader. We could probably make that work, but there are no
+        # real-world cases where we expect to get all-invalid currency queries,
+        # so it's unclear whether we should do work to explicitly support such
+        # queries.
+        mixed = np.array(invalid_sids + [valid_sid])
+        result = self.daily_bar_reader.currency_codes(mixed)
+        expected = np.array(
+            [MISSING_CURRENCY_CODE] * 2 + [valid_currency],
+            dtype='S3'
+        )
+        assert_equal(result, expected)
 
 
 class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):

@@ -19,8 +19,10 @@ from toolz import concat, keyfilter
 from toolz import curry
 from toolz.curried.operator import ne
 
+from zipline.testing.predicates import assert_equal
 from zipline.utils.functional import mapall as lazy_mapall
 from zipline.utils.numpy_utils import (
+    bytes_array_to_native_str_object_array,
     is_float,
     is_int,
     is_datetime,
@@ -92,3 +94,13 @@ class TypeCheckTestCase(TestCase):
 
         for bad_value in everything_but(datetime, CASES):
             self.assertFalse(is_datetime(bad_value))
+
+
+class ArrayUtilsTestCase(TestCase):
+
+    def test_bytes_array_to_native_str_object_array(self):
+        a = array([b'abc', b'def'], dtype='S3')
+        result = bytes_array_to_native_str_object_array(a)
+        expected = array(['abc', 'def'], dtype=object)
+
+        assert_equal(result, expected)

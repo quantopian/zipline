@@ -97,12 +97,15 @@ row i in a data node is the ith element of /index/dts.
 from interface import implements
 import h5py
 from logbook import Logger
+import numpy as np
 import pandas as pd
 import six
 
 from zipline.utils.memoize import lazyval
 
 from .base import FXRateReader, DEFAULT_FX_RATE
+
+HDF5_FX_VERSION = 0
 
 INDEX = 'index'
 DATA = 'data'
@@ -128,25 +131,45 @@ class HDF5FXRateReader(implements(FXRateReader)):
         self._group = group
         self._default_rate = default_rate
 
+        if self.version != HDF5_FX_VERSION:
+            raise ValueError(
+                "FX Reader version ({}) != File Version ({})".format(
+                    HDF5_FX_VERSION, self.version,
+                )
+            )
+
     @classmethod
-    def from_path(cls, path):
-        """Construct from a file path.
+    def from_path(cls, path, default_rate):
+        """
+        Construct from a file path.
 
         Parameters
         ----------
         path : str
             Path to an HDF5 fx rates file.
+        default_rate : str
+            Rate to use when ``get_rates`` is called requesting the default
+            rate.
         """
-        return cls(h5py.File(path))
+        return cls(h5py.File(path), default_rate=default_rate)
+
+    @lazyval
+    def version(self):
+        try:
+            return self._group.attrs['version']
+        except KeyError:
+            # TODO: Remove this.
+            return 0
 
     @lazyval
     def dts(self):
         """Row labels for rate groups.
         """
-        return pd.DatetimeIndex(
-            self._group[INDEX][DTS][:].astype('M8[ns]'),
-            tz='UTC',
-        )
+        raw_dts = self._group[INDEX][DTS][:].astype('M8[ns]')
+        if not is_sorted_ascending(raw_dts):
+            raise ValueError("dts are not sorted for {}!".format(self._group))
+
+        return pd.DatetimeIndex(raw_dts, tz='UTC')
 
     @lazyval
     def currencies(self):
@@ -172,17 +195,9 @@ class HDF5FXRateReader(implements(FXRateReader)):
 
         self._check_dts(self.dts, dts)
 
-        date_ixs = self.dts.searchsorted(dts, side='right') - 1
-        currency_ixs = self.currencies.get_indexer(bases)
+        row_ixs = self.dts.searchsorted(dts, side='right') - 1
+        col_ixs = self.currencies.get_indexer(bases)
 
-        return self._read_rate_block(
-            rate,
-            quote,
-            row_ixs=date_ixs,
-            col_ixs=currency_ixs,
-        )
-
-    def _read_rate_block(self, rate, quote, row_ixs, col_ixs):
         try:
             dataset = self._group[DATA][rate][quote][RATES]
         except KeyError:
@@ -205,7 +220,12 @@ class HDF5FXRateReader(implements(FXRateReader)):
         max_row = row_ixs[-1]
         rows = dataset[min_row:max_row + 1]  # +1 to be inclusive of end
 
-        return rows[row_ixs - min_row][:, col_ixs]
+        out = rows[row_ixs - min_row][:, col_ixs]
+
+        # get_indexer returns -1 for failed lookups. Fill these in with NaN.
+        out[:, col_ixs == -1] = np.nan
+
+        return out
 
     def _check_dts(self, stored, requested):
         """Validate that requested dates are in bounds for what we have stored.
@@ -224,6 +244,9 @@ class HDF5FXRateReader(implements(FXRateReader)):
                 "Requested fx rates ending at {}, but data ends at {}"
                 .format(request_end, data_end)
             )
+
+        if not is_sorted_ascending(requested):
+            raise ValueError("Requested fx rates with non-ascending dts.")
 
 
 class HDF5FXRateWriter(object):
@@ -247,8 +270,13 @@ class HDF5FXRateWriter(object):
             contain a table of rates where each column is a timeseries of rates
             mapping its column label's currency to ``quote_currency``.
         """
+        self._write_metadata()
         self._write_index_group(dts, currencies)
         self._write_data_group(dts, currencies, data)
+
+    def _write_metadata(self):
+        self._group.attrs['version'] = HDF5_FX_VERSION
+        self._group.attrs['last_updated_utc'] = str(pd.Timestamp.utcnow())
 
     def _write_index_group(self, dts, currencies):
         """Write content of /index.
@@ -281,3 +309,7 @@ class HDF5FXRateWriter(object):
 
     def _log_writing(self, *path):
         log.debug("Writing {}", '/'.join(path))
+
+
+def is_sorted_ascending(array):
+    return (np.maximum.accumulate(array) <= array).all()

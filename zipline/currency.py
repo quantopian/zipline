@@ -1,31 +1,11 @@
-from functools import partial, total_ordering
-
+from functools import total_ordering
 from iso4217 import Currency as ISO4217Currency
-
-import numpy as np
 
 _ALL_CURRENCIES = {}
 
 
-def strs_to_sids(strs, category_num):
-    """TODO: Improve this.
-    """
-    out = np.full(len(strs), category_num << 50, dtype='i8')
-    casted_buffer = np.ndarray(
-        shape=out.shape,
-        dtype='S6',
-        buffer=out,
-        strides=out.strides,
-    )
-    casted_buffer[:] = np.array(strs, dtype='S6')
-    return out
-
-
-def str_to_sid(str_, category_num):
-    return strs_to_sids([str_], category_num)[0]
-
-
-iso_currency_to_sid = partial(str_to_sid, category_num=3)
+# Special sentinel used to represent unknown or missing currencies.
+MISSING_CURRENCY_CODE = 'XXX'
 
 
 @total_ordering
@@ -48,15 +28,20 @@ class Currency(object):
         try:
             return _ALL_CURRENCIES[code]
         except KeyError:
-            try:
-                iso_currency = ISO4217Currency(code)
-            except ValueError:
-                raise ValueError(
-                    "{!r} is not a valid currency code.".format(code)
-                )
+            # This isn't a real
+            if code == MISSING_CURRENCY_CODE:
+                name = "NO CURRENCY"
+            else:
+                try:
+                    name = ISO4217Currency(code).currency_name
+                except ValueError:
+                    raise ValueError(
+                        "{!r} is not a valid currency code.".format(code)
+                    )
+
             obj = _ALL_CURRENCIES[code] = super(Currency, cls).__new__(cls)
-            obj._currency = iso_currency
-            obj._sid = iso_currency_to_sid(iso_currency.value)
+            obj._code = code
+            obj._name = name
             return obj
 
     @property
@@ -67,7 +52,7 @@ class Currency(object):
         -------
         code : str
         """
-        return self._currency.value
+        return self._code
 
     @property
     def name(self):
@@ -77,13 +62,7 @@ class Currency(object):
         -------
         name : str
         """
-        return self._currency.currency_name
-
-    @property
-    def sid(self):
-        """Unique integer identifier for this currency.
-        """
-        return self._sid
+        return self._name
 
     def __eq__(self, other):
         if type(self) != type(other):
