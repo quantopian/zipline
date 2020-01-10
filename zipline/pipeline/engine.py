@@ -695,7 +695,10 @@ class SimplePipelineEngine(PipelineEngine):
                 assert set(loaded) == set(to_load), (
                     'loader did not return an AdjustedArray for each column\n'
                     'expected: %r\n'
-                    'got:      %r' % (sorted(to_load), sorted(loaded))
+                    'got:      %r' % (
+                        sorted(to_load, key=repr),
+                        sorted(loaded, key=repr),
+                    )
                 )
                 workspace.update(loaded)
             else:
