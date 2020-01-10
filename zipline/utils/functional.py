@@ -161,30 +161,32 @@ def _gen_unzip(it, elem_len):
     ValueError
         Raised when the lengths do not match the ``elem_len``.
     """
-    elem = next(it)
-    first_elem_len = len(elem)
-
-    if elem_len is not None and elem_len != first_elem_len:
-        raise ValueError(
-            'element at index 0 was length %d, expected %d' % (
-                first_elem_len,
-                elem_len,
-            )
-        )
-    else:
-        elem_len = first_elem_len
-
-    yield elem
-    for n, elem in enumerate(it, 1):
-        if len(elem) != elem_len:
+    try:
+        elem = next(it)
+        first_elem_len = len(elem)
+        if elem_len is not None and elem_len != first_elem_len:
             raise ValueError(
-                'element at index %d was length %d, expected %d' % (
-                    n,
-                    len(elem),
+                'element at index 0 was length %d, expected %d' % (
+                    first_elem_len,
                     elem_len,
-                ),
+                )
             )
+        else:
+            elem_len = first_elem_len
+
         yield elem
+        for n, elem in enumerate(it, 1):
+            if len(elem) != elem_len:
+                raise ValueError(
+                    'element at index %d was length %d, expected %d' % (
+                        n,
+                        len(elem),
+                        elem_len,
+                    ),
+                )
+            yield elem
+    except StopIteration:
+        yield from ()
 
 
 def unzip(seq, elem_len=None):
