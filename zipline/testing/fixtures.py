@@ -2152,8 +2152,6 @@ class WithFXRates(object):
     def make_fx_rates(cls, rate_names, currencies, sessions):
         rng = np.random.RandomState(42)
 
-        currencies = sorted(currencies)
-
         out = {}
         for rate_name in rate_names:
             cols = {}
