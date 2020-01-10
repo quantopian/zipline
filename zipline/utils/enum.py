@@ -22,7 +22,6 @@ from ctypes import (
     c_ushort,
     sizeof,
 )
-
 import numpy as np
 import pandas as pd
 from six.moves import range
@@ -38,7 +37,7 @@ _inttypes_map = {
     }
 }
 _inttypes = list(
-    pd.Series(_inttypes_map).reindex(
+    pd.Series(_inttypes_map).sort_index().reindex(
         range(max(_inttypes_map.keys())),
         method='bfill',
     ),

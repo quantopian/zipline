@@ -53,10 +53,10 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
         self._sids = frames['close'].columns
 
     @classmethod
-    def from_panel(cls, panel, calendar, currency_codes):
+    def from_dataframe(cls, dataframe, calendar, currency_codes):
         """Helper for construction from a pandas.Panel.
         """
-        return cls(dict(panel.iteritems()), calendar, currency_codes)
+        return cls(dict(dataframe.iteritems()), calendar, currency_codes)
 
     @property
     def last_available_dt(self):

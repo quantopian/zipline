@@ -1,20 +1,22 @@
--e git://github.com/quantopian/datashape.git@cae16a85406ca4302ff1f985b74a3809be0a83a1#egg=datashape
+#
+datashape==0.5.2
+# Odo is not well maintained to be droped
 -e git://github.com/quantopian/odo.git@ba84238eb8dbcac4784ae7ebf62988d7e163c283#egg=odo
 
 # Keep cytoolz version in sync with toolz version in requirements.txt
-cytoolz==0.8.2
+cytoolz==0.10.1
 
 # Transitive dependencies of blaze:
-dask[dataframe]==0.13.0
-partd==0.3.7
+dask[dataframe]==2.9.1
+partd==1.1.0
 locket==0.2.0
-cloudpickle==0.2.1
-itsdangerous==0.24
-flask==0.12.4
-flask-cors==2.1.3
-Jinja2==2.10.1
-MarkupSafe==0.23
-Werkzeug==0.12.2
-psutil==4.3.0
+cloudpickle==1.2.2
+itsdangerous==1.1.0
+flask==1.1.1
+flask-cors==3.0.8
+Jinja2==2.10.3
+MarkupSafe==1.1.1
+Werkzeug==0.16.0
+psutil==5.6.7
 
--e git://github.com/quantopian/blaze.git@f26375a6708eab85b7acc7869d6c518df2f974eb#egg=blaze
+blaze==0.10.1
