@@ -160,11 +160,11 @@ def to_dict(l):
 class DependencyResolutionTestCase(WithTradingSessions, ZiplineTestCase):
 
     TRADING_CALENDAR_STRS = ('NYSE',)
-    START_DATE = pd.Timestamp('2014-01-02', tz='UTC')
-    END_DATE = pd.Timestamp('2014-12-31', tz='UTC')
+    START_DATE = pd.Timestamp('2014-01-02', tz="UTC")
+    END_DATE = pd.Timestamp('2014-12-31', tz="UTC")
 
-    execution_plan_start = pd.Timestamp('2014-06-01', tz='UTC')
-    execution_plan_end = pd.Timestamp('2014-06-30', tz='UTC')
+    execution_plan_start = pd.Timestamp('2014-06-01', tz="UTC")
+    execution_plan_end = pd.Timestamp('2014-06-30', tz="UTC")
 
     DOMAIN = US_EQUITIES
 

@@ -57,8 +57,8 @@ from zipline.testing.fixtures import (
 # Calendar is set to cover several half days, to check a case where half
 # days would be read out of order in cases of windows which spanned over
 # multiple half days.
-TEST_CALENDAR_START = Timestamp('2014-06-02', tz='UTC')
-TEST_CALENDAR_STOP = Timestamp('2015-12-31', tz='UTC')
+TEST_CALENDAR_START = Timestamp('2014-06-02', tz="UTC")
+TEST_CALENDAR_STOP = Timestamp('2015-12-31', tz="UTC")
 
 
 class BcolzMinuteBarTestCase(WithTradingCalendars,
@@ -858,9 +858,9 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         Test unadjusted minute window, ensuring that early closes are filtered
         out.
         """
-        day_before_thanksgiving = Timestamp('2015-11-25', tz='UTC')
-        xmas_eve = Timestamp('2015-12-24', tz='UTC')
-        market_day_after_xmas = Timestamp('2015-12-28', tz='UTC')
+        day_before_thanksgiving = Timestamp('2015-11-25', tz="UTC")
+        xmas_eve = Timestamp('2015-12-24', tz="UTC")
+        market_day_after_xmas = Timestamp('2015-12-28', tz="UTC")
 
         minutes = [self.market_closes[day_before_thanksgiving] -
                    Timedelta('2 min'),
@@ -915,8 +915,8 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
                                     arrays[i][j][minute_locs])
 
     def test_adjust_non_trading_minutes(self):
-        start_day = Timestamp('2015-06-01', tz='UTC')
-        end_day = Timestamp('2015-06-02', tz='UTC')
+        start_day = Timestamp('2015-06-01', tz="UTC")
+        end_day = Timestamp('2015-06-02', tz="UTC")
 
         sid = 1
         cols = {
@@ -936,34 +936,34 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         self.assertEqual(
             self.reader.get_value(
                 sid,
-                Timestamp('2015-06-01 20:00:00', tz='UTC'),
+                Timestamp('2015-06-01 20:00:00', tz="UTC"),
                 'open'),
             390)
         self.assertEqual(
             self.reader.get_value(
                 sid,
-                Timestamp('2015-06-02 20:00:00', tz='UTC'),
+                Timestamp('2015-06-02 20:00:00', tz="UTC"),
                 'open'),
             780)
 
         with self.assertRaises(NoDataOnDate):
             self.reader.get_value(
                 sid,
-                Timestamp('2015-06-02', tz='UTC'),
+                Timestamp('2015-06-02', tz="UTC"),
                 'open'
             )
 
         with self.assertRaises(NoDataOnDate):
             self.reader.get_value(
                 sid,
-                Timestamp('2015-06-02 20:01:00', tz='UTC'),
+                Timestamp('2015-06-02 20:01:00', tz="UTC"),
                 'open'
             )
 
     def test_adjust_non_trading_minutes_half_days(self):
         # half day
-        start_day = Timestamp('2015-11-27', tz='UTC')
-        end_day = Timestamp('2015-11-30', tz='UTC')
+        start_day = Timestamp('2015-11-27', tz="UTC")
+        end_day = Timestamp('2015-11-30', tz="UTC")
 
         sid = 1
         cols = {
@@ -985,34 +985,34 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         self.assertEqual(
             self.reader.get_value(
                 sid,
-                Timestamp('2015-11-27 18:00:00', tz='UTC'),
+                Timestamp('2015-11-27 18:00:00', tz="UTC"),
                 'open'),
             210)
         self.assertEqual(
             self.reader.get_value(
                 sid,
-                Timestamp('2015-11-30 21:00:00', tz='UTC'),
+                Timestamp('2015-11-30 21:00:00', tz="UTC"),
                 'open'),
             600)
 
         self.assertEqual(
             self.reader.get_value(
                 sid,
-                Timestamp('2015-11-27 18:01:00', tz='UTC'),
+                Timestamp('2015-11-27 18:01:00', tz="UTC"),
                 'open'),
             210)
 
         with self.assertRaises(NoDataOnDate):
             self.reader.get_value(
                 sid,
-                Timestamp('2015-11-30', tz='UTC'),
+                Timestamp('2015-11-30', tz="UTC"),
                 'open'
             )
 
         with self.assertRaises(NoDataOnDate):
             self.reader.get_value(
                 sid,
-                Timestamp('2015-11-30 21:01:00', tz='UTC'),
+                Timestamp('2015-11-30 21:01:00', tz="UTC"),
                 'open'
             )
 
@@ -1021,8 +1021,8 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         """
 
         sid = 1
-        start_day = Timestamp('2015-11-27', tz='UTC')
-        end_day = Timestamp('2015-06-02', tz='UTC')
+        start_day = Timestamp('2015-11-27', tz="UTC")
+        end_day = Timestamp('2015-06-02', tz="UTC")
         attrs = {
             'start_day': start_day.value / int(1e9),
             'end_day': end_day.value / int(1e9),
@@ -1139,13 +1139,13 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
     def test_early_market_close(self):
         # Date to test is 2015-11-30 9:31
         # Early close is 2015-11-27 18:00
-        friday_after_tday = Timestamp('2015-11-27', tz='UTC')
+        friday_after_tday = Timestamp('2015-11-27', tz="UTC")
         friday_after_tday_close = self.market_closes[friday_after_tday]
 
         before_early_close = friday_after_tday_close - timedelta(minutes=8)
         after_early_close = friday_after_tday_close + timedelta(minutes=8)
 
-        monday_after_tday = Timestamp('2015-11-30', tz='UTC')
+        monday_after_tday = Timestamp('2015-11-30', tz="UTC")
         minute = self.market_opens[monday_after_tday]
 
         # Test condition where there is data written after the market

@@ -297,7 +297,7 @@ class BcolzDailyBarWriter(object):
 
             table_day_to_session = compose(
                 self._calendar.minute_to_session_label,
-                partial(Timestamp, unit='s', tz='UTC'),
+                partial(Timestamp, unit='s', tz="UTC"),
             )
             asset_first_day = table_day_to_session(table['day'][0])
             asset_last_day = table_day_to_session(table['day'][-1])
@@ -465,14 +465,14 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
     def sessions(self):
         if 'calendar' in self._table.attrs.attrs:
             # backwards compatibility with old formats, will remove
-            return DatetimeIndex(self._table.attrs['calendar'], tz='UTC')
+            return DatetimeIndex(self._table.attrs['calendar'], tz="UTC")
         else:
             cal = get_calendar(self._table.attrs['calendar_name'])
             start_session_ns = self._table.attrs['start_session_ns']
-            start_session = Timestamp(start_session_ns, tz='UTC')
+            start_session = Timestamp(start_session_ns, tz="UTC")
 
             end_session_ns = self._table.attrs['end_session_ns']
-            end_session = Timestamp(end_session_ns, tz='UTC')
+            end_session = Timestamp(end_session_ns, tz="UTC")
 
             sessions = cal.sessions_in_range(start_session, end_session)
 
@@ -511,7 +511,7 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
             return Timestamp(
                 self._table.attrs['first_trading_day'],
                 unit='s',
-                tz='UTC'
+                tz="UTC"
             )
         except KeyError:
             return None

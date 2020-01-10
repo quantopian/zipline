@@ -3,7 +3,7 @@ import warnings
 from mock import patch
 import numpy as np
 import pandas as pd
-from pandas.core.common import PerformanceWarning
+from pandas.errors import PerformanceWarning
 
 from zipline.finance.trading import SimulationParameters
 from zipline.testing import (
@@ -132,8 +132,8 @@ class TestAPIShim(WithCreateBarData,
                   WithMakeAlgo,
                   ZiplineTestCase):
 
-    START_DATE = pd.Timestamp("2016-01-05", tz='UTC')
-    END_DATE = pd.Timestamp("2016-01-28", tz='UTC')
+    START_DATE = pd.Timestamp("2016-01-05", tz="UTC")
+    END_DATE = pd.Timestamp("2016-01-28", tz="UTC")
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
 
     sids = ASSET_FINDER_EQUITY_SIDS = 1, 2, 3

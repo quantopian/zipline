@@ -66,7 +66,7 @@ def naive_to_utc(ts):
     """
     # Drop the nanoseconds field. warn=False suppresses the warning
     # that we are losing the nanoseconds; however, this is intended.
-    return pd.Timestamp(ts.to_pydatetime(warn=False), tz='UTC')
+    return pd.Timestamp(ts.to_pydatetime(warn=False), tz="UTC")
 
 
 def ensure_utc(time, tz='UTC'):

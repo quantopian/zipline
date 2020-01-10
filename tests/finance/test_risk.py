@@ -43,9 +43,9 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
 
     def init_instance_fixtures(self):
         super(TestRisk, self).init_instance_fixtures()
-        self.start_session = pd.Timestamp("2006-01-01", tz='UTC')
+        self.start_session = pd.Timestamp("2006-01-01", tz="UTC")
         self.end_session = self.trading_calendar.minute_to_session_label(
-            pd.Timestamp("2006-12-31", tz='UTC'),
+            pd.Timestamp("2006-12-31", tz="UTC"),
             direction="previous"
         )
         self.sim_params = SimulationParameters(
@@ -72,7 +72,7 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
         r_objects = factory.create_returns_from_list(returns, self.sim_params)
         self.assertLessEqual(
             r_objects.index[-1],
-            pd.Timestamp('2006-12-31', tz='UTC')
+            pd.Timestamp('2006-12-31', tz="UTC")
         )
 
     def test_drawdown(self):
@@ -186,11 +186,11 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
 
     def test_benchmarkrange(self):
         start_session = self.trading_calendar.minute_to_session_label(
-            pd.Timestamp("2008-01-01", tz='UTC')
+            pd.Timestamp("2008-01-01", tz="UTC")
         )
 
         end_session = self.trading_calendar.minute_to_session_label(
-            pd.Timestamp("2010-01-01", tz='UTC'), direction="previous"
+            pd.Timestamp("2010-01-01", tz="UTC"), direction="previous"
         )
 
         sim_params = SimulationParameters(
@@ -212,7 +212,7 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
     def test_partial_month(self):
 
         start_session = self.trading_calendar.minute_to_session_label(
-            pd.Timestamp("1993-02-01", tz='UTC')
+            pd.Timestamp("1993-02-01", tz="UTC")
         )
 
         # 1992 and 1996 were leap years
@@ -261,7 +261,7 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
         if period_length > total_months:
             self.assertFalse(col)
         else:
-            period_end = pd.Timestamp(col[-1]['period_label'], tz='utc')
+            period_end = pd.Timestamp(col[-1]['period_label'], tz="UTC")
             self.assertEqual(
                 len(col),
                 total_months - (period_length - 1),

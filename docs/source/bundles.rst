@@ -339,8 +339,8 @@ We'll then want to specify the start and end sessions of our bundle data:
 
 .. code-block:: python
 
-	 start_session = pd.Timestamp('2016-1-1', tz='utc')
-	 end_session = pd.Timestamp('2018-1-1', tz='utc')
+	 start_session = pd.Timestamp('2016-1-1', tz="UTC")
+	 end_session = pd.Timestamp('2018-1-1', tz="UTC")
 
 And then we can ``register()`` our bundle, and pass the location of the directory in which
 our ``.csv`` files exist:

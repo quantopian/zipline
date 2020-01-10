@@ -5,6 +5,7 @@ from itertools import cycle, islice
 from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd
+from pytz import UTC
 
 from trading_calendars import get_calendar
 
@@ -27,7 +28,7 @@ import zipline.testing.fixtures as zf
 
 
 def T(s):
-    return pd.Timestamp(s, tz='UTC')
+    return pd.Timestamp(s, tz=UTC)
 
 
 class WithInternationalDailyBarData(zf.WithAssetFinder):

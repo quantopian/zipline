@@ -62,16 +62,16 @@ class SlippageTestCase(WithCreateBarData,
                        WithSimParams,
                        WithDataPortal,
                        ZiplineTestCase):
-    START_DATE = pd.Timestamp('2006-01-05 14:31', tz='utc')
-    END_DATE = pd.Timestamp('2006-01-05 14:36', tz='utc')
+    START_DATE = pd.Timestamp('2006-01-05 14:31', tz="UTC")
+    END_DATE = pd.Timestamp('2006-01-05 14:36', tz="UTC")
     SIM_PARAMS_CAPITAL_BASE = 1.0e5
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
     SIM_PARAMS_EMISSION_RATE = 'daily'
 
     ASSET_FINDER_EQUITY_SIDS = (133,)
-    ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp('2006-01-05', tz='utc')
-    ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp('2006-01-07', tz='utc')
-    minutes = pd.DatetimeIndex(
+    ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp('2006-01-05', tz="UTC")
+    ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp('2006-01-07', tz="UTC")
+    minutes = pd.date_range(
         start=START_DATE,
         end=END_DATE - pd.Timedelta('1 minute'),
         freq='1min'
@@ -569,16 +569,16 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
                                   WithDataPortal,
                                   ZiplineTestCase):
 
-    START_DATE = pd.Timestamp('2006-01-05 14:31', tz='utc')
-    END_DATE = pd.Timestamp('2006-01-05 14:36', tz='utc')
+    START_DATE = pd.Timestamp('2006-01-05 14:31', tz="UTC")
+    END_DATE = pd.Timestamp('2006-01-05 14:36', tz="UTC")
     SIM_PARAMS_CAPITAL_BASE = 1.0e5
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
     SIM_PARAMS_EMISSION_RATE = 'daily'
 
     ASSET_FINDER_EQUITY_SIDS = (133,)
-    ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp('2006-01-05', tz='utc')
-    ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp('2006-01-07', tz='utc')
-    minutes = pd.DatetimeIndex(
+    ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp('2006-01-05', tz="UTC")
+    ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp('2006-01-07', tz="UTC")
+    minutes = pd.date_range(
         start=START_DATE,
         end=END_DATE - pd.Timedelta('1 minute'),
         freq='1min'
@@ -785,7 +785,7 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
             (None, None),
         ]
         order = Order(
-            dt=pd.Timestamp.now(tz='utc').round('min'),
+            dt=pd.Timestamp.now(tz="UTC").round('min'),
             asset=self.ASSET,
             amount=10,
         )
@@ -799,7 +799,7 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
             (None, None),
         ]
         order = Order(
-            dt=pd.Timestamp.now(tz='utc').round('min'),
+            dt=pd.Timestamp.now(tz="UTC").round('min'),
             asset=self.ASSET,
             amount=-10,
         )
@@ -807,7 +807,7 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
 
     def _calculate_impact(self, test_order, answer_key):
         model = VolatilityVolumeShare(volume_limit=0.05)
-        first_minute = pd.Timestamp('2006-03-31 11:35AM', tz='UTC')
+        first_minute = pd.Timestamp('2006-03-31 11:35AM', tz="UTC")
 
         next_3_minutes = self.trading_calendar.minutes_window(first_minute, 3)
         remaining_shares = test_order.open_amount
@@ -835,11 +835,11 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
 
         cases = [
             # History will look for data before the start date.
-            (pd.Timestamp('2006-01-05 11:35AM', tz='UTC'), early_start_asset),
+            (pd.Timestamp('2006-01-05 11:35AM', tz="UTC"), early_start_asset),
             # Start day of the futures contract; no history yet.
-            (pd.Timestamp('2006-02-10 11:35AM', tz='UTC'), late_start_asset),
+            (pd.Timestamp('2006-02-10 11:35AM', tz="UTC"), late_start_asset),
             # Only a week's worth of history data.
-            (pd.Timestamp('2006-02-17 11:35AM', tz='UTC'), late_start_asset),
+            (pd.Timestamp('2006-02-17 11:35AM', tz="UTC"), late_start_asset),
         ]
 
         for minute, asset in cases:
@@ -863,7 +863,7 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
         # Use all the same numbers from the 'calculate_impact' tests. Since the
         # impacted price is 59805.5, which is worse than the limit price of
         # 59800, the model should return None.
-        minute = pd.Timestamp('2006-03-01 11:35AM', tz='UTC')
+        minute = pd.Timestamp('2006-03-01 11:35AM', tz="UTC")
         data = self.create_bardata(simulation_dt_func=lambda: minute)
         order = Order(
             dt=data.current_dt, asset=self.ASSET, amount=10, limit=59800,
@@ -879,7 +879,7 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
         # down to zero. In this case we expect no amount to be transacted.
         model = VolatilityVolumeShare(volume_limit=0.001)
 
-        minute = pd.Timestamp('2006-03-01 11:35AM', tz='UTC')
+        minute = pd.Timestamp('2006-03-01 11:35AM', tz="UTC")
         data = self.create_bardata(simulation_dt_func=lambda: minute)
         order = Order(dt=data.current_dt, asset=self.ASSET, amount=10)
         price, amount = model.process_order(data, order)
@@ -948,8 +948,8 @@ class OrdersStopTestCase(WithSimParams,
                          WithTradingCalendars,
                          ZiplineTestCase):
 
-    START_DATE = pd.Timestamp('2006-01-05 14:31', tz='utc')
-    END_DATE = pd.Timestamp('2006-01-05 14:36', tz='utc')
+    START_DATE = pd.Timestamp('2006-01-05 14:31', tz="UTC")
+    END_DATE = pd.Timestamp('2006-01-05 14:36', tz="UTC")
     SIM_PARAMS_CAPITAL_BASE = 1.0e5
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
     SIM_PARAMS_EMISSION_RATE = 'daily'
@@ -993,13 +993,13 @@ class OrdersStopTestCase(WithSimParams,
 
         'long | price gt stop': {
             'order': {
-                'dt': pd.Timestamp('2006-01-05 14:30', tz='UTC'),
+                'dt': pd.Timestamp('2006-01-05 14:30', tz="UTC"),
                 'amount': 100,
                 'filled': 0,
                 'stop': 3.5
             },
             'event': {
-                'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
+                'dt': pd.Timestamp('2006-01-05 14:31', tz="UTC"),
                 'volume': 2000,
                 'price': 4.0,
                 'high': 3.15,
@@ -1010,20 +1010,20 @@ class OrdersStopTestCase(WithSimParams,
             'expected': {
                 'transaction': {
                     'price': 4.00025,
-                    'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
+                    'dt': pd.Timestamp('2006-01-05 14:31', tz="UTC"),
                     'amount': 50,
                 }
             }
         },
         'long | price lt stop': {
             'order': {
-                'dt': pd.Timestamp('2006-01-05 14:30', tz='UTC'),
+                'dt': pd.Timestamp('2006-01-05 14:30', tz="UTC"),
                 'amount': 100,
                 'filled': 0,
                 'stop': 3.6
             },
             'event': {
-                'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
+                'dt': pd.Timestamp('2006-01-05 14:31', tz="UTC"),
                 'volume': 2000,
                 'price': 3.5,
                 'high': 3.15,
@@ -1037,13 +1037,13 @@ class OrdersStopTestCase(WithSimParams,
         },
         'short | price gt stop': {
             'order': {
-                'dt': pd.Timestamp('2006-01-05 14:30', tz='UTC'),
+                'dt': pd.Timestamp('2006-01-05 14:30', tz="UTC"),
                 'amount': -100,
                 'filled': 0,
                 'stop': 3.4
             },
             'event': {
-                'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
+                'dt': pd.Timestamp('2006-01-05 14:31', tz="UTC"),
                 'volume': 2000,
                 'price': 3.5,
                 'high': 3.15,
@@ -1057,13 +1057,13 @@ class OrdersStopTestCase(WithSimParams,
         },
         'short | price lt stop': {
             'order': {
-                'dt': pd.Timestamp('2006-01-05 14:30', tz='UTC'),
+                'dt': pd.Timestamp('2006-01-05 14:30', tz="UTC"),
                 'amount': -100,
                 'filled': 0,
                 'stop': 3.5
             },
             'event': {
-                'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
+                'dt': pd.Timestamp('2006-01-05 14:31', tz="UTC"),
                 'volume': 2000,
                 'price': 3.0,
                 'high': 3.15,
@@ -1074,7 +1074,7 @@ class OrdersStopTestCase(WithSimParams,
             'expected': {
                 'transaction': {
                     'price': 2.9998125,
-                    'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
+                    'dt': pd.Timestamp('2006-01-05 14:31', tz="UTC"),
                     'amount': -50,
                 }
             }
@@ -1103,7 +1103,7 @@ class OrdersStopTestCase(WithSimParams,
                     'close': [event_data['close']],
                     'volume': [event_data['volume']],
                 },
-                index=[pd.Timestamp('2006-01-05 14:31', tz='UTC')],
+                index=[pd.Timestamp('2006-01-05 14:31', tz="UTC")],
             )),
         )
         days = pd.date_range(
@@ -1121,7 +1121,7 @@ class OrdersStopTestCase(WithSimParams,
             slippage_model = VolumeShareSlippage()
 
             try:
-                dt = pd.Timestamp('2006-01-05 14:31', tz='UTC')
+                dt = pd.Timestamp('2006-01-05 14:31', tz="UTC")
                 bar_data = BarData(
                     data_portal,
                     lambda: dt,
@@ -1150,13 +1150,13 @@ class OrdersStopTestCase(WithSimParams,
 class FixedBasisPointsSlippageTestCase(WithCreateBarData,
                                        ZiplineTestCase):
 
-    START_DATE = pd.Timestamp('2006-01-05', tz='utc')
-    END_DATE = pd.Timestamp('2006-01-05', tz='utc')
+    START_DATE = pd.Timestamp('2006-01-05', tz="UTC")
+    END_DATE = pd.Timestamp('2006-01-05', tz="UTC")
 
     ASSET_FINDER_EQUITY_SIDS = (133,)
 
     first_minute = (
-        pd.Timestamp('2006-01-05 9:31', tz='US/Eastern').tz_convert('UTC')
+        pd.Timestamp('2006-01-05 9:31', tz='US/Eastern').tz_convert("UTC")
     )
 
     @classmethod

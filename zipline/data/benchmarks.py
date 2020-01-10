@@ -39,4 +39,4 @@ def get_benchmark_returns(symbol):
     df.index = pd.DatetimeIndex(df['date'])
     df = df['close']
 
-    return df.sort_index().tz_localize('UTC').pct_change(1).iloc[1:]
+    return df.sort_index().tz_localize("UTC").pct_change(1).iloc[1:]

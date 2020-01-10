@@ -59,8 +59,8 @@ class StatisticalBuiltInsTestCase(zf.WithAssetFinder,
                                   zf.WithTradingCalendars,
                                   zf.ZiplineTestCase):
     sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
-    START_DATE = Timestamp('2015-01-31', tz='UTC')
-    END_DATE = Timestamp('2015-03-01', tz='UTC')
+    START_DATE = Timestamp('2015-01-31', tz="UTC")
+    END_DATE = Timestamp('2015-03-01', tz="UTC")
     ASSET_FINDER_EQUITY_SYMBOLS = ('A', 'B', 'C')
     ASSET_FINDER_COUNTRY_CODE = 'US'
 
@@ -70,7 +70,7 @@ class StatisticalBuiltInsTestCase(zf.WithAssetFinder,
 
         day = cls.trading_calendar.day
         cls.dates = dates = date_range(
-            '2015-02-01', '2015-02-28', freq=day, tz='UTC',
+            '2015-02-01', '2015-02-28', freq=day, tz="UTC",
         )
 
         # Using these start and end dates because they are a contigous span of
@@ -504,8 +504,8 @@ class StatisticalBuiltInsTestCase(zf.WithAssetFinder,
 class StatisticalMethodsTestCase(zf.WithSeededRandomPipelineEngine,
                                  zf.ZiplineTestCase):
     sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
-    START_DATE = Timestamp('2015-01-31', tz='UTC')
-    END_DATE = Timestamp('2015-03-01', tz='UTC')
+    START_DATE = Timestamp('2015-01-31', tz="UTC")
+    END_DATE = Timestamp('2015-03-01', tz="UTC")
     ASSET_FINDER_COUNTRY_CODE = 'US'
     SEEDED_RANDOM_PIPELINE_DEFAULT_DOMAIN = US_EQUITIES
 

@@ -684,8 +684,8 @@ class _ClassicRiskMetrics(object):
                 break
 
             yield cls.risk_metric_period(
-                start_session=period.start_time,
-                end_session=min(period.end_time, end_session),
+                start_session=period.start_time.tz_localize(end_session.tz),
+                end_session=min(period.end_time.tz_localize(end_session.tz), end_session),
                 algorithm_returns=algorithm_returns,
                 benchmark_returns=benchmark_returns,
                 algorithm_leverages=algorithm_leverages,
@@ -705,13 +705,13 @@ class _ClassicRiskMetrics(object):
             # Ensure we have at least one month
             end=end - datetime.timedelta(days=1),
             freq='M',
-            tz='utc',
+            tz="UTC",
         )
 
         periods_in_range = partial(
             cls._periods_in_range,
             months=months,
-            end_session=end_session.tz_convert(None),
+            end_session=end_session,
             end_date=end,
             algorithm_returns=algorithm_returns,
             benchmark_returns=benchmark_returns,

@@ -228,18 +228,18 @@ class BcolzMinuteBarMetadata(object):
             if version >= 2:
                 calendar = get_calendar(raw_data['calendar_name'])
                 start_session = pd.Timestamp(
-                    raw_data['start_session'], tz='UTC')
-                end_session = pd.Timestamp(raw_data['end_session'], tz='UTC')
+                    raw_data['start_session'], tz="UTC")
+                end_session = pd.Timestamp(raw_data['end_session'], tz="UTC")
             else:
                 # No calendar info included in older versions, so
                 # default to NYSE.
                 calendar = get_calendar('XNYS')
 
                 start_session = pd.Timestamp(
-                    raw_data['first_trading_day'], tz='UTC')
+                    raw_data['first_trading_day'], tz="UTC")
                 end_session = calendar.minute_to_session_label(
                     pd.Timestamp(
-                        raw_data['market_closes'][-1], unit='m', tz='UTC')
+                        raw_data['market_closes'][-1], unit='m', tz="UTC")
                 )
 
             if version >= 3:
@@ -796,7 +796,7 @@ class BcolzMinuteBarWriter(object):
 
         all_minutes = self._minute_index
         # Get the latest minute we wish to write to the ctable
-        last_minute_to_write = pd.Timestamp(dts[-1], tz='UTC')
+        last_minute_to_write = pd.Timestamp(dts[-1], tz="UTC")
 
         # In the event that we've already written some minutely data to the
         # ctable, guard against overwriting that data.
@@ -1198,7 +1198,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
             self._minutes_per_day
         )
 
-        return pd.Timestamp(minute_epoch, tz='UTC', unit="m")
+        return pd.Timestamp(minute_epoch, tz="UTC", unit="m")
 
     def _find_position_of_minute(self, minute_dt):
         """

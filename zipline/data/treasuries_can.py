@@ -76,7 +76,7 @@ def load_frame(url, skiprows):
         parse_dates=["Date"],
         index_col="Date",
     ).dropna(how='all') \
-     .tz_localize('UTC') \
+     .tz_localize("UTC") \
      .rename(columns=COLUMN_NAMES)
 
 
@@ -91,15 +91,15 @@ def check_known_inconsistencies(bill_data, bond_data):
         # bond_data has an entry for 2006-09-04, which bill_data doesn't.
         # Both of these dates are bank holidays (Flag Day and Labor Day,
         # respectively).
-        pd.Timestamp('2006-09-04', tz='UTC'),
-        pd.Timestamp('2010-02-15', tz='UTC'),
+        pd.Timestamp('2006-09-04', tz="UTC"),
+        pd.Timestamp('2010-02-15', tz="UTC"),
         # 2013-07-25 comes back as "Not available" from the bills endpoint.
         # This date doesn't seem to be a bank holiday, but the previous
         # calendar implementation dropped this entry, so we drop it as well.
         # If someone cares deeply about the integrity of the Canadian trading
         # calendar, they may want to consider forward-filling here rather than
         # dropping the row.
-        pd.Timestamp('2013-07-25', tz='UTC'),
+        pd.Timestamp('2013-07-25', tz="UTC"),
     ]
     unexpected_inconsistences = inconsistent_dates.drop(known_inconsistencies)
     if len(unexpected_inconsistences):
@@ -123,7 +123,7 @@ def earliest_possible_date():
     """
     The earliest date for which we can load data from this module.
     """
-    today = pd.Timestamp('now', tz='UTC').normalize()
+    today = pd.Timestamp('now', tz="UTC").normalize()
     # Bank of Canada only has the last 10 years of data at any given time.
     return today.replace(year=today.year - 10)
 

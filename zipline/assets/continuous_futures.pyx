@@ -423,8 +423,8 @@ cdef class OrderedContracts(object):
 
     property start_date:
         def __get__(self):
-            return Timestamp(self._start_date, tz='UTC')
+            return Timestamp(self._start_date, tz="UTC")
 
     property end_date:
         def __get__(self):
-            return Timestamp(self._end_date, tz='UTC')
+            return Timestamp(self._end_date, tz="UTC")

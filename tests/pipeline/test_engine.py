@@ -177,8 +177,8 @@ class RollingSumSum(CustomFactor):
 
 class WithConstantInputs(zf.WithAssetFinder):
     asset_ids = ASSET_FINDER_EQUITY_SIDS = 1, 2, 3, 4
-    START_DATE = Timestamp('2014-01-01', tz='utc')
-    END_DATE = Timestamp('2014-03-01', tz='utc')
+    START_DATE = Timestamp('2014-01-01', tz="UTC")
+    END_DATE = Timestamp('2014-03-01', tz="UTC")
     ASSET_FINDER_COUNTRY_CODE = 'US'
 
     @classmethod
@@ -202,7 +202,7 @@ class WithConstantInputs(zf.WithAssetFinder):
             cls.START_DATE,
             cls.END_DATE,
             freq='D',
-            tz='UTC',
+            tz="UTC",
         )
         cls.loader = PrecomputedLoader(
             constants=cls.constants,
@@ -803,8 +803,8 @@ class FrameInputTestCase(zf.WithAssetFinder,
                          zf.WithTradingCalendars,
                          zf.ZiplineTestCase):
     asset_ids = ASSET_FINDER_EQUITY_SIDS = range(HUGE_SID, HUGE_SID + 3)
-    start = START_DATE = Timestamp('2015-01-01', tz='utc')
-    end = END_DATE = Timestamp('2015-01-31', tz='utc')
+    start = START_DATE = Timestamp('2015-01-01', tz="UTC")
+    end = END_DATE = Timestamp('2015-01-31', tz="UTC")
     ASSET_FINDER_COUNTRY_CODE = 'US'
 
     @classmethod
@@ -814,7 +814,7 @@ class FrameInputTestCase(zf.WithAssetFinder,
             cls.start,
             cls.end,
             freq=cls.trading_calendar.day,
-            tz='UTC',
+            tz="UTC",
         )
         cls.assets = cls.asset_finder.retrieve_all(cls.asset_ids)
         cls.domain = US_EQUITIES
@@ -913,9 +913,9 @@ class FrameInputTestCase(zf.WithAssetFinder,
 class SyntheticBcolzTestCase(zf.WithAdjustmentReader,
                              zf.WithAssetFinder,
                              zf.ZiplineTestCase):
-    first_asset_start = Timestamp('2015-04-01', tz='UTC')
-    START_DATE = Timestamp('2015-01-01', tz='utc')
-    END_DATE = Timestamp('2015-08-01', tz='utc')
+    first_asset_start = Timestamp('2015-04-01', tz="UTC")
+    START_DATE = Timestamp('2015-01-01', tz="UTC")
+    END_DATE = Timestamp('2015-08-01', tz="UTC")
 
     @classmethod
     def make_equity_info(cls):
@@ -1070,8 +1070,8 @@ class ParameterizedFactorTestCase(zf.WithAssetFinder,
                                   zf.WithTradingCalendars,
                                   zf.ZiplineTestCase):
     sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
-    START_DATE = Timestamp('2015-01-31', tz='UTC')
-    END_DATE = Timestamp('2015-03-01', tz='UTC')
+    START_DATE = Timestamp('2015-01-31', tz="UTC")
+    END_DATE = Timestamp('2015-03-01', tz="UTC")
     ASSET_FINDER_COUNTRY_CODE = '??'
 
     @classmethod
@@ -1083,7 +1083,7 @@ class ParameterizedFactorTestCase(zf.WithAssetFinder,
             '2015-02-01',
             '2015-02-28',
             freq=day,
-            tz='UTC',
+            tz="UTC",
         )
         sids = cls.sids
 
@@ -1505,8 +1505,8 @@ class PopulateInitialWorkspaceTestCase(WithConstantInputs,
 class ChunkedPipelineTestCase(zf.WithSeededRandomPipelineEngine,
                               zf.ZiplineTestCase):
 
-    PIPELINE_START_DATE = Timestamp('2006-01-05', tz='UTC')
-    END_DATE = Timestamp('2006-12-29', tz='UTC')
+    PIPELINE_START_DATE = Timestamp('2006-01-05', tz="UTC")
+    END_DATE = Timestamp('2006-12-29', tz="UTC")
     ASSET_FINDER_COUNTRY_CODE = 'US'
 
     def test_run_chunked_pipeline(self):

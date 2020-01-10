@@ -60,16 +60,16 @@ import numpy as np
 from numpy import float64
 
 
-EPOCH = pd.Timestamp(0, tz='UTC')
+EPOCH = pd.Timestamp(0, tz="UTC")
 
 
 def seconds_to_timestamp(seconds):
-    return pd.Timestamp(seconds, unit='s', tz='UTC')
+    return pd.Timestamp(seconds, unit='s', tz="UTC")
 
 
 def to_utc(time_str):
     """Convert a string in US/Eastern time to UTC"""
-    return pd.Timestamp(time_str, tz='US/Eastern').tz_convert('UTC')
+    return pd.Timestamp(time_str, tz='US/Eastern').tz_convert("UTC")
 
 
 def str_to_seconds(s):
@@ -82,7 +82,7 @@ def str_to_seconds(s):
     >>> str_to_seconds('2014-01-01')
     1388534400
     """
-    return timedelta_to_integral_seconds(pd.Timestamp(s, tz='UTC') - EPOCH)
+    return timedelta_to_integral_seconds(pd.Timestamp(s, tz="UTC") - EPOCH)
 
 
 def drain_zipline(test, zipline):
@@ -1059,7 +1059,7 @@ def gen_calendars(start, stop, critical_dates):
     """
     Generate calendars to use as inputs.
     """
-    all_dates = pd.date_range(start, stop, tz='utc')
+    all_dates = pd.date_range(start, stop, tz="UTC")
     for to_drop in map(list, powerset(critical_dates)):
         # Have to yield tuples.
         yield (all_dates.drop(to_drop),)
@@ -1236,7 +1236,7 @@ def create_empty_dividends_frame():
                 ('sid', 'int32'),
             ],
         ),
-        index=pd.DatetimeIndex([], tz='UTC'),
+        index=pd.DatetimeIndex([], tz="UTC"),
     )
 
 

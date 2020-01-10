@@ -58,8 +58,8 @@ class NDaysAgoClassifier(CustomClassifier):
 
 class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
 
-    DATA_MIN_DAY = pd.Timestamp('2012-06', tz='UTC')
-    DATA_MAX_DAY = pd.Timestamp('2015', tz='UTC')
+    DATA_MIN_DAY = pd.Timestamp('2012-06', tz="UTC")
+    DATA_MAX_DAY = pd.Timestamp('2015', tz="UTC")
     TRADING_CALENDAR_STRS = ('NYSE', 'LSE', 'TSX')
 
     # Test with different window_lengths to ensure that window length is not
@@ -596,10 +596,10 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
                                   ZiplineTestCase):
 
     # Extend into the last few days of 2013 to test year/quarter boundaries.
-    START_DATE = pd.Timestamp('2013-12-15', tz='UTC')
+    START_DATE = pd.Timestamp('2013-12-15', tz="UTC")
 
     # Extend into the first few days of 2015 to test year/quarter boundaries.
-    END_DATE = pd.Timestamp('2015-01-06', tz='UTC')
+    END_DATE = pd.Timestamp('2015-01-06', tz="UTC")
 
     ASSET_FINDER_EQUITY_SIDS = tuple(range(10))
     DOMAIN = US_EQUITIES
@@ -643,8 +643,8 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
         # target period.
         raw_term_results = self.run_pipeline(
             Pipeline({'term': term}),
-            start_date=pd.Timestamp('2014-01-02', tz='UTC'),
-            end_date=pd.Timestamp('2015-01-06', tz='UTC'),
+            start_date=pd.Timestamp('2014-01-02', tz="UTC"),
+            end_date=pd.Timestamp('2015-01-06', tz="UTC"),
         )['term'].unstack()
 
         expected_results = {
@@ -747,7 +747,7 @@ class DownsampledCAPipelineTestCase(DownsampledPipelineTestCase):
 
 class TestDownsampledRowwiseOperation(WithAssetFinder, ZiplineTestCase):
 
-    T = partial(pd.Timestamp, tz='utc')
+    T = partial(pd.Timestamp, tz="UTC")
     START_DATE = T('2014-01-01')
     END_DATE = T('2014-02-01')
     HALF_WAY_POINT = T('2014-01-15')

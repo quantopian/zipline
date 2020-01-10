@@ -274,17 +274,17 @@ class StatelessRulesTests(RuleTestCase):
 
         # First day of 09/2014 is closed whereas that for 10/2014 is open
         cls.sept_sessions = cls.cal.sessions_in_range(
-            pd.Timestamp('2014-09-01', tz='UTC'),
-            pd.Timestamp('2014-09-30', tz='UTC'),
+            pd.Timestamp('2014-09-01', tz="UTC"),
+            pd.Timestamp('2014-09-30', tz="UTC"),
         )
         cls.oct_sessions = cls.cal.sessions_in_range(
-            pd.Timestamp('2014-10-01', tz='UTC'),
-            pd.Timestamp('2014-10-31', tz='UTC'),
+            pd.Timestamp('2014-10-01', tz="UTC"),
+            pd.Timestamp('2014-10-31', tz="UTC"),
         )
 
         cls.sept_week = cls.cal.minutes_for_sessions_in_range(
-            pd.Timestamp("2014-09-22", tz='UTC'),
-            pd.Timestamp("2014-09-26", tz='UTC')
+            pd.Timestamp("2014-09-22", tz="UTC"),
+            pd.Timestamp("2014-09-26", tz="UTC")
         )
 
         cls.HALF_SESSION = None

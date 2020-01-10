@@ -21,6 +21,7 @@ from numbers import Integral
 from operator import itemgetter, attrgetter
 import struct
 
+
 from logbook import Logger
 import numpy as np
 import pandas as pd
@@ -126,7 +127,7 @@ def merge_ownership_periods(mappings):
                     # concat with a fake ownership object to make the last
                     # end date be max timestamp
                     [OwnershipPeriod(
-                        pd.Timestamp.max.tz_localize('utc'),
+                        pd.Timestamp.max.tz_localize("UTC"),
                         None,
                         None,
                         None,
@@ -146,8 +147,8 @@ def _build_ownership_map_from_rows(rows, key_from_row, value_from_row):
             [],
         ).append(
             OwnershipPeriod(
-                pd.Timestamp(row.start_date, unit='ns', tz='utc'),
-                pd.Timestamp(row.end_date, unit='ns', tz='utc'),
+                pd.Timestamp(row.start_date, unit='ns', tz="UTC"),
+                pd.Timestamp(row.end_date, unit='ns', tz="UTC"),
                 row.sid,
                 value_from_row(row),
             ),
@@ -218,7 +219,7 @@ def _convert_asset_timestamp_fields(dict_):
     Takes in a dict of Asset init args and converts dates to pd.Timestamps
     """
     for key in _asset_timestamp_fields & viewkeys(dict_):
-        value = pd.Timestamp(dict_[key], tz='UTC')
+        value = pd.Timestamp(dict_[key], tz="UTC")
         dict_[key] = None if isnull(value) else value
     return dict_
 

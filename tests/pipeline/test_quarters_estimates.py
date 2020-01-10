@@ -105,8 +105,8 @@ def create_expected_df_for_factor_compute(start_date,
     )
     # Index name is lost during reindex.
     df.index = df.index.rename('knowledge_date')
-    df['at_date'] = end_date.tz_localize('utc')
-    df = df.set_index(['at_date', df.index.tz_localize('utc')]).ffill()
+    df['at_date'] = end_date.tz_localize("UTC")
+    df = df.set_index(['at_date', df.index.tz_localize("UTC")]).ffill()
     new_sids = set(sids) - set(df.columns)
     df = df.reindex(columns=df.columns.union(new_sids))
     return df
@@ -248,8 +248,8 @@ class WithOneDayPipeline(WithEstimates):
         engine = self.make_engine()
         results = engine.run_pipeline(
             Pipeline({c.name: c.latest for c in dataset.columns}),
-            start_date=pd.Timestamp('2015-01-15', tz='utc'),
-            end_date=pd.Timestamp('2015-01-15', tz='utc'),
+            start_date=pd.Timestamp('2015-01-15', tz="UTC"),
+            end_date=pd.Timestamp('2015-01-15', tz="UTC"),
         )
         assert_frame_equal(results, self.expected_out)
 
@@ -274,7 +274,7 @@ class PreviousWithOneDayPipeline(WithOneDayPipeline, ZiplineTestCase):
                 FISCAL_YEAR_FIELD_NAME: 2015.,
             },
             index=pd.MultiIndex.from_tuples(
-                ((pd.Timestamp('2015-01-15', tz='utc'), cls.sid0),)
+                ((pd.Timestamp('2015-01-15', tz="UTC"), cls.sid0),)
             )
         )
 
@@ -299,7 +299,7 @@ class NextWithOneDayPipeline(WithOneDayPipeline, ZiplineTestCase):
                 FISCAL_YEAR_FIELD_NAME: 2015.,
             },
             index=pd.MultiIndex.from_tuples(
-                ((pd.Timestamp('2015-01-15', tz='utc'), cls.sid0),)
+                ((pd.Timestamp('2015-01-15', tz="UTC"), cls.sid0),)
             )
         )
 
@@ -953,9 +953,9 @@ class WithVaryingNumEstimates(WithEstimates):
         engine = self.make_engine()
         engine.run_pipeline(
             Pipeline({'est': SomeFactor()}),
-            start_date=pd.Timestamp('2015-01-13', tz='utc'),
+            start_date=pd.Timestamp('2015-01-13', tz="UTC"),
             # last event date we have
-            end_date=pd.Timestamp('2015-01-14', tz='utc'),
+            end_date=pd.Timestamp('2015-01-14', tz="UTC"),
         )
 
 
@@ -964,7 +964,7 @@ class PreviousVaryingNumEstimates(
     ZiplineTestCase
 ):
     def assert_compute(self, estimate, today):
-        if today == pd.Timestamp('2015-01-13', tz='utc'):
+        if today == pd.Timestamp('2015-01-13', tz="UTC"):
             assert_array_equal(estimate[:, 0],
                                np.array([np.NaN, np.NaN, 12]))
             assert_array_equal(estimate[:, 1],
@@ -995,7 +995,7 @@ class NextVaryingNumEstimates(
 ):
 
     def assert_compute(self, estimate, today):
-        if today == pd.Timestamp('2015-01-13', tz='utc'):
+        if today == pd.Timestamp('2015-01-13', tz="UTC"):
             assert_array_equal(estimate[:, 0],
                                np.array([11, 12, 12]))
             assert_array_equal(estimate[:, 1],
@@ -1048,12 +1048,12 @@ class WithEstimateWindows(WithEstimates):
     """
     END_DATE = pd.Timestamp('2015-02-10')
     window_test_start_date = pd.Timestamp('2015-01-05')
-    critical_dates = [pd.Timestamp('2015-01-09', tz='utc'),
-                      pd.Timestamp('2015-01-15', tz='utc'),
-                      pd.Timestamp('2015-01-20', tz='utc'),
-                      pd.Timestamp('2015-01-26', tz='utc'),
-                      pd.Timestamp('2015-02-05', tz='utc'),
-                      pd.Timestamp('2015-02-10', tz='utc')]
+    critical_dates = [pd.Timestamp('2015-01-09', tz="UTC"),
+                      pd.Timestamp('2015-01-15', tz="UTC"),
+                      pd.Timestamp('2015-01-20', tz="UTC"),
+                      pd.Timestamp('2015-01-26', tz="UTC"),
+                      pd.Timestamp('2015-02-05', tz="UTC"),
+                      pd.Timestamp('2015-02-10', tz="UTC")]
     # Starting date, number of announcements out.
     window_test_cases = list(itertools.product(critical_dates, (1, 2)))
 
@@ -1178,7 +1178,7 @@ class WithEstimateWindows(WithEstimates):
             Pipeline({'est': SomeFactor()}),
             start_date=start_date,
             # last event date we have
-            end_date=pd.Timestamp('2015-02-10', tz='utc'),
+            end_date=pd.Timestamp('2015-02-10', tz="UTC"),
         )
 
 
@@ -1973,8 +1973,8 @@ class WithSplitAdjustedMultipleEstimateColumns(WithEstimates):
         we still split-adjust correctly.
     """
     END_DATE = pd.Timestamp('2015-02-10')
-    test_start_date = pd.Timestamp('2015-01-06', tz='utc')
-    test_end_date = pd.Timestamp('2015-01-12', tz='utc')
+    test_start_date = pd.Timestamp('2015-01-06', tz="UTC")
+    test_end_date = pd.Timestamp('2015-01-12', tz="UTC")
     split_adjusted_asof = pd.Timestamp('2015-01-08')
 
     @classmethod
@@ -2127,21 +2127,21 @@ class PreviousWithSplitAdjustedMultipleEstimateColumns(
     @classmethod
     def make_expected_timelines_1q_out(cls):
         return {
-            pd.Timestamp('2015-01-06', tz='utc'): {
+            pd.Timestamp('2015-01-06', tz="UTC"): {
                 'estimate1': np.array([[np.NaN, np.NaN]] * 3),
                 'estimate2': np.array([[np.NaN, np.NaN]] * 3)
             },
-            pd.Timestamp('2015-01-07', tz='utc'): {
+            pd.Timestamp('2015-01-07', tz="UTC"): {
                 'estimate1': np.array([[np.NaN, np.NaN]] * 3),
                 'estimate2': np.array([[np.NaN, np.NaN]] * 3)
             },
-            pd.Timestamp('2015-01-08', tz='utc'): {
+            pd.Timestamp('2015-01-08', tz="UTC"): {
                 'estimate1': np.array([[np.NaN, np.NaN]] * 2 +
                                       [[np.NaN, 1110.]]),
                 'estimate2': np.array([[np.NaN, np.NaN]] * 2 +
                                       [[np.NaN, 2110.]])
             },
-            pd.Timestamp('2015-01-09', tz='utc'): {
+            pd.Timestamp('2015-01-09', tz="UTC"): {
                 'estimate1': np.array([[np.NaN, np.NaN]] +
                                       [[np.NaN, 1110. * 4]] +
                                       [[1100 * 3., 1110. * 4]]),
@@ -2149,7 +2149,7 @@ class PreviousWithSplitAdjustedMultipleEstimateColumns(
                                       [[np.NaN, 2110. * 4]] +
                                       [[2100 * 3., 2110. * 4]])
             },
-            pd.Timestamp('2015-01-12', tz='utc'): {
+            pd.Timestamp('2015-01-12', tz="UTC"): {
                 'estimate1': np.array([[np.NaN, np.NaN]] * 2 +
                                       [[1200 * 3., 1210. * 4]]),
                 'estimate2': np.array([[np.NaN, np.NaN]] * 2 +
@@ -2160,19 +2160,19 @@ class PreviousWithSplitAdjustedMultipleEstimateColumns(
     @classmethod
     def make_expected_timelines_2q_out(cls):
         return {
-            pd.Timestamp('2015-01-06', tz='utc'): {
+            pd.Timestamp('2015-01-06', tz="UTC"): {
                 'estimate2': np.array([[np.NaN, np.NaN]] * 3)
             },
-            pd.Timestamp('2015-01-07', tz='utc'): {
+            pd.Timestamp('2015-01-07', tz="UTC"): {
                 'estimate2': np.array([[np.NaN, np.NaN]] * 3)
             },
-            pd.Timestamp('2015-01-08', tz='utc'): {
+            pd.Timestamp('2015-01-08', tz="UTC"): {
                 'estimate2': np.array([[np.NaN, np.NaN]] * 3)
             },
-            pd.Timestamp('2015-01-09', tz='utc'): {
+            pd.Timestamp('2015-01-09', tz="UTC"): {
                 'estimate2': np.array([[np.NaN, np.NaN]] * 3)
             },
-            pd.Timestamp('2015-01-12', tz='utc'): {
+            pd.Timestamp('2015-01-12', tz="UTC"): {
                 'estimate2': np.array([[np.NaN, np.NaN]] * 2 +
                                       [[2100 * 3., 2110. * 4]])
             }
@@ -2209,25 +2209,25 @@ class NextWithSplitAdjustedMultipleEstimateColumns(
     @classmethod
     def make_expected_timelines_1q_out(cls):
         return {
-            pd.Timestamp('2015-01-06', tz='utc'): {
+            pd.Timestamp('2015-01-06', tz="UTC"): {
                 'estimate1': np.array([[np.NaN, np.NaN]] +
                                       [[1100. * 1/.3, 1110. * 1/.4]] * 2),
                 'estimate2': np.array([[np.NaN, np.NaN]] +
                                       [[2100. * 1/.3, 2110. * 1/.4]] * 2),
             },
-            pd.Timestamp('2015-01-07', tz='utc'): {
+            pd.Timestamp('2015-01-07', tz="UTC"): {
                 'estimate1': np.array([[1100., 1110.]] * 3),
                 'estimate2': np.array([[2100., 2110.]] * 3)
             },
-            pd.Timestamp('2015-01-08', tz='utc'): {
+            pd.Timestamp('2015-01-08', tz="UTC"): {
                 'estimate1': np.array([[1100., 1110.]] * 3),
                 'estimate2': np.array([[2100., 2110.]] * 3)
             },
-            pd.Timestamp('2015-01-09', tz='utc'): {
+            pd.Timestamp('2015-01-09', tz="UTC"): {
                 'estimate1': np.array([[1100 * 3., 1210. * 4]] * 3),
                 'estimate2': np.array([[2100 * 3., 2210. * 4]] * 3)
             },
-            pd.Timestamp('2015-01-12', tz='utc'): {
+            pd.Timestamp('2015-01-12', tz="UTC"): {
                 'estimate1': np.array([[1200 * 3., np.NaN]] * 3),
                 'estimate2': np.array([[2200 * 3., np.NaN]] * 3)
             }
@@ -2236,20 +2236,20 @@ class NextWithSplitAdjustedMultipleEstimateColumns(
     @classmethod
     def make_expected_timelines_2q_out(cls):
         return {
-            pd.Timestamp('2015-01-06', tz='utc'): {
+            pd.Timestamp('2015-01-06', tz="UTC"): {
                 'estimate2': np.array([[np.NaN, np.NaN]] +
                                       [[2200 * 1/.3, 2210. * 1/.4]] * 2)
             },
-            pd.Timestamp('2015-01-07', tz='utc'): {
+            pd.Timestamp('2015-01-07', tz="UTC"): {
                 'estimate2': np.array([[2200., 2210.]] * 3)
             },
-            pd.Timestamp('2015-01-08', tz='utc'): {
+            pd.Timestamp('2015-01-08', tz="UTC"): {
                 'estimate2': np.array([[2200, 2210.]] * 3)
             },
-            pd.Timestamp('2015-01-09', tz='utc'): {
+            pd.Timestamp('2015-01-09', tz="UTC"): {
                 'estimate2': np.array([[2200 * 3., np.NaN]] * 3)
             },
-            pd.Timestamp('2015-01-12', tz='utc'): {
+            pd.Timestamp('2015-01-12', tz="UTC"): {
                 'estimate2': np.array([[np.NaN, np.NaN]] * 3)
             }
         }
@@ -2460,48 +2460,48 @@ class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries,
             }, index=pd.date_range(
                 cls.test_start_date,
                 pd.Timestamp('2015-01-08'),
-                tz='utc'
+                tz="UTC"
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s0,
                 'estimate': 10.,
             }, index=pd.date_range(
-                pd.Timestamp('2015-01-09'), cls.test_end_date, tz='utc'
+                pd.Timestamp('2015-01-09'), cls.test_end_date, tz="UTC"
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s1,
                 'estimate': 11.,
             }, index=pd.date_range(cls.test_start_date, cls.test_end_date,
-                                   tz='utc')),
+                                   tz="UTC")),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s2,
                 'estimate': np.NaN
             }, index=pd.date_range(cls.test_start_date,
                                    cls.test_end_date,
-                                   tz='utc')),
+                                   tz="UTC")),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s3,
                 'estimate': np.NaN
             }, index=pd.date_range(
-                cls.test_start_date, cls.test_end_date - timedelta(1), tz='utc'
+                cls.test_start_date, cls.test_end_date - timedelta(1), tz="UTC"
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s3,
                 'estimate': 13. * .13
             }, index=pd.date_range(cls.test_end_date,
                                    cls.test_end_date,
-                                   tz='utc')),
+                                   tz="UTC")),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s4,
                 'estimate': np.NaN
             }, index=pd.date_range(
-                cls.test_start_date, cls.test_end_date - timedelta(2), tz='utc'
+                cls.test_start_date, cls.test_end_date - timedelta(2), tz="UTC"
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s4,
                 'estimate': 14. * .15
             }, index=pd.date_range(
-                cls.test_end_date - timedelta(1), cls.test_end_date, tz='utc'
+                cls.test_end_date - timedelta(1), cls.test_end_date, tz="UTC"
             )),
         ]).set_index(SID_FIELD_NAME, append=True).unstack(
             SID_FIELD_NAME).reindex(cls.trading_days).stack(
@@ -2512,50 +2512,50 @@ class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries,
                 SID_FIELD_NAME: cls.s0,
                 'estimate': np.NaN,
             }, index=pd.date_range(
-                cls.test_start_date, pd.Timestamp('2015-01-08'), tz='utc'
+                cls.test_start_date, pd.Timestamp('2015-01-08'), tz="UTC"
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s0,
                 'estimate': 10.,
             }, index=pd.date_range(
-                pd.Timestamp('2015-01-09'), cls.test_end_date, tz='utc'
+                pd.Timestamp('2015-01-09'), cls.test_end_date, tz="UTC"
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s1,
                 'estimate': 11.,
             }, index=pd.date_range(cls.test_start_date,
                                    cls.test_end_date,
-                                   tz='utc')),
+                                   tz="UTC")),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s2,
                 'estimate': np.NaN
             }, index=pd.date_range(cls.test_start_date,
                                    cls.test_end_date,
-                                   tz='utc')),
+                                   tz="UTC")),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s3,
                 'estimate': np.NaN
             }, index=pd.date_range(
-                cls.test_start_date, cls.test_end_date - timedelta(1), tz='utc'
+                cls.test_start_date, cls.test_end_date - timedelta(1), tz="UTC"
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s3,
                 'estimate': 13.
             }, index=pd.date_range(cls.test_end_date,
                                    cls.test_end_date,
-                                   tz='utc')),
+                                   tz="UTC")),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s4,
                 'estimate': np.NaN
             }, index=pd.date_range(
-                cls.test_start_date, cls.test_end_date - timedelta(2), tz='utc'
+                cls.test_start_date, cls.test_end_date - timedelta(2), tz="UTC"
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s4,
                 'estimate': 14.
             }, index=pd.date_range(cls.test_end_date - timedelta(1),
                                    cls.test_end_date,
-                                   tz='utc')),
+                                   tz="UTC")),
         ]).set_index(SID_FIELD_NAME, append=True).unstack(
             SID_FIELD_NAME).reindex(cls.trading_days).stack(SID_FIELD_NAME,
                                                             dropna=False)
@@ -2600,25 +2600,25 @@ class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries,
                 SID_FIELD_NAME: cls.s0,
                 'estimate': 10,
             }, index=pd.date_range(
-                cls.test_start_date, pd.Timestamp('2015-01-09'), tz='utc'
+                cls.test_start_date, pd.Timestamp('2015-01-09'), tz="UTC"
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s1,
                 'estimate': 11.,
             }, index=pd.date_range(cls.test_start_date,
                                    cls.test_start_date,
-                                   tz='utc')),
+                                   tz="UTC")),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s2,
                 'estimate': 12.,
             }, index=pd.date_range(cls.test_end_date,
                                    cls.test_end_date,
-                                   tz='utc')),
+                                   tz="UTC")),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s3,
                 'estimate': 13. * .13,
             }, index=pd.date_range(
-                cls.test_end_date - timedelta(1), cls.test_end_date, tz='utc'
+                cls.test_end_date - timedelta(1), cls.test_end_date, tz="UTC"
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s4,
@@ -2626,7 +2626,7 @@ class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries,
             }, index=pd.date_range(
                 cls.test_end_date - timedelta(1),
                 cls.test_end_date - timedelta(1),
-                tz='utc'
+                tz="UTC"
             )),
         ]).set_index(SID_FIELD_NAME, append=True).unstack(
             SID_FIELD_NAME).reindex(cls.trading_days).stack(
@@ -2637,25 +2637,25 @@ class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries,
                 SID_FIELD_NAME: cls.s0,
                 'estimate': 10,
             }, index=pd.date_range(
-                cls.test_start_date, pd.Timestamp('2015-01-09'), tz='utc'
+                cls.test_start_date, pd.Timestamp('2015-01-09'), tz="UTC"
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s1,
                 'estimate': 11.,
             }, index=pd.date_range(cls.test_start_date,
                                    cls.test_start_date,
-                                   tz='utc')),
+                                   tz="UTC")),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s2,
                 'estimate': 12.,
             }, index=pd.date_range(cls.test_end_date,
                                    cls.test_end_date,
-                                   tz='utc')),
+                                   tz="UTC")),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s3,
                 'estimate': 13.,
             }, index=pd.date_range(
-                cls.test_end_date - timedelta(1), cls.test_end_date, tz='utc'
+                cls.test_end_date - timedelta(1), cls.test_end_date, tz="UTC"
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s4,
@@ -2663,7 +2663,7 @@ class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries,
             }, index=pd.date_range(
                 cls.test_end_date - timedelta(1),
                 cls.test_end_date - timedelta(1),
-                tz='utc'
+                tz="UTC"
             )),
         ]).set_index(SID_FIELD_NAME, append=True).unstack(
             SID_FIELD_NAME).reindex(cls.trading_days).stack(

@@ -42,8 +42,8 @@ class DataPortalTestBase(WithDataPortal,
 
     ASSET_FINDER_EQUITY_SIDS = (1, 2, 3)
     DIVIDEND_ASSET_SID = 3
-    START_DATE = pd.Timestamp('2016-08-01')
-    END_DATE = pd.Timestamp('2016-08-08')
+    START_DATE = pd.Timestamp('2016-08-01', tz="UTC")
+    END_DATE = pd.Timestamp('2016-08-08', tz="UTC")
 
     TRADING_CALENDAR_STRS = ('NYSE', 'us_futures')
 
@@ -448,7 +448,7 @@ class DataPortalTestBase(WithDataPortal,
         # all the minutes of 7/6, 7/7, 7/8, and 31 minutes of 7/9
 
         july_9_dt = self.trading_calendar.open_and_close_for_session(
-            pd.Timestamp("2015-07-09", tz='UTC')
+            pd.Timestamp("2015-07-09", tz="UTC")
         )[0] + Timedelta("30 minutes")
 
         self.assertEqual(
@@ -471,7 +471,7 @@ class DataPortalTestBase(WithDataPortal,
         # all the minutes of 11/24, 11/25, 11/27 (half day!), and 31 minutes
         # of 11/30
         nov_30_dt = self.trading_calendar.open_and_close_for_session(
-            pd.Timestamp("2015-11-30", tz='UTC')
+            pd.Timestamp("2015-11-30", tz="UTC")
         )[0] + Timedelta("30 minutes")
 
         self.assertEqual(

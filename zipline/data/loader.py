@@ -46,7 +46,7 @@ def last_modified_time(path):
     """
     Get the last modified time of path as a Timestamp.
     """
-    return pd.Timestamp(os.path.getmtime(path), unit='s', tz='UTC')
+    return pd.Timestamp(os.path.getmtime(path), unit='s', tz="UTC")
 
 
 def get_data_filepath(name, environ=None):
@@ -303,14 +303,14 @@ def _load_cached_data(filename, first_date, last_date, now, resource_name,
                 header=None,
                 # Pass squeeze=True so that we get a series instead of a frame.
                 squeeze=True,
-            ).tz_localize('UTC')
+            ).tz_convert("UTC")
     else:
         def from_csv(path):
             return pd.read_csv(
                 path,
                 parse_dates=[0],
                 index_col=0,
-            ).tz_localize('UTC')
+            ).tz_convert("UTC")
 
     # Path for the cache.
     path = get_data_filepath(filename, environ)
@@ -353,14 +353,14 @@ def _load_cached_data(filename, first_date, last_date, now, resource_name,
     return None
 
 
-def load_prices_from_csv(filepath, identifier_col, tz='UTC'):
+def load_prices_from_csv(filepath, identifier_col, tz="UTC"):
     data = pd.read_csv(filepath, index_col=identifier_col)
     data.index = pd.DatetimeIndex(data.index, tz=tz)
     data.sort_index(inplace=True)
     return data
 
 
-def load_prices_from_csv_folder(folderpath, identifier_col, tz='UTC'):
+def load_prices_from_csv_folder(folderpath, identifier_col, tz="UTC"):
     data = None
     for file in os.listdir(folderpath):
         if '.csv' not in file:

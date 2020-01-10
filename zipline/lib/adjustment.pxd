@@ -157,8 +157,8 @@ cdef class Datetime641DArrayOverwrite(ArrayAdjustment):
     Example
     -------
 
-    >>> import numpy as np; import pandas as pd
-    >>> dts = pd.date_range('2014', freq='D', periods=9, tz='UTC')
+    >>> import numpy as np; import pandas as pd;
+    >>> dts = pd.date_range('2014', freq='D', periods=9, tz="UTC")
     >>> arr = dts.values.reshape(3, 3)
     >>> arr == np.datetime64(0, 'ns')
     array([[False, False, False],
@@ -298,8 +298,8 @@ cdef class Datetime64Overwrite(Datetime64Adjustment):
     Example
     -------
 
-    >>> import numpy as np; import pandas as pd
-    >>> dts = pd.date_range('2014', freq='D', periods=9, tz='UTC')
+    >>> import numpy as np; import pandas as pd;
+    >>> dts = pd.date_range('2014', freq='D', periods=9, tz="UTC")
     >>> arr = dts.values.reshape(3, 3)
     >>> arr == np.datetime64(0, 'ns')
     array([[False, False, False],

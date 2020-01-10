@@ -42,7 +42,7 @@ class CachedObject(object):
     Examples
     --------
     >>> from pandas import Timestamp, Timedelta
-    >>> expires = Timestamp('2014', tz='UTC')
+    >>> expires = Timestamp('2014', tz="UTC")
     >>> obj = CachedObject(1, expires)
     >>> obj.unwrap(expires - Timedelta('1 minute'))
     1
@@ -108,7 +108,7 @@ class ExpiringCache(object):
     Examples
     --------
     >>> from pandas import Timestamp, Timedelta
-    >>> expires = Timestamp('2014', tz='UTC')
+    >>> expires = Timestamp('2014', tz="UTC")
     >>> value = 1
     >>> cache = ExpiringCache()
     >>> cache.set('foo', value, expires)

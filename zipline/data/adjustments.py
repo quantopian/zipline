@@ -214,7 +214,7 @@ class SQLiteAdjustmentReader(object):
             table_name, t).fetchall()
         c.close()
 
-        return [[Timestamp(adjustment[0], unit='s', tz='UTC'), adjustment[1]]
+        return [[Timestamp(adjustment[0], unit='s', tz="UTC"), adjustment[1]]
                 for adjustment in
                 adjustments_for_sid]
 
@@ -234,7 +234,7 @@ class SQLiteAdjustmentReader(object):
             for row in rows:
                 div = Dividend(
                     asset_finder.retrieve_asset(row[0]),
-                    row[1], Timestamp(row[2], unit='s', tz='UTC'))
+                    row[1], Timestamp(row[2], unit='s', tz="UTC"))
                 divs.append(div)
         c.close()
 
@@ -259,7 +259,7 @@ class SQLiteAdjustmentReader(object):
                     asset_finder.retrieve_asset(row[0]),    # asset
                     asset_finder.retrieve_asset(row[1]),    # payment_asset
                     row[2],
-                    Timestamp(row[3], unit='s', tz='UTC'))
+                    Timestamp(row[3], unit='s', tz="UTC"))
                 stock_divs.append(stock_div)
         c.close()
 
@@ -484,11 +484,11 @@ class SQLiteAdjustmentWriter(object):
 
         close, = pricing_reader.load_raw_arrays(
             ['close'],
-            pd.Timestamp(dates[0], tz='UTC'),
-            pd.Timestamp(dates[-1], tz='UTC'),
+            pd.Timestamp(dates[0], tz="UTC"),
+            pd.Timestamp(dates[-1], tz="UTC"),
             unique_sids,
         )
-        date_ix = np.searchsorted(dates, dividends.ex_date.values)
+        date_ix = np.searchsorted(dates, pd.to_datetime(dividends.ex_date.values, utc=True))
         mask = date_ix > 0
 
         date_ix = date_ix[mask]

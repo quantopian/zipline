@@ -18,7 +18,6 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 
-
 def _ensure_index(x):
     if not isinstance(x, pd.Index):
         x = pd.Index(sorted(x))
@@ -204,7 +203,7 @@ class RollingPanel(object):
             # return copy so we can change it without side effects here
             return values.copy()
 
-        major_axis = pd.DatetimeIndex(deepcopy(current_dates), tz='utc')
+        major_axis = pd.DatetimeIndex(deepcopy(current_dates), tz="UTC")
         if values.ndim == 3:
             return pd.Panel(values, self.items, major_axis, self.minor_axis,
                             dtype=self.dtype)
@@ -224,7 +223,7 @@ class RollingPanel(object):
 
     def current_dates(self):
         where = slice(self._start_index, self._pos)
-        return pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz='utc')
+        return pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz="UTC")
 
     def _roll_data(self):
         """
@@ -298,7 +297,7 @@ class MutableIndexRollingPanel(object):
         """
 
         where = slice(self._oldest_frame_idx(), self._pos)
-        major_axis = pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz='utc')
+        major_axis = pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz="UTC")
         return pd.Panel(self.buffer.values[:, where, :], self.items,
                         major_axis, self.minor_axis, dtype=self.dtype)
 
@@ -313,7 +312,7 @@ class MutableIndexRollingPanel(object):
 
     def current_dates(self):
         where = slice(self._oldest_frame_idx(), self._pos)
-        return pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz='utc')
+        return pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz="UTC")
 
     def _roll_data(self):
         """

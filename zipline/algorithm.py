@@ -667,7 +667,7 @@ class TradingAlgorithm(object):
                 self.risk_report = perf
 
         daily_dts = pd.DatetimeIndex(
-            [p['period_close'] for p in daily_perfs], tz='UTC'
+            [p['period_close'] for p in daily_perfs], tz=pytz.UTC
         )
         daily_stats = pd.DataFrame(daily_perfs, index=daily_dts)
         return daily_stats
@@ -1607,7 +1607,7 @@ class TradingAlgorithm(object):
             The new symbol lookup date.
         """
         try:
-            self._symbol_lookup_date = pd.Timestamp(dt, tz='UTC')
+            self._symbol_lookup_date = pd.Timestamp(dt, tz=pytz.UTC)
         except ValueError:
             raise UnsupportedDatetimeFormat(input=dt,
                                             method='set_symbol_lookup_date')

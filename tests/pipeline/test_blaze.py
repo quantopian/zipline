@@ -125,7 +125,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                       data_query_time=time(0, 0, tzinfo=pytz.utc),
                       data_query_date_offset=0):
         if sessions.tz is None:
-            sessions = sessions.tz_localize('UTC')
+            sessions = sessions.tz_localize("UTC")
 
         return EquitySessionDomain(
             sessions,
@@ -549,7 +549,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             columns=['str_value', 'float_value', 'int_value', 'bool_value',
                      'dt_value'],
             index=pd.MultiIndex.from_product(
-                (self.dates.tz_localize('UTC'), self.asset_finder.retrieve_all(
+                (self.dates.tz_localize("UTC"), self.asset_finder.retrieve_all(
                     self.ASSET_FINDER_EQUITY_SIDS
                 ))
             )
@@ -695,7 +695,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 'dt_value',
             ],
             index=pd.MultiIndex.from_product((
-                self.dates.tz_localize('UTC'),
+                self.dates.tz_localize("UTC"),
                 self.asset_finder.retrieve_all(self.ASSET_FINDER_EQUITY_SIDS),
             )),
         )
@@ -873,7 +873,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         df['timestamp'] = (
             pd.DatetimeIndex(df['timestamp'], tz='EST') +
             timedelta(hours=8, minutes=44)
-        ).tz_convert('utc').tz_localize(None)
+        ).tz_convert("UTC").tz_localize(None)
         df.ix[3:5, 'timestamp'] = pd.Timestamp('2014-01-01 13:45')
         expr = bz.data(df, name='expr', dshape=self.dshape)
         loader = BlazeLoader()
@@ -899,7 +899,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         expected = df.drop('asof_date', axis=1)
         expected['timestamp'] = expected['timestamp'].dt.normalize().astype(
             'datetime64[ns]',
-        ).dt.tz_localize('utc')
+        ).dt.tz_localize("UTC")
         expected.ix[3:5, 'timestamp'] += timedelta(days=1)
         expected.set_index(['timestamp', 'sid'], inplace=True)
         expected.index = pd.MultiIndex.from_product((
@@ -936,7 +936,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         """
         expected = self.df.drop(['timestamp', 'asof_date', 'sid'], axis=1)
         expected.index = pd.MultiIndex.from_product((
-            self.dates.tz_localize('UTC'),
+            self.dates.tz_localize("UTC"),
             self.asset_finder.retrieve_all(self.asset_finder.sids),
         ))
         self._test_id(
@@ -978,7 +978,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             axis=1,
         )
         expected.index = pd.MultiIndex.from_product((
-            self.dates.tz_localize('UTC'),
+            self.dates.tz_localize("UTC"),
             self.asset_finder.retrieve_all(self.asset_finder.sids),
         ))
         self._test_id(
@@ -1039,7 +1039,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                       [3, 4]]),
             columns=['other', 'value'],
             index=pd.MultiIndex.from_product(
-                (self.dates.tz_localize('UTC'), self.asset_finder.retrieve_all(
+                (self.dates.tz_localize("UTC"), self.asset_finder.retrieve_all(
                     self.ASSET_FINDER_EQUITY_SIDS
                 )),
             ),
@@ -1085,7 +1085,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
 
         expected = df.drop(['timestamp', 'asof_date', 'sid'], axis=1)
         expected.index = pd.MultiIndex.from_product((
-            self.dates.tz_localize('UTC'),
+            self.dates.tz_localize("UTC"),
             self.asset_finder.retrieve_all(self.asset_finder.sids),
         ))
         self._test_id(
@@ -1154,7 +1154,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                   [0, 1],
                   [0, 1]],
             columns=['other', 'value'],
-            index=self.dates.tz_localize('UTC'),
+            index=self.dates.tz_localize("UTC"),
         )
         self._test_id_macro(
             df,
@@ -1242,7 +1242,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 [3,           4],             # Equity(67 [C])
             ],
             index=pd.MultiIndex.from_product(
-                (self.dates.tz_localize('UTC'), self.asset_finder.retrieve_all(
+                (self.dates.tz_localize("UTC"), self.asset_finder.retrieve_all(
                     self.ASSET_FINDER_EQUITY_SIDS
                 )),
             ),
@@ -1383,7 +1383,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             dshape=self.dshape,
         )
 
-        expected_views = keymap(partial(pd.Timestamp, tz='UTC'), {
+        expected_views = keymap(partial(pd.Timestamp, tz="UTC"), {
             '2014-01-02': np.array([[10.0, 11.0, 12.0],
                                     [1.0, 2.0, 3.0]]),
             '2014-01-03': np.array([[11.0, 12.0, 13.0],
@@ -1470,7 +1470,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         ])
         deltas = bz.data(deltas_df, name='deltas', dshape=self.dshape)
 
-        expected_views_single_sid = keymap(partial(pd.Timestamp, tz='UTC'), {
+        expected_views_single_sid = keymap(partial(pd.Timestamp, tz="UTC"), {
             '2014-01-02': np.array([[0.0],
                                     [0.0]]),
             '2014-01-03': np.array([[1.0],
@@ -1582,7 +1582,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         ])
         deltas = bz.data(deltas_df, name='deltas', dshape=self.dshape)
 
-        expected_views_single_sid = keymap(partial(pd.Timestamp, tz='UTC'), {
+        expected_views_single_sid = keymap(partial(pd.Timestamp, tz="UTC"), {
             '2014-01-05': np.array([[0.0],
                                     [3.0]]),
             '2014-01-07': np.array([[3.0],
@@ -1622,7 +1622,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         })
         deltas = bz.data(deltas, name='deltas', dshape=self.dshape)
 
-        expected_views = keymap(partial(pd.Timestamp, tz='UTC'), {
+        expected_views = keymap(partial(pd.Timestamp, tz="UTC"), {
             '2014-01-02': np.array([[0.0, 11.0, 2.0],
                                     [1.0, 2.0, 3.0]]),
             '2014-01-03': np.array([[10.0, 2.0, 3.0],
@@ -1679,7 +1679,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         )
 
         nassets = len(simple_asset_info)
-        expected_views = keymap(partial(pd.Timestamp, tz='UTC'), {
+        expected_views = keymap(partial(pd.Timestamp, tz="UTC"), {
             '2014-01-02': np.array([[10.0],
                                     [1.0]]),
             '2014-01-03': np.array([[11.0],
@@ -1743,7 +1743,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         })
         deltas = bz.data(deltas_df, name='deltas', dshape=self.macro_dshape)
 
-        expected_views = keymap(partial(pd.Timestamp, tz='UTC'), {
+        expected_views = keymap(partial(pd.Timestamp, tz="UTC"), {
             '2014-01-02': np.array([[0.0],
                                     [0.0]]),
             '2014-01-03': np.array([[1.0],
@@ -1836,7 +1836,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         })
         deltas = bz.data(deltas_df, name='deltas', dshape=self.macro_dshape)
 
-        expected_views = keymap(partial(pd.Timestamp, tz='UTC'), {
+        expected_views = keymap(partial(pd.Timestamp, tz="UTC"), {
             '2014-01-05': np.array([[0.0],
                                     [3.0]]),
             '2014-01-07': np.array([[3.0],
@@ -1908,7 +1908,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         })
         deltas = bz.data(deltas_df, name='deltas', dshape=self.macro_dshape)
 
-        expected_views = keymap(partial(pd.Timestamp, tz='UTC'), {
+        expected_views = keymap(partial(pd.Timestamp, tz="UTC"), {
             '2014-01-03': np.array([[4.0],
                                     [4.0],
                                     [0.0]]),
@@ -1958,7 +1958,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             name='delta',
             dshape=self.dshape,
         )
-        expected_views = keymap(partial(pd.Timestamp, tz='UTC'), {
+        expected_views = keymap(partial(pd.Timestamp, tz="UTC"), {
             '2014-01-03': np.array([[10.0, 11.0, 12.0],
                                     [10.0, 11.0, 12.0],
                                     [10.0, 11.0, 12.0]]),
@@ -2041,7 +2041,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             timestamp=deltas.timestamp + timedelta(days=1),
         )
         nassets = len(simple_asset_info)
-        expected_views = keymap(partial(pd.Timestamp, tz='UTC'), {
+        expected_views = keymap(partial(pd.Timestamp, tz="UTC"), {
             '2014-01-03': np.array([[10.0],
                                     [10.0],
                                     [10.0]]),
@@ -2114,7 +2114,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         })
 
         nassets = len(simple_asset_info)
-        expected_views = keymap(lambda t: t.tz_localize('UTC'), {
+        expected_views = keymap(lambda t: t.tz_localize("UTC"), {
             self.test_checkpoints_expected_view_date: (
                 np.array([[ffilled_value]])
             ),
@@ -2244,7 +2244,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
 
         updated_values = baseline.value.iloc[nassets:]
 
-        expected_views = keymap(partial(pd.Timestamp, tz='UTC'), {
+        expected_views = keymap(partial(pd.Timestamp, tz="UTC"), {
             self.test_checkpoints_expected_view_date: [ffilled_values],
             self.test_checkpoints_dates[-1]: [updated_values],
         })
@@ -2355,7 +2355,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             pd.Timestamp('2014-01-02'),
             pd.Timestamp('2014-01-03'),
             pd.Timestamp('2014-01-06'),
-        ]).tz_localize('UTC')
+        ]).tz_localize("UTC")
 
         T = pd.Timestamp
         df = pd.DataFrame(

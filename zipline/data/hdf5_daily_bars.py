@@ -733,7 +733,7 @@ class HDF5DailyBarReader(CurrencyAwareSessionBarReader):
         dt : pd.Timestamp
             The last session for which the reader can provide data.
         """
-        return pd.Timestamp(self.dates[-1], tz='UTC')
+        return pd.Timestamp(self.dates[-1], tz="UTC")
 
     @property
     def trading_calendar(self):
@@ -754,7 +754,7 @@ class HDF5DailyBarReader(CurrencyAwareSessionBarReader):
             The first trading day (session) for which the reader can provide
             data.
         """
-        return pd.Timestamp(self.dates[0], tz='UTC')
+        return pd.Timestamp(self.dates[0], tz="UTC")
 
     @lazyval
     def sessions(self):
@@ -846,7 +846,7 @@ class HDF5DailyBarReader(CurrencyAwareSessionBarReader):
         if len(nonzero_volume_ixs) == 0:
             return pd.NaT
 
-        return pd.Timestamp(self.dates[nonzero_volume_ixs][-1], tz='UTC')
+        return pd.Timestamp(self.dates[nonzero_volume_ixs][-1], tz="UTC")
 
 
 class MultiCountryDailyBarReader(CurrencyAwareSessionBarReader):

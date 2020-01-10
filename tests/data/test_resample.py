@@ -46,19 +46,19 @@ NYSE_MINUTES = OrderedDict((
     ('day_0_front', pd.date_range('2016-03-15 9:31',
                                   '2016-03-15 9:33',
                                   freq='min',
-                                  tz='US/Eastern').tz_convert('UTC')),
+                                  tz='US/Eastern').tz_convert("UTC")),
     ('day_0_back', pd.date_range('2016-03-15 15:58',
                                  '2016-03-15 16:00',
                                  freq='min',
-                                 tz='US/Eastern').tz_convert('UTC')),
+                                 tz='US/Eastern').tz_convert("UTC")),
     ('day_1_front', pd.date_range('2016-03-16 9:31',
                                   '2016-03-16 9:33',
                                   freq='min',
-                                  tz='US/Eastern').tz_convert('UTC')),
+                                  tz='US/Eastern').tz_convert("UTC")),
     ('day_1_back', pd.date_range('2016-03-16 15:58',
                                  '2016-03-16 16:00',
                                  freq='min',
-                                 tz='US/Eastern').tz_convert('UTC')),
+                                 tz='US/Eastern').tz_convert("UTC")),
 ))
 
 
@@ -66,19 +66,19 @@ FUT_MINUTES = OrderedDict((
     ('day_0_front', pd.date_range('2016-03-15 18:01',
                                   '2016-03-15 18:03',
                                   freq='min',
-                                  tz='US/Eastern').tz_convert('UTC')),
+                                  tz='US/Eastern').tz_convert("UTC")),
     ('day_0_back', pd.date_range('2016-03-16 17:58',
                                  '2016-03-16 18:00',
                                  freq='min',
-                                 tz='US/Eastern').tz_convert('UTC')),
+                                 tz='US/Eastern').tz_convert("UTC")),
     ('day_1_front', pd.date_range('2016-03-16 18:01',
                                   '2016-03-16 18:03',
                                   freq='min',
-                                  tz='US/Eastern').tz_convert('UTC')),
+                                  tz='US/Eastern').tz_convert("UTC")),
     ('day_1_back', pd.date_range('2016-03-17 17:58',
                                  '2016-03-17 18:00',
                                  freq='min',
-                                 tz='US/Eastern').tz_convert('UTC')),
+                                 tz='US/Eastern').tz_convert("UTC")),
 ))
 
 
@@ -265,10 +265,10 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
     # 27 28 29 30 31
 
     TRADING_ENV_MIN_DATE = START_DATE = pd.Timestamp(
-        '2016-03-01', tz='UTC',
+        '2016-03-01', tz="UTC",
     )
     TRADING_ENV_MAX_DATE = END_DATE = pd.Timestamp(
-        '2016-03-31', tz='UTC',
+        '2016-03-31', tz="UTC",
     )
 
     TRADING_CALENDAR_STRS = ('NYSE', 'us_futures')
@@ -281,7 +281,7 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
         frame = super(MinuteToDailyAggregationTestCase, cls).make_equity_info()
         # Make equity 4 start a day behind the data start to exercise assets
         # which not alive for the session.
-        frame.loc[[4], 'start_date'] = pd.Timestamp('2016-03-16', tz='UTC')
+        frame.loc[[4], 'start_date'] = pd.Timestamp('2016-03-16', tz="UTC")
         return frame
 
     @classmethod
@@ -536,10 +536,10 @@ class TestMinuteToSession(WithEquityMinuteBarData,
     # 27 28 29 30 31
 
     START_DATE = pd.Timestamp(
-        '2016-03-15', tz='UTC',
+        '2016-03-15', tz="UTC",
     )
     END_DATE = pd.Timestamp(
-        '2016-03-15', tz='UTC',
+        '2016-03-15', tz="UTC",
     )
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 3
 
@@ -572,8 +572,8 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
 
     ASSET_FINDER_FUTURE_SIDS = 1001, 1002, 1003, 1004
 
-    START_DATE = pd.Timestamp('2016-03-16', tz='UTC')
-    END_DATE = pd.Timestamp('2016-03-17', tz='UTC')
+    START_DATE = pd.Timestamp('2016-03-16', tz="UTC")
+    END_DATE = pd.Timestamp('2016-03-17', tz="UTC")
     NUM_SESSIONS = 2
 
     @classmethod
@@ -643,7 +643,7 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
         for sid in self.ASSET_FINDER_FUTURE_SIDS:
             expected = EXPECTED_SESSIONS[sid]
             for dt_str, values in expected.iterrows():
-                dt = pd.Timestamp(dt_str, tz='UTC')
+                dt = pd.Timestamp(dt_str, tz="UTC")
                 for col in OHLCV:
                     result = session_bar_reader.get_value(sid, dt, col)
                     assert_almost_equal(result,
@@ -674,8 +674,8 @@ class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader,
 
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 3
 
-    START_DATE = pd.Timestamp('2015-12-01', tz='UTC')
-    END_DATE = pd.Timestamp('2015-12-31', tz='UTC')
+    START_DATE = pd.Timestamp('2015-12-01', tz="UTC")
+    END_DATE = pd.Timestamp('2015-12-31', tz="UTC")
 
     def test_load_raw_arrays(self):
         reindex_reader = ReindexMinuteBarReader(
@@ -709,7 +709,7 @@ class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader,
         )
 
         slicer = outer_minutes.slice_indexer(
-            end=pd.Timestamp('2015-12-01 14:30', tz='UTC'))
+            end=pd.Timestamp('2015-12-01 14:30', tz="UTC"))
 
         assert_almost_equal(
             opens[1][slicer],
@@ -717,7 +717,7 @@ class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader,
             err_msg="All values before the NYSE market open should be nan.")
 
         slicer = outer_minutes.slice_indexer(
-            start=pd.Timestamp('2015-12-01 21:01', tz='UTC'))
+            start=pd.Timestamp('2015-12-01 21:01', tz="UTC"))
 
         assert_almost_equal(
             opens[1][slicer],
@@ -725,7 +725,7 @@ class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader,
             err_msg="All values after the NYSE market close should be nan.")
 
         first_minute_loc = outer_minutes.get_loc(pd.Timestamp(
-            '2015-12-01 14:31', tz='UTC'))
+            '2015-12-01 14:31', tz="UTC"))
 
         # Spot check a value.
         # The value is the autogenerated value from test fixtures.
@@ -745,8 +745,8 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
 
     # Dates are chosen to span Thanksgiving, which is not a Holiday on
     # us_futures.
-    START_DATE = pd.Timestamp('2015-11-02', tz='UTC')
-    END_DATE = pd.Timestamp('2015-11-30', tz='UTC')
+    START_DATE = pd.Timestamp('2015-11-02', tz="UTC")
+    END_DATE = pd.Timestamp('2015-11-30', tz="UTC")
     #     November 2015
     # Su Mo Tu We Th Fr Sa
     #  1  2  3  4  5  6  7
@@ -787,7 +787,7 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
             "The reindexed result after dropping nans should have 20 days, "
             "because Thanksgiving is a NYSE holiday.")
 
-        tday = pd.Timestamp('2015-11-26', tz='UTC')
+        tday = pd.Timestamp('2015-11-26', tz="UTC")
 
         # Thanksgiving, 2015-11-26.
         # Is a holiday in NYSE, but not in us_futures.
@@ -801,7 +801,7 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
 
         # Thanksgiving, 2015-11-26.
         # Is a holiday in NYSE, but not in us_futures.
-        tday_loc = outer_sessions.get_loc(pd.Timestamp('2015-11-26', tz='UTC'))
+        tday_loc = outer_sessions.get_loc(pd.Timestamp('2015-11-26', tz="UTC"))
 
         assert_almost_equal(
             nan,
@@ -810,7 +810,7 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
             "holiday in the reader's calendar.")
 
     def test_load_raw_arrays_holiday_start(self):
-        tday = pd.Timestamp('2015-11-26', tz='UTC')
+        tday = pd.Timestamp('2015-11-26', tz="UTC")
         outer_sessions = self.trading_calendar.sessions_in_range(
             tday, self.END_DATE)
 
@@ -833,7 +833,7 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
             "because Thanksgiving is a NYSE holiday.")
 
     def test_load_raw_arrays_holiday_end(self):
-        tday = pd.Timestamp('2015-11-26', tz='UTC')
+        tday = pd.Timestamp('2015-11-26', tz="UTC")
         outer_sessions = self.trading_calendar.sessions_in_range(
             self.START_DATE, tday)
 
@@ -860,7 +860,7 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
                             10.0,
                             err_msg="The open of the fixture data on the "
                             "first session should be 10.")
-        tday = pd.Timestamp('2015-11-26', tz='UTC')
+        tday = pd.Timestamp('2015-11-26', tz="UTC")
 
         self.assertTrue(isnan(self.reader.get_value(1, tday, 'close')))
 
@@ -879,9 +879,9 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
         sessions = self.reader.sessions
         self.assertEqual(21, len(sessions),
                          "There should be 21 sessions in 2015-11.")
-        self.assertEqual(pd.Timestamp('2015-11-02', tz='UTC'),
+        self.assertEqual(pd.Timestamp('2015-11-02', tz="UTC"),
                          sessions[0])
-        self.assertEqual(pd.Timestamp('2015-11-30', tz='UTC'),
+        self.assertEqual(pd.Timestamp('2015-11-30', tz="UTC"),
                          sessions[-1])
 
     def test_first_trading_day(self):

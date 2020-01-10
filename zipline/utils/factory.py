@@ -40,7 +40,7 @@ def create_simulation_parameters(year=2006,
         trading_calendar = get_calendar("NYSE")
 
     if start is None:
-        start = pd.Timestamp("{0}-01-01".format(year), tz='UTC')
+        start = pd.Timestamp("{0}-01-01".format(year), tz="UTC")
     elif type(start) == datetime:
         start = pd.Timestamp(start)
 
@@ -49,7 +49,7 @@ def create_simulation_parameters(year=2006,
             start_index = trading_calendar.all_sessions.searchsorted(start)
             end = trading_calendar.all_sessions[start_index + num_days - 1]
         else:
-            end = pd.Timestamp("{0}-12-31".format(year), tz='UTC')
+            end = pd.Timestamp("{0}-12-31".format(year), tz="UTC")
     elif type(end) == datetime:
         end = pd.Timestamp(end)
 
@@ -74,7 +74,7 @@ def get_next_trading_dt(current, interval, trading_calendar):
         next_dt = pd.Timestamp(next_dt.replace(tzinfo=None))
         next_dt = next_dt + interval
         next_dt = pd.Timestamp(next_dt, tz=trading_calendar.tz)
-        next_dt_utc = next_dt.tz_convert('UTC')
+        next_dt_utc = next_dt.tz_convert("UTC")
         if trading_calendar.is_open_on_minute(next_dt_utc):
             break
         next_dt = next_dt_utc.tz_convert(trading_calendar.tz)

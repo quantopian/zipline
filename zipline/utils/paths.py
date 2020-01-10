@@ -7,7 +7,6 @@ Otherwise default to expanduser(~/.zipline)
 from errno import EEXIST
 import os
 from os.path import exists, expanduser, join
-
 import pandas as pd
 
 
@@ -79,7 +78,7 @@ def last_modified_time(path):
     """
     Get the last modified time of path as a Timestamp.
     """
-    return pd.Timestamp(os.path.getmtime(path), unit='s', tz='UTC')
+    return pd.Timestamp(os.path.getmtime(path), unit='s', tz="UTC")
 
 
 def modified_since(path, dt):

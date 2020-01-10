@@ -86,7 +86,7 @@ class IDomain(Interface):
         -------
         pd.Timestamp
         """
-        dt = pd.Timestamp(dt, tz='UTC')
+        dt = pd.Timestamp(dt, tz="UTC")
 
         trading_days = self.all_sessions()
         try:
@@ -206,7 +206,7 @@ class EquityCalendarDomain(Domain):
                 ),
             )
 
-        return pd.DatetimeIndex(opens + self._data_query_offset, tz='UTC')
+        return pd.DatetimeIndex(opens + self._data_query_offset, tz="UTC")
 
     def __repr__(self):
         return "EquityCalendarDomain({!r}, {!r})".format(

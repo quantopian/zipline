@@ -13,8 +13,8 @@ from zipline.utils.functional import apply
 
 class CSVDIRBundleTestCase(ZiplineTestCase):
     symbols = 'AAPL', 'IBM', 'KO', 'MSFT'
-    asset_start = pd.Timestamp('2012-01-03', tz='utc')
-    asset_end = pd.Timestamp('2014-12-31', tz='utc')
+    asset_start = pd.Timestamp('2012-01-03', tz="UTC")
+    asset_end = pd.Timestamp('2014-12-31', tz="UTC")
     bundle = bundles['csvdir']
     calendar = get_calendar(bundle.calendar_name)
     start_date = calendar.first_session

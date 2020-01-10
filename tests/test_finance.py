@@ -54,8 +54,8 @@ class FinanceTestCase(zf.WithAssetFinder,
                       zf.WithTradingCalendars,
                       zf.ZiplineTestCase):
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 133
-    start = START_DATE = pd.Timestamp('2006-01-01', tz='utc')
-    end = END_DATE = pd.Timestamp('2006-12-31', tz='utc')
+    start = START_DATE = pd.Timestamp('2006-01-01', tz="UTC")
+    end = END_DATE = pd.Timestamp('2006-12-31', tz="UTC")
 
     def init_instance_fixtures(self):
         super(FinanceTestCase, self).init_instance_fixtures()
@@ -407,8 +407,8 @@ class SimParamsTestCase(zf.WithTradingCalendars, zf.ZiplineTestCase):
     """
     def test_simulation_parameters(self):
         sp = SimulationParameters(
-            start_session=pd.Timestamp("2008-01-01", tz='UTC'),
-            end_session=pd.Timestamp("2008-12-31", tz='UTC'),
+            start_session=pd.Timestamp("2008-01-01", tz="UTC"),
+            end_session=pd.Timestamp("2008-12-31", tz="UTC"),
             capital_base=100000,
             trading_calendar=self.trading_calendar,
         )
@@ -428,8 +428,8 @@ class SimParamsTestCase(zf.WithTradingCalendars, zf.ZiplineTestCase):
         #  27 28 29 30 31
 
         params = SimulationParameters(
-            start_session=pd.Timestamp("2007-12-31", tz='UTC'),
-            end_session=pd.Timestamp("2008-01-07", tz='UTC'),
+            start_session=pd.Timestamp("2007-12-31", tz="UTC"),
+            end_session=pd.Timestamp("2008-01-07", tz="UTC"),
             capital_base=100000,
             trading_calendar=self.trading_calendar,
         )

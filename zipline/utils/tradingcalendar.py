@@ -38,8 +38,8 @@ from functools import partial
 #     stacklevel=1,
 # )
 
-start = pd.Timestamp('1990-01-01', tz='UTC')
-end_base = pd.Timestamp('today', tz='UTC')
+start = pd.Timestamp('1990-01-01', tz="UTC")
+end_base = pd.Timestamp('today', tz="UTC")
 # Give an aggressive buffer for logic that needs to use the next trading
 # day or minute.
 end = end_base + pd.Timedelta(days=365)
@@ -274,7 +274,7 @@ trading_day = pd.tseries.offsets.CDay(holidays=non_trading_days)
 def get_trading_days(start, end, trading_day=trading_day):
     return pd.date_range(start=start.date(),
                          end=end.date(),
-                         freq=trading_day).tz_localize('UTC')
+                         freq=trading_day).tz_localize("UTC")
 
 
 trading_days = get_trading_days(start, end)
@@ -398,7 +398,7 @@ def get_open_and_close(day, early_closes):
             day=day.day,
             hour=9,
             minute=31),
-        tz='US/Eastern').tz_convert('UTC')
+        tz='US/Eastern').tz_convert("UTC")
     # 1 PM if early close, 4 PM otherwise
     close_hour = 13 if day in early_closes else 16
     market_close = pd.Timestamp(
@@ -407,7 +407,7 @@ def get_open_and_close(day, early_closes):
             month=day.month,
             day=day.day,
             hour=close_hour),
-        tz='US/Eastern').tz_convert('UTC')
+        tz='US/Eastern').tz_convert("UTC")
 
     return market_open, market_close
 

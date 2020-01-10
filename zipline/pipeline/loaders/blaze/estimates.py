@@ -97,6 +97,9 @@ class BlazeEstimatesLoader(implements(PipelineLoader)):
         requested_column_names = [self._columns[column.name]
                                   for column in columns]
 
+        if dates.tzinfo is not None:
+            dates = dates.tz_convert("UTC").tz_localize(None)
+
         raw = load_raw_data(
             sids,
             dates,
@@ -152,6 +155,11 @@ class BlazeSplitAdjustedEstimatesLoader(BlazeEstimatesLoader):
             for column_name in self._split_adjusted_column_names
             if column_name in requested_column_names
         ]
+
+        if dates.tzinfo is not None:
+            dates = dates.tz_convert("UTC").tz_localize(None)
+
+        domain_dates = domain.data_query_cutoff_for_sessions(dates).tz_convert("UTC").tz_localize(None)
 
         raw = load_raw_data(
             sids,

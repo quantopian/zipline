@@ -39,8 +39,8 @@ from zipline.utils.numpy_utils import datetime64ns_dtype
 
 class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
     sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
-    START_DATE = Timestamp('2015-01-31', tz='UTC')
-    END_DATE = Timestamp('2015-03-01', tz='UTC')
+    START_DATE = Timestamp('2015-01-31', tz="UTC")
+    END_DATE = Timestamp('2015-03-01', tz="UTC")
     ASSET_FINDER_COUNTRY_CODE = 'US'
     SEEDED_RANDOM_PIPELINE_DEFAULT_DOMAIN = US_EQUITIES
 

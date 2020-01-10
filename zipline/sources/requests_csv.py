@@ -32,7 +32,7 @@ def roll_dts_to_midnight(dts, trading_day):
 
     return pd.DatetimeIndex(
         (dts.tz_convert('US/Eastern') - pd.Timedelta(hours=16)).date,
-        tz='UTC',
+        tz="UTC",
     ) + trading_day
 
 
@@ -235,7 +235,7 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
                 date_str_series.values,
                 format=format_str,
                 errors='coerce',
-            ).tz_localize(tz_str).tz_convert('UTC')
+            ).tz_localize(tz_str).tz_convert("UTC")
 
         if data_frequency == 'daily':
             parsed = roll_dts_to_midnight(parsed, trading_day)
@@ -386,7 +386,7 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
         # and the 'dt' column can contain multiple dates for the same entry.
         df.drop_duplicates(["sid", "dt"])
         df.set_index(['dt'], inplace=True)
-        df = df.tz_localize('UTC')
+        df = df.tz_localize("UTC")
         df.sort_index(inplace=True)
 
         cols_to_drop = [self.date_column]

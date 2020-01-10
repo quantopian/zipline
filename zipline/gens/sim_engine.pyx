@@ -74,9 +74,9 @@ cdef class MinuteSimulationClock:
         minute_emission = self.minute_emission
 
         for idx, session_nano in enumerate(self.sessions_nanos):
-            yield pd.Timestamp(session_nano, tz='UTC'), SESSION_START
+            yield pd.Timestamp(session_nano, tz="UTC"), SESSION_START
 
-            bts_minute = pd.Timestamp(self.bts_nanos[idx], tz='UTC')
+            bts_minute = pd.Timestamp(self.bts_nanos[idx], tz="UTC")
             regular_minutes = self.minutes_by_session[session_nano]
 
             if bts_minute > regular_minutes[-1]:

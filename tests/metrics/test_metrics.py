@@ -24,7 +24,7 @@ from zipline.testing.predicates import assert_equal, wildcard
 
 
 def T(cs):
-    return pd.Timestamp(cs, tz='utc')
+    return pd.Timestamp(cs, tz="UTC")
 
 
 def portfolio_snapshot(p):

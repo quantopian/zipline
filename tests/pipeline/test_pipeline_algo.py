@@ -83,10 +83,10 @@ def rolling_vwap(df, length):
 
 
 class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
-    START_DATE = pd.Timestamp('2014-01-01', tz='utc')
-    END_DATE = pd.Timestamp('2014-02-01', tz='utc')
+    START_DATE = pd.Timestamp('2014-01-01', tz="UTC")
+    END_DATE = pd.Timestamp('2014-02-01', tz="UTC")
     dates = date_range(START_DATE, END_DATE, freq=get_calendar("NYSE").day,
-                       tz='utc')
+                       tz="UTC")
 
     SIM_PARAMS_DATA_FREQUENCY = 'daily'
     DATA_PORTAL_USE_MINUTE_DATA = False
@@ -438,8 +438,8 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
     BRK_A = 3
     ASSET_FINDER_EQUITY_SIDS = AAPL, MSFT, BRK_A
     ASSET_FINDER_EQUITY_SYMBOLS = 'AAPL', 'MSFT', 'BRK_A'
-    START_DATE = Timestamp('2014', tz='UTC')
-    END_DATE = Timestamp('2015', tz='UTC')
+    START_DATE = Timestamp('2014', tz="UTC")
+    END_DATE = Timestamp('2015', tz="UTC")
 
     SIM_PARAMS_DATA_FREQUENCY = 'daily'
     DATA_PORTAL_USE_MINUTE_DATA = False
@@ -500,8 +500,8 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
             cls.bcolz_equity_daily_bar_reader,
             cls.adjustment_reader,
         )
-        cls.dates = cls.raw_data[cls.AAPL].index.tz_localize('UTC')
-        cls.AAPL_split_date = Timestamp("2014-06-09", tz='UTC')
+        cls.dates = cls.raw_data[cls.AAPL].index.tz_localize("UTC")
+        cls.AAPL_split_date = Timestamp("2014-06-09", tz="UTC")
         cls.assets = cls.asset_finder.retrieve_all(
             cls.ASSET_FINDER_EQUITY_SIDS
         )
@@ -747,8 +747,8 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
 class PipelineSequenceTestCase(WithMakeAlgo, ZiplineTestCase):
 
     # run algorithm for 3 days
-    START_DATE = pd.Timestamp('2014-12-29', tz='utc')
-    END_DATE = pd.Timestamp('2014-12-31', tz='utc')
+    START_DATE = pd.Timestamp('2014-12-29', tz="UTC")
+    END_DATE = pd.Timestamp('2014-12-31', tz="UTC")
     ASSET_FINDER_COUNTRY_CODE = 'US'
 
     def get_pipeline_loader(self):

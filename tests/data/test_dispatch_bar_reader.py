@@ -47,8 +47,8 @@ class AssetDispatchSessionBarTestCase(WithBcolzEquityDailyBarReader,
 
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 3
 
-    START_DATE = Timestamp('2016-08-22', tz='UTC')
-    END_DATE = Timestamp('2016-08-24', tz='UTC')
+    START_DATE = Timestamp('2016-08-22', tz="UTC")
+    END_DATE = Timestamp('2016-08-24', tz="UTC")
 
     @classmethod
     def make_future_minute_bar_data(cls):
@@ -176,8 +176,8 @@ class AssetDispatchMinuteBarTestCase(WithBcolzEquityMinuteBarReader,
 
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 3
 
-    START_DATE = Timestamp('2016-08-24', tz='UTC')
-    END_DATE = Timestamp('2016-08-24', tz='UTC')
+    START_DATE = Timestamp('2016-08-24', tz="UTC")
+    END_DATE = Timestamp('2016-08-24', tz="UTC")
 
     @classmethod
     def make_equity_minute_bar_data(cls):

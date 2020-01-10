@@ -17,7 +17,7 @@ from zipline.utils.pandas_utils import (
 
 class TestNearestUnequalElements(ZiplineTestCase):
 
-    @parameter_space(tz=['UTC', 'US/Eastern'], __fail_fast=True)
+    @parameter_space(tz=["UTC", 'US/Eastern'], __fail_fast=True)
     def test_nearest_unequal_elements(self, tz):
 
         dts = pd.to_datetime(
@@ -44,7 +44,7 @@ class TestNearestUnequalElements(ZiplineTestCase):
             expected = (t(before), t(after))
             self.assertEqual(computed, expected)
 
-    @parameter_space(tz=['UTC', 'US/Eastern'], __fail_fast=True)
+    @parameter_space(tz=["UTC", 'US/Eastern'], __fail_fast=True)
     def test_nearest_unequal_elements_short_dts(self, tz):
 
         # Length 1.

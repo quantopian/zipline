@@ -55,7 +55,7 @@ def earliest_possible_date():
     # pretty rare to find pricing data going back that far, and there's no
     # reason to make people download benchmarks back to 1950 that they'll never
     # be able to use.
-    return pd.Timestamp('1980', tz='UTC')
+    return pd.Timestamp('1980', tz="UTC")
 
 
 def get_treasury_data(start_date, end_date):

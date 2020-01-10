@@ -381,11 +381,7 @@ def _dt_to_epoch_ns(dt_series):
     idx : pd.Int64Index
         The index converted to nanoseconds since the epoch.
     """
-    index = pd.to_datetime(dt_series.values)
-    if index.tzinfo is None:
-        index = index.tz_localize('UTC')
-    else:
-        index = index.tz_convert('UTC')
+    index = pd.to_datetime(dt_series.values, utc=True)
     return index.view(np.int64)
 
 

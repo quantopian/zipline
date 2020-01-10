@@ -17,6 +17,7 @@ from zipline.testing.fixtures import (
 )
 
 
+
 nat = pd.Timestamp('nat')
 
 
@@ -47,7 +48,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
         nan_frame = pd.DataFrame(
             np.nan,
             index=dates,
-            columns=sids,
+            columns=sids
         )
         frames = {
             key: nan_frame
@@ -99,7 +100,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
             (dates[-1] + self.trading_calendar.day * 10).tz_convert(None)
 
         def T(n):
-            return dates[n].tz_convert(None)
+            return dates[n].tz_convert("UTC")
 
         close = pd.DataFrame(
             [[10.0, 0.5,   30.0],   # noqa
@@ -183,7 +184,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
             ['effective_date', 'sid'],
         )
         dividend_ratios = dividend_ratios.reset_index(drop=True)
-        assert_equal(dividend_ratios, expected_dividend_ratios)
+        assert_equal(dividend_ratios.sort_index(axis=1), expected_dividend_ratios.sort_index(axis=1))
 
         self.assertTrue(self.log_handler.has_warning(
             "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-18,"
@@ -208,7 +209,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
 
     def _test_identity(self, name):
         sids = np.arange(5)
-        dates = self.trading_calendar.all_sessions.tz_convert(None)
+        dates = self.trading_calendar.all_sessions.tz_convert("UTC")
 
         def T(n):
             return dates[n]
@@ -239,7 +240,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
 
     def test_stock_dividends(self):
         sids = np.arange(5)
-        dates = self.trading_calendar.all_sessions.tz_convert(None)
+        dates = self.trading_calendar.all_sessions.tz_convert("UTC")
 
         def T(n):
             return dates[n]
@@ -277,7 +278,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
         """Test that dataframe dtypes are preserved for empty tables.
         """
         sids = np.arange(5)
-        dates = self.trading_calendar.all_sessions.tz_convert(None)
+        dates = self.trading_calendar.all_sessions.tz_convert("UTC")
 
         if convert_dates:
             date_dtype = np.dtype('M8[ns]')

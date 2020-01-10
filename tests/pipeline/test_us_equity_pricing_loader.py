@@ -67,11 +67,11 @@ from zipline.testing.fixtures import (
 # 15 16 17 18 19 20 21
 # 22 23 24 25 26 27 28
 # 29 30
-TEST_CALENDAR_START = Timestamp('2015-06-01', tz='UTC')
-TEST_CALENDAR_STOP = Timestamp('2015-06-30', tz='UTC')
+TEST_CALENDAR_START = Timestamp('2015-06-01', tz="UTC")
+TEST_CALENDAR_STOP = Timestamp('2015-06-30', tz="UTC")
 
-TEST_QUERY_START = Timestamp('2015-06-10', tz='UTC')
-TEST_QUERY_STOP = Timestamp('2015-06-19', tz='UTC')
+TEST_QUERY_START = Timestamp('2015-06-10', tz="UTC")
+TEST_QUERY_STOP = Timestamp('2015-06-19', tz="UTC")
 
 # One asset for each of the cases enumerated in load_raw_arrays_from_bcolz.
 EQUITY_INFO = DataFrame(
@@ -177,45 +177,45 @@ MERGERS = DataFrame(
 DIVIDENDS = DataFrame(
     [
         # Before query range, should be excluded.
-        {'declared_date': Timestamp('2015-05-01', tz='UTC').to_datetime64(),
-         'ex_date': Timestamp('2015-06-01', tz='UTC').to_datetime64(),
-         'record_date': Timestamp('2015-06-03', tz='UTC').to_datetime64(),
-         'pay_date': Timestamp('2015-06-05', tz='UTC').to_datetime64(),
+        {'declared_date': Timestamp('2015-05-01', tz="UTC").to_datetime64(),
+         'ex_date': Timestamp('2015-06-01', tz="UTC").to_datetime64(),
+         'record_date': Timestamp('2015-06-03', tz="UTC").to_datetime64(),
+         'pay_date': Timestamp('2015-06-05', tz="UTC").to_datetime64(),
          'amount': 90.0,
          'sid': 1},
         # First day of query range, should be excluded.
-        {'declared_date': Timestamp('2015-06-01', tz='UTC').to_datetime64(),
-         'ex_date': Timestamp('2015-06-10', tz='UTC').to_datetime64(),
-         'record_date': Timestamp('2015-06-15', tz='UTC').to_datetime64(),
-         'pay_date': Timestamp('2015-06-17', tz='UTC').to_datetime64(),
+        {'declared_date': Timestamp('2015-06-01', tz="UTC").to_datetime64(),
+         'ex_date': Timestamp('2015-06-10', tz="UTC").to_datetime64(),
+         'record_date': Timestamp('2015-06-15', tz="UTC").to_datetime64(),
+         'pay_date': Timestamp('2015-06-17', tz="UTC").to_datetime64(),
          'amount': 80.0,
          'sid': 3},
         # Third day of query range, should have last_row of 2
-        {'declared_date': Timestamp('2015-06-01', tz='UTC').to_datetime64(),
-         'ex_date': Timestamp('2015-06-12', tz='UTC').to_datetime64(),
-         'record_date': Timestamp('2015-06-15', tz='UTC').to_datetime64(),
-         'pay_date': Timestamp('2015-06-17', tz='UTC').to_datetime64(),
+        {'declared_date': Timestamp('2015-06-01', tz="UTC").to_datetime64(),
+         'ex_date': Timestamp('2015-06-12', tz="UTC").to_datetime64(),
+         'record_date': Timestamp('2015-06-15', tz="UTC").to_datetime64(),
+         'pay_date': Timestamp('2015-06-17', tz="UTC").to_datetime64(),
          'amount': 70.0,
          'sid': 3},
         # After query range, should be excluded.
-        {'declared_date': Timestamp('2015-06-01', tz='UTC').to_datetime64(),
-         'ex_date': Timestamp('2015-06-25', tz='UTC').to_datetime64(),
-         'record_date': Timestamp('2015-06-28', tz='UTC').to_datetime64(),
-         'pay_date': Timestamp('2015-06-30', tz='UTC').to_datetime64(),
+        {'declared_date': Timestamp('2015-06-01', tz="UTC").to_datetime64(),
+         'ex_date': Timestamp('2015-06-25', tz="UTC").to_datetime64(),
+         'record_date': Timestamp('2015-06-28', tz="UTC").to_datetime64(),
+         'pay_date': Timestamp('2015-06-30', tz="UTC").to_datetime64(),
          'amount': 60.0,
          'sid': 6},
         # Another action in query range, should have last_row of 3
-        {'declared_date': Timestamp('2015-06-01', tz='UTC').to_datetime64(),
-         'ex_date': Timestamp('2015-06-15', tz='UTC').to_datetime64(),
-         'record_date': Timestamp('2015-06-18', tz='UTC').to_datetime64(),
-         'pay_date': Timestamp('2015-06-20', tz='UTC').to_datetime64(),
+        {'declared_date': Timestamp('2015-06-01', tz="UTC").to_datetime64(),
+         'ex_date': Timestamp('2015-06-15', tz="UTC").to_datetime64(),
+         'record_date': Timestamp('2015-06-18', tz="UTC").to_datetime64(),
+         'pay_date': Timestamp('2015-06-20', tz="UTC").to_datetime64(),
          'amount': 50.0,
          'sid': 3},
         # Last day of range.  Should have last_row of 7
-        {'declared_date': Timestamp('2015-06-01', tz='UTC').to_datetime64(),
-         'ex_date': Timestamp('2015-06-19', tz='UTC').to_datetime64(),
-         'record_date': Timestamp('2015-06-22', tz='UTC').to_datetime64(),
-         'pay_date': Timestamp('2015-06-30', tz='UTC').to_datetime64(),
+        {'declared_date': Timestamp('2015-06-01', tz="UTC").to_datetime64(),
+         'ex_date': Timestamp('2015-06-19', tz="UTC").to_datetime64(),
+         'record_date': Timestamp('2015-06-22', tz="UTC").to_datetime64(),
+         'pay_date': Timestamp('2015-06-30', tz="UTC").to_datetime64(),
          'amount': 40.0,
          'sid': 3},
     ],
@@ -342,7 +342,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
 
         for table in tables:
             for eff_date_secs, ratio, sid in table.itertuples(index=False):
-                eff_date = Timestamp(eff_date_secs, unit='s', tz='UTC')
+                eff_date = Timestamp(eff_date_secs, unit='s', tz="UTC")
 
                 # Ignore adjustments outside the query bounds.
                 if not (start_date <= eff_date <= end_date):

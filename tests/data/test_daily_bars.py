@@ -73,11 +73,11 @@ from zipline.testing.fixtures import (
 from zipline.testing.predicates import assert_equal, assert_sequence_equal
 from zipline.utils.classproperty import classproperty
 
-TEST_CALENDAR_START = Timestamp('2015-06-01', tz='UTC')
-TEST_CALENDAR_STOP = Timestamp('2015-06-30', tz='UTC')
+TEST_CALENDAR_START = Timestamp('2015-06-01', tz="UTC")
+TEST_CALENDAR_STOP = Timestamp('2015-06-30', tz="UTC")
 
-TEST_QUERY_START = Timestamp('2015-06-10', tz='UTC')
-TEST_QUERY_STOP = Timestamp('2015-06-19', tz='UTC')
+TEST_QUERY_START = Timestamp('2015-06-10', tz="UTC")
+TEST_QUERY_STOP = Timestamp('2015-06-19', tz="UTC")
 
 # NOTE: All sids here are odd, so we can test querying for unknown sids
 #       with evens.
@@ -133,8 +133,8 @@ TEST_QUERY_ASSETS = EQUITY_INFO.index
 assert (TEST_QUERY_ASSETS % 2 == 1).all(), 'All sids should be odd.'
 
 HOLES = {
-    'US': {5: (Timestamp('2015-06-17', tz='UTC'),)},
-    'CA': {17: (Timestamp('2015-06-17', tz='UTC'),)},
+    'US': {5: (Timestamp('2015-06-17', tz="UTC"),)},
+    'CA': {17: (Timestamp('2015-06-17', tz="UTC"),)},
 }
 
 
@@ -497,7 +497,7 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
             # is either the end date for the asset, or ``mid_date`` if
             # the asset is *still* alive at that point. Otherwise, it
             # is pd.NaT.
-            mid_date = Timestamp('2015-06-15', tz='UTC')
+            mid_date = Timestamp('2015-06-15', tz="UTC")
             if self.asset_start(sid) <= mid_date:
                 expected = min(self.asset_end(sid), mid_date)
             else:
@@ -516,7 +516,7 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
             assert_equal(
                 self.daily_bar_reader.get_last_traded_dt(
                     self.asset_finder.retrieve_asset(sid),
-                    Timestamp(0, tz='UTC'),
+                    Timestamp(0, tz="UTC"),
                 ),
                 NaT,
             )
@@ -638,8 +638,8 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
             expected_calendar_offset,
         )
         cal = get_calendar(result.attrs['calendar_name'])
-        first_session = Timestamp(result.attrs['start_session_ns'], tz='UTC')
-        end_session = Timestamp(result.attrs['end_session_ns'], tz='UTC')
+        first_session = Timestamp(result.attrs['start_session_ns'], tz="UTC")
+        end_session = Timestamp(result.attrs['end_session_ns'], tz="UTC")
         sessions = cal.sessions_in_range(first_session, end_session)
 
         assert_equal(
@@ -673,7 +673,7 @@ class BcolzDailyBarWriterMissingDataTestCase(WithAssetFinder,
     # Sid 5 is active from 2015-06-02 to 2015-06-30.
     MISSING_DATA_SID = 5
     # Leave out data for a day in the middle of the query range.
-    MISSING_DATA_DAY = Timestamp('2015-06-15', tz='UTC')
+    MISSING_DATA_DAY = Timestamp('2015-06-15', tz="UTC")
 
     @classmethod
     def make_equity_info(cls):
@@ -703,7 +703,7 @@ class BcolzDailyBarWriterMissingDataTestCase(WithAssetFinder,
             "Got 20 rows for daily bars table with first day=2015-06-02, last "
             "day=2015-06-30, expected 21 rows.\n"
             "Missing sessions: "
-            "[Timestamp('2015-06-15 00:00:00+0000', tz='UTC')]\n"
+            "[Timestamp('2015-06-15 00:00:00+0000', tz=UTC)]\n"
             "Extra sessions: []"
         )
         with self.assertRaisesRegexp(AssertionError, expected_msg):
@@ -753,7 +753,7 @@ class _HDF5DailyBarTestCase(WithHDF5EquityMultiCountryDailyBarReader,
             # Before the start of the daily bars.
             self.trading_calendar.previous_session_label(TEST_CALENDAR_START),
             # A Sunday.
-            Timestamp('2015-06-07', tz='UTC'),
+            Timestamp('2015-06-07', tz="UTC"),
             # After the end of the daily bars.
             self.trading_calendar.next_session_label(TEST_CALENDAR_STOP),
         )

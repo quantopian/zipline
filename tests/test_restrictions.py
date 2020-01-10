@@ -23,7 +23,7 @@ from zipline.testing.fixtures import (
 
 
 def str_to_ts(dt_str):
-    return pd.Timestamp(dt_str, tz='UTC')
+    return pd.Timestamp(dt_str, tz="UTC")
 
 
 FROZEN = RESTRICTION_STATES.FROZEN

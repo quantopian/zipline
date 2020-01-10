@@ -131,7 +131,7 @@ class DailyHistoryAggregator(object):
         #
         # Example cache:
         # cache = (date(2016, 3, 17),
-        #          pd.Timestamp('2016-03-17 13:31', tz='UTC'),
+        #          pd.Timestamp('2016-03-17 13:31', tz="UTC"),
         #          {
         #              1: (1458221460000000000, np.nan),
         #              2: (1458221460000000000, 42.0),
@@ -157,7 +157,7 @@ class DailyHistoryAggregator(object):
             cache = self._caches[field] = (session, market_open, {})
 
         _, market_open, entries = cache
-        market_open = market_open.tz_localize('UTC')
+        market_open = market_open.tz_localize("UTC")
         if dt != market_open:
             prev_dt = dt_value - self._one_min
         else:
@@ -204,7 +204,7 @@ class DailyHistoryAggregator(object):
                         continue
                     else:
                         after_last = pd.Timestamp(
-                            last_visited_dt + self._one_min, tz='UTC')
+                            last_visited_dt + self._one_min, tz="UTC")
                         window = self._minute_reader.load_raw_arrays(
                             ['open'],
                             after_last,
@@ -281,7 +281,7 @@ class DailyHistoryAggregator(object):
                         continue
                     else:
                         after_last = pd.Timestamp(
-                            last_visited_dt + self._one_min, tz='UTC')
+                            last_visited_dt + self._one_min, tz="UTC")
                         window = self._minute_reader.load_raw_arrays(
                             ['high'],
                             after_last,
@@ -345,7 +345,7 @@ class DailyHistoryAggregator(object):
                         continue
                     else:
                         after_last = pd.Timestamp(
-                            last_visited_dt + self._one_min, tz='UTC')
+                            last_visited_dt + self._one_min, tz="UTC")
                         window = self._minute_reader.load_raw_arrays(
                             ['low'],
                             after_last,
@@ -485,7 +485,7 @@ class DailyHistoryAggregator(object):
                         continue
                     else:
                         after_last = pd.Timestamp(
-                            last_visited_dt + self._one_min, tz='UTC')
+                            last_visited_dt + self._one_min, tz="UTC")
                         window = self._minute_reader.load_raw_arrays(
                             ['volume'],
                             after_last,

@@ -373,7 +373,7 @@ def _make_bundle_core():
 
         if timestamp is None:
             timestamp = pd.Timestamp.utcnow()
-        timestamp = timestamp.tz_convert('utc').tz_localize(None)
+        timestamp = timestamp.tz_convert("UTC").tz_localize(None)
 
         timestr = to_bundle_ingest_dirname(timestamp)
         cachepath = cache_path(name, environ=environ)

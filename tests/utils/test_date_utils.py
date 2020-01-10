@@ -10,7 +10,7 @@ def T(s):
     """
     Helpful function to improve readibility.
     """
-    return Timestamp(s, tz='UTC')
+    return Timestamp(s, tz="UTC")
 
 
 class TestDateUtils(ZiplineTestCase):

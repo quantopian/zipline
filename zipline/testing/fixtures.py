@@ -304,8 +304,8 @@ class WithDefaultDateBounds(with_metaclass(DebugMROMeta, object)):
         The date bounds to be used for fixtures that want to have consistent
         dates.
     """
-    START_DATE = pd.Timestamp('2006-01-03', tz='utc')
-    END_DATE = pd.Timestamp('2006-12-29', tz='utc')
+    START_DATE = pd.Timestamp('2006-01-03', tz="UTC")
+    END_DATE = pd.Timestamp('2006-12-29', tz="UTC")
 
 
 class WithLogger(object):
@@ -562,7 +562,7 @@ def read_checked_in_benchmark_data():
         parse_dates=[0],
         index_col=0,
         header=None,
-    ).tz_localize('UTC')
+    )
     return benchmark_returns.iloc[:, 0]
 
 
@@ -1981,8 +1981,8 @@ class WithMakeAlgo(WithBenchmarkReturns,
     """
     ZiplineTestCase mixin that provides a ``make_algo`` method.
     """
-    START_DATE = pd.Timestamp('2014-12-29', tz='UTC')
-    END_DATE = pd.Timestamp('2015-1-05', tz='UTC')
+    START_DATE = pd.Timestamp('2014-12-29', tz="UTC")
+    END_DATE = pd.Timestamp('2015-1-05', tz="UTC")
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
     DEFAULT_ALGORITHM_CLASS = TradingAlgorithm
 

@@ -184,7 +184,7 @@ class SeededRandomLoader(PrecomputedLoader):
         """
         Return uniformly-distributed dates in 2014.
         """
-        start = Timestamp('2014', tz='UTC').asm8
+        start = Timestamp('2014', tz="UTC").asm8
         offsets = self.state.randint(
             low=0,
             high=364,
@@ -205,7 +205,7 @@ class SeededRandomLoader(PrecomputedLoader):
 
 OHLCV = ('open', 'high', 'low', 'close', 'volume')
 OHLC = ('open', 'high', 'low', 'close')
-PSEUDO_EPOCH = Timestamp('2000-01-01', tz='UTC')
+PSEUDO_EPOCH = Timestamp('2000-01-01', tz="UTC")
 
 
 def asset_start(asset_info, asset):
@@ -295,7 +295,7 @@ def make_bar_data(asset_info, calendar, holes=None):
         data[:, :5] += arange(5, dtype=uint32) * 1000
 
         # Add days since Jan 1 2001 for OHLCV columns.
-        data[:, :5] += (datetimes - PSEUDO_EPOCH).days[:, None].astype(uint32)
+        data[:, :5] += array((datetimes - PSEUDO_EPOCH).days[:, None].astype(uint32))
 
         frame = DataFrame(
             data,

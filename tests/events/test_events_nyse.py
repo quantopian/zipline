@@ -25,14 +25,14 @@ from zipline.utils.events import NthTradingDayOfWeek
 from .test_events import StatelessRulesTests, StatefulRulesTests, \
     minutes_for_days
 
-T = partial(pd.Timestamp, tz='UTC')
+T = partial(pd.Timestamp, tz="UTC")
 
 
 class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
     CALENDAR_STRING = "NYSE"
 
-    HALF_SESSION = pd.Timestamp("2014-07-03", tz='UTC')
-    FULL_SESSION = pd.Timestamp("2014-09-24", tz='UTC')
+    HALF_SESSION = pd.Timestamp("2014-07-03", tz="UTC")
+    FULL_SESSION = pd.Timestamp("2014-09-24", tz="UTC")
 
     def test_edge_cases_for_TradingDayOfWeek(self):
         """
@@ -157,11 +157,11 @@ class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
         should_trigger = composed_rule.should_trigger
 
         week_minutes = self.cal.minutes_for_sessions_in_range(
-            pd.Timestamp("2014-01-06", tz='UTC'),
-            pd.Timestamp("2014-01-10", tz='UTC')
+            pd.Timestamp("2014-01-06", tz="UTC"),
+            pd.Timestamp("2014-01-10", tz="UTC")
         )
 
-        dt = pd.Timestamp('2014-01-06 14:30:00', tz='UTC')
+        dt = pd.Timestamp('2014-01-06 14:30:00', tz="UTC")
         trigger_day_offset = 0
         trigger_minute_offset = 60
         n_triggered = 0

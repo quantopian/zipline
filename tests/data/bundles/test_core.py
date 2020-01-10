@@ -48,8 +48,8 @@ class BundleCoreTestCase(WithInstanceTmpDir,
                          WithDefaultDateBounds,
                          ZiplineTestCase):
 
-    START_DATE = pd.Timestamp('2014-01-06', tz='utc')
-    END_DATE = pd.Timestamp('2014-01-10', tz='utc')
+    START_DATE = pd.Timestamp('2014-01-06', tz="UTC")
+    END_DATE = pd.Timestamp('2014-01-10', tz="UTC")
 
     def init_instance_fixtures(self):
         super(BundleCoreTestCase, self).init_instance_fixtures()
@@ -342,7 +342,7 @@ class BundleCoreTestCase(WithInstanceTmpDir,
         # register but do not ingest data
         self.register('bundle', lambda *args: None)
 
-        ts = pd.Timestamp('2014', tz='UTC')
+        ts = pd.Timestamp('2014', tz="UTC")
 
         with assert_raises(ValueError) as e:
             self.load('bundle', timestamp=ts, environ=self.environ)
@@ -371,8 +371,8 @@ class BundleCoreTestCase(WithInstanceTmpDir,
         if not self.bundles:
             @self.register('bundle',
                            calendar_name='NYSE',
-                           start_session=pd.Timestamp('2014', tz='UTC'),
-                           end_session=pd.Timestamp('2014', tz='UTC'))
+                           start_session=pd.Timestamp('2014', tz="UTC"),
+                           end_session=pd.Timestamp('2014', tz="UTC"))
             def _(environ,
                   asset_db_writer,
                   minute_bar_writer,

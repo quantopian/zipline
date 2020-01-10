@@ -29,8 +29,8 @@ from zipline.utils.functional import apply
 class QuandlBundleTestCase(WithResponses,
                            ZiplineTestCase):
     symbols = 'AAPL', 'BRK_A', 'MSFT', 'ZEN'
-    start_date = pd.Timestamp('2014-01', tz='utc')
-    end_date = pd.Timestamp('2015-01', tz='utc')
+    start_date = pd.Timestamp('2014-01', tz="UTC")
+    end_date = pd.Timestamp('2015-01', tz="UTC")
     bundle = bundles['quandl']
     calendar = get_calendar(bundle.calendar_name)
     api_key = 'IamNotaQuandlAPIkey'

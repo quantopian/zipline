@@ -600,6 +600,12 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
         # To optimize performance, only work below on assets that are
         # actually in the raw data.
         data_query_cutoff_times = domain.data_query_cutoff_for_sessions(dates)
+        if dates.tzinfo is not None:
+            dates = dates.tz_convert("UTC").tz_localize(None)
+
+        if data_query_cutoff_times is not None:
+            data_query_cutoff_times = data_query_cutoff_times.tz_convert("UTC").tz_localize(None)
+
         assets_with_data = set(sids) & set(self.estimates[SID_FIELD_NAME])
         last_per_qtr, stacked_last_per_qtr = self.get_last_data_per_qtr(
             assets_with_data,
