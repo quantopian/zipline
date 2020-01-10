@@ -141,8 +141,8 @@ class EquityPricingLoader(implements(PipelineLoader)):
     @property
     def currency_aware(self):
         # Tell the pipeline engine that this loader supports currency
-        # conversion.
-        return True
+        # conversion if we have a non-dummy fx rates reader.
+        return not isinstance(self.fx_reader, ExplodingFXRateReader)
 
     def _inplace_currency_convert(self, columns, arrays, dates, sids):
         """
