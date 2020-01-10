@@ -57,33 +57,6 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
             'tokyo_mid': cls.tokyo_mid_rates,
         }
 
-    @classmethod
-    def get_expected_rate_scalar(cls, rate, quote, base, dt):
-        """Get the expected FX rate for the given scalar coordinates.
-        """
-        if rate == DEFAULT_FX_RATE:
-            rate = cls.FX_RATES_DEFAULT_RATE
-
-        col = cls.fx_rates[rate][quote][base]
-        # PERF: We call this function a lot in this suite, and get_loc is
-        # surprisingly expensive, so optimizing it has a meaningful impact on
-        # overall suite performance. See test_fast_get_loc_ffilled_for
-        # assurance that this behaves the same as get_loc.
-        ix = fast_get_loc_ffilled(col.index.values, dt.asm8)
-        return col.values[ix]
-
-    @classmethod
-    def get_expected_rates(cls, rate, quote, bases, dts):
-        """Get an array of expected FX rates for the given indices.
-        """
-        out = np.empty((len(dts), len(bases)), dtype='float64')
-
-        for i, dt in enumerate(dts):
-            for j, base in enumerate(bases):
-                out[i, j] = cls.get_expected_rate_scalar(rate, quote, base, dt)
-
-        return out
-
     @property
     def reader(self):
         raise NotImplementedError("Must be implemented by test suite.")
@@ -108,7 +81,7 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
             if quote == base:
                 assert_equal(result_scalar, 1.0)
 
-            expected = self.get_expected_rate_scalar(rate, quote, base, dt)
+            expected = self.get_expected_fx_rate_scalar(rate, quote, base, dt)
             assert_equal(result_scalar, expected)
 
     def test_vectorized_lookup(self):
@@ -133,7 +106,7 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
                 # ...And check that we get the expected result when querying
                 # for those dates/currencies.
                 result = self.reader.get_rates(rate, quote, bases, dts)
-                expected = self.get_expected_rates(rate, quote, bases, dts)
+                expected = self.get_expected_fx_rates(rate, quote, bases, dts)
 
                 assert_equal(result, expected)
 
@@ -211,17 +184,6 @@ class HDF5FXReaderTestCase(zp_fixtures.WithTmpDir,
         return self.h5_fx_reader
 
 
-def fast_get_loc_ffilled(dts, dt):
-    """
-    Equivalent to dts.get_loc(dt, method='ffill'), but with reasonable
-    microperformance.
-    """
-    ix = dts.searchsorted(dt, side='right') - 1
-    if ix < 0:
-        raise KeyError(dt)
-    return ix
-
-
 class FastGetLocTestCase(zp_fixtures.ZiplineTestCase):
 
     def test_fast_get_loc_ffilled(self):
@@ -234,7 +196,7 @@ class FastGetLocTestCase(zp_fixtures.ZiplineTestCase):
         ])
 
         for dt in pd.date_range('2014-01-02', '2014-01-08'):
-            result = fast_get_loc_ffilled(dts.values, dt.asm8)
+            result = zp_fixtures.fast_get_loc_ffilled(dts.values, dt.asm8)
             expected = dts.get_loc(dt, method='ffill')
             assert_equal(result, expected)
 
@@ -242,4 +204,4 @@ class FastGetLocTestCase(zp_fixtures.ZiplineTestCase):
             dts.get_loc(pd.Timestamp('2014-01-01'), method='ffill')
 
         with self.assertRaises(KeyError):
-            fast_get_loc_ffilled(dts, pd.Timestamp('2014-01-01'))
+            zp_fixtures.fast_get_loc_ffilled(dts, pd.Timestamp('2014-01-01'))
