@@ -146,7 +146,7 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
 
             for rate in self.FX_RATES_RATE_NAMES:
                 quote = 'USD'
-                bases = np.array(['CAD'], dtype='S3')
+                bases = np.array(['CAD'], dtype=object)
                 dts = pd.DatetimeIndex([bad_date])
                 with self.assertRaises(ValueError):
                     self.reader.get_rates(rate, quote, bases, dts)
@@ -157,7 +157,7 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
 
             for rate in self.FX_RATES_RATE_NAMES:
                 quote = 'USD'
-                bases = np.array(['CAD'], dtype='S3')
+                bases = np.array(['CAD'], dtype=object)
                 dts = pd.DatetimeIndex([bad_date])
                 with self.assertRaises(ValueError):
                     self.reader.get_rates(rate, quote, bases, dts)

@@ -16,13 +16,9 @@ from collections import defaultdict
 from interface import implements
 from numpy import iinfo, uint32, multiply
 
-from zipline.currency import MISSING_CURRENCY_CODE
 from zipline.data.fx import ExplodingFXRateReader
 from zipline.lib.adjusted_array import AdjustedArray
-from zipline.utils.numpy_utils import (
-    repeat_first_axis,
-    bytes_array_to_native_str_object_array,
-)
+from zipline.utils.numpy_utils import repeat_first_axis
 
 from .base import PipelineLoader
 from .utils import shift_dates
@@ -123,12 +119,7 @@ class EquityPricingLoader(implements(PipelineLoader)):
             )
 
         for c in currency_cols:
-            codes_1d = bytes_array_to_native_str_object_array(
-                self.raw_price_reader.currency_codes(sids)
-            )
-            # XXX: Should this just be the contract of `currency_codes`?
-            codes_1d[codes_1d == MISSING_CURRENCY_CODE] = None
-
+            codes_1d = self.raw_price_reader.currency_codes(sids)
             codes = repeat_first_axis(codes_1d, len(dates))
             out[c] = AdjustedArray(
                 codes,
@@ -141,8 +132,8 @@ class EquityPricingLoader(implements(PipelineLoader)):
     @property
     def currency_aware(self):
         # Tell the pipeline engine that this loader supports currency
-        # conversion.
-        return True
+        # conversion if we have a non-dummy fx rates reader.
+        return not isinstance(self.fx_reader, ExplodingFXRateReader)
 
     def _inplace_currency_convert(self, columns, arrays, dates, sids):
         """

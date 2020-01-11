@@ -2182,7 +2182,7 @@ class WithFXRates(object):
 
             writer.write(
                 dts=sessions.values,
-                currencies=np.array(cls.FX_RATES_CURRENCIES, dtype='S3'),
+                currencies=np.array(cls.FX_RATES_CURRENCIES, dtype=object),
                 data=fx_data,
             )
 

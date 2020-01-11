@@ -36,7 +36,6 @@ from six.moves import range
 from toolz import merge
 from trading_calendars import get_calendar
 
-from zipline.currency import MISSING_CURRENCY_CODE
 from zipline.data.bar_reader import (
     NoDataAfterDate,
     NoDataBeforeDate,
@@ -188,7 +187,7 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
         # Evenly distribute choices among ``sids``.
         choices = cls.DAILY_BARS_TEST_CURRENCIES[country_code]
         codes = list(islice(cycle(choices), len(sids)))
-        return Series(index=sids, data=np.array(codes, dtype='S3'))
+        return Series(index=sids, data=np.array(codes, dtype=object))
 
     @classproperty
     def holes(cls):
@@ -531,6 +530,10 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
         ).values
         assert_equal(all_results, all_expected)
 
+        self.assertEqual(all_results.dtype, np.dtype(object))
+        for code in all_results:
+            self.assertIsInstance(code, str)
+
         # Check all possible subsets of assets.
         for indices in map(list, powerset(range(len(all_assets)))):
             # Empty queries aren't currently supported.
@@ -557,10 +560,7 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
         # queries.
         mixed = np.array(invalid_sids + [valid_sid])
         result = self.daily_bar_reader.currency_codes(mixed)
-        expected = np.array(
-            [MISSING_CURRENCY_CODE] * 2 + [valid_currency],
-            dtype='S3'
-        )
+        expected = np.array([None] * 2 + [valid_currency])
         assert_equal(result, expected)
 
 
