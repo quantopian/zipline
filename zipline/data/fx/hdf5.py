@@ -99,9 +99,9 @@ import h5py
 from logbook import Logger
 import numpy as np
 import pandas as pd
-import six
 
 from zipline.utils.memoize import lazyval
+from zipline.utils.numpy_utils import bytes_array_to_native_str_object_array
 
 from .base import FXRateReader, DEFAULT_FX_RATE
 
@@ -177,13 +177,9 @@ class HDF5FXRateReader(implements(FXRateReader)):
         """
         # Currencies are stored as fixed-length bytes in the file, but we want
         # `str` objects in memory.
-        byte_strings = self._group[INDEX][CURRENCIES][:]
-        if six.PY3:
-            values = [c.decode('ascii') for c in byte_strings]
-        else:
-            values = byte_strings.astype(object)
-
-        return pd.Index(values)
+        bytes_array = self._group[INDEX][CURRENCIES][:]
+        objects = bytes_array_to_native_str_object_array(bytes_array)
+        return pd.Index(objects)
 
     def get_rates(self, rate, quote, bases, dts):
         """Get rates to convert ``bases`` into ``quote``.
@@ -281,6 +277,13 @@ class HDF5FXRateWriter(object):
     def _write_index_group(self, dts, currencies):
         """Write content of /index.
         """
+        if not is_sorted_ascending(dts):
+            raise ValueError("dts is not sorted")
+
+        for c in currencies:
+            if not isinstance(c, str) or len(c) != 3:
+                raise ValueError("Invalid currency: {!r}".format(c))
+
         index_group = self._group.create_group(INDEX)
 
         self._log_writing(INDEX, DTS)

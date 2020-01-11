@@ -34,7 +34,6 @@ from six import iteritems, viewkeys
 from toolz import compose
 from trading_calendars import get_calendar
 
-from zipline.currency import MISSING_CURRENCY_CODE
 from zipline.data.session_bars import CurrencyAwareSessionBarReader
 from zipline.data.bar_reader import (
     NoDataAfterDate,
@@ -708,13 +707,13 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
 
     def currency_codes(self, sids):
         # XXX: This is pretty inefficient. This reader doesn't really support
-        # country codes, so we always either return USD or
-        # MISSING_CURRENCY_CODE if we don't know about the sid at all.
+        # country codes, so we always either return USD or None if we don't
+        # know about the sid at all.
         first_rows = self._first_rows
         out = []
         for sid in sids:
             if sid in first_rows:
                 out.append('USD')
             else:
-                out.append(MISSING_CURRENCY_CODE)
-        return np.array(out, dtype='S3')
+                out.append(None)
+        return np.array(out, dtype=object)

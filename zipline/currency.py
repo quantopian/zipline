@@ -4,10 +4,6 @@ from iso4217 import Currency as ISO4217Currency
 _ALL_CURRENCIES = {}
 
 
-# Special sentinel used to represent unknown or missing currencies.
-MISSING_CURRENCY_CODE = 'XXX'
-
-
 @total_ordering
 class Currency(object):
     """A currency identifier, as defined by ISO-4217.
@@ -28,8 +24,7 @@ class Currency(object):
         try:
             return _ALL_CURRENCIES[code]
         except KeyError:
-            # This isn't a real
-            if code == MISSING_CURRENCY_CODE:
+            if code is None:
                 name = "NO CURRENCY"
             else:
                 try:

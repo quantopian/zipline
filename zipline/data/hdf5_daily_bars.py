@@ -107,7 +107,6 @@ import pandas as pd
 from six import iteritems, raise_from, viewkeys
 from six.moves import reduce
 
-from zipline.currency import MISSING_CURRENCY_CODE
 from zipline.data.bar_reader import (
     NoDataAfterDate,
     NoDataBeforeDate,
@@ -116,6 +115,7 @@ from zipline.data.bar_reader import (
 )
 from zipline.data.session_bars import CurrencyAwareSessionBarReader
 from zipline.utils.memoize import lazyval
+from zipline.utils.numpy_utils import bytes_array_to_native_str_object_array
 from zipline.utils.pandas_utils import check_indexes_all_same
 
 
@@ -696,7 +696,8 @@ class HDF5DailyBarReader(CurrencyAwareSessionBarReader):
 
     @lazyval
     def _currency_codes(self):
-        return self._country_group[CURRENCY][CODE][:]
+        bytes_array = self._country_group[CURRENCY][CODE][:]
+        return bytes_array_to_native_str_object_array(bytes_array)
 
     def currency_codes(self, sids):
         """Get currencies in which prices are quoted for the requested sids.
@@ -708,7 +709,7 @@ class HDF5DailyBarReader(CurrencyAwareSessionBarReader):
 
         Returns
         -------
-        currency_codes : np.array[S3]
+        currency_codes : np.array[object]
             Array of currency codes for listing currencies of ``sids``.
         """
         # Find the index of requested sids in our stored sids.
@@ -720,7 +721,7 @@ class HDF5DailyBarReader(CurrencyAwareSessionBarReader):
         # fails. Fill these sids with the special "missing" sentinel.
         not_found = (self.sids[ixs] != sids)
 
-        result[not_found] = MISSING_CURRENCY_CODE
+        result[not_found] = None
 
         return result
 
