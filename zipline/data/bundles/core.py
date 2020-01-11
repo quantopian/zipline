@@ -435,7 +435,7 @@ def _make_bundle_core():
                     raise ValueError('Need to ingest a bundle that creates '
                                      'writers in order to downgrade the assets'
                                      ' db.')
-            log.info("Ingesting %s." % name)
+            log.info("Ingesting {}.", name)
             bundle.ingest(
                 environ,
                 asset_db_writer,
@@ -609,7 +609,7 @@ def _make_bundle_core():
         cleaned = set()
         for run in all_runs:
             if should_clean(run):
-                log.info("Cleaning %s." % run)
+                log.info("Cleaning {}.", run)
                 path = pth.data_path([name, run], environ=environ)
                 shutil.rmtree(path)
                 cleaned.add(path)
