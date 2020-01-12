@@ -5,7 +5,7 @@ from zipline.testing.predicates import assert_equal
 from zipline.pipeline import Classifier, Factor, Filter
 from zipline.utils.numpy_utils import float64_dtype, int64_dtype
 
-from .base import BaseUSEquityPipelineTestCase
+from tests.pipeline.base import BaseUSEquityPipelineTestCase
 
 
 @nottest
