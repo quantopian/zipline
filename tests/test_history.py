@@ -627,7 +627,7 @@ class MinuteEquityHistoryTestCase(WithHistory,
         """
         Negative bar counts leak future information.
         """
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 ValueError,
                 "bar_count must be >= 1, but got -1"
         ):
@@ -1388,7 +1388,7 @@ class MinuteEquityHistoryTestCase(WithHistory,
             'window, start the backtest on or after 2014-01-06.'
         )
         for field in OHLCP:
-            with self.assertRaisesRegexp(
+            with self.assertRaisesRegex(
                     HistoryWindowStartsBeforeData, exp_msg):
                 self.data_portal.get_history_window(
                     [self.ASSET1],
@@ -2030,7 +2030,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
             'window, start the backtest on or after 2014-01-09.'
         )
 
-        with self.assertRaisesRegexp(HistoryWindowStartsBeforeData, exp_msg):
+        with self.assertRaisesRegex(HistoryWindowStartsBeforeData, exp_msg):
             self.data_portal.get_history_window(
                 [self.ASSET1],
                 second_day,
@@ -2040,7 +2040,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
                 'daily',
             )[self.ASSET1]
 
-        with self.assertRaisesRegexp(HistoryWindowStartsBeforeData, exp_msg):
+        with self.assertRaisesRegex(HistoryWindowStartsBeforeData, exp_msg):
             self.data_portal.get_history_window(
                 [self.ASSET1],
                 second_day,
@@ -2054,7 +2054,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
         first_minute = \
             self.trading_calendar.schedule.market_open[self.TRADING_START_DT]
 
-        with self.assertRaisesRegexp(HistoryWindowStartsBeforeData, exp_msg):
+        with self.assertRaisesRegex(HistoryWindowStartsBeforeData, exp_msg):
             self.data_portal.get_history_window(
                 [self.ASSET2],
                 first_minute,

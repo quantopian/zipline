@@ -275,7 +275,7 @@ class BundleCoreTestCase(WithInstanceTmpDir,
             called[0] = True
 
         now = pd.Timestamp.utcnow()
-        with self.assertRaisesRegexp(ValueError,
+        with self.assertRaisesRegex(ValueError,
                                      "ingest .* creates writers .* downgrade"):
             self.ingest('bundle', self.environ, assets_versions=versions,
                         timestamp=now - pd.Timedelta(seconds=1))

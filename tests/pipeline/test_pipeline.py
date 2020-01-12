@@ -208,7 +208,7 @@ class PipelineTestCase(TestCase):
             r"but got 'fizzbuzz' instead."
         )
 
-        with self.assertRaisesRegexp(ValueError, expected):
+        with self.assertRaisesRegex(ValueError, expected):
             p.show_graph(format='fizzbuzz')
 
     def test_infer_domain_no_terms(self):
