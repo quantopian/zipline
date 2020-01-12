@@ -1356,13 +1356,16 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         cls.equity_closes.name = None
 
         futures_cal = cls.trading_calendars[Future]
-        cls.future_minutes = pd.Index(
-            futures_cal.execution_minutes_for_sessions_in_range(
-                cls.START_DATE,
-                cls.END_DATE,
-            ),
+        try:
+            cls.future_minutes = pd.Index(
+                futures_cal.execution_minutes_for_sessions_in_range(
+                    cls.START_DATE,
+                    cls.END_DATE,
+                ),
 
-        )
+            )
+        except FutureWarning:
+            pass
         cls.future_closes = pd.Index(
             futures_cal.execution_time_from_close(
                 futures_cal.session_closes_in_range(

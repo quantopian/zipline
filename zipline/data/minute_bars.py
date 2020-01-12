@@ -79,7 +79,7 @@ def _calc_minute_index(market_opens, minutes_per_day):
         start_ix = minutes_per_day * i
         end_ix = start_ix + minutes_per_day
         minutes[start_ix:end_ix] = minute_values
-    return pd.to_datetime(minutes, utc=True, box=True)
+    return pd.to_datetime(minutes, utc=True)
 
 
 def _sid_subdir_path(sid):
