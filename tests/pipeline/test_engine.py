@@ -226,7 +226,7 @@ class ConstantInputTestCase(WithConstantInputs,
         p = Pipeline()
 
         msg = "start_date must be before or equal to end_date .*"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             self.engine.run_pipeline(p, self.dates[2], self.dates[1])
 
     def test_fail_usefully_on_insufficient_data(self):

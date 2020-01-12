@@ -1267,7 +1267,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         self.assertEqual(asset_1.sid, 1)
 
         # We don't know about this ALT_ID yet.
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             ValueNotFoundForField,
             "Value '{}' was not found for field '{}'.".format(
                 '100000002',
@@ -1294,7 +1294,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
             "Multiple occurrences of the value '{}' found for field '{}'."
         ).format('100000000', 'ALT_ID')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             MultipleValuesFoundForField,
             expected_in_repr,
         ):
@@ -1377,7 +1377,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
 
         # Since sid 2 has not yet started, we don't know about its
         # ALT_ID.
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             NoValueForSid,
             "No '{}' value found for sid '{}'.".format('ALT_ID', 2),
         ):
@@ -1395,7 +1395,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
             )
 
         # Sid 0 has historically held two values for ALT_ID by this dt.
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             MultipleValuesFoundForSid,
             "Multiple '{}' values found for sid '{}'.".format('ALT_ID', 0),
         ):

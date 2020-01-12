@@ -336,9 +336,9 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
         # E.g.
         #   INVALID VALID INVALID VALID ... VALID INVALID
         query_assets = (
-            [self.assets[-1] + 1] +
-            list(range(self.assets[0], self.assets[-1] + 1)) +
-            [self.assets[-1] + 3]
+                [self.assets[-1] + 1] +
+                list(range(self.assets[0], self.assets[-1] + 1)) +
+                [self.assets[-1] + 3]
         )
 
         columns = [CLOSE, VOLUME]
@@ -609,10 +609,10 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
         result = self.bcolz_daily_bar_ctable
         expected_first_row = {
             '1': 0,
-            '3': 5,    # Asset 1 has 5 trading days.
-            '5': 12,   # Asset 3 has 7 trading days.
-            '7': 33,   # Asset 5 has 21 trading days.
-            '9': 44,   # Asset 7 has 11 trading days.
+            '3': 5,  # Asset 1 has 5 trading days.
+            '5': 12,  # Asset 3 has 7 trading days.
+            '7': 33,  # Asset 5 has 21 trading days.
+            '9': 44,  # Asset 7 has 11 trading days.
             '11': 49,  # Asset 9 has 5 trading days.
         }
         expected_last_row = {
@@ -621,14 +621,14 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
             '5': 32,
             '7': 43,
             '9': 48,
-            '11': 57,    # Asset 11 has 9 trading days.
+            '11': 57,  # Asset 11 has 9 trading days.
         }
         expected_calendar_offset = {
-            '1': 0,    # Starts on 6-01, 1st trading day of month.
-            '3': 15,   # Starts on 6-22, 16th trading day of month.
-            '5': 1,    # Starts on 6-02, 2nd trading day of month.
-            '7': 0,    # Starts on 6-01, 1st trading day of month.
-            '9': 9,    # Starts on 6-12, 10th trading day of month.
+            '1': 0,  # Starts on 6-01, 1st trading day of month.
+            '3': 15,  # Starts on 6-22, 16th trading day of month.
+            '5': 1,  # Starts on 6-02, 2nd trading day of month.
+            '7': 0,  # Starts on 6-01, 1st trading day of month.
+            '9': 9,  # Starts on 6-12, 10th trading day of month.
             '11': 10,  # Starts on 6-15, 11th trading day of month.
         }
         self.assertEqual(result.attrs['first_row'], expected_first_row)
@@ -706,7 +706,7 @@ class BcolzDailyBarWriterMissingDataTestCase(WithAssetFinder,
             "[Timestamp('2015-06-15 00:00:00+0000', tz='UTC')]\n"
             "Extra sessions: []"
         )
-        with self.assertRaisesRegexp(AssertionError, expected_msg):
+        with self.assertRaisesRegex(AssertionError, expected_msg):
             writer.write(bar_data)
 
 
