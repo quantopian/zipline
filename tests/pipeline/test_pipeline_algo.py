@@ -193,9 +193,9 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
 
         # View of the data on/after the split.
         self.adj_closes = adj_closes = self.closes.copy()
-        adj_closes.loc[:self.split_date, self.split_asset] *= self.split_ratio
+        adj_closes.loc[:self.split_date, self.split_asset.sid] *= self.split_ratio
         self.adj_volumes = adj_volumes = self.volumes.copy()
-        adj_volumes.ix[:self.split_date, self.split_asset] *= self.split_ratio
+        adj_volumes.loc[:self.split_date, self.split_asset.sid] *= self.split_ratio
 
         self.pipeline_close_loader = DataFrameLoader(
             column=USEquityPricing.close,
@@ -214,14 +214,14 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
             lookup = self.closes
         else:
             lookup = self.adj_closes
-        return lookup.loc[date, asset]
+        return lookup.loc[date, asset.sid]
 
     def expected_volume(self, date, asset):
         if date < self.split_date:
             lookup = self.volumes
         else:
             lookup = self.adj_volumes
-        return lookup.loc[date, asset]
+        return lookup.loc[date, asset.sid]
 
     def exists(self, date, asset):
         return asset.start_date <= date <= asset.end_date
