@@ -934,7 +934,7 @@ def _pipeline_output_index(dates, assets, mask):
     asset_labels = repeat_first_axis(arange(len(assets)), len(dates))[mask]
     return MultiIndex(
         levels=[dates, assets],
-        labels=[date_labels, asset_labels],
+        codes=[date_labels, asset_labels],
         # TODO: We should probably add names for these.
         names=[None, None],
         verify_integrity=False,
