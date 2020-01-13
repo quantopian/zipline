@@ -1822,7 +1822,6 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
             pd.Timestamp('2015-01-07', tz="UTC"),
             pd.Timestamp('2015-01-08', tz="UTC")
         )
-
         # days has 1/7, 1/8
         for idx, day in enumerate(days):
             bar_data = self.create_bardata(
