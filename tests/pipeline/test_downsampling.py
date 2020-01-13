@@ -649,19 +649,19 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
 
         expected_results = {
             'year': (raw_term_results
-                     .groupby(pd.TimeGrouper('AS'))
+                     .groupby(pd.Grouper(freq='AS'))
                      .first()
                      .reindex(compute_dates, method='ffill')),
             'quarter': (raw_term_results
-                        .groupby(pd.TimeGrouper('QS'))
+                        .groupby(pd.Grouper(freq='QS'))
                         .first()
                         .reindex(compute_dates, method='ffill')),
             'month': (raw_term_results
-                      .groupby(pd.TimeGrouper('MS'))
+                      .groupby(pd.Grouper(freq='MS'))
                       .first()
                       .reindex(compute_dates, method='ffill')),
             'week': (raw_term_results
-                     .groupby(pd.TimeGrouper('W', label='left'))
+                     .groupby(pd.Grouper(freq='W', label='left'))
                      .first()
                      .reindex(compute_dates, method='ffill')),
         }
