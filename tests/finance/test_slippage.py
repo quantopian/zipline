@@ -954,7 +954,7 @@ class OrdersStopTestCase(WithSimParams,
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
     SIM_PARAMS_EMISSION_RATE = 'daily'
     ASSET_FINDER_EQUITY_SIDS = (133,)
-    minutes = pd.DatetimeIndex(
+    minutes = pd.date_range(
         start=START_DATE,
         end=END_DATE - pd.Timedelta('1 minute'),
         freq='1min'
