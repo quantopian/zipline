@@ -333,6 +333,51 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
 
             assert_equal(result_2d, expected_result_2d)
 
+    @parameterized.expand([
+        ('US', US_EQUITIES, 'XNYS'),
+        ('CA', CA_EQUITIES, 'XTSE'),
+        ('GB', GB_EQUITIES, 'XLON'),
+    ])
+    def test_only_currency_converted_data(self, name, domain, calendar_name):
+        # Test running a pipeline on a domain whose assets are all denominated
+        # in the same currency.
+        pipe = Pipeline({
+            'close_USD': EquityPricing.close.fx('USD').latest,
+            'close_EUR': EquityPricing.close.fx('EUR').latest,
+        }, domain=domain)
+
+        start, end = self.daily_bar_sessions[calendar_name][-2:]
+        result = self.run_pipeline(pipe, start, end)
+
+        calendar = get_calendar(calendar_name)
+        daily_bars = self.daily_bar_data[calendar_name]
+        currency_codes = self.daily_bar_currency_codes[calendar_name]
+
+        for (dt, asset), row in result.iterrows():
+            # Subtract a day b/c pipeline output on day N should have prior
+            # day's price.
+            price_date = dt - calendar.day
+            expected_close = daily_bars[asset].loc[price_date, 'close']
+            expected_base = currency_codes.loc[asset]
+
+            expected_rate_USD = self.in_memory_fx_rate_reader.get_rate_scalar(
+                rate='mid',
+                quote='USD',
+                base=expected_base,
+                dt=price_date.asm8,
+            )
+            expected_price = expected_close * expected_rate_USD
+            assert_equal(row.close_USD, expected_price)
+
+            expected_rate_EUR = self.in_memory_fx_rate_reader.get_rate_scalar(
+                rate='mid',
+                quote='EUR',
+                base=expected_base,
+                dt=price_date.asm8,
+            )
+            expected_price = expected_close * expected_rate_EUR
+            assert_equal(row.close_EUR, expected_price)
+
     def test_explicit_specialization_matches_implicit(self):
         pipeline_specialized = Pipeline({
             'open': EquityPricing.open.latest,
