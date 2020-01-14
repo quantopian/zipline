@@ -18,7 +18,6 @@ from zipline.utils.numpy_utils import (
 
 from .base import BaseUSEquityPipelineTestCase
 
-
 bytes_dtype = np.dtype('S3')
 unicode_dtype = np.dtype('U3')
 
@@ -38,10 +37,10 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
 
         # There's no significance to the values here other than that they
         # contain a mix of missing and non-missing values.
-        data = np.array([[-1,  1,  0, 2],
-                         [3,   0,  1, 0],
-                         [-5,  0, -1, 0],
-                         [-3,  1,  2, 2]], dtype=int64_dtype)
+        data = np.array([[-1, 1, 0, 2],
+                         [3, 0, 1, 0],
+                         [-5, 0, -1, 0],
+                         [-3, 1, 2, 2]], dtype=int64_dtype)
 
         self.check_terms(
             terms={
@@ -70,10 +69,10 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
         # There's no significance to the values here other than that they
         # contain a mix of missing and non-missing values.
         raw = np.asarray(
-            [['',    'a',  'ab', 'ba'],
-             ['z',  'ab',   'a', 'ab'],
-             ['aa', 'ab',    '', 'ab'],
-             ['aa',  'a',  'ba', 'ba']],
+            [['', 'a', 'ab', 'ba'],
+             ['z', 'ab', 'a', 'ab'],
+             ['aa', 'ab', '', 'ab'],
+             ['aa', 'a', 'ba', 'ba']],
             dtype=categorical_dtype,
         )
         data = LabelArray(raw, missing_value=mv)
@@ -104,10 +103,10 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
 
         # There's no significance to the values here other than that they
         # contain a mix of the comparison value and other values.
-        data = np.array([[-1,  1,  0, 2],
-                         [3,   0,  1, 0],
-                         [-5,  0, -1, 0],
-                         [-3,  1,  2, 2]], dtype=int64_dtype)
+        data = np.array([[-1, 1, 0, 2],
+                         [3, 0, 1, 0],
+                         [-5, 0, -1, 0],
+                         [-3, 1, 2, 2]], dtype=int64_dtype)
 
         self.check_terms(
             terms={
@@ -141,10 +140,10 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
         # contain a mix of the comparison value and other values.
         data = LabelArray(
             np.asarray(
-                [['',    'a',  'ab', 'ba'],
-                 ['z',  'ab',   'a', 'ab'],
-                 ['aa', 'ab',    '', 'ab'],
-                 ['aa',  'a',  'ba', 'ba']],
+                [['', 'a', 'ab', 'ba'],
+                 ['z', 'ab', 'a', 'ab'],
+                 ['aa', 'ab', '', 'ab'],
+                 ['aa', 'a', 'ba', 'ba']],
                 dtype=labelarray_dtype,
             ),
             missing_value='',
@@ -201,10 +200,10 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
 
         # There's no significance to the values here other than that they
         # contain a mix of the comparison value and other values.
-        data = np.array([[-1,  1,  0, 2],
-                         [3,   0,  1, 0],
-                         [-5,  0, -1, 0],
-                         [-3,  1,  2, 2]], dtype=int64_dtype)
+        data = np.array([[-1, 1, 0, 2],
+                         [3, 0, 1, 0],
+                         [-5, 0, -1, 0],
+                         [-3, 1, 2, 2]], dtype=int64_dtype)
 
         self.check_terms(
             terms={
@@ -239,18 +238,18 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
         # contain a mix of the comparison value and other values.
         data = LabelArray(
             np.asarray(
-                [['',    'a',  'ab', 'ba'],
-                 ['z',  'ab',   'a', 'ab'],
-                 ['aa', 'ab',    '', 'ab'],
-                 ['aa',  'a',  'ba', 'ba']],
+                [['', 'a', 'ab', 'ba'],
+                 ['z', 'ab', 'a', 'ab'],
+                 ['aa', 'ab', '', 'ab'],
+                 ['aa', 'a', 'ba', 'ba']],
                 dtype=labelarray_dtype,
             ),
             missing_value=missing,
         )
 
         expected = (
-            (data.as_int_array() != data.reverse_categories.get(compval, -1)) &
-            (data.as_int_array() != data.reverse_categories[C.missing_value])
+                (data.as_int_array() != data.reverse_categories.get(compval, -1)) &
+                (data.as_int_array() != data.reverse_categories[C.missing_value])
         )
 
         self.check_terms(
@@ -298,10 +297,10 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
         # contain a mix of the comparison value and other values.
         data = LabelArray(
             np.asarray(
-                [['',    'a',  'ab', 'ba'],
-                 ['z',  'ab',   'a', 'ab'],
-                 ['aa', 'ab',    '', 'ab'],
-                 ['aa',  'a',  'ba', 'ba']],
+                [['', 'a', 'ab', 'ba'],
+                 ['z', 'ab', 'a', 'ab'],
+                 ['aa', 'ab', '', 'ab'],
+                 ['aa', 'a', 'ba', 'ba']],
                 dtype=labelarray_dtype,
             ),
             missing_value=missing,
@@ -350,10 +349,10 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
         c = C()
 
         raw = np.asarray(
-            [['',    'a',  'ab', 'ba'],
-             ['z',  'ab',   'a', 'ab'],
-             ['aa', 'ab',    '', 'ab'],
-             ['aa',  'a',  'ba', 'ba']],
+            [['', 'a', 'ab', 'ba'],
+             ['z', 'ab', 'a', 'ab'],
+             ['aa', 'ab', '', 'ab'],
+             ['aa', 'a', 'ba', 'ba']],
             dtype=labelarray_dtype,
         )
         data = LabelArray(raw, missing_value=missing)
@@ -386,6 +385,7 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
         """
         Element of is well-defined for integral classifiers.
         """
+
         class C(Classifier):
             dtype = int64_dtype
             missing_value = -1
@@ -396,10 +396,10 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
 
         # There's no significance to the values here other than that they
         # contain a mix of missing and non-missing values.
-        data = np.array([[-1,  1,  0, 2],
-                         [3,   0,  1, 0],
-                         [-5,  0, -1, 0],
-                         [-3,  1,  2, 2]], dtype=int64_dtype)
+        data = np.array([[-1, 1, 0, 2],
+                         [3, 0, 1, 0],
+                         [-5, 0, -1, 0],
+                         [-3, 1, 2, 2]], dtype=int64_dtype)
 
         terms = {}
         expected = {}
@@ -462,12 +462,8 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             c.element_of([{'a': 1}])
 
         errmsg = str(e.exception)
-        expected = (
-            "Expected `choices` to be an iterable of hashable values,"
-            " but got [{'a': 1}] instead.\n"
-            "This caused the following error: "
-            "TypeError(\"unhashable type: 'dict'\",)."
-        )
+        expected = 'Expected `choices` to be an iterable of hashable values, but got [{\'a\': 1}] instead.\n' \
+                   'This caused the following error: TypeError("unhashable type: \'dict\'").'
         self.assertEqual(errmsg, expected)
 
     @parameter_space(
