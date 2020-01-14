@@ -28,7 +28,7 @@ class FXRateReader(Interface):
             may appear multiple times.
         dts : pd.DatetimeIndex
             Datetimes for which to load rates. Must be sorted in ascending
-            order.
+            order and localized to UTC.
 
         Returns
         -------
