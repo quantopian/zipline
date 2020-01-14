@@ -166,7 +166,7 @@ class EquityPricingLoader(implements(PipelineLoader)):
             by_spec[column.currency_conversion].append(array)
 
         # Nothing to do for terms with no currency conversion.
-        by_spec.pop(None)
+        by_spec.pop(None, None)
         if not by_spec:
             return
 

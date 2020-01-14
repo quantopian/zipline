@@ -84,6 +84,9 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
             expected = self.get_expected_fx_rate_scalar(rate, quote, base, dt)
             assert_equal(result_scalar, expected)
 
+            alt_result_scalar = reader.get_rate_scalar(rate, quote, base, dt)
+            assert_equal(result_scalar, alt_result_scalar)
+
     def test_vectorized_lookup(self):
         rand = np.random.RandomState(42)
 
