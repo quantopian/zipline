@@ -297,6 +297,13 @@ class DataPortal(object):
             if self._first_trading_day is not None else None
         )
 
+        # Store the location of the dividends table fields
+        if self._adjustment_reader is not None:
+            stock_dividend_payouts_fields = self._adjustment_reader.conn.execute(
+                "PRAGMA table_info(stock_dividend_payouts);").fetchall()
+
+            self._dividends_fields = {field[1]: field[0] for field in stock_dividend_payouts_fields}
+
     def _ensure_reader_aligned(self, reader):
         if reader is None:
             return
@@ -1225,13 +1232,13 @@ class DataPortal(object):
         dividend_info = []
         for dividend_tuple in dividends:
             dividend_info.append({
-                "declared_date": dividend_tuple[1],
-                "ex_date": pd.Timestamp(dividend_tuple[2], unit="s"),
-                "pay_date": pd.Timestamp(dividend_tuple[3], unit="s"),
-                "payment_sid": dividend_tuple[4],
-                "ratio": dividend_tuple[5],
-                "record_date": pd.Timestamp(dividend_tuple[6], unit="s"),
-                "sid": dividend_tuple[7]
+                "declared_date": dividend_tuple[self._dividends_fields['declared_date']],
+                "ex_date": pd.Timestamp(dividend_tuple[self._dividends_fields['ex_date']], unit="s"),
+                "pay_date": pd.Timestamp(dividend_tuple[self._dividends_fields['pay_date']], unit="s"),
+                "payment_sid": dividend_tuple[self._dividends_fields['payment_sid']],
+                "ratio": dividend_tuple[self._dividends_fields['ratio']],
+                "record_date": pd.Timestamp(dividend_tuple[self._dividends_fields['record_date']], unit="s"),
+                "sid": dividend_tuple[self._dividends_fields['sid']]
             })
 
         return dividend_info
