@@ -44,7 +44,6 @@ from zipline.utils.cli import maybe_show_progress
 from zipline.utils.compat import mappingproxy
 from zipline.utils.memoize import lazyval
 
-
 logger = logbook.Logger('MinuteBars')
 
 US_EQUITIES_MINUTES_PER_DAY = 390
@@ -260,14 +259,14 @@ class BcolzMinuteBarMetadata(object):
             )
 
     def __init__(
-        self,
-        default_ohlc_ratio,
-        ohlc_ratios_per_sid,
-        calendar,
-        start_session,
-        end_session,
-        minutes_per_day,
-        version=FORMAT_VERSION,
+            self,
+            default_ohlc_ratio,
+            ohlc_ratios_per_sid,
+            calendar,
+            start_session,
+            end_session,
+            minutes_per_day,
+            version=FORMAT_VERSION,
     ):
         self.calendar = calendar
         self.start_session = start_session
@@ -340,10 +339,10 @@ class BcolzMinuteBarMetadata(object):
             'first_trading_day': str(self.start_session.date()),
             'market_opens': (
                 market_opens.values.astype('datetime64[m]').
-                astype(np.int64).tolist()),
+                    astype(np.int64).tolist()),
             'market_closes': (
                 market_closes.values.astype('datetime64[m]').
-                astype(np.int64).tolist()),
+                    astype(np.int64).tolist()),
         }
         with open(self.metadata_path(rootdir), 'w+') as fp:
             json.dump(metadata, fp)
@@ -929,10 +928,10 @@ class BcolzMinuteBarReader(MinuteBarReader):
         )
         self._schedule = self.calendar.schedule[slicer]
         self._market_opens = self._schedule.market_open
-        self._market_open_values = self._market_opens.values.\
+        self._market_open_values = self._market_opens.values. \
             astype('datetime64[m]').astype(np.int64)
         self._market_closes = self._schedule.market_close
-        self._market_close_values = self._market_closes.values.\
+        self._market_close_values = self._market_closes.values. \
             astype('datetime64[m]').astype(np.int64)
 
         self._default_ohlc_inverse = 1.0 / metadata.default_ohlc_ratio
@@ -1034,11 +1033,11 @@ class BcolzMinuteBarReader(MinuteBarReader):
         for market_open, early_close in self._minutes_to_exclude():
             start_pos = self._find_position_of_minute(early_close) + 1
             end_pos = (
-                self._find_position_of_minute(market_open)
-                +
-                self._minutes_per_day
-                -
-                1
+                    self._find_position_of_minute(market_open)
+                    +
+                    self._minutes_per_day
+                    -
+                    1
             )
             data = (start_pos, end_pos)
             itree[start_pos:end_pos + 1] = data
@@ -1275,7 +1274,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
                 if indices_to_exclude is not None:
                     for excl_start, excl_stop in indices_to_exclude[::-1]:
                         excl_slice = np.s_[
-                            excl_start - start_idx:excl_stop - start_idx + 1]
+                                     excl_start - start_idx:excl_stop - start_idx + 1]
                         values = np.delete(values, excl_slice)
 
                 where = values != 0
@@ -1283,7 +1282,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
                 # written data for all the minutes requested
                 if field != 'volume':
                     out[:len(where), i][where] = (
-                        values[where] * self._ohlc_ratio_inverse_for_sid(sid))
+                            values[where] * self._ohlc_ratio_inverse_for_sid(sid))
                 else:
                     out[:len(where), i][where] = values[where]
 
@@ -1338,9 +1337,9 @@ class H5MinuteBarUpdateWriter(object):
 
     def __init__(self, path, complevel=None, complib=None):
         self._complevel = complevel if complevel \
-            is not None else self._COMPLEVEL
+                                       is not None else self._COMPLEVEL
         self._complib = complib if complib \
-            is not None else self._COMPLIB
+                                   is not None else self._COMPLIB
         self._path = path
 
     def write(self, frames):
@@ -1357,7 +1356,7 @@ class H5MinuteBarUpdateWriter(object):
         with HDFStore(self._path, 'w',
                       complevel=self._complevel, complib=self._complib) \
                 as store:
-            panel = pd.Panel.from_dict(dict(frames))
+            panel = pd.concat(frames, axis=1)
             panel.to_hdf(store, 'updates')
         with tables.open_file(self._path, mode='r+') as h5file:
             h5file.set_node_attr('/', 'version', 0)
@@ -1372,9 +1371,16 @@ class H5MinuteBarUpdateReader(MinuteBarUpdateReader):
     path : str
         The path of the HDF5 file from which to source data.
     """
+
     def __init__(self, path):
         self._panel = pd.read_hdf(path)
 
     def read(self, dts, sids):
-        panel = self._panel[sids, dts, :]
-        return panel.iteritems()
+        panel = self._panel.stack(dropna=False).transpose().loc[sids][dts]
+        rows = panel.iterrows()
+
+        def custom_generator(rows_iterator):
+            for single_row in rows_iterator:
+                yield single_row[0], single_row[1].unstack(level=0).transpose()
+
+        return custom_generator(rows)
