@@ -15,7 +15,7 @@
 from collections import OrderedDict
 from textwrap import dedent
 
-from nose_parameterized import parameterized
+from parameterized import parameterized
 import numpy as np
 from numpy import nan
 import pandas as pd

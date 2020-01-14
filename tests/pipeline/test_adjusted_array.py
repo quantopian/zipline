@@ -7,7 +7,7 @@ from string import ascii_lowercase, ascii_uppercase
 from textwrap import dedent
 from unittest import TestCase
 
-from nose_parameterized import parameterized
+from parameterized import parameterized
 from numpy import (
     arange,
     array,

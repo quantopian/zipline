@@ -5,7 +5,7 @@ from operator import attrgetter
 from types import FunctionType
 from unittest import TestCase
 
-from nose_parameterized import parameterized
+from parameterized import parameterized
 from numpy import arange, array, dtype
 import pytz
 from six import PY3

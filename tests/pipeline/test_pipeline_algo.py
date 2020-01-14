@@ -7,7 +7,7 @@ from os.path import (
     realpath,
 )
 
-from nose_parameterized import parameterized
+from parameterized import parameterized
 import numpy as np
 from numpy import (
     array,

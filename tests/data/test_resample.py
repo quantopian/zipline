@@ -14,7 +14,7 @@
 from collections import OrderedDict
 from numbers import Real
 
-from nose_parameterized import parameterized
+from parameterized import parameterized
 from numpy.testing import assert_almost_equal
 from numpy import nan, array, full, isnan
 import pandas as pd

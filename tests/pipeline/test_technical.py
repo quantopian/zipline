@@ -1,6 +1,6 @@
 from __future__ import division
 
-from nose_parameterized import parameterized
+from parameterized import parameterized
 from six.moves import range
 import numpy as np
 import pandas as pd

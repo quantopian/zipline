@@ -2,7 +2,7 @@
 """
 from itertools import cycle, islice
 
-from nose_parameterized import parameterized
+from parameterized import parameterized
 import numpy as np
 import pandas as pd
 

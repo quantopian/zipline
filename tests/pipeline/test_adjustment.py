@@ -2,7 +2,7 @@
 Tests for zipline.lib.adjustment
 """
 from unittest import TestCase
-from nose_parameterized import parameterized
+from parameterized import parameterized
 
 from zipline.lib import adjustment as adj
 from zipline.utils.numpy_utils import make_datetime64ns

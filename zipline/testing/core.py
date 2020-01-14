@@ -947,7 +947,7 @@ def subtest(iterator, *_names):
     * Have a large parameter space we are testing
       (see tests/utils/test_events.py).
 
-    ``nose_parameterized.expand`` will create a test for each parameter
+    ``parameterized.expand`` will create a test for each parameter
     combination which bloats the test output and makes the travis pages slow.
 
     We cannot use ``unittest2.TestCase.subTest`` because nose, pytest, and

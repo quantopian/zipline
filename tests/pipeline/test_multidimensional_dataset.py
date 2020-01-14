@@ -2,7 +2,7 @@ from collections import OrderedDict
 import itertools
 from textwrap import dedent
 
-from nose_parameterized import parameterized
+from parameterized import parameterized
 import numpy as np
 
 from zipline.pipeline.data import (

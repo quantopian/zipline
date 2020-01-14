@@ -16,7 +16,7 @@ from functools import partial
 import tarfile
 
 import matplotlib
-from nose_parameterized import parameterized
+from parameterized import parameterized
 import pandas as pd
 
 from zipline import examples

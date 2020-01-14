@@ -16,7 +16,7 @@ from functools import partial
 from unittest import TestCase
 from datetime import timedelta
 import pandas as pd
-from nose_parameterized import parameterized
+from parameterized import parameterized
 
 from zipline.utils.events import NDaysBeforeLastTradingDayOfWeek, AfterOpen, \
     BeforeClose

@@ -18,7 +18,7 @@ import random
 from unittest import TestCase
 import warnings
 
-from nose_parameterized import parameterized
+from parameterized import parameterized
 import pandas as pd
 from six import iteritems
 from six.moves import range, map

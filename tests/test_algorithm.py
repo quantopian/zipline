@@ -22,7 +22,7 @@ from copy import deepcopy
 import logbook
 import toolz
 from logbook import TestHandler, WARNING
-from nose_parameterized import parameterized
+from parameterized import parameterized
 from six import iteritems, itervalues, string_types
 from six.moves import range
 from testfixtures import TempDirectory

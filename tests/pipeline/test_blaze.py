@@ -12,7 +12,7 @@ import warnings
 
 import blaze as bz
 from datashape import dshape, var, Record
-from nose_parameterized import parameterized
+from parameterized import parameterized
 import numpy as np
 from numpy.testing.utils import assert_array_almost_equal
 from odo import odo

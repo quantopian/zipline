@@ -20,7 +20,7 @@ from collections import namedtuple
 import datetime
 from math import sqrt
 
-from nose_parameterized import parameterized
+from parameterized import parameterized
 import numpy as np
 import pandas as pd
 import pytz

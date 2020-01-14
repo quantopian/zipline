@@ -4,7 +4,7 @@ Tests BoundColumn attributes and methods.
 import operator
 from unittest import skipIf
 
-from nose_parameterized import parameterized
+from parameterized import parameterized
 from pandas import Timestamp, DataFrame
 from pandas.util.testing import assert_frame_equal
 

@@ -15,7 +15,7 @@
 from datetime import timedelta, time
 from itertools import chain
 
-from nose_parameterized import parameterized
+from parameterized import parameterized
 import numpy as np
 from numpy import nan
 from numpy.testing import assert_almost_equal
