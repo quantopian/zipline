@@ -84,10 +84,13 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
             expected = self.get_expected_fx_rate_scalar(rate, quote, base, dt)
             assert_equal(result_scalar, expected)
 
+            col_result = reader.get_rates_columnar(rate, quote, bases, dts)
+            assert_equal(col_result, result.ravel())
+
             alt_result_scalar = reader.get_rate_scalar(rate, quote, base, dt)
             assert_equal(result_scalar, alt_result_scalar)
 
-    def test_vectorized_lookup(self):
+    def test_2d_lookup(self):
         rand = np.random.RandomState(42)
 
         dates = pd.date_range(self.FX_RATES_START_DATE, self.FX_RATES_END_DATE)
@@ -110,6 +113,34 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
                 # for those dates/currencies.
                 result = self.reader.get_rates(rate, quote, bases, dts)
                 expected = self.get_expected_fx_rates(rate, quote, bases, dts)
+
+                assert_equal(result, expected)
+
+    def test_columnar_lookup(self):
+        rand = np.random.RandomState(42)
+
+        dates = pd.date_range(self.FX_RATES_START_DATE, self.FX_RATES_END_DATE)
+        rates = self.FX_RATES_RATE_NAMES + [DEFAULT_FX_RATE]
+        currencies = self.FX_RATES_CURRENCIES
+        reader = self.reader
+
+        # For every combination of rate name and quote currency...
+        for rate, quote in itertools.product(rates, currencies):
+            for N in 1, 2, 10, 200:
+                # Choose N (date, base) pairs randomly with replacement.
+                dts_raw = rand.choice(dates, N, replace=True)
+                dts = pd.DatetimeIndex(dts_raw, tz='utc').sort_values()
+                bases = rand.choice(currencies, N, replace=True)
+
+                # ... And check that we get the expected result when querying
+                # for those dates/currencies.
+                result = reader.get_rates_columnar(rate, quote, bases, dts)
+                expected = self.get_expected_fx_rates_columnar(
+                    rate,
+                    quote,
+                    bases,
+                    dts,
+                )
 
                 assert_equal(result, expected)
 
