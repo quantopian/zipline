@@ -871,7 +871,7 @@ class BlazeLoader(implements(PipelineLoader)):
                          deltas=None,
                          checkpoints=None,
                          odo_kwargs=None):
-        """Explicitly map a datset to a collection of blaze expressions.
+        """Explicitly map a dataset to a collection of blaze expressions.
 
         Parameters
         ----------
@@ -936,7 +936,9 @@ class BlazeLoader(implements(PipelineLoader)):
     def load_adjusted_array(self, domain, columns, dates, sids, mask):
         data_query_cutoff_times = domain.data_query_cutoff_for_sessions(
             dates,
-        )
+        ).tz_convert("UTC").tz_localize(None)
+        dates = dates.tz_convert("UTC").tz_localize(None)
+
         return merge(
             self.pool.imap_unordered(
                 partial(
