@@ -2222,6 +2222,15 @@ class WithFXRates(object):
 
         return out
 
+    @classmethod
+    def get_expected_fx_rates_columnar(cls, rate, quote, bases, dts):
+        assert len(bases) == len(dts)
+        rates = [
+            cls.get_expected_fx_rate_scalar(rate, quote, base, dt)
+            for base, dt in zip(bases, dts)
+        ]
+        return np.array(rates, dtype='float64')
+
 
 def fast_get_loc_ffilled(dts, dt):
     """
