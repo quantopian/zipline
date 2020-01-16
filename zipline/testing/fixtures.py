@@ -1120,7 +1120,7 @@ class WithBcolzFutureDailyBarReader(WithFutureDailyBarData, WithTmpDir):
         the minute bar reader defined by a `WithBcolzFutureMinuteBarReader`.
 
     Methods
-    -------
+    -------e
     make_bcolz_daily_bar_rootdir_path() -> string
         A class method that returns the path for the rootdir of the daily
         bars ctable. By default this is a subdirectory BCOLZ_DAILY_BAR_PATH in
@@ -1192,6 +1192,12 @@ def _trading_days_for_minute_bars(calendar,
             first_session,
             -1 * lookback_days
         )[0]
+
+    if first_session.tzinfo != end_date.tzinfo:
+        if first_session is None:
+            first_session = first_session.tz_localize(end_date.tzinfo)
+        else:
+            end_date = end_date.tz_localize(first_session.tzinfo)
 
     return calendar.sessions_in_range(first_session, end_date)
 
