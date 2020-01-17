@@ -56,7 +56,13 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
     def from_dataframe(cls, dataframe, calendar, currency_codes):
         """Helper for construction from a pandas.Panel.
         """
-        return cls(dict(dataframe.iteritems()), calendar, currency_codes)
+        df_iter_items = dataframe.iteritems()
+
+        def custom_generator(items_iterator):
+            for iter_columns in items_iterator:
+                yield iter_columns[0], iter_columns[1].unstack().transpose()
+
+        return cls(dict(custom_generator(df_iter_items)), calendar, currency_codes)
 
     @property
     def last_available_dt(self):

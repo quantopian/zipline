@@ -5,7 +5,6 @@ from itertools import cycle, islice
 from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd
-from pytz import UTC
 
 from trading_calendars import get_calendar
 
@@ -28,7 +27,7 @@ import zipline.testing.fixtures as zf
 
 
 def T(s):
-    return pd.Timestamp(s, tz=UTC)
+    return pd.Timestamp(s, tz="UTC")
 
 
 class WithInternationalDailyBarData(zf.WithAssetFinder):
@@ -115,8 +114,7 @@ class WithInternationalDailyBarData(zf.WithAssetFinder):
                 assets=assets, calendar=calendar, sessions=sessions,
             ))
 
-            dataframe = (pd.DataFrame.from_dict(cls.daily_bar_data[name])
-                     .transpose(2, 1, 0))
+            dataframe = pd.concat(cls.daily_bar_data[name])
 
             cls.daily_bar_currency_codes[name] = cls.make_currency_codes(
                 calendar,
