@@ -1103,7 +1103,7 @@ def get_materialized_checkpoints(checkpoints, colnames, lower_dt, odo_kwargs):
     odo_kwargs : dict, optional
         The extra keyword arguments to pass to ``odo``.
     """
-    if checkpoints is not None:
+    if checkpoints is not None and not checkpoints.data.empty:
         ts = checkpoints[TS_FIELD_NAME]
         checkpoints_ts = odo(
             ts[ts < lower_dt].max(),
