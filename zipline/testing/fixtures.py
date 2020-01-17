@@ -881,6 +881,12 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
                 -1 * cls.EQUITY_DAILY_BAR_LOOKBACK_DAYS
             )[0]
 
+        if first_session.tzinfo != cls.EQUITY_DAILY_BAR_END_DATE.tzinfo:
+            if first_session is None:
+                first_session = first_session.tz_localize(cls.EQUITY_DAILY_BAR_END_DATE.tzinfo)
+            else:
+                cls.EQUITY_DAILY_BAR_END_DATE = cls.EQUITY_DAILY_BAR_END_DATE.tz_localize(first_session.tzinfo)
+
         days = trading_calendar.sessions_in_range(
             first_session,
             cls.EQUITY_DAILY_BAR_END_DATE,
