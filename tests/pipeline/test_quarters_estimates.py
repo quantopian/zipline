@@ -252,7 +252,7 @@ class WithOneDayPipeline(WithEstimates):
             start_date=pd.Timestamp('2015-01-15', tz="UTC"),
             end_date=pd.Timestamp('2015-01-15', tz="UTC"),
         )
-        assert_frame_equal(results, self.expected_out)
+        assert_frame_equal(results.sort_index(axis=1), self.expected_out.sort_index(axis=1))
 
 
 class PreviousWithOneDayPipeline(WithOneDayPipeline, ZiplineTestCase):
