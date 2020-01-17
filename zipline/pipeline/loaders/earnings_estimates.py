@@ -780,7 +780,7 @@ class NextEarningsEstimatesLoader(EarningsEstimatesLoader):
         """
         next_releases_per_date = stacked_last_per_qtr.loc[
             stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] >=
-            stacked_last_per_qtr.index.get_level_values(SIMULATION_DATES)
+            stacked_last_per_qtr.index.get_level_values(SIMULATION_DATES).tz_localize(None)
         ].groupby(
             level=[SIMULATION_DATES, SID_FIELD_NAME],
             as_index=False,
@@ -834,7 +834,7 @@ class PreviousEarningsEstimatesLoader(EarningsEstimatesLoader):
         """
         previous_releases_per_date = stacked_last_per_qtr.loc[
             stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] <=
-            stacked_last_per_qtr.index.get_level_values(SIMULATION_DATES)
+            stacked_last_per_qtr.index.get_level_values(SIMULATION_DATES).tz_localize(None)
         ].groupby(
             level=[SIMULATION_DATES, SID_FIELD_NAME],
             as_index=False,
@@ -1040,7 +1040,7 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         # the date of this adjustment
         newest_kd_for_qtr = sid_estimates[
             (sid_estimates[NORMALIZED_QUARTERS] == requested_quarter) &
-            (sid_estimates[TS_FIELD_NAME] >= adjustment_ts)
+            (sid_estimates[TS_FIELD_NAME] >= adjustment_ts.tz_localize(None))
         ][TS_FIELD_NAME].min()
         if pd.notnull(newest_kd_for_qtr):
             newest_kd_idx = dates.searchsorted(
@@ -1160,63 +1160,65 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
             requested_qtr_timeline = requested_qtr_data[
                 SHIFTED_NORMALIZED_QTRS
             ][sid].reset_index()
+
             requested_qtr_timeline = requested_qtr_timeline[
                 requested_qtr_timeline[sid].notnull()
             ]
 
-            # Split the data into range by quarter and determine which quarter
-            # was being requested in each range.
-            # Split integer indexes up by quarter range
-            qtr_ranges_idxs = np.split(
-                requested_qtr_timeline.index,
-                np.where(np.diff(requested_qtr_timeline[sid]) != 0)[0] + 1
-            )
-            requested_quarters_per_range = [requested_qtr_timeline[sid][r[0]]
-                                            for r in qtr_ranges_idxs]
-            # Try to apply each adjustment to each quarter range.
-            for i, qtr_range in enumerate(qtr_ranges_idxs):
-                for adjustment, date_index, timestamp in zip(
-                        *post_adjustments
-                ):
-                    # In the default case, apply through the end of the quarter
-                    upper_bound = qtr_range[-1]
-                    # Find the smallest KD in estimates that is on or after the
-                    # date of the given adjustment. Apply the given adjustment
-                    # until that KD.
-                    end_idx = self.determine_end_idx_for_adjustment(
-                        timestamp,
-                        requested_qtr_data.index,
-                        upper_bound,
-                        requested_quarters_per_range[i],
-                        sid_estimates
-                    )
-                    # In the default case, apply adjustment on the first day of
-                    #  the quarter.
-                    start_idx = qtr_range[0]
-                    # If the adjustment happens during this quarter, apply the
-                    # adjustment on the day it happens.
-                    if date_index > start_idx:
-                        start_idx = date_index
-                    # We only want to apply the adjustment if we have any stale
-                    # data to apply it to.
-                    if qtr_range[0] <= end_idx:
-                        for column_name in requested_split_adjusted_columns:
-                            if column_name not in col_to_split_adjustments:
-                                col_to_split_adjustments[column_name] = {}
-                            adj = Float64Multiply(
-                                # Always apply from first day of qtr
-                                qtr_range[0],
-                                end_idx,
-                                sid_idx,
-                                sid_idx,
-                                adjustment
-                            )
-                            add_new_adjustments(
-                                col_to_split_adjustments,
-                                [adj],
-                                column_name,
-                                start_idx
-                            )
+            if not requested_qtr_timeline.empty:
+                # Split the data into range by quarter and determine which quarter
+                # was being requested in each range.
+                # Split integer indexes up by quarter range
+                qtr_ranges_idxs = np.split(
+                    requested_qtr_timeline.index,
+                    np.where(np.diff(requested_qtr_timeline[sid]) != 0)[0] + 1
+                )
+                requested_quarters_per_range = [requested_qtr_timeline[sid][r[0]]
+                                                for r in qtr_ranges_idxs]
+                # Try to apply each adjustment to each quarter range.
+                for i, qtr_range in enumerate(qtr_ranges_idxs):
+                    for adjustment, date_index, timestamp in zip(
+                            *post_adjustments
+                    ):
+                        # In the default case, apply through the end of the quarter
+                        upper_bound = qtr_range[-1]
+                        # Find the smallest KD in estimates that is on or after the
+                        # date of the given adjustment. Apply the given adjustment
+                        # until that KD.
+                        end_idx = self.determine_end_idx_for_adjustment(
+                            timestamp,
+                            requested_qtr_data.index,
+                            upper_bound,
+                            requested_quarters_per_range[i],
+                            sid_estimates
+                        )
+                        # In the default case, apply adjustment on the first day of
+                        #  the quarter.
+                        start_idx = qtr_range[0]
+                        # If the adjustment happens during this quarter, apply the
+                        # adjustment on the day it happens.
+                        if date_index > start_idx:
+                            start_idx = date_index
+                        # We only want to apply the adjustment if we have any stale
+                        # data to apply it to.
+                        if qtr_range[0] <= end_idx:
+                            for column_name in requested_split_adjusted_columns:
+                                if column_name not in col_to_split_adjustments:
+                                    col_to_split_adjustments[column_name] = {}
+                                adj = Float64Multiply(
+                                    # Always apply from first day of qtr
+                                    qtr_range[0],
+                                    end_idx,
+                                    sid_idx,
+                                    sid_idx,
+                                    adjustment
+                                )
+                                add_new_adjustments(
+                                    col_to_split_adjustments,
+                                    [adj],
+                                    column_name,
+                                    start_idx
+                                )
 
         return col_to_split_adjustments
 
@@ -1244,9 +1246,10 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         adjustments = self._split_adjustments.get_adjustments_for_sid(
             'splits', sid
         )
+
         sorted(adjustments, key=lambda adj: adj[0])
         # Get rid of any adjustments that happen outside of our date index.
-        adjustments = list(filter(lambda x: dates[0] <= x[0] <= dates[-1],
+        adjustments = list(filter(lambda x: dates[0] <= x[0].tz_localize(None) <= dates[-1],
                                   adjustments))
         adjustment_values = np.array([adj[1] for adj in adjustments])
         timestamps = pd.DatetimeIndex([adj[0] for adj in adjustments])

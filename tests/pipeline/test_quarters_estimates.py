@@ -99,7 +99,8 @@ def create_expected_df_for_factor_compute(start_date,
                                'knowledge_date'])
     df = df.pivot_table(columns=SID_FIELD_NAME,
                         values='estimate',
-                        index='knowledge_date')
+                        index='knowledge_date',
+                        dropna=False)
     df = df.reindex(
         pd.date_range(start_date, end_date)
     )

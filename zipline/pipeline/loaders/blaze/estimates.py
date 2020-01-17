@@ -163,7 +163,7 @@ class BlazeSplitAdjustedEstimatesLoader(BlazeEstimatesLoader):
 
         raw = load_raw_data(
             sids,
-            domain.data_query_cutoff_for_sessions(dates),
+            domain_dates,
             self._expr[sorted(metadata_columns.union(requested_column_names))],
             self._odo_kwargs,
             checkpoints=self._checkpoints,
