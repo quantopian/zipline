@@ -1064,7 +1064,7 @@ class VectorizedBetaTestCase(zf.ZiplineTestCase):
                      np.array([False, False, False, False, False]))
 
 
-class VectorizedCorrelationTestCase(ZiplineTestCase):
+class VectorizedCorrelationTestCase(zf.ZiplineTestCase):
 
     def naive_columnwise_func(self, func, left, right):
         out = np.empty_like(left[0])
