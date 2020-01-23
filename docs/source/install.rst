@@ -124,10 +124,10 @@ channel:
 
 Managing ``conda`` environments
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-It is recommended to install Zipline in an isolated ``conda`` environment. 
-Installing Zipline in ``conda`` environments will not interfere your default 
-Python deployment or site-packages, which will prevent any possible conflict 
-with your global libraries. For more information on ``conda`` environment, see 
+It is recommended to install Zipline in an isolated ``conda`` environment.
+Installing Zipline in ``conda`` environments will not interfere your default
+Python deployment or site-packages, which will prevent any possible conflict
+with your global libraries. For more information on ``conda`` environment, see
 the `Conda User Guide <https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html>`_
 
 Assuming ``conda`` has been set up, you can create a ``conda`` environment:
@@ -146,7 +146,7 @@ Assuming ``conda`` has been set up, you can create a ``conda`` environment:
 
 
 Now you have set up an isolated environment called ``env_zipline``, a sandbox-like
-structure to install Zipline. Then you should activate the conda environment 
+structure to install Zipline. Then you should activate the conda environment
 by using the command
 
 .. code-block:: bash
@@ -164,4 +164,3 @@ To deactivate the ``conda`` environment:
 .. code-block:: bash
 
     (env_zipline) $ source deactivate
-

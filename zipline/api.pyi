@@ -811,4 +811,3 @@ def symbols(*args):
     --------
     :func:`zipline.api.set_symbol_lookup_date`
     """
-

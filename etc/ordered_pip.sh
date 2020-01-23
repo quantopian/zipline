@@ -2,7 +2,7 @@
 
 a=0
 while read line
-do     
+do
     if [[ -n "$line" && "$line" != \#* ]] ; then
         # forward to pip any args after the reqs filename
         pip install --exists-action w $line "${@:2}"
