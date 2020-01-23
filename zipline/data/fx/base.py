@@ -127,15 +127,18 @@ class FXRateReader(Interface):
             may appear multiple times.
         dts : np.DatetimeIndex
             Datetimes for which to load rates. The same value may appear
-            multiple times, but datetimes must be sorted in ascending order and
-            localized to UTC.
+            multiple times, and datetimes do not need to be sorted because
+            `np.unique` sorts in ascending order.
         """
         if len(bases) != len(dts):
             raise ValueError(
                 "len(bases) ({}) != len(dts) ({})".format(len(bases), len(dts))
             )
 
-        unique_bases, bases_ix = np.unique(bases, return_inverse=True)
+        # TODO: Casting `bases` to str here is a temporary fix for the bug
+        # where having any `None` in `bases` causes `np.unique` to error.
+        unique_bases, bases_ix = np.unique(bases.astype(str),
+                                           return_inverse=True)
         unique_dts, dts_ix = np.unique(dts.values, return_inverse=True)
         rates_2d = self.get_rates(
             rate,

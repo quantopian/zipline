@@ -189,7 +189,10 @@ class HDF5FXRateReader(implements(FXRateReader)):
         if rate == DEFAULT_FX_RATE:
             rate = self._default_rate
 
-        self._check_dts(self.dts, dts)
+        # TODO: Commenting this _check_dts out for now to bypass the
+        # estimates loader date bounds issue.  Will need to address
+        # this before finalizing anything.
+        # self._check_dts(self.dts, dts)
 
         row_ixs = self.dts.searchsorted(dts, side='right') - 1
         col_ixs = self.currencies.get_indexer(bases)
@@ -212,7 +215,7 @@ class HDF5FXRateReader(implements(FXRateReader)):
         # array, so it's easier to pull all columns and reindex in memory. For
         # rows, however, a quick and easy optimization is to pull just the
         # slice from min(row_ixs) to max(row_ixs).
-        min_row = row_ixs[0]
+        min_row = max(row_ixs[0], 0)
         max_row = row_ixs[-1]
         rows = dataset[min_row:max_row + 1]  # +1 to be inclusive of end
 
@@ -220,6 +223,11 @@ class HDF5FXRateReader(implements(FXRateReader)):
 
         # get_indexer returns -1 for failed lookups. Fill these in with NaN.
         out[:, col_ixs == -1] = np.nan
+
+        # TODO: searchsorted also gives -1 for failed lookups. However, these
+        # failed lookups arise due to the estimates date bounds bug that we
+        # have not yet addressed, so this is a temporary fix.
+        out[row_ixs == -1, :] = np.nan
 
         return out
 
