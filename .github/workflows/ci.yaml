@@ -1,9 +1,12 @@
 name: Zipline CI
-
-on:  # TMP: change workflow to run on pull request, push to master
+on:
   push:
     branches:
-      - gh-actions-ci
+      - master
+  pull_request:
+    branches:
+      - master
+
 jobs:
   build-and-test:
     runs-on: ubuntu-16.04
@@ -87,7 +90,7 @@ jobs:
           echo "::set-env name=CONDA_NPY::$CONDA_NPY"
           echo "::set-env name=CONDA_PY::$CONDA_PY"
 
-          if [[ -n "${{ secrets.AnacondaToken }}" && $GITHUB_REF = "refs/heads/master" && "${{ github.event_name }}" = "pull_request" ]]; then DO_UPLOAD="true"; else DO_UPLOAD="false"; fi
+          if [[ -n "${{ secrets.AnacondaToken }}" && $GITHUB_REF = "refs/heads/master" && "${{ github.event_name }}" = "push" ]]; then DO_UPLOAD="true"; else DO_UPLOAD="false"; fi
           echo "::set-env name=DO_UPLOAD::$DO_UPLOAD"
 
           for recipe in $(ls -d conda/*/ | xargs -I {} basename {}); do
