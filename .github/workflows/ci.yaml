@@ -31,8 +31,8 @@ jobs:
             numpy-version: 1.14.1
             scipy-version: 1.0.0
         exclude:
-          - python: 2.7
-            pandas: 0.22.0
+          - python-version: 2.7
+            pandas-version: 0.22.0
     env:
       PYTHON_VERSION: ${{ matrix.python-version }}
       PANDAS_VERSION: ${{ matrix.pandas-version }}
