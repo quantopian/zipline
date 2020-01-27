@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest]  # TODO: Add windows-latest, macos-latest
         python-version: [2.7, 3.5]  # TODO: Add 3.7, 3.8
         pandas-version: [0.18.1, 0.22.0]
         include:
@@ -30,8 +30,9 @@ jobs:
             pandas-version: 0.22.0
             numpy-version: 1.14.1
             scipy-version: 1.0.0
-            dask-version: 0.17.1
-            pandas-datareader-version: 0.4.0
+        exclude:
+          - python: 2.7
+            pandas: 0.22.0
     env:
       PYTHON_VERSION: ${{ matrix.python-version }}
       PANDAS_VERSION: ${{ matrix.pandas-version }}
@@ -47,6 +48,9 @@ jobs:
           key: ${{ matrix.os }}-${{ matrix.python }}-${{ matrix.pandas }}-${{ hashFiles('**/requirements.txt') }}-pip-cache
       - name: Install dependencies
         run: |
+          if [ "$PANDAS_VERSION" = "0.22.0" ]; then
+            PANDAS_DATAREADER_VERSION=0.4.0 DASK_VERSION=0.17.1
+          fi
           source ./ci/actions/overwrite_requirements.sh
           cat etc/requirements.txt
 
