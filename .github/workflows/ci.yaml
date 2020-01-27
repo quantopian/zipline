@@ -9,122 +9,92 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-16.04
+    name: build (${{ matrix.os }}, ${{ matrix.python-version }}, ${{ matrix.pandas-version }})
+    runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        python: [2.7, 3.5]
-        pandas: ['old', 'new']
-        exclude:
-          - python: 2.7
-            pandas: 'new'
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: [2.7, 3.5]  # TODO: Add 3.7, 3.8
+        pandas-version: [0.18.1, 0.22.0]
         include:
-          - pandas: 'old'
-            NUMPY_VERSION: 1.11.3
-            PANDAS_VERSION: 0.18.1
-            SCIPY_VERSION: 0.17.1
-          - pandas: 'new'
-            NUMPY_VERSION: 1.14.1
-            PANDAS_VERSION: 0.22.0
-            SCIPY_VERSION: 1.0.0
-            PANDAS_DATAREADER_VERSION: 0.4.0
-            DASK_VERSION: 0.17.1
-    name: py ${{ matrix.python }}/${{ matrix.pandas }} pandas
+          - python-version: 2.7  # py2.7, old pandas
+            pandas-version: 0.18.1
+            numpy-version: 1.11.3
+            scipy-version: 0.17.1
+          - python-version: 3.5  # py3.5, new pandas
+            pandas-version: 0.18.1
+            numpy-version: 1.11.3
+            scipy-version: 0.17.1
+          - python-version: 3.5  # py3.5, new pandas
+            pandas-version: 0.22.0
+            numpy-version: 1.14.1
+            scipy-version: 1.0.0
+            dask-version: 0.17.1
+            pandas-datareader-version: 0.4.0
+    env:
+      PYTHON_VERSION: ${{ matrix.python-version }}
+      PANDAS_VERSION: ${{ matrix.pandas-version }}
+      NUMPY_VERSION: ${{ matrix.numpy-version }}
+      SCIPY_VERSION: ${{ matrix.scipy-version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-
-      - name: Unshallow clone
-        run: |
-          git fetch --unshallow --tags
-
-      - name: Cache pip directory
+      - name: Pip cache
         uses: actions/cache@v1
         with:
-          path: ~/.cache/pip
-          key: ${{ matrix.python }}-${{ matrix.pandas }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ matrix.python }}-${{ matrix.pandas }}-pip-
-
+          path: ~/.cache/.pip
+          key: ${{ matrix.os }}-${{ matrix.python }}-${{ matrix.pandas }}-${{ hashFiles('**/requirements.txt') }}-pip-cache
       - name: Install dependencies
-        env:
-          ANACONDA_TOKEN: ${{ secrets.AnacondaToken }}
-          # https://help.github.com/en/actions/automating-your-workflow-with-github-actions/creating-and-using-encrypted-secrets#creating-encrypted-secrets
-          NUMPY_VERSION: ${{ matrix.NUMPY_VERSION }}
-          PANDAS_VERSION: ${{ matrix.PANDAS_VERSION }}
-          SCIPY_VERSION: ${{ matrix.SCIPY_VERSION }}
-          CONDA_ROOT_PYTHON_VERSION: "2.7"
         run: |
-          echo "::set-env name=NUMPY_VERSION::$NUMPY_VERSION"
-          echo "::set-env name=PANDAS_VERSION::$PANDAS_VERSION"
-          echo "::set-env name=SCIPY_VERSION::$SCIPY_VERSION"
-          echo "::set-env name=CONDA_ROOT_PYTHON_VERSION::$CONDA_ROOT_PYTHON_VERSION"
-          if [[ -n matrix.PANDAS_DATAREADER_VERSION ]]; then export PANDAS_DATAREADER_VERSION=${{ matrix.PANDAS_DATAREADER_VERSION }} && echo "::set-env name=PANDAS_DATAREADER_VERSION::$PANDAS_DATAREADER_VERSION"; fi
-          if [[ -n matrix.DASK_VERSION ]]; then export DASK_VERSION=${{ matrix.DASK_VERSION }} && echo "::set-env name=DASK_VERSION::$DASK_VERSION"; fi
-
-          echo numpy version: $NUMPY_VERSION
-          echo pandas version: $PANDAS_VERSION
-          echo scipy version: $SCIPY_VERSION
-          echo pandas datareader version: $PANDAS_DATAREADER_VERSION
-          echo dask version: $DASK_VERSION
-
-          source ./ci/travis/install_miniconda.sh
-          source ./ci/travis/overwrite_requirements.sh
+          source ./ci/actions/overwrite_requirements.sh
           cat etc/requirements.txt
 
-          echo "::set-env name=PATH::$PATH"
-
-      - name: Install environment
-        env:
-          ANACONDA_TOKEN: ${{ secrets.AnacondaToken }}
-        run: |
-          conda info -a
-          conda install conda=4.3.30 conda-build=3.0.28 anaconda-client=1.6.3 --yes -q
-          conda list
-
-          TALIB_VERSION=$(cat ./etc/requirements_talib.txt | sed "s/TA-Lib==\(.*\)/\1/")
-          CERTIFI_VERSION=$(cat ./etc/requirements.txt | grep "certifi" | sed "s/certifi==\(.*\)/\1/")
-          IFS='.' read -r -a NPY_VERSION_ARR <<< "$NUMPY_VERSION"
-          CONDA_NPY=${NPY_VERSION_ARR[0]}${NPY_VERSION_ARR[1]}
-          CONDA_PY=${{ matrix.python }}
-          echo "::set-env name=CONDA_NPY::$CONDA_NPY"
-          echo "::set-env name=CONDA_PY::$CONDA_PY"
-
-          if [[ -n "${{ secrets.AnacondaToken }}" && $GITHUB_REF = "refs/heads/master" && "${{ github.event_name }}" = "push" ]]; then DO_UPLOAD="true"; else DO_UPLOAD="false"; fi
-          echo "::set-env name=DO_UPLOAD::$DO_UPLOAD"
-
-          for recipe in $(ls -d conda/*/ | xargs -I {} basename {}); do
-            if [[ "$recipe" = "zipline" ]]; then continue; fi
-
-            conda build conda/$recipe --python=$CONDA_PY --numpy=$CONDA_NPY --skip-existing --old-build-string -c quantopian -c quantopian/label/ci
-            RECIPE_OUTPUT=$(conda build conda/$recipe --python=$CONDA_PY --numpy=$CONDA_NPY --old-build-string --output)
-            echo
-            echo $RECIPE_OUTPUT
-            echo
-            if [[ -f "$RECIPE_OUTPUT" && "$DO_UPLOAD" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload "$RECIPE_OUTPUT" -u quantopian --label ci; fi
-          done
-
-          conda create -n testenv --use-local --quiet --yes -c quantopian -c quantopian/label/ci pip python=${{ matrix.python }} numpy=${{ matrix.NUMPY_VERSION }} pandas=${{ matrix.PANDAS_VERSION }} scipy=${{ matrix.SCIPY_VERSION }} ta-lib=$TALIB_VERSION libgfortran=3.0 certifi=$CERTIFI_VERSION
-
-          source activate testenv
           etc/dev-install --cache-dir="$HOME/.cache/.pip/pip_np$CONDA_NPY"
           pip freeze | sort
 
           echo "::set-env name=PATH::$PATH"
+      - name: Lint
+        run: flake8 zipline tests
+      - name: Tests
+        run: nosetests --with-coverage
 
-      - name: Linting/Tests
-        env:
-          ANACONDA_TOKEN: ${{ secrets.AnacondaToken }}
-          NUMPY_VERSION: ${{ matrix.NUMPY_VERSION }}
-          PYTHON_VERSION: ${{ matrix.python }}
-        run: |
-          source activate testenv
-          flake8 zipline tests
-          nosetests --with-coverage
-          source deactivate
+  conda-build:
+    name: conda build (${{ matrix.os }}, ${{ matrix.python-version }}, ${{ matrix.pandas-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: [2.7, 3.5]  # TODO: Add 3.7, 3.8
+        include:
+          - python-version: 2.7  # py2.7, old pandas
+            pandas-version: 0.18.1
+            numpy-version: 1.11.3
+            scipy-version: 0.17.1
+          - python-version: 3.5  # py3.5, new pandas
+            pandas-version: 0.18.1
+            numpy-version: 1.11.3
+            scipy-version: 0.17.1
+          - python-version: 3.5  # py3.5, new pandas
+            pandas-version: 0.22.0
+            numpy-version: 1.14.1
+            scipy-version: 1.0.0
+            dask-version: 0.17.1
+            pandas-datareader-version: 0.4.0
+    env:
+      # https://help.github.com/en/actions/automating-your-workflow-with-github-actions/creating-and-using-encrypted-secrets#creating-encrypted-secrets
+      ANACONDA_TOKEN: ${{ secrets.AnacondaToken }}
+      CONDA_ROOT_PYTHON_VERSION: "2.7"
+    steps:
+          - name: Checkout repository
+            uses: actions/checkout@v2
+          - name: Unshallow clone  # Unshallow the clone so the conda build can clone it.
+            run: git fetch --unshallow --tags
+          - name: Install miniconda
+            run: |
+              source ./ci/actions/install_miniconda.sh
 
-          exec 3>&1; ZP_OUT=$(conda build conda/zipline --python=$CONDA_PY --numpy=$CONDA_NPY -c quantopian -c quantopian/label/ci | tee >(cat - >&3))
-          ZP_OUTPUT=$(echo "$ZP_OUT" | grep "anaconda upload " | awk '{print $NF}')
-          if [ -z "$ZP_OUTPUT" ]; then exit 1; fi
-          conda create -n installenv --yes -q --use-local python=$PYTHON_VERSION numpy=$NUMPY_VERSION zipline -c quantopian -c https://conda.anaconda.org/quantopian/label/ci
-          if [[ "$DO_UPLOAD" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload $ZP_OUTPUT -u quantopian --label ci; fi
+              conda info -a
+              conda install conda=4.3.30 conda-build=3.0.28 anaconda-client=1.6.3 --yes -q
+              conda list
