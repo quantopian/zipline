@@ -44,7 +44,7 @@ jobs:
       - name: Pip cache
         uses: actions/cache@v1
         with:
-          path: ~/.cache/.pip
+          path: ~/.cache/.pip/pip_np$NUMPY_VERSION
           key: ${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.pandas-version }}-${{ hashFiles('**/requirements.txt') }}-pip-cache
       - name: Install dependencies
         run: |
@@ -53,16 +53,18 @@ jobs:
           fi
           source ./ci/actions/overwrite_requirements.sh
           cat etc/requirements.txt
+          TALIB_VERSION=$(cat ./etc/requirements.txt | grep "ta-lib" | sed "s/ta-lib==\([^ ]*\) *.*/\1/")
+          CERTIFI_VERSION=$(cat ./etc/requirements.txt | grep "certifi" | sed "s/certifi==\([^ ]*\) *.*/\1/")
 
           if [[ "$RUNNER_OS" == "Linux" ]]; then
               sudo apt-get install python3-venv
           fi
           python3 -m venv testenv
           source ./testenv/bin/activate
-
-          etc/dev-install --cache-dir="$HOME/.cache/.pip/pip_np$CONDA_NPY"
+          conda install -c anaconda libgfortran=3.0
+          pip install pip python numpy pandas scipy ta-lib certifi -c etc/requirements.txt --cache-dir="$HOME/.cache/.pip/pip_np$NUMPY_VERSION"
+          etc/dev-install --cache-dir="$HOME/.cache/.pip/pip_np$NUMPY_VERSION"
           pip freeze | sort
-
           echo "::set-env name=PATH::$PATH"
       - name: Lint
         run: |
