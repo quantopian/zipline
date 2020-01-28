@@ -54,6 +54,12 @@ jobs:
           source ./ci/actions/overwrite_requirements.sh
           cat etc/requirements.txt
 
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+              sudo apt-get install python3-venv
+          fi
+          python3 -m venv testenv
+          source ./testenv/bin/activate
+
           etc/dev-install --cache-dir="$HOME/.cache/.pip/pip_np$CONDA_NPY"
           pip freeze | sort
 
