@@ -41,6 +41,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
       - name: Pip cache
         uses: actions/cache@v1
         with:
@@ -62,7 +66,7 @@ jobs:
           python3 -m venv testenv
           source ./testenv/bin/activate
           conda install -c anaconda libgfortran=3.0
-          pip install pip python numpy pandas scipy ta-lib certifi -c etc/requirements.txt --cache-dir="$HOME/.cache/.pip/pip_np$NUMPY_VERSION"
+          pip install pip numpy pandas scipy ta-lib certifi -c etc/requirements.txt --cache-dir="$HOME/.cache/.pip/pip_np$NUMPY_VERSION"
           etc/dev-install --cache-dir="$HOME/.cache/.pip/pip_np$NUMPY_VERSION"
           pip freeze | sort
           echo "::set-env name=PATH::$PATH"
