@@ -55,7 +55,7 @@ jobs:
           CERTIFI_VERSION=$(cat ./etc/requirements.txt | grep "certifi" | sed "s/certifi==\([^ ]*\) *.*/\1/")
 
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-              apt-get install python3-venv
+              sudo apt-get install python3-venv
           fi
           python3 -m venv testenv --system-site-packages
           source ./testenv/bin/activate
