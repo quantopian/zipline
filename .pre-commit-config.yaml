@@ -1,20 +1,13 @@
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: 'v2.4.0'
-    hooks:
-    -   id: trailing-whitespace
-    -   id: end-of-file-fixer
-    -   id: check-merge-conflict
-    -   id: flake8
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: 'v2.4.0'
+  hooks:
+  - id: check-added-large-files
+  - id: check-merge-conflict
+  - id: end-of-file-fixer
+  - id: trailing-whitespace
 
--   repo: https://github.com/PyCQA/bandit
-    rev: '1.6.2'
-    hooks:
-    -   id: bandit
-
--   repo: local
-    hooks:
-    -   id: nosetests
-        name: nosetests
-        entry: nosetests --with-coverage
-        language: system
+- repo: https://gitlab.com/pycqa/flake8
+  rev: '3.7.9'
+  hooks:
+  - id: flake8
