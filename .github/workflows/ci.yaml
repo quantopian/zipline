@@ -48,7 +48,7 @@ jobs:
           key: ${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.pandas-version }}-${{ hashFiles('**/requirements.txt') }}-pip-cache
       - name: Install dependencies
         run: |
-          if [ "$PANDAS_VERSION" = "0.22.0" ]; then
+          if [ "$PANDAS_VERSION" = 0.22.0 ]; then
             PANDAS_DATAREADER_VERSION=0.4.0 DASK_VERSION=0.17.1
           fi
           source ./ci/actions/overwrite_requirements.sh
