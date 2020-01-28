@@ -16,15 +16,18 @@ jobs:
       matrix:
         os: [ubuntu-latest]  # TODO: Add windows-latest, macos-latest
         include:  # TODO: Add 3.7, 3.8
-          - python-version: 2.7  # py2.7, old pandas
+          - os: ${{ matrix.os }}
+            python-version: 2.7  # py2.7, old pandas
             pandas-version: 0.18.1
             numpy-version: 1.11.3
             scipy-version: 0.17.1
-          - python-version: 3.5  # py3.5, new pandas
+          - os: ${{ matrix.os }}
+            python-version: 3.5  # py3.5, new pandas
             pandas-version: 0.18.1
             numpy-version: 1.11.3
             scipy-version: 0.17.1
-          - python-version: 3.5  # py3.5, new pandas
+          - os: ${{ matrix.os }}
+            python-version: 3.5  # py3.5, new pandas
             pandas-version: 0.22.0
             numpy-version: 1.14.1
             scipy-version: 1.0.0
