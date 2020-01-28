@@ -15,7 +15,7 @@ from toolz import concatv
 from trading_calendars import get_calendar
 
 from zipline.data import bundles
-from zipline.data.loader import load_market_data
+from zipline.data.loader import load_benchmark_data
 from zipline.data.data_portal import DataPortal
 from zipline.finance import metrics
 from zipline.finance.trading import SimulationParameters
@@ -79,7 +79,7 @@ def _run(handle_data,
     This is shared between the cli and :func:`zipline.run_algo`.
     """
     if benchmark_returns is None:
-        benchmark_returns, _ = load_market_data(environ=environ)
+        benchmark_returns = load_benchmark_data(environ=environ)
 
     if algotext is not None:
         if local_namespace:

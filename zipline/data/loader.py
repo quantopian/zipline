@@ -20,7 +20,6 @@ from six.moves.urllib_error import HTTPError
 from trading_calendars import get_calendar
 
 from .benchmarks import get_benchmark_returns
-from . import treasuries, treasuries_can
 from ..utils.paths import (
     cache_root,
     data_root,
@@ -28,16 +27,6 @@ from ..utils.paths import (
 
 
 logger = logbook.Logger('Loader')
-
-# Mapping from index symbol to appropriate bond data
-INDEX_MAPPING = {
-    'SPY':
-    (treasuries, 'treasury_curves.csv', 'www.federalreserve.gov'),
-    '^GSPTSE':
-    (treasuries_can, 'treasury_curves_can.csv', 'bankofcanada.ca'),
-    '^FTSE':  # use US treasuries until UK bonds implemented
-    (treasuries, 'treasury_curves.csv', 'www.federalreserve.gov'),
-}
 
 ONE_HOUR = pd.Timedelta(hours=1)
 
@@ -87,16 +76,12 @@ def has_data_for_dates(series_or_df, first_date, last_date):
     return (first <= first_date) and (last >= last_date)
 
 
-def load_market_data(trading_day=None, trading_days=None, bm_symbol='SPY',
-                     environ=None):
+def load_benchmark_data(trading_day=None,
+                        trading_days=None,
+                        bm_symbol='SPY',
+                        environ=None):
     """
-    Load benchmark returns and treasury yield curves for the given calendar and
-    benchmark symbol.
-
-    Benchmarks are downloaded as a Series from IEX Trading.  Treasury curves
-    are US Treasury Bond rates and are downloaded from 'www.federalreserve.gov'
-    by default.  For Canadian exchanges, a loader for Canadian bonds from the
-    Bank of Canada is also available.
+    Load benchmark returns for the given calendar and benchmark symbol.
 
     Results downloaded from the internet are cached in
     ~/.zipline/data. Subsequent loads will attempt to read from the cached
@@ -116,16 +101,12 @@ def load_market_data(trading_day=None, trading_days=None, bm_symbol='SPY',
 
     Returns
     -------
-    (benchmark_returns, treasury_curves) : (pd.Series, pd.DataFrame)
+    benchmark_returns : pd.Series
 
     Notes
     -----
-
-    Both return values are DatetimeIndexed with values dated to midnight in UTC
-    of each stored date.  The columns of `treasury_curves` are:
-
-    '1month', '3month', '6month',
-    '1year','2year','3year','5year','7year','10year','20year','30year'
+    Return values are DatetimeIndexed with values dated to midnight in UTC of
+    each stored date.
     """
     if trading_day is None:
         trading_day = get_calendar('XNYS').day
@@ -148,22 +129,8 @@ def load_market_data(trading_day=None, trading_days=None, bm_symbol='SPY',
         trading_day,
         environ,
     )
-    tc = ensure_treasury_data(
-        bm_symbol,
-        first_date,
-        last_date,
-        now,
-        environ,
-    )
 
-    # combine dt indices and reindex using ffill then bfill
-    all_dt = br.index.union(tc.index)
-    br = br.reindex(all_dt, method='ffill').fillna(method='bfill')
-    tc = tc.reindex(all_dt, method='ffill').fillna(method='bfill')
-
-    benchmark_returns = br[br.index.slice_indexer(first_date, last_date)]
-    treasury_curves = tc[tc.index.slice_indexer(first_date, last_date)]
-    return benchmark_returns, treasury_curves
+    return br[br.index.slice_indexer(first_date, last_date)]
 
 
 def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day,
@@ -197,8 +164,7 @@ def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day,
     path.
     """
     filename = get_benchmark_filename(symbol)
-    data = _load_cached_data(filename, first_date, last_date, now, 'benchmark',
-                             environ)
+    data = _load_cached_data(filename, first_date, last_date, now, environ)
     if data is not None:
         return data
 
@@ -229,89 +195,7 @@ def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day,
     return data
 
 
-def ensure_treasury_data(symbol, first_date, last_date, now, environ=None):
-    """
-    Ensure we have treasury data from treasury module associated with
-    `symbol`.
-
-    Parameters
-    ----------
-    symbol : str
-        Benchmark symbol for which we're loading associated treasury curves.
-    first_date : pd.Timestamp
-        First date required to be in the cache.
-    last_date : pd.Timestamp
-        Last date required to be in the cache.
-    now : pd.Timestamp
-        The current time.  This is used to prevent repeated attempts to
-        re-download data that isn't available due to scheduling quirks or other
-        failures.
-
-    We attempt to download data unless we already have data stored in the cache
-    for `module_name` whose first entry is before or on `first_date` and whose
-    last entry is on or after `last_date`.
-
-    If we perform a download and the cache criteria are not satisfied, we wait
-    at least one hour before attempting a redownload.  This is determined by
-    comparing the current time to the result of os.path.getmtime on the cache
-    path.
-    """
-    loader_module, filename, source = INDEX_MAPPING.get(
-        symbol, INDEX_MAPPING['SPY'],
-    )
-    first_date = max(first_date, loader_module.earliest_possible_date())
-
-    data = _load_cached_data(filename, first_date, last_date, now, 'treasury',
-                             environ)
-    if data is not None:
-        return data
-
-    # If no cached data was found or it was missing any dates then download the
-    # necessary data.
-    logger.info(
-        ('Downloading treasury data for {symbol!r} '
-            'from {first_date} to {last_date}'),
-        symbol=symbol,
-        first_date=first_date,
-        last_date=last_date
-    )
-
-    try:
-        data = loader_module.get_treasury_data(first_date, last_date)
-        data.to_csv(get_data_filepath(filename, environ))
-    except (OSError, IOError, HTTPError):
-        logger.exception('failed to cache treasury data')
-    if not has_data_for_dates(data, first_date, last_date):
-        logger.warn(
-            ("Still don't have expected treasury data for {symbol!r} "
-                "from {first_date} to {last_date} after redownload!"),
-            symbol=symbol,
-            first_date=first_date,
-            last_date=last_date
-        )
-    return data
-
-
-def _load_cached_data(filename, first_date, last_date, now, resource_name,
-                      environ=None):
-    if resource_name == 'benchmark':
-        def from_csv(path):
-            return pd.read_csv(
-                path,
-                parse_dates=[0],
-                index_col=0,
-                header=None,
-                # Pass squeeze=True so that we get a series instead of a frame.
-                squeeze=True,
-            ).tz_localize('UTC')
-    else:
-        def from_csv(path):
-            return pd.read_csv(
-                path,
-                parse_dates=[0],
-                index_col=0,
-            ).tz_localize('UTC')
-
+def _load_cached_data(filename, first_date, last_date, now, environ=None):
     # Path for the cache.
     path = get_data_filepath(filename, environ)
 
@@ -319,7 +203,15 @@ def _load_cached_data(filename, first_date, last_date, now, resource_name,
     # yet, so don't try to read from 'path'.
     if os.path.exists(path):
         try:
-            data = from_csv(path)
+            data = pd.read_csv(
+                path,
+                parse_dates=[0],
+                index_col=0,
+                header=None,
+                # Pass squeeze=True so that we get a series instead of a frame.
+                squeeze=True,
+            ).tz_localize('UTC')
+
             if has_data_for_dates(data, first_date, last_date):
                 return data
 
@@ -328,9 +220,8 @@ def _load_cached_data(filename, first_date, last_date, now, resource_name,
             last_download_time = last_modified_time(path)
             if (now - last_download_time) <= ONE_HOUR:
                 logger.warn(
-                    "Refusing to download new {resource} data because a "
+                    "Refusing to download new benchmark data because a "
                     "download succeeded at {time}.",
-                    resource=resource_name,
                     time=last_download_time,
                 )
                 return data

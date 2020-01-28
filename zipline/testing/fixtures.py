@@ -578,16 +578,15 @@ class WithBenchmarkReturns(WithDefaultDateBounds,
     def BENCHMARK_RETURNS(cls):
         benchmark_returns = read_checked_in_benchmark_data()
 
-        # Zipline ordinarily uses cached benchmark returns and treasury
-        # curves data, but when running the zipline tests this cache is not
-        # always updated to include the appropriate dates required by both
-        # the futures and equity calendars. In order to create more
-        # reliable and consistent data throughout the entirety of the
-        # tests, we read static benchmark returns and treasury curve csv
-        # files from source. If a test using this fixture attempts to run
-        # outside of the static date range of the csv files, raise an
-        # exception warning the user to either update the csv files in
-        # source or to use a date range within the current bounds.
+        # Zipline ordinarily uses cached benchmark returns data, but when
+        # running the zipline tests this cache is not always updated to include
+        # the appropriate dates required by both the futures and equity
+        # calendars. In order to create more reliable and consistent data
+        # throughout the entirety of the tests, we read static benchmark
+        # returns files from source. If a test using this fixture attempts to
+        # run outside of the static date range of the csv files, raise an
+        # exception warning the user to either update the csv files in source
+        # or to use a date range within the current bounds.
         static_start_date = benchmark_returns.index[0].date()
         static_end_date = benchmark_returns.index[-1].date()
         warning_message = (
