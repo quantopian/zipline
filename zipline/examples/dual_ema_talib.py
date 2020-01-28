@@ -27,7 +27,14 @@ momentum).
 from zipline.api import order, record, symbol
 from zipline.finance import commission, slippage
 # Import exponential moving average from talib wrapper
-from talib import EMA
+try:
+    from talib import EMA
+except ImportError:
+    msg = "Unable to import module TA-lib. Use `pip install TA-lib` to "\
+          "install. Note: if installation fails, you might need to install "\
+          "the underlying TA-lib library (more information can be found in "\
+          "the zipline installation documentation)."
+    raise ImportError(msg)
 
 
 def initialize(context):
