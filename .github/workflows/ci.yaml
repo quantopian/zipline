@@ -15,22 +15,24 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]  # TODO: Add windows-latest, macos-latest
+        python-version: [2.7, 3.5]
+        pandas-version: [0.18.1, 0.22.0]
         include:  # TODO: Add 3.7, 3.8
-          - os: ubuntu-latest
-            python-version: 2.7  # py2.7, old pandas
+          - python-version: 2.7  # py2.7, old pandas
             pandas-version: 0.18.1
             numpy-version: 1.11.3
             scipy-version: 0.17.1
-          - os: ubuntu-latest
-            python-version: 3.5  # py3.5, new pandas
+          - python-version: 3.5  # py3.5, new pandas
             pandas-version: 0.18.1
             numpy-version: 1.11.3
             scipy-version: 0.17.1
-          - os: ubuntu-latest
-            python-version: 3.5  # py3.5, new pandas
+          - python-version: 3.5  # py3.5, new pandas
             pandas-version: 0.22.0
             numpy-version: 1.14.1
             scipy-version: 1.0.0
+        exclude:
+          - python-version: 2.7
+            pandas-version: 0.22.0
     env:
       PYTHON_VERSION: ${{ matrix.python-version }}
       PANDAS_VERSION: ${{ matrix.pandas-version }}
