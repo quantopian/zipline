@@ -51,16 +51,8 @@ jobs:
           fi
           source ./ci/actions/overwrite_requirements.sh
           cat etc/requirements.txt
-          TALIB_VERSION=$(cat ./etc/requirements.txt | grep "ta-lib" | sed "s/ta-lib==\([^ ]*\) *.*/\1/")
-          CERTIFI_VERSION=$(cat ./etc/requirements.txt | grep "certifi" | sed "s/certifi==\([^ ]*\) *.*/\1/")
 
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-              sudo apt-get install python3-venv
-          fi
-          python3 -m venv testenv
-          source ./testenv/bin/activate
-          pip install cython==0.25.2 pandas==$PANDAS_VERSION numpy==$NUMPY_VERSION scipy==$SCIPY_VERSION ta-lib==$TALIB_VERSION libgfortran==3.0 certifi==$CERTIFI_VERSION
-          etc/dev-install --cache-dir="$HOME/.cache/.pip/pip_np$CONDA_NPY"
+          etc/dev-install --user --cache-dir="$HOME/.cache/.pip/pip_np$CONDA_NPY"
           pip freeze | sort
 
           echo "::set-env name=PATH::$PATH"
