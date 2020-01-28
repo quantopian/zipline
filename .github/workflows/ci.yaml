@@ -54,6 +54,9 @@ jobs:
           TALIB_VERSION=$(cat ./etc/requirements.txt | grep "ta-lib" | sed "s/ta-lib==\([^ ]*\) *.*/\1/")
           CERTIFI_VERSION=$(cat ./etc/requirements.txt | grep "certifi" | sed "s/certifi==\([^ ]*\) *.*/\1/")
 
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+              apt-get install python3-venv
+          fi
           python3 -m venv testenv --system-site-packages
           source ./testenv/bin/activate
           python -m pip install python=$PYTHON_VERSION numpy=$NUMPY_VERSION pandas=$PANDAS_VERSION scipy=$SCIPY_VERSION ta-lib=$TALIB_VERSION libgfortran=3.0 certifi=$CERTIFI_VERSION
