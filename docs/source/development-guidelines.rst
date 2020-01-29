@@ -20,7 +20,7 @@ First, you'll need to clone Zipline by running:
 Then check out to a new branch where you can make your changes:
 
 .. code-block:: bash
-		
+
    $ git checkout -b some-short-descriptive-name
 
 If you don't already have them, you'll need some C library dependencies. You can follow the `install guide`__ to get the appropriate dependencies.
@@ -122,7 +122,7 @@ Then run ``pip install`` TA-lib:
 You should now be free to run tests:
 
 .. code-block:: bash
-		
+
    $ nosetests
 
 
@@ -144,7 +144,7 @@ Packaging
 To learn about how we build Zipline conda packages, you can read `this`__ section in our release process notes.
 
 __ release-process.html#uploading-conda-packages
-   
+
 Contributing to the Docs
 ------------------------
 
@@ -209,7 +209,7 @@ __ https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project
 
    At least one of those calculations, max_leverage, was causing a
    divide by zero error.
-   
+
    Instead of papering over that error, the entire calculation was
    a bit suspect so removing, with possibility of adding it back in
    later with handling the case (or raising appropriate errors) when
