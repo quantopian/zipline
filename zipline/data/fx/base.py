@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from zipline.utils.sentinel import sentinel
+from zipline.lib._factorize import factorize_strings
 
 DEFAULT_FX_RATE = sentinel('DEFAULT_FX_RATE')
 
@@ -137,8 +138,11 @@ class FXRateReader(Interface):
 
         # TODO: Casting `bases` to str here is a temporary fix for the bug
         # where having any `None` in `bases` causes `np.unique` to error.
-        unique_bases, bases_ix = np.unique(bases.astype(str),
-                                           return_inverse=True)
+        bases_ix, unique_bases, _ = factorize_strings(
+            bases,
+            missing_value=None,
+            sort=True,
+        )
         unique_dts, dts_ix = np.unique(dts.values, return_inverse=True)
         rates_2d = self.get_rates(
             rate,
