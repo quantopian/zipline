@@ -2197,6 +2197,9 @@ class WithFXRates(object):
     def get_expected_fx_rate_scalar(cls, rate, quote, base, dt):
         """Get the expected FX rate for the given scalar coordinates.
         """
+        if base is None:
+            return np.nan
+
         if rate == DEFAULT_FX_RATE:
             rate = cls.FX_RATES_DEFAULT_RATE
 

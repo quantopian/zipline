@@ -65,17 +65,17 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
         reader = self.reader
 
         rates = self.FX_RATES_RATE_NAMES
-        currencies = self.FX_RATES_CURRENCIES
+        quotes = self.FX_RATES_CURRENCIES
+        bases = self.FX_RATES_CURRENCIES + [None]
         dates = pd.date_range(
             self.FX_RATES_START_DATE - pd.Timedelta('1 day'),
             self.FX_RATES_END_DATE,
         )
-
-        cases = itertools.product(rates, currencies, currencies, dates)
+        cases = itertools.product(rates, quotes, bases, dates)
 
         for rate, quote, base, dt in cases:
             dts = pd.DatetimeIndex([dt], tz='UTC')
-            bases = np.array([base])
+            bases = np.array([base], dtype=object)
 
             result = reader.get_rates(rate, quote, bases, dts)
             assert_equal(result.shape, (1, 1))
@@ -101,10 +101,11 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
             self.FX_RATES_END_DATE
         )
         rates = self.FX_RATES_RATE_NAMES + [DEFAULT_FX_RATE]
-        currencies = self.FX_RATES_CURRENCIES
+        possible_quotes = self.FX_RATES_CURRENCIES
+        possible_bases = self.FX_RATES_CURRENCIES + [None]
 
         # For every combination of rate name and quote currency...
-        for rate, quote in itertools.product(rates, currencies):
+        for rate, quote in itertools.product(rates, possible_quotes):
 
             # Choose N random distinct days...
             for ndays in 1, 2, 7, 20:
@@ -113,7 +114,10 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
 
                 # Choose M random possibly-non-distinct currencies...
                 for nbases in 1, 2, 10, 200:
-                    bases = rand.choice(currencies, nbases, replace=True)
+                    bases = (
+                        rand.choice(possible_bases, nbases, replace=True)
+                        .astype(object)
+                    )
 
                 # ...And check that we get the expected result when querying
                 # for those dates/currencies.
@@ -130,16 +134,20 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
             self.FX_RATES_END_DATE,
         )
         rates = self.FX_RATES_RATE_NAMES + [DEFAULT_FX_RATE]
-        currencies = self.FX_RATES_CURRENCIES
+        possible_quotes = self.FX_RATES_CURRENCIES
+        possible_bases = self.FX_RATES_CURRENCIES + [None]
         reader = self.reader
 
         # For every combination of rate name and quote currency...
-        for rate, quote in itertools.product(rates, currencies):
+        for rate, quote in itertools.product(rates, possible_quotes):
             for N in 1, 2, 10, 200:
                 # Choose N (date, base) pairs randomly with replacement.
                 dts_raw = rand.choice(dates, N, replace=True)
-                dts = pd.DatetimeIndex(dts_raw, tz='utc').sort_values()
-                bases = rand.choice(currencies, N, replace=True)
+                dts = pd.DatetimeIndex(dts_raw, tz='utc')
+                bases = (
+                    rand.choice(possible_bases, N, replace=True)
+                    .astype(object)
+                )
 
                 # ... And check that we get the expected result when querying
                 # for those dates/currencies.
@@ -222,10 +230,11 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
     def test_read_unknown_base(self):
         for rate in self.FX_RATES_RATE_NAMES:
             quote = 'USD'
-            bases = np.array(['XXX'], dtype=object)
-            dts = pd.DatetimeIndex([self.FX_RATES_START_DATE])
-            result = self.reader.get_rates(rate, quote, bases, dts)[0, 0]
-            assert_equal(result, np.nan)
+            for unknown_base in 'XXX', None:
+                bases = np.array(['XXX'], dtype=object)
+                dts = pd.DatetimeIndex([self.FX_RATES_START_DATE])
+                result = self.reader.get_rates(rate, quote, bases, dts)[0, 0]
+                assert_equal(result, np.nan)
 
 
 class InMemoryFXReaderTestCase(_FXReaderTestCase):

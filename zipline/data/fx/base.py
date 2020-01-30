@@ -136,8 +136,6 @@ class FXRateReader(Interface):
                 "len(bases) ({}) != len(dts) ({})".format(len(bases), len(dts))
             )
 
-        # TODO: Casting `bases` to str here is a temporary fix for the bug
-        # where having any `None` in `bases` causes `np.unique` to error.
         bases_ix, unique_bases, _ = factorize_strings(
             bases,
             missing_value=None,
