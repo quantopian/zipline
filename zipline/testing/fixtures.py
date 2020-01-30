@@ -2201,6 +2201,11 @@ class WithFXRates(object):
             rate = cls.FX_RATES_DEFAULT_RATE
 
         col = cls.fx_rates[rate][quote][base]
+        if dt < col.index[0]:
+            return np.nan
+        elif dt > col.index[-1]:
+            raise ValueError("dt={} > max dt={}".format(dt, col.index[-1]))
+
         # PERF: We call this function a lot in some suites, and get_loc is
         # surprisingly expensive, so optimizing it has a meaningful impact on
         # overall suite performance. See test_fast_get_loc_ffilled_for

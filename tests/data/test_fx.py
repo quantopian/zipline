@@ -66,7 +66,10 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
 
         rates = self.FX_RATES_RATE_NAMES
         currencies = self.FX_RATES_CURRENCIES
-        dates = pd.date_range(self.FX_RATES_START_DATE, self.FX_RATES_END_DATE)
+        dates = pd.date_range(
+            self.FX_RATES_START_DATE - pd.Timedelta('1 day'),
+            self.FX_RATES_END_DATE,
+        )
 
         cases = itertools.product(rates, currencies, currencies, dates)
 
@@ -78,7 +81,7 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
             assert_equal(result.shape, (1, 1))
 
             result_scalar = result[0, 0]
-            if quote == base:
+            if dt >= self.FX_RATES_START_DATE and quote == base:
                 assert_equal(result_scalar, 1.0)
 
             expected = self.get_expected_fx_rate_scalar(rate, quote, base, dt)
@@ -93,7 +96,10 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
     def test_2d_lookup(self):
         rand = np.random.RandomState(42)
 
-        dates = pd.date_range(self.FX_RATES_START_DATE, self.FX_RATES_END_DATE)
+        dates = pd.date_range(
+            self.FX_RATES_START_DATE - pd.Timedelta('2 days'),
+            self.FX_RATES_END_DATE
+        )
         rates = self.FX_RATES_RATE_NAMES + [DEFAULT_FX_RATE]
         currencies = self.FX_RATES_CURRENCIES
 
@@ -119,7 +125,10 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
     def test_columnar_lookup(self):
         rand = np.random.RandomState(42)
 
-        dates = pd.date_range(self.FX_RATES_START_DATE, self.FX_RATES_END_DATE)
+        dates = pd.date_range(
+            self.FX_RATES_START_DATE - pd.Timedelta('2 days'),
+            self.FX_RATES_END_DATE,
+        )
         rates = self.FX_RATES_RATE_NAMES + [DEFAULT_FX_RATE]
         currencies = self.FX_RATES_CURRENCIES
         reader = self.reader
@@ -175,6 +184,11 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
             assert_equal(london_result, london_rates.values)
 
     def test_read_before_start_date(self):
+        # Reads from before the start of our data should emit NaN. We do this
+        # because, for some Pipeline loaders, it's hard to put a lower bound on
+        # input asof dates, so we end up making queries for asof_dates that
+        # might be before the start of FX data. When that happens, we want to
+        # emit NaN, but we don't want to fail.
         for bad_date in (self.FX_RATES_START_DATE - pd.Timedelta('1 day'),
                          self.FX_RATES_START_DATE - pd.Timedelta('1000 days')):
 
@@ -182,10 +196,15 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
                 quote = 'USD'
                 bases = np.array(['CAD'], dtype=object)
                 dts = pd.DatetimeIndex([bad_date])
-                with self.assertRaises(ValueError):
-                    self.reader.get_rates(rate, quote, bases, dts)
+                result = self.reader.get_rates(rate, quote, bases, dts)
+                assert_equal(result.shape, (1, 1))
+                assert_equal(np.nan, result[0, 0])
 
     def test_read_after_end_date(self):
+        # Reads from **after** the end of our data, on the other hand, should
+        # fail. We can always upper bound the relevant asofs that we're
+        # interested in, and having fx rates forward-fill past the end of data
+        # is confusing and takes a while to debug.
         for bad_date in (self.FX_RATES_END_DATE + pd.Timedelta('1 day'),
                          self.FX_RATES_END_DATE + pd.Timedelta('1000 days')):
 
@@ -193,8 +212,20 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
                 quote = 'USD'
                 bases = np.array(['CAD'], dtype=object)
                 dts = pd.DatetimeIndex([bad_date])
+
                 with self.assertRaises(ValueError):
                     self.reader.get_rates(rate, quote, bases, dts)
+
+                with self.assertRaises(ValueError):
+                    self.reader.get_rates_columnar(rate, quote, bases, dts)
+
+    def test_read_unknown_base(self):
+        for rate in self.FX_RATES_RATE_NAMES:
+            quote = 'USD'
+            bases = np.array(['XXX'], dtype=object)
+            dts = pd.DatetimeIndex([self.FX_RATES_START_DATE])
+            result = self.reader.get_rates(rate, quote, bases, dts)[0, 0]
+            assert_equal(result, np.nan)
 
 
 class InMemoryFXReaderTestCase(_FXReaderTestCase):
