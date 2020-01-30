@@ -231,7 +231,7 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
         for rate in self.FX_RATES_RATE_NAMES:
             quote = 'USD'
             for unknown_base in 'XXX', None:
-                bases = np.array(['XXX'], dtype=object)
+                bases = np.array([unknown_base], dtype=object)
                 dts = pd.DatetimeIndex([self.FX_RATES_START_DATE])
                 result = self.reader.get_rates(rate, quote, bases, dts)[0, 0]
                 assert_equal(result, np.nan)
