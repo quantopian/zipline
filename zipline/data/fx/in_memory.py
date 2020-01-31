@@ -1,8 +1,10 @@
 """Interface and definitions for foreign exchange rate readers.
 """
 from interface import implements
+import numpy as np
 
 from .base import FXRateReader, DEFAULT_FX_RATE
+from .utils import check_dts
 
 
 class InMemoryFXRateReader(implements(FXRateReader)):
@@ -34,7 +36,7 @@ class InMemoryFXRateReader(implements(FXRateReader)):
 
         df = self._data[rate][quote]
 
-        self._check_dts(df.index, dts)
+        check_dts(df.index, dts)
 
         # Get raw values out of the frame.
         #
@@ -51,22 +53,11 @@ class InMemoryFXRateReader(implements(FXRateReader)):
         values = df.values
         row_ixs = df.index.searchsorted(dts, side='right') - 1
         col_ixs = df.columns.get_indexer(bases)
-        return values[row_ixs][:, col_ixs]
 
-    def _check_dts(self, stored, requested):
-        """Validate that requested dates are in bounds for what we have stored.
-        """
-        request_start, request_end = requested[[0, -1]]
-        data_start, data_end = stored[[0, -1]]
+        out = values[:, col_ixs][row_ixs]
 
-        if request_start < data_start:
-            raise ValueError(
-                "Requested fx rates starting at {}, but data starts at {}"
-                .format(request_start, data_start)
-            )
+        # Handle dates before start and unknown bases.
+        out[row_ixs == -1] = np.nan
+        out[:, col_ixs == -1] = np.nan
 
-        if request_end > data_end:
-            raise ValueError(
-                "Requested fx rates ending at {}, but data ends at {}"
-                .format(request_end, data_end)
-            )
+        return out

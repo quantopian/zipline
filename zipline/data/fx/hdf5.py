@@ -104,6 +104,7 @@ from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import bytes_array_to_native_str_object_array
 
 from .base import FXRateReader, DEFAULT_FX_RATE
+from .utils import check_dts, is_sorted_ascending
 
 HDF5_FX_VERSION = 0
 
@@ -189,7 +190,7 @@ class HDF5FXRateReader(implements(FXRateReader)):
         if rate == DEFAULT_FX_RATE:
             rate = self._default_rate
 
-        self._check_dts(self.dts, dts)
+        check_dts(self.dts, dts)
 
         row_ixs = self.dts.searchsorted(dts, side='right') - 1
         col_ixs = self.currencies.get_indexer(bases)
@@ -204,45 +205,47 @@ class HDF5FXRateReader(implements(FXRateReader)):
 
         # OPTIMIZATION: Row indices correspond to dates, which must be in
         # sorted order. Rather than reading the entire dataset from h5, we can
-        # read just the interval from min_row to max_row inclusive.
+        # read just the interval from min_row to max_row inclusive
         #
-        # We don't bother with a similar optimization for columns because in
-        # expectation we're going to load most of the
+        # However, we also need to handle two important edge cases:
+        #
+        #   1. row_ixs contains -1 for dts before the start of self.dts.
+        #   2. col_ixs contains -1 for any currencies we don't know about.
+        #
+        # If either of the above cases obtains, we want to return NaN for the
+        # corresponding output locations.
 
-        # array, so it's easier to pull all columns and reindex in memory. For
-        # rows, however, a quick and easy optimization is to pull just the
-        # slice from min(row_ixs) to max(row_ixs).
-        min_row = row_ixs[0]
-        max_row = row_ixs[-1]
-        rows = dataset[min_row:max_row + 1]  # +1 to be inclusive of end
+        # We handle (1) by reading raw data into a buffer with one extra
+        # row. When we then apply the row index to permute the raw data into
+        # the correct order, any rows with values of -1 will pull from the
+        # extra row, which will always contain NaN>
+        #
+        # We handle (2) by overwriting columns with indices of -1 with NaN as a
+        # postprocessing step.
+        slice_begin = max(row_ixs[0], 0)
+        slice_end = max(row_ixs[-1], 0) + 1  # +1 to be inclusive of end date.
 
-        out = rows[row_ixs - min_row][:, col_ixs]
+        # Allocate a buffer full of NaNs with one extra row/column. See
+        # OPTIMIZATION notes above.
+        buf = np.full(
+            (slice_end - slice_begin + 1, len(self.currencies)),
+            np.nan,
+        )
 
-        # get_indexer returns -1 for failed lookups. Fill these in with NaN.
+        # Read data into all but the last row/column of the buffer.
+        dataset.read_direct(
+            buf[:-1],
+            np.s_[slice_begin:slice_end],
+        )
+
+        # Permute the rows into place, pulling from the empty NaN locations for
+        # row/column indices of -1.
+        out = buf[:, col_ixs][row_ixs - slice_begin]
+
+        # Fill missing columns with NaN. See OPTIMIZATION notes above.
         out[:, col_ixs == -1] = np.nan
 
         return out
-
-    def _check_dts(self, stored, requested):
-        """Validate that requested dates are in bounds for what we have stored.
-        """
-        request_start, request_end = requested[[0, -1]]
-        data_start, data_end = stored[[0, -1]]
-
-        if request_start < data_start:
-            raise ValueError(
-                "Requested fx rates starting at {}, but data starts at {}"
-                .format(request_start, data_start)
-            )
-
-        if request_end > data_end:
-            raise ValueError(
-                "Requested fx rates ending at {}, but data ends at {}"
-                .format(request_end, data_end)
-            )
-
-        if not is_sorted_ascending(requested):
-            raise ValueError("Requested fx rates with non-ascending dts.")
 
 
 class HDF5FXRateWriter(object):
@@ -312,7 +315,3 @@ class HDF5FXRateWriter(object):
 
     def _log_writing(self, *path):
         log.debug("Writing {}", '/'.join(path))
-
-
-def is_sorted_ascending(array):
-    return (np.maximum.accumulate(array) <= array).all()

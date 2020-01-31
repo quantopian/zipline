@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from zipline.utils.sentinel import sentinel
+from zipline.lib._factorize import factorize_strings
 
 DEFAULT_FX_RATE = sentinel('DEFAULT_FX_RATE')
 
@@ -127,15 +128,21 @@ class FXRateReader(Interface):
             may appear multiple times.
         dts : np.DatetimeIndex
             Datetimes for which to load rates. The same value may appear
-            multiple times, but datetimes must be sorted in ascending order and
-            localized to UTC.
+            multiple times. Datetimes do not need to be sorted.
         """
         if len(bases) != len(dts):
             raise ValueError(
                 "len(bases) ({}) != len(dts) ({})".format(len(bases), len(dts))
             )
 
-        unique_bases, bases_ix = np.unique(bases, return_inverse=True)
+        bases_ix, unique_bases, _ = factorize_strings(
+            bases,
+            missing_value=None,
+            # Only dts need to be sorted, not bases.
+            sort=False,
+        )
+        # NOTE: np.unique returns unique_dts in sorted order, which is required
+        # for calling get_rates.
         unique_dts, dts_ix = np.unique(dts.values, return_inverse=True)
         rates_2d = self.get_rates(
             rate,
