@@ -9,7 +9,7 @@ Logbook==0.12.5
 # Scientific Libraries
 
 pytz==2018.5
-numpy==1.11.3
+numpy==1.15.0
 
 # for pandas-datareader
 requests-file==1.4.1
