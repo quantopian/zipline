@@ -7,6 +7,7 @@ try:
     from pygments import highlight
     from pygments.lexers import PythonLexer
     from pygments.formatters import TerminalFormatter
+
     PYGMENTS = True
 except ImportError:
     PYGMENTS = False
@@ -15,7 +16,8 @@ from toolz import concatv
 from trading_calendars import get_calendar
 
 from zipline.data import bundles
-from zipline.data.loader import load_benchmark_data
+from zipline.data.loader import load_zero_benchmark_data, \
+    load_benchmark_data
 from zipline.data.benchmarks import get_benchmark_returns_from_file
 from zipline.data.data_portal import DataPortal
 from zipline.finance import metrics
@@ -28,6 +30,7 @@ from zipline.extensions import load
 from zipline.algorithm import TradingAlgorithm
 from zipline.finance.blotter import Blotter
 from zipline.errors import SymbolNotFound, MultipleSymbolsFound
+
 
 class _RunAlgoError(click.ClickException, ValueError):
     """Signal an error that should have a different message if invoked from
@@ -89,25 +92,35 @@ def _run(handle_data,
 
     benchmark_symbol = kwargs.setdefault("benchmark_symbol", None)
     benchmark_file = kwargs.setdefault("benchmark_file", None)
+    no_benchmark = kwargs.setdefault("no_benchmark", False)
     benchmark_sid = None
 
     if benchmark_file is not None:
+        # First priority to the benchmark file
         benchmark_returns = get_benchmark_returns_from_file(benchmark_file)
-    elif benchmark_symbol is not None:
+    elif no_benchmark is True:
+        benchmark_returns = load_zero_benchmark_data(
+            trading_calendar=trading_calendar,
+            start_date=start,
+            end_date=end)
+    elif benchmark_symbol is not None and benchmark_symbol != 'ZERO':
+        # Second priority to the benchmark symbol
         try:
-            instrument = bundle_data.asset_finder.lookup_symbol(benchmark_symbol, None)
+            instrument = bundle_data.asset_finder.lookup_symbol(
+                benchmark_symbol, None)
             benchmark_sid = instrument.sid
             benchmark_returns = False
         except SymbolNotFound:
             warnings.warn("Symbol %s as a benchmark not found in this bundle. "
-                          "Proceedig with default benchmark loader" % benchmark_symbol)
+                          "Proceedig with default benchmark "
+                          "loader" % benchmark_symbol)
         except MultipleSymbolsFound:
             warnings.warn("Found multiple symbols for benchmark : %s "
-                          "Proceedig with default benchmark loader" % benchmark_symbol)
+                          "Proceedig with default benchmark "
+                          "loader" % benchmark_symbol)
 
     if benchmark_returns is None:
         benchmark_returns = load_benchmark_data(environ=environ)
-
 
     if algotext is not None:
         if local_namespace:

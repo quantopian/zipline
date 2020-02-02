@@ -30,10 +30,10 @@ except NameError:
 @click.option(
     '--strict-extensions/--non-strict-extensions',
     is_flag=True,
-    help='If --strict-extensions is passed then zipline will not run if it'
-         ' cannot load all of the specified extensions. If this is not passed or'
-         ' --non-strict-extensions is passed then the failure will be logged but'
-         ' execution will continue.',
+    help='If --strict-extensions is passed then zipline will not '
+         'run if it cannot load all of the specified extensions. '
+         'If this is not passed or --non-strict-extensions is passed '
+         'then the failure will be logged but execution will continue.',
 )
 @click.option(
     '--default-extension/--no-default-extension',
@@ -130,9 +130,9 @@ def ipython_only(option):
     '--define',
     multiple=True,
     help="Define a name to be bound in the namespace before executing"
-         " the algotext. For example '-Dname=value'. The value may be any python"
-         " expression. These are evaluated in order so they may refer to previously"
-         " defined names.",
+         " the algotext. For example '-Dname=value'. The value may be any "
+         "python expression. These are evaluated in order so they may refer "
+         "to previously defined names.",
 )
 @click.option(
     '--data-frequency',
@@ -177,6 +177,12 @@ def ipython_only(option):
     type=click.STRING,
     help="The instrument's symbol to be used as a benchmark "
          "(should exist in the ingested bundle)",
+)
+@click.option(
+    '--no-benchmark',
+    is_flag=True,
+    default=False,
+    help="This flag is used to set the benchmark to zero",
 )
 @click.option(
     '-s',
@@ -240,6 +246,7 @@ def run(ctx,
         bundle_timestamp,
         benchmark_file,
         benchmark_symbol,
+        no_benchmark,
         start,
         end,
         output,
@@ -265,8 +272,15 @@ def run(ctx,
 
     if benchmark_file is None:
         if benchmark_symbol is None:
-            click.echo("Warning: No benchmark file nor a benchmark "
-                       "symbol provided. Using the default benchmark loader")
+            if no_benchmark is False:
+                click.echo("Warning: No benchmark file nor a benchmark "
+                           "symbol is provided. Trying to use the default"
+                           " benchmark loader. To use zero as a benchmark,"
+                           "use the flag --no-benchmark")
+            else:
+                click.echo("Warning: Using zero returns as a benchmark. "
+                           "The risk metrics that requires benchmark returns"
+                           " will not be calculated.")
 
     if (algotext is not None) == (algofile is not None):
         ctx.fail(
@@ -299,7 +313,8 @@ def run(ctx,
         blotter=blotter,
         benchmark_returns=None,
         benchmark_file=benchmark_file,
-        benchmark_symbol=benchmark_symbol
+        benchmark_symbol=benchmark_symbol,
+        no_benchmark=no_benchmark
     )
 
     if output == '-':

@@ -76,6 +76,29 @@ def has_data_for_dates(series_or_df, first_date, last_date):
     return (first <= first_date) and (last >= last_date)
 
 
+def load_zero_benchmark_data(trading_calendar, start_date, end_date):
+    """
+    Generates zero benchmark returns
+
+    Parameters
+    ----------
+    trading_calendar : trading calendar
+    start_date : the end date for the running algorithm
+    end_date : the end date for the running algorithm
+
+    Returns
+    -------
+    Dataframe of zero returns
+    """
+    if trading_calendar is None:
+        trading_calendar = get_calendar("XNYS")
+    dates = trading_calendar.sessions_in_range(start_date, end_date)
+
+    data = pd.DataFrame(0.0, index=dates, columns=['close'])
+
+    return data.sort_index().iloc[1:]
+
+
 def load_benchmark_data(trading_day=None,
                         trading_days=None,
                         bm_symbol='SPY',

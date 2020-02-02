@@ -448,15 +448,18 @@ class AlphaBeta(object):
                    session_ix,
                    data_portal):
         risk = packet['cumulative_risk_metrics']
-        alpha, beta = ep.alpha_beta_aligned(
-            ledger.daily_returns_array[:session_ix + 1],
-            self._daily_returns_array[:session_ix + 1],
-        )
-
-        if np.isnan(alpha):
-            alpha = None
-        if np.isnan(beta):
-            beta = None
+        if np.any(self._daily_returns_array):
+            alpha, beta = ep.alpha_beta_aligned(
+                ledger.daily_returns_array[:session_ix + 1],
+                self._daily_returns_array[:session_ix + 1],
+            )
+            if np.isnan(alpha):
+                alpha = None
+            if np.isnan(beta):
+                beta = None
+        else:
+            # If all the benchmark returns are zero return None, None
+            alpha, beta = None, None
 
         risk['alpha'] = alpha
         risk['beta'] = beta
@@ -615,10 +618,15 @@ class _ClassicRiskMetrics(object):
         benchmark_period_returns = ep.cum_returns(benchmark_returns).iloc[-1]
         algorithm_period_returns = ep.cum_returns(algorithm_returns).iloc[-1]
 
-        alpha, beta = ep.alpha_beta_aligned(
-            algorithm_returns.values,
-            benchmark_returns.values,
-        )
+        if np.any(benchmark_period_returns):
+            alpha, beta = ep.alpha_beta_aligned(
+                algorithm_returns.values,
+                benchmark_returns.values,
+            )
+            benchmark_volatility = ep.annual_volatility(benchmark_returns)
+        else:
+            alpha, beta = None, None
+            benchmark_volatility = None
 
         sharpe = ep.sharpe_ratio(algorithm_returns)
 
@@ -649,7 +657,7 @@ class _ClassicRiskMetrics(object):
             'period_label': end_session.strftime("%Y-%m"),
             'trading_days': len(benchmark_returns),
             'algo_volatility': ep.annual_volatility(algorithm_returns),
-            'benchmark_volatility': ep.annual_volatility(benchmark_returns),
+            'benchmark_volatility': benchmark_volatility,
             'max_drawdown': ep.max_drawdown(algorithm_returns.values),
             'max_leverage': algorithm_leverages.max(),
         }

@@ -12,9 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pandas as pd
+import os
 import requests
 import warnings
+
+import pandas as pd
 
 
 def get_benchmark_returns(symbol):
@@ -30,8 +32,16 @@ def get_benchmark_returns(symbol):
     The data is provided by IEX (https://iextrading.com/), and we can
     get up to 5 years worth of data.
     """
+
+    iex_api_key = os.environ.get('IEX_API_KEY')
+    if iex_api_key is None:
+        raise ValueError(
+            "Please set your IEX_API_KEY environment variable and retry."
+            "\nPlease note that this feature will be deprecated"
+        )
     r = requests.get(
-        'https://api.iextrading.com/1.0/stock/{}/chart/5y'.format(symbol)
+        "https://cloud.iexapis.com/stable/stock/{}/chart/5y?"
+        "chartCloseOnly=True&token={}".format(symbol, iex_api_key)
     )
     data = r.json()
 
