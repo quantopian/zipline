@@ -14,6 +14,7 @@
 # limitations under the License.
 import pandas as pd
 import requests
+import warnings
 
 
 def get_benchmark_returns(symbol):
@@ -35,6 +36,29 @@ def get_benchmark_returns(symbol):
     data = r.json()
 
     df = pd.DataFrame(data)
+
+    df.index = pd.DatetimeIndex(df['date'])
+    df = df['close']
+
+    return df.sort_index().tz_localize('UTC').pct_change(1).iloc[1:]
+
+
+def get_benchmark_returns_from_file(file_path):
+    """
+    Get a Series of benchmark returns from a file
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the benchmark file.
+
+    """
+    try:
+        df = pd.read_csv(file_path)
+
+    except OSError:
+        warnings.warn("Could not open the file %s" % file_path)
+        return None
 
     df.index = pd.DatetimeIndex(df['date'])
     df = df['close']

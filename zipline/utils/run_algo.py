@@ -16,6 +16,7 @@ from trading_calendars import get_calendar
 
 from zipline.data import bundles
 from zipline.data.loader import load_benchmark_data
+from zipline.data.benchmarks import get_benchmark_returns_from_file
 from zipline.data.data_portal import DataPortal
 from zipline.finance import metrics
 from zipline.finance.trading import SimulationParameters
@@ -26,7 +27,7 @@ import zipline.utils.paths as pth
 from zipline.extensions import load
 from zipline.algorithm import TradingAlgorithm
 from zipline.finance.blotter import Blotter
-
+from zipline.errors import SymbolNotFound, MultipleSymbolsFound
 
 class _RunAlgoError(click.ClickException, ValueError):
     """Signal an error that should have a different message if invoked from
@@ -73,13 +74,40 @@ def _run(handle_data,
          local_namespace,
          environ,
          blotter,
-         benchmark_returns):
+         benchmark_returns,
+         **kwargs):
     """Run a backtest for the given algorithm.
 
     This is shared between the cli and :func:`zipline.run_algo`.
     """
+
+    bundle_data = bundles.load(
+        bundle,
+        environ,
+        bundle_timestamp,
+    )
+
+    benchmark_symbol = kwargs.setdefault("benchmark_symbol", None)
+    benchmark_file = kwargs.setdefault("benchmark_file", None)
+    benchmark_sid = None
+
+    if benchmark_file is not None:
+        benchmark_returns = get_benchmark_returns_from_file(benchmark_file)
+    elif benchmark_symbol is not None:
+        try:
+            instrument = bundle_data.asset_finder.lookup_symbol(benchmark_symbol, None)
+            benchmark_sid = instrument.sid
+            benchmark_returns = False
+        except SymbolNotFound:
+            warnings.warn("Symbol %s as a benchmark not found in this bundle. "
+                          "Proceedig with default benchmark loader" % benchmark_symbol)
+        except MultipleSymbolsFound:
+            warnings.warn("Found multiple symbols for benchmark : %s "
+                          "Proceedig with default benchmark loader" % benchmark_symbol)
+
     if benchmark_returns is None:
         benchmark_returns = load_benchmark_data(environ=environ)
+
 
     if algotext is not None:
         if local_namespace:
@@ -137,12 +165,6 @@ def _run(handle_data,
             ),
         )
 
-    bundle_data = bundles.load(
-        bundle,
-        environ,
-        bundle_timestamp,
-    )
-
     first_trading_day = \
         bundle_data.equity_minute_bar_reader.first_trading_day
 
@@ -194,6 +216,7 @@ def _run(handle_data,
         metrics_set=metrics_set,
         blotter=blotter,
         benchmark_returns=benchmark_returns,
+        benchmark_sid=benchmark_sid,
         **{
             'initialize': initialize,
             'handle_data': handle_data,
