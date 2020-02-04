@@ -36,6 +36,8 @@ _multiprocess_can_split_ = False
 
 matplotlib.use('Agg')
 
+EXAMPLE_MODULES = examples.load_example_modules()
+
 
 class ExamplesTests(WithTmpDir, ZiplineTestCase):
     # some columns contain values with unique ids that will not be the same
@@ -62,9 +64,10 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             cls.tmpdir.getpath('example_data/root/data/SPY_benchmark.csv'),
         )
 
-    @parameterized.expand(sorted(examples.EXAMPLE_MODULES))
+    @parameterized.expand(sorted(EXAMPLE_MODULES))
     def test_example(self, example_name):
         actual_perf = examples.run_example(
+            EXAMPLE_MODULES,
             example_name,
             # This should match the invocation in
             # zipline/tests/resources/rebuild_example_data
