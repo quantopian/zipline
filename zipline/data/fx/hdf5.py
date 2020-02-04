@@ -190,7 +190,7 @@ class HDF5FXRateReader(implements(FXRateReader)):
         if rate == DEFAULT_FX_RATE:
             rate = self._default_rate
 
-        check_dts(self.dts, dts)
+        check_dts(dts)
 
         row_ixs = self.dts.searchsorted(dts, side='right') - 1
         col_ixs = self.currencies.get_indexer(bases)
