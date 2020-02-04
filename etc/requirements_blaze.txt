@@ -10,7 +10,7 @@ partd==0.3.7
 locket==0.2.0
 cloudpickle==0.2.1
 itsdangerous==0.24
-flask==0.12.4
+flask==1.0
 flask-cors==2.1.3
 Jinja2==2.10.1
 MarkupSafe==0.23
