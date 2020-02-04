@@ -36,7 +36,7 @@ class InMemoryFXRateReader(implements(FXRateReader)):
 
         df = self._data[rate][quote]
 
-        check_dts(df.index, dts)
+        check_dts(dts)
 
         # Get raw values out of the frame.
         #

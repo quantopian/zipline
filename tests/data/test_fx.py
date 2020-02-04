@@ -69,7 +69,7 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
         bases = self.FX_RATES_CURRENCIES + [None]
         dates = pd.date_range(
             self.FX_RATES_START_DATE - pd.Timedelta('1 day'),
-            self.FX_RATES_END_DATE,
+            self.FX_RATES_END_DATE + pd.Timedelta('1 day'),
         )
         cases = itertools.product(rates, quotes, bases, dates)
 
@@ -98,7 +98,7 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
 
         dates = pd.date_range(
             self.FX_RATES_START_DATE - pd.Timedelta('2 days'),
-            self.FX_RATES_END_DATE
+            self.FX_RATES_END_DATE + pd.Timedelta('2 days'),
         )
         rates = self.FX_RATES_RATE_NAMES + [DEFAULT_FX_RATE]
         possible_quotes = self.FX_RATES_CURRENCIES
@@ -131,7 +131,7 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
 
         dates = pd.date_range(
             self.FX_RATES_START_DATE - pd.Timedelta('2 days'),
-            self.FX_RATES_END_DATE,
+            self.FX_RATES_END_DATE + pd.Timedelta('2 days'),
         )
         rates = self.FX_RATES_RATE_NAMES + [DEFAULT_FX_RATE]
         possible_quotes = self.FX_RATES_CURRENCIES
@@ -204,6 +204,7 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
                 quote = 'USD'
                 bases = np.array(['CAD'], dtype=object)
                 dts = pd.DatetimeIndex([bad_date])
+
                 result = self.reader.get_rates(rate, quote, bases, dts)
                 assert_equal(result.shape, (1, 1))
                 assert_equal(np.nan, result[0, 0])
@@ -221,11 +222,15 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
                 bases = np.array(['CAD'], dtype=object)
                 dts = pd.DatetimeIndex([bad_date])
 
-                with self.assertRaises(ValueError):
-                    self.reader.get_rates(rate, quote, bases, dts)
-
-                with self.assertRaises(ValueError):
-                    self.reader.get_rates_columnar(rate, quote, bases, dts)
+                result = self.reader.get_rates(rate, quote, bases, dts)
+                assert_equal(result.shape, (1, 1))
+                expected = self.get_expected_fx_rate_scalar(
+                    rate,
+                    quote,
+                    'CAD',
+                    self.FX_RATES_END_DATE,
+                )
+                assert_equal(expected, result[0, 0])
 
     def test_read_unknown_base(self):
         for rate in self.FX_RATES_RATE_NAMES:
