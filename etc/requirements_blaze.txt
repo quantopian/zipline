@@ -15,6 +15,6 @@ flask-cors==2.1.3
 Jinja2==2.10.1
 MarkupSafe==0.23
 Werkzeug==0.12.2
-psutil==4.3.0
+psutil==5.6.7
 
 -e git://github.com/quantopian/blaze.git@f26375a6708eab85b7acc7869d6c518df2f974eb#egg=blaze
