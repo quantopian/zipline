@@ -37,6 +37,13 @@ environment:
       PANDAS_DATAREADER_VERSION: "0.4.0"
       DASK_VERSION: "0.17.1"
 
+    - PYTHON_VERSION: "3.6"
+      PANDAS_VERSION: "0.22.0"
+      NUMPY_VERSION: "1.14.1"
+      SCIPY_VERSION: "1.0.0"
+      PANDAS_DATAREADER_VERSION: "0.4.0"
+      DASK_VERSION: "0.17.1"
+
 # We always use a 64-bit machine, but can build x86 distributions
 # with the PYTHON_ARCH variable (which is used by CMD_IN_ENV).
 platform:
