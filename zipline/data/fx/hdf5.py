@@ -107,6 +107,7 @@ from .base import FXRateReader, DEFAULT_FX_RATE
 from .utils import check_dts, is_sorted_ascending
 
 HDF5_FX_VERSION = 0
+HDF5_FX_CHUNKSIZE = 75
 
 INDEX = 'index'
 DATA = 'data'
@@ -164,7 +165,7 @@ class HDF5FXRateReader(implements(FXRateReader)):
 
     @lazyval
     def dts(self):
-        """Row labels for rate groups.
+        """Column labels for rate groups.
         """
         raw_dts = self._group[INDEX][DTS][:].astype('M8[ns]')
         if not is_sorted_ascending(raw_dts):
@@ -174,7 +175,7 @@ class HDF5FXRateReader(implements(FXRateReader)):
 
     @lazyval
     def currencies(self):
-        """Column labels for rate groups.
+        """Row labels for rate groups.
         """
         # Currencies are stored as fixed-length bytes in the file, but we want
         # `str` objects in memory.
@@ -192,8 +193,8 @@ class HDF5FXRateReader(implements(FXRateReader)):
 
         check_dts(dts)
 
-        row_ixs = self.dts.searchsorted(dts, side='right') - 1
-        col_ixs = self.currencies.get_indexer(bases)
+        col_ixs = self.dts.searchsorted(dts, side='right') - 1
+        row_ixs = self.currencies.get_indexer(bases)
 
         try:
             dataset = self._group[DATA][rate][quote][RATES]
@@ -203,49 +204,47 @@ class HDF5FXRateReader(implements(FXRateReader)):
                 .format(rate, quote)
             )
 
-        # OPTIMIZATION: Row indices correspond to dates, which must be in
+        # OPTIMIZATION: Column indices correspond to dates, which must be in
         # sorted order. Rather than reading the entire dataset from h5, we can
-        # read just the interval from min_row to max_row inclusive
+        # read just the interval from min_col to max_col inclusive
         #
         # However, we also need to handle two important edge cases:
         #
-        #   1. row_ixs contains -1 for dts before the start of self.dts.
-        #   2. col_ixs contains -1 for any currencies we don't know about.
+        #   1. row_ixs contains -1 for any currencies we don't know about.
+        #   2. col_ixs contains -1 for dts before the start of self.dts.
         #
         # If either of the above cases obtains, we want to return NaN for the
         # corresponding output locations.
 
         # We handle (1) by reading raw data into a buffer with one extra
-        # row. When we then apply the row index to permute the raw data into
-        # the correct order, any rows with values of -1 will pull from the
-        # extra row, which will always contain NaN>
+        # column. When we then apply the column index to permute the raw data
+        # into the correct order, any columnss with values of -1 will pull from
+        # the extra column, which will always contain NaN>
         #
-        # We handle (2) by overwriting columns with indices of -1 with NaN as a
+        # We handle (2) by overwriting rows with indices of -1 with NaN as a
         # postprocessing step.
-        slice_begin = max(row_ixs[0], 0)
-        slice_end = max(row_ixs[-1], 0) + 1  # +1 to be inclusive of end date.
+        slice_begin = max(col_ixs[0], 0)
+        slice_end = max(col_ixs[-1], 0) + 1  # +1 to be inclusive of end date.
 
-        # Allocate a buffer full of NaNs with one extra row/column. See
+        # Allocate a buffer full of NaNs with one extra column. See
         # OPTIMIZATION notes above.
         buf = np.full(
-            (slice_end - slice_begin + 1, len(self.currencies)),
+            (len(self.currencies), slice_end - slice_begin + 1),
             np.nan,
         )
 
-        # Read data into all but the last row/column of the buffer.
-        dataset.read_direct(
-            buf[:-1],
-            np.s_[slice_begin:slice_end],
-        )
+        buf[:, :-1] = dataset[:, slice_begin:slice_end]
 
         # Permute the rows into place, pulling from the empty NaN locations for
-        # row/column indices of -1.
-        out = buf[:, col_ixs][row_ixs - slice_begin]
+        # column indices of -1.
+        out = buf[:, col_ixs - slice_begin][row_ixs]
 
-        # Fill missing columns with NaN. See OPTIMIZATION notes above.
-        out[:, col_ixs == -1] = np.nan
+        # Fill missing rows with NaN. See OPTIMIZATION notes above.
+        out[row_ixs == -1] = np.nan
 
-        return out
+        # Transpose everything to maintain dts as row labels, currencies as col
+        # labels which is expected everywhere else.
+        return out.transpose()
 
 
 class HDF5FXRateWriter(object):
@@ -267,7 +266,11 @@ class HDF5FXRateWriter(object):
             Iterator of (rate, quote_currency, array) tuples. Each array
             should be of shape ``(len(dts), len(currencies))``, and should
             contain a table of rates where each column is a timeseries of rates
-            mapping its column label's currency to ``quote_currency``.
+            mapping its column label's currency to ``quote_currency``. The
+            arrays that are actually written to the HDF5 file will be
+            transposed to have shape ``(len(currencies), len(dts))`` so that
+            similar values are in C-contiguous order, which improves overall
+            compression.
         """
         self._write_metadata()
         self._write_index_group(dts, currencies)
@@ -311,7 +314,17 @@ class HDF5FXRateWriter(object):
 
             self._log_writing(DATA, rate, quote)
             target = data_group.require_group('/'.join((rate, quote)))
-            target.create_dataset(RATES, data=array)
+
+            # Transpose the rates array so that the hdf5 file holds arrays
+            # with currencies as row labels and dates as column labels. This
+            # helps with compression, as the *rows* (rather than the columns)
+            # all have similar values, which lends itself to the HDF5 file's
+            # C-contiguous storage.
+            target.create_dataset(RATES,
+                                  data=array.transpose(),
+                                  chunks=(len(currencies), HDF5_FX_CHUNKSIZE),
+                                  compression='lzf',
+                                  shuffle=True)
 
     def _log_writing(self, *path):
         log.debug("Writing {}", '/'.join(path))
