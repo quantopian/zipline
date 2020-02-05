@@ -2099,6 +2099,9 @@ class WithFXRates(object):
     # Kinds of rates for which exchange rate data is present.
     FX_RATES_RATE_NAMES = ["mid"]
 
+    # Default chunk size used for fx artifact compression.
+    HDF5_FX_CHUNK_SIZE = 75
+
     # Rate used by default for Pipeline API queries that don't specify a rate
     # explicitly.
     @classproperty
@@ -2178,7 +2181,7 @@ class WithFXRates(object):
 
         # Write in-memory data to h5 file.
         with h5py.File(path, 'w') as h5_file:
-            writer = HDF5FXRateWriter(h5_file)
+            writer = HDF5FXRateWriter(h5_file, cls.HDF5_FX_CHUNK_SIZE)
             fx_data = ((rate, quote, quote_frame.values)
                        for rate, rate_dict in cls.fx_rates.items()
                        for quote, quote_frame in rate_dict.items())

@@ -107,7 +107,6 @@ from .base import FXRateReader, DEFAULT_FX_RATE
 from .utils import check_dts, is_sorted_ascending
 
 HDF5_FX_VERSION = 0
-HDF5_FX_CHUNKSIZE = 75
 
 INDEX = 'index'
 DATA = 'data'
@@ -250,8 +249,9 @@ class HDF5FXRateReader(implements(FXRateReader)):
 class HDF5FXRateWriter(object):
     """Writer class for HDF5 files consumed by HDF5FXRateReader.
     """
-    def __init__(self, group):
+    def __init__(self, group, date_chunk_size):
         self._group = group
+        self._date_chunk_size = date_chunk_size
 
     def write(self, dts, currencies, data):
         """Write data to the file.
@@ -272,9 +272,16 @@ class HDF5FXRateWriter(object):
             similar values are in C-contiguous order, which improves overall
             compression.
         """
+
+        if len(currencies):
+            chunks = (len(currencies), min(self._date_chunk_size, len(dts)))
+        else:
+            # h5py crashes if we provide chunks for empty data.
+            chunks = None
+
         self._write_metadata()
         self._write_index_group(dts, currencies)
-        self._write_data_group(dts, currencies, data)
+        self._write_data_group(dts, currencies, data, chunks)
 
     def _write_metadata(self):
         self._group.attrs['version'] = HDF5_FX_VERSION
@@ -298,7 +305,7 @@ class HDF5FXRateWriter(object):
         self._log_writing(INDEX, CURRENCIES)
         index_group.create_dataset(CURRENCIES, data=currencies.astype('S3'))
 
-    def _write_data_group(self, dts, currencies, data):
+    def _write_data_group(self, dts, currencies, data, chunks):
         """Write content of /data.
         """
         data_group = self._group.create_group(DATA)
@@ -322,7 +329,7 @@ class HDF5FXRateWriter(object):
             # C-contiguous storage.
             target.create_dataset(RATES,
                                   data=array.transpose(),
-                                  chunks=(len(currencies), HDF5_FX_CHUNKSIZE),
+                                  chunks=chunks,
                                   compression='lzf',
                                   shuffle=True)
 
