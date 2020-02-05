@@ -62,13 +62,13 @@ A file containing fields ["rate1", "rate2"] and currencies ["USD", "CAD",
 
 This node contains a 1-dimensional array of int64s. When interpreted as an
 np.datetime64[ns], each entry in the array defines the date label for the
-corresponding row of a data node.
+corresponding column of a data node.
 
 /index/currencies
 ^^^^^^^^^^^^^^^^^
 
 This node contains a 1-dimensional array of length-3 strings. Each entry in the
-array defines the the label for the corresponding column of a data node.
+array defines the the label for the corresponding row of a data node.
 
 /data/{rate}/{quote_currency}/rates
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -79,20 +79,18 @@ exchange rates.
 Represented as a DataFrame with appropriate indices, the data at
 /data/rate1/USD/rates might look like this::
 
-                    USD       EUR       CAD
-   2014-01-01  1.000000  0.808477  0.442329
-   2014-01-02  1.000000  2.235770  0.817352
-   2014-01-03  1.000000  0.378603  1.181822
-   2014-01-04  1.000000  0.090983  0.198182
-   2014-01-05  1.000000  1.135781  0.536609
+        2014-01-01  2014-01-02  2014-01-03  2014-01-04  2014-01-05
+   USD    1.000000    1.000000    1.000000    1.000000    1.000000
+   EUR    0.808477    2.235770    0.378603    0.090983    1.135781
+   CAD    0.442329    0.817352    1.181822    0.198182    0.536609
 
-Each column of the array contains exchange rates mapping from currency of the
-column's label to the quote encoded in the node's path (USD in this
-example). The label for column i in a data node is the ith element of
+Each row of the array contains exchange rates mapping from currency of the
+row's label to the quote encoded in the node's path (USD in this
+example). The label for row i in a data node is the ith element of
 /index/currencies.
 
-Each row of the array contains exchange rates for a given date. The label for
-row i in a data node is the ith element of /index/dts.
+Each column of the array contains exchange rates for a given date. The label
+for column i in a data node is the ith element of /index/dts.
 """
 from interface import implements
 import h5py
