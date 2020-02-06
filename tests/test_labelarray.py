@@ -607,3 +607,24 @@ class LabelArrayTestCase(ZiplineTestCase):
         # before #1927 we didn't take a copy and would insert the missing value
         # (None) into the list
         assert_equal(categories, ['a', 'b', 'c'])
+
+    def test_fortran_contiguous_input(self):
+
+        strs = np.array([['a', 'b', 'c', 'd'],
+                         ['a', 'b', 'c', 'd'],
+                         ['a', 'b', 'c', 'd']], dtype=object)
+        strs_F = strs.T
+        self.assertTrue(strs_F.flags.f_contiguous)
+
+        arr = LabelArray(
+            strs_F,
+            missing_value=None,
+            categories=['a', 'b', 'c', 'd', None],
+        )
+        assert_equal(arr.as_string_array(), strs_F)
+
+        arr = LabelArray(
+            strs_F,
+            missing_value=None,
+        )
+        assert_equal(arr.as_string_array(), strs_F)
