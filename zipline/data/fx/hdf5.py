@@ -260,11 +260,7 @@ class HDF5FXRateWriter(object):
             Iterator of (rate, quote_currency, array) tuples. Each array
             should be of shape ``(len(dts), len(currencies))``, and should
             contain a table of rates where each column is a timeseries of rates
-            mapping its column label's currency to ``quote_currency``. The
-            arrays that are actually written to the HDF5 file will be
-            transposed to have shape ``(len(currencies), len(dts))`` so that
-            similar values are in C-contiguous order, which improves overall
-            compression.
+            mapping its column label's currency to ``quote_currency``.
         """
 
         if len(currencies):
