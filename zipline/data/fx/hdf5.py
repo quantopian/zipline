@@ -105,6 +105,7 @@ from .base import FXRateReader, DEFAULT_FX_RATE
 from .utils import check_dts, is_sorted_ascending
 
 HDF5_FX_VERSION = 0
+HDF5_FX_DEFAULT_CHUNK_SIZE = 75
 
 INDEX = 'index'
 DATA = 'data'
@@ -213,31 +214,26 @@ class HDF5FXRateReader(implements(FXRateReader)):
         # If either of the above cases obtains, we want to return NaN for the
         # corresponding output locations.
 
-        # We handle (1) by reading raw data into a buffer with one extra
-        # column. When we then apply the column index to permute the raw data
-        # into the correct order, any columnss with values of -1 will pull from
-        # the extra column, which will always contain NaN>
-        #
-        # We handle (2) by overwriting rows with indices of -1 with NaN as a
-        # postprocessing step.
+        # We handle each of these cases by reading raw data into a buffer with
+        # one extra column and one extra row. When we then permute the raw data
+        # into the correct order, any row or column indices with values of -1
+        # will pull from the extra row/column, which will always contain NaN.
+
         slice_begin = max(col_ixs[0], 0)
         slice_end = max(col_ixs[-1], 0) + 1  # +1 to be inclusive of end date.
 
-        # Allocate a buffer full of NaNs with one extra column. See
+        # Allocate a buffer full of NaNs with one extra column and row. See
         # OPTIMIZATION notes above.
         buf = np.full(
-            (len(self.currencies), slice_end - slice_begin + 1),
+            (len(self.currencies) + 1, slice_end - slice_begin + 1),
             np.nan,
         )
 
-        buf[:, :-1] = dataset[:, slice_begin:slice_end]
+        buf[:-1, :-1] = dataset[:, slice_begin:slice_end]
 
         # Permute the rows into place, pulling from the empty NaN locations for
-        # column indices of -1.
+        # row and column indices of -1.
         out = buf[:, col_ixs - slice_begin][row_ixs]
-
-        # Fill missing rows with NaN. See OPTIMIZATION notes above.
-        out[row_ixs == -1] = np.nan
 
         # Transpose everything to maintain dts as row labels, currencies as col
         # labels which is expected everywhere else.
@@ -247,7 +243,7 @@ class HDF5FXRateReader(implements(FXRateReader)):
 class HDF5FXRateWriter(object):
     """Writer class for HDF5 files consumed by HDF5FXRateReader.
     """
-    def __init__(self, group, date_chunk_size):
+    def __init__(self, group, date_chunk_size=HDF5_FX_DEFAULT_CHUNK_SIZE):
         self._group = group
         self._date_chunk_size = date_chunk_size
 
