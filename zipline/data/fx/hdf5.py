@@ -62,13 +62,13 @@ A file containing fields ["rate1", "rate2"] and currencies ["USD", "CAD",
 
 This node contains a 1-dimensional array of int64s. When interpreted as an
 np.datetime64[ns], each entry in the array defines the date label for the
-corresponding row of a data node.
+corresponding column of a data node.
 
 /index/currencies
 ^^^^^^^^^^^^^^^^^
 
 This node contains a 1-dimensional array of length-3 strings. Each entry in the
-array defines the the label for the corresponding column of a data node.
+array defines the the label for the corresponding row of a data node.
 
 /data/{rate}/{quote_currency}/rates
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -79,20 +79,18 @@ exchange rates.
 Represented as a DataFrame with appropriate indices, the data at
 /data/rate1/USD/rates might look like this::
 
-                    USD       EUR       CAD
-   2014-01-01  1.000000  0.808477  0.442329
-   2014-01-02  1.000000  2.235770  0.817352
-   2014-01-03  1.000000  0.378603  1.181822
-   2014-01-04  1.000000  0.090983  0.198182
-   2014-01-05  1.000000  1.135781  0.536609
+        2014-01-01  2014-01-02  2014-01-03  2014-01-04  2014-01-05
+   USD    1.000000    1.000000    1.000000    1.000000    1.000000
+   EUR    0.808477    2.235770    0.378603    0.090983    1.135781
+   CAD    0.442329    0.817352    1.181822    0.198182    0.536609
 
-Each column of the array contains exchange rates mapping from currency of the
-column's label to the quote encoded in the node's path (USD in this
-example). The label for column i in a data node is the ith element of
+Each row of the array contains exchange rates mapping from currency of the
+row's label to the quote encoded in the node's path (USD in this
+example). The label for row i in a data node is the ith element of
 /index/currencies.
 
-Each row of the array contains exchange rates for a given date. The label for
-row i in a data node is the ith element of /index/dts.
+Each column of the array contains exchange rates for a given date. The label
+for column i in a data node is the ith element of /index/dts.
 """
 from interface import implements
 import h5py
@@ -107,6 +105,7 @@ from .base import FXRateReader, DEFAULT_FX_RATE
 from .utils import check_dts, is_sorted_ascending
 
 HDF5_FX_VERSION = 0
+HDF5_FX_DEFAULT_CHUNK_SIZE = 75
 
 INDEX = 'index'
 DATA = 'data'
@@ -164,7 +163,7 @@ class HDF5FXRateReader(implements(FXRateReader)):
 
     @lazyval
     def dts(self):
-        """Row labels for rate groups.
+        """Column labels for rate groups.
         """
         raw_dts = self._group[INDEX][DTS][:].astype('M8[ns]')
         if not is_sorted_ascending(raw_dts):
@@ -174,7 +173,7 @@ class HDF5FXRateReader(implements(FXRateReader)):
 
     @lazyval
     def currencies(self):
-        """Column labels for rate groups.
+        """Row labels for rate groups.
         """
         # Currencies are stored as fixed-length bytes in the file, but we want
         # `str` objects in memory.
@@ -192,8 +191,8 @@ class HDF5FXRateReader(implements(FXRateReader)):
 
         check_dts(dts)
 
-        row_ixs = self.dts.searchsorted(dts, side='right') - 1
-        col_ixs = self.currencies.get_indexer(bases)
+        col_ixs = self.dts.searchsorted(dts, side='right') - 1
+        row_ixs = self.currencies.get_indexer(bases)
 
         try:
             dataset = self._group[DATA][rate][quote][RATES]
@@ -203,56 +202,50 @@ class HDF5FXRateReader(implements(FXRateReader)):
                 .format(rate, quote)
             )
 
-        # OPTIMIZATION: Row indices correspond to dates, which must be in
+        # OPTIMIZATION: Column indices correspond to dates, which must be in
         # sorted order. Rather than reading the entire dataset from h5, we can
-        # read just the interval from min_row to max_row inclusive
+        # read just the interval from min_col to max_col inclusive
         #
         # However, we also need to handle two important edge cases:
         #
-        #   1. row_ixs contains -1 for dts before the start of self.dts.
-        #   2. col_ixs contains -1 for any currencies we don't know about.
+        #   1. row_ixs contains -1 for any currencies we don't know about.
+        #   2. col_ixs contains -1 for dts before the start of self.dts.
         #
         # If either of the above cases obtains, we want to return NaN for the
         # corresponding output locations.
 
-        # We handle (1) by reading raw data into a buffer with one extra
-        # row. When we then apply the row index to permute the raw data into
-        # the correct order, any rows with values of -1 will pull from the
-        # extra row, which will always contain NaN>
-        #
-        # We handle (2) by overwriting columns with indices of -1 with NaN as a
-        # postprocessing step.
-        slice_begin = max(row_ixs[0], 0)
-        slice_end = max(row_ixs[-1], 0) + 1  # +1 to be inclusive of end date.
+        # We handle each of these cases by reading raw data into a buffer with
+        # one extra column and one extra row. When we then permute the raw data
+        # into the correct order, any row or column indices with values of -1
+        # will pull from the extra row/column, which will always contain NaN.
 
-        # Allocate a buffer full of NaNs with one extra row/column. See
+        slice_begin = max(col_ixs[0], 0)
+        slice_end = max(col_ixs[-1], 0) + 1  # +1 to be inclusive of end date.
+
+        # Allocate a buffer full of NaNs with one extra column and row. See
         # OPTIMIZATION notes above.
         buf = np.full(
-            (slice_end - slice_begin + 1, len(self.currencies)),
+            (len(self.currencies) + 1, slice_end - slice_begin + 1),
             np.nan,
         )
 
-        # Read data into all but the last row/column of the buffer.
-        dataset.read_direct(
-            buf[:-1],
-            np.s_[slice_begin:slice_end],
-        )
+        buf[:-1, :-1] = dataset[:, slice_begin:slice_end]
 
         # Permute the rows into place, pulling from the empty NaN locations for
-        # row/column indices of -1.
-        out = buf[:, col_ixs][row_ixs - slice_begin]
+        # row and column indices of -1.
+        out = buf[:, col_ixs - slice_begin][row_ixs]
 
-        # Fill missing columns with NaN. See OPTIMIZATION notes above.
-        out[:, col_ixs == -1] = np.nan
-
-        return out
+        # Transpose everything to maintain dts as row labels, currencies as col
+        # labels which is expected everywhere else.
+        return out.transpose()
 
 
 class HDF5FXRateWriter(object):
     """Writer class for HDF5 files consumed by HDF5FXRateReader.
     """
-    def __init__(self, group):
+    def __init__(self, group, date_chunk_size=HDF5_FX_DEFAULT_CHUNK_SIZE):
         self._group = group
+        self._date_chunk_size = date_chunk_size
 
     def write(self, dts, currencies, data):
         """Write data to the file.
@@ -269,9 +262,16 @@ class HDF5FXRateWriter(object):
             contain a table of rates where each column is a timeseries of rates
             mapping its column label's currency to ``quote_currency``.
         """
+
+        if len(currencies):
+            chunks = (len(currencies), min(self._date_chunk_size, len(dts)))
+        else:
+            # h5py crashes if we provide chunks for empty data.
+            chunks = None
+
         self._write_metadata()
         self._write_index_group(dts, currencies)
-        self._write_data_group(dts, currencies, data)
+        self._write_data_group(dts, currencies, data, chunks)
 
     def _write_metadata(self):
         self._group.attrs['version'] = HDF5_FX_VERSION
@@ -295,7 +295,7 @@ class HDF5FXRateWriter(object):
         self._log_writing(INDEX, CURRENCIES)
         index_group.create_dataset(CURRENCIES, data=currencies.astype('S3'))
 
-    def _write_data_group(self, dts, currencies, data):
+    def _write_data_group(self, dts, currencies, data, chunks):
         """Write content of /data.
         """
         data_group = self._group.create_group(DATA)
@@ -311,7 +311,17 @@ class HDF5FXRateWriter(object):
 
             self._log_writing(DATA, rate, quote)
             target = data_group.require_group('/'.join((rate, quote)))
-            target.create_dataset(RATES, data=array)
+
+            # Transpose the rates array so that the hdf5 file holds arrays
+            # with currencies as row labels and dates as column labels. This
+            # helps with compression, as the *rows* (rather than the columns)
+            # all have similar values, which lends itself to the HDF5 file's
+            # C-contiguous storage.
+            target.create_dataset(RATES,
+                                  data=array.transpose(),
+                                  chunks=chunks,
+                                  compression='lzf',
+                                  shuffle=True)
 
     def _log_writing(self, *path):
         log.debug("Writing {}", '/'.join(path))
