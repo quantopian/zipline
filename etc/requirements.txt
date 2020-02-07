@@ -10,16 +10,18 @@
 alabaster==0.7.12         # via sphinx
 alembic==0.7.7
 argh==0.26.2              # via sphinx-autobuild, watchdog
+aspy.yaml==1.3.0          # via pre-commit
 babel==2.6.0              # via sphinx
 backports-abc==0.5        # via tornado
 bcolz==0.12.1
 bottleneck==1.0.0
 certifi==2018.8.24        # via requests
+cfgv==2.0.1               # via pre-commit
 chardet==3.0.4            # via requests
 click==7.0.0
 cloudpickle==0.2.1        # via dask
-configparser==3.5.0       # via flake8
-contextlib2==0.4.0
+configparser==3.5.0       # via flake8, importlib-metadata
+contextlib2==0.6.0
 cookies==2.2.1            # via responses
 coverage==4.0.3
 cycler==0.10.0            # via matplotlib
@@ -34,9 +36,12 @@ flake8==3.6.0
 flask-cors==2.1.3
 flask==1.1.1              # via flask-cors
 funcsigs==1.0.2           # via mock, python-interface
-futures==3.2.0            # via tornado
+futures==3.2.0            # via pre-commit, tornado
 h5py==2.7.1
+identify==1.4.11          # via pre-commit
 idna==2.7                 # via requests
+importlib-metadata==1.5.0  # via pre-commit
+importlib-resources==1.0.2  # via pre-commit
 intervaltree==2.1.0
 iso3166==0.9
 iso4217==1.6.20180829
@@ -53,6 +58,7 @@ mccabe==0.6.0             # via flake8
 mock==2.0.0
 multipledispatch==0.6.0
 networkx==1.9.1
+nodeenv==1.3.5            # via pre-commit
 nose-ignore-docstring==0.2
 nose-parameterized==0.5.0
 nose-timer==0.5.0
@@ -63,11 +69,13 @@ numpydoc==0.5.0
 pandas-datareader==0.2.1
 pandas==0.18.1
 partd==0.3.7              # via dask
+pathlib2==2.3.5           # via importlib-metadata, importlib-resources
 pathtools==0.1.2          # via sphinx-autobuild, watchdog
 patsy==0.4.0
 pbr==4.3.0                # via mock
 pip-tools==4.3.0
 port-for==0.3.1           # via sphinx-autobuild
+pre-commit==1.21.0
 psutil==5.6.7
 pycodestyle==2.4.0        # via flake8
 pyflakes==2.0.0           # via flake8
@@ -76,10 +84,11 @@ pyparsing==2.0.3          # via matplotlib
 python-dateutil==2.4.2    # via matplotlib, pandas
 python-interface==1.5.3
 pytz==2018.5
-pyyaml==3.13              # via sphinx-autobuild, watchdog
+pyyaml==3.13              # via aspy.yaml, pre-commit, sphinx-autobuild, watchdog
 requests-file==1.4.1      # via pandas-datareader
 requests==2.20.1
 responses==0.9.0
+scandir==1.10.0           # via pathlib2
 scipy==0.17.1
 singledispatch==3.4.0.3   # via tornado
 six==1.11.0
@@ -94,13 +103,16 @@ ta-lib==0.4.9
 tables==3.4.3
 termcolor==1.1.0          # via nose-timer
 testfixtures==6.10.1
+toml==0.10.0              # via pre-commit
 toolz==0.8.2
 tornado==5.1.1            # via livereload, sphinx-autobuild
 trading-calendars==1.11.2
-typing==3.6.2             # via python-interface
+typing==3.6.2             # via importlib-resources, python-interface
 urllib3==1.24.3           # via requests
+virtualenv==16.7.9        # via pre-commit
 watchdog==0.9.0           # via sphinx-autobuild
 werkzeug==0.16.0          # via flask
+zipp==1.1.0               # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip

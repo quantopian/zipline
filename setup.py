@@ -144,8 +144,7 @@ def _filter_requirements(lines_iter, filter_names=None,
 
         match = REQ_PATTERN.match(line)
         if match is None:
-            raise AssertionError(
-                "Could not parse requirement: '%s'" % line)
+            raise AssertionError("Could not parse requirement: %r" % line)
 
         name = match.group('name')
         if filter_names is not None and name not in filter_names:
@@ -166,7 +165,7 @@ def _filter_requirements(lines_iter, filter_names=None,
 
 
 REQ_PATTERN = re.compile(
-    r"(?P<name>[^=<>]+)(?P<comp>[<=>]{1,2})(?P<spec>[^;]+)"
+    r"(?P<name>[^=<>;]+)((?P<comp>[<=>]{1,2})(?P<spec>[^;]+))?"
     r"(?:(;\W*python_version\W*(?P<pycomp>[<=>]{1,2})\W*"
     r"(?P<pyspec>[0-9\.]+)))?"
 )
@@ -180,7 +179,11 @@ def _conda_format(req):
         if name == 'tables':
             name = 'pytables'
 
-        formatted = '%s %s%s' % ((name,) + m.group('comp', 'spec'))
+        comp, spec = m.group('comp', 'spec')
+        if comp and spec:
+            formatted = '%s %s%s' % (name, comp, spec)
+        else:
+            formatted = name
         pycomp, pyspec = m.group('pycomp', 'pyspec')
         if pyspec:
             # Compare the two-digit string versions as ints.
