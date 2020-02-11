@@ -117,7 +117,7 @@ Then run ``pip install`` TA-lib:
 
 .. code-block:: bash
 
-   $ pip install -r ./etc/requirements_talib.in -c ./etc/requirements.txt
+   $ pip install -r ./etc/requirements_talib.in -c ./etc/requirements_locked.txt
 
 You should now be free to run tests:
 
@@ -154,7 +154,7 @@ If you update the zipline codebase so that it now depends on a new version of a 
 then you should update the lower bound on that dependency in ``etc/requirements.in``
 (or ``etc/requirements_dev.in`` as appropriate).
 We use `pip-compile`__ to find mutually compatible versions of dependencies for the
-``etc/requirements.txt`` lockfile used in our CI environments.
+``etc/requirements_locked.txt`` lockfile used in our CI environments.
 
 __ https://github.com/jazzband/pip-tools/
 
@@ -163,7 +163,7 @@ you need to re-run the ``pip-compile`` command included in the header of `the lo
 otherwise the lockfile will not meet the constraints specified to pip by zipline
 at install time (via ``etc/requirements.in`` via ``setup.py``).
 
-__ https://github.com/quantopian/zipline/tree/master/etc/requirements.txt
+__ https://github.com/quantopian/zipline/tree/master/etc/requirements_locked.txt
 
 If the zipline codebase can still support an old version of a dependency, but you want
 to update to a newer version of that library in our CI environments, then only the
@@ -194,7 +194,7 @@ __ http://www.sphinx-doc.org/en/stable/
 
 .. code-block:: bash
 
-   $ pip install -r ./etc/requirements_docs.txt
+   $ pip install -r ./etc/requirements_docs.in -c ./etc/requirements_locked.txt
 
 To build and view the docs locally, run:
 

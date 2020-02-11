@@ -43,9 +43,9 @@ echo "Installing pip and setuptools..." | tee -a "$VAGRANT_LOG"
 wget https://bootstrap.pypa.io/get-pip.py 2>&1 | tee -a "$VAGRANT_LOG"
 python get-pip.py 2>&1 >> "$VAGRANT_LOG" | tee -a "$VAGRANT_LOG"
 echo "Installing zipline python dependencies..." | tee -a "$VAGRANT_LOG"
-pip install -r /vagrant/etc/requirements.in -r  2>&1 /vagrant/etc/requirements_dev.in -c /vagrant/etc/requirements.txt | tee -a "$VAGRANT_LOG"
+pip install -r /vagrant/etc/requirements.in -r  2>&1 /vagrant/etc/requirements_dev.in -c /vagrant/etc/requirements_locked.txt | tee -a "$VAGRANT_LOG"
 echo "Installing zipline package itself..." | tee -a "$VAGRANT_LOG"
 # Clean out any cython assets. The pip install re-builds them.
 find /vagrant/ -type f -name '*.c' -exec rm {} +
-pip install -e /vagrant[all] -c /vagrant/etc/requirements.txt 2>&1 | tee -a "$VAGRANT_LOG"
+pip install -e /vagrant[all] -c /vagrant/etc/requirements_locked.txt 2>&1 | tee -a "$VAGRANT_LOG"
 echo "Finished!  zipline repo is in '/vagrant'." | tee -a "$VAGRANT_LOG"
