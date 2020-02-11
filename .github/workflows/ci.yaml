@@ -56,3 +56,9 @@ jobs:
         run: tox -v -e ${{ matrix.name }}
         env:
           LC_ALL: "en_US.UTF-8"
+
+      - name: Upload tox logs.
+        uses: actions/upload-artifact@v1
+        with:
+          name: toxlogs
+          path: .tox/${{ matrix.name }}/log
