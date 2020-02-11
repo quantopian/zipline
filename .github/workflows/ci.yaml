@@ -58,7 +58,7 @@ jobs:
           cd ta-lib/
           ./configure --prefix=/usr/local
           make
-          make install
+          sudo make install
 
       - name: Install Tox
         run: |
