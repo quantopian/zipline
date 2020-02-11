@@ -9,112 +9,49 @@ on:
 
 jobs:
   build-and-test:
-    name: build (${{ matrix.os }}, ${{ matrix.python-version }}, ${{ matrix.pandas-version }})
+    name: ${{ matrix.os }}-${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]  # TODO: Add windows-latest, macos-latest
-        python-version: [2.7, 3.5]
-        pandas-version: [0.18.1, 0.22.0]
-        include:  # TODO: Add 3.7, 3.8
-          - python-version: 2.7  # py2.7, old pandas
-            pandas-version: 0.18.1
-            numpy-version: 1.11.3
-            scipy-version: 0.17.1
-          - python-version: 3.5  # py3.5, new pandas
-            pandas-version: 0.18.1
-            numpy-version: 1.11.3
-            scipy-version: 0.17.1
-          - python-version: 3.5  # py3.5, new pandas
-            pandas-version: 0.22.0
-            numpy-version: 1.14.1
-            scipy-version: 1.0.0
-        exclude:
-          - python-version: 2.7
-            pandas-version: 0.22.0
-    env:
-      PYTHON_VERSION: ${{ matrix.python-version }}
-      PANDAS_VERSION: ${{ matrix.pandas-version }}
-      NUMPY_VERSION: ${{ matrix.numpy-version }}
-      SCIPY_VERSION: ${{ matrix.scipy-version }}
+        os: [ubuntu-18.04]
+        name:
+          - py27-oldpandas
+          - py35-oldpandas
+          - py35-newpandas
+          - py36-oldpandas
+        include:
+          - name: py27-oldpandas
+            python-version: 2.7
+          - name: py35-oldpandas
+            python-version: 3.5
+          - name: py35-newpandas
+            python-version: 3.5
+          - name: py36-newpandas
+            python-version: 3.6
     steps:
+      - name: Dump Matrix Config
+        env:
+          MATRIX: ${{ toJson(matrix) }}
+        run: echo "$MATRIX"
+
       - name: Checkout repository
         uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
+
+      - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Pip cache
-        uses: actions/cache@v1
+
+      - uses: actions/cache@v1
         with:
-          path: ~/.cache/.pip/pip_np$NUMPY_VERSION
-          key: ${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.pandas-version }}-${{ hashFiles('**/requirements.txt') }}-pip-cache
-      - name: Install dependencies
-        run: |
-          if [ "$PANDAS_VERSION" = 0.22.0 ]; then
-            PANDAS_DATAREADER_VERSION=0.4.0 DASK_VERSION=0.17.1
-          fi
-          source ./ci/actions/overwrite_requirements.sh
-          cat etc/requirements.txt
-          TALIB_VERSION=$(cat ./etc/requirements.txt | grep "ta-lib" | sed "s/ta-lib==\([^ ]*\) *.*/\1/")
-          CERTIFI_VERSION=$(cat ./etc/requirements.txt | grep "certifi" | sed "s/certifi==\([^ ]*\) *.*/\1/")
+          path: ~/.cache/pip
+          key: ${{ matrix.os}}-${{ matrix.name }}-pip-${{ hashFiles('etc/constraints.txt') }}
 
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-              sudo apt-get install python3-venv
-          fi
-          python3 -m venv testenv
-          source ./testenv/bin/activate
-          conda install -c anaconda libgfortran=3.0
-          pip install pip cython numpy pandas scipy ta-lib certifi -c etc/requirements.txt --cache-dir="$HOME/.cache/.pip/pip_np$NUMPY_VERSION"
-          etc/dev-install --cache-dir="$HOME/.cache/.pip/pip_np$NUMPY_VERSION"
-          pip freeze | sort
-          echo "::set-env name=PATH::$PATH"
-      - name: Lint
+      - name: Install Tox
         run: |
-          source ./testenv/bin/activate
-          flake8 zipline tests
-      - name: Tests
-        run: |
-          source ./testenv/bin/activate
-          nosetests --with-coverage
+          python -m pip install -U pip setuptools
+          python -m pip install tox
 
-  conda-build:
-    name: conda build (${{ matrix.os }}, ${{ matrix.python-version }}, ${{ matrix.pandas-version }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        python-version: [2.7, 3.5]  # TODO: Add 3.7, 3.8
-        include:
-          - python-version: 2.7  # py2.7, old pandas
-            pandas-version: 0.18.1
-            numpy-version: 1.11.3
-            scipy-version: 0.17.1
-          - python-version: 3.5  # py3.5, new pandas
-            pandas-version: 0.18.1
-            numpy-version: 1.11.3
-            scipy-version: 0.17.1
-          - python-version: 3.5  # py3.5, new pandas
-            pandas-version: 0.22.0
-            numpy-version: 1.14.1
-            scipy-version: 1.0.0
-            dask-version: 0.17.1
-            pandas-datareader-version: 0.4.0
-    env:
-      # https://help.github.com/en/actions/automating-your-workflow-with-github-actions/creating-and-using-encrypted-secrets#creating-encrypted-secrets
-      ANACONDA_TOKEN: ${{ secrets.AnacondaToken }}
-      CONDA_ROOT_PYTHON_VERSION: "2.7"
-    steps:
-          - name: Checkout repository
-            uses: actions/checkout@v2
-          - name: Unshallow clone  # Unshallow the clone so the conda build can clone it.
-            run: git fetch --unshallow --tags
-          - name: Install miniconda
-            run: |
-              source ./ci/actions/install_miniconda.sh
-
-              conda info -a
-              conda install conda=4.3.30 conda-build=3.0.28 anaconda-client=1.6.3 --yes -q
-              conda list
+      - name: Run Tox
+        run: tox -e ${{ matrix.name }}
