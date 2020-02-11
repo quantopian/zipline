@@ -43,10 +43,22 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: actions/cache@v1
+      - name: Restore Pip Cache
+        uses: actions/cache@v1
         with:
           path: ~/.cache/pip
           key: ${{ matrix.os }}-${{ matrix.name }}-pip-${{ hashFiles('etc/constraints_*.txt') }}
+
+      - name: Install TA-Lib
+        run: |
+          mkdir ~/talib-build
+          cd ~/talib-build
+          curl -sSL 'https://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz' > ta-lib.tar.gz
+          tar -xzf ta-lib.tar.gz
+          cd ta-lib/
+          ./configure --prefix=/usr/local
+          make
+          make install
 
       - name: Install Tox
         run: |
