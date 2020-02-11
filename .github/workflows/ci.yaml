@@ -53,4 +53,6 @@ jobs:
           python -m pip install tox
 
       - name: Run Tox
-        run: tox -e ${{ matrix.name }}
+        run: tox -v -e ${{ matrix.name }}
+        env:
+          LC_ALL: "en_US.UTF-8"
