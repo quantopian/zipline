@@ -33,6 +33,7 @@ pytz>=2018.5
 # Country Codes
 iso3166>=0.9
 trading-calendars>=1.6.1
+enum34>=1.0
 
 # For fetching remote data
 requests>=2.9.1

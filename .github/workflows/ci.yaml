@@ -19,7 +19,7 @@ jobs:
           - py27-oldpandas
           - py35-oldpandas
           - py35-newpandas
-          - py36-oldpandas
+          - py36-newpandas
         include:
           - name: py27-oldpandas
             python-version: 2.7
@@ -46,11 +46,10 @@ jobs:
       - uses: actions/cache@v1
         with:
           path: ~/.cache/pip
-          key: ${{ matrix.os}}-${{ matrix.name }}-pip-${{ hashFiles('etc/constraints.txt') }}
+          key: ${{ matrix.os }}-${{ matrix.name }}-pip-${{ hashFiles('etc/constraints_*.txt') }}
 
       - name: Install Tox
         run: |
-          python -m pip install -U pip setuptools
           python -m pip install tox
 
       - name: Run Tox

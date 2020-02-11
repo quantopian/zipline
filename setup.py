@@ -27,57 +27,69 @@ from distutils.version import StrictVersion
 from setuptools import (
     find_packages,
     setup,
-    Extension,
+    Extension as _Extension,
 )
 
-from Cython import cythonize
+import numpy as np
+from Cython.Build import cythonize
 
 import versioneer
 
 
+def make_extension(*args, **kwargs):
+    kwargs.setdefault('include_dirs', []).append(np.get_include())
+    return _Extension(*args, **kwargs)
+
+
 def window_specialization(typename):
     """Make an extension for an AdjustedArrayWindow specialization."""
-    return Extension(
+    return make_extension(
         'zipline.lib._{name}window'.format(name=typename),
         ['zipline/lib/_{name}window.pyx'.format(name=typename)],
         depends=['zipline/lib/_windowtemplate.pxi'],
     )
 
 
-ext_modules = cythonize([
-    Extension('zipline.assets._assets', ['zipline/assets/_assets.pyx']),
-    Extension('zipline.assets.continuous_futures',
-              ['zipline/assets/continuous_futures.pyx']),
-    Extension('zipline.lib.adjustment', ['zipline/lib/adjustment.pyx']),
-    Extension('zipline.lib._factorize', ['zipline/lib/_factorize.pyx']),
-    window_specialization('float64'),
-    window_specialization('int64'),
-    window_specialization('int64'),
-    window_specialization('uint8'),
-    window_specialization('label'),
-    Extension('zipline.lib.rank', ['zipline/lib/rank.pyx']),
-    Extension('zipline.data._equities', ['zipline/data/_equities.pyx']),
-    Extension('zipline.data._adjustments', ['zipline/data/_adjustments.pyx']),
-    Extension('zipline._protocol', ['zipline/_protocol.pyx']),
-    Extension(
-        'zipline.finance._finance_ext',
-        ['zipline/finance/_finance_ext.pyx'],
-    ),
-    Extension('zipline.gens.sim_engine', ['zipline/gens/sim_engine.pyx']),
-    Extension(
-        'zipline.data._minute_bar_internal',
-        ['zipline/data/_minute_bar_internal.pyx']
-    ),
-    Extension(
-        'zipline.data._resample',
-        ['zipline/data/_resample.pyx']
-    ),
-    Extension(
-        'zipline.pipeline.loaders.blaze._core',
-        ['zipline/pipeline/loaders/blaze/_core.pyx'],
-        depends=['zipline/lib/adjustment.pxd'],
-    ),
-])
+def make_extensions():
+    return cythonize([
+        make_extension('zipline.assets._assets', ['zipline/assets/_assets.pyx']),
+        make_extension(
+            'zipline.assets.continuous_futures',
+            ['zipline/assets/continuous_futures.pyx'],
+        ),
+        make_extension('zipline.lib.adjustment', ['zipline/lib/adjustment.pyx']),
+        make_extension('zipline.lib._factorize', ['zipline/lib/_factorize.pyx']),
+        window_specialization('float64'),
+        window_specialization('int64'),
+        window_specialization('int64'),
+        window_specialization('uint8'),
+        window_specialization('label'),
+        make_extension('zipline.lib.rank', ['zipline/lib/rank.pyx']),
+        make_extension('zipline.data._equities', ['zipline/data/_equities.pyx']),
+        make_extension(
+            'zipline.data._adjustments',
+            ['zipline/data/_adjustments.pyx'],
+        ),
+        make_extension('zipline._protocol', ['zipline/_protocol.pyx']),
+        make_extension(
+            'zipline.finance._finance_ext',
+            ['zipline/finance/_finance_ext.pyx'],
+        ),
+        make_extension('zipline.gens.sim_engine', ['zipline/gens/sim_engine.pyx']),
+        make_extension(
+            'zipline.data._minute_bar_internal',
+            ['zipline/data/_minute_bar_internal.pyx']
+        ),
+        make_extension(
+            'zipline.data._resample',
+            ['zipline/data/_resample.pyx']
+        ),
+        make_extension(
+            'zipline.pipeline.loaders.blaze._core',
+            ['zipline/pipeline/loaders/blaze/_core.pyx'],
+            depends=['zipline/lib/adjustment.pxd'],
+        ),
+    ])
 
 
 STR_TO_CMP = {
@@ -229,7 +241,7 @@ setup(
     author='Quantopian Inc.',
     author_email='opensource@quantopian.com',
     packages=find_packages(include=['zipline', 'zipline.*']),
-    ext_modules=ext_modules,
+    ext_modules=make_extensions(),
     include_package_data=True,
     package_data={root.replace(os.sep, '.'):
                   ['*.pyi', '*.pyx', '*.pxi', '*.pxd']

@@ -1,9 +1,2 @@
-[tox]
-envlist=py{27,35}-oldpandas
-skip_missing_interpreters=True
-
-install_command =
-    pip install -v -c requirements.txt
-
 [build-system]
 requires = ["setuptools", "wheel", "numpy==1.11.3", "Cython==0.25.2"]
