@@ -397,7 +397,7 @@ class PreprocessTestCase(TestCase):
             'US/Eastern',
         }
         invalid = {
-            # unfortunatly, these are not actually timezones (yet)
+            # unfortunately, these are not actually timezones (yet)
             'ayy',
             'lmao',
         }
