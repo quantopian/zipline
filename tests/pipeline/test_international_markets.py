@@ -402,6 +402,16 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
             sessions[-1],
         )
 
+    def test_cannot_convert_volume_data(self):
+        with self.assertRaises(TypeError) as exc:
+            EquityPricing.volume.fx('EUR')
+
+        assert_equal(
+            str(exc.exception),
+            'The .fx() method cannot be called on EquityPricing.volume '
+            'because it does not produce currency-denominated data.',
+        )
+
     def check_expected_latest_value(self, calendar, col, date, asset, value):
         """Check the expected result of column.latest from a pipeline.
         """

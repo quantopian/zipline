@@ -11,6 +11,7 @@ from pandas.util.testing import assert_frame_equal
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Pipeline
 from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.data.dataset import Column
 from zipline.pipeline.data.testing import TestingDataSet as TDS
 from zipline.pipeline.domain import US_EQUITIES
 from zipline.testing.fixtures import (
@@ -18,6 +19,7 @@ from zipline.testing.fixtures import (
     WithTradingSessions,
     ZiplineTestCase
 )
+from zipline.utils.numpy_utils import datetime64ns_dtype
 from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning, \
     new_pandas, skip_pipeline_new_pandas
 
@@ -117,3 +119,14 @@ class LatestTestCase(WithSeededRandomPipelineEngine,
             column.latest < 1000
         except TypeError:
             self.fail()
+
+    def test_construction_error_message(self):
+        with self.assertRaises(ValueError) as exc:
+            Column(dtype=datetime64ns_dtype, currency_aware=True)
+
+        self.assertEqual(
+            str(exc.exception),
+            'Columns cannot be constructed with currency_aware=True, '
+            'dtype=datetime64[ns]. Currency aware columns must have a float64 '
+            'dtype.',
+        )
