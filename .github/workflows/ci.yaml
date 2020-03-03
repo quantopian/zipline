@@ -63,6 +63,7 @@ jobs:
           ./configure
           make
           sudo make install
+          ldconfig
 
       - name: Create virtualenv
         run: |
@@ -73,7 +74,7 @@ jobs:
         run: |
           source ~/venv/bin/activate
           python -m pip install -r etc/requirements_build.in -c etc/${{ matrix.constraints-file }}
-          python -m pip install -e .[all] -c etc/${{ matrix.constraints-file }}
+          python -m pip install -e .[all] -r etc/requirements_blaze.in -c etc/${{ matrix.constraints-file }}
 
       - name: Pip freeze
         run: |
