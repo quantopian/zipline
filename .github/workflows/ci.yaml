@@ -63,7 +63,7 @@ jobs:
           ./configure
           make
           sudo make install
-          ldconfig
+          sudo ldconfig
 
       - name: Create virtualenv
         run: |
