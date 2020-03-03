@@ -983,3 +983,9 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
         Slice = cls._make_dataset(coords)
         cls._slice_cache[hash_key] = Slice
         return Slice
+
+
+CurrencyConversion = namedtuple(
+    'CurrencyConversion',
+    ['currency', 'field'],
+)
