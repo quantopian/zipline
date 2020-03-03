@@ -17,18 +17,22 @@ jobs:
         os: [ubuntu-18.04]
         name:
           - py27-oldpandas
-          - py35-oldpandas
-          # - py35-newpandas
+          # - py35-oldpandas
+          - py35-newpandas
           # - py36-newpandas
         include:
           - name: py27-oldpandas
             python-version: 2.7
+            constraints-file: constraints_oldpandas.txt
           - name: py35-oldpandas
             python-version: 3.5
+            constraints-file: constraints_oldpandas.txt
           - name: py35-newpandas
             python-version: 3.5
+            constraints-file: constraints_newpandas.txt
           - name: py36-newpandas
             python-version: 3.6
+            constraints-file: constraints_newpandas.txt
     steps:
       - name: Dump Matrix Config
         env:
@@ -60,18 +64,22 @@ jobs:
           make
           sudo make install
 
-      - name: Install Tox
+      - name: Create virtualenv
         run: |
-          python -m pip install tox
+          python -m pip install --user virtualenv
+          python -m virtualenv -p python${{ matrix.python-version }} ~/venv
 
-      - name: Run Tox
-        run: tox -v -e ${{ matrix.name }}
-        env:
-          LC_ALL: "en_US.UTF-8"
+      - name: Install dependencies in virtualenv
+        run: |
+          source ~/venv/bin/activate
+          python -m pip install etc/requirements_build.in -c etc/${{ matrix.constraints-file }}
+          python -m pip install -e .[all] -c etc/${{ matrix.constraints-file }}
 
-      - name: Upload tox logs.
-        uses: actions/upload-artifact@v1
-        with:
-          name: toxlogs
-          path: .tox/${{ matrix.name }}/log
-        if: always()
+      - name: Pip freeze
+        run: |
+          pip freeze
+
+      - name: Run tests
+        run: |
+          source ~/venv/bin/activate
+          nosetests tests
