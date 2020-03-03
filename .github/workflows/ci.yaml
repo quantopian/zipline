@@ -74,3 +74,4 @@ jobs:
         with:
           name: toxlogs
           path: .tox/${{ matrix.name }}/log
+        if: always()
