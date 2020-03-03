@@ -18,8 +18,8 @@ jobs:
         name:
           - py27-oldpandas
           - py35-oldpandas
-          - py35-newpandas
-          - py36-newpandas
+          # - py35-newpandas
+          # - py36-newpandas
         include:
           - name: py27-oldpandas
             python-version: 2.7
