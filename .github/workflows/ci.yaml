@@ -71,7 +71,7 @@ jobs:
       - name: Install dependencies in virtualenv
         run: |
           source ~/venv/bin/activate
-          python -m pip install etc/requirements_build.in -c etc/${{ matrix.constraints-file }}
+          python -m pip install -r etc/requirements_build.in -c etc/${{ matrix.constraints-file }}
           python -m pip install -e .[all] -c etc/${{ matrix.constraints-file }}
 
       - name: Pip freeze
