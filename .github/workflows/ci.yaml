@@ -78,6 +78,7 @@ jobs:
 
       - name: Pip freeze
         run: |
+          source ~/venv/bin/activate
           pip freeze
 
       - name: Run tests
