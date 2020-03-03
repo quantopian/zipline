@@ -57,7 +57,7 @@ jobs:
           tar -xzf ta-lib.tar.gz
           cd ta-lib/
           ./configure --prefix=/usr/local
-          make
+          make -j2
           sudo make install
 
       - name: Install Tox
