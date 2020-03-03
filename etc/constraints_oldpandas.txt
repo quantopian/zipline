@@ -13,7 +13,7 @@ argh==0.26.2              # via sphinx-autobuild, watchdog
 babel==2.6.0              # via sphinx
 backports-abc==0.5        # via tornado
 bcolz==0.12.1
-bottleneck==1.0.0
+bottleneck==1.3.2
 certifi==2018.8.24        # via requests
 chardet==3.0.4            # via requests
 click==7.0.0
