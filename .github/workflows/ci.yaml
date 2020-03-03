@@ -60,7 +60,6 @@ jobs:
           curl -sSL 'https://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz' > ta-lib.tar.gz
           tar -xzf ta-lib.tar.gz
           cd ta-lib/
-          ./configure --prefix=/usr/local
           make
           sudo make install
 
