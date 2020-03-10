@@ -44,7 +44,7 @@ itsdangerous==0.24        # via flask
 jinja2==2.10.1            # via flask, sphinx
 livereload==2.6.0         # via sphinx-autobuild
 locket==0.2.0             # via partd
-logbook==0.12.5           # via -r etc/requirements.in
+logbook==1.5.3            # via -r etc/requirements.in
 lru-dict==1.1.4           # via -r etc/requirements.in, trading-calendars
 mako==1.0.1               # via alembic
 markupsafe==0.23          # via jinja2, mako
