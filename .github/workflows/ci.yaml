@@ -56,14 +56,15 @@ jobs:
       - name: Install TA-Lib
         run: |
           mkdir ~/talib-build
+          mkdir ~/talib
           cd ~/talib-build
           curl -sSL 'https://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz' > ta-lib.tar.gz
           tar -xzf ta-lib.tar.gz
           cd ta-lib/
-          ./configure
+          ./configure --install-prefix ~/talib
           make
-          sudo make install
-          sudo ldconfig
+          make install
+          echo "::set-output name=TA_LIBRARY_PATH::~/talib-build"
 
       - name: Create virtualenv
         run: |
