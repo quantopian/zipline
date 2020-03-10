@@ -1,0 +1,8 @@
+-r requirements_build.in
+-r requirements_talib.in
+-r requirements_dev.in
+-r requirements_blaze.in
+-r requirements_docs.in
+numpy==1.14.1
+pandas==0.22.0
+pandas-datareader==0.4.0
