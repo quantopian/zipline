@@ -64,8 +64,8 @@ jobs:
           ./configure --prefix ~/talib
           make
           make install
-          echo "::set-output name=TA_LIBRARY_PATH::~/talib/lib"
-          echo "::set-output name=TA_INCLUDE_PATH::~/talib/include"
+          echo "::set-env name=TA_LIBRARY_PATH::~/talib/lib"
+          echo "::set-env name=TA_INCLUDE_PATH::~/talib/include"
 
       - name: Create virtualenv
         run: |
