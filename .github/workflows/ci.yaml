@@ -61,7 +61,7 @@ jobs:
           curl -sSL 'https://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz' > ta-lib.tar.gz
           tar -xzf ta-lib.tar.gz
           cd ta-lib/
-          ./configure --install-prefix ~/talib
+          ./configure --prefix ~/talib
           make
           make install
           echo "::set-output name=TA_LIBRARY_PATH::~/talib-build"
