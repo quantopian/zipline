@@ -12,31 +12,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import numpy as np
 import pandas as pd
-import requests
+import pandas_datareader.data as pd_reader
 
-
-def get_benchmark_returns(symbol):
-    """
-    Get a Series of benchmark returns from IEX associated with `symbol`.
-    Default is `SPY`.
-
-    Parameters
-    ----------
-    symbol : str
-        Benchmark symbol for which we're getting the returns.
-
-    The data is provided by IEX (https://iextrading.com/), and we can
-    get up to 5 years worth of data.
-    """
-    r = requests.get(
-        'https://api.iextrading.com/1.0/stock/{}/chart/5y'.format(symbol)
+def get_benchmark_returns(symbol, first_date, last_date):
+    data = pd_reader.DataReader(
+        symbol,
+        'yahoo',
+        first_date,
+        last_date
     )
-    data = r.json()
 
-    df = pd.DataFrame(data)
+    data = data['Close']
 
-    df.index = pd.DatetimeIndex(df['date'])
-    df = df['close']
+    data[pd.Timestamp('2008-12-15')] = np.nan
+    data[pd.Timestamp('2009-08-11')] = np.nan
+    data[pd.Timestamp('2012-02-02')] = np.nan
 
-    return df.sort_index().tz_localize('UTC').pct_change(1).iloc[1:]
+    data = data.fillna(method='ffill')
+
+    return data.sort_index().tz_localize('UTC').pct_change(1).iloc[1:]
