@@ -99,6 +99,7 @@ Once you have your key, run the following from the command line:
 .. code:: bash
 
     $ QUANDL_API_KEY=<yourkey> zipline ingest -b quandl
+    $ export IEXAPIS_TOKEN=<yourtoken>
     $ zipline run -f dual_moving_average.py --start 2014-1-1 --end 2018-1-1 -o dma.pickle
 
 This will download asset pricing data data from `quandl`, and stream it through the algorithm
@@ -106,6 +107,11 @@ over the specified time range. Then, the resulting performance DataFrame is save
 can load and analyze from within Python.
 
 You can find other examples in the ``zipline/examples`` directory.
+
+Notes?
+==========
+If it is not able to install zipline due to TA-Lib installation failure in ubuntu:
+https://stackoverflow.com/questions/45406213/unable-to-install-ta-lib-on-ubuntu
 
 Questions?
 ==========
