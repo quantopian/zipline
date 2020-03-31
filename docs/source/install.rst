@@ -44,7 +44,7 @@ binary dependencies from ``apt`` by running:
 
 .. code-block:: bash
 
-   $ sudo apt-get install libatlas-base-dev python-dev gfortran pkg-config libfreetype6-dev hdf5
+   $ sudo apt-get install libatlas-base-dev python-dev gfortran pkg-config libfreetype6-dev hdf5-tools
 
 On recent `RHEL-derived`_ derived Linux distributions (e.g. Fedora), the
 following should be sufficient to acquire the necessary additional
