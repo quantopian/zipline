@@ -7,6 +7,9 @@ on:
     branches:
       - master
 
+env:
+  NO_TALIB: "1"
+
 jobs:
   build-and-test:
     name: ${{ matrix.os }}-${{ matrix.name }}
@@ -53,19 +56,19 @@ jobs:
           path: ~/.cache/pip
           key: ${{ matrix.os }}-${{ matrix.name }}-pip-${{ hashFiles('etc/constraints_*.txt') }}
 
-      - name: Install TA-Lib
-        run: |
-          mkdir ~/talib-build
-          mkdir ~/talib
-          cd ~/talib-build
-          curl -sSL 'https://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz' > ta-lib.tar.gz
-          tar -xzf ta-lib.tar.gz
-          cd ta-lib/
-          ./configure --prefix ~/talib
-          make
-          make install
-          echo "::set-env name=TA_LIBRARY_PATH::~/talib/lib"
-          echo "::set-env name=TA_INCLUDE_PATH::~/talib/include"
+      # - name: Install TA-Lib
+      #   run: |
+      #     mkdir ~/talib-build
+      #     mkdir ~/talib
+      #     cd ~/talib-build
+      #     curl -sSL 'https://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz' > ta-lib.tar.gz
+      #     tar -xzf ta-lib.tar.gz
+      #     cd ta-lib/
+      #     ./configure --prefix ~/talib
+      #     make
+      #     make install
+      #     echo "::set-env name=TA_LIBRARY_PATH::~/talib/lib"
+      #     echo "::set-env name=TA_INCLUDE_PATH::~/talib/include"
 
       - name: Create virtualenv
         run: |
@@ -75,8 +78,7 @@ jobs:
       - name: Install dependencies in virtualenv
         run: |
           source ~/venv/bin/activate
-          python -m pip install -r etc/requirements_build.in -c etc/${{ matrix.constraints-file }}
-          python -m pip install -e .[all] -r etc/requirements_blaze.in -c etc/${{ matrix.constraints-file }}
+          bash etc/dev-install
 
       - name: Pip freeze
         run: |
