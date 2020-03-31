@@ -84,7 +84,7 @@ following brew packages:
 
 .. code-block:: bash
 
-   $ brew install freetype pkg-config gcc openssl
+   $ brew install freetype pkg-config gcc openssl hdf5
 
 Windows
 ~~~~~~~
