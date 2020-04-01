@@ -19,7 +19,7 @@ echo
 
 # New releases of pip have frequently caused strange issues. Make sure
 # we know exactly which version we're working with.
-python -m pip install pip==19.2.2 $@
+python -m pip install pip==19.2.2 'setuptools<46' $@
 
 # Install external requirements first: if they share any of our
 # transitive dependencies, we want our pinned versions to win.
