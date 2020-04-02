@@ -1374,6 +1374,12 @@ class H5MinuteBarUpdateReader(MinuteBarUpdateReader):
         The path of the HDF5 file from which to source data.
     """
     def __init__(self, path):
+        try:
+            self._panel = pd.read_hdf(path)
+            return
+        except TypeError:
+            pass
+
         # There is a bug in `pandas.read_hdf` whereby in Python 3 it fails to
         # read the timezone attr of an h5 file if that file was written in
         # Python 2. Until zipline has dropped Python 2 entirely we are at risk
