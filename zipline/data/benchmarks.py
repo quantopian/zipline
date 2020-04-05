@@ -39,11 +39,13 @@ def get_benchmark_returns(symbol):
     iex_api_key = os.environ.get('IEX_API_KEY')
     if iex_api_key is None:
         warnings.warn(
-            "Please specify manually a benchmark symbol using one of the following options: \n"
+            "Please specify manually a benchmark symbol using one "
+            "of the following options: \n"
             "--benchmark-file, --benchmark-symbol, --no-benchmark\n"
             "You can still retrieve market data from IEX "
             "by setting the IEX_API_KEY environment variable.\n"
-            "Please note that this feature is expected to be deprecated in the future"
+            "Please note that this feature is expected to be "
+            "deprecated in the future"
         )
         raise OSError("Missing environment variable IEX_API_KEY")
     r = requests.get(

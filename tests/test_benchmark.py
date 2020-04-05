@@ -277,7 +277,7 @@ class TestBenchmarkParameters(
                     from zipline.finance import commission, slippage
 
                     def initialize(context):
-                        context.stocks = symbol('a') 
+                        context.stocks = symbol('a')
                         context.has_ordered = False
                         context.set_commission(commission.NoCommission())
                         context.set_slippage(slippage.NoSlippage())
@@ -357,11 +357,12 @@ class TestBenchmarkParameters(
     @classmethod
     def set_expected_outcome(cls):
         cls.expected_daily = {
-            'returns': np.array([0., 0., -0.002, 0.00601202, 0.00199203, 0.00198807]),
+            'returns': np.array([0., 0., -0.002, 0.00601202, 0.00199203,
+                                 0.00198807]),
             'pnl': np.array([0., 0., -20000., 60000., 20000., 20000.]),
             'capital_used': np.array([0., -120000., 0., 0., 0., 0.]),
-            'portfolio_value': np.array([10000000., 10000000., 9980000., 10040000., 10060000.,
-                                         10080000.])
+            'portfolio_value': np.array([10000000., 10000000., 9980000.,
+                                         10040000., 10060000., 10080000.])
         }
 
     def data_portal_mock(self, *args, **kwargs):
@@ -388,8 +389,8 @@ class TestBenchmarkParameters(
         """
         with mock.patch("zipline.utils.run_algo.DataPortal",
                         side_effect=self.data_portal_mock), \
-             self.assertRaises(ValueError), \
-             make_test_handler(self) as log_catcher:
+                self.assertRaises(ValueError), \
+                make_test_handler(self) as log_catcher:
             _run(
                 trading_calendar=self.trading_calendar,
                 algotext=self.SCRIPT,
@@ -408,7 +409,7 @@ class TestBenchmarkParameters(
 
         with mock.patch("zipline.utils.run_algo.DataPortal",
                         side_effect=self.data_portal_mock), \
-             warnings.catch_warnings(record=True) as w:
+                warnings.catch_warnings(record=True) as w:
             perf = _run(
                 trading_calendar=self.trading_calendar,
                 algotext=self.SCRIPT_SET_BENCHMARK,
@@ -417,11 +418,13 @@ class TestBenchmarkParameters(
             )
             self.validate_perf(perf)
             self.assertIn(
-                'Please specify manually a benchmark symbol using one of the following options: '
+                'Please specify manually a benchmark symbol using one '
+                'of the following options: '
                 '\n--benchmark-file, --benchmark-symbol, --no-benchmark'
                 '\nYou can still retrieve market data from IEX by setting '
                 'the IEX_API_KEY environment variable.\n'
-                'Please note that this feature is expected to be deprecated in the future',
+                'Please note that this feature is expected to '
+                'be deprecated in the future',
                 str(w[-1].message))
 
     def test_run_no_benchmark_par(self):
@@ -432,7 +435,7 @@ class TestBenchmarkParameters(
         """
         with mock.patch("zipline.utils.run_algo.DataPortal",
                         side_effect=self.data_portal_mock), \
-             make_test_handler(self) as log_catcher:
+                make_test_handler(self) as log_catcher:
             perf = _run(
                 trading_calendar=self.trading_calendar,
                 algotext=self.SCRIPT,
@@ -460,9 +463,8 @@ class TestBenchmarkParameters(
         """
         with mock.patch("zipline.utils.run_algo.DataPortal",
                         side_effect=self.data_portal_mock), \
-             mock.patch("zipline.utils.run_algo.bundles.core.AssetFinder",
-                        side_effect=self.asset_finder_mock), \
-             make_test_handler(self) as log_catcher:
+                mock.patch("zipline.utils.run_algo.bundles.core.AssetFinder",
+                           side_effect=self.asset_finder_mock):
             perf = _run(
                 trading_calendar=self.trading_calendar,
                 algotext=self.SCRIPT,
@@ -471,7 +473,6 @@ class TestBenchmarkParameters(
                 **self.PARS
             )
             self.validate_perf(perf)
-            logs = [r.message for r in log_catcher.records]
 
     def test_run_benchmark_file_par(self):
         """
@@ -479,8 +480,7 @@ class TestBenchmarkParameters(
 
         """
         with mock.patch("zipline.utils.run_algo.DataPortal",
-                        side_effect=self.data_portal_mock), \
-             make_test_handler(self) as log_catcher:
+                        side_effect=self.data_portal_mock):
             csv_file_path = os.path.join(self.tmpdir.path, 'b.csv')
             with open(csv_file_path, 'w') as csv_file:
                 csv_file.write("date,return\n"
