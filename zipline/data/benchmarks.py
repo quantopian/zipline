@@ -13,11 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import sys
+import logbook
 import requests
 import warnings
 
 import pandas as pd
+
+logger = logbook.Logger('Loader')
 
 
 def get_benchmark_returns(symbol):
@@ -43,7 +45,7 @@ def get_benchmark_returns(symbol):
             "by setting the IEX_API_KEY environment variable.\n"
             "Please note that this feature is expected to be deprecated in the future"
         )
-        sys.exit()
+        raise OSError("Missing environment variable IEX_API_KEY")
     r = requests.get(
         "https://cloud.iexapis.com/stable/stock/{}/chart/5y?"
         "chartCloseOnly=True&token={}".format(symbol, iex_api_key)

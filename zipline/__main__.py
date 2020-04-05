@@ -270,18 +270,6 @@ def run(ctx,
     if end is None:
         ctx.fail("must specify an end date with '-e' / '--end'")
 
-    if benchmark_file is None:
-        if benchmark_symbol is None:
-            if no_benchmark is False:
-                click.echo("Warning: No benchmark file nor a benchmark "
-                           "symbol is provided. Trying to use the default"
-                           " benchmark loader. To use zero as a benchmark,"
-                           "use the flag --no-benchmark")
-            else:
-                click.echo("Warning: Using zero returns as a benchmark. "
-                           "The risk metrics that requires benchmark returns"
-                           " will not be calculated.")
-
     if (algotext is not None) == (algofile is not None):
         ctx.fail(
             "must specify exactly one of '-f' / '--algofile' or"

@@ -96,6 +96,12 @@ def load_zero_benchmark_data(trading_calendar, start_date, end_date):
 
     data = pd.DataFrame(0.0, index=dates, columns=['close'])
 
+    logger.warning(
+        "Warning: Using zero returns as a benchmark. "
+        "Alpha, beta and benchmark data"
+        " will not be calculated."
+    )
+
     return data.sort_index().iloc[1:]
 
 
@@ -152,7 +158,8 @@ def load_benchmark_data(trading_day=None,
         trading_day,
         environ,
     )
-
+    if br is None:
+        return None
     return br[br.index.slice_indexer(first_date, last_date)]
 
 
@@ -206,7 +213,7 @@ def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day,
         data.to_csv(get_data_filepath(filename, environ))
     except (OSError, IOError, HTTPError):
         logger.exception('Failed to cache the new benchmark returns')
-        raise
+        return None
     if not has_data_for_dates(data, first_date, last_date):
         logger.warn(
             ("Still don't have expected benchmark data for {symbol!r} "

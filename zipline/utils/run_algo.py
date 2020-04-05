@@ -112,11 +112,11 @@ def _run(handle_data,
             benchmark_returns = False
         except SymbolNotFound:
             warnings.warn("Symbol %s as a benchmark not found in this bundle. "
-                          "Proceedig with default benchmark "
+                          "Proceeding with the default benchmark loader"
                           "loader" % benchmark_symbol)
         except MultipleSymbolsFound:
             warnings.warn("Found multiple symbols for benchmark : %s "
-                          "Proceedig with default benchmark "
+                          "Proceeding with the default benchmark loader"
                           "loader" % benchmark_symbol)
 
     if benchmark_returns is None:
