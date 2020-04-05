@@ -169,7 +169,7 @@ def ipython_only(option):
     '--benchmark-file',
     default=None,
     type=click.File('r'),
-    help='The csv file that contains the benchmark closing prices',
+    help='The csv file that contains the benchmark returns',
 )
 @click.option(
     '--benchmark-symbol',
