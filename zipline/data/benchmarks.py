@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 import requests
 import warnings
 
@@ -35,10 +36,14 @@ def get_benchmark_returns(symbol):
 
     iex_api_key = os.environ.get('IEX_API_KEY')
     if iex_api_key is None:
-        raise ValueError(
-            "Please set your IEX_API_KEY environment variable and retry."
-            "\nPlease note that this feature will be deprecated"
+        warnings.warn(
+            "Please specify manually a benchmark symbol using one of the following options: \n"
+            "--benchmark-file, --benchmark-symbol, --no-benchmark\n"
+            "You can still retrieve market data from IEX "
+            "by setting the IEX_API_KEY environment variable.\n"
+            "Please note that this feature is expected to be deprecated in the future"
         )
+        sys.exit()
     r = requests.get(
         "https://cloud.iexapis.com/stable/stock/{}/chart/5y?"
         "chartCloseOnly=True&token={}".format(symbol, iex_api_key)
@@ -61,16 +66,31 @@ def get_benchmark_returns_from_file(file_path):
     ----------
     file_path : str
         Path to the benchmark file.
+        expected csv file format:
+        date, return
+        2020-01-02 00:00:00+00:00,0.01
+        2020-01-03 00:00:00+00:00,-0.02
 
     """
     try:
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(
+            file_path,
+            index_col=['date'],
+            parse_dates=['date'],
+            date_parser=lambda col: pd.to_datetime(col, utc=True)
+        )
 
     except OSError:
         warnings.warn("Could not open the file %s" % file_path)
         return None
 
-    df.index = pd.DatetimeIndex(df['date'])
-    df = df['close']
+    if 'return' not in df.columns:
+        warnings.warn("The column 'return' not found in the benchmark file \n"
+                      "Expected benchmark file format :\n"
+                      "date, return\n"
+                      "2020-01-02 00:00:00+00:00,0.01\n"
+                      "2020-01-03 00:00:00+00:00,-0.02\n"
+                      "Retrying with the default benchmark data loader")
+        return None
 
-    return df.sort_index().tz_localize('UTC').pct_change(1).iloc[1:]
+    return df['return'].sort_index().squeeze()
