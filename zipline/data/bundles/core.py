@@ -403,8 +403,7 @@ def _make_bundle_core():
 
                 daily_bar_writer.write(())
                 minute_bar_writer = BcolzMinuteBarWriter(
-                    wd.ensure_dir(*minute_equity_relative(name, timestr)
-                                  ),
+                    wd.ensure_dir(*minute_equity_relative(name, timestr)),
                     calendar,
                     start_session,
                     end_session,
@@ -446,7 +445,8 @@ def _make_bundle_core():
 
             for version in sorted(set(assets_versions), reverse=True):
                 version_path = wd.getpath(*asset_db_relative(
-                    name, timestr, db_version=version))
+                    name, timestr, db_version=version,
+                ))
                 with working_file(version_path) as wf:
                     shutil.copy2(assets_db_path, wf.path)
                     downgrade(wf.path, version)
