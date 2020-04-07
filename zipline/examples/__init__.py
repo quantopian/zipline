@@ -18,8 +18,6 @@ def load_example_modules():
         example_modules[modname] = mod
         globals()[modname] = mod
 
-        # Remove noise from loop variables.
-        del f, modname, mod
     return example_modules
 
 

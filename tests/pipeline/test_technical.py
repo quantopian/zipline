@@ -1,10 +1,16 @@
 from __future__ import division
 
+from unittest import skipIf
+
 from nose_parameterized import parameterized
 from six.moves import range
 import numpy as np
 import pandas as pd
-import talib
+try:
+    import talib
+    HAVE_TALIB = True
+except ImportError:
+    HAVE_TALIB = False
 from numpy.random import RandomState
 
 from zipline.lib.adjusted_array import AdjustedArray
@@ -25,6 +31,9 @@ from zipline.testing import check_allclose, parameter_space
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import assert_equal
 from .base import BaseUSEquityPipelineTestCase
+
+
+requires_talib = skipIf(not HAVE_TALIB, "Skipping because TA-Lib is not installed.")
 
 
 class BollingerBandsTestCase(BaseUSEquityPipelineTestCase):
