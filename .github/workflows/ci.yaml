@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04, macos-10.15, windows-2019]
+        os: [ubuntu-18.04, windows-2019]
         name:
           - py27-oldpandas
           - py35-oldpandas
@@ -54,6 +54,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Set up Windows Build Environment.
+        uses: ilammy/mscv-dev-cmd@v1
+
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:
@@ -70,9 +73,6 @@ jobs:
       #     python -m pip install --user virtualenv
       #     python -m virtualenv -p python${{ matrix.python-version }} ~/venv
       #   shell: bash
-
-      - name: Set up Windows Build Environment.
-        uses: ilammy/mscv-dev-cmd@v1
 
       - name: Install dependencies in virtualenv
         run: |
