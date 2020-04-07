@@ -38,10 +38,13 @@ jobs:
             constraints-file: etc/constraints_newpandas.txt
 
         exclude:
-          # Don't run mac/windows builds for legacy targets.
+
           - name: py27-oldpandas
             os: macos-10.15
+
           - name: py27-oldpandas
+            os: windows-2019
+          - name: py35-oldpandas
             os: windows-2019
 
     steps:
