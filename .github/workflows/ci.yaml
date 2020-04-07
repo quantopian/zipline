@@ -71,6 +71,9 @@ jobs:
       #     python -m virtualenv -p python${{ matrix.python-version }} ~/venv
       #   shell: bash
 
+      - name: Set up Windows Build Environment.
+        uses: ilammy/mscv-dev-cmd@v1
+
       - name: Install dependencies in virtualenv
         run: |
           # source ~/venv/bin/activate
