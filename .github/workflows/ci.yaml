@@ -42,7 +42,7 @@ jobs:
           - name: py27-oldpandas
             os: macos-10.15
           - name: py27-oldpandas
-            os: window-2019
+            os: windows-2019
 
     steps:
       - name: Dump Matrix Config
@@ -64,44 +64,26 @@ jobs:
           path: ~/.cache/pip
           key: ${{ matrix.os }}-${{ matrix.name }}-pip-${{ hashFiles('etc/constraints_*.txt') }}
 
-      # - name: Install TA-Lib
+      # - name: Create virtualenv
       #   run: |
-      #     mkdir ~/talib-build
-      #     mkdir ~/talib
-      #     cd ~/talib-build
-      #     curl -sSL 'https://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz' > ta-lib.tar.gz
-      #     tar -xzf ta-lib.tar.gz
-      #     cd ta-lib/
-      #     ./configure --prefix ~/talib
-      #     make
-      #     make install
-      #     echo "::set-env name=TA_LIBRARY_PATH::~/talib/lib"
-      #     echo "::set-env name=TA_INCLUDE_PATH::~/talib/include"
-
-      - name: Create virtualenv
-        run: |
-          python -m pip install --user virtualenv
-          python -m virtualenv -p python${{ matrix.python-version }} ~/venv
-        shell: bash
+      #     python -m pip install --user virtualenv
+      #     python -m virtualenv -p python${{ matrix.python-version }} ~/venv
+      #   shell: bash
 
       - name: Install dependencies in virtualenv
         run: |
-          source ~/venv/bin/activate
+          # source ~/venv/bin/activate
           bash etc/dev-install
         env:
           ZIPLINE_INSTALL_NO_TALIB: "1"
           ZIPLINE_INSTALL_CONSTRAINTS: "${{ matrix.constraints-file }}"
-        shell: bash
 
       - name: Pip freeze
         run: |
-          source ~/venv/bin/activate
+          # source ~/venv/bin/activate
           python -m pip freeze
-        shell: bash
 
       - name: Run tests
         run: |
-          source ~/venv/bin/activate
+          # source ~/venv/bin/activate
           nosetests tests
-        shell: bash
-
