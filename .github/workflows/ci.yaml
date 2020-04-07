@@ -9,6 +9,7 @@ on:
 
 env:
   ZIPLINE_INSTALL_NO_TALIB: "1"
+  PIP_CACHE_DIR: "pip_cache"
 
 jobs:
   build-and-test:
@@ -61,7 +62,7 @@ jobs:
       - name: Restore Pip Cache
         uses: actions/cache@v1
         with:
-          path: ~/.cache/pip
+          path: ${{ env.PIP_CACHE_DIR }}
           key: ${{ matrix.os }}-${{ matrix.name }}-pip-${{ hashFiles('etc/constraints_*.txt') }}
 
       # - name: Create virtualenv
