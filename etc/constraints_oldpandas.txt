@@ -13,7 +13,7 @@ argh==0.26.2              # via sphinx-autobuild, watchdog
 babel==2.6.0              # via sphinx
 backports-abc==0.5        # via tornado
 bcolz==0.12.1             # via -r etc/requirements.in
-bottleneck==1.3.2         # via -r etc/requirements.in, empyrical
+bottleneck==1.0.0         # via -r etc/requirements.in, empyrical
 certifi==2018.8.24        # via requests
 chardet==3.0.4            # via requests
 click==7.0.0              # via -r etc/requirements.in, flask, pip-tools
@@ -64,7 +64,7 @@ pandas-datareader==0.2.1  # via -r etc/requirements.in, empyrical
 pandas==0.18.1            # via -r etc/requirements.in, -r etc/requirements_oldpandas.in, dask, empyrical, odo, pandas-datareader, statsmodels, trading-calendars
 partd==0.3.7              # via dask
 pathtools==0.1.2          # via sphinx-autobuild, watchdog
-patsy==0.4.0              # via -r etc/requirements.in, statsmodels
+patsy==0.4.0              # via -r etc/requirements.in
 pbr==4.3.0                # via mock
 pip-tools==4.3.0          # via -r etc/requirements_dev.in
 port-for==0.3.1           # via sphinx-autobuild
@@ -80,7 +80,7 @@ pyyaml==3.13              # via sphinx-autobuild, watchdog
 requests-file==1.4.1      # via pandas-datareader
 requests==2.20.1          # via -r etc/requirements.in, pandas-datareader, requests-file, responses
 responses==0.9.0          # via -r etc/requirements_dev.in
-scipy==0.17.1             # via -r etc/requirements.in, empyrical, statsmodels
+scipy==0.17.1             # via -r etc/requirements.in, empyrical
 singledispatch==3.4.0.3   # via tornado
 six==1.11.0               # via -r etc/requirements.in, cycler, flask-cors, h5py, livereload, mock, multipledispatch, patsy, pip-tools, python-dateutil, python-interface, requests-file, responses, sphinx, tables
 snowballstemmer==1.2.1    # via sphinx
