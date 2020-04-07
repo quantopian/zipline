@@ -39,7 +39,7 @@ else
     extras="all"
 fi
 
-CONSTRAINTS="${ZIPLINE_INSTALL_CONSTRAINTS:-etc/requirements_oldpandas.txt}"
+CONSTRAINTS="${ZIPLINE_INSTALL_CONSTRAINTS:-etc/constraints_oldpandas.txt}"
 
 # These have to be installed first so that the other requirements can be
 # compiled against the specific versions we use.

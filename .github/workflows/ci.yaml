@@ -81,7 +81,7 @@ jobs:
           bash etc/dev-install
         env:
           ZIPLINE_INSTALL_NO_TALIB: "1"
-          ZIPLINE_INSTALL_CONSTRAINTS_FILE: "${{ matrix.constraints-file }}"
+          ZIPLINE_INSTALL_CONSTRAINTS: "${{ matrix.constraints-file }}"
 
       - name: Pip freeze
         run: |

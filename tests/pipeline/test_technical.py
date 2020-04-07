@@ -82,6 +82,7 @@ class BollingerBandsTestCase(BaseUSEquityPipelineTestCase):
         lowers = np.column_stack(lower_cols)[where]
         return uppers, middles, lowers
 
+    @requires_talib
     @parameter_space(
         window_length={5, 10, 20},
         k={1.5, 2, 2.5},
@@ -181,6 +182,7 @@ class TestFastStochasticOscillator(ZiplineTestCase):
         # Expected %K
         assert_equal(out, np.full((3,), 200, dtype=np.float64))
 
+    @requires_talib
     @parameter_space(seed=range(5))
     def test_fso_expected_with_talib(self, seed):
         """
