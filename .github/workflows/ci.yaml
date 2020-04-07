@@ -8,7 +8,6 @@ on:
       - master
 
 env:
-  ZIPLINE_INSTALL_NO_TALIB: "1"
   PIP_CACHE_DIR: "pip_cache"
 
 jobs:
@@ -56,6 +55,8 @@ jobs:
 
       - name: Set up Windows Build Environment.
         uses: ilammy/msvc-dev-cmd@v1
+        with:
+          toolset: 14.0
 
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
