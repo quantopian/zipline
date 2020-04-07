@@ -56,11 +56,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Set up Windows Build Environment.
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          toolset: 14.0
-
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:
