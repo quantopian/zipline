@@ -82,14 +82,17 @@ jobs:
         env:
           ZIPLINE_INSTALL_NO_TALIB: "1"
           ZIPLINE_INSTALL_CONSTRAINTS: "${{ matrix.constraints-file }}"
+        shell: bash
 
       - name: Pip freeze
         run: |
           source ~/venv/bin/activate
           python -m pip freeze
+        shell: bash
 
       - name: Run tests
         run: |
           source ~/venv/bin/activate
           nosetests tests
+        shell: bash
 
