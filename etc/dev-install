@@ -47,7 +47,7 @@ python -m pip install -r etc/requirements_build.in -c $CONSTRAINTS $@
 
 # XXX: bcolz has to be compiled against our specific version of numpy:
 # by default, it uses an incompatible pre-compiled binary.
-python -m pip install --no-binary=bcolz -e .[$extras] -r etc/requirements_blaze.in -c $CONSTRAINTS $@
+python -m pip install -e .[$extras] -r etc/requirements_blaze.in -c $CONSTRAINTS $@
 
 # TODO: resolve these error messages:
 # flake8 3.6.0 has requirement setuptools>=30, but you'll have setuptools 28.8.0 which is incompatible.
