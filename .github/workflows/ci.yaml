@@ -8,7 +8,7 @@ on:
       - master
 
 env:
-  NO_TALIB: "1"
+  ZIPLINE_INSTALL_NO_TALIB: "1"
 
 jobs:
   build-and-test:
@@ -26,16 +26,16 @@ jobs:
         include:
           - name: py27-oldpandas
             python-version: 2.7
-            constraints-file: constraints_oldpandas.txt
+            constraints-file: etc/constraints_oldpandas.txt
           - name: py35-oldpandas
             python-version: 3.5
-            constraints-file: constraints_oldpandas.txt
+            constraints-file: etc/constraints_oldpandas.txt
           - name: py35-newpandas
             python-version: 3.5
-            constraints-file: constraints_newpandas.txt
+            constraints-file: etc/constraints_newpandas.txt
           - name: py36-newpandas
             python-version: 3.6
-            constraints-file: constraints_newpandas.txt
+            constraints-file: etc/constraints_newpandas.txt
     steps:
       - name: Dump Matrix Config
         env:
@@ -79,6 +79,9 @@ jobs:
         run: |
           source ~/venv/bin/activate
           bash etc/dev-install
+        env:
+          ZIPLINE_INSTALL_NO_TALIB: "1"
+          ZIPLINE_INSTALL_CONSTRAINTS_FILE: "${{ matrix.constraints-file }}"
 
       - name: Pip freeze
         run: |
