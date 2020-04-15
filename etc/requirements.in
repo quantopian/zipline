@@ -43,7 +43,7 @@ sqlalchemy>=1.0.8
 alembic>=0.7.7
 
 # On disk storage format for pipeline data.
-bcolz>=0.12.1,<1
+bcolz>=0.12.1
 # On disk storage format for pricing data.
 h5py>=2.7.1
 tables>=3.4.3
