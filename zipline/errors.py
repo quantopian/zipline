@@ -658,7 +658,7 @@ class AttachPipelineAfterInitialize(ZiplineError):
     Raised when a user tries to call add_pipeline outside of initialize.
     """
     msg = (
-        "Attempted to attach a pipeline after initialize()."
+        "Attempted to attach a pipeline after initialize(). "
         "attach_pipeline() can only be called during initialize."
     )
 
