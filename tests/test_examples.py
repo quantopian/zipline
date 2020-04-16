@@ -20,11 +20,13 @@ from nose_parameterized import parameterized
 import pandas as pd
 
 from zipline import examples
+from zipline.data.benchmarks import get_benchmark_returns_from_file
 from zipline.data.bundles import register, unregister
 from zipline.testing import test_resource_path
 from zipline.testing.fixtures import (
     WithTmpDir,
     ZiplineTestCase,
+    read_checked_in_benchmark_data,
 )
 from zipline.testing.predicates import assert_equal
 from zipline.utils.cache import dataframe_cache
@@ -58,9 +60,7 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             serialization='pickle',
         )
 
-        update_modified_time(
-            cls.tmpdir.getpath('example_data/root/data/SPY_benchmark.csv'),
-        )
+        cls.benchmark_returns = read_checked_in_benchmark_data()
 
     @parameterized.expand(sorted(examples.EXAMPLE_MODULES))
     def test_example(self, example_name):
@@ -71,6 +71,7 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             environ={
                 'ZIPLINE_ROOT': self.tmpdir.getpath('example_data/root'),
             },
+            benchmark_returns=self.benchmark_returns,
         )
         expected_perf = self.expected_perf[example_name]
         assert_equal(
@@ -80,4 +81,5 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             # 0.16 and 0.17 because in 16 they are object and in 17 they are
             # datetime[ns, UTC]. We will just ignore the dtypes for now.
             check_dtype=False,
+            check_exact=False,
         )

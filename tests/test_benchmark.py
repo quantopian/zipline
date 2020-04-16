@@ -12,14 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-import mock
-import warnings
-
+import logbook
 import numpy as np
 import pandas as pd
 from pandas.util.testing import assert_series_equal
-from textwrap import dedent
 
 from zipline.data.data_portal import DataPortal
 from zipline.errors import (
@@ -28,20 +24,22 @@ from zipline.errors import (
     InvalidBenchmarkAsset)
 
 from zipline.sources.benchmark_source import BenchmarkSource
-from zipline.utils.run_algo import _run
+from zipline.utils.run_algo import BenchmarkSpec
 
 from zipline.testing import (
     MockDailyBarReader,
     create_minute_bar_data,
-    tmp_bcolz_equity_minute_bar_reader
+    parameter_space,
+    tmp_bcolz_equity_minute_bar_reader,
 )
+from zipline.testing.predicates import assert_equal
 from zipline.testing.fixtures import (
+    WithAssetFinder,
     WithDataPortal,
     WithSimParams,
+    WithTmpDir,
     WithTradingCalendars,
     ZiplineTestCase,
-    WithLogger,
-    WithTmpDir
 )
 from zipline.testing.core import make_test_handler
 
@@ -242,76 +240,28 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
                          exc.exception.message)
 
 
-class TestBenchmarkParameters(
-    WithLogger,
-    WithDataPortal,
-    WithTradingCalendars,
-    WithTmpDir,
-    ZiplineTestCase,
-):
-    START_DATE = pd.Timestamp('2020-01-02', tz='utc')
-    END_DATE = pd.Timestamp('2020-01-09', tz='utc')
-    PARS = {
-        'initialize': None,
-        'handle_data': None,
-        'before_trading_start': None,
-        'analyze': None,
-        'algofile': None,
-        'defines': (),
-        'data_frequency': 'daily',
-        'capital_base': 10000000,
-        'bundle': 'csvdir',
-        'bundle_timestamp': False,
-        'start': START_DATE,
-        'end': END_DATE,
-        'output': os.devnull,
-        'print_algo': False,
-        'metrics_set': 'default',
-        'local_namespace': False,
-        'environ': os.environ,
-        'blotter': 'default',
-    }
+class BenchmarkSpecTestCase(WithTmpDir,
+                            WithAssetFinder,
+                            ZiplineTestCase):
 
-    SCRIPT = dedent("""
-                    from zipline.api import order, symbol
-                    from zipline.finance import commission, slippage
+    @classmethod
+    def init_class_fixtures(cls):
+        super(BenchmarkSpecTestCase, cls).init_class_fixtures()
 
-                    def initialize(context):
-                        context.stocks = symbol('a')
-                        context.has_ordered = False
-                        context.set_commission(commission.NoCommission())
-                        context.set_slippage(slippage.NoSlippage())
+        zero_returns_index = pd.date_range(
+            cls.START_DATE,
+            cls.END_DATE,
+            freq='D',
+            tz='utc',
+        )
+        cls.zero_returns = pd.Series(index=zero_returns_index, data=0.0)
 
-
-
-                    def handle_data(context, data):
-                        if not context.has_ordered:
-                            order(context.stocks, 1000)
-                            context.has_ordered = True
-                    """)
-
-    SCRIPT_SET_BENCHMARK = dedent("""
-                        from zipline.api import order, symbol
-                        from zipline.finance import commission, slippage
-
-                        def initialize(context):
-                            context.stocks = symbol('a')
-                            context.set_benchmark(symbol('b'))
-                            context.has_ordered = False
-                            context.set_commission(commission.NoCommission())
-                            context.set_slippage(slippage.NoSlippage())
-
-
-
-                        def handle_data(context, data):
-                            if not context.has_ordered:
-                                order(context.stocks, 1000)
-                                context.has_ordered = True
-                        """)
+    def init_instance_fixtures(self):
+        super(BenchmarkSpecTestCase, self).init_instance_fixtures()
+        self.log_handler = self.enter_instance_context(make_test_handler(self))
 
     @classmethod
     def make_equity_info(cls):
-        cls.set_expected_outcome()
         return pd.DataFrame.from_dict(
             {
                 1: {
@@ -330,172 +280,132 @@ class TestBenchmarkParameters(
             orient='index',
         )
 
-    @classmethod
-    def make_equity_daily_bar_data(cls, country_code, sids):
-        yield 1, pd.DataFrame(
-            {
-                'open': [100, 120, 100, 160, 180, 200],
-                'high': [100, 120, 100, 160, 180, 200],
-                'low': [100, 120, 100, 160, 180, 200],
-                'close': [100, 120, 100, 160, 180, 200],
-                'volume': 100,
-            },
-            index=cls.equity_daily_bar_days,
+    def logs_at_level(self, level):
+        return [
+            r.message for r in self.log_handler.records if r.level == level
+        ]
+
+    def resolve_spec(self, spec):
+        return spec.resolve(self.asset_finder, self.START_DATE, self.END_DATE)
+
+    def test_no_benchmark(self):
+        """Test running with no benchmark provided.
+
+        We should have no benchmark sid and have a returns series of all zeros.
+        """
+        spec = BenchmarkSpec.from_cli_params(
+            no_benchmark=False,
+            benchmark_sid=None,
+            benchmark_symbol=None,
+            benchmark_file=None,
         )
 
-        yield 2, pd.DataFrame(
-            {
-                'open': [100, 90, 120, 140, 160, 180],
-                'high': [100, 90, 120, 140, 160, 180],
-                'low': [100, 90, 120, 140, 160, 180],
-                'close': [100, 90, 120, 140, 160, 180],
-                'volume': 100,
-            },
-            index=cls.equity_daily_bar_days,
+        sid, returns = self.resolve_spec(spec)
+
+        self.assertIs(sid, None)
+        self.assertIs(returns, None)
+
+        warnings = self.logs_at_level(logbook.WARNING)
+        expected = [
+            'No benchmark configured. Assuming algorithm calls set_benchmark.',
+            'Pass --benchmark-sid, --benchmark-symbol, or --benchmark-file to set a source of benchmark returns.',  # noqa
+            "Pass --no-benchmark to use a dummy benchmark of zero returns.",
+        ]
+        assert_equal(warnings, expected)
+
+    def test_no_benchmark_explicitly_disabled(self):
+        """Test running with no benchmark provided, with no_benchmark flag.
+        """
+        spec = BenchmarkSpec.from_cli_params(
+            no_benchmark=True,
+            benchmark_sid=None,
+            benchmark_symbol=None,
+            benchmark_file=None,
         )
 
-    @classmethod
-    def set_expected_outcome(cls):
-        cls.expected_daily = {
-            'returns': np.array([0., 0., -0.002, 0.00601202, 0.00199203,
-                                 0.00198807]),
-            'pnl': np.array([0., 0., -20000., 60000., 20000., 20000.]),
-            'capital_used': np.array([0., -120000., 0., 0., 0., 0.]),
-            'portfolio_value': np.array([10000000., 10000000., 9980000.,
-                                         10040000., 10060000., 10080000.])
-        }
+        sid, returns = self.resolve_spec(spec)
 
-    def data_portal_mock(self, *args, **kwargs):
-        return self.data_portal
+        self.assertIs(sid, None)
+        assert_series_equal(returns, self.zero_returns)
 
-    def asset_finder_mock(self, *args, **kwargs):
-        return self.data_portal.asset_finder
+        warnings = self.logs_at_level(logbook.WARNING)
+        expected = []
+        assert_equal(warnings, expected)
 
-    @classmethod
-    def validate_perf(cls, perf):
-        for stat, expected_output in cls.expected_daily.items():
-            np.testing.assert_array_almost_equal(
-                np.array(perf[stat]),
-                expected_output,
-                err_msg='daily ' + stat,
-            )
-
-    def test_run_no_parameter_and_no_bennchmark_set(self):
+    @parameter_space(case=[('A', 1), ('B', 2)])
+    def test_benchmark_symbol(self, case):
+        """Test running with no benchmark provided, with no_benchmark flag.
         """
-        No benchmark parameter is provided and the benchmark is not set
-        in the algorithm's initialize function
-        Expected outcome : ValueError: Must specify either
-        benchmark_sid or benchmark_returns.
+        symbol, expected_sid = case
+
+        spec = BenchmarkSpec.from_cli_params(
+            no_benchmark=False,
+            benchmark_sid=None,
+            benchmark_symbol=symbol,
+            benchmark_file=None,
+        )
+
+        sid, returns = self.resolve_spec(spec)
+
+        assert_equal(sid, expected_sid)
+        self.assertIs(returns, None)
+
+        warnings = self.logs_at_level(logbook.WARNING)
+        expected = []
+        assert_equal(warnings, expected)
+
+    @parameter_space(input_sid=[1, 2])
+    def test_benchmark_sid(self, input_sid):
+        """Test running with no benchmark provided, with no_benchmark flag.
         """
-        with mock.patch("zipline.utils.run_algo.DataPortal",
-                        side_effect=self.data_portal_mock), \
-                self.assertRaises(ValueError), \
-                make_test_handler(self) as log_catcher:
-            _run(
-                trading_calendar=self.trading_calendar,
-                algotext=self.SCRIPT,
-                benchmark_returns=None,
-                **self.PARS
-            )
-        logs = [r.message for r in log_catcher.records]
-        self.assertIn("Failed to cache the new benchmark returns", logs)
+        spec = BenchmarkSpec.from_cli_params(
+            no_benchmark=False,
+            benchmark_sid=input_sid,
+            benchmark_symbol=None,
+            benchmark_file=None,
+        )
 
-    def test_run_no_parameter_and_benchmark_set(self):
+        sid, returns = self.resolve_spec(spec)
+
+        assert_equal(sid, input_sid)
+        self.assertIs(returns, None)
+
+        warnings = self.logs_at_level(logbook.WARNING)
+        expected = []
+        assert_equal(warnings, expected)
+
+    def test_benchmark_file(self):
+        """Test running with a benchmark file.
         """
-        No benchmark parameter is provided and the benchmark is
-        set to B in the algorithm's initialize function
-        Expected outcome : warning and succesful run with B as benchmark
-        """
+        csv_file_path = self.tmpdir.getpath('b.csv')
+        with open(csv_file_path, 'w') as csv_file:
+            csv_file.write("date,return\n"
+                           "2020-01-03 00:00:00+00:00,-0.1\n"
+                           "2020-01-06 00:00:00+00:00,0.333\n"
+                           "2020-01-07 00:00:00+00:00,0.167\n"
+                           "2020-01-08 00:00:00+00:00,0.143\n"
+                           "2020-01-09 00:00:00+00:00,6.375\n")
 
-        with mock.patch("zipline.utils.run_algo.DataPortal",
-                        side_effect=self.data_portal_mock), \
-                warnings.catch_warnings(record=True) as w:
-            perf = _run(
-                trading_calendar=self.trading_calendar,
-                algotext=self.SCRIPT_SET_BENCHMARK,
-                benchmark_returns=None,
-                **self.PARS
-            )
-            self.validate_perf(perf)
-            self.assertIn(
-                'Please specify manually a benchmark symbol using one '
-                'of the following options: '
-                '\n--benchmark-file, --benchmark-symbol, --no-benchmark'
-                '\nYou can still retrieve market data from IEX by setting '
-                'the IEX_API_KEY environment variable.\n'
-                'Please note that this feature is expected to '
-                'be deprecated in the future',
-                str(w[-1].message))
+        spec = BenchmarkSpec.from_cli_params(
+            no_benchmark=False,
+            benchmark_sid=None,
+            benchmark_symbol=None,
+            benchmark_file=csv_file_path,
+        )
 
-    def test_run_no_benchmark_par(self):
-        """
-        --no-benchmark parameter is set to True.
-        Null metrics for alpha, beta, benchmark are expected
+        sid, returns = self.resolve_spec(spec)
 
-        """
-        with mock.patch("zipline.utils.run_algo.DataPortal",
-                        side_effect=self.data_portal_mock), \
-                make_test_handler(self) as log_catcher:
-            perf = _run(
-                trading_calendar=self.trading_calendar,
-                algotext=self.SCRIPT,
-                benchmark_returns=None,
-                no_benchmark=True,
-                **self.PARS
-            )
-            np.testing.assert_equal(
-                np.array(perf.alpha),
-                np.array([None, None, None, None, None, None]),
+        self.assertIs(sid, None)
 
-            )
-            self.validate_perf(perf)
-            logs = [r.message for r in log_catcher.records]
-            self.assertIn(
-                "Warning: Using zero returns as a benchmark. "
-                "Alpha, beta and benchmark data"
-                " will not be calculated.",
-                logs)
+        expected_dates = pd.to_datetime(
+            ['2020-01-03', '2020-01-06', '2020-01-07', '2020-01-08', '2020-01-09'],
+            utc=True,
+        )
+        expected_values = [-0.1, 0.333, 0.167, 0.143, 6.375]
+        expected_returns = pd.Series(index=expected_dates, data=expected_values)
 
-    def test_run_benchmark_symbol_par(self):
-        """
-        --benchmark-symbol parameter is provided
+        assert_series_equal(returns, expected_returns, check_names=False)
 
-        """
-        with mock.patch("zipline.utils.run_algo.DataPortal",
-                        side_effect=self.data_portal_mock), \
-                mock.patch("zipline.utils.run_algo.bundles.core.AssetFinder",
-                           side_effect=self.asset_finder_mock):
-            perf = _run(
-                trading_calendar=self.trading_calendar,
-                algotext=self.SCRIPT,
-                benchmark_returns=None,
-                benchmark_symbol='b',
-                **self.PARS
-            )
-            self.validate_perf(perf)
-
-    def test_run_benchmark_file_par(self):
-        """
-        --benchmark-file parameter provided in the below format
-
-        """
-        with mock.patch("zipline.utils.run_algo.DataPortal",
-                        side_effect=self.data_portal_mock):
-            csv_file_path = os.path.join(self.tmpdir.path, 'b.csv')
-            with open(csv_file_path, 'w') as csv_file:
-                csv_file.write("date,return\n"
-                               "2020-01-03 00:00:00+00:00,-0.1\n"
-                               "2020-01-06 00:00:00+00:00,0.3333333333\n"
-                               "2020-01-07 00:00:00+00:00,0.1666666667\n"
-                               "2020-01-08 00:00:00+00:00,0.1428571429\n"
-                               "2020-01-09 00:00:00+00:00,6.375\n"
-                               )
-
-            perf = _run(
-                trading_calendar=self.trading_calendar,
-                algotext=self.SCRIPT,
-                benchmark_returns=None,
-                benchmark_file=csv_file_path,
-                **self.PARS
-            )
-            self.validate_perf(perf)
+        warnings = self.logs_at_level(logbook.WARNING)
+        expected = []
+        assert_equal(warnings, expected)
