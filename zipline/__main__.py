@@ -11,7 +11,7 @@ from zipline.data import bundles as bundles_module
 from trading_calendars import get_calendar
 from zipline.utils.compat import wraps
 from zipline.utils.cli import Date, Timestamp
-from zipline.utils.run_algo import _run, load_extensions
+from zipline.utils.run_algo import _run, BenchmarkSpec, load_extensions
 from zipline.extensions import create_args
 
 try:
@@ -46,10 +46,10 @@ except NameError:
     multiple=True,
     help='Any custom command line arguments to define, in key=value form.'
 )
-def main(extension, strict_extensions, default_extension, x):
+@click.pass_context
+def main(ctx, extension, strict_extensions, default_extension, x):
     """Top level zipline entry point.
     """
-
     # install a logbook handler before performing any other operations
     logbook.StderrHandler().push_application()
     create_args(x, zipline.extension_args)
@@ -168,21 +168,28 @@ def ipython_only(option):
     '-bf',
     '--benchmark-file',
     default=None,
-    type=click.File('r'),
+    type=click.Path(exists=True, dir_okay=False, readable=True, path_type=str),
     help='The csv file that contains the benchmark returns',
 )
 @click.option(
     '--benchmark-symbol',
     default=None,
     type=click.STRING,
-    help="The instrument's symbol to be used as a benchmark "
+    help="The symbol of the instrument to be used as a benchmark "
+         "(should exist in the ingested bundle)",
+)
+@click.option(
+    '--benchmark-sid',
+    default=None,
+    type=int,
+    help="The sid of the instrument to be used as a benchmark "
          "(should exist in the ingested bundle)",
 )
 @click.option(
     '--no-benchmark',
     is_flag=True,
     default=False,
-    help="This flag is used to set the benchmark to zero",
+    help="If passed, use a benchmark of zero returns.",
 )
 @click.option(
     '-s',
@@ -246,6 +253,7 @@ def run(ctx,
         bundle_timestamp,
         benchmark_file,
         benchmark_symbol,
+        benchmark_sid,
         no_benchmark,
         start,
         end,
@@ -278,6 +286,13 @@ def run(ctx,
 
     trading_calendar = get_calendar(trading_calendar)
 
+    benchmark_spec = BenchmarkSpec.from_cli_params(
+        no_benchmark=no_benchmark,
+        benchmark_sid=benchmark_sid,
+        benchmark_symbol=benchmark_symbol,
+        benchmark_file=benchmark_file,
+    )
+
     perf = _run(
         initialize=None,
         handle_data=None,
@@ -299,10 +314,7 @@ def run(ctx,
         local_namespace=local_namespace,
         environ=os.environ,
         blotter=blotter,
-        benchmark_returns=None,
-        benchmark_file=benchmark_file,
-        benchmark_symbol=benchmark_symbol,
-        no_benchmark=no_benchmark
+        benchmark_spec=benchmark_spec,
     )
 
     if output == '-':

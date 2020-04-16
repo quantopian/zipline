@@ -63,9 +63,6 @@ from ..data.hdf5_daily_bars import (
     HDF5DailyBarWriter,
     MultiCountryDailyBarReader,
 )
-from ..data.loader import (
-    get_benchmark_filename,
-)
 from ..data.minute_bars import (
     BcolzMinuteBarReader,
     BcolzMinuteBarWriter,
@@ -549,16 +546,18 @@ class WithTradingCalendars(object):
         )
 
 
-_MARKET_DATA_DIR = os.path.join(zipline_dir, 'resources', 'market_data')
+STATIC_BENCHMARK_PATH = os.path.join(
+    zipline_dir,
+    'resources',
+    'market_data'
+    'SPY_benchmark.csv',
+)
 
 
 @remember_last
 def read_checked_in_benchmark_data():
-    symbol = 'SPY'
-    filename = get_benchmark_filename(symbol)
-    source_path = os.path.join(_MARKET_DATA_DIR, filename)
     benchmark_returns = pd.read_csv(
-        source_path,
+        STATIC_BENCHMARK_PATH,
         parse_dates=[0],
         index_col=0,
         header=None,
@@ -598,7 +597,7 @@ class WithBenchmarkReturns(WithDefaultDateBounds,
                 static_end=static_end_date,
                 given_start=cls.START_DATE.date(),
                 given_end=cls.END_DATE.date(),
-                resource_dir=_MARKET_DATA_DIR,
+                benchmark_path=STATIC_BENCHMARK_PATH,
             )
         )
         if cls.START_DATE.date() < static_start_date or \
