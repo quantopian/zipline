@@ -18,7 +18,7 @@ toolz>=0.8.2
 
 # Scientific Libraries
 numpy>=1.11.3
-pandas>=0.18.1,<=0.22
+pandas>=0.18.1,<=0.24
 pandas-datareader>=0.2.1
 scipy>=0.17.1
 # Needed for parts of pandas.stats
