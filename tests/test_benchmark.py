@@ -280,30 +280,6 @@ class BenchmarkSpecTestCase(WithTmpDir,
             orient='index',
         )
 
-    @classmethod
-    def make_equity_daily_bar_data(cls, country_code, sids):
-        yield 1, pd.DataFrame(
-            {
-                'open': [100, 120, 100, 160, 180, 200],
-                'high': [100, 120, 100, 160, 180, 200],
-                'low': [100, 120, 100, 160, 180, 200],
-                'close': [100, 120, 100, 160, 180, 200],
-                'volume': 100,
-            },
-            index=cls.equity_daily_bar_days,
-        )
-
-        yield 2, pd.DataFrame(
-            {
-                'open': [100, 90, 120, 140, 160, 180],
-                'high': [100, 90, 120, 140, 160, 180],
-                'low': [100, 90, 120, 140, 160, 180],
-                'close': [100, 90, 120, 140, 160, 180],
-                'volume': 100,
-            },
-            index=cls.equity_daily_bar_days,
-        )
-
     def logs_at_level(self, level):
         return [
             r.message for r in self.log_handler.records if r.level == level

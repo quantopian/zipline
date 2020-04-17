@@ -20,6 +20,7 @@ import zipline
 from zipline.algorithm import TradingAlgorithm
 from zipline.assets import Equity, Future
 from zipline.assets.continuous_futures import CHAIN_PREDICATES
+from zipline.data.benchmarks import get_benchmark_returns_from_file
 from zipline.data.fx import DEFAULT_FX_RATE
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.utils.memoize import classlazyval
@@ -549,20 +550,14 @@ class WithTradingCalendars(object):
 STATIC_BENCHMARK_PATH = os.path.join(
     zipline_dir,
     'resources',
-    'market_data'
+    'market_data',
     'SPY_benchmark.csv',
 )
 
 
 @remember_last
 def read_checked_in_benchmark_data():
-    benchmark_returns = pd.read_csv(
-        STATIC_BENCHMARK_PATH,
-        parse_dates=[0],
-        index_col=0,
-        header=None,
-    ).tz_localize('UTC')
-    return benchmark_returns.iloc[:, 0]
+    return get_benchmark_returns_from_file(STATIC_BENCHMARK_PATH)
 
 
 class WithBenchmarkReturns(WithDefaultDateBounds,
@@ -592,7 +587,7 @@ class WithBenchmarkReturns(WithDefaultDateBounds,
             'The WithBenchmarkReturns fixture uses static data between '
             '{static_start} and {static_end}. To use a start and end date '
             'of {given_start} and {given_end} you will have to update the '
-            'files in {resource_dir} to include the missing dates.'.format(
+            'file in {benchmark_path} to include the missing dates.'.format(
                 static_start=static_start_date,
                 static_end=static_end_date,
                 given_start=cls.START_DATE.date(),
