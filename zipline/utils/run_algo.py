@@ -103,11 +103,10 @@ def _run(handle_data,
             ),
         )
 
-    benchmark_returns, benchmark_sid = benchmark_spec.resolve(
+    benchmark_sid, benchmark_returns = benchmark_spec.resolve(
         asset_finder=bundle_data.asset_finder,
         start_date=start,
         end_date=end,
-        environ=environ,
     )
 
     if algotext is not None:
@@ -455,12 +454,22 @@ class BenchmarkSpec(object):
             no_benchmark=benchmark_returns is not None,
         )
 
-    def resolve(self, asset_finder, start_date, end_date, environ):
+    def resolve(self, asset_finder, start_date, end_date):
         """
         Resolve inputs into values to be passed to TradingAlgorithm.
 
         Returns a pair of ``(benchmark_sid, benchmark_returns)`` with at most
-        one non-None value.
+        one non-None value. Both values may be None if no benchmark source has
+        been configured.
+
+        Parameters
+        ----------
+        asset_finder : zipline.assets.AssetFinder
+            Asset finder for the algorithm to be run.
+        start_date : pd.Timestamp
+            Start date of the algorithm to be run.
+        end_date : pd.Timestamp
+            End date of the algorithm to be run.
 
         Returns
         -------
@@ -469,21 +478,21 @@ class BenchmarkSpec(object):
         benchmark_returns : pd.Series
             Series of returns to use as benchmark.
         """
-        if self._benchmark_returns is not None:
+        if self.benchmark_returns is not None:
             benchmark_sid = None
-            benchmark_returns = self._benchmark_returns
-        elif self._benchmark_file is not None:
+            benchmark_returns = self.benchmark_returns
+        elif self.benchmark_file is not None:
             benchmark_sid = None
             benchmark_returns = get_benchmark_returns_from_file(
-                self._benchmark_file,
+                self.benchmark_file,
             )
-        elif self._benchmark_sid is not None:
-            benchmark_sid = self._benchmark_sid
+        elif self.benchmark_sid is not None:
+            benchmark_sid = self.benchmark_sid
             benchmark_returns = None
-        elif self._benchmark_symbol is not None:
+        elif self.benchmark_symbol is not None:
             try:
                 asset = asset_finder.lookup_symbol(
-                    self._benchmark_symbol,
+                    self.benchmark_symbol,
                     as_of_date=end_date,
                 )
                 benchmark_sid = asset.sid
@@ -493,7 +502,7 @@ class BenchmarkSpec(object):
                     "Symbol %s as a benchmark not found in this bundle."
                 )
         else:
-            if not self._no_benchmark:
+            if not self.no_benchmark:
                 log.warn(
                     "No benchmark configured. "
                     "Assuming algorithm calls set_benchmark."
