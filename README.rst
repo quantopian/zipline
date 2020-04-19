@@ -113,6 +113,29 @@ Notes?
 If it is not able to install zipline due to TA-Lib installation failure in ubuntu:
 https://stackoverflow.com/questions/45406213/unable-to-install-ta-lib-on-ubuntu
 
+Conda Setup
+==========
+Only works in python 3.6
+.. code:: bash
+   conda create --name dev python=3.6
+   conda activate dev
+
+Install dependencies:
+.. code:: bash
+   sudo apt-get -y install liblapack-dev libblas-dev gfortran
+
+Install specific versions of python libs:
+.. code:: bash
+   pip install scipy==1.2
+   pip install pandas==0.22
+   pip install -U statsmodels
+   pip install scikit-learn==0.18.2
+
+Install libaries:
+.. code:: bash
+   bash etc/dev-install
+   pip install deltapy
+
 Questions?
 ==========
 
