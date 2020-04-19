@@ -117,24 +117,24 @@ Conda Setup
 ==========
 Only works in python 3.6
 .. code:: bash
-   conda create --name dev python=3.6
-   conda activate dev
+    $ conda create --name dev python=3.6
+    $ conda activate dev
 
 Install dependencies:
 .. code:: bash
-   sudo apt-get -y install liblapack-dev libblas-dev gfortran
-
-Install specific versions of python libs:
-.. code:: bash
-   pip install scipy==1.2
-   pip install pandas==0.22
-   pip install -U statsmodels
-   pip install scikit-learn==0.18.2
+    $ sudo apt-get -y install liblapack-dev libblas-dev gfortran
 
 Install libaries:
 .. code:: bash
-   bash etc/dev-install
-   pip install deltapy
+    $ bash etc/dev-install
+    $ pip install deltapy
+
+Change specific versions of python libs for zipline and deltapy working together:
+.. code:: bash
+    $ pip install scipy==1.2
+    $ pip install pandas==0.22
+    $ pip install -U statsmodels
+    $ pip install scikit-learn==0.18.2
 
 Questions?
 ==========
