@@ -44,7 +44,7 @@ binary dependencies from ``apt`` by running:
 
 .. code-block:: bash
 
-   $ sudo apt-get install libatlas-base-dev python-dev gfortran pkg-config libfreetype6-dev
+   $ sudo apt-get install libatlas-base-dev python-dev gfortran pkg-config libfreetype6-dev hdf5-tools
 
 On recent `RHEL-derived`_ derived Linux distributions (e.g. Fedora), the
 following should be sufficient to acquire the necessary additional
@@ -52,17 +52,18 @@ dependencies:
 
 .. code-block:: bash
 
-   $ sudo dnf install atlas-devel gcc-c++ gcc-gfortran libgfortran python-devel redhat-rpm-config
+   $ sudo dnf install atlas-devel gcc-c++ gcc-gfortran libgfortran python-devel redhat-rpm-config hdf5
 
 On `Arch Linux`_, you can acquire the additional dependencies via ``pacman``:
 
 .. code-block:: bash
 
-   $ pacman -S lapack gcc gcc-fortran pkg-config
+   $ pacman -S lapack gcc gcc-fortran pkg-config hdf5
 
 There are also AUR packages available for installing `ta-lib
 <https://aur.archlinux.org/packages/ta-lib/>`_, an optional Zipline dependency.
 Python 2 is also installable via:
+
 
 .. code-block:: bash
 
@@ -83,7 +84,7 @@ following brew packages:
 
 .. code-block:: bash
 
-   $ brew install freetype pkg-config gcc openssl
+   $ brew install freetype pkg-config gcc openssl hdf5
 
 Windows
 ~~~~~~~

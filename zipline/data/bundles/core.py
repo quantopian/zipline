@@ -34,56 +34,56 @@ log = Logger(__name__)
 
 def asset_db_path(bundle_name, timestr, environ=None, db_version=None):
     return pth.data_path(
-        asset_db_relative(bundle_name, timestr, environ, db_version),
+        asset_db_relative(bundle_name, timestr, db_version),
         environ=environ,
     )
 
 
 def minute_equity_path(bundle_name, timestr, environ=None):
     return pth.data_path(
-        minute_equity_relative(bundle_name, timestr, environ),
+        minute_equity_relative(bundle_name, timestr),
         environ=environ,
     )
 
 
 def daily_equity_path(bundle_name, timestr, environ=None):
     return pth.data_path(
-        daily_equity_relative(bundle_name, timestr, environ),
+        daily_equity_relative(bundle_name, timestr),
         environ=environ,
     )
 
 
 def adjustment_db_path(bundle_name, timestr, environ=None):
     return pth.data_path(
-        adjustment_db_relative(bundle_name, timestr, environ),
+        adjustment_db_relative(bundle_name, timestr),
         environ=environ,
     )
 
 
 def cache_path(bundle_name, environ=None):
     return pth.data_path(
-        cache_relative(bundle_name, environ),
+        cache_relative(bundle_name),
         environ=environ,
     )
 
 
-def adjustment_db_relative(bundle_name, timestr, environ=None):
+def adjustment_db_relative(bundle_name, timestr):
     return bundle_name, timestr, 'adjustments.sqlite'
 
 
-def cache_relative(bundle_name, timestr, environ=None):
+def cache_relative(bundle_name):
     return bundle_name, '.cache'
 
 
-def daily_equity_relative(bundle_name, timestr, environ=None):
+def daily_equity_relative(bundle_name, timestr):
     return bundle_name, timestr, 'daily_equities.bcolz'
 
 
-def minute_equity_relative(bundle_name, timestr, environ=None):
+def minute_equity_relative(bundle_name, timestr):
     return bundle_name, timestr, 'minute_equities.bcolz'
 
 
-def asset_db_relative(bundle_name, timestr, environ=None, db_version=None):
+def asset_db_relative(bundle_name, timestr, db_version=None):
     db_version = ASSET_DB_VERSION if db_version is None else db_version
 
     return bundle_name, timestr, 'assets-%d.sqlite' % db_version
@@ -388,9 +388,7 @@ def _make_bundle_core():
                     pth.data_path([], environ=environ))
                 )
                 daily_bars_path = wd.ensure_dir(
-                    *daily_equity_relative(
-                        name, timestr, environ=environ,
-                    )
+                    *daily_equity_relative(name, timestr)
                 )
                 daily_bar_writer = BcolzDailyBarWriter(
                     daily_bars_path,
@@ -405,23 +403,18 @@ def _make_bundle_core():
 
                 daily_bar_writer.write(())
                 minute_bar_writer = BcolzMinuteBarWriter(
-                    wd.ensure_dir(*minute_equity_relative(
-                        name, timestr, environ=environ)
-                    ),
+                    wd.ensure_dir(*minute_equity_relative(name, timestr)),
                     calendar,
                     start_session,
                     end_session,
                     minutes_per_day=bundle.minutes_per_day,
                 )
-                assets_db_path = wd.getpath(*asset_db_relative(
-                    name, timestr, environ=environ,
-                ))
+                assets_db_path = wd.getpath(*asset_db_relative(name, timestr))
                 asset_db_writer = AssetDBWriter(assets_db_path)
 
                 adjustment_db_writer = stack.enter_context(
                     SQLiteAdjustmentWriter(
-                        wd.getpath(*adjustment_db_relative(
-                            name, timestr, environ=environ)),
+                        wd.getpath(*adjustment_db_relative(name, timestr)),
                         BcolzDailyBarReader(daily_bars_path),
                         overwrite=True,
                     )
@@ -452,7 +445,7 @@ def _make_bundle_core():
 
             for version in sorted(set(assets_versions), reverse=True):
                 version_path = wd.getpath(*asset_db_relative(
-                    name, timestr, environ=environ, db_version=version,
+                    name, timestr, db_version=version,
                 ))
                 with working_file(version_path) as wf:
                     shutil.copy2(assets_db_path, wf.path)

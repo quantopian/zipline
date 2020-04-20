@@ -398,10 +398,16 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             )
         return group_labels, null_label
 
-    def peer_count(self):
+    def peer_count(self, mask=NotSpecified):
         """
         Construct a factor that gives the number of occurrences of
         each distinct category in a classifier.
+
+        Parameters
+        ----------
+        mask : zipline.pipeline.Filter, optional
+            If passed, only count assets passing the filter.  Default behavior
+            is to count all assets.
 
         Examples
         --------
@@ -433,7 +439,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         """
         # Lazy import due to cyclic dependencies in factor.py, classifier.py
         from ..factors import PeerCount
-        return PeerCount(inputs=[self])
+        return PeerCount(inputs=[self], mask=mask)
 
 
 class Everything(Classifier):

@@ -29,7 +29,7 @@ source:
 requirements:
   build:
     - python
-    - setuptools
+    - setuptools <46
 
   run:
     - python

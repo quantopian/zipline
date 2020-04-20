@@ -63,7 +63,18 @@ def main(env, do_upload):
 
 if __name__ == '__main__':
     env = os.environ.copy()
+
+    print(
+        'APPVEYOR_REPO_BRANCH: %s\n'
+        'APPVEYOR_PULL_REQUEST_NUMBER (truthiness): %s\n'
+        'ANACONDA_TOKEN (truthiness): %s' % (
+            env.get('APPVEYOR_REPO_BRANCH'),
+            bool(env.get('APPVEYOR_PULL_REQUEST_NUMBER')),
+            bool(env.get('ANACONDA_TOKEN'))
+        )
+    )
+
     main(env,
-         do_upload=((env.get('ANACONDA_TOKEN')
-                     and env.get('APPVEYOR_REPO_BRANCH') == 'master')
-                    and 'APPVEYOR_PULL_REQUEST_NUMBER' not in env))
+         do_upload=(env.get('ANACONDA_TOKEN')
+                    and env.get('APPVEYOR_REPO_BRANCH') == 'master'
+                    and not env.get('APPVEYOR_PULL_REQUEST_NUMBER')))

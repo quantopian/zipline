@@ -609,8 +609,9 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
 
     @parameter_space(
         dtype_and_missing=[(int64_dtype, -1), (categorical_dtype, None)],
+        use_mask=[True, False],
     )
-    def test_peer_count(self, dtype_and_missing):
+    def test_peer_count(self, dtype_and_missing, use_mask):
         class C(Classifier):
             dtype = dtype_and_missing[0]
             missing_value = dtype_and_missing[1]
@@ -636,12 +637,29 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
                 missing_value=None,
             )
 
-        expected = np.array(
-            [[3, 3, np.nan, 1, 3, np.nan],
-             [4, 1, 1, 4, 4, 4],
-             [np.nan, 1, 3, 3, 3, np.nan],
-             [6, 6, 6, 6, 6, 6]],
-        )
+        if not use_mask:
+            mask = self.build_mask(self.ones_mask(shape=data.shape))
+            expected = np.array(
+                [[3, 3, np.nan, 1, 3, np.nan],
+                 [4, 1, 1, 4, 4, 4],
+                 [np.nan, 1, 3, 3, 3, np.nan],
+                 [6, 6, 6, 6, 6, 6]],
+            )
+        else:
+            # Punch a couple holes in the mask to check that we handle the mask
+            # correctly.
+            mask = self.build_mask(
+                np.array([[1, 1, 1, 1, 0, 1],
+                          [1, 1, 1, 1, 1, 0],
+                          [1, 1, 1, 1, 1, 1],
+                          [1, 1, 0, 0, 1, 1]], dtype='bool')
+            )
+            expected = np.array(
+                [[2, 2, np.nan, 1, np.nan, np.nan],
+                 [3, 1, 1, 3, 3, np.nan],
+                 [np.nan, 1, 3, 3, 3, np.nan],
+                 [4, 4, np.nan, np.nan, 4, 4]],
+            )
 
         terms = {
             'peer_counts': c.peer_count(),
@@ -654,7 +672,7 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             terms=terms,
             expected=expected_results,
             initial_workspace={c: data},
-            mask=self.build_mask(self.ones_mask(shape=data.shape)),
+            mask=mask,
         )
 
 

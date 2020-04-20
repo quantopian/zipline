@@ -166,16 +166,21 @@ class LabelArray(ndarray):
         if not is_object(values):
             values = values.astype(object)
 
+        if values.flags.f_contiguous:
+            ravel_order = 'F'
+        else:
+            ravel_order = 'C'
+
         if categories is None:
             codes, categories, reverse_categories = factorize_strings(
-                values.ravel(),
+                values.ravel(ravel_order),
                 missing_value=missing_value,
                 sort=sort,
             )
         else:
             codes, categories, reverse_categories = (
                 factorize_strings_known_categories(
-                    values.ravel(),
+                    values.ravel(ravel_order),
                     categories=categories,
                     missing_value=missing_value,
                     sort=sort,
@@ -184,7 +189,7 @@ class LabelArray(ndarray):
         categories.setflags(write=False)
 
         return cls.from_codes_and_metadata(
-            codes=codes.reshape(values.shape),
+            codes=codes.reshape(values.shape, order=ravel_order),
             categories=categories,
             reverse_categories=reverse_categories,
             missing_value=missing_value,

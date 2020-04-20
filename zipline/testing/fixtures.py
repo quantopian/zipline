@@ -7,7 +7,7 @@ from contextlib2 import ExitStack
 from logbook import NullHandler, Logger
 import numpy as np
 import pandas as pd
-from six import with_metaclass, iteritems, itervalues
+from six import with_metaclass, iteritems, itervalues, PY2
 import responses
 from toolz import flip, groupby, merge
 from trading_calendars import (
@@ -248,6 +248,10 @@ class ZiplineTestCase(with_metaclass(DebugMROMeta, TestCase)):
             The callback to invoke at the end of each test.
         """
         return self._instance_teardown_stack.callback(callback)
+
+    if PY2:
+        def assertRaisesRegex(self, *args, **kwargs):
+            return self.assertRaisesRegexp(*args, **kwargs)
 
 
 def alias(attr_name):
@@ -2089,6 +2093,9 @@ class WithFXRates(object):
     # Kinds of rates for which exchange rate data is present.
     FX_RATES_RATE_NAMES = ["mid"]
 
+    # Default chunk size used for fx artifact compression.
+    HDF5_FX_CHUNK_SIZE = 75
+
     # Rate used by default for Pipeline API queries that don't specify a rate
     # explicitly.
     @classproperty
@@ -2168,7 +2175,7 @@ class WithFXRates(object):
 
         # Write in-memory data to h5 file.
         with h5py.File(path, 'w') as h5_file:
-            writer = HDF5FXRateWriter(h5_file)
+            writer = HDF5FXRateWriter(h5_file, cls.HDF5_FX_CHUNK_SIZE)
             fx_data = ((rate, quote, quote_frame.values)
                        for rate, rate_dict in cls.fx_rates.items()
                        for quote, quote_frame in rate_dict.items())
@@ -2199,8 +2206,6 @@ class WithFXRates(object):
         col = cls.fx_rates[rate][quote][base]
         if dt < col.index[0]:
             return np.nan
-        elif dt > col.index[-1]:
-            raise ValueError("dt={} > max dt={}".format(dt, col.index[-1]))
 
         # PERF: We call this function a lot in some suites, and get_loc is
         # surprisingly expensive, so optimizing it has a meaningful impact on
