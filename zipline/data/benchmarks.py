@@ -42,7 +42,8 @@ def get_benchmark_returns_from_file(filelike):
     ).tz_localize('utc')
 
     if 'return' not in df.columns:
-        raise ValueError("The column 'return' not found in the benchmark file \n"
+        raise ValueError("The column 'return' not found in the "
+                         "benchmark file \n"
                          "Expected benchmark file format :\n"
                          "date, return\n"
                          "2020-01-02 00:00:00+00:00,0.01\n"

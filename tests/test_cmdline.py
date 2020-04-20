@@ -145,7 +145,7 @@ class CmdLineTestCase(WithTmpDir, ZiplineTestCase):
 
         # CLI validates that the algo file exists, so create an empty file.
         algo_path = self.tmpdir.getpath('dummy_algo.py')
-        with open(algo_path, 'w') as f:
+        with open(algo_path, 'w'):
             pass
 
         def run_and_get_benchmark_spec(benchmark_args):
@@ -170,7 +170,8 @@ class CmdLineTestCase(WithTmpDir, ZiplineTestCase):
                 raise AssertionError(
                     "Cli run failed with {exc}\n\n"
                     "Output was:\n\n"
-                    "{output}".format(exc=result.exception, output=result.output),
+                    "{output}".format(exc=result.exception,
+                                      output=result.output),
                 )
 
             mock_run.assert_called_once()
@@ -209,7 +210,7 @@ class CmdLineTestCase(WithTmpDir, ZiplineTestCase):
 
         # CLI also validates the returns file exists.
         bm_path = self.tmpdir.getpath('returns.csv')
-        with open(bm_path, 'w') as f:
+        with open(bm_path, 'w'):
             pass
 
         spec = run_and_get_benchmark_spec(['--benchmark-file', bm_path])
@@ -218,4 +219,3 @@ class CmdLineTestCase(WithTmpDir, ZiplineTestCase):
         assert_equal(spec.benchmark_sid, None)
         assert_equal(spec.benchmark_symbol, None)
         assert_equal(spec.no_benchmark, False)
-

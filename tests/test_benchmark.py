@@ -398,11 +398,13 @@ class BenchmarkSpecTestCase(WithTmpDir,
         self.assertIs(sid, None)
 
         expected_dates = pd.to_datetime(
-            ['2020-01-03', '2020-01-06', '2020-01-07', '2020-01-08', '2020-01-09'],
+            ['2020-01-03', '2020-01-06', '2020-01-07',
+             '2020-01-08', '2020-01-09'],
             utc=True,
         )
         expected_values = [-0.1, 0.333, 0.167, 0.143, 6.375]
-        expected_returns = pd.Series(index=expected_dates, data=expected_values)
+        expected_returns = pd.Series(index=expected_dates,
+                                     data=expected_values)
 
         assert_series_equal(returns, expected_returns, check_names=False)
 
