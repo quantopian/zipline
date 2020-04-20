@@ -61,7 +61,8 @@ _cols_to_check = [
 ]
 
 
-def run_example(example_modules, example_name, environ, benchmark_returns=None):
+def run_example(example_modules, example_name, environ,
+                benchmark_returns=None):
     """
     Run an example module from zipline.examples.
     """

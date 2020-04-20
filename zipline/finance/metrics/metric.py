@@ -458,7 +458,6 @@ class AlphaBeta(object):
         if np.isnan(beta):
             beta = None
 
-
         risk['alpha'] = alpha
         risk['beta'] = beta
 
