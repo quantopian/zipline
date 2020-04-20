@@ -162,6 +162,9 @@ on OSX):
    --benchmark-symbol              The instrument's symbol to be used as
                                    a benchmark.
                                    (should exist in the ingested bundle)
+   --benchmark-sid                 The sid of the instrument to be used as a
+                                   benchmark.
+                                   (should exist in the ingested bundle)
    --no-benchmark                  This flag is used to set the benchmark to
                                    zero. Alpha, beta and benchmark metrics
                                    are not calculated
