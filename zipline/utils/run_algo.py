@@ -526,7 +526,8 @@ class BenchmarkSpec(object):
 
         return benchmark_sid, benchmark_returns
 
-    def _zero_benchmark_returns(self, start_date, end_date):
+    @staticmethod
+    def _zero_benchmark_returns(start_date, end_date):
         return pd.Series(
             index=pd.date_range(start_date, end_date, tz='utc'),
             data=0.0,

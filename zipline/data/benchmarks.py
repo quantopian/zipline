@@ -12,54 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 import logbook
-import requests
-import warnings
 
 import pandas as pd
 
 log = logbook.Logger(__name__)
-
-
-def get_benchmark_returns(symbol):
-    """
-    Get a Series of benchmark returns from IEX associated with `symbol`.
-    Default is `SPY`.
-
-    Parameters
-    ----------
-    symbol : str
-        Benchmark symbol for which we're getting the returns.
-
-    The data is provided by IEX (https://iextrading.com/), and we can
-    get up to 5 years worth of data.
-    """
-
-    iex_api_key = os.environ.get('IEX_API_KEY')
-    if iex_api_key is None:
-        warnings.warn(
-            "Please specify manually a benchmark symbol using one "
-            "of the following options: \n"
-            "--benchmark-file, --benchmark-symbol, --no-benchmark\n"
-            "You can still retrieve market data from IEX "
-            "by setting the IEX_API_KEY environment variable.\n"
-            "Please note that this feature is expected to be "
-            "deprecated in the future"
-        )
-        raise OSError("Missing environment variable IEX_API_KEY")
-    r = requests.get(
-        "https://cloud.iexapis.com/stable/stock/{}/chart/5y?"
-        "chartCloseOnly=True&token={}".format(symbol, iex_api_key)
-    )
-    data = r.json()
-
-    df = pd.DataFrame(data)
-
-    df.index = pd.DatetimeIndex(df['date'])
-    df = df['close']
-
-    return df.sort_index().tz_localize('UTC').pct_change(1).iloc[1:]
 
 
 def get_benchmark_returns_from_file(filelike):

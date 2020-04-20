@@ -16,8 +16,6 @@ import os
 
 import logbook
 import pandas as pd
-from six.moves.urllib_error import HTTPError
-from trading_calendars import get_calendar
 
 
 def load_prices_from_csv(filepath, identifier_col, tz='UTC'):
