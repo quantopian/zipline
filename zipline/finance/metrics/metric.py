@@ -448,18 +448,16 @@ class AlphaBeta(object):
                    session_ix,
                    data_portal):
         risk = packet['cumulative_risk_metrics']
-        if np.any(self._daily_returns_array):
-            alpha, beta = ep.alpha_beta_aligned(
-                ledger.daily_returns_array[:session_ix + 1],
-                self._daily_returns_array[:session_ix + 1],
-            )
-            if np.isnan(alpha):
-                alpha = None
-            if np.isnan(beta):
-                beta = None
-        else:
-            # If all the benchmark returns are zero return None, None
-            alpha, beta = None, None
+
+        alpha, beta = ep.alpha_beta_aligned(
+            ledger.daily_returns_array[:session_ix + 1],
+            self._daily_returns_array[:session_ix + 1],
+        )
+        if np.isnan(alpha):
+            alpha = None
+        if np.isnan(beta):
+            beta = None
+
 
         risk['alpha'] = alpha
         risk['beta'] = beta
@@ -618,15 +616,11 @@ class _ClassicRiskMetrics(object):
         benchmark_period_returns = ep.cum_returns(benchmark_returns).iloc[-1]
         algorithm_period_returns = ep.cum_returns(algorithm_returns).iloc[-1]
 
-        if np.any(benchmark_period_returns):
-            alpha, beta = ep.alpha_beta_aligned(
-                algorithm_returns.values,
-                benchmark_returns.values,
-            )
-            benchmark_volatility = ep.annual_volatility(benchmark_returns)
-        else:
-            alpha, beta = None, None
-            benchmark_volatility = None
+        alpha, beta = ep.alpha_beta_aligned(
+            algorithm_returns.values,
+            benchmark_returns.values,
+        )
+        benchmark_volatility = ep.annual_volatility(benchmark_returns)
 
         sharpe = ep.sharpe_ratio(algorithm_returns)
 
