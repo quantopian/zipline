@@ -63,7 +63,8 @@ _cols_to_check = [
 ]
 
 
-def run_example(example_modules, example_name, environ):
+def run_example(example_modules, example_name, environ,
+                benchmark_returns=None):
     """
     Run an example module from zipline.examples.
     """
@@ -78,6 +79,7 @@ def run_example(example_modules, example_name, environ):
         analyze=getattr(mod, 'analyze', None),
         bundle='test',
         environ=environ,
+        benchmark_returns=benchmark_returns,
         # Provide a default capital base, but allow the test to override.
         **merge({'capital_base': 1e7}, mod._test_args())
     )

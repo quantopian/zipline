@@ -26,10 +26,10 @@ from zipline.testing import test_resource_path
 from zipline.testing.fixtures import (
     WithTmpDir,
     ZiplineTestCase,
+    read_checked_in_benchmark_data,
 )
 from zipline.testing.predicates import assert_equal
 from zipline.utils.cache import dataframe_cache
-from zipline.utils.paths import update_modified_time
 
 
 # Otherwise the next line sometimes complains about being run too late.
@@ -61,9 +61,7 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             serialization='pickle',
         )
 
-        update_modified_time(
-            cls.tmpdir.getpath('example_data/root/data/SPY_benchmark.csv'),
-        )
+        cls.benchmark_returns = read_checked_in_benchmark_data()
 
     @parameterized.expand(sorted(EXAMPLE_MODULES))
     def test_example(self, example_name):
@@ -75,6 +73,7 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             environ={
                 'ZIPLINE_ROOT': self.tmpdir.getpath('example_data/root'),
             },
+            benchmark_returns=self.benchmark_returns,
         )
         expected_perf = self.expected_perf[example_name]
         # Exclude positions column as the positions do not always have the

@@ -99,7 +99,7 @@ Once you have your key, run the following from the command line:
 .. code:: bash
 
     $ QUANDL_API_KEY=<yourkey> zipline ingest -b quandl
-    $ zipline run -f dual_moving_average.py --start 2014-1-1 --end 2018-1-1 -o dma.pickle
+    $ zipline run -f dual_moving_average.py --start 2014-1-1 --end 2018-1-1 -o dma.pickle --no-benchmark
 
 This will download asset pricing data data from `quandl`, and stream it through the algorithm
 over the specified time range. Then, the resulting performance DataFrame is saved in `dma.pickle`, which you

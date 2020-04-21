@@ -448,11 +448,11 @@ class AlphaBeta(object):
                    session_ix,
                    data_portal):
         risk = packet['cumulative_risk_metrics']
+
         alpha, beta = ep.alpha_beta_aligned(
             ledger.daily_returns_array[:session_ix + 1],
             self._daily_returns_array[:session_ix + 1],
         )
-
         if np.isnan(alpha):
             alpha = None
         if np.isnan(beta):
@@ -619,6 +619,7 @@ class _ClassicRiskMetrics(object):
             algorithm_returns.values,
             benchmark_returns.values,
         )
+        benchmark_volatility = ep.annual_volatility(benchmark_returns)
 
         sharpe = ep.sharpe_ratio(algorithm_returns)
 
@@ -649,7 +650,7 @@ class _ClassicRiskMetrics(object):
             'period_label': end_session.strftime("%Y-%m"),
             'trading_days': len(benchmark_returns),
             'algo_volatility': ep.annual_volatility(algorithm_returns),
-            'benchmark_volatility': ep.annual_volatility(benchmark_returns),
+            'benchmark_volatility': benchmark_volatility,
             'max_drawdown': ep.max_drawdown(algorithm_returns.values),
             'max_leverage': algorithm_leverages.max(),
         }

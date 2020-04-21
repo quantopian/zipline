@@ -536,8 +536,6 @@ class TradingAlgorithm(object):
                 raise ValueError("Must specify either benchmark_sid "
                                  "or benchmark_returns.")
             benchmark_asset = None
-            # get benchmark info from trading environment, which defaults to
-            # downloading data from IEX Trading.
             benchmark_returns = self.benchmark_returns
         return BenchmarkSource(
             benchmark_asset=benchmark_asset,
