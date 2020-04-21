@@ -1252,6 +1252,10 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         """
         return (-inf < self) & (self < inf)
 
+    def fillna(self, fill_value):
+        
+
+
     @classlazyval
     def _downsampled_type(self):
         return DownsampledMixin.make_downsampled_type(Factor)
@@ -1446,7 +1450,7 @@ class Rank(SingleInputMixin, Factor):
                 choices=set(_RANK_METHODS),
             )
         return super(Rank, self)._validate()
-
+s
     def _compute(self, arrays, dates, assets, mask):
         """
         For each row in the input, compute a like-shaped array of per-row
@@ -1719,6 +1723,46 @@ class Latest(LatestMixin, CustomFactor):
 
     def compute(self, today, assets, out, data):
         out[:] = data[-1]
+
+
+class IfThenElse(Factor):
+    window_length = 0
+
+    @expect_types(
+        condition=Filter,
+        if_true=Factor,
+        if_false=Factor,
+    )
+    def __new__(cls, condition, if_true, if_false):
+        assert if_true.dtype == if_false.dtype, "Mismatched dtypes"
+        return super(IfThenElse, cls).__new__(
+            IfThenElse,
+            inputs=[chooser, if_true, if_false],
+            dtype=if_true.dtype,
+        )
+
+    def _compute(self, inputs, assets, dates, mask):
+        result = np.where(inputs[0], inputs[1], inputs[2])
+        result[mask] = self.missing_value
+
+        return result
+
+
+class Constant(Factor):
+    window_length = 0
+    params = ('value',)
+    inputs = ()
+
+    def __new__(cls, value):
+        dtype = np.array(value).dtype
+        return super(Constant, cls).__new__(
+            Constant,
+            value=value,
+            window_safe=True,
+            dtype=np.array([value]).dtype,
+        )
+
+    def _compute(self, inputs, dates, assets, mask):
 
 
 # Functions to be passed to GroupedRowTransform.  These aren't defined inline
