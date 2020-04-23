@@ -10,7 +10,6 @@ from numpy import (
     array,
     dtype as dtype_class,
     ndarray,
-    searchsorted,
 )
 from six import with_metaclass
 
@@ -18,7 +17,6 @@ from zipline.assets import Asset
 from zipline.errors import (
     DTypeNotSpecified,
     InvalidOutputName,
-    NonExistentAssetInTimeFrame,
     NonSliceableTerm,
     NonWindowSafeInput,
     NotDType,
@@ -36,6 +34,7 @@ from zipline.utils.numpy_utils import (
     bool_dtype,
     categorical_dtype,
     datetime64ns_dtype,
+    float64_dtype,
     default_missing_value_for_dtype,
 )
 from zipline.utils.sharedoc import (
@@ -239,7 +238,14 @@ class Term(with_metaclass(ABCMeta, object)):
     def __getitem__(self, key):
         if isinstance(self, LoadableTerm):
             raise NonSliceableTerm(term=self)
-        return Slice(self, key)
+        return self._slice_type(self, key)
+
+    @classlazyval
+    def _slice_type(cls):
+        from .mixins import SliceMixin
+        return SliceMixin.make_slice_type(
+            cls._principal_computable_term_type()
+        )
 
     @classmethod
     def _static_identity(cls,
@@ -815,75 +821,6 @@ class ComputableTerm(Term):
 
     def recursive_repr(self):
         return type(self).__name__ + '(...)'
-
-
-class Slice(ComputableTerm):
-    """
-    Term for extracting a single column of a another term's output.
-
-    Parameters
-    ----------
-    term : zipline.pipeline.Term
-        The term from which to extract a column of data.
-    asset : zipline.assets.Asset
-        The asset corresponding to the column of `term` to be extracted.
-
-    Notes
-    -----
-    Users should rarely construct instances of `Slice` directly. Instead, they
-    should construct instances via indexing, e.g. `MyFactor()[Asset(24)]`.
-    """
-    def __new__(cls, term, asset):
-        return super(Slice, cls).__new__(
-            cls,
-            asset=asset,
-            inputs=[term],
-            window_length=0,
-            mask=term.mask,
-            dtype=term.dtype,
-            missing_value=term.missing_value,
-            window_safe=term.window_safe,
-            ndim=1,
-        )
-
-    def __repr__(self):
-        return "{parent_term}[{asset}]".format(
-            type=type(self).__name__,
-            parent_term=self.inputs[0].recursive_repr(),
-            asset=self._asset,
-        )
-
-    def _init(self, asset, *args, **kwargs):
-        self._asset = asset
-        return super(Slice, self)._init(*args, **kwargs)
-
-    @classmethod
-    def _static_identity(cls, asset, *args, **kwargs):
-        return (super(Slice, cls)._static_identity(*args, **kwargs), asset)
-
-    def _compute(self, windows, dates, assets, mask):
-        asset = self._asset
-        asset_column = searchsorted(assets.values, asset.sid)
-        if assets[asset_column] != asset.sid:
-            raise NonExistentAssetInTimeFrame(
-                asset=asset, start_date=dates[0], end_date=dates[-1],
-            )
-
-        # Return a 2D array with one column rather than a 1D array of the
-        # column.
-        return windows[0][:, [asset_column]]
-
-    @property
-    def asset(self):
-        """Get the asset whose data is selected by this slice.
-        """
-        return self._asset
-
-    @property
-    def _downsampled_type(self):
-        raise NotImplementedError(
-            'downsampling of slices is not yet supported'
-        )
 
 
 def validate_dtype(termname, dtype, missing_value):

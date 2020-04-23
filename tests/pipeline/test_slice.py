@@ -12,7 +12,7 @@ from zipline.errors import (
     NonWindowSafeInput,
     UnsupportedPipelineOutput,
 )
-from zipline.pipeline import CustomFactor, Pipeline
+from zipline.pipeline import CustomFactor, Factor, Filter, Classifier, Pipeline
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.domain import US_EQUITIES
@@ -483,6 +483,13 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         # using USEquityPricing.close.
         expected_regression.inputs = [returns, returns_slice]
 
+        class MyFactor(CustomFactor):
+            inputs = ()
+            window_length = 1
+
+            def compute(self, today, assets, out):
+                out[:] = 0
+
         columns = {
             'regression': regression,
             'expected_regression': expected_regression,
@@ -526,3 +533,26 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         slice_ = Returns(window_length=2)[my_asset]
         result = repr(slice_)
         self.assertEqual(result, "Returns(...)[{}]".format(my_asset))
+
+    def test_slice_subtypes(self):
+        my_asset = self.asset_finder.retrieve_asset(self.sids[0])
+
+        class SomeFactor(Factor):
+            inputs = ()
+            window_length = 1
+            dtype = float
+
+        self.assertIsInstance(SomeFactor()[my_asset], Factor)
+
+        class SomeFilter(Filter):
+            inputs = ()
+            window_length = 1
+
+        self.assertIsInstance(SomeFilter()[my_asset], Filter)
+
+        class SomeClassifier(Classifier):
+            inputs = ()
+            window_length = 1
+            dtype = object
+
+        self.assertIsInstance(SomeClassifier()[my_asset], Classifier)

@@ -10,6 +10,7 @@ from numpy import (
     array,
     full,
     recarray,
+    searchsorted,
     vstack,
 )
 from pandas import NaT as pd_NaT
@@ -17,6 +18,7 @@ from pandas import NaT as pd_NaT
 from zipline.errors import (
     WindowLengthNotPositive,
     UnsupportedDataType,
+    NonExistentAssetInTimeFrame,
     NoFurtherDataError,
 )
 from zipline.utils.context_tricks import nop_context
@@ -532,6 +534,83 @@ class DownsampledMixin(StandardOutputs):
         """
         return type(
             'Downsampled' + other_base.__name__,
+            (cls, other_base,),
+            {'__module__': other_base.__module__},
+        )
+
+
+class SliceMixin(Term):
+    """
+    Mixin for the type returned by ComputableTerm's __getitem__ method.
+
+    Parameters
+    ----------
+    term : zipline.pipeline.Term
+        The term from which to extract a column of data.
+    asset : zipline.assets.Asset
+        The asset corresponding to the column of `term` to be extracted.
+
+    Notes
+    -----
+    Users should rarely construct instances of `Slice` directly. Instead, they
+    should construct instances via indexing, e.g. `MyFactor()[Asset(24)]`.
+    """
+    def __new__(cls, term, asset):
+        return super(SliceMixin, cls).__new__(
+            cls,
+            asset=asset,
+            inputs=[term],
+            window_length=0,
+            mask=term.mask,
+            dtype=term.dtype,
+            missing_value=term.missing_value,
+            window_safe=term.window_safe,
+            ndim=1,
+        )
+
+    def __repr__(self):
+        return "{parent_term}[{asset}]".format(
+            type=type(self).__name__,
+            parent_term=self.inputs[0].recursive_repr(),
+            asset=self._asset,
+        )
+
+    def _init(self, asset, *args, **kwargs):
+        self._asset = asset
+        return super(SliceMixin, self)._init(*args, **kwargs)
+
+    @classmethod
+    def _static_identity(cls, asset, *args, **kwargs):
+        return (
+            super(SliceMixin, cls)._static_identity(*args, **kwargs),
+            asset,
+        )
+
+    def _compute(self, windows, dates, assets, mask):
+        asset = self._asset
+        asset_column = searchsorted(assets.values, asset.sid)
+        if assets[asset_column] != asset.sid:
+            raise NonExistentAssetInTimeFrame(
+                asset=asset, start_date=dates[0], end_date=dates[-1],
+            )
+
+        # Return a 2D array with one column rather than a 1D array of the
+        # column.
+        return windows[0][:, [asset_column]]
+
+    @property
+    def asset(self):
+        """Get the asset whose data is selected by this slice.
+        """
+        return self._asset
+
+    @classmethod
+    def make_slice_type(cls, other_base):
+        """
+        Factory for making {Filter,Factor,Classifier}Slice.
+        """
+        return type(
+            other_base.__name__ + 'Slice',
             (cls, other_base,),
             {'__module__': other_base.__module__},
         )
