@@ -349,6 +349,11 @@ def is_missing(data, missing_value):
         return isnan(data)
     elif is_datetime(data) and isnat(missing_value):
         return isnat(data)
+    elif is_object(data) and missing_value is None:
+        # XXX: Older versions of numpy returns True/False for array ==
+        # None. Work around this by boxing None in a 1x1 array, which causes
+        # numpy to do the broadcasted comparison we want.
+        return data == np.array([missing_value])
     return (data == missing_value)
 
 
