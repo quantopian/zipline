@@ -30,8 +30,8 @@ from pandas import (
 )
 
 from zipline.pipeline import Factor, Filter
+from zipline.pipeline.factors.factor import NumExprFactor
 from zipline.pipeline.expression import (
-    NumericalExpression,
     NUMEXPR_MATH_FUNCS,
 )
 from zipline.testing import check_allclose
@@ -101,39 +101,39 @@ class NumericalExpressionTestCase(TestCase):
         f = self.f
         g = self.g
 
-        NumericalExpression("x_0", (f,), dtype=float64_dtype)
-        NumericalExpression("x_0 ", (f,), dtype=float64_dtype)
-        NumericalExpression("x_0 + x_0", (f,), dtype=float64_dtype)
-        NumericalExpression("x_0 + 2", (f,), dtype=float64_dtype)
-        NumericalExpression("2 * x_0", (f,), dtype=float64_dtype)
-        NumericalExpression("x_0 + x_1", (f, g), dtype=float64_dtype)
-        NumericalExpression("x_0 + x_1 + x_0", (f, g), dtype=float64_dtype)
-        NumericalExpression("x_0 + 1 + x_1", (f, g), dtype=float64_dtype)
+        NumExprFactor("x_0", (f,), dtype=float64_dtype)
+        NumExprFactor("x_0 ", (f,), dtype=float64_dtype)
+        NumExprFactor("x_0 + x_0", (f,), dtype=float64_dtype)
+        NumExprFactor("x_0 + 2", (f,), dtype=float64_dtype)
+        NumExprFactor("2 * x_0", (f,), dtype=float64_dtype)
+        NumExprFactor("x_0 + x_1", (f, g), dtype=float64_dtype)
+        NumExprFactor("x_0 + x_1 + x_0", (f, g), dtype=float64_dtype)
+        NumExprFactor("x_0 + 1 + x_1", (f, g), dtype=float64_dtype)
 
     def test_validate_bad(self):
         f, g, h = self.f, self.g, self.h
 
         # Too few inputs.
         with self.assertRaises(ValueError):
-            NumericalExpression("x_0", (), dtype=float64_dtype)
+            NumExprFactor("x_0", (), dtype=float64_dtype)
         with self.assertRaises(ValueError):
-            NumericalExpression("x_0 + x_1", (f,), dtype=float64_dtype)
+            NumExprFactor("x_0 + x_1", (f,), dtype=float64_dtype)
 
         # Too many inputs.
         with self.assertRaises(ValueError):
-            NumericalExpression("x_0", (f, g), dtype=float64_dtype)
+            NumExprFactor("x_0", (f, g), dtype=float64_dtype)
         with self.assertRaises(ValueError):
-            NumericalExpression("x_0 + x_1", (f, g, h), dtype=float64_dtype)
+            NumExprFactor("x_0 + x_1", (f, g, h), dtype=float64_dtype)
 
         # Invalid variable name.
         with self.assertRaises(ValueError):
-            NumericalExpression("x_0x_1", (f,), dtype=float64_dtype)
+            NumExprFactor("x_0x_1", (f,), dtype=float64_dtype)
         with self.assertRaises(ValueError):
-            NumericalExpression("x_0x_1", (f, g), dtype=float64_dtype)
+            NumExprFactor("x_0x_1", (f, g), dtype=float64_dtype)
 
         # Variable index must start at 0.
         with self.assertRaises(ValueError):
-            NumericalExpression("x_1", (f,), dtype=float64_dtype)
+            NumExprFactor("x_1", (f,), dtype=float64_dtype)
 
         # Scalar operands must be numeric.
         with self.assertRaises(TypeError):
