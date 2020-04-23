@@ -1,7 +1,7 @@
 """
 Base class for Filters, Factors and Classifiers
 """
-from abc import ABCMeta, abstractproperty
+from abc import ABCMeta, abstractproperty, abstractmethod
 from bisect import insort
 from collections import Mapping
 from weakref import WeakValueDictionary
@@ -31,7 +31,7 @@ from zipline.errors import (
 from zipline.lib.adjusted_array import can_represent_dtype
 from zipline.lib.labelarray import LabelArray
 from zipline.utils.input_validation import expect_types
-from zipline.utils.memoize import lazyval
+from zipline.utils.memoize import classlazyval, lazyval
 from zipline.utils.numpy_utils import (
     bool_dtype,
     categorical_dtype,
@@ -619,7 +619,29 @@ class ComputableTerm(Term):
         ``compute`` is reserved for user-supplied functions in
         CustomFilter/CustomFactor/CustomClassifier.
         """
-        raise NotImplementedError()
+        raise NotImplementedError('_compute')
+
+    # NOTE: This is a method rather than a property because ABCMeta tries to
+    #       access all abstract attributes of its child classes to see if
+    #       they've been implemented. These accesses happen during subclass
+    #       creation, before the new subclass has been bound to a name in its
+    #       defining scope. Filter, Factor, and Classifier each implement this
+    #       method to return themselves, but if the method is invoked before
+    #       class definition is finished (which happens if this is a property),
+    #       they fail with a NameError.
+    @classmethod
+    @abstractmethod
+    def _principal_computable_term_type(cls):
+        """
+        Return the "principal" type for a ComputableTerm.
+
+        This returns either Filter, Factor, or Classifier, depending on the
+        type of ``cls``. It is used to implement behaviors like ``downsample``
+        and ``if_then_else`` that are implemented on all ComputableTerms, but
+        that need to produce different output types depending on the type of
+        the receiver.
+        """
+        raise NotImplementedError('_principal_computable_term_type')
 
     @lazyval
     def windowed(self):
@@ -688,15 +710,6 @@ class ComputableTerm(Term):
             fill_value=self.missing_value,
         ).values
 
-    def _downsampled_type(self, *args, **kwargs):
-        """
-        The expression type to return from self.downsample().
-        """
-        raise NotImplementedError(
-            "downsampling is not yet implemented "
-            "for instances of %s." % type(self).__name__
-        )
-
     @expect_downsample_frequency
     @templated_docstring(frequency=PIPELINE_DOWNSAMPLING_FREQUENCY_DOC)
     def downsample(self, frequency):
@@ -709,13 +722,14 @@ class ComputableTerm(Term):
         """
         return self._downsampled_type(term=self, frequency=frequency)
 
-    def _aliased_type(self, *args, **kwargs):
+    @classlazyval
+    def _downsampled_type(cls):
         """
-        The expression type to return from self.alias().
+        The expression type to return from downsample().
         """
-        raise NotImplementedError(
-            "alias is not yet implemented "
-            "for instances of %s." % type(self).__name__
+        from .mixins import DownsampledMixin
+        return DownsampledMixin.make_downsampled_type(
+            cls._principal_computable_term_type()
         )
 
     @templated_docstring(name=PIPELINE_ALIAS_NAME_DOC)
@@ -737,6 +751,58 @@ class ComputableTerm(Term):
         This is useful for giving a name to a numerical or boolean expression.
         """
         return self._aliased_type(term=self, name=name)
+
+    @classlazyval
+    def _aliased_type(cls):
+        """
+        The expression type returned from alias().
+        """
+        from .mixins import AliasedMixin
+
+        return AliasedMixin.make_aliased_type(
+            cls._principal_computable_term_type()
+        )
+
+    def isnull(self):
+        """
+        A Filter producing True for values where this Factor has missing data.
+
+        Equivalent to self.isnan() when ``self.dtype`` is float64.
+        Otherwise equivalent to ``self.eq(self.missing_value)``.
+
+        Returns
+        -------
+        filter : zipline.pipeline.Filter
+        """
+        if self.dtype == bool_dtype:
+            raise TypeError("isnull() is not supported for Filters")
+
+        from .filters import NullFilter
+
+        if self.dtype == float64_dtype:
+            # Using isnan is more efficient when possible because we can fold
+            # the isnan computation with other NumExpr expressions.
+            return self.isnan()
+        else:
+            return NullFilter(self)
+
+    def notnull(self):
+        """
+        A Filter producing True for values where this Factor has complete data.
+
+        Equivalent to ``~self.isnan()` when ``self.dtype`` is float64.
+        Otherwise equivalent to ``(self != self.missing_value)``.
+
+        Returns
+        -------
+        filter : zipline.pipeline.Filter
+        """
+        if self.dtype == bool_dtype:
+            raise TypeError("notnull() is not supported for Filters")
+
+        from .filters import NotNullFilter
+
+        return NotNullFilter(self)
 
     def __repr__(self):
         return (

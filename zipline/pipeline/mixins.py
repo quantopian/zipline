@@ -326,28 +326,10 @@ class AliasedMixin(SingleInputMixin):
         """
         Factory for making Aliased{Filter,Factor,Classifier}.
         """
-        docstring = dedent(
-            """
-            A {t} that names another {t}.
-
-            Parameters
-            ----------
-            term : {t}
-            {{name}}
-            """
-        ).format(t=other_base.__name__)
-
-        doc = format_docstring(
-            owner_name=other_base.__name__,
-            docstring=docstring,
-            formatters={'name': PIPELINE_ALIAS_NAME_DOC},
-        )
-
         return type(
             'Aliased' + other_base.__name__,
             (cls, other_base),
-            {'__doc__': doc,
-             '__module__': other_base.__module__},
+            {'__module__': other_base.__module__},
         )
 
 
@@ -548,26 +530,8 @@ class DownsampledMixin(StandardOutputs):
         """
         Factory for making Downsampled{Filter,Factor,Classifier}.
         """
-        docstring = dedent(
-            """
-            A {t} that defers to another {t} at lower-than-daily frequency.
-
-            Parameters
-            ----------
-            term : {t}
-            {{frequency}}
-            """
-        ).format(t=other_base.__name__)
-
-        doc = format_docstring(
-            owner_name=other_base.__name__,
-            docstring=docstring,
-            formatters={'frequency': PIPELINE_DOWNSAMPLING_FREQUENCY_DOC},
-        )
-
         return type(
             'Downsampled' + other_base.__name__,
             (cls, other_base,),
-            {'__doc__': doc,
-             '__module__': other_base.__module__},
+            {'__module__': other_base.__module__},
         )

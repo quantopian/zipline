@@ -65,18 +65,6 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
     ALLOWED_DTYPES = CLASSIFIER_DTYPES
     categories = NotSpecified
 
-    def isnull(self):
-        """
-        A Filter producing True for values where this term has missing data.
-        """
-        return NullFilter(self)
-
-    def notnull(self):
-        """
-        A Filter producing True for values where this term has complete data.
-        """
-        return NotNullFilter(self)
-
     # We explicitly don't support classifier to classifier comparisons, since
     # the stored values likely don't mean the same thing. This may be relaxed
     # in the future, but for now we're starting conservatively.
@@ -370,13 +358,9 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             self.missing_value,
         )
 
-    @classlazyval
-    def _downsampled_type(self):
-        return DownsampledMixin.make_downsampled_type(Classifier)
-
-    @classlazyval
-    def _aliased_type(self):
-        return AliasedMixin.make_aliased_type(Classifier)
+    @classmethod
+    def _principal_computable_term_type(cls):
+        return Classifier
 
     def _to_integral(self, output_array):
         """

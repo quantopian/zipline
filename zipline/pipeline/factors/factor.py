@@ -1195,33 +1195,6 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             mask=mask,
         )
 
-    def isnull(self):
-        """
-        A Filter producing True for values where this Factor has missing data.
-
-        Equivalent to self.isnan() when ``self.dtype`` is float64.
-        Otherwise equivalent to ``self.eq(self.missing_value)``.
-
-        Returns
-        -------
-        filter : zipline.pipeline.Filter
-        """
-        if self.dtype == float64_dtype:
-            # Using isnan is more efficient when possible because we can fold
-            # the isnan computation with other NumExpr expressions.
-            return self.isnan()
-        else:
-            return NullFilter(self)
-
-    def notnull(self):
-        """
-        A Filter producing True for values where this Factor has complete data.
-
-        Equivalent to ``~self.isnan()` when ``self.dtype`` is float64.
-        Otherwise equivalent to ``(self != self.missing_value)``.
-        """
-        return NotNullFilter(self)
-
     @if_not_float64_tell_caller_to_use_isnull
     def isnan(self):
         """
@@ -1252,13 +1225,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         """
         return (-inf < self) & (self < inf)
 
-    @classlazyval
-    def _downsampled_type(self):
-        return DownsampledMixin.make_downsampled_type(Factor)
-
-    @classlazyval
-    def _aliased_type(self):
-        return AliasedMixin.make_aliased_type(Factor)
+    @classmethod
+    def _principal_computable_term_type(cls):
+        return Factor
 
 
 class NumExprFactor(NumericalExpression, Factor):

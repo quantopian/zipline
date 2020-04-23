@@ -219,13 +219,10 @@ class Filter(RestrictedDTypeMixin, ComputableTerm):
             )
         return retval
 
-    @classlazyval
-    def _downsampled_type(self):
-        return DownsampledMixin.make_downsampled_type(Filter)
+    @classmethod
+    def _principal_computable_term_type(cls):
+        return Filter
 
-    @classlazyval
-    def _aliased_type(self):
-        return AliasedMixin.make_aliased_type(Filter)
 
 
 class NumExprFilter(NumericalExpression, Filter):
