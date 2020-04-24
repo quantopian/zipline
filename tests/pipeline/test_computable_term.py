@@ -245,7 +245,7 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
 
     def test_bad_inputs(self):
         self.should_error(
-            lambda: Floats().fillna('asdf'),
+            lambda: Floats().fillna(u'asdf'),
             TypeError,
             "Fill value 'asdf' is not a valid choice for term Floats with "
             "dtype float64.\n\n"
@@ -254,7 +254,7 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
         )
 
         self.should_error(
-            lambda: Dates().fillna('asdf'),
+            lambda: Dates().fillna(u'asdf'),
             TypeError,
             "Fill value 'asdf' is not a valid choice for term Dates with "
             "dtype datetime64[ns].\n\n"
@@ -263,7 +263,7 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
         )
 
         self.should_error(
-            lambda: Ints().fillna('asdf'),
+            lambda: Ints().fillna(u'asdf'),
             TypeError,
             "Fill value 'asdf' is not a valid choice for term Ints with "
             "dtype int64.\n\n"
