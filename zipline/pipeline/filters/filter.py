@@ -32,6 +32,7 @@ from zipline.pipeline.expression import (
 )
 from zipline.pipeline.mixins import (
     CustomTermMixin,
+    IfElseMixin,
     LatestMixin,
     PositiveWindowLengthMixin,
     RestrictedDTypeMixin,
@@ -309,7 +310,9 @@ class Filter(RestrictedDTypeMixin, ComputableTerm):
                 .format(if_true.missing_value, if_false.missing_value)
             )
 
-        return if_true._if_else_type(
+        return_type = type(if_true)._with_mixin(IfElseMixin)
+
+        return return_type(
             condition=self,
             if_true=if_true,
             if_false=if_false,

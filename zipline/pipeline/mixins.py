@@ -4,6 +4,7 @@ Mixins classes for use with Filters and Factors.
 The mixin classes inherit from Term to ensure they appear before
 Term in the MRO of any class using the mixin
 """
+from abc import abstractmethod
 
 from numpy import (
     array,
@@ -278,7 +279,53 @@ class LatestMixin(SingleInputMixin):
         return "Latest"
 
 
-class AliasedMixin(SingleInputMixin):
+class UniversalMixin(Term):
+    """
+    Base class for "universal" mixins.
+
+    Universal mixins are used to implement expressions that need separate
+    subclasses for each of the ComputableTerm subclasses (Factor, Filter, and
+    Classifier). Such expressions are usually return types of methods of
+    ComputableTerm, such as `downsample()`, `alias()`, or `fillna()`.
+
+    A type may only inherit from one UniversalMixin.
+    """
+    # Memo dict mapping pairs of (mixin_type, principal_type) to subtypes.
+    _UNIVERSAL_MIXIN_SUBTYPES = {}
+
+    @staticmethod
+    @abstractmethod
+    def _universal_mixin_type():
+        raise NotImplementedError('_universal_mixin_type')
+
+    @staticmethod
+    @abstractmethod
+    def _universal_mixin_specialization_name(principal_type):
+        raise NotImplementedError('_universal_mixin_specialization_name')
+
+    @classmethod
+    def universal_mixin_specialization(cls, principal_type):
+        """
+        Create a new subtype of `principal_type` that adds this mixin to
+        ``principal_type``. ``principal_type`` will be one of Factor, Filter,
+        or Classifier.
+        """
+        mixin = cls._universal_mixin_type()
+        memo_key = (mixin, principal_type)
+
+        try:
+            return cls._UNIVERSAL_MIXIN_SUBTYPES[memo_key]
+        except KeyError:
+            new_type = type(
+                mixin._universal_mixin_specialization_name(principal_type),
+                (mixin, principal_type),
+                {'__module__': principal_type.__module__},
+            )
+            cls._UNIVERSAL_MIXIN_SUBTYPES[memo_key] = new_type
+            return new_type
+
+
+class AliasedMixin(SingleInputMixin, UniversalMixin):
     """
     Mixin for aliased terms.
     """
@@ -320,21 +367,17 @@ class AliasedMixin(SingleInputMixin):
         """Short repr to use when rendering Pipeline graphs."""
         return self.name
 
-    @classmethod
-    def make_aliased_type(cls, other_base):
-        """
-        Factory for making Aliased{Filter,Factor,Classifier}.
-        """
-        return type(
-            'Aliased' + other_base.__name__,
-            (cls, other_base),
-            {'__module__': other_base.__module__},
-        )
+    @staticmethod
+    def _universal_mixin_type():
+        return AliasedMixin
+
+    @staticmethod
+    def _universal_mixin_specialization_name(principal_type):
+        return 'Aliased' + principal_type.__name__
 
 
-class DownsampledMixin(StandardOutputs):
-    """
-    Mixin for behavior shared by Downsampled{Factor,Filter,Classifier}
+class DownsampledMixin(StandardOutputs, UniversalMixin):
+    """Universal mixin for downsampled terms.
 
     A downsampled term is a wrapper around the "real" term that performs actual
     computation. The downsampler is responsible for calling the real term's
@@ -524,21 +567,17 @@ class DownsampledMixin(StandardOutputs):
         # Concatenate stored results.
         return vstack(results)
 
-    @classmethod
-    def make_downsampled_type(cls, other_base):
-        """
-        Factory for making Downsampled{Filter,Factor,Classifier}.
-        """
-        return type(
-            'Downsampled' + other_base.__name__,
-            (cls, other_base,),
-            {'__module__': other_base.__module__},
-        )
+    @staticmethod
+    def _universal_mixin_type():
+        return DownsampledMixin
+
+    @staticmethod
+    def _universal_mixin_specialization_name(principal_type):
+        return 'Downsampled' + principal_type.__name__
 
 
-class SliceMixin(Term):
-    """
-    Mixin for the type returned by ComputableTerm's __getitem__ method.
+class SliceMixin(UniversalMixin):
+    """Universal mixin for taking columnar slices of terms.
 
     Parameters
     ----------
@@ -601,19 +640,16 @@ class SliceMixin(Term):
         """
         return self._asset
 
-    @classmethod
-    def make_slice_type(cls, other_base):
-        """
-        Factory for making {Filter,Factor,Classifier}Slice.
-        """
-        return type(
-            other_base.__name__ + 'Slice',
-            (cls, other_base),
-            {'__module__': other_base.__module__},
-        )
+    @staticmethod
+    def _universal_mixin_type():
+        return SliceMixin
+
+    @staticmethod
+    def _universal_mixin_specialization_name(principal_type):
+        return principal_type.__name__ + 'Slice'
 
 
-class IfElseMixin(Term):
+class IfElseMixin(UniversalMixin):
     """Universal mixin for types returned by Filter.if_else.
     """
     window_length = 0
@@ -639,18 +675,16 @@ class IfElseMixin(Term):
             return labelarray_where(inputs[0], inputs[1], inputs[2])
         return where(inputs[0], inputs[1], inputs[2])
 
-    @classmethod
-    def make_if_else_type(cls, other_base):
-        """Factor for making IfElse{Filter,Factor,Classifier}.
-        """
-        return type(
-            'IfElse' + other_base.__name__,
-            (cls, other_base),
-            {'__module__': other_base.__module__},
-        )
+    @staticmethod
+    def _universal_mixin_type():
+        return IfElseMixin
+
+    @staticmethod
+    def _universal_mixin_specialization_name(principal_type):
+        return 'IfElse' + principal_type.__name__
 
 
-class ConstantMixin(Term):
+class ConstantMixin(StandardOutputs, UniversalMixin):
     """Universal mixin for terms that produce a known constant value.
     """
     window_length = 0
@@ -668,10 +702,10 @@ class ConstantMixin(Term):
             )
         return out
 
-    @classmethod
-    def make_constant_type(cls, other_base):
-        return type(
-            'Constant' + other_base.__name__,
-            (cls, other_base),
-            {'__module__': other_base.__module__},
-        )
+    @staticmethod
+    def _universal_mixin_type():
+        return ConstantMixin
+
+    @staticmethod
+    def _universal_mixin_specialization_name(principal_type):
+        return 'Constant' + principal_type.__name__
