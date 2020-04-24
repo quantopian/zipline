@@ -244,31 +244,37 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
         self.assertEqual(message, expected_message)
 
     def test_bad_inputs(self):
+        def dtype_for_str(s):
+            return str(np.array([s]).dtype)
+
         self.should_error(
-            lambda: Floats().fillna(u'asdf'),
+            lambda: Floats().fillna('3.0'),
             TypeError,
-            "Fill value 'asdf' is not a valid choice for term Floats with "
-            "dtype float64.\n\n"
-            "Coercion attempt failed with: Cannot cast array from dtype('<U4')"
+            "Fill value '3.0' is not a valid choice for term Floats with"
+            " dtype float64.\n\n"
+            "Coercion attempt failed with: Cannot cast array from dtype('{}')"
             " to dtype('float64') according to the rule 'same_kind'"
+            .format(dtype_for_str('3.0'))
         )
 
         self.should_error(
-            lambda: Dates().fillna(u'asdf'),
+            lambda: Dates().fillna('2014-01-02'),
             TypeError,
-            "Fill value 'asdf' is not a valid choice for term Dates with "
-            "dtype datetime64[ns].\n\n"
-            "Coercion attempt failed with: Cannot cast array from dtype('<U4')"
+            "Fill value '2014-01-02' is not a valid choice for term Dates with"
+            " dtype datetime64[ns].\n\n"
+            "Coercion attempt failed with: Cannot cast array from dtype('{}')"
             " to dtype('<M8[ns]') according to the rule 'same_kind'"
+            .format(dtype_for_str('2014-01-02'))
         )
 
         self.should_error(
-            lambda: Ints().fillna(u'asdf'),
+            lambda: Ints().fillna('300'),
             TypeError,
-            "Fill value 'asdf' is not a valid choice for term Ints with "
-            "dtype int64.\n\n"
-            "Coercion attempt failed with: Cannot cast array from dtype('<U4')"
+            "Fill value '300' is not a valid choice for term Ints with"
+            " dtype int64.\n\n"
+            "Coercion attempt failed with: Cannot cast array from dtype('{}')"
             " to dtype('int64') according to the rule 'same_kind'"
+            .format(dtype_for_str('300'))
         )
 
         self.should_error(
