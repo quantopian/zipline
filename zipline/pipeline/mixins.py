@@ -12,6 +12,7 @@ from numpy import (
     recarray,
     searchsorted,
     vstack,
+    where,
 )
 from pandas import NaT as pd_NaT
 
@@ -21,13 +22,16 @@ from zipline.errors import (
     NonExistentAssetInTimeFrame,
     NoFurtherDataError,
 )
+from zipline.lib.labelarray import LabelArray, labelarray_where
 from zipline.utils.context_tricks import nop_context
-from zipline.utils.input_validation import expect_types
+from zipline.utils.input_validation import expect_dtypes, expect_types
+from zipline.utils.memoize import classlazyval
 from zipline.utils.sharedoc import (
     format_docstring,
     PIPELINE_ALIAS_NAME_DOC,
     PIPELINE_DOWNSAMPLING_FREQUENCY_DOC,
 )
+from zipline.utils.numpy_utils import bool_dtype
 from zipline.utils.pandas_utils import nearest_unequal_elements
 
 
@@ -611,6 +615,70 @@ class SliceMixin(Term):
         """
         return type(
             other_base.__name__ + 'Slice',
-            (cls, other_base,),
+            (cls, other_base),
+            {'__module__': other_base.__module__},
+        )
+
+
+class IfElseMixin(Term):
+    """Universal mixin for types returned by Filter.if_else.
+    """
+    window_length = 0
+
+    @expect_dtypes(condition=bool_dtype)
+    def __new__(cls, condition, if_true, if_false):
+        return super(IfElseMixin, cls).__new__(
+            cls,
+            inputs=[condition, if_true, if_false],
+            dtype=if_true.dtype,
+            ndim=if_true.ndim,
+            missing_value=if_true.missing_value,
+            window_safe=all((
+                condition.window_safe,
+                if_true.window_safe,
+                if_false.window_safe,
+            )),
+            outputs=if_true.outputs,
+        )
+
+    def _compute(self, inputs, assets, dates, mask):
+        if self.dtype == object:
+            return labelarray_where(inputs[0], inputs[1], inputs[2])
+        return where(inputs[0], inputs[1], inputs[2])
+
+    @classmethod
+    def make_if_else_type(cls, other_base):
+        """Factor for making IfElse{Filter,Factor,Classifier}.
+        """
+        return type(
+            'IfElse' + other_base.__name__,
+            (cls, other_base),
+            {'__module__': other_base.__module__},
+        )
+
+
+class ConstantMixin(Term):
+    """Universal mixin for terms that produce a known constant value.
+    """
+    window_length = 0
+    inputs = ()
+    params = ('const',)
+
+    def _compute(self, inputs, assets, dates, mask):
+        constant = self.params['const']
+        out = full(mask.shape, constant, dtype=self.dtype)
+        if self.dtype == object:
+            return LabelArray(
+                out,
+                categories=[constant],
+                missing_value=self.missing_value,
+            )
+        return out
+
+    @classmethod
+    def make_constant_type(cls, other_base):
+        return type(
+            'Constant' + other_base.__name__,
+            (cls, other_base),
             {'__module__': other_base.__module__},
         )

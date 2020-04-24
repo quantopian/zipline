@@ -36,6 +36,7 @@ from zipline.utils.numpy_utils import (
     datetime64ns_dtype,
     float64_dtype,
     default_missing_value_for_dtype,
+    float64_dtype,
 )
 from zipline.utils.sharedoc import (
     templated_docstring,
@@ -810,6 +811,109 @@ class ComputableTerm(Term):
 
         return NotNullFilter(self)
 
+    def fillna(self, fill_value):
+        """
+        Create a new term that fills missing values of this term's output with
+        ``fill_value``.
+
+        Parameters
+        ----------
+        fill_value : zipline.pipeline.ComputableTerm, or object.
+            Object to use as replacement for missing values.
+
+            If a ComputableTerm (e.g. a Factor) is passed, that term's results
+            will be used as fill values.
+
+            If a scalar (e.g. a number) is passed, the scalar will be used as a
+            fill value.
+
+        Examples
+        --------
+
+        **Filling with a Scalar:**
+
+        Let ``f`` be a Factor which would produce the following output::
+
+                         AAPL   MSFT    MCD     BK
+            2017-03-13    1.0    NaN    3.0    4.0
+            2017-03-14    1.5    2.5    NaN    NaN
+
+        Then ``f.fillna(0)`` produces the following output::
+
+                         AAPL   MSFT    MCD     BK
+            2017-03-13    1.0    0.0    3.0    4.0
+            2017-03-14    1.5    2.5    0.0    0.0
+
+        **Filling with a Term:**
+
+        Let ``f`` be as above, and let ``g`` be another Factor which would
+        produce the following output::
+
+                         AAPL   MSFT    MCD     BK
+            2017-03-13   10.0   20.0   30.0   40.0
+            2017-03-14   15.0   25.0   35.0   45.0
+
+        Then, ``f.fillna(g)`` produces the following output::
+
+                         AAPL   MSFT    MCD     BK
+            2017-03-13    1.0   20.0    3.0    4.0
+            2017-03-14    1.5    2.5   35.0   45.0
+
+        Returns
+        -------
+        filled : zipline.pipeline.ComputableTerm
+            A term computing the same results as ``self``, but with missing
+            values filled in using values from ``fill_value``.
+        """
+        if self.dtype == bool_dtype:
+            raise TypeError("fillna() is not supported for Filters")
+
+        if isinstance(fill_value, LoadableTerm):
+            raise TypeError(
+                "Can't use expression {} as a fill value. Did you mean to "
+                "append '.latest?'".format(fill_value)
+            )
+        elif isinstance(fill_value, ComputableTerm):
+            if_false = fill_value
+        else:
+            # Assume we got a scalar value. Make sure it's compatible with our
+            # dtype.
+            try:
+                fill_value = _coerce_to_dtype(fill_value, self.dtype)
+            except TypeError as e:
+                raise TypeError(
+                    "Fill value {value!r} is not a valid choice "
+                    "for term {termname} with dtype {dtype}.\n\n"
+                    "Coercion attempt failed with: {error}".format(
+                        termname=type(self).__name__,
+                        value=fill_value,
+                        dtype=self.dtype,
+                        error=e,
+                    )
+                )
+
+            if_false = self._constant_type(
+                const=fill_value,
+                dtype=self.dtype,
+                missing_value=self.missing_value,
+            )
+
+        return self.notnull().if_else(if_true=self, if_false=if_false)
+
+    @classlazyval
+    def _constant_type(cls):
+        from .mixins import ConstantMixin
+        return ConstantMixin.make_constant_type(
+            cls._principal_computable_term_type(),
+        )
+
+    @classlazyval
+    def _if_else_type(cls):
+        from .mixins import IfElseMixin
+        return IfElseMixin.make_if_else_type(
+            cls._principal_computable_term_type()
+        )
+
     def __repr__(self):
         return (
             "{type}([{inputs}], {window_length})"
@@ -862,18 +966,7 @@ def validate_dtype(termname, dtype, missing_value):
         missing_value = default_missing_value_for_dtype(dtype)
 
     try:
-        if (dtype == categorical_dtype):
-            # This check is necessary because we use object dtype for
-            # categoricals, and numpy will allow us to promote numerical
-            # values to object even though we don't support them.
-            _assert_valid_categorical_missing_value(missing_value)
-
-        # For any other type, we can check if the missing_value is safe by
-        # making an array of that value and trying to safely convert it to
-        # the desired type.
-        # 'same_kind' allows casting between things like float32 and
-        # float64, but not str and int.
-        array([missing_value]).astype(dtype=dtype, casting='same_kind')
+        _coerce_to_dtype(missing_value, dtype)
     except TypeError as e:
         raise TypeError(
             "Missing value {value!r} is not a valid choice "
@@ -899,8 +992,25 @@ def _assert_valid_categorical_missing_value(value):
     label_types = LabelArray.SUPPORTED_SCALAR_TYPES
     if not isinstance(value, label_types):
         raise TypeError(
-            "Categorical terms must have missing values of type "
-            "{types}.".format(
-                types=' or '.join([t.__name__ for t in label_types]),
-            )
+            "Classifiers can only produce values of type {types}."
+            .format(types=' or '.join([t.__name__ for t in label_types]))
         )
+
+
+def _coerce_to_dtype(value, dtype):
+    if dtype == categorical_dtype:
+        # This check is necessary because we use object dtype for
+        # categoricals, and numpy will allow us to promote numerical
+        # values to object even though we don't support them.
+        _assert_valid_categorical_missing_value(value)
+        return value
+    else:
+        # For any other type, cast using the same rules as numpy's astype
+        # function with casting='same_kind'.
+        #
+        # 'same_kind' allows casting between things like float32 and float64,
+        # but not between str and int. Note that the name is somewhat
+        # misleading, since it does allow conversion between different dtype
+        # kinds in some cases. In particular, conversion from int to float is
+        # allowed.
+        return array([value]).astype(dtype=dtype, casting='same_kind')[0]

@@ -357,6 +357,20 @@ def is_missing(data, missing_value):
     return (data == missing_value)
 
 
+def same(x, y):
+    """
+    Check if two scalar values are "the same".
+
+    Returns True if `x == y`, or if x and y are both NaN or both NaT.
+    """
+    if is_float(x) and isnan(x) and is_float(y) and isnan(y):
+        return True
+    elif is_datetime(x) and isnat(x) and is_datetime(y) and isnat(y):
+        return True
+    else:
+        return x == y
+
+
 def busday_count_mask_NaT(begindates, enddates, out=None):
     """
     Simple of numpy.busday_count that returns `float` arrays rather than int
