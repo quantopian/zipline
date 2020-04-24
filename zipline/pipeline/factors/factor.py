@@ -40,13 +40,9 @@ from zipline.pipeline.filters import (
     NumExprFilter,
     PercentileFilter,
     MaximumFilter,
-    NotNullFilter,
-    NullFilter,
 )
 from zipline.pipeline.mixins import (
-    AliasedMixin,
     CustomTermMixin,
-    DownsampledMixin,
     LatestMixin,
     PositiveWindowLengthMixin,
     RestrictedDTypeMixin,
@@ -57,7 +53,6 @@ from zipline.pipeline.term import AssetExists, ComputableTerm, Term
 from zipline.utils.functional import with_doc, with_name
 from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import nanmean, nanstd
-from zipline.utils.memoize import classlazyval
 from zipline.utils.numpy_utils import (
     bool_dtype,
     coerce_to_dtype,

@@ -4,7 +4,6 @@ Mixins classes for use with Filters and Factors.
 The mixin classes inherit from Term to ensure they appear before
 Term in the MRO of any class using the mixin
 """
-from textwrap import dedent
 
 from numpy import (
     array,
@@ -25,12 +24,6 @@ from zipline.errors import (
 from zipline.lib.labelarray import LabelArray, labelarray_where
 from zipline.utils.context_tricks import nop_context
 from zipline.utils.input_validation import expect_dtypes, expect_types
-from zipline.utils.memoize import classlazyval
-from zipline.utils.sharedoc import (
-    format_docstring,
-    PIPELINE_ALIAS_NAME_DOC,
-    PIPELINE_DOWNSAMPLING_FREQUENCY_DOC,
-)
 from zipline.utils.numpy_utils import bool_dtype
 from zipline.utils.pandas_utils import nearest_unequal_elements
 

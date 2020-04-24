@@ -34,7 +34,6 @@ from zipline.utils.numpy_utils import (
     bool_dtype,
     categorical_dtype,
     datetime64ns_dtype,
-    float64_dtype,
     default_missing_value_for_dtype,
     float64_dtype,
 )

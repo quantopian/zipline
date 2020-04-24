@@ -31,9 +31,7 @@ from zipline.pipeline.expression import (
     NumericalExpression,
 )
 from zipline.pipeline.mixins import (
-    AliasedMixin,
     CustomTermMixin,
-    DownsampledMixin,
     LatestMixin,
     PositiveWindowLengthMixin,
     RestrictedDTypeMixin,
@@ -42,7 +40,6 @@ from zipline.pipeline.mixins import (
 )
 from zipline.pipeline.term import ComputableTerm, Term
 from zipline.utils.input_validation import expect_types
-from zipline.utils.memoize import classlazyval
 from zipline.utils.numpy_utils import (
     same,
     bool_dtype,
