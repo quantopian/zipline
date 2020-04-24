@@ -238,14 +238,10 @@ class Term(with_metaclass(ABCMeta, object)):
     def __getitem__(self, key):
         if isinstance(self, LoadableTerm):
             raise NonSliceableTerm(term=self)
-        return self._slice_type(self, key)
 
-    @classlazyval
-    def _slice_type(cls):
         from .mixins import SliceMixin
-        return SliceMixin.make_slice_type(
-            cls._principal_computable_term_type()
-        )
+        slice_type = type(self)._with_mixin(SliceMixin)
+        return slice_type(self, key)
 
     @classmethod
     def _static_identity(cls,
@@ -726,17 +722,9 @@ class ComputableTerm(Term):
         ----------
         {frequency}
         """
-        return self._downsampled_type(term=self, frequency=frequency)
-
-    @classlazyval
-    def _downsampled_type(cls):
-        """
-        The expression type to return from downsample().
-        """
         from .mixins import DownsampledMixin
-        return DownsampledMixin.make_downsampled_type(
-            cls._principal_computable_term_type()
-        )
+        downsampled_type = type(self)._with_mixin(DownsampledMixin)
+        return downsampled_type(term=self, frequency=frequency)
 
     @templated_docstring(name=PIPELINE_ALIAS_NAME_DOC)
     def alias(self, name):
@@ -756,18 +744,9 @@ class ComputableTerm(Term):
         -----
         This is useful for giving a name to a numerical or boolean expression.
         """
-        return self._aliased_type(term=self, name=name)
-
-    @classlazyval
-    def _aliased_type(cls):
-        """
-        The expression type returned from alias().
-        """
         from .mixins import AliasedMixin
-
-        return AliasedMixin.make_aliased_type(
-            cls._principal_computable_term_type()
-        )
+        aliased_type = type(self)._with_mixin(AliasedMixin)
+        return aliased_type(term=self, name=name)
 
     def isnull(self):
         """
@@ -902,16 +881,12 @@ class ComputableTerm(Term):
     @classlazyval
     def _constant_type(cls):
         from .mixins import ConstantMixin
-        return ConstantMixin.make_constant_type(
-            cls._principal_computable_term_type(),
-        )
+        return cls._with_mixin(ConstantMixin)
 
     @classlazyval
     def _if_else_type(cls):
         from .mixins import IfElseMixin
-        return IfElseMixin.make_if_else_type(
-            cls._principal_computable_term_type()
-        )
+        return cls._with_mixin(IfElseMixin)
 
     def __repr__(self):
         return (
@@ -924,6 +899,12 @@ class ComputableTerm(Term):
 
     def recursive_repr(self):
         return type(self).__name__ + '(...)'
+
+    @classmethod
+    def _with_mixin(cls, mixin_type):
+        return mixin_type.universal_mixin_specialization(
+            cls._principal_computable_term_type(),
+        )
 
 
 def validate_dtype(termname, dtype, missing_value):
