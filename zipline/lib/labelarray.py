@@ -825,6 +825,7 @@ class _sortable_sentinel(object):
         return True
 
 
+@expect_types(trues=LabelArray, falses=LabelArray)
 def labelarray_where(cond, trues, falses):
     """LabelArray-aware implementation of np.where.
     """
