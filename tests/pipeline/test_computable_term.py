@@ -102,9 +102,10 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
         float_expected = np.where(null_locs, float_fillval, floats)
         float_expected_zero = np.where(null_locs, 0.0, floats)
 
-        dates = (
-            np.arange(num_cells).view('M8[D]').astype('M8[ns]').reshape(shape)
-        )
+        dates = (np.arange(num_cells, dtype='i8')
+                 .view('M8[D]')
+                 .astype('M8[ns]')
+                 .reshape(shape))
         dates[null_locs] = NaTns
         date_fillval = np.datetime64('2014-01-02', 'ns')
         date_expected = np.where(null_locs, date_fillval, dates)
@@ -176,7 +177,10 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
         float_expected = np.where(null_locs, float_fillval, floats)
         float_expected_1d = np.where(null_locs, float_fillval[:, [0]], floats)
 
-        dates = np.arange(16).view('M8[D]').astype('M8[ns]').reshape(shape)
+        dates = (np.arange(16, dtype='i8')
+                 .view('M8[D]')
+                 .astype('M8[ns]').
+                 reshape(shape))
         dates[null_locs] = NaTns
         date_fillval = rand_vals('M8[D]').astype('M8[ns]')
         date_expected = np.where(null_locs, date_fillval, dates)
