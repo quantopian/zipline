@@ -823,3 +823,16 @@ class _sortable_sentinel(object):
 
     def __lt__(self, other):
         return True
+
+
+@expect_types(trues=LabelArray, falses=LabelArray)
+def labelarray_where(cond, trues, falses):
+    """LabelArray-aware implementation of np.where.
+    """
+    if trues.missing_value != falses.missing_value:
+        raise ValueError(
+            "Can't compute where on arrays with different missing values."
+        )
+
+    strs = np.where(cond, trues.as_string_array(), falses.as_string_array())
+    return LabelArray(strs, missing_value=trues.missing_value)

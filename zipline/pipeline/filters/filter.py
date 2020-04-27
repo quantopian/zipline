@@ -31,9 +31,8 @@ from zipline.pipeline.expression import (
     NumericalExpression,
 )
 from zipline.pipeline.mixins import (
-    AliasedMixin,
     CustomTermMixin,
-    DownsampledMixin,
+    IfElseMixin,
     LatestMixin,
     PositiveWindowLengthMixin,
     RestrictedDTypeMixin,
@@ -42,8 +41,8 @@ from zipline.pipeline.mixins import (
 )
 from zipline.pipeline.term import ComputableTerm, Term
 from zipline.utils.input_validation import expect_types
-from zipline.utils.memoize import classlazyval
 from zipline.utils.numpy_utils import (
+    same,
     bool_dtype,
     int64_dtype,
     repeat_first_axis,
@@ -219,13 +218,105 @@ class Filter(RestrictedDTypeMixin, ComputableTerm):
             )
         return retval
 
-    @classlazyval
-    def _downsampled_type(self):
-        return DownsampledMixin.make_downsampled_type(Filter)
+    @classmethod
+    def _principal_computable_term_type(cls):
+        return Filter
 
-    @classlazyval
-    def _aliased_type(self):
-        return AliasedMixin.make_aliased_type(Filter)
+    @expect_types(if_true=ComputableTerm, if_false=ComputableTerm)
+    def if_else(self, if_true, if_false):
+        """
+        Create a term that selects values from one of two choices.
+
+        Parameters
+        ----------
+        if_true : zipline.pipeline.term.ComputableTerm
+            Expression whose values should be used at locations where this
+            filter outputs True.
+        if_false : zipline.pipeline.term.ComputableTerm
+            Expression whose values should be used at locations where this
+            filter outputs False.
+
+        Returns
+        -------
+        merged : zipline.pipeline.term.ComputableTerm
+           A term that computes by taking values from either ``if_true`` or
+           ``if_false``, depending on the values produced by ``self``.
+
+           The returned term draws from``if_true`` at locations where ``self``
+           produces True, and it draws from ``if_false`` at locations where
+           ``self`` produces False.
+
+        Example
+        -------
+
+        Let ``f`` be a Factor that produces the following output::
+
+                         AAPL   MSFT    MCD     BK
+            2017-03-13    1.0    2.0    3.0    4.0
+            2017-03-14    5.0    6.0    7.0    8.0
+
+        Let ``g`` be another Factor that produces the following output::
+
+                         AAPL   MSFT    MCD     BK
+            2017-03-13   10.0   20.0   30.0   40.0
+            2017-03-14   50.0   60.0   70.0   80.0
+
+        Finally, let ``condition`` be a Filter that produces the following
+        output::
+
+                         AAPL   MSFT    MCD     BK
+            2017-03-13   True  False   True  False
+            2017-03-14   True   True  False  False
+
+        Then, the expression ``condition.if_else(f, g)`` produces the following
+        output::
+
+                         AAPL   MSFT    MCD     BK
+            2017-03-13    1.0   20.0    3.0   40.0
+            2017-03-14    5.0    6.0   70.0   80.0
+
+        See Also
+        --------
+        numpy.where
+        Factor.fillna
+        """
+        true_type = if_true._principal_computable_term_type()
+        false_type = if_false._principal_computable_term_type()
+
+        if true_type is not false_type:
+            raise TypeError(
+                "Mismatched types in if_else(): if_true={}, but if_false={}"
+                .format(true_type.__name__, false_type.__name__)
+            )
+
+        if if_true.dtype != if_false.dtype:
+            raise TypeError(
+                "Mismatched dtypes in if_else(): "
+                "if_true.dtype = {}, if_false.dtype = {}"
+                .format(if_true.dtype, if_false.dtype)
+            )
+
+        if if_true.outputs != if_false.outputs:
+            raise ValueError(
+                "Mismatched outputs in if_else(): "
+                "if_true.outputs = {}, if_false.outputs = {}"
+                .format(if_true.outputs, if_false.outputs),
+            )
+
+        if not same(if_true.missing_value, if_false.missing_value):
+            raise ValueError(
+                "Mismatched missing values in if_else(): "
+                "if_true.missing_value = {!r}, if_false.missing_value = {!r}"
+                .format(if_true.missing_value, if_false.missing_value)
+            )
+
+        return_type = type(if_true)._with_mixin(IfElseMixin)
+
+        return return_type(
+            condition=self,
+            if_true=if_true,
+            if_false=if_false,
+        )
 
 
 class NumExprFilter(NumericalExpression, Filter):

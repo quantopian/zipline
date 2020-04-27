@@ -4,28 +4,28 @@ Mixins classes for use with Filters and Factors.
 The mixin classes inherit from Term to ensure they appear before
 Term in the MRO of any class using the mixin
 """
-from textwrap import dedent
+from abc import abstractmethod
 
 from numpy import (
     array,
     full,
     recarray,
+    searchsorted,
     vstack,
+    where,
 )
 from pandas import NaT as pd_NaT
 
 from zipline.errors import (
     WindowLengthNotPositive,
     UnsupportedDataType,
+    NonExistentAssetInTimeFrame,
     NoFurtherDataError,
 )
+from zipline.lib.labelarray import LabelArray, labelarray_where
 from zipline.utils.context_tricks import nop_context
-from zipline.utils.input_validation import expect_types
-from zipline.utils.sharedoc import (
-    format_docstring,
-    PIPELINE_ALIAS_NAME_DOC,
-    PIPELINE_DOWNSAMPLING_FREQUENCY_DOC,
-)
+from zipline.utils.input_validation import expect_dtypes, expect_types
+from zipline.utils.numpy_utils import bool_dtype
 from zipline.utils.pandas_utils import nearest_unequal_elements
 
 
@@ -279,7 +279,53 @@ class LatestMixin(SingleInputMixin):
         return "Latest"
 
 
-class AliasedMixin(SingleInputMixin):
+class UniversalMixin(Term):
+    """
+    Base class for "universal" mixins.
+
+    Universal mixins are used to implement expressions that need separate
+    subclasses for each of the ComputableTerm subclasses (Factor, Filter, and
+    Classifier). Such expressions are usually return types of methods of
+    ComputableTerm, such as `downsample()`, `alias()`, or `fillna()`.
+
+    A type may only inherit from one UniversalMixin.
+    """
+    # Memo dict mapping pairs of (mixin_type, principal_type) to subtypes.
+    _UNIVERSAL_MIXIN_SUBTYPES = {}
+
+    @staticmethod
+    @abstractmethod
+    def _universal_mixin_type():
+        raise NotImplementedError('_universal_mixin_type')
+
+    @staticmethod
+    @abstractmethod
+    def _universal_mixin_specialization_name(principal_type):
+        raise NotImplementedError('_universal_mixin_specialization_name')
+
+    @classmethod
+    def universal_mixin_specialization(cls, principal_type):
+        """
+        Create a new subtype of `principal_type` that adds this mixin to
+        ``principal_type``. ``principal_type`` will be one of Factor, Filter,
+        or Classifier.
+        """
+        mixin = cls._universal_mixin_type()
+        memo_key = (mixin, principal_type)
+
+        try:
+            return cls._UNIVERSAL_MIXIN_SUBTYPES[memo_key]
+        except KeyError:
+            new_type = type(
+                mixin._universal_mixin_specialization_name(principal_type),
+                (mixin, principal_type),
+                {'__module__': principal_type.__module__},
+            )
+            cls._UNIVERSAL_MIXIN_SUBTYPES[memo_key] = new_type
+            return new_type
+
+
+class AliasedMixin(SingleInputMixin, UniversalMixin):
     """
     Mixin for aliased terms.
     """
@@ -321,39 +367,17 @@ class AliasedMixin(SingleInputMixin):
         """Short repr to use when rendering Pipeline graphs."""
         return self.name
 
-    @classmethod
-    def make_aliased_type(cls, other_base):
-        """
-        Factory for making Aliased{Filter,Factor,Classifier}.
-        """
-        docstring = dedent(
-            """
-            A {t} that names another {t}.
+    @staticmethod
+    def _universal_mixin_type():
+        return AliasedMixin
 
-            Parameters
-            ----------
-            term : {t}
-            {{name}}
-            """
-        ).format(t=other_base.__name__)
-
-        doc = format_docstring(
-            owner_name=other_base.__name__,
-            docstring=docstring,
-            formatters={'name': PIPELINE_ALIAS_NAME_DOC},
-        )
-
-        return type(
-            'Aliased' + other_base.__name__,
-            (cls, other_base),
-            {'__doc__': doc,
-             '__module__': other_base.__module__},
-        )
+    @staticmethod
+    def _universal_mixin_specialization_name(principal_type):
+        return 'Aliased' + principal_type.__name__
 
 
-class DownsampledMixin(StandardOutputs):
-    """
-    Mixin for behavior shared by Downsampled{Factor,Filter,Classifier}
+class DownsampledMixin(StandardOutputs, UniversalMixin):
+    """Universal mixin for downsampled terms.
 
     A downsampled term is a wrapper around the "real" term that performs actual
     computation. The downsampler is responsible for calling the real term's
@@ -543,31 +567,144 @@ class DownsampledMixin(StandardOutputs):
         # Concatenate stored results.
         return vstack(results)
 
+    @staticmethod
+    def _universal_mixin_type():
+        return DownsampledMixin
+
+    @staticmethod
+    def _universal_mixin_specialization_name(principal_type):
+        return 'Downsampled' + principal_type.__name__
+
+
+class SliceMixin(UniversalMixin):
+    """Universal mixin for taking columnar slices of terms.
+
+    Parameters
+    ----------
+    term : zipline.pipeline.Term
+        The term from which to extract a column of data.
+    asset : zipline.assets.Asset
+        The asset corresponding to the column of `term` to be extracted.
+
+    Notes
+    -----
+    Users should rarely construct instances of `Slice` directly. Instead, they
+    should construct instances via indexing, e.g. `MyFactor()[Asset(24)]`.
+    """
+    def __new__(cls, term, asset):
+        return super(SliceMixin, cls).__new__(
+            cls,
+            asset=asset,
+            inputs=[term],
+            window_length=0,
+            mask=term.mask,
+            dtype=term.dtype,
+            missing_value=term.missing_value,
+            window_safe=term.window_safe,
+            ndim=1,
+        )
+
+    def __repr__(self):
+        return "{parent_term}[{asset}]".format(
+            parent_term=self.inputs[0].recursive_repr(),
+            asset=self._asset,
+        )
+
+    def _init(self, asset, *args, **kwargs):
+        self._asset = asset
+        return super(SliceMixin, self)._init(*args, **kwargs)
+
     @classmethod
-    def make_downsampled_type(cls, other_base):
-        """
-        Factory for making Downsampled{Filter,Factor,Classifier}.
-        """
-        docstring = dedent(
-            """
-            A {t} that defers to another {t} at lower-than-daily frequency.
-
-            Parameters
-            ----------
-            term : {t}
-            {{frequency}}
-            """
-        ).format(t=other_base.__name__)
-
-        doc = format_docstring(
-            owner_name=other_base.__name__,
-            docstring=docstring,
-            formatters={'frequency': PIPELINE_DOWNSAMPLING_FREQUENCY_DOC},
+    def _static_identity(cls, asset, *args, **kwargs):
+        return (
+            super(SliceMixin, cls)._static_identity(*args, **kwargs),
+            asset,
         )
 
-        return type(
-            'Downsampled' + other_base.__name__,
-            (cls, other_base,),
-            {'__doc__': doc,
-             '__module__': other_base.__module__},
+    def _compute(self, windows, dates, assets, mask):
+        asset = self._asset
+        asset_column = searchsorted(assets.values, asset.sid)
+        if assets[asset_column] != asset.sid:
+            raise NonExistentAssetInTimeFrame(
+                asset=asset, start_date=dates[0], end_date=dates[-1],
+            )
+
+        # Return a 2D array with one column rather than a 1D array of the
+        # column.
+        return windows[0][:, [asset_column]]
+
+    @property
+    def asset(self):
+        """Get the asset whose data is selected by this slice.
+        """
+        return self._asset
+
+    @staticmethod
+    def _universal_mixin_type():
+        return SliceMixin
+
+    @staticmethod
+    def _universal_mixin_specialization_name(principal_type):
+        return principal_type.__name__ + 'Slice'
+
+
+class IfElseMixin(UniversalMixin):
+    """Universal mixin for types returned by Filter.if_else.
+    """
+    window_length = 0
+
+    @expect_dtypes(condition=bool_dtype)
+    def __new__(cls, condition, if_true, if_false):
+        return super(IfElseMixin, cls).__new__(
+            cls,
+            inputs=[condition, if_true, if_false],
+            dtype=if_true.dtype,
+            ndim=if_true.ndim,
+            missing_value=if_true.missing_value,
+            window_safe=all((
+                condition.window_safe,
+                if_true.window_safe,
+                if_false.window_safe,
+            )),
+            outputs=if_true.outputs,
         )
+
+    def _compute(self, inputs, assets, dates, mask):
+        if self.dtype == object:
+            return labelarray_where(inputs[0], inputs[1], inputs[2])
+        return where(inputs[0], inputs[1], inputs[2])
+
+    @staticmethod
+    def _universal_mixin_type():
+        return IfElseMixin
+
+    @staticmethod
+    def _universal_mixin_specialization_name(principal_type):
+        return 'IfElse' + principal_type.__name__
+
+
+class ConstantMixin(StandardOutputs, UniversalMixin):
+    """Universal mixin for terms that produce a known constant value.
+    """
+    window_length = 0
+    inputs = ()
+    params = ('const',)
+
+    def _compute(self, inputs, assets, dates, mask):
+        constant = self.params['const']
+        out = full(mask.shape, constant, dtype=self.dtype)
+        if self.dtype == object:
+            return LabelArray(
+                out,
+                categories=[constant],
+                missing_value=self.missing_value,
+            )
+        return out
+
+    @staticmethod
+    def _universal_mixin_type():
+        return ConstantMixin
+
+    @staticmethod
+    def _universal_mixin_specialization_name(principal_type):
+        return 'Constant' + principal_type.__name__

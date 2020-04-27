@@ -1,7 +1,7 @@
 """
 Base class for Filters, Factors and Classifiers
 """
-from abc import ABCMeta, abstractproperty
+from abc import ABCMeta, abstractproperty, abstractmethod
 from bisect import insort
 from collections import Mapping
 from weakref import WeakValueDictionary
@@ -10,7 +10,6 @@ from numpy import (
     array,
     dtype as dtype_class,
     ndarray,
-    searchsorted,
 )
 from six import with_metaclass
 
@@ -18,7 +17,6 @@ from zipline.assets import Asset
 from zipline.errors import (
     DTypeNotSpecified,
     InvalidOutputName,
-    NonExistentAssetInTimeFrame,
     NonSliceableTerm,
     NonWindowSafeInput,
     NotDType,
@@ -31,12 +29,13 @@ from zipline.errors import (
 from zipline.lib.adjusted_array import can_represent_dtype
 from zipline.lib.labelarray import LabelArray
 from zipline.utils.input_validation import expect_types
-from zipline.utils.memoize import lazyval
+from zipline.utils.memoize import classlazyval, lazyval
 from zipline.utils.numpy_utils import (
     bool_dtype,
     categorical_dtype,
     datetime64ns_dtype,
     default_missing_value_for_dtype,
+    float64_dtype,
 )
 from zipline.utils.sharedoc import (
     templated_docstring,
@@ -239,7 +238,10 @@ class Term(with_metaclass(ABCMeta, object)):
     def __getitem__(self, key):
         if isinstance(self, LoadableTerm):
             raise NonSliceableTerm(term=self)
-        return Slice(self, key)
+
+        from .mixins import SliceMixin
+        slice_type = type(self)._with_mixin(SliceMixin)
+        return slice_type(self, key)
 
     @classmethod
     def _static_identity(cls,
@@ -619,7 +621,29 @@ class ComputableTerm(Term):
         ``compute`` is reserved for user-supplied functions in
         CustomFilter/CustomFactor/CustomClassifier.
         """
-        raise NotImplementedError()
+        raise NotImplementedError('_compute')
+
+    # NOTE: This is a method rather than a property because ABCMeta tries to
+    #       access all abstract attributes of its child classes to see if
+    #       they've been implemented. These accesses happen during subclass
+    #       creation, before the new subclass has been bound to a name in its
+    #       defining scope. Filter, Factor, and Classifier each implement this
+    #       method to return themselves, but if the method is invoked before
+    #       class definition is finished (which happens if this is a property),
+    #       they fail with a NameError.
+    @classmethod
+    @abstractmethod
+    def _principal_computable_term_type(cls):
+        """
+        Return the "principal" type for a ComputableTerm.
+
+        This returns either Filter, Factor, or Classifier, depending on the
+        type of ``cls``. It is used to implement behaviors like ``downsample``
+        and ``if_then_else`` that are implemented on all ComputableTerms, but
+        that need to produce different output types depending on the type of
+        the receiver.
+        """
+        raise NotImplementedError('_principal_computable_term_type')
 
     @lazyval
     def windowed(self):
@@ -688,15 +712,6 @@ class ComputableTerm(Term):
             fill_value=self.missing_value,
         ).values
 
-    def _downsampled_type(self, *args, **kwargs):
-        """
-        The expression type to return from self.downsample().
-        """
-        raise NotImplementedError(
-            "downsampling is not yet implemented "
-            "for instances of %s." % type(self).__name__
-        )
-
     @expect_downsample_frequency
     @templated_docstring(frequency=PIPELINE_DOWNSAMPLING_FREQUENCY_DOC)
     def downsample(self, frequency):
@@ -707,16 +722,9 @@ class ComputableTerm(Term):
         ----------
         {frequency}
         """
-        return self._downsampled_type(term=self, frequency=frequency)
-
-    def _aliased_type(self, *args, **kwargs):
-        """
-        The expression type to return from self.alias().
-        """
-        raise NotImplementedError(
-            "alias is not yet implemented "
-            "for instances of %s." % type(self).__name__
-        )
+        from .mixins import DownsampledMixin
+        downsampled_type = type(self)._with_mixin(DownsampledMixin)
+        return downsampled_type(term=self, frequency=frequency)
 
     @templated_docstring(name=PIPELINE_ALIAS_NAME_DOC)
     def alias(self, name):
@@ -736,7 +744,149 @@ class ComputableTerm(Term):
         -----
         This is useful for giving a name to a numerical or boolean expression.
         """
-        return self._aliased_type(term=self, name=name)
+        from .mixins import AliasedMixin
+        aliased_type = type(self)._with_mixin(AliasedMixin)
+        return aliased_type(term=self, name=name)
+
+    def isnull(self):
+        """
+        A Filter producing True for values where this Factor has missing data.
+
+        Equivalent to self.isnan() when ``self.dtype`` is float64.
+        Otherwise equivalent to ``self.eq(self.missing_value)``.
+
+        Returns
+        -------
+        filter : zipline.pipeline.Filter
+        """
+        if self.dtype == bool_dtype:
+            raise TypeError("isnull() is not supported for Filters")
+
+        from .filters import NullFilter
+
+        if self.dtype == float64_dtype:
+            # Using isnan is more efficient when possible because we can fold
+            # the isnan computation with other NumExpr expressions.
+            return self.isnan()
+        else:
+            return NullFilter(self)
+
+    def notnull(self):
+        """
+        A Filter producing True for values where this Factor has complete data.
+
+        Equivalent to ``~self.isnan()` when ``self.dtype`` is float64.
+        Otherwise equivalent to ``(self != self.missing_value)``.
+
+        Returns
+        -------
+        filter : zipline.pipeline.Filter
+        """
+        if self.dtype == bool_dtype:
+            raise TypeError("notnull() is not supported for Filters")
+
+        from .filters import NotNullFilter
+
+        return NotNullFilter(self)
+
+    def fillna(self, fill_value):
+        """
+        Create a new term that fills missing values of this term's output with
+        ``fill_value``.
+
+        Parameters
+        ----------
+        fill_value : zipline.pipeline.ComputableTerm, or object.
+            Object to use as replacement for missing values.
+
+            If a ComputableTerm (e.g. a Factor) is passed, that term's results
+            will be used as fill values.
+
+            If a scalar (e.g. a number) is passed, the scalar will be used as a
+            fill value.
+
+        Examples
+        --------
+
+        **Filling with a Scalar:**
+
+        Let ``f`` be a Factor which would produce the following output::
+
+                         AAPL   MSFT    MCD     BK
+            2017-03-13    1.0    NaN    3.0    4.0
+            2017-03-14    1.5    2.5    NaN    NaN
+
+        Then ``f.fillna(0)`` produces the following output::
+
+                         AAPL   MSFT    MCD     BK
+            2017-03-13    1.0    0.0    3.0    4.0
+            2017-03-14    1.5    2.5    0.0    0.0
+
+        **Filling with a Term:**
+
+        Let ``f`` be as above, and let ``g`` be another Factor which would
+        produce the following output::
+
+                         AAPL   MSFT    MCD     BK
+            2017-03-13   10.0   20.0   30.0   40.0
+            2017-03-14   15.0   25.0   35.0   45.0
+
+        Then, ``f.fillna(g)`` produces the following output::
+
+                         AAPL   MSFT    MCD     BK
+            2017-03-13    1.0   20.0    3.0    4.0
+            2017-03-14    1.5    2.5   35.0   45.0
+
+        Returns
+        -------
+        filled : zipline.pipeline.ComputableTerm
+            A term computing the same results as ``self``, but with missing
+            values filled in using values from ``fill_value``.
+        """
+        if self.dtype == bool_dtype:
+            raise TypeError("fillna() is not supported for Filters")
+
+        if isinstance(fill_value, LoadableTerm):
+            raise TypeError(
+                "Can't use expression {} as a fill value. Did you mean to "
+                "append '.latest?'".format(fill_value)
+            )
+        elif isinstance(fill_value, ComputableTerm):
+            if_false = fill_value
+        else:
+            # Assume we got a scalar value. Make sure it's compatible with our
+            # dtype.
+            try:
+                fill_value = _coerce_to_dtype(fill_value, self.dtype)
+            except TypeError as e:
+                raise TypeError(
+                    "Fill value {value!r} is not a valid choice "
+                    "for term {termname} with dtype {dtype}.\n\n"
+                    "Coercion attempt failed with: {error}".format(
+                        termname=type(self).__name__,
+                        value=fill_value,
+                        dtype=self.dtype,
+                        error=e,
+                    )
+                )
+
+            if_false = self._constant_type(
+                const=fill_value,
+                dtype=self.dtype,
+                missing_value=self.missing_value,
+            )
+
+        return self.notnull().if_else(if_true=self, if_false=if_false)
+
+    @classlazyval
+    def _constant_type(cls):
+        from .mixins import ConstantMixin
+        return cls._with_mixin(ConstantMixin)
+
+    @classlazyval
+    def _if_else_type(cls):
+        from .mixins import IfElseMixin
+        return cls._with_mixin(IfElseMixin)
 
     def __repr__(self):
         return (
@@ -750,73 +900,10 @@ class ComputableTerm(Term):
     def recursive_repr(self):
         return type(self).__name__ + '(...)'
 
-
-class Slice(ComputableTerm):
-    """
-    Term for extracting a single column of a another term's output.
-
-    Parameters
-    ----------
-    term : zipline.pipeline.Term
-        The term from which to extract a column of data.
-    asset : zipline.assets.Asset
-        The asset corresponding to the column of `term` to be extracted.
-
-    Notes
-    -----
-    Users should rarely construct instances of `Slice` directly. Instead, they
-    should construct instances via indexing, e.g. `MyFactor()[Asset(24)]`.
-    """
-    def __new__(cls, term, asset):
-        return super(Slice, cls).__new__(
-            cls,
-            asset=asset,
-            inputs=[term],
-            window_length=0,
-            mask=term.mask,
-            dtype=term.dtype,
-            missing_value=term.missing_value,
-            window_safe=term.window_safe,
-            ndim=1,
-        )
-
-    def __repr__(self):
-        return "{parent_term}[{asset}]".format(
-            type=type(self).__name__,
-            parent_term=self.inputs[0].recursive_repr(),
-            asset=self._asset,
-        )
-
-    def _init(self, asset, *args, **kwargs):
-        self._asset = asset
-        return super(Slice, self)._init(*args, **kwargs)
-
     @classmethod
-    def _static_identity(cls, asset, *args, **kwargs):
-        return (super(Slice, cls)._static_identity(*args, **kwargs), asset)
-
-    def _compute(self, windows, dates, assets, mask):
-        asset = self._asset
-        asset_column = searchsorted(assets.values, asset.sid)
-        if assets[asset_column] != asset.sid:
-            raise NonExistentAssetInTimeFrame(
-                asset=asset, start_date=dates[0], end_date=dates[-1],
-            )
-
-        # Return a 2D array with one column rather than a 1D array of the
-        # column.
-        return windows[0][:, [asset_column]]
-
-    @property
-    def asset(self):
-        """Get the asset whose data is selected by this slice.
-        """
-        return self._asset
-
-    @property
-    def _downsampled_type(self):
-        raise NotImplementedError(
-            'downsampling of slices is not yet supported'
+    def _with_mixin(cls, mixin_type):
+        return mixin_type.universal_mixin_specialization(
+            cls._principal_computable_term_type(),
         )
 
 
@@ -859,18 +946,7 @@ def validate_dtype(termname, dtype, missing_value):
         missing_value = default_missing_value_for_dtype(dtype)
 
     try:
-        if (dtype == categorical_dtype):
-            # This check is necessary because we use object dtype for
-            # categoricals, and numpy will allow us to promote numerical
-            # values to object even though we don't support them.
-            _assert_valid_categorical_missing_value(missing_value)
-
-        # For any other type, we can check if the missing_value is safe by
-        # making an array of that value and trying to safely convert it to
-        # the desired type.
-        # 'same_kind' allows casting between things like float32 and
-        # float64, but not str and int.
-        array([missing_value]).astype(dtype=dtype, casting='same_kind')
+        _coerce_to_dtype(missing_value, dtype)
     except TypeError as e:
         raise TypeError(
             "Missing value {value!r} is not a valid choice "
@@ -896,8 +972,25 @@ def _assert_valid_categorical_missing_value(value):
     label_types = LabelArray.SUPPORTED_SCALAR_TYPES
     if not isinstance(value, label_types):
         raise TypeError(
-            "Categorical terms must have missing values of type "
-            "{types}.".format(
-                types=' or '.join([t.__name__ for t in label_types]),
-            )
+            "String-dtype classifiers can only produce strings or None."
+            .format(types=' or '.join([t.__name__ for t in label_types]))
         )
+
+
+def _coerce_to_dtype(value, dtype):
+    if dtype == categorical_dtype:
+        # This check is necessary because we use object dtype for
+        # categoricals, and numpy will allow us to promote numerical
+        # values to object even though we don't support them.
+        _assert_valid_categorical_missing_value(value)
+        return value
+    else:
+        # For any other type, cast using the same rules as numpy's astype
+        # function with casting='same_kind'.
+        #
+        # 'same_kind' allows casting between things like float32 and float64,
+        # but not between str and int. Note that the name is somewhat
+        # misleading, since it does allow conversion between different dtype
+        # kinds in some cases. In particular, conversion from int to float is
+        # allowed.
+        return array([value]).astype(dtype=dtype, casting='same_kind')[0]

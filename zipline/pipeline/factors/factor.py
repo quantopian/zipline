@@ -40,13 +40,9 @@ from zipline.pipeline.filters import (
     NumExprFilter,
     PercentileFilter,
     MaximumFilter,
-    NotNullFilter,
-    NullFilter,
 )
 from zipline.pipeline.mixins import (
-    AliasedMixin,
     CustomTermMixin,
-    DownsampledMixin,
     LatestMixin,
     PositiveWindowLengthMixin,
     RestrictedDTypeMixin,
@@ -57,7 +53,6 @@ from zipline.pipeline.term import AssetExists, ComputableTerm, Term
 from zipline.utils.functional import with_doc, with_name
 from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import nanmean, nanstd
-from zipline.utils.memoize import classlazyval
 from zipline.utils.numpy_utils import (
     bool_dtype,
     coerce_to_dtype,
@@ -1195,33 +1190,6 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             mask=mask,
         )
 
-    def isnull(self):
-        """
-        A Filter producing True for values where this Factor has missing data.
-
-        Equivalent to self.isnan() when ``self.dtype`` is float64.
-        Otherwise equivalent to ``self.eq(self.missing_value)``.
-
-        Returns
-        -------
-        filter : zipline.pipeline.Filter
-        """
-        if self.dtype == float64_dtype:
-            # Using isnan is more efficient when possible because we can fold
-            # the isnan computation with other NumExpr expressions.
-            return self.isnan()
-        else:
-            return NullFilter(self)
-
-    def notnull(self):
-        """
-        A Filter producing True for values where this Factor has complete data.
-
-        Equivalent to ``~self.isnan()` when ``self.dtype`` is float64.
-        Otherwise equivalent to ``(self != self.missing_value)``.
-        """
-        return NotNullFilter(self)
-
     @if_not_float64_tell_caller_to_use_isnull
     def isnan(self):
         """
@@ -1252,13 +1220,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         """
         return (-inf < self) & (self < inf)
 
-    @classlazyval
-    def _downsampled_type(self):
-        return DownsampledMixin.make_downsampled_type(Factor)
-
-    @classlazyval
-    def _aliased_type(self):
-        return AliasedMixin.make_aliased_type(Factor)
+    @classmethod
+    def _principal_computable_term_type(cls):
+        return Factor
 
 
 class NumExprFactor(NumericalExpression, Factor):
