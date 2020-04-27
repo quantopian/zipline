@@ -6,6 +6,7 @@ from numpy import arange, prod
 from pandas import DataFrame, Timestamp
 from six import iteritems
 
+from zipline.lib.labelarray import LabelArray
 from zipline.utils.compat import wraps
 from zipline.pipeline import ExecutionPlan
 from zipline.pipeline.domain import US_EQUITIES
@@ -171,9 +172,42 @@ class BaseUSEquityPipelineTestCase(WithTradingSessions,
     @with_default_shape
     def randn_data(self, seed, shape):
         """
-        Build a block of testing data from a seeded RandomState.
+        Build a block of random numerical data.
         """
         return np.random.RandomState(seed).randn(*shape)
+
+    @with_default_shape
+    def rand_ints(self, seed, shape, low=0, high=10):
+        """
+        Build a block of random numerical data.
+        """
+        rand = np.random.RandomState(seed)
+        return rand.randint(low, high, shape, dtype='i8')
+
+    @with_default_shape
+    def rand_datetimes(self, seed, shape):
+        ints = self.rand_ints(seed=seed, shape=shape, low=0, high=10000)
+        return ints.astype('datetime64[D]').astype('datetime64[ns]')
+
+    @with_default_shape
+    def rand_categoricals(self, categories, seed, shape, missing_value=None):
+        """Build a block of random categorical data.
+
+        Categories should not include ``missing_value``.
+        """
+        categories = list(categories) + [missing_value]
+        data = np.random.RandomState(seed).choice(categories, shape)
+        return LabelArray(
+            data,
+            missing_value=missing_value,
+            categories=categories,
+        )
+
+    @with_default_shape
+    def rand_mask(self, seed, shape):
+        """Build a block of random boolean data.
+        """
+        return np.random.RandomState(seed).randint(0, 2, shape).astype(bool)
 
     @with_default_shape
     def eye_mask(self, shape):
