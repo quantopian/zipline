@@ -58,6 +58,7 @@ build: false
 init:
   - "ECHO %PYTHON_VERSION% %PYTHON_ARCH% %PYTHON%"
   - "ECHO %NUMPY_VERSION%"
+  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 install:
   # If there is a newer build queued for the same PR, cancel this one.
@@ -115,6 +116,6 @@ test_script:
   - nosetests -e zipline.utils.numpy_utils
   - flake8 zipline tests
 
-branches:
-  only:
-    - master
+#branches:
+#  only:
+#    - master
