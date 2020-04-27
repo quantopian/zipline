@@ -115,7 +115,7 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
         str_fillval = "filled"
         str_expected = np.where(null_locs, str_fillval, strs)
 
-        ints = np.arange(num_cells).reshape(shape)
+        ints = np.arange(num_cells, dtype='i8').reshape(shape)
         ints[null_locs] = -1
         int_fillval = 777
         int_expected = np.where(null_locs, int_fillval, ints)
