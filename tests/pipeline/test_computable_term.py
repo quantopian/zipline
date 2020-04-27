@@ -244,17 +244,17 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
         self.assertEqual(message, expected_message)
 
     def test_bad_inputs(self):
-        def dtype_for_str(s):
-            return str(np.array([s]).dtype)
+        def dtype_for(o):
+            return np.array([o]).dtype
 
         self.should_error(
             lambda: Floats().fillna('3.0'),
             TypeError,
             "Fill value '3.0' is not a valid choice for term Floats with"
             " dtype float64.\n\n"
-            "Coercion attempt failed with: Cannot cast array from dtype('{}')"
-            " to dtype('float64') according to the rule 'same_kind'"
-            .format(dtype_for_str('3.0'))
+            "Coercion attempt failed with: Cannot cast array from {!r}"
+            " to {!r} according to the rule 'same_kind'"
+            .format(dtype_for('3.0'), np.dtype(float))
         )
 
         self.should_error(
@@ -262,9 +262,9 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
             TypeError,
             "Fill value '2014-01-02' is not a valid choice for term Dates with"
             " dtype datetime64[ns].\n\n"
-            "Coercion attempt failed with: Cannot cast array from dtype('{}')"
-            " to dtype('<M8[ns]') according to the rule 'same_kind'"
-            .format(dtype_for_str('2014-01-02'))
+            "Coercion attempt failed with: Cannot cast array from {!r}"
+            " to {!r} according to the rule 'same_kind'"
+            .format(dtype_for('2014-01-02'), np.dtype('M8[ns]'))
         )
 
         self.should_error(
@@ -272,9 +272,9 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
             TypeError,
             "Fill value '300' is not a valid choice for term Ints with"
             " dtype int64.\n\n"
-            "Coercion attempt failed with: Cannot cast array from dtype('{}')"
-            " to dtype('int64') according to the rule 'same_kind'"
-            .format(dtype_for_str('300'))
+            "Coercion attempt failed with: Cannot cast array from {!r}"
+            " to {!r} according to the rule 'same_kind'"
+            .format(dtype_for('300'), np.dtype('i8')),
         )
 
         self.should_error(
@@ -282,8 +282,9 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
             TypeError,
             "Fill value 10.0 is not a valid choice for term Strs with dtype"
             " object.\n\n"
-            "Coercion attempt failed with: Classifiers can only produce values"
-            " of type bytes or str or NoneType."
+            "Coercion attempt failed with: "
+            "String-dtype classifiers can only produce strings or None."
+
         )
 
     def make_labelarray(self, strs):
