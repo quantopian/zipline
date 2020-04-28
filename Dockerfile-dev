@@ -29,6 +29,6 @@ FROM quantopian/zipline
 
 WORKDIR /zipline
 
-RUN pip install -r etc/requirements_dev.txt -r etc/requirements_blaze.txt
+RUN pip install -r etc/requirements_dev.in -r etc/requirements_blaze.in
 # Clean out any cython assets. The pip install re-builds them.
 RUN find . -type f -name '*.c' -exec rm {} + && pip install -e .[all]
