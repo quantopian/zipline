@@ -19,6 +19,7 @@ from numpy import (
     log1p,
     nan,
     ones,
+    ones_like,
     rot90,
     where,
 )
@@ -38,7 +39,10 @@ from zipline.pipeline.factors import (
     Returns,
     PercentChange,
 )
-from zipline.pipeline.factors.factor import winsorize as zp_winsorize
+from zipline.pipeline.factors.factor import (
+    summary_funcs,
+    winsorize as zp_winsorize,
+)
 from zipline.testing import (
     check_allclose,
     check_arrays,
@@ -51,9 +55,11 @@ from zipline.testing.fixtures import (
 )
 from zipline.testing.predicates import assert_equal
 from zipline.utils.numpy_utils import (
+    as_column,
     categorical_dtype,
     datetime64ns_dtype,
     float64_dtype,
+    ignore_nanwarnings,
     int64_dtype,
     NaTns,
 )
@@ -737,7 +743,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                  [0.000,     nan,  1.250, -1.250],
                  [-0.500,  0.500,    nan,  0.000],
                  [-0.500,  0.500,  0.000,    nan]]
-            )
+            ),
         }
         # Changing the classifier dtype shouldn't affect anything.
         expected['grouped_str'] = expected['grouped']
@@ -1504,3 +1510,230 @@ class TestSpecialCases(WithUSEquityPricingPipelineEngine,
             'daily': DailyReturns(),
             'manual_daily': Returns(window_length=2),
         })
+
+
+class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
+
+    @parameter_space(
+        seed=[1, 2, 3],
+        mask=[
+            np.zeros((10, 5), dtype=bool),
+            ones((10, 5), dtype=bool),
+            eye(10, 5, dtype=bool),
+            ~eye(10, 5, dtype=bool),
+        ]
+    )
+    def test_summary_methods(self, seed, mask):
+        """Test that summary funcs work the same as numpy NaN-aware funcs.
+        """
+        rand = np.random.RandomState(seed)
+        shape = (10, 5)
+        data = rand.randn(*shape)
+        data[~mask] = np.nan
+
+        workspace = {F(): data}
+        terms = {
+            'mean': F().mean(),
+            'sum': F().sum(),
+            'median': F().median(),
+            'min': F().min(),
+            'max': F().max(),
+            'stddev': F().stddev(),
+            'notnull_count': F().notnull_count(),
+        }
+
+        with ignore_nanwarnings():
+            expected = {
+                'mean': as_column(np.nanmean(data, axis=1)),
+                'sum': as_column(np.nansum(data, axis=1)),
+                'median': as_column(np.nanmedian(data, axis=1)),
+                'min': as_column(np.nanmin(data, axis=1)),
+                'max': as_column(np.nanmax(data, axis=1)),
+                'stddev': as_column(np.nanstd(data, axis=1)),
+                'notnull_count': as_column((~np.isnan(data)).sum(axis=1)),
+            }
+
+        # Make sure we have test coverage for all summary funcs.
+        self.assertEqual(set(expected), summary_funcs.names)
+
+        self.check_terms(
+            terms=terms,
+            expected=expected,
+            initial_workspace=workspace,
+            mask=self.build_mask(ones(shape)),
+        )
+
+    @parameter_space(
+        seed=[4, 5, 6],
+        mask=[
+            np.zeros((10, 5), dtype=bool),
+            ones((10, 5), dtype=bool),
+            eye(10, 5, dtype=bool),
+            ~eye(10, 5, dtype=bool),
+        ]
+    )
+    def test_built_in_vs_summary(self, seed, mask):
+        """Test that summary funcs match normalization functions.
+        """
+        rand = np.random.RandomState(seed)
+        shape = (10, 5)
+        data = rand.randn(*shape)
+        data[~mask] = np.nan
+
+        workspace = {F(): data}
+        terms = {
+            'demean': F().demean(),
+            'alt_demean': F() - F().mean(),
+
+            'zscore': F().zscore(),
+            'alt_zscore': (F() - F().mean()) / F().stddev(),
+
+            'mean': F().mean(),
+            'alt_mean': F().sum() / F().notnull_count(),
+        }
+
+        result = self.run_terms(
+            terms,
+            initial_workspace=workspace,
+            mask=self.build_mask(ones(shape)),
+        )
+
+        assert_equal(result['demean'], result['alt_demean'])
+        assert_equal(result['zscore'], result['alt_zscore'])
+
+    @parameter_space(
+        seed=[100, 200, 300],
+        mask=[
+            np.zeros((10, 5), dtype=bool),
+            ones((10, 5), dtype=bool),
+            eye(10, 5, dtype=bool),
+            ~eye(10, 5, dtype=bool),
+        ]
+    )
+    def test_complex_expression(self, seed, mask):
+        rand = np.random.RandomState(seed)
+        shape = (10, 5)
+        data = rand.randn(*shape)
+        data[~mask] = np.nan
+
+        workspace = {F(): data}
+        terms = {
+            'rescaled': (F() - F().min()) / (F().max() - F().min()),
+        }
+
+        with ignore_nanwarnings():
+            mins = as_column(np.nanmin(data, axis=1))
+            maxes = as_column(np.nanmax(data, axis=1))
+
+        expected = {
+            'rescaled': (data - mins) / (maxes - mins),
+        }
+
+        self.check_terms(
+            terms,
+            expected,
+            initial_workspace=workspace,
+            mask=self.build_mask(ones(shape)),
+        )
+
+    @parameter_space(
+        seed=[40, 41, 42],
+        mask=[
+            np.zeros((10, 5), dtype=bool),
+            ones((10, 5), dtype=bool),
+            eye(10, 5, dtype=bool),
+            ~eye(10, 5, dtype=bool),
+        ],
+        # Three ways to mask:
+        # 1. Don't mask.
+        # 2. Mask by passing mask parameter to summary methods.
+        # 3. Mask by having non-True values in the root mask.
+        mask_mode=('none', 'param', 'root'),
+    )
+    def test_summaries_after_fillna(self, seed, mask, mask_mode):
+        rand = np.random.RandomState(seed)
+        shape = (10, 5)
+
+        # Create data with a mix of NaN and non-NaN values.
+        with_nans = np.where(mask, rand.randn(*shape), np.nan)
+
+        # Create a version with NaNs filled with -1s.
+        with_minus_1s = np.where(mask, with_nans, -1)
+
+        kwargs = {}
+        workspace = {F(): with_nans}
+
+        # Call each summary method with mask=Mask().
+        if mask_mode == 'param':
+            kwargs['mask'] = Mask()
+            workspace[Mask()] = mask
+
+        # Take the mean after applying a fillna of -1 to ensure that we ignore
+        # masked locations properly.
+        terms = {
+            'mean': F().fillna(-1).mean(**kwargs),
+            'sum': F().fillna(-1).sum(**kwargs),
+            'median': F().fillna(-1).median(**kwargs),
+            'min': F().fillna(-1).min(**kwargs),
+            'max': F().fillna(-1).max(**kwargs),
+            'stddev': F().fillna(-1).stddev(**kwargs),
+            'notnull_count': F().fillna(-1).notnull_count(**kwargs),
+        }
+
+        with ignore_nanwarnings():
+            if mask_mode == 'none':
+                # If we aren't masking, we should expect the results to see the
+                # -1s.
+                expected_input = with_minus_1s
+            else:
+                # If we are masking, we should expect the results to see NaNs.
+                expected_input = with_nans
+
+            expected = {
+                'mean': as_column(np.nanmean(expected_input, axis=1)),
+                'sum': as_column(np.nansum(expected_input, axis=1)),
+                'median': as_column(np.nanmedian(expected_input, axis=1)),
+                'min': as_column(np.nanmin(expected_input, axis=1)),
+                'max': as_column(np.nanmax(expected_input, axis=1)),
+                'stddev': as_column(np.nanstd(expected_input, axis=1)),
+                'notnull_count': as_column(
+                    (~np.isnan(expected_input)).sum(axis=1),
+                ),
+            }
+
+        # Make sure we have test coverage for all summary funcs.
+        self.assertEqual(set(expected), summary_funcs.names)
+
+        if mask_mode == 'root':
+            root_mask = self.build_mask(mask)
+        else:
+            root_mask = self.build_mask(ones_like(mask))
+
+        self.check_terms(
+            terms=terms,
+            expected=expected,
+            initial_workspace=workspace,
+            mask=root_mask,
+        )
+
+    def test_repr(self):
+
+        class MyFactor(CustomFactor):
+            window_length = 1
+            inputs = ()
+
+            def recursive_repr(self):
+                return "MyFactor()"
+
+        f = MyFactor()
+
+        for method in summary_funcs.names:
+            summarized = getattr(f, method)()
+            self.assertEqual(
+                repr(summarized),
+                "MyFactor().{}()".format(method),
+            )
+            self.assertEqual(
+                summarized.recursive_repr(),
+                "MyFactor().{}()".format(method),
+            )

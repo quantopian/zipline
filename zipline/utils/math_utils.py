@@ -57,6 +57,7 @@ try:
     nanmin = bn.nanmin
     nanargmax = bn.nanargmax
     nanargmin = bn.nanargmin
+    nanmedian = bn.nanmedian
 except ImportError:
     # slower numpy
     import numpy as np
@@ -67,6 +68,7 @@ except ImportError:
     nanmin = np.nanmin
     nanargmax = np.nanargmax
     nanargmin = np.nanargmin
+    nanmedian = np.nanmedian
 
 
 def round_if_near_integer(a, epsilon=1e-4):
