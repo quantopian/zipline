@@ -123,6 +123,17 @@ class BaseUSEquityPipelineTestCase(WithTradingSessions,
             hooks=NoHooks(),
         )
 
+    def run_terms(self, terms, initial_workspace, mask):
+        start_date, end_date = mask.index[[0, -1]]
+        graph = ExecutionPlan(
+            domain=US_EQUITIES,
+            terms=terms,
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        return self.run_graph(graph, initial_workspace, mask)
+
     def check_terms(self,
                     terms,
                     expected,
@@ -133,15 +144,8 @@ class BaseUSEquityPipelineTestCase(WithTradingSessions,
         Compile the given terms into a TermGraph, compute it with
         initial_workspace, and compare the results with ``expected``.
         """
-        start_date, end_date = mask.index[[0, -1]]
-        graph = ExecutionPlan(
-            domain=US_EQUITIES,
-            terms=terms,
-            start_date=start_date,
-            end_date=end_date,
-        )
+        results = self.run_terms(terms, initial_workspace, mask)
 
-        results = self.run_graph(graph, initial_workspace, mask)
         for key, (res, exp) in dzip_exact(results, expected).items():
             check(res, exp)
 
