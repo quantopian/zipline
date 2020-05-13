@@ -1301,6 +1301,45 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         """
         return (-inf < self) & (self < inf)
 
+    def clip(self, min_bound, max_bound, mask=NotSpecified):
+        """
+        Clip (limit) the values in a factor.
+
+        Given an interval, values outside the interval are clipped to the
+        interval edges. For example, if an interval of ``[0, 1]`` is specified,
+        values smaller than 0 become 0, and values larger than 1 become 1.
+
+        Parameters
+        ----------
+        min_bound : float
+            The minimum value to use.
+        max_bound : float
+            The maximum value to use.
+        mask : zipline.pipeline.Filter, optional
+            A Filter representing assets to consider when clipping.
+
+        Notes
+        -----
+        To only clip values on one side, ``-np.inf` and ``np.inf`` may be
+        passed.  For example, to only clip the maximum value but not clip a
+        minimum value:
+
+        .. code-block::
+
+           factor.clip(min_bound=-np.inf, max_bound=user_provided_max)
+
+        See Also
+        --------
+        numpy.clip
+        """
+        from .basic import Clip
+
+        return Clip(
+            inputs=[self],
+            min_bound=min_bound,
+            max_bound=max_bound,
+        )
+
     @classmethod
     def _principal_computable_term_type(cls):
         return Factor
