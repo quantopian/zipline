@@ -1328,6 +1328,36 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         self.assertIs(f.deciles(mask=m), f.quantiles(bins=10, mask=m))
         self.assertIsNot(f.deciles(), f.deciles(mask=m))
 
+    @parameter_space(seed=[1, 2, 3])
+    def test_clip(self, seed):
+        rand = np.random.RandomState(seed)
+        shape = (5, 5)
+        original_min = -10
+        original_max = +10
+        input_array = rand.uniform(
+            original_min,
+            original_max,
+            size=shape,
+        )
+        min_, max_ = np.percentile(input_array, [25, 75])
+        self.assertGreater(min_, original_min)
+        self.assertLess(max_, original_max)
+
+        f = F()
+
+        self.check_terms(
+            terms={
+                'clip': f.clip(min_, max_)
+            },
+            initial_workspace={
+                f: input_array,
+            },
+            expected={
+                'clip': np.clip(input_array, min_, max_),
+            },
+            mask=self.build_mask(self.ones_mask(shape=shape)),
+        )
+
 
 class ReprTestCase(TestCase):
     """
