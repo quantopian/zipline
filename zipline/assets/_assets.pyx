@@ -60,6 +60,8 @@ cdef class Asset:
     exchange_full : str
         Full name of the exchange on which the asset trades (e.g., 'NEW YORK
         STOCK EXCHANGE').
+    exchange_info : zipline.assets.ExchangeInfo
+        Information about the exchange this asset is listed on.
     country_code : str
         Two character code indicating the country in which the asset trades.
     start_date : pd.Timestamp
