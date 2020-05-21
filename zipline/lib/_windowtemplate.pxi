@@ -42,6 +42,7 @@ cdef class AdjustedArrayWindow:
         readonly databuffer data
         readonly dict view_kwargs
         readonly Py_ssize_t window_length
+        readonly object dtype
         Py_ssize_t anchor, max_anchor, next_adj
         Py_ssize_t perspective_offset
         object rounding_places
@@ -78,6 +79,13 @@ cdef class AdjustedArrayWindow:
 
         self.next_adj = self.pop_next_adj()
         self.output = None
+
+        arr = asanyarray(self.data[:0])
+        view_kwargs = self.view_kwargs
+        if view_kwargs:
+            arr = arr.view(**view_kwargs)
+        self.dtype = arr.dtype
+
 
     cdef pop_next_adj(self):
         """
@@ -142,7 +150,9 @@ cdef class AdjustedArrayWindow:
             Py_ssize_t anchor = self.anchor
             dict view_kwargs = self.view_kwargs
 
-        new_out = asanyarray(self.data[anchor - self.window_length:anchor])
+        new_out = asanyarray(
+            self.data[anchor - self.window_length:anchor],
+        )
         if view_kwargs:
             new_out = new_out.view(**view_kwargs)
         if self.rounding_places is not None and \
@@ -157,5 +167,5 @@ cdef class AdjustedArrayWindow:
             self.window_length,
             self.anchor,
             self.max_anchor,
-            self.view_kwargs.get('dtype'),
+            self.dtype,
         )

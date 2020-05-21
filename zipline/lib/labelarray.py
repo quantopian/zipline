@@ -607,7 +607,7 @@ class LabelArray(ndarray):
         # 'array(' and 'LabelArray('.
         return '\n     '.join(repr_lines)
 
-    def empty_like(self, shape):
+    def empty_like(self, shape, order='C'):
         """
         Make an empty LabelArray with the same categories as ``self``, filled
         with ``self.missing_value``.
@@ -617,6 +617,7 @@ class LabelArray(ndarray):
                 shape,
                 self.reverse_categories[self.missing_value],
                 dtype=unsigned_int_dtype_with_size_in_bytes(self.itemsize),
+                order=order,
             ),
             categories=self.categories,
             reverse_categories=self.reverse_categories,

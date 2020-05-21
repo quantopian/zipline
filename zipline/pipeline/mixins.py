@@ -6,8 +6,8 @@ Term in the MRO of any class using the mixin
 """
 from abc import abstractmethod
 
+import numpy as np
 from numpy import (
-    array,
     full,
     recarray,
     searchsorted,
@@ -22,6 +22,7 @@ from zipline.errors import (
     NonExistentAssetInTimeFrame,
     NoFurtherDataError,
 )
+from zipline.lib.compress import compress_columns
 from zipline.lib.labelarray import LabelArray, labelarray_where
 from zipline.utils.context_tricks import nop_context
 from zipline.utils.input_validation import expect_dtypes, expect_types
@@ -182,16 +183,47 @@ class CustomTermMixin(Term):
             out = full(shape, missing_value, dtype=self.dtype)
         return out
 
-    def _format_inputs(self, windows, column_mask):
+    def _format_inputs(self,
+                       windows,
+                       column_mask,
+                       input_arrays,
+                       nassets):
         inputs = []
-        for input_ in windows:
+        for input_, input_array in zip(windows, input_arrays):
             window = next(input_)
             if window.shape[1] == 1:
                 # Do not mask single-column inputs.
                 inputs.append(window)
+            elif isinstance(window, LabelArray):
+                out = input_array[:, :nassets]
+                compress_columns(
+                    column_mask,
+                    window.as_int_array(),
+                    out=out.as_int_array(),
+                )
+                inputs.append(out)
             else:
-                inputs.append(window[:, column_mask])
+                inputs.append(
+                    compress_columns(
+                        column_mask,
+                        window,
+                        out=input_array[:, :nassets],
+                    ),
+                )
         return inputs
+
+    def _empty_for_window(self, window, max_input_columns):
+        shape = window.window_length, max_input_columns
+        if window.data.shape[1] == 1:
+            return None
+        elif isinstance(window.data, LabelArray):
+            return window.data.empty_like(shape, order='F')
+
+        return np.empty(
+            shape,
+            dtype=window.dtype,
+            order='F',
+        )
 
     def _compute(self, windows, dates, assets, mask):
         """
@@ -206,17 +238,29 @@ class CustomTermMixin(Term):
         shape = (len(mask), 1) if ndim == 1 else mask.shape
         out = self._allocate_output(windows, shape)
 
+        assets_per_day = np.sum(mask, axis=1)
+        max_input_columns = assets_per_day.max()
+        input_arrays = [
+            self._empty_for_window(window, max_input_columns)
+            for window in windows
+        ]
+
         with self.ctx:
             for idx, date in enumerate(dates):
                 # Never apply a mask to 1D outputs.
-                out_mask = array([True]) if ndim == 1 else mask[idx]
+                out_mask = np.s_[:] if ndim == 1 else mask[idx]
 
                 # Mask our inputs as usual.
                 inputs_mask = mask[idx]
 
                 masked_assets = assets[inputs_mask]
                 out_row = out[idx][out_mask]
-                inputs = format_inputs(windows, inputs_mask)
+                inputs = format_inputs(
+                    windows,
+                    inputs_mask,
+                    input_arrays,
+                    assets_per_day[idx],
+                )
 
                 compute(date, masked_assets, out_row, *inputs, **params)
                 out[idx][out_mask] = out_row
