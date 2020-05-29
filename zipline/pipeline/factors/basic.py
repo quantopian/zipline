@@ -551,7 +551,7 @@ class Clip(CustomFactor):
     To only clip values on one side, ``-np.inf` and ``np.inf`` may be passed.
     For example, to only clip the maximum value but not clip a minimum value:
 
-    .. code-block::
+    .. code-block:: python
 
        Clip(inputs=[factor], min_bound=-np.inf, max_bound=user_provided_max)
 
