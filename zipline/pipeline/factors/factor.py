@@ -1324,7 +1324,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         passed.  For example, to only clip the maximum value but not clip a
         minimum value:
 
-        .. code-block::
+        .. code-block:: python
 
            factor.clip(min_bound=-np.inf, max_bound=user_provided_max)
 
