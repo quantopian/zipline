@@ -21,7 +21,7 @@
 #
 #    docker exec -it zipline zipline run -f /projects/my_algo.py --start 2015-1-1 --end 2016-1-1 -o /projects/result.pickle
 #
-FROM python:3.5
+FROM python:3.6.6
 
 #
 # set up environment
@@ -83,7 +83,7 @@ EXPOSE ${NOTEBOOK_PORT}
 
 ADD . /zipline
 WORKDIR /zipline
-RUN pip install -e .
+RUN pip install -e . --default-timeout=200
 
 #
 # start the jupyter server
