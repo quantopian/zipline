@@ -281,7 +281,6 @@ def _run(handle_data,
                 " in ``initialize``. Did you mean to pass '--no-benchmark'?"
             ),
         )
-
     if output == '-':
         click.echo(str(perf))
     elif output != os.devnull:  # make the zipline magic not write any data
