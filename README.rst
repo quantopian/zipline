@@ -1,16 +1,16 @@
 .. image:: ./images/zipline-live2.small.png
-    :target: https://github.com/shlomikushchi/zipline-livetrader
+    :target: https://github.com/shlomikushchi/zipline-trader
     :width: 212px
     :align: center
     :alt: zipline-live
 
-zipline-livetrader
-==================
+zipline-trader
+==============
 
-Welcome to zipline-livetrader, the on-premise trading platform built on top of Quantopian's
+Welcome to zipline-trader, the on-premise trading platform built on top of Quantopian's
 `zipline <https://github.com/quantopian/zipline>`_.
 
-zipline-livetrader is based on:
+zipline-trader is based on:
 
 - `zipline <https://github.com/quantopian/zipline>`_ project.
 - `zipline-live <http://www.zipline-live.io>`_ project.
@@ -18,7 +18,7 @@ zipline-livetrader is based on:
 
 zipline-live and zipline-live2 are past iterations of this project and this is the up to date project.
 
-zipline-livetrader is designed to be an extensible, drop-in replacement for zipline with
+zipline-trader is designed to be an extensible, drop-in replacement for zipline with
 multiple brokerage support to enable on premise trading of zipline algorithms.
 
 we recommend using python 3.6+ but python 2.7 is also supported.
@@ -41,7 +41,7 @@ installing the package:
 
 .. code-block:: batch
 
-    pip install zipline-livetrader
+    pip install zipline-trader
 
 .. image:: ./images/youtube/installing.png
     :target: https://www.youtube.com/watch?v=Zh9Vs_yanXY
