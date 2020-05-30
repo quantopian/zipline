@@ -5,7 +5,7 @@
 #
 # Note: the dev build requires a quantopian/zipline image, which you can build as follows:
 #
-#    docker build -t quantopian/zipline -f Dockerfile
+#    docker build -t quantopian/zipline -f Dockerfile .
 #
 # To run the container:
 #
@@ -29,6 +29,7 @@ FROM quantopian/zipline
 
 WORKDIR /zipline
 
+RUN apt-get install -y vim
 RUN pip install -r etc/requirements_dev.txt -r etc/requirements_blaze.txt
 # Clean out any cython assets. The pip install re-builds them.
 RUN find . -type f -name '*.c' -exec rm {} + && pip install -e .[all]
