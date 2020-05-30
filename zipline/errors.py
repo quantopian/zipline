@@ -35,6 +35,14 @@ class ZiplineError(Exception):
     __repr__ = __str__
 
 
+class ScheduleFunctionOutsideTradingStart(ZiplineError):
+    """
+    Raised when an algorithm schedules functions outside of
+    before_trading_start()
+    """
+    msg = "schedule_function() should only be called in before_trading_start()"
+
+
 class NoTradeDataAvailable(ZiplineError):
     pass
 
