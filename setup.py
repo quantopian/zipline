@@ -258,8 +258,8 @@ conditional_arguments = {
 }
 
 setup(
-    name='zipline',
-    url="http://zipline.io",
+    name='zipline-livetrader',
+    url="https://github.com/shlomikushchi/zipline-livetrader",
     version=versioneer.get_version(),
     cmdclass=LazyBuildExtCommandClass(versioneer.get_cmdclass()),
     description='A backtester for financial algorithms.',
@@ -268,8 +268,9 @@ setup(
             'zipline = zipline.__main__:main',
         ],
     },
-    author='Quantopian Inc.',
-    author_email='opensource@quantopian.com',
+    author='zipline-live community',
+    author_email='',
+    maintainer='Shlomi Kushchi',
     packages=find_packages(include=['zipline', 'zipline.*']),
     ext_modules=ext_modules,
     include_package_data=True,
