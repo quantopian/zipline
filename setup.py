@@ -273,7 +273,7 @@ setup(
             'zipline = zipline.__main__:main',
         ],
     },
-    author='zipline-trader community',
+    author='zipline-live community',
     author_email='',
     maintainer='Shlomi Kushchi',
     packages=find_packages(include=['zipline', 'zipline.*']),
