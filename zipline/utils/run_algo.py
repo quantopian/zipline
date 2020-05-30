@@ -97,7 +97,7 @@ def _run(handle_data,
 
     This is shared between the cli and :func:`zipline.run_algo`.
 
-    zipline-live additions:
+    zipline-livetrader additions:
     broker - wrapper to connect to a real broker
     state_filename - saving the context of the algo to be able to restart
     performance_callback - a callback to send performance results everyday and not only at the end of the backtest.
