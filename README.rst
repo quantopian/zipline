@@ -1,137 +1,102 @@
-.. image:: https://media.quantopian.com/logos/open_source/zipline-logo-03_.png
-    :target: https://www.zipline.io
+.. image:: ./images/zipline-live2.small.png
+    :target: https://github.com/shlomikushchi/zipline-livetrader
     :width: 212px
     :align: center
-    :alt: Zipline
+    :alt: zipline-live
 
-=============
+zipline-livetrader
+==================
 
-|Gitter|
-|version status|
-|travis status|
-|appveyor status|
-|Coverage Status|
+Welcome to zipline-livetrader, the on-premise trading platform built on top of Quantopian's
+`zipline <https://github.com/quantopian/zipline>`_.
 
-Zipline is a Pythonic algorithmic trading library. It is an event-driven
-system for backtesting. Zipline is currently used in production as the backtesting and live-trading
-engine powering `Quantopian <https://www.quantopian.com>`_ -- a free,
-community-centered, hosted platform for building and executing trading
-strategies. Quantopian also offers a `fully managed service for professionals <https://factset.quantopian.com>`_
-that includes Zipline, Alphalens, Pyfolio, FactSet data, and more.
+zipline-livetrader is based on:
 
-- `Join our Community! <https://groups.google.com/forum/#!forum/zipline>`_
-- `Documentation <https://www.zipline.io>`_
-- Want to Contribute? See our `Development Guidelines <https://www.zipline.io/development-guidelines>`_
+- `zipline <https://github.com/quantopian/zipline>`_ project.
+- `zipline-live <http://www.zipline-live.io>`_ project.
+- `zipline-live2 <https://github.com/shlomikushchi/zipline-live2>`_ project.
 
-Features
-========
+zipline-live and zipline-live2 are past iterations of this project and this is the up to date project.
 
-- **Ease of Use:** Zipline tries to get out of your way so that you can
-  focus on algorithm development. See below for a code example.
-- **"Batteries Included":** many common statistics like
-  moving average and linear regression can be readily accessed from
-  within a user-written algorithm.
-- **PyData Integration:** Input of historical data and output of performance statistics are
-  based on Pandas DataFrames to integrate nicely into the existing
-  PyData ecosystem.
-- **Statistics and Machine Learning Libraries:** You can use libraries like matplotlib, scipy,
-  statsmodels, and sklearn to support development, analysis, and
-  visualization of state-of-the-art trading systems.
+zipline-livetrader is designed to be an extensible, drop-in replacement for zipline with
+multiple brokerage support to enable on premise trading of zipline algorithms.
+
+we recommend using python 3.6+ but python 2.7 is also supported.
 
 Installation
 ============
+use a fresh virtual env
 
-Zipline currently supports Python 2.7 and Python 3.5, and may be installed via
-either pip or conda.
+.. code-block:: batch
 
-**Note:** Installing Zipline is slightly more involved than the average Python
-package. See the full `Zipline Install Documentation`_ for detailed
-instructions.
+    pip install virtualenv
+    virtualenv venv
+    activate:
+        Mac OS / Linux
+            source venv/bin/activate
+        Windows
+            venv\Scripts\activate
 
-For a development installation (used to develop Zipline itself), create and
-activate a virtualenv, then run the ``etc/dev-install`` script.
+installing the package:
 
-Quickstart
-==========
+.. code-block:: batch
 
-See our `getting started tutorial <https://www.zipline.io/beginner-tutorial>`_.
+    pip install zipline-livetrader
 
-The following code implements a simple dual moving average algorithm.
-
-.. code:: python
-
-    from zipline.api import order_target, record, symbol
-
-    def initialize(context):
-        context.i = 0
-        context.asset = symbol('AAPL')
+.. image:: ./images/youtube/installing.png
+    :target: https://www.youtube.com/watch?v=Zh9Vs_yanXY
+    :width: 212px
+    :align: center
+    :alt: zipline-live
 
 
-    def handle_data(context, data):
-        # Skip first 300 days to get full windows
-        context.i += 1
-        if context.i < 300:
-            return
+for advanced capabilities recommended way to use this package with docker using this command:
 
-        # Compute averages
-        # data.history() has to be called with the same params
-        # from above and returns a pandas dataframe.
-        short_mavg = data.history(context.asset, 'price', bar_count=100, frequency="1d").mean()
-        long_mavg = data.history(context.asset, 'price', bar_count=300, frequency="1d").mean()
+.. code-block:: docker
 
-        # Trading logic
-        if short_mavg > long_mavg:
-            # order_target orders as many shares as needed to
-            # achieve the desired number of shares.
-            order_target(context.asset, 100)
-        elif short_mavg < long_mavg:
-            order_target(context.asset, 0)
-
-        # Save values for later inspection
-        record(AAPL=data.current(context.asset, 'price'),
-               short_mavg=short_mavg,
-               long_mavg=long_mavg)
+    docker build -t quantopian/zipline .
 
 
-You can then run this algorithm using the Zipline CLI; you'll need a `Quandl <https://docs.quandl.com/docs#section-authentication>`__ API key to ingest the default data bundle.
-Once you have your key, run the following from the command line:
+(if your algo requires more packages, you could extend the dockerfile-dev and install using: docker build -f dockerfile-dev-t quantopian/zipline .)
 
-.. code:: bash
 
-    $ QUANDL_API_KEY=<yourkey> zipline ingest -b quandl
-    $ zipline run -f dual_moving_average.py --start 2014-1-1 --end 2018-1-1 -o dma.pickle --no-benchmark
+you could run everything on a local machine with whatever OS you want. but you may experience package installation issues.
 
-This will download asset pricing data data from `quandl`, and stream it through the algorithm
-over the specified time range. Then, the resulting performance DataFrame is saved in `dma.pickle`, which you
-can load and analyze from within Python.
+this is the best way to ensure that you are using the same version everyone else use.
 
-You can find other examples in the ``zipline/examples`` directory.
 
-Questions?
-==========
+Ingest data
+===========
+the quantopian-quandl is a free daily bundle.
+every day you should execute this when live trading in order to get the most updated data
 
-If you find a bug, feel free to `open an issue <https://github.com/quantopian/zipline/issues/new>`_ and fill out the issue template.
+.. code-block:: batch
 
-Contributing
-============
+ zipline ingest -b quantopian-quandl
 
-All contributions, bug reports, bug fixes, documentation improvements, enhancements, and ideas are welcome. Details on how to set up a development environment can be found in our `development guidelines <https://www.zipline.io/development-guidelines>`_.
+there is no free minute data. you could use paid services and create a custom bundle for that.
+if you do have the data, the package supports minute algo-trading.
 
-If you are looking to start working with the Zipline codebase, navigate to the GitHub `issues` tab and start looking through interesting issues. Sometimes there are issues labeled as `Beginner Friendly <https://github.com/quantopian/zipline/issues?q=is%3Aissue+is%3Aopen+label%3A%22Beginner+Friendly%22>`_ or `Help Wanted <https://github.com/quantopian/zipline/issues?q=is%3Aissue+is%3Aopen+label%3A%22Help+Wanted%22>`_.
+Running Backtests
+=================
+you can run a backtest with this command:
 
-Feel free to ask questions on the `mailing list <https://groups.google.com/forum/#!forum/zipline>`_ or on `Gitter <https://gitter.im/quantopian/zipline>`_.
+.. code-block:: batch
+
+    zipline run -f zipline_repo/zipline/examples/dual_moving_average.py --start 2015-1-1 --end 2018-1-1 --bundle quantopian-quandl -o out.pickle --capital-base 10000
+
+
+.. image:: ./images/youtube/command_line_backtest.png
+    :target: https://youtu.be/jeuiCpx9k7Q
+    :width: 212px
+    :align: center
+    :alt: zipline-live
 
 
 
-.. |Gitter| image:: https://badges.gitter.im/Join%20Chat.svg
-   :target: https://gitter.im/quantopian/zipline?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
-.. |version status| image:: https://img.shields.io/pypi/pyversions/zipline.svg
-   :target: https://pypi.python.org/pypi/zipline
-.. |travis status| image:: https://travis-ci.org/quantopian/zipline.png?branch=master
-   :target: https://travis-ci.org/quantopian/zipline
-.. |appveyor status| image:: https://ci.appveyor.com/api/projects/status/3dg18e6227dvstw6/branch/master?svg=true
-   :target: https://ci.appveyor.com/project/quantopian/zipline/branch/master
-.. |Coverage Status| image:: https://coveralls.io/repos/quantopian/zipline/badge.png
-   :target: https://coveralls.io/r/quantopian/zipline
+Run the cli tool
+================
 
-.. _`Zipline Install Documentation` : https://www.zipline.io/install
+.. code-block:: batch
+
+    zipline run -f ~/zipline-algos/demo.py --state-file ~/zipline-algos/demo.state --realtime-bar-target ~/zipline-algos/realtime-bars/ --broker ib --broker-uri localhost:7496:1232 --bundle quantopian-quandl --data-frequency minute
