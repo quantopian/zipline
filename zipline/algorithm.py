@@ -15,7 +15,7 @@
 from collections import Iterable, namedtuple
 from copy import copy
 import warnings
-from datetime import tzinfo, time
+from datetime import tzinfo, time, timedelta
 import logbook
 import pytz
 import pandas as pd
@@ -160,6 +160,9 @@ class TradingAlgorithm(object):
     analyze : callable[(context, DataFrame) -> None], optional
         Function that is called at the end of the backtest. This is passed
         the context and the performance results for the backtest.
+    teardown : algo method like handle_data() or before_trading_start() that
+            is called when the algo execution stops and allows the developer
+            to nicely kill the algo execution.
     script : str, optional
         Algoscript that contains the definitions for the four algorithm
         lifecycle functions and any supporting code.
@@ -171,6 +174,12 @@ class TradingAlgorithm(object):
         tracebacks. default: '<string>'.
     data_frequency : {'daily', 'minute'}, optional
         The duration of the bars.
+    performance_callback : callback[(perf) -> None], optional
+        A callback to send performance results everyday and not only at the end of the backtest.
+        this allows to run live, and monitor the performance of the algorithm daily
+    stop_execution_callback : callback[() -> bool], optional
+        A callback to check if execution should be stopped. it is used to be able to stop live trading (also simulation
+        could be stopped using this) execution. if the callback returns True, then algo execution will be aborted.
     equities_metadata : dict or DataFrame or file-like object, optional
         If dict is provided, it must have the following structure:
         * keys are the identifiers
@@ -220,6 +229,7 @@ class TradingAlgorithm(object):
                  handle_data=None,
                  before_trading_start=None,
                  analyze=None,
+                 teardown=None,
                  #
                  trading_calendar=None,
                  metrics_set=None,
@@ -232,6 +242,8 @@ class TradingAlgorithm(object):
                  capital_changes=None,
                  get_pipeline_loader=None,
                  create_event_context=None,
+                 performance_callback=None,
+                 stop_execution_callback=None,
                  **initialize_kwargs):
         # List of trading controls to be used to validate orders.
         self.trading_controls = []
@@ -326,6 +338,8 @@ class TradingAlgorithm(object):
         self._initialize = None
         self._before_trading_start = None
         self._analyze = None
+        self._performance_callback = None
+        self._stop_execution_callback = None
 
         self._in_before_trading_start = False
 
@@ -346,6 +360,8 @@ class TradingAlgorithm(object):
                 unexpected_api_methods.add('before_trading_start')
             if analyze is not None:
                 unexpected_api_methods.add('analyze')
+            if teardown is not None:
+                unexpected_api_methods.add('teardown')
 
             if unexpected_api_methods:
                 raise ValueError(
@@ -367,12 +383,16 @@ class TradingAlgorithm(object):
             )
             # Optional analyze function, gets called after run
             self._analyze = self.namespace.get('analyze')
+            self._teardown = self.namespace.get('teardown')
 
         else:
             self._initialize = initialize or (lambda self: None)
             self._handle_data = handle_data
             self._before_trading_start = before_trading_start
             self._analyze = analyze
+            self._teardown = teardown
+            self._performance_callback = performance_callback
+            self._stop_execution_callback = stop_execution_callback
 
         self.event_manager.add_event(
             zipline.utils.events.Event(
@@ -430,7 +450,9 @@ class TradingAlgorithm(object):
 
     def before_trading_start(self, data):
         self.compute_eager_pipelines()
-
+        if hasattr(self, "broker"):
+            # we are live, we need to updated our portfolio from the broker before we start
+            self.broker._get_positions_from_broker()
         if self._before_trading_start is None:
             return
 
@@ -445,6 +467,10 @@ class TradingAlgorithm(object):
     def handle_data(self, data):
         if self._handle_data:
             self._handle_data(self, data)
+
+    def teardown(self):
+        if self._teardown:
+            self._teardown(self)
 
     def analyze(self, perf):
         if self._analyze is None:
@@ -636,6 +662,9 @@ class TradingAlgorithm(object):
             perfs = []
             for perf in self.get_generator():
                 perfs.append(perf)
+                if self._performance_callback:
+                    # this is called daily
+                    self._performance_callback(perf)
 
             # convert perf dict to pandas dataframe
             daily_stats = self._create_daily_stats(perfs)
@@ -654,7 +683,7 @@ class TradingAlgorithm(object):
         # of daily_perf. Could potentially raise or log a
         # warning.
         for perf in perfs:
-            if 'daily_perf' in perf:
+            if perf and 'daily_perf' in perf:
 
                 perf['daily_perf'].update(
                     perf['daily_perf'].pop('recorded_vars')
@@ -1201,8 +1230,13 @@ class TradingAlgorithm(object):
 
         if asset.auto_close_date:
             day = normalize_date(self.get_datetime())
-
-            if day > min(asset.end_date, asset.auto_close_date):
+            end_date = min(asset.end_date, asset.auto_close_date)
+            if isinstance(end_date, str):
+                from dateutil import parser
+                end_date = parser.parse(end_date).replace(tzinfo=pytz.UTC)
+            # when we use pipeline live the end date is always yesterday so we add 5 days to still keep this condition
+            # but also allowing to use pipeline live as well. 5 is a good number for weekends/holidays
+            if day > end_date + timedelta(days=5):
                 # If we are after the asset's end date or auto close date, warn
                 # the user that they can't place an order for this asset, and
                 # return None.
@@ -2273,7 +2307,7 @@ class TradingAlgorithm(object):
             raise DuplicatePipelineName(name=name)
 
         self._pipelines[name] = AttachedPipeline(pipeline, iter(chunks), eager)
-
+        log.info('Pipeline {} attached'.format(name))
         # Return the pipeline to allow expressions like
         # p = attach_pipeline(Pipeline(), 'name')
         return pipeline
