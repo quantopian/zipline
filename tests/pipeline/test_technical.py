@@ -665,6 +665,7 @@ class AnnualizedVolatilityTestCase(ZiplineTestCase):
             decimal=8
         )
 
+
 class FibonacciRetractmentTestCase(ZiplineTestCase):
     """
     Test FibonacciRetractment Calculation
