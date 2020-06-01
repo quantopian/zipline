@@ -391,25 +391,28 @@ class MovingAverageConvergenceDivergenceSignal(CustomFactor):
 # Convenience aliases.
 MACDSignal = MovingAverageConvergenceDivergenceSignal
 
+
 class FibonacciRetractment(CustomFactor):
     """
     FibonacciRetractment
 
     https://www.investopedia.com/ask/answers/05/fibonacciretracement.asp
 
-    Given a period, 4 retractment levels are calculated between the peak and the trough,
-    where the ratio of each retractment level is based on Fibonacci sequence.
+    Given a period, 4 retractment levels are calculated between the peak
+    and the trough, where the ratio of each retractment level is based on
+    Fibonacci sequence.
 
     Parameters
     ----------
     period : int > 0, optional
-        The window length for the Fibonacci retractment levels calculation. Default is 0.
+        The window length for the Fibonacci retractment levels calculation.
+        Default is 0.
     """
 
     window_length = 15
     inputs = (EquityPricing.close,)
 
-    def compute(self, today, assets, out, closes, period = 0):
+    def compute(self, today, assets, out, closes, period=0):
         windowed_closes = closes[-period:]
         trough = apply_along_axis(min, 0, windowed_closes)
         peak = apply_along_axis(max, 0, windowed_closes)
