@@ -388,6 +388,7 @@ class MovingAverageConvergenceDivergenceSignal(CustomFactor):
         macd = fast_EWMA - slow_EWMA
         out[:] = self._ewma(macd.T, signal_period)
 
+
 # Convenience aliases.
 MACDSignal = MovingAverageConvergenceDivergenceSignal
 
