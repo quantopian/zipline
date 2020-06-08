@@ -210,6 +210,8 @@ def _run(handle_data,
     )
 
     def choose_loader(column):
+        # TODO Domain bypass
+        return pipeline_loader
         if column in USEquityPricing.columns:
             return pipeline_loader
         raise ValueError(

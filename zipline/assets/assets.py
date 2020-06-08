@@ -1422,15 +1422,24 @@ class AssetFinder(object):
         """
         sids = starts = ends = []
         equities_cols = self.equities.c
+        # if country_codes:
+        #     results = sa.select((
+        #         equities_cols.sid,
+        #         equities_cols.start_date,
+        #         equities_cols.end_date,
+        #     )).where(
+        #         (self.exchanges.c.exchange == equities_cols.exchange) &
+        #         (self.exchanges.c.country_code.in_(country_codes))
+        #     ).execute().fetchall()
+        #     if results:
+        #         sids, starts, ends = zip(*results)
+        # TODO Domain bypass
         if country_codes:
             results = sa.select((
                 equities_cols.sid,
                 equities_cols.start_date,
                 equities_cols.end_date,
-            )).where(
-                (self.exchanges.c.exchange == equities_cols.exchange) &
-                (self.exchanges.c.country_code.in_(country_codes))
-            ).execute().fetchall()
+            )).execute().fetchall()
             if results:
                 sids, starts, ends = zip(*results)
 
