@@ -481,7 +481,7 @@ def as_column(a):
     if a.ndim != 1:
         raise ValueError(
             "as_column expected an 1-dimensional array, "
-            "but got an array of shape %s" % a.shape
+            "but got an array of shape %s" % (a.shape,)
         )
     return a[:, None]
 
