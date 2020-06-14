@@ -48,6 +48,16 @@ RUN mkdir ${PROJECT_DIR} \
     && curl -L https://downloads.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz | tar xvz
 
 #
+# install Interactive Brokers API lib
+#
+
+ADD http://interactivebrokers.github.io/downloads/twsapi_macunix.979.01.zip /ibapi/
+RUN unzip /ibapi/twsapi_macunix.979.01.zip 'IBJts/source/pythonclient/*' -d /ibapi/ \
+    && cd /ibapi/IBJts/source/pythonclient \
+    && python /ibapi/IBJts/source/pythonclient/setup.py install \
+    && rm -rf /ibapi
+
+#
 # build and install zipline from source.  install TA-Lib after to ensure
 # numpy is available.
 #
