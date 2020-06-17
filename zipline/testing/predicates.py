@@ -582,7 +582,7 @@ def assert_array_equal(result,
             compare_datetime_arrays,
             header='Arrays are not equal',
         )
-    elif array_decimal is not None and expected_dtype.kind != 'O':
+    elif array_decimal is not None and expected_dtype.kind not in {'O', 'S'}:
         f = partial(
             np.testing.assert_array_almost_equal,
             decimal=array_decimal,
