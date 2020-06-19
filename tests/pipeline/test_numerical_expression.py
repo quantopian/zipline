@@ -1,4 +1,5 @@
-from itertools import permutations
+from collections import OrderedDict
+from itertools import permutations, product, islice
 from operator import (
     add,
     ge,
@@ -33,8 +34,9 @@ from zipline.pipeline import Factor, Filter
 from zipline.pipeline.factors.factor import NumExprFactor
 from zipline.pipeline.expression import (
     NUMEXPR_MATH_FUNCS,
+    NumericalExpression,
 )
-from zipline.testing import check_allclose
+from zipline.testing import check_allclose, parameter_space
 from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
 
 
@@ -149,15 +151,16 @@ class NumericalExpressionTestCase(TestCase):
         with self.assertRaises(TypeError):
             (f > f) > f
 
-    def test_many_inputs(self):
+    @parameter_space(num_new_inputs=[1, 4])
+    def test_many_inputs(self, num_new_inputs):
         """
-        Test adding NumericalExpressions with >10 inputs.
+        Test adding NumericalExpressions with >=32 (NPY_MAXARGS) inputs.
         """
         # Create an initial NumericalExpression by adding two factors together.
         f = self.f
         expr = f + f
 
-        self.fake_raw_data = {f: full((5, 5), 0, float)}
+        self.fake_raw_data = OrderedDict({f: full((5, 5), 0, float)})
         expected = 0
 
         # Alternate between adding and subtracting factors. Because subtraction
@@ -165,24 +168,43 @@ class NumericalExpressionTestCase(TestCase):
         # correct order.
         ops = (add, sub)
 
-        for i, name in enumerate(ascii_uppercase):
+        for i, name in enumerate(
+            islice(product(ascii_uppercase, ascii_uppercase), 64)
+        ):
+            name = ''.join(name)
             op = ops[i % 2]
-            NewFactor = type(
-                name,
-                (Factor,),
-                dict(dtype=float64_dtype, inputs=(), window_length=0),
-            )
-            new_factor = NewFactor()
+
+            new_expr_inputs = []
+            for j in range(num_new_inputs):
+                NewFactor = type(
+                    name + str(j),
+                    (Factor,),
+                    dict(dtype=float64_dtype, inputs=(), window_length=0),
+                )
+                new_factor = NewFactor()
+                self.fake_raw_data[new_factor] = full((5, 5), i + 1, float)
+                new_expr_inputs.append(new_factor)
 
             # Again we need a NumericalExpression, so add two factors together.
-            new_expr = new_factor + new_factor
-            self.fake_raw_data[new_factor] = full((5, 5), i + 1, float)
+            new_expr = new_expr_inputs[0]
+            self.fake_raw_data[new_expr] = full((5, 5), (i + 1), float)
+            for new_expr_input in new_expr_inputs:
+                new_expr = new_expr + new_expr_input
+            self.fake_raw_data[new_expr] = full(
+                (5, 5), (i + 1) * (num_new_inputs + 1), float
+            )
+
+            # This will grow the number of inputs by num_new_inputs. We start
+            # at 1 (self.f). The num_new_inputs=4 case grows by 4 and covers
+            # growing from 29 to 33 (> NPY_MAXARGS).
             expr = op(expr, new_expr)
+            # Each factor is counted num_new_inputs + 1 times.
+            expected = op(expected, (i + 1) * (num_new_inputs + 1))
+            self.fake_raw_data[expr] = full((5, 5), expected, float)
 
-            # Double the expected output since each factor is counted twice.
-            expected = op(expected, (i + 1) * 2)
-
-        self.check_output(expr, full((5, 5), expected, float))
+        for expr, expected in self.fake_raw_data.items():
+            if isinstance(expr, NumericalExpression):
+                self.check_output(expr, expected)
 
     def test_combine_datetimes(self):
         with self.assertRaises(TypeError) as e:
