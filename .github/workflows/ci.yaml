@@ -19,14 +19,10 @@ jobs:
       matrix:
         os: [ubuntu-18.04, windows-2019]
         name:
-          - py27-oldpandas
           - py35-oldpandas
           - py35-newpandas
           - py36-newpandas
         include:
-          - name: py27-oldpandas
-            python-version: 2.7
-            constraints-file: etc/constraints_oldpandas.txt
           - name: py35-oldpandas
             python-version: 3.5
             constraints-file: etc/constraints_oldpandas.txt
@@ -36,14 +32,7 @@ jobs:
           - name: py36-newpandas
             python-version: 3.6
             constraints-file: etc/constraints_newpandas.txt
-
         exclude:
-
-          - name: py27-oldpandas
-            os: macos-10.15
-
-          - name: py27-oldpandas
-            os: windows-2019
           - name: py35-oldpandas
             os: windows-2019
 
