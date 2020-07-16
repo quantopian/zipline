@@ -1,0 +1,1024 @@
+Release 1.4.0
+=============
+
+:Release: 1.4.0
+:Date: TBD
+
+Highlights
+----------
+
+
+Build
+-----
+
+| BLD: Add Python 3.6 to CI/CD `David
+  Michalowicz <https://github.com/dmichalowicz>`__
+| BLD: Add conda scaffold for iso4217. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BLD: Add dev-install script `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| BLD: Add iso4217 as new requirements. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BLD: Added conda recipe for requests `Richard
+  Frank <https://github.com/richafrank>`__
+| BLD: Added upper bound on setuptools for logbook `Richard
+  Frank <https://github.com/richafrank>`__
+| BLD: Disable OSX builds until we have more workers `Richard
+  Frank <https://github.com/richafrank>`__
+| BLD: Don’t actually run requests’ tests `Richard
+  Frank <https://github.com/richafrank>`__
+| BLD: Don’t rely un unset variable. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BLD: Don’t use detailed errors. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BLD: Fetch tags when unshallowing for conda. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BLD: Fix appveyor build by installing pytables and h5py with conda
+  `Scott Sanderson <https://github.com/ssanderson>`__
+| BLD: Fixed unparsable requests description `Richard
+  Frank <https://github.com/richafrank>`__
+| BLD: More logging around appveyor conda package upload `Richard
+  Frank <https://github.com/richafrank>`__
+| BLD: Pin pip version during installs. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BLD: Potential fix for appveyor not uploading conda packages from
+  master `Richard Frank <https://github.com/richafrank>`__
+| BLD: Remove unneeded requirements `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| BLD: Run dev-install script in verbose mode `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| BLD: Update ``psutil`` to latest version `David
+  Michalowicz <https://github.com/dmichalowicz>`__
+| BLD: Update conda build for interface. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BLD: Update sortedcontainers for Python 3.6 compat `David
+  Michalowicz <https://github.com/dmichalowicz>`__
+| BLD: Update trading calendars to 1.8.1 `Eddie
+  Hebert <https://github.com/ehebert>`__
+| BLD: Updated appveyor config with same token re-encrypted `Richard
+  Frank <https://github.com/richafrank>`__
+| BLD: Use dev-install script in Appveyor `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| BLD: update conda recipe for trading-calendars
+  `vikram-narayan <https://github.com/vikram-narayan>`__
+| BLD: Add hash to conda meta.yaml
+  `peterhbromley <https://github.com/peterhbromley>`__
+| BLD: Add tcals version to conda meta.yaml
+  `peterhbromley <https://github.com/peterhbromley>`__
+| BLD: Travis CI: The sudo: tag is fully deprecated in Travis [GitHub]
+| BLD: Update Anaconda token for Appveyor. `James
+  Meickle <https://github.com/Eronarn>`__
+| BLD: Update Anaconda token for Travis. `James
+  Meickle <https://github.com/Eronarn>`__
+| BLD: Updated Anaconda Tokens. `Richard
+  Frank <https://github.com/richafrank>`__
+
+Bug Fixes
+---------
+
+| BUG: Clarify bases type for currency queries. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Correct the test data to produce ordered sids for futures
+  `Richard Frank <https://github.com/richafrank>`__
+| BUG: Display progress correctly for 0-term pipelines. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Don’t expect S3 arrays anymore. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Don’t forward non-passed kwargs to ``timedelta``. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Don’t sort currencies when making fx rates. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Don’t strip print outputs after progress bar runs. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Don’t use from_csv. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Drop orphaned records from asset db in v6 downgrade. `John
+  Ricklefs <https://github.com/jdricklefs>`__
+| BUG: Ensure consistent output column types for ``get_rates``. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Ensure correct dtypes when unpacking empty dataframes. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Ensure that parent directories exist before writing. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: ExprData lazily constructs empty odo_kwargs dict to preserve
+  equality in more cases `Joe Jevnik <https://github.com/llllllllll>`__
+| BUG: Fix \_select_most_recent_symbols_chunk. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Fix ``week_start`` when Monday precedes the New Year. `Eddie
+  Hebert <https://github.com/ehebert>`__
+| BUG: Fix blotter initialization. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Fix broken benchmark_returns passing. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Fix broken equity pricing loader construction. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Fix bug calculating end offsets for hdf5 daily bars. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Fix bug concatenating empty chunks with strings. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Fix crash in pipeline with all currency-converted data. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Fix daily mode futures algorithms. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Fix failure on 32 bit windows. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Fix from_file constructor. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Fix implementation of
+  MultiCountryDailyBarReader.get_last_traded_dt `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Fix in memory fx rate lookups in py3. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Fix management of the h5 file when writing multiple countries
+  `Scott Sanderson <https://github.com/ssanderson>`__
+| BUG: Fix moved import. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Fix sorting categories in categorical_df_concat in python 3.
+  `Scott Sanderson <https://github.com/ssanderson>`__
+| BUG: Fix v5 -> v4 downgrade. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Fixed behavior of peer_count() when called on missing data
+  `peterhbromley <https://github.com/peterhbromley>`__
+| BUG: Fixes bug with the mixins that was preventing validation from
+  occuring `peterhbromley <https://github.com/peterhbromley>`__
+| BUG: Fixes for compatibility with newer numpy/pandas `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Force int64 on windows. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Forward msg arg in assert_timestamp_and_datetime_equal `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Handle comparison against None for ``is_missing``. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Handle currency conversions for unknown sids. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Handle different counts of terms being computed between chunks.
+  `Scott Sanderson <https://github.com/ssanderson>`__
+| BUG: Handle larger-than-int32 sids in adjustments. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Handle reading empty panels in MinuteBarUpdateReader. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Pandas read_hdf edge case failure in Python 3 `David
+  Michalowicz <https://github.com/dmichalowicz>`__
+| BUG: Pass default_rate to HDF5FXRateReader.from_path. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Print correct value. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Raise proper exception type `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| BUG: Remove stray paren in repr. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Remove unused format parameter. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Return correct currency codes when loading subset of sids. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Round values before truncating to uint32 when writing minute/day
+  bcolz files. [Ernesto Perez]
+| BUG: Sort by repr in assertion message. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Updating window safety validation with window_length > 1 `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Use NumExprFactor instead of NumericalExpression in test. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Use calendar to disambiguate symbol lookups in fetcher. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Use correct attribute name. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Use correct sids in WithEquityDailyBarData. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: Use value from loop. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: don’t crash on dividend warning (#2323) [GitHub]
+| BUG: don’t use assert_almost_equal with object arrays `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| BUG: fix data query cutoff times for events and estimates loaders
+  `Scott Sanderson <https://github.com/ssanderson>`__
+| BUG: fix error in assertion message `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: fix error message on pandas 0.22 `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| BUG: fix for newer pandas `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: fix formatting for incorrectly shaped array in as_column `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| BUG: fix load_raw_arrays for a subset of the possible assets `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| BUG: fix selection of checkpoints at checkpoint boundary `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| BUG: fix support for non unique sid->exchange mappings. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: fix truncation when converting floats to uint32 `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| BUG: group exprdata by the expressions, not identity `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| BUG: make parameter_space reset instance fixtures between runs `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| BUG: odo_kwargs is a nested dict in some places, now just hash/eq on
+  identity of this field `Joe Jevnik <https://github.com/llllllllll>`__
+| BUG: window_length=0 term inputs were not being copied. `Joe
+  Jevnik <https://github.com/llllllllll>`__
+
+Dependencies
+------------
+
+| DEP: Bump trading-calendar version and hash_value. `Eddie
+  Hebert <https://github.com/ehebert>`__
+| DEP: Add a condition to use self.assertRaisesRegexp for python 2.7
+  `samatix <https://github.com/samatix>`__
+| DEP: Bump trading-calendars for George H.W. Bush Day of Mourning
+  `Freddie Vargus <https://github.com/freddiev4>`__
+| DEP: Replacing the assertRaisesRegexp which is deprecated by
+  assertRaisesRegex This deprecation will enable the upgrade to add
+  support for python 3.7 and higher
+  `samatix <https://github.com/samatix>`__
+| DEP: List hdf5 as a dependency (#2679) [GitHub]
+| DEP: Upgrade requests to 2.20.1 [Jonathan Kamens]
+| DEP: Upgrade to current version of requests package [Jonathan Kamens]
+| DEP: Upgraded ``pip`` to >=10.0.0 for security vulnerability
+  `Christopher Michel <https://github.com/cmichelQT>`__
+| DEP: Upgraded ``pygments`` to 2.2.0 for security vulnerability
+  `Christopher Michel <https://github.com/cmichelQT>`__
+
+Development
+-----------
+
+| DEV: Add .dSYM/ directories to gitignore `Freddie
+  Vargus <https://github.com/freddiev4>`__
+| DEV: Added pre-commit to dev reqs `Richard
+  Frank <https://github.com/richafrank>`__
+| DEV: Bump trading-calendars version `Freddie
+  Vargus <https://github.com/freddiev4>`__
+| DEV: Improve error on MRO failure. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DEV: Print useful errors on MRO failure. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DEV: Reverting addition of pre-commit to dev reqs `Richard
+  Frank <https://github.com/richafrank>`__
+| DEV: Update trading-calendars meta.yaml `Freddie
+  Vargus <https://github.com/freddiev4>`__
+| DEV: Use a pip-compiled lockfile for install constraints `Richard
+  Frank <https://github.com/richafrank>`__
+| DEV: add testing utility for checking term lookback windows `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| DEV: Adding more hooks `Willian
+  Paixao <https://github.com/willianpaixao>`__
+| DEV: Introducing pre-commit hooks `Willian
+  Paixao <https://github.com/willianpaixao>`__
+
+Documentation
+-------------
+
+| DOC: Add a full description of the HDF5 daily pricing format `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: Add comments to rework calendar fixtures for multi-country.
+  `Scott Sanderson <https://github.com/ssanderson>`__
+| DOC: Add docstring for extra_dims `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| DOC: Add docstring. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: Add local installation in dev guide. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: Add new release scaffold. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: Adding the new added benchmark options to the beginner guide.
+  `samatix <https://github.com/samatix>`__
+| DOC: Adding the no-benchmark setting for the initial run in the readme
+  so that the first run by end users doesn’t fail
+  `samatix <https://github.com/samatix>`__
+| DOC: Clarify comment. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: Clarify comment. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: Clarify description of return value. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: Clarify how NaT is handled in compare_datetime_arrays. [Ernesto
+  Perez]
+| DOC: Clarify sorting requirements on fx rate dts. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: Clarify utc requirements on dts. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: Cleaned up docstrings on certain built-in pipeline terms. `Jamie
+  McCorriston <https://github.com/jmccorriston>`__
+| DOC: Doc updates/fixes `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: Docstring edits from PR feedback. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: Document sorting behavior in get_rates_columnar a bit more.
+  `Scott Sanderson <https://github.com/ssanderson>`__
+| DOC: Documentation tweaks. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: Fix comment. `Scott Sanderson <https://github.com/ssanderson>`__
+| DOC: Fix incorrect package name `Miguel Sánchez de León
+  Peque <https://github.com/Peque>`__
+| DOC: Fix out of date docstring. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: Fix pluralization in error message. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: Fix typos and remove trailing whitespace. [Hristo Georgiev]
+| DOC: Improve install instructions in README.rst `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| DOC: Lots of docstring updates. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: More doc tweaks. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: More docs updates. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: More docs updates. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: On updating dependencies `Richard
+  Frank <https://github.com/richafrank>`__
+| DOC: Slightly better function_application docstring. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: Update docs for \_make_sid_selector. `Andrew
+  Daniels <https://github.com/yankees714>`__
+| DOC: Update documentation `Willian
+  Paixao <https://github.com/willianpaixao>`__
+| DOC: Update test pypi URL [GitHub]
+| DOC: Updated release process around CI conda packaging (#2255)
+  [GitHub]
+| DOC: Volatility of ‘returns’ in slippage [GitHub]
+| DOC: [WIP] Improvements on logging `Willian
+  Paixao <https://github.com/willianpaixao>`__
+| DOC: fixed how we upload the final artifact to pypi [GitHub]
+| DOC: improve comments and docstrings `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: update docstring for mutlidimensionaldataset `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| DOC: Fix simple typo: unfortunatly -> unfortunately `Tim
+  Gates <https://github.com/timgates42>`__
+| DOC: Fix typo. `Eddie Hebert <https://github.com/ehebert>`__
+| DOC: Fixed syntax in Clip docstring. `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| DOC: Update README.rst `Jean
+  Bredeche <https://github.com/jbredeche>`__
+| DOC: Add comments to test. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| DOC: fix typo `Joe Jevnik <https://github.com/llllllllll>`__
+
+Enhancements
+------------
+
+| ENH: Added a PercentChange factor with unit test
+  `peterhbromley <https://github.com/peterhbromley>`__
+| ENH: Domains for Greece, Hungary, Turkey, South Africa
+  `peterhbromley <https://github.com/peterhbromley>`__
+| ENH: Add AdjustedArray.update_labels `Andrew
+  Daniels <https://github.com/yankees714>`__
+| ENH: Add Brazil domain `Jean
+  Bredeche <https://github.com/jbredeche>`__
+| ENH: Add CheckWindowsClassifier testing utility. [Ernesto Perez]
+| ENH: Add DataSet.get_column. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: Add Filter.if_else() and ComputableTerm.fillna(). `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: Add HDF5DailyBarReader `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: Add HDF5DailyBarWriter `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: Add India, Singapore, China domains. `Jean
+  Bredeche <https://github.com/jbredeche>`__
+| ENH: Add Korea Exchange `Freddie
+  Vargus <https://github.com/freddiev4>`__
+| ENH: Add MultiCountryHDF5DailyBarReader `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: Add PipelineHooks. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: Add ``mask`` argument to Factor.peer_count. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: Add adjustment_type parameter to load_adjustments_from_sqlite.
+  [Ernesto Perez]
+| ENH: Add another batch of domains `David
+  Michalowicz <https://github.com/dmichalowicz>`__
+| ENH: Add append_adjustments method to AdjustedArray. [Ernesto Perez]
+| ENH: Add currency column to EquityPricing. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: Add currency conversion for EquityPricing. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: Add currency to hdf5 daily bars schema. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: Add currency-aware session bar readers. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: Add domain definitions for 7 more emerging markets `David
+  Michalowicz <https://github.com/dmichalowicz>`__
+| ENH: Add domains for Denmark, Finland, Ireland, Norway, Sweden `David
+  Michalowicz <https://github.com/dmichalowicz>`__
+| ENH: Add get_rates_columnar method to FXRatesReader. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: Add utility for making multi-country equity info. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: Added PeerCount custom factor that is returned by classifier
+  instance method peer_count()
+  `peterhbromley <https://github.com/peterhbromley>`__
+| ENH: Added a PercentChange factor with unit test
+  `peterhbromley <https://github.com/peterhbromley>`__
+| ENH: Added better error message, test case
+  `peterhbromley <https://github.com/peterhbromley>`__
+| ENH: Adding –benchmark-file, –benchmark-symbol parameters to read
+  benchmark data from an external CSV file or a symbol from the ingested
+  data bundle `samatix <https://github.com/samatix>`__
+| ENH: Adding a flag : –no-benchmark to use zero returns as a benchmark.
+  In case the flag is used: - We use a new function load_zero_benchmark
+  to generate the zero benchmark dataframe from the trading calendar
+  provided to run_algo - The alpha, beta metrics are not calculated and
+  the call to empyrical is skipped
+  `samatix <https://github.com/samatix>`__
+| ENH: Adds several methods to Factor for daily summary statistics.
+  `Scott Sanderson <https://github.com/ssanderson>`__
+| ENH: BoundColumn comparisons now result in an error
+  `peterhbromley <https://github.com/peterhbromley>`__
+| ENH: Bump to trading-calendars 1.5.1. `Jean
+  Bredeche <https://github.com/jbredeche>`__
+| ENH: Domains for Chile, Colombia, Czechia, Mexico, Peru, Poland `David
+  Michalowicz <https://github.com/dmichalowicz>`__
+| ENH: Enable abstract DataSetFamily subclasses `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| ENH: Expose SQLiteAdjustmentReader.get_df_from_table method. [Ernesto
+  Perez]
+| ENH: Fixed test case error message assertions
+  `peterhbromley <https://github.com/peterhbromley>`__
+| ENH: Further improvements on error message, test case
+  `peterhbromley <https://github.com/peterhbromley>`__
+| ENH: HDF5-based FX Reader/Writer. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: Inform pipeline columns of currency awareness `David
+  Michalowicz <https://github.com/dmichalowicz>`__
+| ENH: Initial support for international pipelines. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: Make error message consistently correct `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| ENH: More complete support for defaults in fx readers. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: More constructors for MultiCountryDailyBarReader. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: Move reader construction into shared fixture. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: PercentChange uses SingleInputMixin now. Added tests for wrong
+  input length and window length
+  `peterhbromley <https://github.com/peterhbromley>`__
+| ENH: Rework benchmark handling for zipline CLI. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: Show fx()-conversion info in BoundColumn repr. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: Store more information about exchanges `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| ENH: Support Pipeline arithmetic that combines more than 32 terms
+  `Richard Frank <https://github.com/richafrank>`__
+| ENH: Support writing empty country groups. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: Update .pre-commit-config.yaml `Willian
+  Paixao <https://github.com/willianpaixao>`__
+| ENH: Update assert_equal(ndarray) to handle datetime arrays. [Ernesto
+  Perez]
+| ENH: Update load_adjustments_from_sqlite to conditionally exclude
+  tables. [Ernesto Perez]
+| ENH: add Factor.clip method `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| ENH: add MutliDimensionalDataSet type `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| ENH: add assert_equal(OrderedDict) `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| ENH: add assert_is_not_subclass `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| ENH: add copy method to adjusted array `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| ENH: add domains for several countries
+  `vikram-narayan <https://github.com/vikram-narayan>`__
+| ENH: add more adjustment types `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| ENH: add repr to MultiDimensionalDataset `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| ENH: add version number to hdf5 session bars `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: add write_direct API for adding data in the same schema as the
+  assets db `Scott Sanderson <https://github.com/ssanderson>`__
+| ENH: allow hooking dataset creation to add metadata or custom
+  docstrings `Joe Jevnik <https://github.com/llllllllll>`__
+| ENH: improve error message when timestamp < asof `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| ENH: improve multidimensional dataset error messages `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| ENH: make adjustment reader and writer ctx managers `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| ENH: make db downgrade drop all non-us assets `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| ENH: make lifetimes take a country_code `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| ENH: make lookup_symbols take a country_code `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| ENH: make retrieve_all actually take an iterable `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| ENH: move the data_query_time to the domain `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: ndarray.copy() always sets the contig to ‘C’ `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| ENH: remove some extra copies `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| ENH: standardize on UTC tz date labels for domains `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| ENH: use zip(*it) to create 3 parallel arrays instead of a recarray
+  `Joe Jevnik <https://github.com/llllllllll>`__
+| ENH: vectorize dividend ratio calculation `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| ENH: Changing string format on logging `Willian
+  Paixao <https://github.com/willianpaixao>`__
+| ENH: Some potential changes to fx to support estimates
+  `peterhbromley <https://github.com/peterhbromley>`__
+| ENH: Some potential changes to fx to support estimates
+  `peterhbromley <https://github.com/peterhbromley>`__
+
+Maintenance
+-----------
+
+| MAINT Correcting merge issue `samatix <https://github.com/samatix>`__
+| MAINT If no benchmark file, symbol or zero returns is chosen and no
+  benchmark data is ingested, we check if the IEX_API_CLOUD is defined
+  in the env variable. If the later is not provided, we raise an error
+  that is caught in the loader file and None returns are sent back to
+  the run_algo function. if context.set_benchmark(symbol(’‘)) is used,
+  the system proceeds with no issue otherwise the program ends up with a
+  ValueError benchmark not provided. Removing the warnings from the
+  **main** script and putting at the level of the loader functions
+  `samatix <https://github.com/samatix>`__
+  MAINT Using returns instead of OHLCV data when the benchmark file is
+  provided (–benchmark-file is given). The format is as follow: date,
+  return 2020-01-02 00:00:00+00:00,0.01 2020-01-03 00:00:00+00:00,-0.02
+  `samatix <https://github.com/samatix>`__
+  MAINT: Add HDF5 library `Joe Jevnik <https://github.com/llllllllll>`__
+  MAINT: Add a bunch more country codes. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+  MAINT: Add convenience constructors for MultiCountryHDF5DailyBarReader
+  `Scott Sanderson <https://github.com/ssanderson>`__
+  MAINT: Add more validation checks for h5 data. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+  MAINT: Add test helper for setting up exchange_info from domains.
+  `Scott Sanderson <https://github.com/ssanderson>`__
+  MAINT: Add type assertions for labelarray_where. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+  MAINT: Added missing space between sentences in error message `Richard
+  Frank <https://github.com/richafrank>`__
+  MAINT: Adding in validation for ComputableTerm input `Scott
+  Sanderson <https://github.com/ssanderson>`__
+  MAINT: Adding more expressive error message on CustomTermMixin `Scott
+  Sanderson <https://github.com/ssanderson>`__
+  MAINT: Allow multiple calls to SQLiteAdjustmentWriter.write. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+  MAINT: Avoid flake8 variable name complaints `Frederick
+  Wagner <https://github.com/doctaphred>`__
+  MAINT: Better error for assert_raises_str. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+  MAINT: Break out a new function to create synthetic data with holes
+  `Scott Sanderson <https://github.com/ssanderson>`__
+  MAINT: Bump blaze, odo, and datashape. [Ernesto Perez]
+  MAINT: Bump blaze. Adds compserver hook registration. [Ernesto Perez]
+  MAINT: Bump blaze. Make compute_hooks compatible across py2/py3.
+  [Ernesto Perez]
+  MAINT: Bump certifi to fix travis build. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+  MAINT: Bump mistune. `Christopher
+  Michel <https://github.com/cmichelQT>`__
+  MAINT: Bump odo and datashape. [Ernesto Perez]
+  MAINT: Bump pip-tools and bcolz in CI requirements lockfile `Richard
+  Frank <https://github.com/richafrank>`__
+  MAINT: Bump python-interface. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+  MAINT: Bump responses version. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+  MAINT: Bump six. [Ernesto Perez]
+  MAINT: Bump trading calendars version for 2020 holidays `David
+  Michalowicz <https://github.com/dmichalowicz>`__
+  MAINT: Bump trading_calendars version to 1.11.1
+  `peterhbromley <https://github.com/peterhbromley>`__
+  MAINT: Check for unknown asset in the non-read_all case as well
+  `Andrew Daniels <https://github.com/yankees714>`__
+  MAINT: Choose chunk size based on number of datetimes
+  `peterhbromley <https://github.com/peterhbromley>`__
+  MAINT: Clarify handling of edge cases in fx readers. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+  MAINT: Clarify rows/columns in hdf5 fx reader. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+  MAINT: Clean up organization of HDF5 daily bar tests `Scott
+  Sanderson <https://github.com/ssanderson>`__
+  MAINT: Clean up scaling factors in HDF5DailyBarWriter `Scott
+  Sanderson <https://github.com/ssanderson>`__
+  MAINT: Clean up. [Ernesto Perez]
+  MAINT: Compat alias for getargspec. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+  MAINT: Consider all fields when computing asset lifetimes `Scott
+  Sanderson <https://github.com/ssanderson>`__
+  MAINT: Disambiguate backslashes `Frederick
+  Wagner <https://github.com/doctaphred>`__
+  MAINT: Do not use ``functools.total_ordering`` due to py3 issues
+  `David Michalowicz <https://github.com/dmichalowicz>`__
+  MAINT: Don’t require an ’id’ column in hdf5 daily bar writer. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Don’t use == bound. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Don’t use system-reserved name pattern `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| MAINT: Ensure that all frames passed have the same days and sids
+  `Scott Sanderson <https://github.com/ssanderson>`__
+| MAINT: Escape ambiguous backslashes `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| MAINT: Explicitly mark where BaseException is caught `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| MAINT: Fix SyntaxError in python 3.7+ `Richard
+  Frank <https://github.com/richafrank>`__
+| MAINT: Fix spelling `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| MAINT: Fix warning when using cgi.escape in py3. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Fixed docstring and removed unused attribute `Richard
+  Frank <https://github.com/richafrank>`__
+| MAINT: Flake8 fixes. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Forward-fill fx rates past file end. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Handle errors when repring terms. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Handle invalid sids in single country HDF5DailyBarReader `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Ignore pandas categorical warning when merging frames. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Implement get_last_traded_dt() for h5 readers `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Include missing sids when raising NoDataForSid `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Include the timestamp in NoDataOnDate error. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Make chunks param a default
+  `peterhbromley <https://github.com/peterhbromley>`__
+| MAINT: Make data_query_time tzinfo required. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Make load_raw_arrays for daily bar readers handle unknown sids
+  `Andrew Daniels <https://github.com/yankees714>`__
+| MAINT: Make single and multi country readers less interdependent
+  `Scott Sanderson <https://github.com/ssanderson>`__
+| MAINT: Minor style tweaks. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Missed a spot. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: More PR feedback. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: More fixes to debug utils. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Move IDBox class to utils. [Ernesto Perez]
+| MAINT: Move expected rate lookup functions into fixture for reuse.
+  `Scott Sanderson <https://github.com/ssanderson>`__
+| MAINT: PR Feedback and cleanups. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: PR feedback `Andrew Daniels <https://github.com/yankees714>`__
+| MAINT: PR feedback `Andrew Daniels <https://github.com/yankees714>`__
+| MAINT: PR feedback `Scott Sanderson <https://github.com/ssanderson>`__
+| MAINT: PR feedback `Scott Sanderson <https://github.com/ssanderson>`__
+| MAINT: PR feedback `Scott Sanderson <https://github.com/ssanderson>`__
+| MAINT: PR feedback `Scott Sanderson <https://github.com/ssanderson>`__
+| MAINT: PR feedback. [Ernesto Perez]
+| MAINT: PR feedback. [Ernesto Perez]
+| MAINT: Pin interface’s transitive dependencies [GitHub]
+| MAINT: Pin transitive dependencies for ``requests`` `Christopher
+  Michel <https://github.com/cmichelQT>`__
+| MAINT: Prevent inconsistent calendars. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Propagate **module** for dataset specializations. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Properly handle get_value() requests outside asset lifetimes
+  `Scott Sanderson <https://github.com/ssanderson>`__
+| MAINT: Raise NoDataForSid from get_value on unknown sid `Andrew
+  Daniels <https://github.com/yankees714>`__
+| MAINT: Raise NoDataForSid when requested assets not in the daily bars
+  `Scott Sanderson <https://github.com/ssanderson>`__
+| MAINT: Raise NoDataOnDate on out of bounds BcolzDailyBarReader read.
+  `Scott Sanderson <https://github.com/ssanderson>`__
+| MAINT: Raise an error when only unknown sids are requested `Andrew
+  Daniels <https://github.com/yankees714>`__
+| MAINT: Re-export generic EquityPricingLoader name. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Reduce exception handling scope `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| MAINT: Register calendar alias at module scope. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Remove TRADING_CALENDAR_FOR_EXCHANGE. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Remove TradingEnvironment. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Remove ``map_identifier_index_to_sids``. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Remove last remnants of ordered_pip `Richard
+  Frank <https://github.com/richafrank>`__
+| MAINT: Remove most of SpecificEquityTrades. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Remove shadowed variables. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Remove treasury curves. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Remove unnecessary docstring
+  `peterhbromley <https://github.com/peterhbromley>`__
+| MAINT: Remove unused calendar arg from SQLiteAdjustmentWriter. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Remove unused imports. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Remove unused parameters. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Remove upper bound on bcolz `Richard
+  Frank <https://github.com/richafrank>`__
+| MAINT: Removed tornado, backports.ssl-match-hostname, and certifi
+  `Christopher Michel <https://github.com/cmichelQT>`__
+| MAINT: Removing the IEX returns retrieval function. Making the
+  \_zero_benchmark_returns a static method. Removing unnecessary imports
+  in the data loader `samatix <https://github.com/samatix>`__
+| MAINT: Removing unused, stale requirements file `Richard
+  Frank <https://github.com/richafrank>`__
+| MAINT: Rename MultidimensionalDataSet to DataSetFamily. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Rename test_us_equity_pricing. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Renamed requirements.txt to requirements_locked.txt `Richard
+  Frank <https://github.com/richafrank>`__
+| MAINT: Replace usages of ‘default’ with named sentinel. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Restructure control flow in \_lookup_generic_scalar. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Return to a single country HDF5DailyBarReader `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Revert typing of tick size for now. `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| MAINT: Rework behaviors shared by ComputableTerm subclasses. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Rework universal mixins to share more code. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Silence warning about setting with copy. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Simplify canonical country codes. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Simplify lookup_generic_scalar control_flow. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Some refactoring for HDF5DailyBarWriter `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Split multi-country hdf5 reader fixture. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Stop always importing all examples
+  `peterhbromley <https://github.com/peterhbromley>`__
+| MAINT: Store and validate file version for h5 fx data. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Support country_code for lookup_generic. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Transpose arrays in fx artifact for better compression
+  `peterhbromley <https://github.com/peterhbromley>`__
+| MAINT: Tweak hdf5_daily_bars module docstring to parse better as rst
+  `Andrew Daniels <https://github.com/yankees714>`__
+| MAINT: Tweaks to progress display. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Update aliases after rebase. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Update and test a bunch of reprs. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Update docstring describing fx artifact rates format
+  `peterhbromley <https://github.com/peterhbromley>`__
+| MAINT: Update egg names `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| MAINT: Update python-interface version `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| MAINT: Update to latest testfixtures to remove deprecation warnings
+  `Richard Frank <https://github.com/richafrank>`__
+| MAINT: Update to newer flask version `Richard
+  Frank <https://github.com/richafrank>`__
+| MAINT: Update trading_calendar property to raise NotImplementedError
+  `Scott Sanderson <https://github.com/ssanderson>`__
+| MAINT: Updated to newer versions of dependencies `Richard
+  Frank <https://github.com/richafrank>`__
+| MAINT: Updates for currency type. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Updates to fix tests. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Updates to fx reader/writer. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Upgrade flake8 to 3.6.0 `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| MAINT: Upgrade sqlalchemy to 1.1.18 `Samantha
+  Klonaris <https://github.com/srklonaris>`__
+| MAINT: Upgrade to newer version of ``werkzeug`` `Christopher
+  Michel <https://github.com/cmichelQT>`__
+| MAINT: Use a param name that is not the type builtin. `Eddie
+  Hebert <https://github.com/ehebert>`__
+| MAINT: Use explicit method. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Use exploding-ness of fx reader to determine currency-aware.
+  `Scott Sanderson <https://github.com/ssanderson>`__
+| MAINT: Use factorize_strings to uniquify in get_rates_columnar. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Use function instead of repeated use of locals. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Use load_adjustments_from_sqlite new interface. [Ernesto Perez]
+| MAINT: Use merge_with to combine adjustment mappings. [Ernesto Perez]
+| MAINT: Use np.logical_and.reduce `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Use object arrays with None for currency codes. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Use partial instead of closure. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Use raw strings for regexes `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| MAINT: Use unicode to make error messages match in py2/3. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Use universal mixin machinery for Slice. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: Validate dates passed to HDF5DailyBarReader `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: add adjust_date to pipeline engine (#2354) [GitHub]
+| MAINT: bump jinja2 to 2.10.1 `Christopher
+  Michel <https://github.com/cmichelQT>`__
+| MAINT: bump pytz to latest version (#2343) [GitHub]
+| MAINT: bump trading-calendars to 1.2.0
+  `vikram-narayan <https://github.com/vikram-narayan>`__
+| MAINT: clean up logged warnings `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| MAINT: flake8 fixes `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| MAINT: ix is deprecated in newer pandas `Richard
+  Frank <https://github.com/richafrank>`__
+| MAINT: make TradingAlgorithm._run_pipeline public
+  `vikram-narayan <https://github.com/vikram-narayan>`__
+| MAINT: move bulleted_list `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| MAINT: move some string formatting tools out of testing `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| MAINT: py3 compat for escape `Richard
+  Frank <https://github.com/richafrank>`__
+| MAINT: remove unused param `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: removing dead code (#2673) [GitHub]
+| MAINT: support newer pandas `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| MAINT: update symbol lookup errors in AssetFinder (#2351) [GitHub]
+| MAINT: use ISO 10383 codes for exchanges
+  `vikram-narayan <https://github.com/vikram-narayan>`__
+| MAINT: Update links and http -> https (#2447) `Richard
+  Frank <https://github.com/richafrank>`__
+| MAINT: Update links and http -> https (#2448) `Richard
+  Frank <https://github.com/richafrank>`__
+
+Performance
+-----------
+
+| PERF: Avoid a copy on reads from h5. `Andrew
+  Daniels <https://github.com/yankees714>`__
+| PERF: Avoid slow exception repr in blaze. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| PERF: Avoid unnecessary copy in LabelArray. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| PERF: Bump multipledispatch for faster import times `Richard
+  Frank <https://github.com/richafrank>`__
+| PERF: Move valid sid check into Cython loop. `Andrew
+  Daniels <https://github.com/yankees714>`__
+| PERF: Speed up minute_frame_to_session_frame. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| PERF: Speed up pipeline output index construction. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| PERF: Use copyto instead of np.where to assign in PeerCount. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+
+Reverts
+-------
+
+| REV: Reverting the check if the benchmark returns are null
+  `samatix <https://github.com/samatix>`__
+| Remove unused import. `Eddie Hebert <https://github.com/ehebert>`__
+| Revert “MAINT: Bump blaze. Adds compserver hook registration.”
+  [GitHub]
+| Revert “MAINT: Bump odo and datashape.” [GitHub]
+| Revert pip `Christopher Michel <https://github.com/cmichelQT>`__
+
+Style
+-----
+
+| STY Flake8 style changes `samatix <https://github.com/samatix>`__
+| STY: Fix weird trailing comma. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| STY: Fixed flake8 errors
+  `peterhbromley <https://github.com/peterhbromley>`__
+| STY: Fixed some style errors for PercentChange commit
+  `peterhbromley <https://github.com/peterhbromley>`__
+| STY: Fixed style issues from previous PercentChange commit
+  `peterhbromley <https://github.com/peterhbromley>`__
+| STY: Flake8 style amendments `samatix <https://github.com/samatix>`__
+| STY: Flake8. `Scott Sanderson <https://github.com/ssanderson>`__
+| STY: Improved error message
+  `peterhbromley <https://github.com/peterhbromley>`__
+| STY: Line too long
+  `peterhbromley <https://github.com/peterhbromley>`__
+| STY: Minor style update in PercentChange docstring
+  `peterhbromley <https://github.com/peterhbromley>`__
+| STY: Renamed a parameter for clarity
+  `peterhbromley <https://github.com/peterhbromley>`__
+| STY: Whitespace. `Scott Sanderson <https://github.com/ssanderson>`__
+| STY: redefinition `Joe Jevnik <https://github.com/llllllllll>`__
+| STY: remove unused import `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| STY: unused imports `Joe Jevnik <https://github.com/llllllllll>`__
+
+Test
+----
+
+| TEST Adding tests for the new benchmark parameters. I used mock
+  functions as I couldn’t find in the test fixtures a way to call
+  run_algo. `samatix <https://github.com/samatix>`__
+| TEST: Actual for realz fix error message test. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TEST: Actually fix error message in test. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TEST: Add another test case to test_equity_session_domain. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TEST: Add explicit tests for Filter.if_else. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TEST: Add test case for MultipleSymbolsFound failure. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TEST: Add test coverage for get_rate_scalar. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TEST: Add test coverage for loading fx rates of None. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TEST: Add test coverage for sessions. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TEST: Check boundary conditions. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TEST: Clarify output for assert_dict_equal. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TEST: Don’t assume order of updates. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TEST: Don’t test categoricals on new pandas. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TEST: Fix int64 expected type on windows. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TEST: Work around unfortunate behavior in downstream tests. `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TST: Add HDF5DailyBarTestCase `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TST: Add WithHDF5EquityDailyBarReader fixture `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TST: Add test coverage for HDF5 daily bar asset start and end dates
+  `Scott Sanderson <https://github.com/ssanderson>`__
+| TST: Adds test for coerce_to_uint32 `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TST: Assert that float pipeline outputs are equal with a tolerance
+  `Richard Frank <https://github.com/richafrank>`__
+| TST: Be explicit about dtype size for windows CI `Richard
+  Frank <https://github.com/richafrank>`__
+| TST: Don’t assert_almost_equal with string arrays `Richard
+  Frank <https://github.com/richafrank>`__
+| TST: Fix tests for Python 3.6 compatibility `David
+  Michalowicz <https://github.com/dmichalowicz>`__
+| TST: Generalize remaining US-specific tests in \_DailyBarsTestCase
+  `Scott Sanderson <https://github.com/ssanderson>`__
+| TST: Generate test names and order deterministically `Richard
+  Frank <https://github.com/richafrank>`__
+| TST: Make events and metrics suites modules. `Eddie
+  Hebert <https://github.com/ehebert>`__
+| TST: Need relative imports in py3 `Richard
+  Frank <https://github.com/richafrank>`__
+| TST: Refactor make_equity_daily_bar_data to take sids and a country
+  code `Scott Sanderson <https://github.com/ssanderson>`__
+| TST: Some py2/3 compat `Richard
+  Frank <https://github.com/richafrank>`__
+| TST: Test HDF5 daily pricing in multiple countries `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TST: Test excluding divs when loading adjustments. [Ernesto Perez]
+| TST: Test that daily bar readers return nan/0 for holes `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TST: Update some overrides of make_equity_daily_bar_data to use sids
+  arg `Scott Sanderson <https://github.com/ssanderson>`__
+| TST: Use ``assert_raises_str`` `Frederick
+  Wagner <https://github.com/doctaphred>`__
+| TST: Use dispatched assert_equal in test_us_equity_pricing `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TST: Use explicit copy to avoid SettingWithCopyWarning `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TST: add test for resolving overloaded sid->exchange `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TST: add test for supplementary_mappings `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TST: add tests for adjustments writer `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| TST: add tests for data query time `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TST: add tests for domain data query cutoff times `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TST: fix parameter_space error handling `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| TST: fix test for new pandas `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TST: fix test_domain
+  `vikram-narayan <https://github.com/vikram-narayan>`__
+| TST: make all equities have a different exchange `Scott
+  Sanderson <https://github.com/ssanderson>`__
+| TST: make the mock daily bar reader check the dates `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| TST: remove unneeded constraint `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| TST: update example data `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| TST: use constants instead of shared dates `Joe
+  Jevnik <https://github.com/llllllllll>`__
+| TST: Also test other futures test case. `Eddie
+  Hebert <https://github.com/ehebert>`__
+| TST: Blow away test section `Gerry
+  Manoim <https://github.com/gerrymanoim>`__
+| TST: add back test section `Gerry
+  Manoim <https://github.com/gerrymanoim>`__
