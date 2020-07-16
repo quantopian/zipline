@@ -401,14 +401,14 @@ class BenchmarkSpec(object):
 
     Parameters
     ----------
-    benchmark_returns : pd.Series
+    benchmark_returns : pd.Series, optional
         Series of returns to use as the benchmark.
     benchmark_file : str or file
         File containing a csv with `date` and `return` columns, to be read as
         the benchmark.
-    benchmark_sid : int
+    benchmark_sid : int, optional
         Sid of the asset to use as a benchmark.
-    benchmark_symbol : int
+    benchmark_symbol : str, optional
         Symbol of the asset to use as a benchmark. Symbol will be looked up as
         of the end date of the backtest.
     no_benchmark : bool
@@ -501,28 +501,27 @@ class BenchmarkSpec(object):
                 raise _RunAlgoError(
                     "Symbol %s as a benchmark not found in this bundle."
                 )
+        elif self.no_benchmark:
+            benchmark_sid = None
+            benchmark_returns = self._zero_benchmark_returns(
+                start_date=start_date,
+                end_date=end_date,
+            )
         else:
-            if not self.no_benchmark:
-                log.warn(
-                    "No benchmark configured. "
-                    "Assuming algorithm calls set_benchmark."
-                )
-                log.warn(
-                    "Pass --benchmark-sid, --benchmark-symbol, or"
-                    " --benchmark-file to set a source of benchmark returns."
-                )
-                log.warn(
-                    "Pass --no-benchmark to use a dummy benchmark "
-                    "of zero returns.",
-                )
-                benchmark_sid = None
-                benchmark_returns = None
-            else:
-                benchmark_sid = None
-                benchmark_returns = self._zero_benchmark_returns(
-                    start_date=start_date,
-                    end_date=end_date,
-                )
+            log.warn(
+                "No benchmark configured. "
+                "Assuming algorithm calls set_benchmark."
+            )
+            log.warn(
+                "Pass --benchmark-sid, --benchmark-symbol, or"
+                " --benchmark-file to set a source of benchmark returns."
+            )
+            log.warn(
+                "Pass --no-benchmark to use a dummy benchmark "
+                "of zero returns.",
+            )
+            benchmark_sid = None
+            benchmark_returns = None
 
         return benchmark_sid, benchmark_returns
 
