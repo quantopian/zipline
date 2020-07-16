@@ -401,14 +401,14 @@ class BenchmarkSpec(object):
 
     Parameters
     ----------
-    benchmark_returns : pd.Series
+    benchmark_returns : pd.Series, optional
         Series of returns to use as the benchmark.
     benchmark_file : str or file
         File containing a csv with `date` and `return` columns, to be read as
         the benchmark.
-    benchmark_sid : int
+    benchmark_sid : int, optional
         Sid of the asset to use as a benchmark.
-    benchmark_symbol : int
+    benchmark_symbol : str, optional
         Symbol of the asset to use as a benchmark. Symbol will be looked up as
         of the end date of the backtest.
     no_benchmark : bool
