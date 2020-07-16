@@ -2,7 +2,7 @@ Release 1.2.0
 -------------
 
 :Release: 1.2.0
-:Date: TBD
+:Date: April 4, 2018
 
 Highlights
 ~~~~~~~~~~
