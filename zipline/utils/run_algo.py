@@ -501,28 +501,27 @@ class BenchmarkSpec(object):
                 raise _RunAlgoError(
                     "Symbol %s as a benchmark not found in this bundle."
                 )
+        elif self.no_benchmark:
+            benchmark_sid = None
+            benchmark_returns = self._zero_benchmark_returns(
+                start_date=start_date,
+                end_date=end_date,
+            )
         else:
-            if not self.no_benchmark:
-                log.warn(
-                    "No benchmark configured. "
-                    "Assuming algorithm calls set_benchmark."
-                )
-                log.warn(
-                    "Pass --benchmark-sid, --benchmark-symbol, or"
-                    " --benchmark-file to set a source of benchmark returns."
-                )
-                log.warn(
-                    "Pass --no-benchmark to use a dummy benchmark "
-                    "of zero returns.",
-                )
-                benchmark_sid = None
-                benchmark_returns = None
-            else:
-                benchmark_sid = None
-                benchmark_returns = self._zero_benchmark_returns(
-                    start_date=start_date,
-                    end_date=end_date,
-                )
+            log.warn(
+                "No benchmark configured. "
+                "Assuming algorithm calls set_benchmark."
+            )
+            log.warn(
+                "Pass --benchmark-sid, --benchmark-symbol, or"
+                " --benchmark-file to set a source of benchmark returns."
+            )
+            log.warn(
+                "Pass --no-benchmark to use a dummy benchmark "
+                "of zero returns.",
+            )
+            benchmark_sid = None
+            benchmark_returns = None
 
         return benchmark_sid, benchmark_returns
 
