@@ -28,7 +28,7 @@ from zipline.pipeline.loaders import USEquityPricingLoader
 import zipline.utils.paths as pth
 from zipline.extensions import load
 from zipline.errors import SymbolNotFound
-from zipline.algorithm import TradingAlgorithm
+from zipline.algorithm import TradingAlgorithm, NoBenchmark
 from zipline.finance.blotter import Blotter
 
 log = logbook.Logger(__name__)
@@ -189,32 +189,46 @@ def _run(handle_data,
         except ValueError as e:
             raise _RunAlgoError(str(e))
 
-    perf = TradingAlgorithm(
-        namespace=namespace,
-        data_portal=data,
-        get_pipeline_loader=choose_loader,
-        trading_calendar=trading_calendar,
-        sim_params=SimulationParameters(
-            start_session=start,
-            end_session=end,
+    try:
+        perf = TradingAlgorithm(
+            namespace=namespace,
+            data_portal=data,
+            get_pipeline_loader=choose_loader,
             trading_calendar=trading_calendar,
-            capital_base=capital_base,
-            data_frequency=data_frequency,
-        ),
-        metrics_set=metrics_set,
-        blotter=blotter,
-        benchmark_returns=benchmark_returns,
-        benchmark_sid=benchmark_sid,
-        **{
-            'initialize': initialize,
-            'handle_data': handle_data,
-            'before_trading_start': before_trading_start,
-            'analyze': analyze,
-        } if algotext is None else {
-            'algo_filename': getattr(algofile, 'name', '<algorithm>'),
-            'script': algotext,
-        }
-    ).run()
+            sim_params=SimulationParameters(
+                start_session=start,
+                end_session=end,
+                trading_calendar=trading_calendar,
+                capital_base=capital_base,
+                data_frequency=data_frequency,
+            ),
+            metrics_set=metrics_set,
+            blotter=blotter,
+            benchmark_returns=benchmark_returns,
+            benchmark_sid=benchmark_sid,
+            **{
+                'initialize': initialize,
+                'handle_data': handle_data,
+                'before_trading_start': before_trading_start,
+                'analyze': analyze,
+            } if algotext is None else {
+                'algo_filename': getattr(algofile, 'name', '<algorithm>'),
+                'script': algotext,
+            }
+        ).run()
+    except NoBenchmark:
+        raise _RunAlgoError(
+            (
+                'no ``benchmark_spec`` was provided and'
+                ' ``zipline.api.set_benchmark`` was not called in'
+                ' ``initialize``'
+            ),
+            (
+                "neither '--benchmark-symbol' nor '--benchmark-sid' was"
+                " provided and ``zipline.api.set_benchmark`` was not called"
+                " in ``initialize``, did you mean to pass '--no-benchmark'"
+            ),
+        )
 
     if output == '-':
         click.echo(str(perf))
