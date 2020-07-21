@@ -27,13 +27,11 @@ environment:
     - PYTHON_VERSION: "2.7"
     - PYTHON_VERSION: "3.5"
 
-    # - PYTHON_VERSION: "3.5"
-    #   PANDAS_VERSION: "0.19.2"
-
     - PYTHON_VERSION: "3.5"
       PANDAS_VERSION: "0.22.0"
       NUMPY_VERSION: "1.14.1"
       SCIPY_VERSION: "1.0.0"
+      STATSMODELS_VERSION: "0.9.0"
       PANDAS_DATAREADER_VERSION: "0.4.0"
       DASK_VERSION: "0.17.1"
 
@@ -41,6 +39,7 @@ environment:
       PANDAS_VERSION: "0.22.0"
       NUMPY_VERSION: "1.14.1"
       SCIPY_VERSION: "1.0.0"
+      STATSMODELS_VERSION: "0.9.0"
       PANDAS_DATAREADER_VERSION: "0.4.0"
       DASK_VERSION: "0.17.1"
 
@@ -83,6 +82,7 @@ install:
   - sed -i "s/numpy==.*/numpy==%NUMPY_VERSION%/" etc/requirements_locked.txt
   - sed -i "s/pandas==.*/pandas==%PANDAS_VERSION%/" etc/requirements_locked.txt
   - sed -i "s/scipy==.*/scipy==%SCIPY_VERSION%/" etc/requirements_locked.txt
+  - IF NOT "%STATSMODELS_VERSION%"=="" sed -i "s/statsmodels==.*/statsmodels==%STATSMODELS_VERSION%/" etc/requirements_locked.txt
   - IF NOT "%PANDAS_DATAREADER_VERSION%"=="" sed -i "s/pandas-datareader==.*/pandas-datareader==%PANDAS_DATAREADER_VERSION%/" etc/requirements_locked.txt
   - IF NOT "%DASK_VERSION%"=="" sed -i "s/dask\[dataframe\]==.*/dask\[dataframe\]==%DASK_VERSION%/" etc/requirements_locked.txt
   - cat etc/requirements_locked.txt
