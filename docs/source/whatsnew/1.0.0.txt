@@ -61,8 +61,8 @@ Data Bundles (:issue:`1173` and :issue:`1178`)
 ``````````````````````````````````````````````
 
 1.0.0 introduces data bundles. Data bundles are groups of data that should be
-preloaded and used to run backtests later. This allows users to not need to to
-specify  which tickers they are interested in each time they run an
+preloaded and used to run backtests later. This allows users to not need to
+specify which tickers they are interested in each time they run an
 algorithm. This also allows us to cache the data between runs.
 
 By default, the ``quantopian-quandl`` bundle will be used which pulls data from

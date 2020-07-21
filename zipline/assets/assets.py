@@ -172,7 +172,7 @@ def build_grouped_ownership_map(table,
                                 value_from_row,
                                 group_key):
     """
-    Builds a dict mapping group keys to maps of keys to to lists of
+    Builds a dict mapping group keys to maps of keys to lists of
     OwnershipPeriods, from a db table.
     """
     grouped_rows = groupby(
