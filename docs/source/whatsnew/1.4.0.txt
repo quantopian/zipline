@@ -16,25 +16,51 @@ New Domains
 ```````````
 
 - Argentina
+- Australia
+- Austria
+- Belgium
+- Brazil
+- Canada
 - Chile
+- China
+- Czech Republic
 - Colombia
 - Czechia
+- Finland
+- France
+- Germany
 - Greece
+- Hong Kong
 - Hungary
+- India
 - Indonesia
+- Ireland
+- Italy
+- Japan
 - Malaysia
 - Mexico
+- Netherlands
+- New Zealand
+- Norway
 - Pakistan
 - Peru
 - Philippines
 - Poland
+- Portugal
 - Russia
+- Singapore
+- Spain
+- Sweden
 - Taiwan
 - Thailand
 - Turkey
+- United Kingdom
+- United States
 - South Africa
+- South Korea
+- Switzerland
 
-(:issue:`2550`, :issue:`2552`, :issue:`2559`)
+(:issue:`2301`, :issue:`2333`, :issue:`2338`, :issue:`2355`, :issue:`2369`, :issue:`2550`, :issue:`2552`, :issue:`2559`)
 
 DataSetFamily
 `````````````
@@ -117,7 +143,7 @@ Enhancements
 ~~~~~~~~~~~~
 
 - Added International Pipelines (:issue:`2262`)
-- Added DataSetFamily (ne MultiDimensionalDataSet) - a shorthand for creating a collection of regular DataSets that share the same columns. (:issue:`2402`)
+- Added DataSetFamily (née MultiDimensionalDataSet) - a shorthand for creating a collection of regular DataSets that share the same columns. (:issue:`2402`)
 - Added ``DataSet.get_column`` for looking up columns by name (:issue:`2210`)
 - Added ``CheckWindowsClassifier`` allows us to test lookback windows of
   categorical and string columns using pipeline. (:issue:`2458`)
