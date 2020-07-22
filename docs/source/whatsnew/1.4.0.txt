@@ -19,6 +19,7 @@ category in a classifier (:issue:`2509`)
 - :meth:`~zipline.pipeline.filters.Filter.if_else`: Allows users to create expressions that conditionally draw from the outputs of one of two terms. (:issue:`2697`)
 - :meth:`~zipline.pipeline.term.ComputableTerm.fillna`: Allows users to fill missing data with either a constant value, or values from another term. (:issue:`2697`)
 - :meth:`~zipline.pipeline.factors.Factor.clip`: Allows users to constrain a factor's values to a given range. (:issue:`2708`)
+- :meth:`~zipline.pipeline.factor.Factor.mean`, :meth:`~zipline.pipeline.factor.Factor.stddev`, :meth:`~zipline.pipeline.factor.Factor.max`, :meth:`~zipline.pipeline.factor.Factor.min`, :meth:`~zipline.pipeline.factor.Factor.median`, :meth:`~zipline.pipeline.factor.Factor.sum`, :meth:`~zipline.pipeline.factor.Factor.notnull_count`: Summarize data across the entire domain into a scalar factor. (:issue:`2697`)
 
 Enhancements
 ~~~~~~~~~~~~
