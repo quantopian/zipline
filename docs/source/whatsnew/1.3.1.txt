@@ -31,7 +31,8 @@ None
 Bug Fixes
 ~~~~~~~~~
 
-None
+Now uses `NullHandler` to block logs from the user's algorithm from
+being sent to stdout or stderr unless otherwise specified.
 
 Performance
 ~~~~~~~~~~~

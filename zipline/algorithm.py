@@ -343,6 +343,15 @@ class TradingAlgorithm(object):
         def noop(*args, **kwargs):
             pass
 
+        def unlog_method(fn):
+            def unlogged_method(*args, **kwargs):
+                with logbook.NullHandler().applicationbound():
+                    fn(*args, **kwargs)
+            if fn is None:
+                return fn
+            else:
+                return unlogged_method
+
         if self.algoscript is not None:
             unexpected_api_methods = set()
             if initialize is not None:
@@ -365,15 +374,15 @@ class TradingAlgorithm(object):
             if algo_filename is None:
                 algo_filename = '<string>'
             code = compile(self.algoscript, algo_filename, 'exec')
-            exec_(code, self.namespace)
+            unlog_method(exec_)(code, self.namespace)
 
-            self._initialize = self.namespace.get('initialize', noop)
-            self._handle_data = self.namespace.get('handle_data', noop)
-            self._before_trading_start = self.namespace.get(
+            self._initialize = unlog_method(self.namespace.get('initialize', noop))
+            self._handle_data = unlog_method(self.namespace.get('handle_data', noop))
+            self._before_trading_start = unlog_method(self.namespace.get(
                 'before_trading_start',
-            )
+            ))
             # Optional analyze function, gets called after run
-            self._analyze = self.namespace.get('analyze')
+            self._analyze = unlog_method(self.namespace.get('analyze'))
 
         else:
             self._initialize = initialize or (lambda self: None)
