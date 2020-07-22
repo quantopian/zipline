@@ -187,7 +187,7 @@ Bug Fixes
   Sanderson <https://github.com/ssanderson>`__
 - BUG: Use value from loop. `Scott
   Sanderson <https://github.com/ssanderson>`__
-- BUG: don’t crash on dividend warning (#2323) [GitHub]
+- BUG: don’t crash on dividend warning (#2323) `Vikram Narayan <https://github.com/Vikram Narayan>`__
 - BUG: don’t use assert_almost_equal with object arrays `Joe
   Jevnik <https://github.com/llllllllll>`__
 - BUG: fix data query cutoff times for events and estimates loaders
