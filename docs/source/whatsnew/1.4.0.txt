@@ -35,8 +35,8 @@ We removed the dependency on treasury curves, since they weren't actually being 
 New Built In Factors
 ````````````````````
 
-- :class:`~zipline.pipeline.factors.basic.PercentChange`: Calculates the percent change over the given ``window_length``. Note: Percent change is calculated as ``(new - old) / abs(old)``. (:issue:`2506`)
-- :class:`~zipline.pipeline.factors.basic.PeerCount`: Gives the number of occurrences of each distinct
+- :class:`~zipline.pipeline.factors.PercentChange`: Calculates the percent change over the given ``window_length``. Note: Percent change is calculated as ``(new - old) / abs(old)``. (:issue:`2506`)
+- :class:`~zipline.pipeline.factors.PeerCount`: Gives the number of occurrences of each distinct
 category in a classifier. (:issue:`2509`)
 - :class:`~zipline.pipeline.mixins.ConstantMixin`: A mixin for creating a Pipeline term with a constant value. (:issue:`2697`)
 - :meth:`~zipline.pipeline.filters.Filter.if_else`: Allows users to create expressions that conditionally draw from the outputs of one of two terms. (:issue:`2697`)
@@ -49,7 +49,7 @@ Enhancements
 
 - Added International Pipelines (:issue:`2262`)
 - Added DataSetFamily (née MultiDimensionalDataSet) - a shorthand for creating a collection of regular DataSets that share the same columns. (:issue:`2402`)
-- Added :meth:`~zipline.pipeline.data.dataset.DataSet.get_column` for looking up columns by name (:issue:`2210`)
+- Added :meth:`~zipline.pipeline.data.dataset.DataSetFamily.get_column` for looking up columns by name (:issue:`2210`)
 - Added :class:`~zipline.testing.pipeline_terms.CheckWindowsClassifier` that allows us to test lookback windows of categorical and string columns using Pipeline. (:issue:`2458`)
 - Added :class:`~zipline.pipeline.hooks.iface.PipelineHooks` which is now used to display Pipline progress bars (:issue:`2467`)
 - :class:`~zipline.pipeline.data.dataset.BoundColumn` comparisons will now result in an error.
