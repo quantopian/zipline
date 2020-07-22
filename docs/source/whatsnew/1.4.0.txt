@@ -2,7 +2,7 @@ Release 1.4.0
 -------------
 
 :Release: 1.4.0
-:Date: TBD
+:Date: July 22, 2020
 
 Highlights
 ~~~~~~~~~~
