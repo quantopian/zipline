@@ -127,8 +127,7 @@ We are working on ways to make it easy to get international data into Zipline.
 
 (:issue:`2265`, :issue:`2262`, and many others)
 
-New Domains
-```````````
+The domains that Zipline currently supports for running pipelines (using the latest `trading-calendars`_ package) are the following:
 
 - Argentina
 - Australia
@@ -240,3 +239,5 @@ DataSetFamily
  where ``(dimension_0 == 'a') & (dimension_1 == 'e')``.
 
 (:issue:`2402`, :issue:`2452`, :issue:`2456`)
+
+.. _`trading-calendars` : https://pypi.org/project/trading-calendars/
