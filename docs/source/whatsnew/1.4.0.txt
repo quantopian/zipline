@@ -11,11 +11,10 @@ Highlights
 New Built In Factors
 ````````````````````
 
-- ``PercentChange``: Calculates the percent change over the given
-  ``window_length``. Note: Percent change is calculated as
-  ``(new - old) / abs(old)``. (:issue:`2506`)
-- ``PeerCount``: gives the number of occurrences of each distinct
-  category in a classifier (:issue:`2509`)
+- :class:`~zipline.pipeline.factors.basic.PercentChange`: Calculates the percent change over the given ``window_length``.
+Note: Percent change is calculated as ``(new - old) / abs(old)``. (:issue:`2506`)
+- :class:`~zipline.pipeline.factors.basic.PeerCount`: gives the number of occurrences of each distinct
+category in a classifier (:issue:`2509`)
 - :class:`~zipline.pipeline.mixins.ConstantMixin`: A mixin for creating a Pipeline term with a constant value. (:issue:`2697`)
 - :meth:`~zipline.pipeline.filters.Filter.if_else`: Allows users to create expressions that conditionally draw from the outputs of one of two terms. (:issue:`2697`)
 - :meth:`~zipline.pipeline.term.ComputableTerm.fillna`: Allows users to fill missing data with either a constant value, or values from another term. (:issue:`2697`)
@@ -170,11 +169,11 @@ DataSetFamily
 
  Dataset families are used to represent data where the unique identifier for
  a row requires more than just asset and date coordinates. A
- :class:`zipline.pipeline.data.DataSetFamily` can also be thought of as a collection of
+ :class:`~zipline.pipeline.data.DataSetFamily` can also be thought of as a collection of
  :class:`~zipline.pipeline.data.DataSet` objects, each of which has the same
  columns, domain, and ndim.
 
- :class:`zipline.pipeline.data.DataSetFamily` objects are defined with one or more
+ :class:`~zipline.pipeline.data.DataSetFamily` objects are defined with one or more
  :class:`~zipline.pipeline.data.Column` objects, plus one additional field:
  ``extra_dims``.
 
@@ -186,8 +185,10 @@ DataSetFamily
  the dimension name, and the values are a set of unique values along that
  dimension.
 
- To work with a :class:`zipline.pipeline.data.DataSetFamily` in a pipeline expression, one must choose a specific value for each of the extra dimensions using the :meth:`~zipline.pipeline.data.DataSetFamily.slice` method.
-For example, given a :class:`zipline.pipeline.data.DataSetFamily`:
+ To work with a :class:`~zipline.pipeline.data.DataSetFamily` in a pipeline expression, one must
+ choose a specific value for each of the extra dimensions using the
+ :meth:`~zipline.pipeline.data.DataSetFamily.slice` method.
+ For example, given a :class:`~zipline.pipeline.data.DataSetFamily`:
 
  .. code-block:: python
 
@@ -215,7 +216,7 @@ For example, given a :class:`zipline.pipeline.data.DataSetFamily`:
  Here we see the implicit ``sid``, ``asof_date`` and ``timestamp`` columns
  as well as the extra dimensions columns.
 
- This :class:`zipline.pipeline.data.DataSetFamily` can be converted to a regular :class:`zipline.pipeline.data.DataSet`
+ This :class:`~zipline.pipeline.data.DataSetFamily` can be converted to a regular :class:`~zipline.pipeline.data.DataSet`
  with:
 
  .. code-block:: python
