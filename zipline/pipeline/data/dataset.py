@@ -799,7 +799,7 @@ class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
     :class:`~zipline.pipeline.data.DataSet` objects, each of which has the same
     columns, domain, and ndim.
 
-    :class:`DataSetFamily` objects are defined with by one or more
+    :class:`DataSetFamily` objects are defined with one or more
     :class:`~zipline.pipeline.data.Column` objects, plus one additional field:
     ``extra_dims``.
 
