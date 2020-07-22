@@ -26,14 +26,12 @@ Enhancements
 
 - Added International Pipelines (:issue:`2262`)
 - Added DataSetFamily (née MultiDimensionalDataSet) - a shorthand for creating a collection of regular DataSets that share the same columns. (:issue:`2402`)
-- Added ``DataSet.get_column`` for looking up columns by name (:issue:`2210`)
-- Added ``CheckWindowsClassifier`` allows us to test lookback windows of
-  categorical and string columns using pipeline. (:issue:`2458`)
-- Added ``PipelineHooks`` which is now used to display Pipline progress
+- Added :meth:`~zipline.pipeline.data.dataset.DataSet.get_column` for looking up columns by name (:issue:`2210`)
+- Added :class:`~zipline.testing.pipeline_terms.CheckWindowsClassifier` allowing us to test lookback windows of categorical and string columns using Pipeline. (:issue:`2458`)
+- Added :class:`~zipline.pipeline.hooks.iface.PipelineHooks` which is now used to display Pipline progress
   bars (:issue:`2467`)
-- ``BoundColumn`` comparisons will now result in an error. This prevents
-  writing ``EquityPricing.volume > 1000`` (silently returning bad data)
-  insteads of ``EquityPricing.volume.latest > 1000``. (:issue:`2537`)
+- :class:`~zipline.pipeline.data.dataset.BoundColumn` comparisons will now result in an error.
+  This prevents writing ``EquityPricing.volume > 1000`` (silently returning bad data) insteads of ``EquityPricing.volume.latest > 1000``. (:issue:`2537`)
 - Added currency conversion support to Pipeline. (:issue:`2586`)
 - Added ``--benchmark-file`` and ``--benchmark-symbol`` command line arguments to make it easier to provide benchmark data. (:issue:`2642`)
 - Added support for Python 3.6 (:issue:`2643`)
@@ -50,21 +48,21 @@ Bug Fixes
 - Fixed crash on dividend warning (:issue:`2323`)
 - Fixed ``week_start`` when Monday precedes the New Year. (:issue:`2394`)
 - Ensured correct dtypes when unpacking empty dataframes. (:issue:`2444`)
-- Fixed a bug where a pipeline term with ``window_length=0`` would not copy the input before calling ``compute()`` which could cause incorrect results if the input was reused in the Pipeline. (:issue:`2723`)
+- Fixed a bug where a Pipeline term with ``window_length=0`` would not copy the input before calling ``compute()`` which could cause incorrect results if the input was reused in the Pipeline. (:issue:`2723`)
 
 
 Performance
 ~~~~~~~~~~~
 
-- Added :class:`zipline.data.hdf5_daily_bars.HDF5DailyBarWriter`, which writes daily pricing in a new format as an HDF5 file. Each OHLCV field is stored as a 2D array in a chunked HDF5 dataset, with a row per sid and a column per day. The file also supports multiple countries. Added :class:`zipline.data.hdf5_daily_bars.HDF5DailyBarReader`, which implements the BarReader interface and can read files written by HDF5DailyBarWriter. (:issue:`2295`)
+- Added :class:`~zipline.data.hdf5_daily_bars.HDF5DailyBarWriter`, which writes daily pricing in a new format as an HDF5 file. Each OHLCV field is stored as a 2D array in a chunked HDF5 dataset, with a row per sid and a column per day. The file also supports multiple countries. Added :class:`~zipline.data.hdf5_daily_bars.HDF5DailyBarReader`, which implements the BarReader interface and can read files written by HDF5DailyBarWriter. (:issue:`2295`)
 - Vectorized dividend ratio calculation (:issue:`2298`)
-- Improved performance of the :class:`zipline.pipeline.factors.RollingPearson` and
-  :class:`zipline.pipeline.factors.RollingPearsonOfReturns` pipeline factors. (:issue:`2071`)
+- Improved performance of the :class:`~zipline.pipeline.factors.RollingPearson` and
+  :class:`~zipline.pipeline.factors.RollingPearsonOfReturns` pipeline factors. (:issue:`2071`)
 
 Maintenance and Refactorings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Made ``parameter_space`` reset instance fixtures between runs (:issue:`2433`)
+- Made :func:`~zipline.testing.core.parameter_space` reset instance fixtures between runs (:issue:`2433`)
 - Removed unused treasury curves data handling. (:issue:`2626`)
 
 Build
