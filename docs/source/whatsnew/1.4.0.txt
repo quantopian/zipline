@@ -7,14 +7,37 @@ Release 1.4.0
 Highlights
 ~~~~~~~~~~
 
+Removed Implicit Dependency on Benchmarks and Treasury Returns
+``````````````````````````````````````````````````````````````
+
+Previously, Zipline implicitly fetched these required inputs from third party API sources if they were not provided by users: treasury data from the US Federal Reserve's API, and benchmarks from IEX.
+This meant that simulations required an internet connection and stable APIs for these data sources, neither of which were guaranteed for many users.
+
+We removed the dependency on treasury curves, since they weren't actually being used anymore. And we replaced the implicit downloading of benchmark returns with explicit options:
+
+.. code-block:: bash
+
+   --benchmark-file                The csv file that contains the benchmark
+                                   returns (date, returns columns)
+   --benchmark-symbol              The instrument's symbol to be used as
+                                   a benchmark.
+                                   (should exist in the ingested bundle)
+   --benchmark-sid                 The sid of the instrument to be used as a
+                                   benchmark.
+                                   (should exist in the ingested bundle)
+   --no-benchmark                  This flag is used to set the benchmark to
+                                   zero. Alpha, beta and benchmark metrics
+                                   are not calculated
+
+(:issue:`2627`, :issue:`2642`)
+
 
 New Built In Factors
 ````````````````````
 
-- :class:`~zipline.pipeline.factors.basic.PercentChange`: Calculates the percent change over the given ``window_length``.
-Note: Percent change is calculated as ``(new - old) / abs(old)``. (:issue:`2506`)
-- :class:`~zipline.pipeline.factors.basic.PeerCount`: gives the number of occurrences of each distinct
-category in a classifier (:issue:`2509`)
+- :class:`~zipline.pipeline.factors.basic.PercentChange`: Calculates the percent change over the given ``window_length``. Note: Percent change is calculated as ``(new - old) / abs(old)``. (:issue:`2506`)
+- :class:`~zipline.pipeline.factors.basic.PeerCount`: Gives the number of occurrences of each distinct
+category in a classifier. (:issue:`2509`)
 - :class:`~zipline.pipeline.mixins.ConstantMixin`: A mixin for creating a Pipeline term with a constant value. (:issue:`2697`)
 - :meth:`~zipline.pipeline.filters.Filter.if_else`: Allows users to create expressions that conditionally draw from the outputs of one of two terms. (:issue:`2697`)
 - :meth:`~zipline.pipeline.term.ComputableTerm.fillna`: Allows users to fill missing data with either a constant value, or values from another term. (:issue:`2697`)
@@ -27,9 +50,8 @@ Enhancements
 - Added International Pipelines (:issue:`2262`)
 - Added DataSetFamily (née MultiDimensionalDataSet) - a shorthand for creating a collection of regular DataSets that share the same columns. (:issue:`2402`)
 - Added :meth:`~zipline.pipeline.data.dataset.DataSet.get_column` for looking up columns by name (:issue:`2210`)
-- Added :class:`~zipline.testing.pipeline_terms.CheckWindowsClassifier` allowing us to test lookback windows of categorical and string columns using Pipeline. (:issue:`2458`)
-- Added :class:`~zipline.pipeline.hooks.iface.PipelineHooks` which is now used to display Pipline progress
-  bars (:issue:`2467`)
+- Added :class:`~zipline.testing.pipeline_terms.CheckWindowsClassifier` that allows us to test lookback windows of categorical and string columns using Pipeline. (:issue:`2458`)
+- Added :class:`~zipline.pipeline.hooks.iface.PipelineHooks` which is now used to display Pipline progress bars (:issue:`2467`)
 - :class:`~zipline.pipeline.data.dataset.BoundColumn` comparisons will now result in an error.
   This prevents writing ``EquityPricing.volume > 1000`` (silently returning bad data) insteads of ``EquityPricing.volume.latest > 1000``. (:issue:`2537`)
 - Added currency conversion support to Pipeline. (:issue:`2586`)
@@ -45,11 +67,10 @@ Bug Fixes
 ~~~~~~~~~
 
 - Fixed support for non unique sid->exchange mappings. (:issue:`2289`)
-- Fixed crash on dividend warning (:issue:`2323`)
+- Fixed crash on dividend warning. (:issue:`2323`)
 - Fixed ``week_start`` when Monday precedes the New Year. (:issue:`2394`)
 - Ensured correct dtypes when unpacking empty dataframes. (:issue:`2444`)
 - Fixed a bug where a Pipeline term with ``window_length=0`` would not copy the input before calling ``compute()`` which could cause incorrect results if the input was reused in the Pipeline. (:issue:`2723`)
-
 
 Performance
 ~~~~~~~~~~~
@@ -65,16 +86,6 @@ Maintenance and Refactorings
 - Made :func:`~zipline.testing.core.parameter_space` reset instance fixtures between runs (:issue:`2433`)
 - Removed unused treasury curves data handling. (:issue:`2626`)
 
-Build
-~~~~~
-
-None
-
-Documentation
-~~~~~~~~~~~~~
-
-None
-
 Miscellaneous
 ~~~~~~~~~~~~~
 
@@ -82,6 +93,7 @@ International Pipelines
 ```````````````````````
 
 Pipeline now supports international data.
+
 Pipeline is a tool that allows you to define computations over a universe of assets and a period of time.
 In the past, you could only run pipelines on the US equity market.
 Now, you can now specify a domain over which a pipeline should be computed.
@@ -112,6 +124,8 @@ This method is only available on terms which are "currency-aware", for example o
 
 Currently, there is no way to load international data into a bundle.
 We are working on ways to make it easy to get international data into Zipline.
+
+(:issue:`2265`, :issue:`2262`, and many others)
 
 New Domains
 ```````````
