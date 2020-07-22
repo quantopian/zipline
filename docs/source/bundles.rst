@@ -53,7 +53,7 @@ To ingest a bundle, run:
    $ zipline ingest [-b <bundle>]
 
 
-where ``<bundle>`` is the name of the bundle to ingest, defaulting to ``quantoipian-quandl``.
+where ``<bundle>`` is the name of the bundle to ingest, defaulting to ``quantopian-quandl``.
 
 Old Data
 ~~~~~~~~
@@ -127,7 +127,7 @@ To ingest the ``quantopian-quandl`` data bundle, run either of the following com
    $ zipline ingest -b quantopian-quandl
    $ zipline ingest
 
-These commands should only take a few seconds to download the data.
+Either command should only take a few seconds to download the data.
 
 .. note::
 

@@ -142,7 +142,7 @@ AttachedPipeline = namedtuple('AttachedPipeline', 'pipe chunks eager')
 
 class NoBenchmark(ValueError):
     def __init__(self):
-        super().__init__(
+        super(NoBenchmark, self).__init__(
             'Must specify either benchmark_sid or benchmark_returns.',
         )
 
