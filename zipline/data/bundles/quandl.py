@@ -308,10 +308,6 @@ QUANTOPIAN_QUANDL_URL = (
 
 
 @bundles.register('quantopian-quandl', create_writers=False)
-@deprecated(
-    'quantopian-quandl has been deprecated and '
-    'will be removed in a future release.'
-)
 def quantopian_quandl_bundle(environ,
                              asset_db_writer,
                              minute_bar_writer,

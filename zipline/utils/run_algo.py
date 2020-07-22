@@ -219,14 +219,14 @@ def _run(handle_data,
     except NoBenchmark:
         raise _RunAlgoError(
             (
-                'no ``benchmark_spec`` was provided and'
+                'No ``benchmark_spec`` was provided, and'
                 ' ``zipline.api.set_benchmark`` was not called in'
-                ' ``initialize``'
+                ' ``initialize``.'
             ),
             (
-                "neither '--benchmark-symbol' nor '--benchmark-sid' was"
-                " provided and ``zipline.api.set_benchmark`` was not called"
-                " in ``initialize``, did you mean to pass '--no-benchmark'"
+                "Neither '--benchmark-symbol' nor '--benchmark-sid' was"
+                " provided, and ``zipline.api.set_benchmark`` was not called"
+                " in ``initialize``. Did you mean to pass '--no-benchmark'?"
             ),
         )
 
