@@ -108,6 +108,10 @@ New Built In Factors
   ``(new - old) / abs(old)``. (:issue:`2506`)
 - ``PeerCount``: gives the number of occurrences of each distinct
   category in a classifier (:issue:`2509`)
+- :class:`~zipline.pipeline.mixins.ConstantMixin`: A mixin for creating a Pipeline term with a constant value. (:issue:`2697`)
+- :meth:`~zipline.pipeline.filters.Filter.if_else`: Allows users to create expressions that conditionally draw from the outputs of one of two terms. (:issue:`2697`)
+- :meth:`~zipline.pipeline.term.ComputableTerm.fillna`: Allows users to fill missing data with either a constant value, or values from another term. (:issue:`2697`)
+- :meth:`~zipline.pipeline.factors.Factor.clip`: Allows users to constrain a factor's values to a given range. (:issue:`2708`)
 
 Enhancements
 ~~~~~~~~~~~~
@@ -122,25 +126,38 @@ Enhancements
 - ``BoundColumn`` comparisons will now result in an error. This prevents
   writing ``EquityPricing.volume > 1000`` (silently returning bad data)
   insteads of ``EquityPricing.volume.latest > 1000``. (:issue:`2537`)
+- Added currency conversion support to Pipeline. (:issue:`2586`)
+- Added ``--benchmark-file`` and ``--benchmark-symbol`` command line arguments to make it easier to provide benchmark data. (:issue:`2642`)
+- Added support for Python 3.6 (:issue:`2643`)
+- Added ``mask`` argument to Factor.peer_count. (:issue:`2676`)
+- Added :meth:`~zipline.pipeline.filters.Filter.if_else` and :meth:`~zipline.pipeline.term.ComputableTerm.fillna` for allowing conditional logic in Pipelines. (:issue:`2691`)
+- Added daily summary methods to Factor for collecting summary statistics for the entire universe. (:issue:`2697`)
+- Added :meth:`~zipline.pipeline.factors.Factor.clip` method for clipping values to a range. (:issue:`2708`)
+- Added support for Pipeline term arithmetic with more than 32 terms. (:issue:`2727`)
 
 Bug Fixes
 ~~~~~~~~~
 
 - Fixed support for non unique sid->exchange mappings. (:issue:`2289`)
 - Fixed crash on dividend warning (:issue:`2323`)
-- Fixed `week_start` when Monday precedes the New Year. (:issue:`2394`)
+- Fixed ``week_start`` when Monday precedes the New Year. (:issue:`2394`)
 - Ensured correct dtypes when unpacking empty dataframes. (:issue:`2444`)
+- Fixed a bug where a pipeline term with ``window_length=0`` would not copy the input before calling ``compute()`` which could cause incorrect results if the input was reused in the Pipeline. (:issue:`2723`)
+
 
 Performance
 ~~~~~~~~~~~
 
 - Added :class:`zipline.data.hdf5_daily_bars.HDF5DailyBarWriter`, which writes daily pricing in a new format as an HDF5 file. Each OHLCV field is stored as a 2D array in a chunked HDF5 dataset, with a row per sid and a column per day. The file also supports multiple countries. Added :class:`zipline.data.hdf5_daily_bars.HDF5DailyBarReader`, which implements the BarReader interface and can read files written by HDF5DailyBarWriter. (:issue:`2295`)
 - Vectorized dividend ratio calculation (:issue:`2298`)
+- Improved performance of the :class:`zipline.pipeline.factors.RollingPearson` and
+  :class:`zipline.pipeline.factors.RollingPearsonOfReturns` pipeline factors. (:issue:`2071`)
 
 Maintenance and Refactorings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Made `parameter_space` reset instance fixtures between runs (:issue:`2433`)
+- Made ``parameter_space`` reset instance fixtures between runs (:issue:`2433`)
+- Removed unused treasury curves data handling. (:issue:`2626`)
 
 Build
 ~~~~~
