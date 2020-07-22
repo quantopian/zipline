@@ -185,7 +185,7 @@ Pipeline API
    :member-order: groupwise
 
 .. autoclass:: zipline.pipeline.Filter
-   :members: __and__, __or__
+   :members: __and__, __or__, if_then
    :exclude-members: dtype
 
 .. autoclass:: zipline.pipeline.Factor
@@ -193,7 +193,7 @@ Pipeline API
              percentile_between, quantiles, quartiles, quintiles, rank,
              spearmanr, top, winsorize, zscore, isnan, notnan, isfinite, eq,
              __add__, __sub__, __mul__, __div__, __mod__, __pow__, __lt__,
-             __le__, __ne__, __ge__, __gt__
+             __le__, __ne__, __ge__, __gt__, clip, fillna
    :exclude-members: dtype
    :member-order: bysource
 
