@@ -13,7 +13,6 @@ from six.moves.urllib.parse import urlencode
 from six import iteritems
 from trading_calendars import register_calendar_alias
 
-from zipline.utils.deprecate import deprecated
 from . import core as bundles
 import numpy as np
 
