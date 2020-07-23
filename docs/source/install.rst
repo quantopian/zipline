@@ -133,13 +133,7 @@ the `Conda User Guide <https://conda.io/projects/conda/en/latest/user-guide/task
 
 Assuming ``conda`` has been set up, you can create a ``conda`` environment:
 
-- Python 2.7:
-
-.. code-block:: bash
-
-    $ conda create -n env_zipline python=2.7
-
-- Python 3.5:
+- Python 3.6:
 
 .. code-block:: bash
 
