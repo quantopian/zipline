@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Data Bundles &mdash; Zipline 1.3.0 documentation</title>
+  <title>Data Bundles &mdash; Zipline 1.4.0 documentation</title>
   
 
   
@@ -30,7 +30,10 @@
   
 
   
-    <link rel="top" title="Zipline 1.3.0 documentation" href="index.html"/>
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="Zipline 1.4.0 documentation" href="index.html"/>
         <link rel="next" title="Trading Calendars" href="trading-calendars.html"/>
         <link rel="prev" title="Zipline Beginner Tutorial" href="beginner-tutorial.html"/> 
 
@@ -73,14 +76,14 @@
           
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="install.html">Install</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-pip">Installing with <code class="docutils literal"><span class="pre">pip</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-pip">Installing with <code class="docutils literal notranslate"><span class="pre">pip</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="install.html#gnu-linux">GNU/Linux</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#osx">OSX</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#windows">Windows</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="install.html#managing-conda-environments">Managing <code class="docutils literal"><span class="pre">conda</span></code> environments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-conda">Installing with <code class="docutils literal notranslate"><span class="pre">conda</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#managing-conda-environments">Managing <code class="docutils literal notranslate"><span class="pre">conda</span></code> environments</a></li>
 </ul>
 </li>
 </ul>
@@ -94,14 +97,14 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
-<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#access-to-previous-prices-using-history">Access to Previous Prices Using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#access-to-previous-prices-using-history">Access to Previous Prices Using <code class="docutils literal notranslate"><span class="pre">history</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#conclusions">Conclusions</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">Data Bundles</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Data Bundles</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#discovering-available-bundles">Discovering Available Bundles</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#ingesting-data">Ingesting Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#old-data">Old Data</a></li>
@@ -111,17 +114,17 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#writing-a-new-bundle">Writing a New Bundle</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#environ"><code class="docutils literal"><span class="pre">environ</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#asset-db-writer"><code class="docutils literal"><span class="pre">asset_db_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#minute-bar-writer"><code class="docutils literal"><span class="pre">minute_bar_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#start-session"><code class="docutils literal"><span class="pre">start_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#end-session"><code class="docutils literal"><span class="pre">end_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#environ"><code class="docutils literal notranslate"><span class="pre">environ</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#asset-db-writer"><code class="docutils literal notranslate"><span class="pre">asset_db_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#minute-bar-writer"><code class="docutils literal notranslate"><span class="pre">minute_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#daily-bar-writer"><code class="docutils literal notranslate"><span class="pre">daily_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#adjustment-writer"><code class="docutils literal notranslate"><span class="pre">adjustment_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#calendar"><code class="docutils literal notranslate"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#start-session"><code class="docutils literal notranslate"><span class="pre">start_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#end-session"><code class="docutils literal notranslate"><span class="pre">end_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cache"><code class="docutils literal notranslate"><span class="pre">cache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#show-progress"><code class="docutils literal notranslate"><span class="pre">show_progress</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#output-dir"><code class="docutils literal notranslate"><span class="pre">output_dir</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#ingesting-data-from-csv-files">Ingesting Data from .csv Files</a></li>
@@ -139,16 +142,16 @@
 <li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#metrics-sets">Metrics Sets</a></li>
 <li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#selecting-the-metrics-set">Selecting the Metrics Set</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#command-line-and-ipython-magic">Command Line and IPython Magic</a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#run-algorithm"><code class="docutils literal"><span class="pre">run_algorithm</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#run-algorithm"><code class="docutils literal notranslate"><span class="pre">run_algorithm</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#running-without-metrics">Running Without Metrics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#defining-new-metrics">Defining New Metrics</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#start-of-simulation"><code class="docutils literal"><span class="pre">start_of_simulation</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-simulation"><code class="docutils literal"><span class="pre">end_of_simulation</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#start-of-session"><code class="docutils literal"><span class="pre">start_of_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-session"><code class="docutils literal"><span class="pre">end_of_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-bar"><code class="docutils literal"><span class="pre">end_of_bar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#start-of-simulation"><code class="docutils literal notranslate"><span class="pre">start_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-simulation"><code class="docutils literal notranslate"><span class="pre">end_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#start-of-session"><code class="docutils literal notranslate"><span class="pre">start_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-session"><code class="docutils literal notranslate"><span class="pre">end_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-bar"><code class="docutils literal notranslate"><span class="pre">end_of_bar</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#defining-new-metrics-sets">Defining New Metrics Sets</a></li>
@@ -160,6 +163,7 @@
 <li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#style-guide-running-tests">Style Guide &amp; Running Tests</a></li>
 <li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#continuous-integration">Continuous Integration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#packaging">Packaging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#updating-dependencies">Updating dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#contributing-to-the-docs">Contributing to the Docs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#commit-messages">Commit messages</a></li>
 <li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#formatting-docstrings">Formatting Docstrings</a></li>
@@ -218,10 +222,10 @@
 <li class="toctree-l1"><a class="reference internal" href="release-process.html">Release Process</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-release-notes">Updating the Release Notes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-python-stub-files">Updating the Python stub files</a></li>
-<li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-version">Updating the <code class="docutils literal"><span class="pre">__version__</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-version">Updating the <code class="docutils literal notranslate"><span class="pre">__version__</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#uploading-pypi-packages">Uploading PyPI packages</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="release-process.html#sdist"><code class="docutils literal"><span class="pre">sdist</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="release-process.html#bdist"><code class="docutils literal"><span class="pre">bdist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="release-process.html#sdist"><code class="docutils literal notranslate"><span class="pre">sdist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="release-process.html#bdist"><code class="docutils literal notranslate"><span class="pre">bdist</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#documentation">Documentation</a></li>
@@ -230,52 +234,59 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-3-0">Release 1.3.0</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-4-0">Release 1.4.0</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#highlights">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#removed-implicit-dependency-on-benchmarks-and-treasury-returns">Removed Implicit Dependency on Benchmarks and Treasury Returns</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#new-built-in-factors">New Built In Factors</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#performance">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#miscellaneous">Miscellaneous</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#international-pipelines">International Pipelines</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#datasetfamily">DataSetFamily</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-3-0">Release 1.3.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id1">Highlights</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#support-for-newer-numpy-pandas-versions">Support for Newer Numpy/Pandas Versions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#standalone-trading-calendars-module">Standalone <code class="docutils literal"><span class="pre">trading_calendars</span></code> Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#standalone-trading-calendars-module">Standalone <code class="docutils literal notranslate"><span class="pre">trading_calendars</span></code> Module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#custom-blotters">Custom Blotters</a></li>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#custom-command-line-arguments">Custom Command-Line Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id2">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#performance">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id3">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id4">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id5">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#build">Build</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-2-0">Release 1.2.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id1">Highlights</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id7">Highlights</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id2">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id3">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id4">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id5">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id6">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id7">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id8">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id9">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id10">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id11">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id12">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id13">Build</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#documentation">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id16">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-1">Release 1.1.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id10">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id11">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id12">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id13">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id14">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id15">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id16">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id17">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id18">Miscellaneous</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-0">Release 1.1.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id19">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id17">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id18">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id19">Experimental Features</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id20">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id21">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id22">Maintenance and Refactorings</a></li>
@@ -284,95 +295,105 @@
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id25">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-2">Release 1.0.2</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-0">Release 1.1.0</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id26">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#experimental">Experimental</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id27">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id28">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id29">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id30">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id30">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id31">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id32">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-2">Release 1.0.2</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id33">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#experimental">Experimental</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id34">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id35">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id36">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id37">Documentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#testing">Testing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#data-format-changes">Data Format Changes</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-1">Release 1.0.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id31">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id32">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id33">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id38">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id39">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id40">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-0">Release 1.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id34">Highlights</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id41">Highlights</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id35">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id36">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id37">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id38">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id39">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id40">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id41">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id42">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id42">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id43">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id44">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id45">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id46">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id47">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id48">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id49">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-9-0">Release 0.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id43">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id44">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id45">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id46">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id47">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id48">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id49">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id50">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id51">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id50">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id51">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id52">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id53">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id54">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id55">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id56">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id57">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id58">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-4">Release 0.8.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id52">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id53">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id54">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id55">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id56">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id57">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id58">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id59">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id60">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id59">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id60">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id61">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id62">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id63">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id64">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id65">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id66">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id67">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-3">Release 0.8.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-0">Release 0.8.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id61">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id62">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id63">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id64">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id65">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id66">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id67">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id68">Documentation</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id69">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id70">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id68">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id69">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id70">Experimental Features</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id71">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id72">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id73">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id74">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id75">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-7-0">Release 0.7.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id76">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id77">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id78">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id79">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id80">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id81">Build</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#contributors">Contributors</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-6-1">Release 0.6.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id75">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id76">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id77">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id78">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id79">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id80">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id81">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id82">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id83">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id84">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id85">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id86">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id87">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id88">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -405,7 +426,7 @@
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="_sources/bundles.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/bundles.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -423,8 +444,8 @@ backtests and store the data for future runs.</p>
 <span id="bundles-command"></span><h2>Discovering Available Bundles<a class="headerlink" href="#discovering-available-bundles" title="Permalink to this headline">¶</a></h2>
 <p>Zipline comes with a few bundles by default as well as the ability to register
 new bundles. To see which bundles we have available, we may run the
-<code class="docutils literal"><span class="pre">bundles</span></code> command, for example:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ zipline bundles
+<code class="docutils literal notranslate"><span class="pre">bundles</span></code> command, for example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ zipline bundles
 my-custom-bundle <span class="m">2016</span>-05-05 <span class="m">20</span>:35:19.809398
 my-custom-bundle <span class="m">2016</span>-05-05 <span class="m">20</span>:34:53.654082
 my-custom-bundle <span class="m">2016</span>-05-05 <span class="m">20</span>:34:48.401767
@@ -434,44 +455,42 @@ quantopian-quandl <span class="m">2016</span>-05-05 <span class="m">20</span>:06
 </div>
 <p>The output here shows that there are 3 bundles available:</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">my-custom-bundle</span></code> (added by the user)</li>
-<li><code class="docutils literal"><span class="pre">quandl</span></code> (provided by zipline)</li>
-<li><code class="docutils literal"><span class="pre">quantopian-quandl</span></code> (provided by zipline)</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">my-custom-bundle</span></code> (added by the user)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quandl</span></code> (provided by zipline, though deprecated)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quantopian-quandl</span></code> (provided by zipline, the default bundle)</p></li>
 </ul>
 <p>The dates and times next to the name show the times when the data for this
 bundle was ingested. We have run three different ingestions for
-<code class="docutils literal"><span class="pre">my-custom-bundle</span></code>. We have never ingested any data for the <code class="docutils literal"><span class="pre">quandl</span></code> bundle
-so it just shows <code class="docutils literal"><span class="pre">&lt;no</span> <span class="pre">ingestions&gt;</span></code> instead. Finally, there is only one
-ingestion for <code class="docutils literal"><span class="pre">quantopian-quandl</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">my-custom-bundle</span></code>. We have never ingested any data for the <code class="docutils literal notranslate"><span class="pre">quandl</span></code> bundle
+so it just shows <code class="docutils literal notranslate"><span class="pre">&lt;no</span> <span class="pre">ingestions&gt;</span></code> instead. Finally, there is only one
+ingestion for <code class="docutils literal notranslate"><span class="pre">quantopian-quandl</span></code>.</p>
 </div>
 <div class="section" id="ingesting-data">
 <span id="id2"></span><h2>Ingesting Data<a class="headerlink" href="#ingesting-data" title="Permalink to this headline">¶</a></h2>
-<p>The first step to using a data bundle is to ingest the data. The ingestion
-process will invoke some custom bundle command and then write the data to a
-standard location that zipline can find. By default the location where ingested
-data will be written is <code class="docutils literal"><span class="pre">$ZIPLINE_ROOT/data/&lt;bundle&gt;</span></code> where by default
-<code class="docutils literal"><span class="pre">ZIPLINE_ROOT=~/.zipline</span></code>. The ingestion step may take some time as it could
-involve downloading and processing a lot of data. You&#8217;ll need a
-<a class="reference external" href="https://docs.quandl.com/docs#section-authentication">Quandl</a> API key to ingest the default bundle. This can be run with:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ <span class="nv">QUANDL_API_KEY</span><span class="o">=</span>&lt;yourkey&gt; zipline ingest <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span>
+<p>The first step to using a data bundle is to ingest the data.
+The ingestion process will invoke some custom bundle command and then write the data to a standard location that zipline can find.
+By default the location where ingested data will be written is <code class="docutils literal notranslate"><span class="pre">$ZIPLINE_ROOT/data/&lt;bundle&gt;</span></code> where by default <code class="docutils literal notranslate"><span class="pre">ZIPLINE_ROOT=~/.zipline</span></code>.
+The ingestion step may take some time as it could involve downloading and processing a lot of data.
+To ingest a bundle, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ zipline ingest <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span>
 </pre></div>
 </div>
-<p>where <code class="docutils literal"><span class="pre">&lt;bundle&gt;</span></code> is the name of the bundle to ingest, defaulting to <code class="docutils literal"><span class="pre">quandl</span></code>.</p>
+<p>where <code class="docutils literal notranslate"><span class="pre">&lt;bundle&gt;</span></code> is the name of the bundle to ingest, defaulting to <code class="docutils literal notranslate"><span class="pre">quantopian-quandl</span></code>.</p>
 </div>
 <div class="section" id="old-data">
 <h2>Old Data<a class="headerlink" href="#old-data" title="Permalink to this headline">¶</a></h2>
-<p>When the <code class="docutils literal"><span class="pre">ingest</span></code> command is used it will write the new data to a subdirectory
-of <code class="docutils literal"><span class="pre">$ZIPLINE_ROOT/data/&lt;bundle&gt;</span></code> which is named with the current date. This
+<p>When the <code class="docutils literal notranslate"><span class="pre">ingest</span></code> command is used it will write the new data to a subdirectory
+of <code class="docutils literal notranslate"><span class="pre">$ZIPLINE_ROOT/data/&lt;bundle&gt;</span></code> which is named with the current date. This
 makes it possible to look at older data or even run backtests with the older
 copies. Running a backtest with an old ingestion makes it easier to reproduce
 backtest results later.</p>
 <p>One drawback of saving all of the data by default is that the data directory
 may grow quite large even if you do not want to use the data. As shown earlier,
-we can list all of the ingestions with the <a class="reference internal" href="#bundles-command"><span>bundles command</span></a>. To solve the problem of leaking old data there is another
-command: <code class="docutils literal"><span class="pre">clean</span></code>, which will clear data bundles based on some time
+we can list all of the ingestions with the <a class="reference internal" href="#bundles-command"><span class="std std-ref">bundles command</span></a>. To solve the problem of leaking old data there is another
+command: <code class="docutils literal notranslate"><span class="pre">clean</span></code>, which will clear data bundles based on some time
 constraints.</p>
 <p>For example:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="c1"># clean everything older than &lt;date&gt;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># clean everything older than &lt;date&gt;</span>
 $ zipline clean <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span> --before &lt;date&gt;
 
 <span class="c1"># clean everything newer than &lt;date&gt;</span>
@@ -488,61 +507,54 @@ $ zipline clean <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span
 <div class="section" id="running-backtests-with-data-bundles">
 <h2>Running Backtests with Data Bundles<a class="headerlink" href="#running-backtests-with-data-bundles" title="Permalink to this headline">¶</a></h2>
 <p>Now that the data has been ingested we can use it to run backtests with the
-<code class="docutils literal"><span class="pre">run</span></code> command. The bundle to use can be specified with the <code class="docutils literal"><span class="pre">--bundle</span></code> option
+<code class="docutils literal notranslate"><span class="pre">run</span></code> command. The bundle to use can be specified with the <code class="docutils literal notranslate"><span class="pre">--bundle</span></code> option
 like:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ zipline run --bundle &lt;bundle&gt; --algofile algo.py ...
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ zipline run --bundle &lt;bundle&gt; --algofile algo.py ...
 </pre></div>
 </div>
 <p>We may also specify the date to use to look up the bundle data with the
-<code class="docutils literal"><span class="pre">--bundle-timestamp</span></code> option. Setting the <code class="docutils literal"><span class="pre">--bundle-timestamp</span></code> will cause
-<code class="docutils literal"><span class="pre">run</span></code> to use the most recent bundle ingestion that is less than or equal to
-the <code class="docutils literal"><span class="pre">bundle-timestamp</span></code>. This is how we can run backtests with older data.
-<code class="docutils literal"><span class="pre">bundle-timestamp</span></code> uses a less-than-or-equal-to relationship so that we can
+<code class="docutils literal notranslate"><span class="pre">--bundle-timestamp</span></code> option. Setting the <code class="docutils literal notranslate"><span class="pre">--bundle-timestamp</span></code> will cause
+<code class="docutils literal notranslate"><span class="pre">run</span></code> to use the most recent bundle ingestion that is less than or equal to
+the <code class="docutils literal notranslate"><span class="pre">bundle-timestamp</span></code>. This is how we can run backtests with older data.
+<code class="docutils literal notranslate"><span class="pre">bundle-timestamp</span></code> uses a less-than-or-equal-to relationship so that we can
 specify the date that we ran an old backtest and get the same data that would
-have been available to us on that date. The <code class="docutils literal"><span class="pre">bundle-timestamp</span></code> defaults to
+have been available to us on that date. The <code class="docutils literal notranslate"><span class="pre">bundle-timestamp</span></code> defaults to
 the current day to use the most recent data.</p>
 </div>
 <div class="section" id="default-data-bundles">
 <h2>Default Data Bundles<a class="headerlink" href="#default-data-bundles" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="quandl-wiki-bundle">
 <span id="quandl-data-bundle"></span><h3>Quandl WIKI Bundle<a class="headerlink" href="#quandl-wiki-bundle" title="Permalink to this headline">¶</a></h3>
-<p>By default zipline comes with the <code class="docutils literal"><span class="pre">quandl</span></code> data bundle which uses quandl&#8217;s
-<a class="reference external" href="https://www.quandl.com/data/WIKI">WIKI dataset</a>. The quandl data bundle
-includes daily pricing data, splits, cash dividends, and asset metadata. To
-ingest the <code class="docutils literal"><span class="pre">quandl</span></code> data bundle we recommend creating an account on quandl.com
-to get an API key to be able to make more API requests per day. Once we have an
-API key we may run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ <span class="nv">QUANDL_API_KEY</span><span class="o">=</span>&lt;api-key&gt; zipline ingest -b quandl
+<p>By default zipline comes with the <code class="docutils literal notranslate"><span class="pre">quantopian-quandl</span></code> data bundle which uses quandl’s <a class="reference external" href="https://www.quandl.com/data/WIKI">WIKI dataset</a>.
+The quandl data bundle includes daily pricing data, splits, cash dividends, and asset metadata.
+Quantopian has ingested the data from quandl and rebundled it to make ingestion much faster.
+To ingest the <code class="docutils literal notranslate"><span class="pre">quantopian-quandl</span></code> data bundle, run either of the following commands:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ zipline ingest -b quantopian-quandl
+$ zipline ingest
 </pre></div>
 </div>
-<p>though we may still run <code class="docutils literal"><span class="pre">ingest</span></code> as an anonymous quandl user (with no API
-key). We may also set the <code class="docutils literal"><span class="pre">QUANDL_DOWNLOAD_ATTEMPTS</span></code> environment variable to
-an integer which is the number of attempts that should be made to download data
-from quandl&#8217;s servers. By default <code class="docutils literal"><span class="pre">QUANDL_DOWNLOAD_ATTEMPTS</span></code> will be 5, meaning
-that we will retry each attempt 5 times.</p>
+<p>Either command should only take a few seconds to download the data.</p>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last"><code class="docutils literal"><span class="pre">QUANDL_DOWNLOAD_ATTEMPTS</span></code> is not the total number of allowed failures,
-just the number of allowed failures per request. The quandl loader will make
-one request per 100 equities for the metadata followed by one request per
-equity.</p>
+<p class="admonition-title">Note</p>
+<p>Quandl has discontinued this dataset.
+The dataset is no longer updating, but is reasonable for trying out Zipline without setting up your own dataset.</p>
 </div>
 </div>
 </div>
 <div class="section" id="writing-a-new-bundle">
 <h2>Writing a New Bundle<a class="headerlink" href="#writing-a-new-bundle" title="Permalink to this headline">¶</a></h2>
 <p>Data bundles exist to make it easy to use different data sources with
-zipline. To add a new bundle, one must implement an <code class="docutils literal"><span class="pre">ingest</span></code> function.</p>
-<p>The <code class="docutils literal"><span class="pre">ingest</span></code> function is responsible for loading the data into memory and
+zipline. To add a new bundle, one must implement an <code class="docutils literal notranslate"><span class="pre">ingest</span></code> function.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">ingest</span></code> function is responsible for loading the data into memory and
 passing it to a set of writer objects provided by zipline to convert the data to
-zipline&#8217;s internal format. The ingest function may work by downloading data from
-a remote location like the <code class="docutils literal"><span class="pre">quandl</span></code> bundle or it may just
+zipline’s internal format. The ingest function may work by downloading data from
+a remote location like the <code class="docutils literal notranslate"><span class="pre">quandl</span></code> bundle or it may just
 load files that are already on the machine. The function is provided with
 writers that will write the data to the correct location transactionally. If an
 ingestion fails part way through the bundle will not be written in an incomplete
 state.</p>
 <p>The signature of the ingest function should be:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">ingest</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ingest</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span>
        <span class="n">asset_db_writer</span><span class="p">,</span>
        <span class="n">minute_bar_writer</span><span class="p">,</span>
        <span class="n">daily_bar_writer</span><span class="p">,</span>
@@ -556,99 +568,99 @@ state.</p>
 </pre></div>
 </div>
 <div class="section" id="environ">
-<h3><code class="docutils literal"><span class="pre">environ</span></code><a class="headerlink" href="#environ" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal"><span class="pre">environ</span></code> is a mapping representing the environment variables to use. This is
+<h3><code class="docutils literal notranslate"><span class="pre">environ</span></code><a class="headerlink" href="#environ" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">environ</span></code> is a mapping representing the environment variables to use. This is
 where any custom arguments needed for the ingestion should be passed, for
-example: the <code class="docutils literal"><span class="pre">quandl</span></code> bundle uses the environment to pass the API key and the
+example: the <code class="docutils literal notranslate"><span class="pre">quandl</span></code> bundle uses the environment to pass the API key and the
 download retry attempt count.</p>
 </div>
 <div class="section" id="asset-db-writer">
-<h3><code class="docutils literal"><span class="pre">asset_db_writer</span></code><a class="headerlink" href="#asset-db-writer" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal"><span class="pre">asset_db_writer</span></code> is an instance of <a class="reference internal" href="appendix.html#zipline.assets.AssetDBWriter" title="zipline.assets.AssetDBWriter"><code class="xref py py-class docutils literal"><span class="pre">AssetDBWriter</span></code></a>.
+<h3><code class="docutils literal notranslate"><span class="pre">asset_db_writer</span></code><a class="headerlink" href="#asset-db-writer" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">asset_db_writer</span></code> is an instance of <a class="reference internal" href="appendix.html#zipline.assets.AssetDBWriter" title="zipline.assets.AssetDBWriter"><code class="xref py py-class docutils literal notranslate"><span class="pre">AssetDBWriter</span></code></a>.
 This is the writer for the asset metadata which provides the asset lifetimes and
 the symbol to asset id (sid) mapping. This may also contain the asset name,
 exchange and a few other columns. To write data, invoke
-<a class="reference internal" href="appendix.html#zipline.assets.AssetDBWriter.write" title="zipline.assets.AssetDBWriter.write"><code class="xref py py-meth docutils literal"><span class="pre">write()</span></code></a> with dataframes for the various
+<a class="reference internal" href="appendix.html#zipline.assets.AssetDBWriter.write" title="zipline.assets.AssetDBWriter.write"><code class="xref py py-meth docutils literal notranslate"><span class="pre">write()</span></code></a> with dataframes for the various
 pieces of metadata. More information about the format of the data exists in the
 docs for write.</p>
 </div>
 <div class="section" id="minute-bar-writer">
-<h3><code class="docutils literal"><span class="pre">minute_bar_writer</span></code><a class="headerlink" href="#minute-bar-writer" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal"><span class="pre">minute_bar_writer</span></code> is an instance of
-<a class="reference internal" href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter" title="zipline.data.minute_bars.BcolzMinuteBarWriter"><code class="xref py py-class docutils literal"><span class="pre">BcolzMinuteBarWriter</span></code></a>. This writer is used to
-convert data to zipline&#8217;s internal bcolz format to later be read by a
-<a class="reference internal" href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarReader" title="zipline.data.minute_bars.BcolzMinuteBarReader"><code class="xref py py-class docutils literal"><span class="pre">BcolzMinuteBarReader</span></code></a>. If minute data is
+<h3><code class="docutils literal notranslate"><span class="pre">minute_bar_writer</span></code><a class="headerlink" href="#minute-bar-writer" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">minute_bar_writer</span></code> is an instance of
+<a class="reference internal" href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter" title="zipline.data.minute_bars.BcolzMinuteBarWriter"><code class="xref py py-class docutils literal notranslate"><span class="pre">BcolzMinuteBarWriter</span></code></a>. This writer is used to
+convert data to zipline’s internal bcolz format to later be read by a
+<a class="reference internal" href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarReader" title="zipline.data.minute_bars.BcolzMinuteBarReader"><code class="xref py py-class docutils literal notranslate"><span class="pre">BcolzMinuteBarReader</span></code></a>. If minute data is
 provided, users should call
-<a class="reference internal" href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.write" title="zipline.data.minute_bars.BcolzMinuteBarWriter.write"><code class="xref py py-meth docutils literal"><span class="pre">write()</span></code></a> with an iterable of
-(sid, dataframe) tuples. The <code class="docutils literal"><span class="pre">show_progress</span></code> argument should also be forwarded
+<a class="reference internal" href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.write" title="zipline.data.minute_bars.BcolzMinuteBarWriter.write"><code class="xref py py-meth docutils literal notranslate"><span class="pre">write()</span></code></a> with an iterable of
+(sid, dataframe) tuples. The <code class="docutils literal notranslate"><span class="pre">show_progress</span></code> argument should also be forwarded
 to this method. If the data source does not provide minute level data, then
 there is no need to call the write method. It is also acceptable to pass an
-empty iterator to <a class="reference internal" href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.write" title="zipline.data.minute_bars.BcolzMinuteBarWriter.write"><code class="xref py py-meth docutils literal"><span class="pre">write()</span></code></a>
+empty iterator to <a class="reference internal" href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.write" title="zipline.data.minute_bars.BcolzMinuteBarWriter.write"><code class="xref py py-meth docutils literal notranslate"><span class="pre">write()</span></code></a>
 to signal that there is no minutely data.</p>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">The data passed to
-<a class="reference internal" href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.write" title="zipline.data.minute_bars.BcolzMinuteBarWriter.write"><code class="xref py py-meth docutils literal"><span class="pre">write()</span></code></a> may be a lazy
+<p class="admonition-title">Note</p>
+<p>The data passed to
+<a class="reference internal" href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.write" title="zipline.data.minute_bars.BcolzMinuteBarWriter.write"><code class="xref py py-meth docutils literal notranslate"><span class="pre">write()</span></code></a> may be a lazy
 iterator or generator to avoid loading all of the minute data into memory at
 a single time. A given sid may also appear multiple times in the data as long
 as the dates are strictly increasing.</p>
 </div>
 </div>
 <div class="section" id="daily-bar-writer">
-<h3><code class="docutils literal"><span class="pre">daily_bar_writer</span></code><a class="headerlink" href="#daily-bar-writer" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal"><span class="pre">daily_bar_writer</span></code> is an instance of
-<a class="reference internal" href="appendix.html#zipline.data.bcolz_daily_bars.BcolzDailyBarWriter" title="zipline.data.bcolz_daily_bars.BcolzDailyBarWriter"><code class="xref py py-class docutils literal"><span class="pre">BcolzDailyBarWriter</span></code></a>. This writer is
-used to convert data into zipline&#8217;s internal bcolz format to later be read by a
-<a class="reference internal" href="appendix.html#zipline.data.bcolz_daily_bars.BcolzDailyBarReader" title="zipline.data.bcolz_daily_bars.BcolzDailyBarReader"><code class="xref py py-class docutils literal"><span class="pre">BcolzDailyBarReader</span></code></a>. If daily data is
+<h3><code class="docutils literal notranslate"><span class="pre">daily_bar_writer</span></code><a class="headerlink" href="#daily-bar-writer" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">daily_bar_writer</span></code> is an instance of
+<a class="reference internal" href="appendix.html#zipline.data.bcolz_daily_bars.BcolzDailyBarWriter" title="zipline.data.bcolz_daily_bars.BcolzDailyBarWriter"><code class="xref py py-class docutils literal notranslate"><span class="pre">BcolzDailyBarWriter</span></code></a>. This writer is
+used to convert data into zipline’s internal bcolz format to later be read by a
+<a class="reference internal" href="appendix.html#zipline.data.bcolz_daily_bars.BcolzDailyBarReader" title="zipline.data.bcolz_daily_bars.BcolzDailyBarReader"><code class="xref py py-class docutils literal notranslate"><span class="pre">BcolzDailyBarReader</span></code></a>. If daily data is
 provided, users should call
-<code class="xref py py-meth docutils literal"><span class="pre">write()</span></code> with an iterable of
-(sid dataframe) tuples. The <code class="docutils literal"><span class="pre">show_progress</span></code> argument should also be forwarded
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">write()</span></code> with an iterable of
+(sid dataframe) tuples. The <code class="docutils literal notranslate"><span class="pre">show_progress</span></code> argument should also be forwarded
 to this method. If the data source does not provide daily data, then there is
 no need to call the write method. It is also acceptable to pass an empty
-iterable to <a class="reference internal" href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.write" title="zipline.data.minute_bars.BcolzMinuteBarWriter.write"><code class="xref py py-meth docutils literal"><span class="pre">write()</span></code></a> to
+iterable to <a class="reference internal" href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.write" title="zipline.data.minute_bars.BcolzMinuteBarWriter.write"><code class="xref py py-meth docutils literal notranslate"><span class="pre">write()</span></code></a> to
 signal that there is no daily data. If no daily data is provided but minute data
 is provided, a daily rollup will happen to service daily history requests.</p>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">Like the <code class="docutils literal"><span class="pre">minute_bar_writer</span></code>, the data passed to
-<a class="reference internal" href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.write" title="zipline.data.minute_bars.BcolzMinuteBarWriter.write"><code class="xref py py-meth docutils literal"><span class="pre">write()</span></code></a> may be a lazy
+<p class="admonition-title">Note</p>
+<p>Like the <code class="docutils literal notranslate"><span class="pre">minute_bar_writer</span></code>, the data passed to
+<a class="reference internal" href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.write" title="zipline.data.minute_bars.BcolzMinuteBarWriter.write"><code class="xref py py-meth docutils literal notranslate"><span class="pre">write()</span></code></a> may be a lazy
 iterable or generator to avoid loading all of the data into memory at once.
-Unlike the <code class="docutils literal"><span class="pre">minute_bar_writer</span></code>, a sid may only appear once in the data
+Unlike the <code class="docutils literal notranslate"><span class="pre">minute_bar_writer</span></code>, a sid may only appear once in the data
 iterable.</p>
 </div>
 </div>
 <div class="section" id="adjustment-writer">
-<h3><code class="docutils literal"><span class="pre">adjustment_writer</span></code><a class="headerlink" href="#adjustment-writer" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal"><span class="pre">adjustment_writer</span></code> is an instance of
-<a class="reference internal" href="appendix.html#zipline.data.adjustments.SQLiteAdjustmentWriter" title="zipline.data.adjustments.SQLiteAdjustmentWriter"><code class="xref py py-class docutils literal"><span class="pre">SQLiteAdjustmentWriter</span></code></a>. This writer is
+<h3><code class="docutils literal notranslate"><span class="pre">adjustment_writer</span></code><a class="headerlink" href="#adjustment-writer" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">adjustment_writer</span></code> is an instance of
+<a class="reference internal" href="appendix.html#zipline.data.adjustments.SQLiteAdjustmentWriter" title="zipline.data.adjustments.SQLiteAdjustmentWriter"><code class="xref py py-class docutils literal notranslate"><span class="pre">SQLiteAdjustmentWriter</span></code></a>. This writer is
 used to store splits, mergers, dividends, and stock dividends. The data should
 be provided as dataframes and passed to
-<a class="reference internal" href="appendix.html#zipline.data.adjustments.SQLiteAdjustmentWriter.write" title="zipline.data.adjustments.SQLiteAdjustmentWriter.write"><code class="xref py py-meth docutils literal"><span class="pre">write()</span></code></a>. Each of
+<a class="reference internal" href="appendix.html#zipline.data.adjustments.SQLiteAdjustmentWriter.write" title="zipline.data.adjustments.SQLiteAdjustmentWriter.write"><code class="xref py py-meth docutils literal notranslate"><span class="pre">write()</span></code></a>. Each of
 these fields are optional, but the writer can accept as much of the data as you
 have.</p>
 </div>
 <div class="section" id="calendar">
-<h3><code class="docutils literal"><span class="pre">calendar</span></code><a class="headerlink" href="#calendar" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal"><span class="pre">calendar</span></code> is an instance of
-<a class="reference internal" href="appendix.html#zipline.utils.calendars.TradingCalendar" title="zipline.utils.calendars.TradingCalendar"><code class="xref py py-class docutils literal"><span class="pre">zipline.utils.calendars.TradingCalendar</span></code></a>. The calendar is provided to
+<h3><code class="docutils literal notranslate"><span class="pre">calendar</span></code><a class="headerlink" href="#calendar" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">calendar</span></code> is an instance of
+<a class="reference internal" href="appendix.html#zipline.utils.calendars.TradingCalendar" title="zipline.utils.calendars.TradingCalendar"><code class="xref py py-class docutils literal notranslate"><span class="pre">zipline.utils.calendars.TradingCalendar</span></code></a>. The calendar is provided to
 help some bundles generate queries for the days needed.</p>
 </div>
 <div class="section" id="start-session">
-<h3><code class="docutils literal"><span class="pre">start_session</span></code><a class="headerlink" href="#start-session" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal"><span class="pre">start_session</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.25.3)"><code class="xref py py-class docutils literal"><span class="pre">pandas.Timestamp</span></code></a> object indicating the first
+<h3><code class="docutils literal notranslate"><span class="pre">start_session</span></code><a class="headerlink" href="#start-session" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">start_session</span></code> is a <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v1.0.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.Timestamp</span></code></a> object indicating the first
 day that the bundle should load data for.</p>
 </div>
 <div class="section" id="end-session">
-<h3><code class="docutils literal"><span class="pre">end_session</span></code><a class="headerlink" href="#end-session" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal"><span class="pre">end_session</span></code> is a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v0.25.3)"><code class="xref py py-class docutils literal"><span class="pre">pandas.Timestamp</span></code></a> object indicating the last day
+<h3><code class="docutils literal notranslate"><span class="pre">end_session</span></code><a class="headerlink" href="#end-session" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">end_session</span></code> is a <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v1.0.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.Timestamp</span></code></a> object indicating the last day
 that the bundle should load data for.</p>
 </div>
 <div class="section" id="cache">
-<h3><code class="docutils literal"><span class="pre">cache</span></code><a class="headerlink" href="#cache" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal"><span class="pre">cache</span></code> is an instance of <a class="reference internal" href="appendix.html#zipline.utils.cache.dataframe_cache" title="zipline.utils.cache.dataframe_cache"><code class="xref py py-class docutils literal"><span class="pre">dataframe_cache</span></code></a>. This
+<h3><code class="docutils literal notranslate"><span class="pre">cache</span></code><a class="headerlink" href="#cache" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">cache</span></code> is an instance of <a class="reference internal" href="appendix.html#zipline.utils.cache.dataframe_cache" title="zipline.utils.cache.dataframe_cache"><code class="xref py py-class docutils literal notranslate"><span class="pre">dataframe_cache</span></code></a>. This
 object is a mapping from strings to dataframes. This object is provided in case
 an ingestion crashes part way through. The idea is that the ingest function
-should check the cache for raw data, if it doesn&#8217;t exist in the cache, it should
+should check the cache for raw data, if it doesn’t exist in the cache, it should
 acquire it and then store it in the cache. Then it can parse and write the
 data. The cache will be cleared only after a successful load, this prevents the
 ingest function from needing to re-download all the data if there is some bug in
@@ -656,32 +668,32 @@ the parsing. If it is very fast to get the data, for example if it is coming
 from another local file, then there is no need to use this cache.</p>
 </div>
 <div class="section" id="show-progress">
-<h3><code class="docutils literal"><span class="pre">show_progress</span></code><a class="headerlink" href="#show-progress" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal"><span class="pre">show_progress</span></code> is a boolean indicating that the user would like to receive
-feedback about the ingest function&#8217;s progress fetching and writing the
+<h3><code class="docutils literal notranslate"><span class="pre">show_progress</span></code><a class="headerlink" href="#show-progress" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">show_progress</span></code> is a boolean indicating that the user would like to receive
+feedback about the ingest function’s progress fetching and writing the
 data. Some examples for where to show how many files you have downloaded out of
 the total needed, or how far into some data conversion the ingest function
-is. One tool that may help with implementing <code class="docutils literal"><span class="pre">show_progress</span></code> for a loop is
-<a class="reference internal" href="appendix.html#zipline.utils.cli.maybe_show_progress" title="zipline.utils.cli.maybe_show_progress"><code class="xref py py-class docutils literal"><span class="pre">maybe_show_progress</span></code></a>. This argument should always be
-forwarded to <code class="docutils literal"><span class="pre">minute_bar_writer.write</span></code> and <code class="docutils literal"><span class="pre">daily_bar_writer.write</span></code>.</p>
+is. One tool that may help with implementing <code class="docutils literal notranslate"><span class="pre">show_progress</span></code> for a loop is
+<a class="reference internal" href="appendix.html#zipline.utils.cli.maybe_show_progress" title="zipline.utils.cli.maybe_show_progress"><code class="xref py py-class docutils literal notranslate"><span class="pre">maybe_show_progress</span></code></a>. This argument should always be
+forwarded to <code class="docutils literal notranslate"><span class="pre">minute_bar_writer.write</span></code> and <code class="docutils literal notranslate"><span class="pre">daily_bar_writer.write</span></code>.</p>
 </div>
 <div class="section" id="output-dir">
-<h3><code class="docutils literal"><span class="pre">output_dir</span></code><a class="headerlink" href="#output-dir" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal"><span class="pre">output_dir</span></code> is a string representing the file path where all the data will be
-written. <code class="docutils literal"><span class="pre">output_dir</span></code> will be some subdirectory of <code class="docutils literal"><span class="pre">$ZIPLINE_ROOT</span></code> and will
+<h3><code class="docutils literal notranslate"><span class="pre">output_dir</span></code><a class="headerlink" href="#output-dir" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">output_dir</span></code> is a string representing the file path where all the data will be
+written. <code class="docutils literal notranslate"><span class="pre">output_dir</span></code> will be some subdirectory of <code class="docutils literal notranslate"><span class="pre">$ZIPLINE_ROOT</span></code> and will
 contain the time of the start of the current ingestion. This can be used to
 directly move resources here if for some reason your ingest function can produce
-it&#8217;s own outputs without the writers. For example, the <code class="docutils literal"><span class="pre">quantopian:quandl</span></code>
-bundle uses this to directly untar the bundle into the <code class="docutils literal"><span class="pre">output_dir</span></code>.</p>
+it’s own outputs without the writers. For example, the <code class="docutils literal notranslate"><span class="pre">quantopian:quandl</span></code>
+bundle uses this to directly untar the bundle into the <code class="docutils literal notranslate"><span class="pre">output_dir</span></code>.</p>
 </div>
 </div>
 <div class="section" id="ingesting-data-from-csv-files">
 <h2>Ingesting Data from .csv Files<a class="headerlink" href="#ingesting-data-from-csv-files" title="Permalink to this headline">¶</a></h2>
-<p>Zipline provides a bundle called <code class="docutils literal"><span class="pre">csvdir</span></code>, which allows users to ingest data
-from <code class="docutils literal"><span class="pre">.csv</span></code> files. The format of the files should be in OHLCV format, with dates,
+<p>Zipline provides a bundle called <code class="docutils literal notranslate"><span class="pre">csvdir</span></code>, which allows users to ingest data
+from <code class="docutils literal notranslate"><span class="pre">.csv</span></code> files. The format of the files should be in OHLCV format, with dates,
 dividends, and splits. A sample is provided below. There are other samples for testing
-purposes in <code class="docutils literal"><span class="pre">zipline/tests/resources/csvdir_samples</span></code>.</p>
-<div class="highlight-text"><div class="highlight"><pre><span></span>date,open,high,low,close,volume,dividend,split
+purposes in <code class="docutils literal notranslate"><span class="pre">zipline/tests/resources/csvdir_samples</span></code>.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>date,open,high,low,close,volume,dividend,split
 2012-01-03,58.485714,58.92857,58.42857,58.747143,75555200,0.0,1.0
 2012-01-04,58.57143,59.240002,58.468571,59.062859,65005500,0.0,1.0
 2012-01-05,59.278572,59.792858,58.952858,59.718571,67817400,0.0,1.0
@@ -691,22 +703,22 @@ purposes in <code class="docutils literal"><span class="pre">zipline/tests/resou
 2012-01-11,60.382858,60.407143,59.901428,60.364285,53771200,0.0,1.0
 </pre></div>
 </div>
-<p>Once you have your data in the correct format, you can edit your <code class="docutils literal"><span class="pre">extension.py</span></code> file in
-<code class="docutils literal"><span class="pre">~/.zipline/extension.py</span></code> and import the csvdir bundle, along with <code class="docutils literal"><span class="pre">pandas</span></code>.</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<p>Once you have your data in the correct format, you can edit your <code class="docutils literal notranslate"><span class="pre">extension.py</span></code> file in
+<code class="docutils literal notranslate"><span class="pre">~/.zipline/extension.py</span></code> and import the csvdir bundle, along with <code class="docutils literal notranslate"><span class="pre">pandas</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 
 <span class="kn">from</span> <span class="nn">zipline.data.bundles</span> <span class="kn">import</span> <span class="n">register</span>
 <span class="kn">from</span> <span class="nn">zipline.data.bundles.csvdir</span> <span class="kn">import</span> <span class="n">csvdir_equities</span>
 </pre></div>
 </div>
-<p>We&#8217;ll then want to specify the start and end sessions of our bundle data:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">start_session</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s1">&#39;2016-1-1&#39;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s1">&#39;utc&#39;</span><span class="p">)</span>
+<p>We’ll then want to specify the start and end sessions of our bundle data:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">start_session</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s1">&#39;2016-1-1&#39;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s1">&#39;utc&#39;</span><span class="p">)</span>
 <span class="n">end_session</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s1">&#39;2018-1-1&#39;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s1">&#39;utc&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>And then we can <code class="docutils literal"><span class="pre">register()</span></code> our bundle, and pass the location of the directory in which
-our <code class="docutils literal"><span class="pre">.csv</span></code> files exist:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">register</span><span class="p">(</span>
+<p>And then we can <code class="docutils literal notranslate"><span class="pre">register()</span></code> our bundle, and pass the location of the directory in which
+our <code class="docutils literal notranslate"><span class="pre">.csv</span></code> files exist:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">register</span><span class="p">(</span>
     <span class="s1">&#39;custom-csvdir-bundle&#39;</span><span class="p">,</span>
     <span class="n">csvdir_equities</span><span class="p">(</span>
         <span class="p">[</span><span class="s1">&#39;daily&#39;</span><span class="p">],</span>
@@ -719,7 +731,7 @@ our <code class="docutils literal"><span class="pre">.csv</span></code> files ex
 </pre></div>
 </div>
 <p>To finally ingest our data, we can run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ zipline ingest -b custom-csvdir-bundle
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ zipline ingest -b custom-csvdir-bundle
 Loading custom pricing data:   <span class="o">[</span><span class="c1">############------------------------]   33% | FAKE: sid 0</span>
 Loading custom pricing data:   <span class="o">[</span><span class="c1">########################------------]   66% | FAKE1: sid 1</span>
 Loading custom pricing data:   <span class="o">[</span><span class="c1">####################################]  100% | FAKE2: sid 2</span>
@@ -731,8 +743,8 @@ $ <span class="nv">CSVDIR</span><span class="o">=</span>/path/to/your/csvs zipli
 </pre></div>
 </div>
 <p>If you would like to use equities that are not in the NYSE calendar, or the existing zipline calendars,
-you can look at the <code class="docutils literal"><span class="pre">Trading</span> <span class="pre">Calendar</span> <span class="pre">Tutorial</span></code> to build a custom trading calendar that you can then pass
-the name of to <code class="docutils literal"><span class="pre">register()</span></code>.</p>
+you can look at the <code class="docutils literal notranslate"><span class="pre">Trading</span> <span class="pre">Calendar</span> <span class="pre">Tutorial</span></code> to build a custom trading calendar that you can then pass
+the name of to <code class="docutils literal notranslate"><span class="pre">register()</span></code>.</p>
 </div>
 </div>
 
@@ -775,7 +787,7 @@ the name of to <code class="docutils literal"><span class="pre">register()</span
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'1.3.0',
+            VERSION:'1.4.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
@@ -784,6 +796,7 @@ the name of to <code class="docutils literal"><span class="pre">register()</span
       <script type="text/javascript" src="_static/jquery.js"></script>
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="_static/language_data.js"></script>
 
   
 

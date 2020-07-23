@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Development Guidelines &mdash; Zipline 1.3.0 documentation</title>
+  <title>Development Guidelines &mdash; Zipline 1.4.0 documentation</title>
   
 
   
@@ -30,7 +30,10 @@
   
 
   
-    <link rel="top" title="Zipline 1.3.0 documentation" href="index.html"/>
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="Zipline 1.4.0 documentation" href="index.html"/>
         <link rel="next" title="API Reference" href="appendix.html"/>
         <link rel="prev" title="Risk and Performance Metrics" href="risk-and-perf-metrics.html"/> 
 
@@ -73,14 +76,14 @@
           
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="install.html">Install</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-pip">Installing with <code class="docutils literal"><span class="pre">pip</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-pip">Installing with <code class="docutils literal notranslate"><span class="pre">pip</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="install.html#gnu-linux">GNU/Linux</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#osx">OSX</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#windows">Windows</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="install.html#managing-conda-environments">Managing <code class="docutils literal"><span class="pre">conda</span></code> environments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-conda">Installing with <code class="docutils literal notranslate"><span class="pre">conda</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#managing-conda-environments">Managing <code class="docutils literal notranslate"><span class="pre">conda</span></code> environments</a></li>
 </ul>
 </li>
 </ul>
@@ -94,7 +97,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
-<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#access-to-previous-prices-using-history">Access to Previous Prices Using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#access-to-previous-prices-using-history">Access to Previous Prices Using <code class="docutils literal notranslate"><span class="pre">history</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
 </ul>
 </li>
@@ -111,17 +114,17 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="bundles.html#writing-a-new-bundle">Writing a New Bundle</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#environ"><code class="docutils literal"><span class="pre">environ</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#asset-db-writer"><code class="docutils literal"><span class="pre">asset_db_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#minute-bar-writer"><code class="docutils literal"><span class="pre">minute_bar_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#start-session"><code class="docutils literal"><span class="pre">start_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#end-session"><code class="docutils literal"><span class="pre">end_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#environ"><code class="docutils literal notranslate"><span class="pre">environ</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#asset-db-writer"><code class="docutils literal notranslate"><span class="pre">asset_db_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#minute-bar-writer"><code class="docutils literal notranslate"><span class="pre">minute_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#daily-bar-writer"><code class="docutils literal notranslate"><span class="pre">daily_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#adjustment-writer"><code class="docutils literal notranslate"><span class="pre">adjustment_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#calendar"><code class="docutils literal notranslate"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#start-session"><code class="docutils literal notranslate"><span class="pre">start_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#end-session"><code class="docutils literal notranslate"><span class="pre">end_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#cache"><code class="docutils literal notranslate"><span class="pre">cache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#show-progress"><code class="docutils literal notranslate"><span class="pre">show_progress</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#output-dir"><code class="docutils literal notranslate"><span class="pre">output_dir</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="bundles.html#ingesting-data-from-csv-files">Ingesting Data from .csv Files</a></li>
@@ -139,27 +142,28 @@
 <li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#metrics-sets">Metrics Sets</a></li>
 <li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#selecting-the-metrics-set">Selecting the Metrics Set</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#command-line-and-ipython-magic">Command Line and IPython Magic</a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#run-algorithm"><code class="docutils literal"><span class="pre">run_algorithm</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#run-algorithm"><code class="docutils literal notranslate"><span class="pre">run_algorithm</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#running-without-metrics">Running Without Metrics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#defining-new-metrics">Defining New Metrics</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#start-of-simulation"><code class="docutils literal"><span class="pre">start_of_simulation</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-simulation"><code class="docutils literal"><span class="pre">end_of_simulation</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#start-of-session"><code class="docutils literal"><span class="pre">start_of_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-session"><code class="docutils literal"><span class="pre">end_of_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-bar"><code class="docutils literal"><span class="pre">end_of_bar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#start-of-simulation"><code class="docutils literal notranslate"><span class="pre">start_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-simulation"><code class="docutils literal notranslate"><span class="pre">end_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#start-of-session"><code class="docutils literal notranslate"><span class="pre">start_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-session"><code class="docutils literal notranslate"><span class="pre">end_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-bar"><code class="docutils literal notranslate"><span class="pre">end_of_bar</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#defining-new-metrics-sets">Defining New Metrics Sets</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">Development Guidelines</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Development Guidelines</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#creating-a-development-environment">Creating a Development Environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#development-with-docker">Development with Docker</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#style-guide-running-tests">Style Guide &amp; Running Tests</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#continuous-integration">Continuous Integration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#packaging">Packaging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#updating-dependencies">Updating dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#contributing-to-the-docs">Contributing to the Docs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#commit-messages">Commit messages</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#formatting-docstrings">Formatting Docstrings</a></li>
@@ -218,10 +222,10 @@
 <li class="toctree-l1"><a class="reference internal" href="release-process.html">Release Process</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-release-notes">Updating the Release Notes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-python-stub-files">Updating the Python stub files</a></li>
-<li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-version">Updating the <code class="docutils literal"><span class="pre">__version__</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-version">Updating the <code class="docutils literal notranslate"><span class="pre">__version__</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#uploading-pypi-packages">Uploading PyPI packages</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="release-process.html#sdist"><code class="docutils literal"><span class="pre">sdist</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="release-process.html#bdist"><code class="docutils literal"><span class="pre">bdist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="release-process.html#sdist"><code class="docutils literal notranslate"><span class="pre">sdist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="release-process.html#bdist"><code class="docutils literal notranslate"><span class="pre">bdist</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#documentation">Documentation</a></li>
@@ -230,52 +234,59 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-3-0">Release 1.3.0</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-4-0">Release 1.4.0</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#highlights">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#removed-implicit-dependency-on-benchmarks-and-treasury-returns">Removed Implicit Dependency on Benchmarks and Treasury Returns</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#new-built-in-factors">New Built In Factors</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#performance">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#miscellaneous">Miscellaneous</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#international-pipelines">International Pipelines</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#datasetfamily">DataSetFamily</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-3-0">Release 1.3.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id1">Highlights</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#support-for-newer-numpy-pandas-versions">Support for Newer Numpy/Pandas Versions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#standalone-trading-calendars-module">Standalone <code class="docutils literal"><span class="pre">trading_calendars</span></code> Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#standalone-trading-calendars-module">Standalone <code class="docutils literal notranslate"><span class="pre">trading_calendars</span></code> Module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#custom-blotters">Custom Blotters</a></li>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#custom-command-line-arguments">Custom Command-Line Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id2">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#performance">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id3">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id4">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id5">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#build">Build</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-2-0">Release 1.2.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id1">Highlights</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id7">Highlights</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id2">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id3">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id4">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id5">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id6">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id7">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id8">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id9">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id10">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id11">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id12">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id13">Build</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#documentation">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id16">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-1">Release 1.1.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id10">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id11">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id12">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id13">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id14">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id15">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id16">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id17">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id18">Miscellaneous</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-0">Release 1.1.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id19">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id17">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id18">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id19">Experimental Features</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id20">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id21">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id22">Maintenance and Refactorings</a></li>
@@ -284,95 +295,105 @@
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id25">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-2">Release 1.0.2</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-0">Release 1.1.0</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id26">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#experimental">Experimental</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id27">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id28">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id29">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id30">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id30">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id31">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id32">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-2">Release 1.0.2</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id33">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#experimental">Experimental</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id34">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id35">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id36">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id37">Documentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#testing">Testing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#data-format-changes">Data Format Changes</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-1">Release 1.0.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id31">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id32">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id33">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id38">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id39">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id40">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-0">Release 1.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id34">Highlights</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id41">Highlights</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id35">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id36">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id37">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id38">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id39">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id40">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id41">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id42">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id42">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id43">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id44">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id45">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id46">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id47">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id48">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id49">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-9-0">Release 0.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id43">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id44">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id45">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id46">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id47">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id48">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id49">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id50">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id51">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id50">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id51">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id52">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id53">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id54">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id55">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id56">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id57">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id58">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-4">Release 0.8.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id52">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id53">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id54">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id55">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id56">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id57">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id58">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id59">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id60">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id59">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id60">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id61">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id62">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id63">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id64">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id65">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id66">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id67">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-3">Release 0.8.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-0">Release 0.8.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id61">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id62">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id63">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id64">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id65">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id66">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id67">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id68">Documentation</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id69">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id70">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id68">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id69">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id70">Experimental Features</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id71">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id72">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id73">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id74">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id75">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-7-0">Release 0.7.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id76">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id77">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id78">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id79">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id80">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id81">Build</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#contributors">Contributors</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-6-1">Release 0.6.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id75">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id76">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id77">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id78">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id79">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id80">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id81">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id82">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id83">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id84">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id85">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id86">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id87">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id88">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -405,7 +426,7 @@
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="_sources/development-guidelines.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/development-guidelines.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -420,55 +441,55 @@
 <p>All contributions, bug reports, bug fixes, documentation improvements, enhancements and ideas are welcome. We <a class="reference external" href="https://github.com/quantopian/zipline/issues">track issues</a> on <a class="reference external" href="https://github.com/">GitHub</a> and also have a <a class="reference external" href="https://groups.google.com/forum/#!forum/zipline">mailing list</a> where you can ask questions.</p>
 <div class="section" id="creating-a-development-environment">
 <h2>Creating a Development Environment<a class="headerlink" href="#creating-a-development-environment" title="Permalink to this headline">¶</a></h2>
-<p>First, you&#8217;ll need to clone Zipline by running:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ git clone git@github.com:your-github-username/zipline.git
+<p>First, you’ll need to clone Zipline by running:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ git clone git@github.com:your-github-username/zipline.git
 </pre></div>
 </div>
 <p>Then check out to a new branch where you can make your changes:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ git checkout -b some-short-descriptive-name
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ git checkout -b some-short-descriptive-name
 </pre></div>
 </div>
-<p>If you don&#8217;t already have them, you&#8217;ll need some C library dependencies. You can follow the <a class="reference external" href="install.html">install guide</a> to get the appropriate dependencies.</p>
-<p>Once you&#8217;ve created and activated a <a class="reference external" href="https://docs.python.org/3/library/venv.html">virtual environment</a>, run the <code class="docutils literal"><span class="pre">etc/dev-install</span></code> script to install all development dependencies in their required order:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ python3 -m venv venv
+<p>If you don’t already have them, you’ll need some C library dependencies. You can follow the <a class="reference external" href="install.html">install guide</a> to get the appropriate dependencies.</p>
+<p>Once you’ve created and activated a <a class="reference external" href="https://docs.python.org/3/library/venv.html">virtual environment</a>, run the <code class="docutils literal notranslate"><span class="pre">etc/dev-install</span></code> script to install all development dependencies in their required order:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ python3 -m venv venv
 $ <span class="nb">source</span> venv/bin/activate
 $ etc/dev-install
 </pre></div>
 </div>
 <p>Or, using <a class="reference external" href="https://virtualenvwrapper.readthedocs.io/en/latest/">virtualenvwrapper</a>:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ mkvirtualenv zipline
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ mkvirtualenv zipline
 $ etc/dev-install
 </pre></div>
 </div>
-<p>After installation, you should be able to use the <code class="docutils literal"><span class="pre">zipline</span></code> command line interface from your virtualenv:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ zipline --help
+<p>After installation, you should be able to use the <code class="docutils literal notranslate"><span class="pre">zipline</span></code> command line interface from your virtualenv:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ zipline --help
 </pre></div>
 </div>
 <p>To finish, make sure <a class="reference external" href="#style-guide-running-tests">tests</a> pass.</p>
 <p>If you get an error running nosetests after setting up a fresh virtualenv, please try running</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="c1"># where zipline is the name of your virtualenv</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># where zipline is the name of your virtualenv</span>
 $ deactivate zipline
 $ workon zipline
 </pre></div>
 </div>
 <p>During development, you can rebuild the C extensions by running:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ python setup.py build_ext --inplace
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ python setup.py build_ext --inplace
 </pre></div>
 </div>
 </div>
 <div class="section" id="development-with-docker">
 <h2>Development with Docker<a class="headerlink" href="#development-with-docker" title="Permalink to this headline">¶</a></h2>
-<p>If you want to work with zipline using a <a class="reference external" href="https://docs.docker.com/get-started/">Docker</a> container, you&#8217;ll need to build the <code class="docutils literal"><span class="pre">Dockerfile</span></code> in the Zipline root directory, and then build <code class="docutils literal"><span class="pre">Dockerfile-dev</span></code>. Instructions for building both containers can be found in <code class="docutils literal"><span class="pre">Dockerfile</span></code> and <code class="docutils literal"><span class="pre">Dockerfile-dev</span></code>, respectively.</p>
+<p>If you want to work with zipline using a <a class="reference external" href="https://docs.docker.com/get-started/">Docker</a> container, you’ll need to build the <code class="docutils literal notranslate"><span class="pre">Dockerfile</span></code> in the Zipline root directory, and then build <code class="docutils literal notranslate"><span class="pre">Dockerfile-dev</span></code>. Instructions for building both containers can be found in <code class="docutils literal notranslate"><span class="pre">Dockerfile</span></code> and <code class="docutils literal notranslate"><span class="pre">Dockerfile-dev</span></code>, respectively.</p>
 </div>
 <div class="section" id="style-guide-running-tests">
 <h2>Style Guide &amp; Running Tests<a class="headerlink" href="#style-guide-running-tests" title="Permalink to this headline">¶</a></h2>
 <p>We use <a class="reference external" href="http://flake8.pycqa.org/en/latest/">flake8</a> for checking style requirements and <a class="reference external" href="http://nose.readthedocs.io/en/latest/">nosetests</a> to run Zipline tests. Our <a class="reference external" href="https://en.wikipedia.org/wiki/Continuous_integration">continuous integration</a> tools will run these commands.</p>
 <p>Before submitting patches or pull requests, please ensure that your changes pass when running:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ flake8 zipline tests
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ flake8 zipline tests
 </pre></div>
 </div>
-<p>In order to run tests locally, you&#8217;ll need <a class="reference external" href="https://mrjbq7.github.io/ta-lib/install.html">TA-lib</a>, which you can install on Linux by running:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
+<p>In order to run tests locally, you’ll need <a class="reference external" href="https://mrjbq7.github.io/ta-lib/install.html">TA-lib</a>, which you can install on Linux by running:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
 $ tar -xvzf ta-lib-0.4.0-src.tar.gz
 $ <span class="nb">cd</span> ta-lib/
 $ ./configure --prefix<span class="o">=</span>/usr
@@ -476,16 +497,16 @@ $ make
 $ sudo make install
 </pre></div>
 </div>
-<p>And for <code class="docutils literal"><span class="pre">TA-lib</span></code> on OS X you can just run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ brew install ta-lib
+<p>And for <code class="docutils literal notranslate"><span class="pre">TA-lib</span></code> on OS X you can just run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ brew install ta-lib
 </pre></div>
 </div>
-<p>Then run <code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span></code> TA-lib:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ pip install -r ./etc/requirements_talib.txt
+<p>Then run <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span></code> TA-lib:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ pip install -r ./etc/requirements_talib.in -c ./etc/requirements_locked.txt
 </pre></div>
 </div>
 <p>You should now be free to run tests:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ nosetests
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ nosetests
 </pre></div>
 </div>
 </div>
@@ -493,23 +514,44 @@ $ sudo make install
 <h2>Continuous Integration<a class="headerlink" href="#continuous-integration" title="Permalink to this headline">¶</a></h2>
 <p>We use <a class="reference external" href="https://travis-ci.org/quantopian/zipline">Travis CI</a> for Linux-64 bit builds and <a class="reference external" href="https://ci.appveyor.com/project/quantopian/zipline">AppVeyor</a> for Windows-64 bit builds.</p>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">We do not currently have CI for OSX-64 bit builds. 32-bit builds may work but are not included in our integration tests.</p>
+<p class="admonition-title">Note</p>
+<p>We do not currently have CI for OSX-64 bit builds. 32-bit builds may work but are not included in our integration tests.</p>
 </div>
 </div>
 <div class="section" id="packaging">
 <h2>Packaging<a class="headerlink" href="#packaging" title="Permalink to this headline">¶</a></h2>
 <p>To learn about how we build Zipline conda packages, you can read <a class="reference external" href="release-process.html#uploading-conda-packages">this</a> section in our release process notes.</p>
 </div>
+<div class="section" id="updating-dependencies">
+<h2>Updating dependencies<a class="headerlink" href="#updating-dependencies" title="Permalink to this headline">¶</a></h2>
+<p>If you update the zipline codebase so that it now depends on a new version of a library,
+then you should update the lower bound on that dependency in <code class="docutils literal notranslate"><span class="pre">etc/requirements.in</span></code>
+(or <code class="docutils literal notranslate"><span class="pre">etc/requirements_dev.in</span></code> as appropriate).
+We use <a class="reference external" href="https://github.com/jazzband/pip-tools/">pip-compile</a> to find mutually compatible versions of dependencies for the
+<code class="docutils literal notranslate"><span class="pre">etc/requirements_locked.txt</span></code> lockfile used in our CI environments.</p>
+<p>When you update a dependency in an <code class="docutils literal notranslate"><span class="pre">.in</span></code> file,
+you need to re-run the <code class="docutils literal notranslate"><span class="pre">pip-compile</span></code> command included in the header of <a class="reference external" href="https://github.com/quantopian/zipline/tree/master/etc/requirements_locked.txt">the lockfile</a>;
+otherwise the lockfile will not meet the constraints specified to pip by zipline
+at install time (via <code class="docutils literal notranslate"><span class="pre">etc/requirements.in</span></code> via <code class="docutils literal notranslate"><span class="pre">setup.py</span></code>).</p>
+<p>If the zipline codebase can still support an old version of a dependency, but you want
+to update to a newer version of that library in our CI environments, then only the
+lockfile needs updating. To update the lockfile without bumping the lower bound,
+re-run the <code class="docutils literal notranslate"><span class="pre">pip-compile</span></code> command included in the header of the lockfile with the
+addition of the <code class="docutils literal notranslate"><span class="pre">--upgrade-package</span></code> or <code class="docutils literal notranslate"><span class="pre">-P</span></code> <a class="reference external" href="https://github.com/jazzband/pip-tools/#updating-requirements">flag</a>, e.g.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ pip-compile --output-file<span class="o">=</span>etc/reqs.txt etc/reqs.in ... -P <span class="nv">six</span><span class="o">==</span><span class="m">1</span>.13.0 -P <span class="s2">&quot;click&gt;4.0.0&quot;</span>
+</pre></div>
+</div>
+<p>As you can see above, you can include multiple such constraints in a single invocation of <code class="docutils literal notranslate"><span class="pre">pip-compile</span></code>.</p>
+</div>
 <div class="section" id="contributing-to-the-docs">
 <h2>Contributing to the Docs<a class="headerlink" href="#contributing-to-the-docs" title="Permalink to this headline">¶</a></h2>
-<p>If you&#8217;d like to contribute to the documentation on zipline.io, you can navigate to <code class="docutils literal"><span class="pre">docs/source/</span></code> where each <a class="reference external" href="https://en.wikipedia.org/wiki/ReStructuredText">reStructuredText</a> (<code class="docutils literal"><span class="pre">.rst</span></code>) file is a separate section there. To add a section, create a new file called <code class="docutils literal"><span class="pre">some-descriptive-name.rst</span></code> and add <code class="docutils literal"><span class="pre">some-descriptive-name</span></code> to <code class="docutils literal"><span class="pre">appendix.rst</span></code>. To edit a section, simply open up one of the existing files, make your changes, and save them.</p>
+<p>If you’d like to contribute to the documentation on zipline.io, you can navigate to <code class="docutils literal notranslate"><span class="pre">docs/source/</span></code> where each <a class="reference external" href="https://en.wikipedia.org/wiki/ReStructuredText">reStructuredText</a> (<code class="docutils literal notranslate"><span class="pre">.rst</span></code>) file is a separate section there. To add a section, create a new file called <code class="docutils literal notranslate"><span class="pre">some-descriptive-name.rst</span></code> and add <code class="docutils literal notranslate"><span class="pre">some-descriptive-name</span></code> to <code class="docutils literal notranslate"><span class="pre">appendix.rst</span></code>. To edit a section, simply open up one of the existing files, make your changes, and save them.</p>
 <p>We use <a class="reference external" href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> to generate documentation for Zipline, which you will need to install by running:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ pip install -r ./etc/requirements_docs.txt
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ pip install -r ./etc/requirements_docs.in -c ./etc/requirements_locked.txt
 </pre></div>
 </div>
 <p>To build and view the docs locally, run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="c1"># assuming you&#39;re in the Zipline root directory</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># assuming you&#39;re in the Zipline root directory</span>
 $ <span class="nb">cd</span> docs
 $ make html
 $ <span class="o">{</span>BROWSER<span class="o">}</span> build/html/index.html
@@ -519,7 +561,7 @@ $ <span class="o">{</span>BROWSER<span class="o">}</span> build/html/index.html
 <div class="section" id="commit-messages">
 <h2>Commit messages<a class="headerlink" href="#commit-messages" title="Permalink to this headline">¶</a></h2>
 <p>Standard prefixes to start a commit message:</p>
-<div class="highlight-text"><div class="highlight"><pre><span></span>BLD: change related to building Zipline
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>BLD: change related to building Zipline
 BUG: bug fix
 DEP: deprecate something, or remove a deprecated object
 DEV: development tool or utility
@@ -536,7 +578,7 @@ PERF: performance enhancements
 <p>Some commit style guidelines:</p>
 <p>Commit lines should be no longer than <a class="reference external" href="https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project">72 characters</a>. The first line of the commit should include one of the above prefixes. There should be an empty line between the commit subject and the body of the commit. In general, the message should be in the imperative tense. Best practice is to include not only what the change is, but why the change was made.</p>
 <p><strong>Example:</strong></p>
-<div class="highlight-text"><div class="highlight"><pre><span></span>MAINT: Remove unused calculations of max_leverage, et al.
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>MAINT: Remove unused calculations of max_leverage, et al.
 
 In the performance period the max_leverage, max_capital_used,
 cumulative_capital_used were calculated but not used.
@@ -558,7 +600,7 @@ the algorithm has little cash on hand.
 <div class="section" id="updating-the-whatsnew">
 <h2>Updating the Whatsnew<a class="headerlink" href="#updating-the-whatsnew" title="Permalink to this headline">¶</a></h2>
 <p>We have a set of <a class="reference external" href="https://github.com/quantopian/zipline/tree/master/docs/source/whatsnew">whatsnew</a> files that are used for documenting changes that have occurred between different versions of Zipline.
-Once you&#8217;ve made a change to Zipline, in your Pull Request, please update the most recent <code class="docutils literal"><span class="pre">whatsnew</span></code> file with a comment about what you changed. You can find examples in previous <code class="docutils literal"><span class="pre">whatsnew</span></code> files.</p>
+Once you’ve made a change to Zipline, in your Pull Request, please update the most recent <code class="docutils literal notranslate"><span class="pre">whatsnew</span></code> file with a comment about what you changed. You can find examples in previous <code class="docutils literal notranslate"><span class="pre">whatsnew</span></code> files.</p>
 </div>
 </div>
 
@@ -601,7 +643,7 @@ Once you&#8217;ve made a change to Zipline, in your Pull Request, please update 
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'1.3.0',
+            VERSION:'1.4.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
@@ -610,6 +652,7 @@ Once you&#8217;ve made a change to Zipline, in your Pull Request, please update 
       <script type="text/javascript" src="_static/jquery.js"></script>
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="_static/language_data.js"></script>
 
   
 

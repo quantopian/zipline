@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.data.adjustments &mdash; Zipline 1.3.0 documentation</title>
+  <title>zipline.data.adjustments &mdash; Zipline 1.4.0 documentation</title>
   
 
   
@@ -30,7 +30,10 @@
   
 
   
-    <link rel="top" title="Zipline 1.3.0 documentation" href="../../../index.html"/>
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="Zipline 1.4.0 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -72,14 +75,14 @@
           
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../install.html">Install</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../install.html#installing-with-pip">Installing with <code class="docutils literal"><span class="pre">pip</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../install.html#installing-with-pip">Installing with <code class="docutils literal notranslate"><span class="pre">pip</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../install.html#gnu-linux">GNU/Linux</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../install.html#osx">OSX</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../install.html#windows">Windows</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../install.html#managing-conda-environments">Managing <code class="docutils literal"><span class="pre">conda</span></code> environments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install.html#installing-with-conda">Installing with <code class="docutils literal notranslate"><span class="pre">conda</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#managing-conda-environments">Managing <code class="docutils literal notranslate"><span class="pre">conda</span></code> environments</a></li>
 </ul>
 </li>
 </ul>
@@ -93,7 +96,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#access-to-previous-prices-using-history">Access to Previous Prices Using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#access-to-previous-prices-using-history">Access to Previous Prices Using <code class="docutils literal notranslate"><span class="pre">history</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
 </ul>
 </li>
@@ -110,17 +113,17 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../bundles.html#writing-a-new-bundle">Writing a New Bundle</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#environ"><code class="docutils literal"><span class="pre">environ</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#asset-db-writer"><code class="docutils literal"><span class="pre">asset_db_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#minute-bar-writer"><code class="docutils literal"><span class="pre">minute_bar_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#start-session"><code class="docutils literal"><span class="pre">start_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#end-session"><code class="docutils literal"><span class="pre">end_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#environ"><code class="docutils literal notranslate"><span class="pre">environ</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#asset-db-writer"><code class="docutils literal notranslate"><span class="pre">asset_db_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#minute-bar-writer"><code class="docutils literal notranslate"><span class="pre">minute_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#daily-bar-writer"><code class="docutils literal notranslate"><span class="pre">daily_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#adjustment-writer"><code class="docutils literal notranslate"><span class="pre">adjustment_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#calendar"><code class="docutils literal notranslate"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#start-session"><code class="docutils literal notranslate"><span class="pre">start_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#end-session"><code class="docutils literal notranslate"><span class="pre">end_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#cache"><code class="docutils literal notranslate"><span class="pre">cache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#show-progress"><code class="docutils literal notranslate"><span class="pre">show_progress</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#output-dir"><code class="docutils literal notranslate"><span class="pre">output_dir</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../bundles.html#ingesting-data-from-csv-files">Ingesting Data from .csv Files</a></li>
@@ -138,16 +141,16 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../risk-and-perf-metrics.html#metrics-sets">Metrics Sets</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../risk-and-perf-metrics.html#selecting-the-metrics-set">Selecting the Metrics Set</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../risk-and-perf-metrics.html#command-line-and-ipython-magic">Command Line and IPython Magic</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../risk-and-perf-metrics.html#run-algorithm"><code class="docutils literal"><span class="pre">run_algorithm</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../risk-and-perf-metrics.html#run-algorithm"><code class="docutils literal notranslate"><span class="pre">run_algorithm</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../risk-and-perf-metrics.html#running-without-metrics">Running Without Metrics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../risk-and-perf-metrics.html#defining-new-metrics">Defining New Metrics</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../risk-and-perf-metrics.html#start-of-simulation"><code class="docutils literal"><span class="pre">start_of_simulation</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../risk-and-perf-metrics.html#end-of-simulation"><code class="docutils literal"><span class="pre">end_of_simulation</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../risk-and-perf-metrics.html#start-of-session"><code class="docutils literal"><span class="pre">start_of_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../risk-and-perf-metrics.html#end-of-session"><code class="docutils literal"><span class="pre">end_of_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../risk-and-perf-metrics.html#end-of-bar"><code class="docutils literal"><span class="pre">end_of_bar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../risk-and-perf-metrics.html#start-of-simulation"><code class="docutils literal notranslate"><span class="pre">start_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../risk-and-perf-metrics.html#end-of-simulation"><code class="docutils literal notranslate"><span class="pre">end_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../risk-and-perf-metrics.html#start-of-session"><code class="docutils literal notranslate"><span class="pre">start_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../risk-and-perf-metrics.html#end-of-session"><code class="docutils literal notranslate"><span class="pre">end_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../risk-and-perf-metrics.html#end-of-bar"><code class="docutils literal notranslate"><span class="pre">end_of_bar</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../risk-and-perf-metrics.html#defining-new-metrics-sets">Defining New Metrics Sets</a></li>
@@ -159,6 +162,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../development-guidelines.html#style-guide-running-tests">Style Guide &amp; Running Tests</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../development-guidelines.html#continuous-integration">Continuous Integration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../development-guidelines.html#packaging">Packaging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../development-guidelines.html#updating-dependencies">Updating dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../development-guidelines.html#contributing-to-the-docs">Contributing to the Docs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../development-guidelines.html#commit-messages">Commit messages</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../development-guidelines.html#formatting-docstrings">Formatting Docstrings</a></li>
@@ -217,10 +221,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../release-process.html">Release Process</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#updating-the-release-notes">Updating the Release Notes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#updating-the-python-stub-files">Updating the Python stub files</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#updating-the-version">Updating the <code class="docutils literal"><span class="pre">__version__</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#updating-the-version">Updating the <code class="docutils literal notranslate"><span class="pre">__version__</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#uploading-pypi-packages">Uploading PyPI packages</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../release-process.html#sdist"><code class="docutils literal"><span class="pre">sdist</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../release-process.html#bdist"><code class="docutils literal"><span class="pre">bdist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-process.html#sdist"><code class="docutils literal notranslate"><span class="pre">sdist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-process.html#bdist"><code class="docutils literal notranslate"><span class="pre">bdist</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#documentation">Documentation</a></li>
@@ -229,52 +233,59 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-3-0">Release 1.3.0</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-4-0">Release 1.4.0</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#highlights">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#removed-implicit-dependency-on-benchmarks-and-treasury-returns">Removed Implicit Dependency on Benchmarks and Treasury Returns</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#new-built-in-factors">New Built In Factors</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#performance">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#miscellaneous">Miscellaneous</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#international-pipelines">International Pipelines</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#datasetfamily">DataSetFamily</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-3-0">Release 1.3.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id1">Highlights</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../releases.html#support-for-newer-numpy-pandas-versions">Support for Newer Numpy/Pandas Versions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#standalone-trading-calendars-module">Standalone <code class="docutils literal"><span class="pre">trading_calendars</span></code> Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#standalone-trading-calendars-module">Standalone <code class="docutils literal notranslate"><span class="pre">trading_calendars</span></code> Module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../releases.html#custom-blotters">Custom Blotters</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../releases.html#custom-command-line-arguments">Custom Command-Line Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id2">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#bug-fixes">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#performance">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id3">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id4">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id5">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#build">Build</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-2-0">Release 1.2.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id1">Highlights</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id7">Highlights</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id2">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id3">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id4">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id5">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id6">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id7">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id8">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id9">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id10">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id11">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id12">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id13">Build</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#documentation">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id16">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-1-1">Release 1.1.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id10">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id11">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id12">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id13">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id14">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id15">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id16">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id17">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id18">Miscellaneous</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-1-0">Release 1.1.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id19">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id17">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id18">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id19">Experimental Features</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id22">Maintenance and Refactorings</a></li>
@@ -283,95 +294,105 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id25">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-2">Release 1.0.2</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-1-0">Release 1.1.0</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id26">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental">Experimental</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id27">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id28">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id29">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id30">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id30">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id31">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id32">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-2">Release 1.0.2</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id33">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental">Experimental</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id34">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id35">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id36">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id37">Documentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#testing">Testing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#data-format-changes">Data Format Changes</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id31">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id32">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id33">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id38">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id39">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id40">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id34">Highlights</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id41">Highlights</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id35">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id36">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id37">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id38">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id39">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id40">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id41">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id42">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id42">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id43">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id44">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id45">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id46">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id47">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id48">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id49">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-9-0">Release 0.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id43">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id44">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id45">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id46">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id47">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id48">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id49">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id50">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id51">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id50">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id51">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id52">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id53">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id54">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id55">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id56">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id57">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id58">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id52">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id53">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id54">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id55">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id56">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id57">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id58">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id59">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id60">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id59">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id60">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id61">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id62">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id63">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id64">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id65">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id66">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id67">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-3">Release 0.8.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-0">Release 0.8.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id61">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id62">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id63">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id64">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id65">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id66">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id67">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id68">Documentation</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id69">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id70">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id68">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id69">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id70">Experimental Features</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id71">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id72">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id73">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id74">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id75">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id76">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id77">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id78">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id79">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id80">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id81">Build</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#contributors">Contributors</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id75">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id76">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id77">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id78">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id79">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id80">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id81">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id82">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id83">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id84">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id85">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id86">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id87">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id88">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -419,9 +440,9 @@
 <span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">remove</span>
 
 <span class="kn">from</span> <span class="nn">logbook</span> <span class="kn">import</span> <span class="n">Logger</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">integer</span> <span class="k">as</span> <span class="n">any_integer</span>
-<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">Timestamp</span>
 <span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">import</span> <span class="nn">sqlite3</span>
@@ -446,14 +467,14 @@
 
 <span class="n">UNPAID_QUERY_TEMPLATE</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">SELECT sid, amount, pay_date from dividend_payouts</span>
-<span class="s2">WHERE ex_date=? AND sid IN ({0})</span>
+<span class="s2">WHERE ex_date=? AND sid IN (</span><span class="si">{0}</span><span class="s2">)</span>
 <span class="s2">&quot;&quot;&quot;</span>
 
 <span class="n">Dividend</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;Dividend&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;asset&#39;</span><span class="p">,</span> <span class="s1">&#39;amount&#39;</span><span class="p">,</span> <span class="s1">&#39;pay_date&#39;</span><span class="p">])</span>
 
 <span class="n">UNPAID_STOCK_DIVIDEND_QUERY_TEMPLATE</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">SELECT sid, payment_sid, ratio, pay_date from stock_dividend_payouts</span>
-<span class="s2">WHERE ex_date=? AND sid IN ({0})</span>
+<span class="s2">WHERE ex_date=? AND sid IN (</span><span class="si">{0}</span><span class="s2">)</span>
 <span class="s2">&quot;&quot;&quot;</span>
 
 <span class="n">StockDividend</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
@@ -542,7 +563,7 @@
         <span class="p">),</span>
     <span class="p">}</span>
 
-    <span class="nd">@preprocess</span><span class="p">(</span><span class="n">conn</span><span class="o">=</span><span class="n">coerce_string_to_conn</span><span class="p">(</span><span class="n">require_exists</span><span class="o">=</span><span class="bp">True</span><span class="p">))</span>
+    <span class="nd">@preprocess</span><span class="p">(</span><span class="n">conn</span><span class="o">=</span><span class="n">coerce_string_to_conn</span><span class="p">(</span><span class="n">require_exists</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conn</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">conn</span> <span class="o">=</span> <span class="n">conn</span>
 
@@ -608,9 +629,9 @@
         <span class="n">adjustments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_adjustments</span><span class="p">(</span>
             <span class="n">dates</span><span class="p">,</span>
             <span class="n">assets</span><span class="p">,</span>
-            <span class="n">should_include_splits</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-            <span class="n">should_include_mergers</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-            <span class="n">should_include_dividends</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+            <span class="n">should_include_splits</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">should_include_mergers</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">should_include_dividends</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">adjustment_type</span><span class="o">=</span><span class="n">adjustment_type</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">price_adjustments</span> <span class="o">=</span> <span class="n">adjustments</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;price&#39;</span><span class="p">)</span>
@@ -681,7 +702,7 @@
 
         <span class="k">return</span> <span class="n">stock_divs</span>
 
-<div class="viewcode-block" id="SQLiteAdjustmentReader.unpack_db_to_component_dfs"><a class="viewcode-back" href="../../../appendix.html#zipline.data.adjustments.SQLiteAdjustmentReader.unpack_db_to_component_dfs">[docs]</a>    <span class="k">def</span> <span class="nf">unpack_db_to_component_dfs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">convert_dates</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+<div class="viewcode-block" id="SQLiteAdjustmentReader.unpack_db_to_component_dfs"><a class="viewcode-back" href="../../../appendix.html#zipline.data.adjustments.SQLiteAdjustmentReader.unpack_db_to_component_dfs">[docs]</a>    <span class="k">def</span> <span class="nf">unpack_db_to_component_dfs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">convert_dates</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Returns the set of known tables in the adjustments file in DataFrame</span>
 <span class="sd">        form.</span>
 
@@ -704,7 +725,7 @@
             <span class="k">for</span> <span class="n">t_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datetime_int_cols</span>
         <span class="p">}</span></div>
 
-    <span class="k">def</span> <span class="nf">get_df_from_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">convert_dates</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">get_df_from_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">convert_dates</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">date_cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datetime_int_cols</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
@@ -719,7 +740,7 @@
         <span class="c1"># Dates are stored in second resolution as ints in adj.db tables.</span>
         <span class="c1"># Need to specifically convert them as UTC, not local time.</span>
         <span class="n">kwargs</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="p">{</span><span class="s1">&#39;parse_dates&#39;</span><span class="p">:</span> <span class="p">{</span><span class="n">col</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;s&#39;</span><span class="p">,</span> <span class="s1">&#39;utc&#39;</span><span class="p">:</span> <span class="bp">True</span><span class="p">}</span>
+            <span class="p">{</span><span class="s1">&#39;parse_dates&#39;</span><span class="p">:</span> <span class="p">{</span><span class="n">col</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;s&#39;</span><span class="p">,</span> <span class="s1">&#39;utc&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
                              <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">date_cols</span><span class="p">}</span>
              <span class="p">}</span>
             <span class="k">if</span> <span class="n">convert_dates</span>
@@ -727,11 +748,11 @@
         <span class="p">)</span>
 
         <span class="n">result</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql</span><span class="p">(</span>
-            <span class="s1">&#39;select * from &quot;{}&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">table_name</span><span class="p">),</span>
+            <span class="s1">&#39;select * from &quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">table_name</span><span class="p">),</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span>
             <span class="n">index_col</span><span class="o">=</span><span class="s1">&#39;index&#39;</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">rename_axis</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">rename_axis</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
             <span class="n">dtypes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_df_dtypes</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">convert_dates</span><span class="p">)</span>
@@ -770,7 +791,7 @@
 <span class="sd">    zipline.data.adjustments.SQLiteAdjustmentReader</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conn_or_path</span><span class="p">,</span> <span class="n">equity_daily_bar_reader</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conn_or_path</span><span class="p">,</span> <span class="n">equity_daily_bar_reader</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">conn_or_path</span><span class="p">,</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Connection</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">conn</span> <span class="o">=</span> <span class="n">conn_or_path</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">conn_or_path</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
@@ -797,7 +818,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tablename</span><span class="p">,</span> <span class="n">expected_dtypes</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">frame</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">frame</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">frame</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">frame</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
             <span class="c1"># keeping the dtypes correct for empty frames is not easy</span>
             <span class="n">frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
                 <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">expected_dtypes</span><span class="o">.</span><span class="n">items</span><span class="p">())),</span>
@@ -818,8 +839,8 @@
                 <span class="n">actual</span> <span class="o">=</span> <span class="n">actual_dtypes</span><span class="p">[</span><span class="n">colname</span><span class="p">]</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">actual</span><span class="p">,</span> <span class="n">expected</span><span class="p">):</span>
                     <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-                        <span class="s2">&quot;Expected data of type {expected} for column&quot;</span>
-                        <span class="s2">&quot; &#39;{colname}&#39;, but got &#39;{actual}&#39;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="s2">&quot;Expected data of type </span><span class="si">{expected}</span><span class="s2"> for column&quot;</span>
+                        <span class="s2">&quot; &#39;</span><span class="si">{colname}</span><span class="s2">&#39;, but got &#39;</span><span class="si">{actual}</span><span class="s2">&#39;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                             <span class="n">expected</span><span class="o">=</span><span class="n">expected</span><span class="p">,</span>
                             <span class="n">colname</span><span class="o">=</span><span class="n">colname</span><span class="p">,</span>
                             <span class="n">actual</span><span class="o">=</span><span class="n">actual</span><span class="p">,</span>
@@ -841,7 +862,7 @@
                     <span class="n">SQLITE_ADJUSTMENT_TABLENAMES</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">frame</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">frame</span><span class="o">.</span><span class="n">empty</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">frame</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">frame</span><span class="o">.</span><span class="n">empty</span><span class="p">):</span>
             <span class="n">frame</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
             <span class="n">frame</span><span class="p">[</span><span class="s1">&#39;effective_date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">frame</span><span class="p">[</span><span class="s1">&#39;effective_date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
                 <span class="s1">&#39;datetime64[s]&#39;</span><span class="p">,</span>
@@ -883,7 +904,7 @@
 <span class="sd">            - effective_date, the date in seconds on which to apply the ratio.</span>
 <span class="sd">            - ratio, the ratio to apply to backwards looking pricing data.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">dividends</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">dividends</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">dividends</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">dividends</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
                 <span class="p">[],</span>
                 <span class="n">dtype</span><span class="o">=</span><span class="p">[</span>
@@ -895,7 +916,7 @@
 
         <span class="n">pricing_reader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_daily_bar_reader</span>
         <span class="n">input_sids</span> <span class="o">=</span> <span class="n">dividends</span><span class="o">.</span><span class="n">sid</span><span class="o">.</span><span class="n">values</span>
-        <span class="n">unique_sids</span><span class="p">,</span> <span class="n">sids_ix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">input_sids</span><span class="p">,</span> <span class="n">return_inverse</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">unique_sids</span><span class="p">,</span> <span class="n">sids_ix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">input_sids</span><span class="p">,</span> <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">dates</span> <span class="o">=</span> <span class="n">pricing_reader</span><span class="o">.</span><span class="n">sessions</span><span class="o">.</span><span class="n">values</span>
 
         <span class="n">close</span><span class="p">,</span> <span class="o">=</span> <span class="n">pricing_reader</span><span class="o">.</span><span class="n">load_raw_arrays</span><span class="p">(</span>
@@ -922,7 +943,7 @@
         <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="o">~</span><span class="n">non_nan_ratio_mask</span><span class="p">):</span>
             <span class="n">log</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
                 <span class="s2">&quot;Couldn&#39;t compute ratio for dividend&quot;</span>
-                <span class="s2">&quot; sid={sid}, ex_date={ex_date:%Y-%m-</span><span class="si">%d</span><span class="s2">}, amount={amount:.3f}&quot;</span><span class="p">,</span>
+                <span class="s2">&quot; sid=</span><span class="si">{sid}</span><span class="s2">, ex_date={ex_date:%Y-%m-</span><span class="si">%d</span><span class="s2">}, amount=</span><span class="si">{amount:.3f}</span><span class="s2">&quot;</span><span class="p">,</span>
                 <span class="n">sid</span><span class="o">=</span><span class="n">input_sids</span><span class="p">[</span><span class="n">ix</span><span class="p">],</span>
                 <span class="n">ex_date</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">input_dates</span><span class="p">[</span><span class="n">ix</span><span class="p">]),</span>
                 <span class="n">amount</span><span class="o">=</span><span class="n">amount</span><span class="p">[</span><span class="n">ix</span><span class="p">],</span>
@@ -932,7 +953,7 @@
         <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="o">~</span><span class="n">positive_ratio_mask</span> <span class="o">&amp;</span> <span class="n">non_nan_ratio_mask</span><span class="p">):</span>
             <span class="n">log</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
                 <span class="s2">&quot;Dividend ratio &lt;= 0 for dividend&quot;</span>
-                <span class="s2">&quot; sid={sid}, ex_date={ex_date:%Y-%m-</span><span class="si">%d</span><span class="s2">}, amount={amount:.3f}&quot;</span><span class="p">,</span>
+                <span class="s2">&quot; sid=</span><span class="si">{sid}</span><span class="s2">, ex_date={ex_date:%Y-%m-</span><span class="si">%d</span><span class="s2">}, amount=</span><span class="si">{amount:.3f}</span><span class="s2">&quot;</span><span class="p">,</span>
                 <span class="n">sid</span><span class="o">=</span><span class="n">input_sids</span><span class="p">[</span><span class="n">ix</span><span class="p">],</span>
                 <span class="n">ex_date</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">input_dates</span><span class="p">[</span><span class="n">ix</span><span class="p">]),</span>
                 <span class="n">amount</span><span class="o">=</span><span class="n">amount</span><span class="p">[</span><span class="n">ix</span><span class="p">],</span>
@@ -946,8 +967,8 @@
         <span class="p">})</span></div>
 
     <span class="k">def</span> <span class="nf">_write_dividends</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dividends</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">dividends</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">dividend_payouts</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="n">dividends</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dividend_payouts</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">dividend_payouts</span> <span class="o">=</span> <span class="n">dividends</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
             <span class="n">dividend_payouts</span><span class="p">[</span><span class="s1">&#39;ex_date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dividend_payouts</span><span class="p">[</span><span class="s1">&#39;ex_date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span>\
@@ -965,8 +986,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">write_dividend_payouts</span><span class="p">(</span><span class="n">dividend_payouts</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_write_stock_dividends</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stock_dividends</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">stock_dividends</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">stock_dividend_payouts</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="n">stock_dividends</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">stock_dividend_payouts</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">stock_dividend_payouts</span> <span class="o">=</span> <span class="n">stock_dividends</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
             <span class="n">stock_dividend_payouts</span><span class="p">[</span><span class="s1">&#39;ex_date&#39;</span><span class="p">]</span> <span class="o">=</span> \
@@ -983,7 +1004,7 @@
                 <span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;datetime64[s]&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">int64_dtype</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">write_stock_dividend_payouts</span><span class="p">(</span><span class="n">stock_dividend_payouts</span><span class="p">)</span>
 
-<div class="viewcode-block" id="SQLiteAdjustmentWriter.write_dividend_data"><a class="viewcode-back" href="../../../appendix.html#zipline.data.adjustments.SQLiteAdjustmentWriter.write_dividend_data">[docs]</a>    <span class="k">def</span> <span class="nf">write_dividend_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dividends</span><span class="p">,</span> <span class="n">stock_dividends</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="SQLiteAdjustmentWriter.write_dividend_data"><a class="viewcode-back" href="../../../appendix.html#zipline.data.adjustments.SQLiteAdjustmentWriter.write_dividend_data">[docs]</a>    <span class="k">def</span> <span class="nf">write_dividend_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dividends</span><span class="p">,</span> <span class="n">stock_dividends</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Write both dividend payouts and the derived price adjustment ratios.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -997,10 +1018,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">write_frame</span><span class="p">(</span><span class="s1">&#39;dividends&#39;</span><span class="p">,</span> <span class="n">dividend_ratios</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SQLiteAdjustmentWriter.write"><a class="viewcode-back" href="../../../appendix.html#zipline.data.adjustments.SQLiteAdjustmentWriter.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-              <span class="n">splits</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-              <span class="n">mergers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-              <span class="n">dividends</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-              <span class="n">stock_dividends</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+              <span class="n">splits</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">mergers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">dividends</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">stock_dividends</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Writes data to a SQLite file to be read by SQLiteAdjustmentReader.</span>
 
@@ -1148,7 +1169,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'1.3.0',
+            VERSION:'1.4.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
@@ -1157,6 +1178,7 @@
       <script type="text/javascript" src="../../../_static/jquery.js"></script>
       <script type="text/javascript" src="../../../_static/underscore.js"></script>
       <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="../../../_static/language_data.js"></script>
 
   
 

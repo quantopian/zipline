@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Zipline Beginner Tutorial &mdash; Zipline 1.3.0 documentation</title>
+  <title>Zipline Beginner Tutorial &mdash; Zipline 1.4.0 documentation</title>
   
 
   
@@ -30,7 +30,10 @@
   
 
   
-    <link rel="top" title="Zipline 1.3.0 documentation" href="index.html"/>
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="Zipline 1.4.0 documentation" href="index.html"/>
         <link rel="next" title="Data Bundles" href="bundles.html"/>
         <link rel="prev" title="Install" href="install.html"/> 
 
@@ -73,19 +76,19 @@
           
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="install.html">Install</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-pip">Installing with <code class="docutils literal"><span class="pre">pip</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-pip">Installing with <code class="docutils literal notranslate"><span class="pre">pip</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="install.html#gnu-linux">GNU/Linux</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#osx">OSX</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#windows">Windows</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="install.html#managing-conda-environments">Managing <code class="docutils literal"><span class="pre">conda</span></code> environments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-conda">Installing with <code class="docutils literal notranslate"><span class="pre">conda</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#managing-conda-environments">Managing <code class="docutils literal notranslate"><span class="pre">conda</span></code> environments</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">Zipline Beginner Tutorial</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Zipline Beginner Tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#basics">Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#my-first-algorithm">My First Algorithm</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#running-the-algorithm">Running the Algorithm</a><ul>
@@ -94,7 +97,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#ipython-notebook">IPython Notebook</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#access-to-previous-prices-using-history">Access to Previous Prices Using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#access-to-previous-prices-using-history">Access to Previous Prices Using <code class="docutils literal notranslate"><span class="pre">history</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
 </ul>
 </li>
@@ -111,17 +114,17 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="bundles.html#writing-a-new-bundle">Writing a New Bundle</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#environ"><code class="docutils literal"><span class="pre">environ</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#asset-db-writer"><code class="docutils literal"><span class="pre">asset_db_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#minute-bar-writer"><code class="docutils literal"><span class="pre">minute_bar_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#start-session"><code class="docutils literal"><span class="pre">start_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#end-session"><code class="docutils literal"><span class="pre">end_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#environ"><code class="docutils literal notranslate"><span class="pre">environ</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#asset-db-writer"><code class="docutils literal notranslate"><span class="pre">asset_db_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#minute-bar-writer"><code class="docutils literal notranslate"><span class="pre">minute_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#daily-bar-writer"><code class="docutils literal notranslate"><span class="pre">daily_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#adjustment-writer"><code class="docutils literal notranslate"><span class="pre">adjustment_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#calendar"><code class="docutils literal notranslate"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#start-session"><code class="docutils literal notranslate"><span class="pre">start_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#end-session"><code class="docutils literal notranslate"><span class="pre">end_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#cache"><code class="docutils literal notranslate"><span class="pre">cache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#show-progress"><code class="docutils literal notranslate"><span class="pre">show_progress</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#output-dir"><code class="docutils literal notranslate"><span class="pre">output_dir</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="bundles.html#ingesting-data-from-csv-files">Ingesting Data from .csv Files</a></li>
@@ -139,16 +142,16 @@
 <li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#metrics-sets">Metrics Sets</a></li>
 <li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#selecting-the-metrics-set">Selecting the Metrics Set</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#command-line-and-ipython-magic">Command Line and IPython Magic</a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#run-algorithm"><code class="docutils literal"><span class="pre">run_algorithm</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#run-algorithm"><code class="docutils literal notranslate"><span class="pre">run_algorithm</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#running-without-metrics">Running Without Metrics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#defining-new-metrics">Defining New Metrics</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#start-of-simulation"><code class="docutils literal"><span class="pre">start_of_simulation</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-simulation"><code class="docutils literal"><span class="pre">end_of_simulation</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#start-of-session"><code class="docutils literal"><span class="pre">start_of_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-session"><code class="docutils literal"><span class="pre">end_of_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-bar"><code class="docutils literal"><span class="pre">end_of_bar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#start-of-simulation"><code class="docutils literal notranslate"><span class="pre">start_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-simulation"><code class="docutils literal notranslate"><span class="pre">end_of_simulation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#start-of-session"><code class="docutils literal notranslate"><span class="pre">start_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-session"><code class="docutils literal notranslate"><span class="pre">end_of_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-bar"><code class="docutils literal notranslate"><span class="pre">end_of_bar</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#defining-new-metrics-sets">Defining New Metrics Sets</a></li>
@@ -160,6 +163,7 @@
 <li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#style-guide-running-tests">Style Guide &amp; Running Tests</a></li>
 <li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#continuous-integration">Continuous Integration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#packaging">Packaging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#updating-dependencies">Updating dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#contributing-to-the-docs">Contributing to the Docs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#commit-messages">Commit messages</a></li>
 <li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#formatting-docstrings">Formatting Docstrings</a></li>
@@ -218,10 +222,10 @@
 <li class="toctree-l1"><a class="reference internal" href="release-process.html">Release Process</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-release-notes">Updating the Release Notes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-python-stub-files">Updating the Python stub files</a></li>
-<li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-version">Updating the <code class="docutils literal"><span class="pre">__version__</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-version">Updating the <code class="docutils literal notranslate"><span class="pre">__version__</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#uploading-pypi-packages">Uploading PyPI packages</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="release-process.html#sdist"><code class="docutils literal"><span class="pre">sdist</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="release-process.html#bdist"><code class="docutils literal"><span class="pre">bdist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="release-process.html#sdist"><code class="docutils literal notranslate"><span class="pre">sdist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="release-process.html#bdist"><code class="docutils literal notranslate"><span class="pre">bdist</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#documentation">Documentation</a></li>
@@ -230,52 +234,59 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-3-0">Release 1.3.0</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-4-0">Release 1.4.0</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#highlights">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#removed-implicit-dependency-on-benchmarks-and-treasury-returns">Removed Implicit Dependency on Benchmarks and Treasury Returns</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#new-built-in-factors">New Built In Factors</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#performance">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#miscellaneous">Miscellaneous</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#international-pipelines">International Pipelines</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#datasetfamily">DataSetFamily</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-3-0">Release 1.3.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id1">Highlights</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#support-for-newer-numpy-pandas-versions">Support for Newer Numpy/Pandas Versions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#standalone-trading-calendars-module">Standalone <code class="docutils literal"><span class="pre">trading_calendars</span></code> Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#standalone-trading-calendars-module">Standalone <code class="docutils literal notranslate"><span class="pre">trading_calendars</span></code> Module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#custom-blotters">Custom Blotters</a></li>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#custom-command-line-arguments">Custom Command-Line Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id2">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#performance">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id3">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id4">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id5">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#build">Build</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-2-0">Release 1.2.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id1">Highlights</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id7">Highlights</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id2">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id3">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id4">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id5">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id6">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id7">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id8">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id9">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id10">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id11">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id12">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id13">Build</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#documentation">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id16">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-1">Release 1.1.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id10">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id11">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id12">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id13">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id14">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id15">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id16">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id17">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id18">Miscellaneous</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-0">Release 1.1.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id19">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id17">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id18">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id19">Experimental Features</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id20">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id21">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id22">Maintenance and Refactorings</a></li>
@@ -284,95 +295,105 @@
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id25">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-2">Release 1.0.2</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-0">Release 1.1.0</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id26">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#experimental">Experimental</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id27">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id28">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id29">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id30">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id30">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id31">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id32">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-2">Release 1.0.2</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id33">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#experimental">Experimental</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id34">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id35">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id36">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id37">Documentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#testing">Testing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#data-format-changes">Data Format Changes</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-1">Release 1.0.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id31">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id32">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id33">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id38">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id39">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id40">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-0">Release 1.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id34">Highlights</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id41">Highlights</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id35">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id36">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id37">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id38">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id39">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id40">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id41">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id42">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id42">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id43">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id44">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id45">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id46">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id47">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id48">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id49">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-9-0">Release 0.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id43">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id44">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id45">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id46">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id47">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id48">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id49">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id50">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id51">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id50">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id51">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id52">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id53">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id54">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id55">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id56">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id57">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id58">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-4">Release 0.8.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id52">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id53">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id54">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id55">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id56">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id57">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id58">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id59">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id60">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id59">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id60">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id61">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id62">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id63">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id64">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id65">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id66">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id67">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-3">Release 0.8.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-0">Release 0.8.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id61">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id62">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id63">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id64">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id65">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id66">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id67">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id68">Documentation</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id69">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id70">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id68">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id69">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id70">Experimental Features</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id71">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id72">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id73">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id74">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id75">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-7-0">Release 0.7.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id76">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id77">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id78">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id79">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id80">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id81">Build</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#contributors">Contributors</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-6-1">Release 0.6.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id75">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id76">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id77">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id78">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id79">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id80">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id81">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id82">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id83">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id84">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id85">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id86">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id87">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id88">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -405,7 +426,7 @@
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="_sources/beginner-tutorial.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/beginner-tutorial.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -423,36 +444,36 @@ Python.</p>
 <p>The source can be found at: <a class="reference external" href="https://github.com/quantopian/zipline">https://github.com/quantopian/zipline</a></p>
 <p>Some benefits include:</p>
 <ul class="simple">
-<li>Realistic: slippage, transaction costs, order delays.</li>
-<li>Stream-based: Process each event individually, avoids look-ahead
-bias.</li>
-<li>Batteries included: Common transforms (moving average) as well as
-common risk calculations (Sharpe).</li>
-<li>Developed and continuously updated by
+<li><p>Realistic: slippage, transaction costs, order delays.</p></li>
+<li><p>Stream-based: Process each event individually, avoids look-ahead
+bias.</p></li>
+<li><p>Batteries included: Common transforms (moving average) as well as
+common risk calculations (Sharpe).</p></li>
+<li><p>Developed and continuously updated by
 <a class="reference external" href="https://www.quantopian.com">Quantopian</a> which provides an
 easy-to-use web-interface to Zipline, 10 years of minute-resolution
 historical US stock data, and live-trading capabilities. This
 tutorial is directed at users wishing to use Zipline without using
 Quantopian. If you instead want to get started on Quantopian, see
-<a class="reference external" href="https://www.quantopian.com/faq#get-started">here</a>.</li>
+<a class="reference external" href="https://www.quantopian.com/faq#get-started">here</a>.</p></li>
 </ul>
 <p>This tutorial assumes that you have zipline correctly installed, see the
 <a class="reference external" href="https://github.com/quantopian/zipline#installation">installation
 instructions</a> if
-you haven&#8217;t set up zipline yet.</p>
-<p>Every <code class="docutils literal"><span class="pre">zipline</span></code> algorithm consists of two functions you have to
+you haven’t set up zipline yet.</p>
+<p>Every <code class="docutils literal notranslate"><span class="pre">zipline</span></code> algorithm consists of two functions you have to
 define:</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">initialize(context)</span></code></li>
-<li><code class="docutils literal"><span class="pre">handle_data(context,</span> <span class="pre">data)</span></code></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">initialize(context)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">handle_data(context,</span> <span class="pre">data)</span></code></p></li>
 </ul>
-<p>Before the start of the algorithm, <code class="docutils literal"><span class="pre">zipline</span></code> calls the
-<code class="docutils literal"><span class="pre">initialize()</span></code> function and passes in a <code class="docutils literal"><span class="pre">context</span></code> variable.
-<code class="docutils literal"><span class="pre">context</span></code> is a persistent namespace for you to store variables you
+<p>Before the start of the algorithm, <code class="docutils literal notranslate"><span class="pre">zipline</span></code> calls the
+<code class="docutils literal notranslate"><span class="pre">initialize()</span></code> function and passes in a <code class="docutils literal notranslate"><span class="pre">context</span></code> variable.
+<code class="docutils literal notranslate"><span class="pre">context</span></code> is a persistent namespace for you to store variables you
 need to access from one algorithm iteration to the next.</p>
-<p>After the algorithm has been initialized, <code class="docutils literal"><span class="pre">zipline</span></code> calls the
-<code class="docutils literal"><span class="pre">handle_data()</span></code> function once for each event. At every call, it passes
-the same <code class="docutils literal"><span class="pre">context</span></code> variable and an event-frame called <code class="docutils literal"><span class="pre">data</span></code>
+<p>After the algorithm has been initialized, <code class="docutils literal notranslate"><span class="pre">zipline</span></code> calls the
+<code class="docutils literal notranslate"><span class="pre">handle_data()</span></code> function once for each event. At every call, it passes
+the same <code class="docutils literal notranslate"><span class="pre">context</span></code> variable and an event-frame called <code class="docutils literal notranslate"><span class="pre">data</span></code>
 containing the current trading bar with open, high, low, and close
 (OHLC) prices as well as volume for each stock in your universe. For
 more information on these functions, see the <a class="reference external" href="https://www.quantopian.com/help#api-toplevel">relevant part of the
@@ -460,13 +481,13 @@ Quantopian docs</a>.</p>
 </div>
 <div class="section" id="my-first-algorithm">
 <h2>My First Algorithm<a class="headerlink" href="#my-first-algorithm" title="Permalink to this headline">¶</a></h2>
-<p>Lets take a look at a very simple algorithm from the <code class="docutils literal"><span class="pre">examples</span></code>
-directory, <code class="docutils literal"><span class="pre">buyapple.py</span></code>:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span>from zipline.examples import buyapple
+<p>Lets take a look at a very simple algorithm from the <code class="docutils literal notranslate"><span class="pre">examples</span></code>
+directory, <code class="docutils literal notranslate"><span class="pre">buyapple.py</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>from zipline.examples import buyapple
 buyapple??
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">order</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">symbol</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">order</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">symbol</span>
 
 
 <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
@@ -480,122 +501,135 @@ buyapple??
 </div>
 <p>As you can see, we first have to import some functions we would like to
 use. All functions commonly used in your algorithm can be found in
-<code class="docutils literal"><span class="pre">zipline.api</span></code>. Here we are using <a class="reference internal" href="appendix.html#zipline.api.order" title="zipline.api.order"><code class="xref py py-func docutils literal"><span class="pre">order()</span></code></a> which takes two
+<code class="docutils literal notranslate"><span class="pre">zipline.api</span></code>. Here we are using <a class="reference internal" href="appendix.html#zipline.api.order" title="zipline.api.order"><code class="xref py py-func docutils literal notranslate"><span class="pre">order()</span></code></a> which takes two
 arguments: a security object, and a number specifying how many stocks you would
-like to order (if negative, <a class="reference internal" href="appendix.html#zipline.api.order" title="zipline.api.order"><code class="xref py py-func docutils literal"><span class="pre">order()</span></code></a> will sell/short
+like to order (if negative, <a class="reference internal" href="appendix.html#zipline.api.order" title="zipline.api.order"><code class="xref py py-func docutils literal notranslate"><span class="pre">order()</span></code></a> will sell/short
 stocks). In this case we want to order 10 shares of Apple at each iteration. For
-more documentation on <code class="docutils literal"><span class="pre">order()</span></code>, see the <a class="reference external" href="https://www.quantopian.com/help#api-order">Quantopian docs</a>.</p>
-<p>Finally, the <a class="reference internal" href="appendix.html#zipline.api.record" title="zipline.api.record"><code class="xref py py-func docutils literal"><span class="pre">record()</span></code></a> function allows you to save the value
+more documentation on <code class="docutils literal notranslate"><span class="pre">order()</span></code>, see the <a class="reference external" href="https://www.quantopian.com/help#api-order">Quantopian docs</a>.</p>
+<p>Finally, the <a class="reference internal" href="appendix.html#zipline.api.record" title="zipline.api.record"><code class="xref py py-func docutils literal notranslate"><span class="pre">record()</span></code></a> function allows you to save the value
 of a variable at each iteration. You provide it with a name for the variable
-together with the variable itself: <code class="docutils literal"><span class="pre">varname=var</span></code>. After the algorithm
+together with the variable itself: <code class="docutils literal notranslate"><span class="pre">varname=var</span></code>. After the algorithm
 finished running you will have access to each variable value you tracked
-with <a class="reference internal" href="appendix.html#zipline.api.record" title="zipline.api.record"><code class="xref py py-func docutils literal"><span class="pre">record()</span></code></a> under the name you provided (we will see this
+with <a class="reference internal" href="appendix.html#zipline.api.record" title="zipline.api.record"><code class="xref py py-func docutils literal notranslate"><span class="pre">record()</span></code></a> under the name you provided (we will see this
 further below). You also see how we can access the current price data of the
-AAPL stock in the <code class="docutils literal"><span class="pre">data</span></code> event frame (for more information see
+AAPL stock in the <code class="docutils literal notranslate"><span class="pre">data</span></code> event frame (for more information see
 <a class="reference external" href="https://www.quantopian.com/help#api-event-properties">here</a>).</p>
 </div>
 <div class="section" id="running-the-algorithm">
 <h2>Running the Algorithm<a class="headerlink" href="#running-the-algorithm" title="Permalink to this headline">¶</a></h2>
-<p>To now test this algorithm on financial data, <code class="docutils literal"><span class="pre">zipline</span></code> provides three
-interfaces: A command-line interface, <code class="docutils literal"><span class="pre">IPython</span> <span class="pre">Notebook</span></code> magic, and
-<a class="reference internal" href="appendix.html#zipline.run_algorithm" title="zipline.run_algorithm"><code class="xref py py-func docutils literal"><span class="pre">run_algorithm()</span></code></a>.</p>
+<p>To now test this algorithm on financial data, <code class="docutils literal notranslate"><span class="pre">zipline</span></code> provides three
+interfaces: A command-line interface, <code class="docutils literal notranslate"><span class="pre">IPython</span> <span class="pre">Notebook</span></code> magic, and
+<a class="reference internal" href="appendix.html#zipline.run_algorithm" title="zipline.run_algorithm"><code class="xref py py-func docutils literal notranslate"><span class="pre">run_algorithm()</span></code></a>.</p>
 <div class="section" id="ingesting-data">
 <h3>Ingesting Data<a class="headerlink" href="#ingesting-data" title="Permalink to this headline">¶</a></h3>
-<p>If you haven&#8217;t ingested the data, you&#8217;ll need a <a class="reference external" href="https://docs.quandl.com/docs#section-authentication">Quandl</a> API key to
+<p>If you haven’t ingested the data, you’ll need a <a class="reference external" href="https://docs.quandl.com/docs#section-authentication">Quandl</a> API key to
 ingest the default bundle. Then run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ <span class="nv">QUANDL_API_KEY</span><span class="o">=</span>&lt;yourkey&gt; zipline ingest <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nv">QUANDL_API_KEY</span><span class="o">=</span>&lt;yourkey&gt; zipline ingest <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span>
 </pre></div>
 </div>
-<p>where <code class="docutils literal"><span class="pre">&lt;bundle&gt;</span></code> is the name of the bundle to ingest, defaulting to
-<code class="docutils literal"><span class="pre">quandl</span></code>.</p>
-<p>you can check out the <a class="reference internal" href="bundles.html#ingesting-data"><span>ingesting data</span></a> section for
+<p>where <code class="docutils literal notranslate"><span class="pre">&lt;bundle&gt;</span></code> is the name of the bundle to ingest, defaulting to
+<code class="docutils literal notranslate"><span class="pre">quandl</span></code>.</p>
+<p>you can check out the <a class="reference internal" href="bundles.html#ingesting-data"><span class="std std-ref">ingesting data</span></a> section for
 more detail.</p>
 </div>
 <div class="section" id="command-line-interface">
 <h3>Command Line Interface<a class="headerlink" href="#command-line-interface" title="Permalink to this headline">¶</a></h3>
 <p>After you installed zipline you should be able to execute the following
-from your command line (e.g. <code class="docutils literal"><span class="pre">cmd.exe</span></code> on Windows, or the Terminal app
+from your command line (e.g. <code class="docutils literal notranslate"><span class="pre">cmd.exe</span></code> on Windows, or the Terminal app
 on OSX):</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ zipline run --help
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ zipline run --help
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre><span></span>Usage: zipline run [OPTIONS]
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Usage</span><span class="p">:</span> <span class="n">zipline</span> <span class="n">run</span> <span class="p">[</span><span class="n">OPTIONS</span><span class="p">]</span>
 
-Run a backtest for the given algorithm.
+<span class="n">Run</span> <span class="n">a</span> <span class="n">backtest</span> <span class="k">for</span> <span class="n">the</span> <span class="n">given</span> <span class="n">algorithm</span><span class="o">.</span>
 
-Options:
- -f, --algofile FILENAME         The file that contains the algorithm to run.
- -t, --algotext TEXT             The algorithm script to run.
- -D, --define TEXT               Define a name to be bound in the namespace
-                                 before executing the algotext. For example
-                                 &#39;-Dname=value&#39;. The value may be any python
-                                 expression. These are evaluated in order so
-                                 they may refer to previously defined names.
- --data-frequency [daily|minute]
-                                 The data frequency of the simulation.
-                                 [default: daily]
- --capital-base FLOAT            The starting capital for the simulation.
-                                 [default: 10000000.0]
- -b, --bundle BUNDLE-NAME        The data bundle to use for the simulation.
-                                 [default: quandl]
- --bundle-timestamp TIMESTAMP    The date to lookup data on or before.
-                                 [default: &lt;current-time&gt;]
- -s, --start DATE                The start date of the simulation.
- -e, --end DATE                  The end date of the simulation.
- -o, --output FILENAME           The location to write the perf data. If this
-                                 is &#39;-&#39; the perf will be written to stdout.
-                                 [default: -]
- --trading-calendar TRADING-CALENDAR
-                                 The calendar you want to use e.g. LSE. NYSE
-                                 is the default.
- --print-algo / --no-print-algo  Print the algorithm to stdout.
- --help                          Show this message and exit.
+<span class="n">Options</span><span class="p">:</span>
+ <span class="o">-</span><span class="n">f</span><span class="p">,</span> <span class="o">--</span><span class="n">algofile</span> <span class="n">FILENAME</span>         <span class="n">The</span> <span class="n">file</span> <span class="n">that</span> <span class="n">contains</span> <span class="n">the</span> <span class="n">algorithm</span> <span class="n">to</span> <span class="n">run</span><span class="o">.</span>
+ <span class="o">-</span><span class="n">t</span><span class="p">,</span> <span class="o">--</span><span class="n">algotext</span> <span class="n">TEXT</span>             <span class="n">The</span> <span class="n">algorithm</span> <span class="n">script</span> <span class="n">to</span> <span class="n">run</span><span class="o">.</span>
+ <span class="o">-</span><span class="n">D</span><span class="p">,</span> <span class="o">--</span><span class="n">define</span> <span class="n">TEXT</span>               <span class="n">Define</span> <span class="n">a</span> <span class="n">name</span> <span class="n">to</span> <span class="n">be</span> <span class="n">bound</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">namespace</span>
+                                 <span class="n">before</span> <span class="n">executing</span> <span class="n">the</span> <span class="n">algotext</span><span class="o">.</span> <span class="n">For</span> <span class="n">example</span>
+                                 <span class="s1">&#39;-Dname=value&#39;</span><span class="o">.</span> <span class="n">The</span> <span class="n">value</span> <span class="n">may</span> <span class="n">be</span> <span class="nb">any</span> <span class="n">python</span>
+                                 <span class="n">expression</span><span class="o">.</span> <span class="n">These</span> <span class="n">are</span> <span class="n">evaluated</span> <span class="ow">in</span> <span class="n">order</span> <span class="n">so</span>
+                                 <span class="n">they</span> <span class="n">may</span> <span class="n">refer</span> <span class="n">to</span> <span class="n">previously</span> <span class="n">defined</span> <span class="n">names</span><span class="o">.</span>
+ <span class="o">--</span><span class="n">data</span><span class="o">-</span><span class="n">frequency</span> <span class="p">[</span><span class="n">daily</span><span class="o">|</span><span class="n">minute</span><span class="p">]</span>
+                                 <span class="n">The</span> <span class="n">data</span> <span class="n">frequency</span> <span class="n">of</span> <span class="n">the</span> <span class="n">simulation</span><span class="o">.</span>
+                                 <span class="p">[</span><span class="n">default</span><span class="p">:</span> <span class="n">daily</span><span class="p">]</span>
+ <span class="o">--</span><span class="n">capital</span><span class="o">-</span><span class="n">base</span> <span class="n">FLOAT</span>            <span class="n">The</span> <span class="n">starting</span> <span class="n">capital</span> <span class="k">for</span> <span class="n">the</span> <span class="n">simulation</span><span class="o">.</span>
+                                 <span class="p">[</span><span class="n">default</span><span class="p">:</span> <span class="mf">10000000.0</span><span class="p">]</span>
+ <span class="o">-</span><span class="n">b</span><span class="p">,</span> <span class="o">--</span><span class="n">bundle</span> <span class="n">BUNDLE</span><span class="o">-</span><span class="n">NAME</span>        <span class="n">The</span> <span class="n">data</span> <span class="n">bundle</span> <span class="n">to</span> <span class="n">use</span> <span class="k">for</span> <span class="n">the</span> <span class="n">simulation</span><span class="o">.</span>
+                                 <span class="p">[</span><span class="n">default</span><span class="p">:</span> <span class="n">quandl</span><span class="p">]</span>
+ <span class="o">--</span><span class="n">bundle</span><span class="o">-</span><span class="n">timestamp</span> <span class="n">TIMESTAMP</span>    <span class="n">The</span> <span class="n">date</span> <span class="n">to</span> <span class="n">lookup</span> <span class="n">data</span> <span class="n">on</span> <span class="ow">or</span> <span class="n">before</span><span class="o">.</span>
+                                 <span class="p">[</span><span class="n">default</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">current</span><span class="o">-</span><span class="n">time</span><span class="o">&gt;</span><span class="p">]</span>
+ <span class="o">-</span><span class="n">s</span><span class="p">,</span> <span class="o">--</span><span class="n">start</span> <span class="n">DATE</span>                <span class="n">The</span> <span class="n">start</span> <span class="n">date</span> <span class="n">of</span> <span class="n">the</span> <span class="n">simulation</span><span class="o">.</span>
+ <span class="o">-</span><span class="n">e</span><span class="p">,</span> <span class="o">--</span><span class="n">end</span> <span class="n">DATE</span>                  <span class="n">The</span> <span class="n">end</span> <span class="n">date</span> <span class="n">of</span> <span class="n">the</span> <span class="n">simulation</span><span class="o">.</span>
+ <span class="o">-</span><span class="n">o</span><span class="p">,</span> <span class="o">--</span><span class="n">output</span> <span class="n">FILENAME</span>           <span class="n">The</span> <span class="n">location</span> <span class="n">to</span> <span class="n">write</span> <span class="n">the</span> <span class="n">perf</span> <span class="n">data</span><span class="o">.</span> <span class="n">If</span> <span class="n">this</span>
+                                 <span class="ow">is</span> <span class="s1">&#39;-&#39;</span> <span class="n">the</span> <span class="n">perf</span> <span class="n">will</span> <span class="n">be</span> <span class="n">written</span> <span class="n">to</span> <span class="n">stdout</span><span class="o">.</span>
+                                 <span class="p">[</span><span class="n">default</span><span class="p">:</span> <span class="o">-</span><span class="p">]</span>
+ <span class="o">--</span><span class="n">trading</span><span class="o">-</span><span class="n">calendar</span> <span class="n">TRADING</span><span class="o">-</span><span class="n">CALENDAR</span>
+                                 <span class="n">The</span> <span class="n">calendar</span> <span class="n">you</span> <span class="n">want</span> <span class="n">to</span> <span class="n">use</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="n">LSE</span><span class="o">.</span> <span class="n">NYSE</span>
+                                 <span class="ow">is</span> <span class="n">the</span> <span class="n">default</span><span class="o">.</span>
+ <span class="o">--</span><span class="nb">print</span><span class="o">-</span><span class="n">algo</span> <span class="o">/</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="nb">print</span><span class="o">-</span><span class="n">algo</span>  <span class="n">Print</span> <span class="n">the</span> <span class="n">algorithm</span> <span class="n">to</span> <span class="n">stdout</span><span class="o">.</span>
+ <span class="o">--</span><span class="n">benchmark</span><span class="o">-</span><span class="n">file</span>                <span class="n">The</span> <span class="n">csv</span> <span class="n">file</span> <span class="n">that</span> <span class="n">contains</span> <span class="n">the</span> <span class="n">benchmark</span>
+                                 <span class="n">returns</span> <span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">returns</span> <span class="n">columns</span><span class="p">)</span>
+ <span class="o">--</span><span class="n">benchmark</span><span class="o">-</span><span class="n">symbol</span>              <span class="n">The</span> <span class="n">instrument</span><span class="s1">&#39;s symbol to be used as</span>
+                                 <span class="n">a</span> <span class="n">benchmark</span><span class="o">.</span>
+                                 <span class="p">(</span><span class="n">should</span> <span class="n">exist</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">ingested</span> <span class="n">bundle</span><span class="p">)</span>
+ <span class="o">--</span><span class="n">benchmark</span><span class="o">-</span><span class="n">sid</span>                 <span class="n">The</span> <span class="n">sid</span> <span class="n">of</span> <span class="n">the</span> <span class="n">instrument</span> <span class="n">to</span> <span class="n">be</span> <span class="n">used</span> <span class="k">as</span> <span class="n">a</span>
+                                 <span class="n">benchmark</span><span class="o">.</span>
+                                 <span class="p">(</span><span class="n">should</span> <span class="n">exist</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">ingested</span> <span class="n">bundle</span><span class="p">)</span>
+ <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">benchmark</span>                  <span class="n">This</span> <span class="n">flag</span> <span class="ow">is</span> <span class="n">used</span> <span class="n">to</span> <span class="nb">set</span> <span class="n">the</span> <span class="n">benchmark</span> <span class="n">to</span>
+                                 <span class="n">zero</span><span class="o">.</span> <span class="n">Alpha</span><span class="p">,</span> <span class="n">beta</span> <span class="ow">and</span> <span class="n">benchmark</span> <span class="n">metrics</span>
+                                 <span class="n">are</span> <span class="ow">not</span> <span class="n">calculated</span>
+ <span class="o">--</span><span class="n">help</span>                          <span class="n">Show</span> <span class="n">this</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span><span class="o">.</span>
 </pre></div>
 </div>
 <p>As you can see there are a couple of flags that specify where to find your
-algorithm (<code class="docutils literal"><span class="pre">-f</span></code>) as well as parameters specifying which data to use,
-defaulting to <code class="docutils literal"><span class="pre">quandl</span></code>. There are also arguments for
-the date range to run the algorithm over (<code class="docutils literal"><span class="pre">--start</span></code> and <code class="docutils literal"><span class="pre">--end</span></code>). Finally,
-you&#8217;ll want to save the performance metrics of your algorithm so that you can
-analyze how it performed. This is done via the <code class="docutils literal"><span class="pre">--output</span></code> flag and will cause
-it to write the performance <code class="docutils literal"><span class="pre">DataFrame</span></code> in the pickle Python file format.
+algorithm (<code class="docutils literal notranslate"><span class="pre">-f</span></code>) as well as parameters specifying which data to use,
+defaulting to <code class="docutils literal notranslate"><span class="pre">quandl</span></code>. There are also arguments for
+the date range to run the algorithm over (<code class="docutils literal notranslate"><span class="pre">--start</span></code> and <code class="docutils literal notranslate"><span class="pre">--end</span></code>).To use a
+benchmark, you need to choose one of the benchmark options listed before. You can
+always use the option (<code class="docutils literal notranslate"><span class="pre">--no-benchmark</span></code>) that uses zero returns as a benchmark (
+alpha, beta and benchmark metrics are not calculated in this case).
+Finally, you’ll want to save the performance metrics of your algorithm so that you can
+analyze how it performed. This is done via the <code class="docutils literal notranslate"><span class="pre">--output</span></code> flag and will cause
+it to write the performance <code class="docutils literal notranslate"><span class="pre">DataFrame</span></code> in the pickle Python file format.
 Note that you can also define a configuration file with these parameters that
-you can then conveniently pass to the <code class="docutils literal"><span class="pre">-c</span></code> option so that you don&#8217;t have to
+you can then conveniently pass to the <code class="docutils literal notranslate"><span class="pre">-c</span></code> option so that you don’t have to
 supply the command line args all the time (see the .conf files in the examples
 directory).</p>
 <p>Thus, to execute our algorithm from above and save the results to
-<code class="docutils literal"><span class="pre">buyapple_out.pickle</span></code> we would call <code class="docutils literal"><span class="pre">zipline</span> <span class="pre">run</span></code> as follows:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">zipline</span> <span class="n">run</span> <span class="o">-</span><span class="n">f</span> <span class="o">../../</span><span class="n">zipline</span><span class="o">/</span><span class="n">examples</span><span class="o">/</span><span class="n">buyapple</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span><span class="n">o</span> <span class="n">buyapple_out</span><span class="o">.</span><span class="n">pickle</span>
+<code class="docutils literal notranslate"><span class="pre">buyapple_out.pickle</span></code> we would call <code class="docutils literal notranslate"><span class="pre">zipline</span> <span class="pre">run</span></code> as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">zipline</span> <span class="n">run</span> <span class="o">-</span><span class="n">f</span> <span class="o">../../</span><span class="n">zipline</span><span class="o">/</span><span class="n">examples</span><span class="o">/</span><span class="n">buyapple</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span><span class="n">o</span> <span class="n">buyapple_out</span><span class="o">.</span><span class="n">pickle</span>
+    <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">benchmark</span>
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre><span></span>AAPL
-[2018-01-03 04:30:50.150039] WARNING: Loader: Refusing to download new benchmark data because a download succeeded at 2018-01-03 04:01:34+00:00.
-[2018-01-03 04:30:50.191479] WARNING: Loader: Refusing to download new treasury data because a download succeeded at 2018-01-03 04:01:35+00:00.
-[2018-01-03 04:30:51.843465] INFO: Performance: Simulated 503 trading days out of 503.
-[2018-01-03 04:30:51.843598] INFO: Performance: first open: 2016-01-04 14:31:00+00:00
-[2018-01-03 04:30:51.843672] INFO: Performance: last close: 2017-12-29 21:00:00+00:00
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">AAPL</span>
+<span class="p">[</span><span class="mi">2018</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">03</span> <span class="mi">04</span><span class="p">:</span><span class="mi">30</span><span class="p">:</span><span class="mf">51.843465</span><span class="p">]</span> <span class="n">INFO</span><span class="p">:</span> <span class="n">Performance</span><span class="p">:</span> <span class="n">Simulated</span> <span class="mi">503</span> <span class="n">trading</span> <span class="n">days</span> <span class="n">out</span> <span class="n">of</span> <span class="mf">503.</span>
+<span class="p">[</span><span class="mi">2018</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">03</span> <span class="mi">04</span><span class="p">:</span><span class="mi">30</span><span class="p">:</span><span class="mf">51.843598</span><span class="p">]</span> <span class="n">INFO</span><span class="p">:</span> <span class="n">Performance</span><span class="p">:</span> <span class="n">first</span> <span class="nb">open</span><span class="p">:</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">04</span> <span class="mi">14</span><span class="p">:</span><span class="mi">31</span><span class="p">:</span><span class="mi">00</span><span class="o">+</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span>
+<span class="p">[</span><span class="mi">2018</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">03</span> <span class="mi">04</span><span class="p">:</span><span class="mi">30</span><span class="p">:</span><span class="mf">51.843672</span><span class="p">]</span> <span class="n">INFO</span><span class="p">:</span> <span class="n">Performance</span><span class="p">:</span> <span class="n">last</span> <span class="n">close</span><span class="p">:</span> <span class="mi">2017</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">29</span> <span class="mi">21</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span><span class="o">+</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span>
 </pre></div>
 </div>
-<p><code class="docutils literal"><span class="pre">run</span></code> first calls the <code class="docutils literal"><span class="pre">initialize()</span></code> function, and then
-streams the historical stock price day-by-day through <code class="docutils literal"><span class="pre">handle_data()</span></code>.
-After each call to <code class="docutils literal"><span class="pre">handle_data()</span></code> we instruct <code class="docutils literal"><span class="pre">zipline</span></code> to order 10
-stocks of AAPL. After the call of the <code class="docutils literal"><span class="pre">order()</span></code> function, <code class="docutils literal"><span class="pre">zipline</span></code>
+<p><code class="docutils literal notranslate"><span class="pre">run</span></code> first calls the <code class="docutils literal notranslate"><span class="pre">initialize()</span></code> function, and then
+streams the historical stock price day-by-day through <code class="docutils literal notranslate"><span class="pre">handle_data()</span></code>.
+After each call to <code class="docutils literal notranslate"><span class="pre">handle_data()</span></code> we instruct <code class="docutils literal notranslate"><span class="pre">zipline</span></code> to order 10
+stocks of AAPL. After the call of the <code class="docutils literal notranslate"><span class="pre">order()</span></code> function, <code class="docutils literal notranslate"><span class="pre">zipline</span></code>
 enters the ordered stock and amount in the order book. After the
-<code class="docutils literal"><span class="pre">handle_data()</span></code> function has finished, <code class="docutils literal"><span class="pre">zipline</span></code> looks for any open
+<code class="docutils literal notranslate"><span class="pre">handle_data()</span></code> function has finished, <code class="docutils literal notranslate"><span class="pre">zipline</span></code> looks for any open
 orders and tries to fill them. If the trading volume is high enough for
 this stock, the order is executed after adding the commission and
 applying the slippage model which models the influence of your order on
 the stock price, so your algorithm will be charged more than just the
 stock price * 10. (Note, that you can also change the commission and
-slippage model that <code class="docutils literal"><span class="pre">zipline</span></code> uses, see the <a class="reference external" href="https://www.quantopian.com/help#ide-slippage">Quantopian
+slippage model that <code class="docutils literal notranslate"><span class="pre">zipline</span></code> uses, see the <a class="reference external" href="https://www.quantopian.com/help#ide-slippage">Quantopian
 docs</a> for more
 information).</p>
-<p>Lets take a quick look at the performance <code class="docutils literal"><span class="pre">DataFrame</span></code>. For this, we
-use <code class="docutils literal"><span class="pre">pandas</span></code> from inside the IPython Notebook and print the first ten
-rows. Note that <code class="docutils literal"><span class="pre">zipline</span></code> makes heavy usage of <code class="docutils literal"><span class="pre">pandas</span></code>, especially
-for data input and outputting so it&#8217;s worth spending some time to learn
+<p>Lets take a quick look at the performance <code class="docutils literal notranslate"><span class="pre">DataFrame</span></code>. For this, we
+use <code class="docutils literal notranslate"><span class="pre">pandas</span></code> from inside the IPython Notebook and print the first ten
+rows. Note that <code class="docutils literal notranslate"><span class="pre">zipline</span></code> makes heavy usage of <code class="docutils literal notranslate"><span class="pre">pandas</span></code>, especially
+for data input and outputting so it’s worth spending some time to learn
 it.</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="n">perf</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_pickle</span><span class="p">(</span><span class="s1">&#39;buyapple_out.pickle&#39;</span><span class="p">)</span> <span class="c1"># read in perf DataFrame</span>
 <span class="n">perf</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
@@ -856,13 +890,13 @@ it.</p>
 </div><p>As you can see, there is a row for each trading day, starting on the
 first business day of 2016. In the columns you can find various
 information about the state of your algorithm. The very first column
-<code class="docutils literal"><span class="pre">AAPL</span></code> was placed there by the <code class="docutils literal"><span class="pre">record()</span></code> function mentioned earlier
+<code class="docutils literal notranslate"><span class="pre">AAPL</span></code> was placed there by the <code class="docutils literal notranslate"><span class="pre">record()</span></code> function mentioned earlier
 and allows us to plot the price of apple. For example, we could easily
 examine now how our portfolio value changed over time compared to the
 AAPL stock price.</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="o">%</span><span class="n">pylab</span> <span class="n">inline</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="n">pylab</span> <span class="n">inline</span>
 <span class="n">figsize</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 
 <span class="n">ax1</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">211</span><span class="p">)</span>
 <span class="n">perf</span><span class="o">.</span><span class="n">portfolio_value</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax1</span><span class="p">)</span>
@@ -872,15 +906,15 @@ AAPL stock price.</p>
 <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;AAPL Stock Price&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre><span></span>Populating the interactive namespace from numpy and matplotlib
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Populating</span> <span class="n">the</span> <span class="n">interactive</span> <span class="n">namespace</span> <span class="kn">from</span> <span class="nn">numpy</span> <span class="ow">and</span> <span class="n">matplotlib</span>
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre><span></span>&lt;matplotlib.text.Text at 0x10c48c198&gt;
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">Text</span> <span class="n">at</span> <span class="mh">0x10c48c198</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <img alt="_images/tutorial_11_2.png" src="_images/tutorial_11_2.png" />
 <p>As you can see, our algorithm performance as assessed by the
-<code class="docutils literal"><span class="pre">portfolio_value</span></code> closely matches that of the AAPL stock price. This
+<code class="docutils literal notranslate"><span class="pre">portfolio_value</span></code> closely matches that of the AAPL stock price. This
 is not surprising as our algorithm only bought AAPL every chance it got.</p>
 </div>
 </div>
@@ -889,20 +923,20 @@ is not surprising as our algorithm only bought AAPL every chance it got.</p>
 <p>The <a class="reference external" href="http://ipython.org/notebook.html">IPython Notebook</a> is a very
 powerful browser-based interface to a Python interpreter (this tutorial
 was written in it). As it is already the de-facto interface for most
-quantitative researchers <code class="docutils literal"><span class="pre">zipline</span></code> provides an easy way to run your
+quantitative researchers <code class="docutils literal notranslate"><span class="pre">zipline</span></code> provides an easy way to run your
 algorithm inside the Notebook without requiring you to use the CLI.</p>
-<p>To use it you have to write your algorithm in a cell and let <code class="docutils literal"><span class="pre">zipline</span></code>
+<p>To use it you have to write your algorithm in a cell and let <code class="docutils literal notranslate"><span class="pre">zipline</span></code>
 know that it is supposed to run this algorithm. This is done via the
-<code class="docutils literal"><span class="pre">%%zipline</span></code> IPython magic command that is available after you
-<code class="docutils literal"><span class="pre">import</span> <span class="pre">zipline</span></code> from within the IPython Notebook. This magic takes
+<code class="docutils literal notranslate"><span class="pre">%%zipline</span></code> IPython magic command that is available after you
+<code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">zipline</span></code> from within the IPython Notebook. This magic takes
 the same arguments as the command line interface described above. Thus
 to run the algorithm from above with the same parameters we just have to
-execute the following cell after importing <code class="docutils literal"><span class="pre">zipline</span></code> to register the
+execute the following cell after importing <code class="docutils literal notranslate"><span class="pre">zipline</span></code> to register the
 magic.</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="o">%</span><span class="n">load_ext</span> <span class="n">zipline</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="n">load_ext</span> <span class="n">zipline</span>
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">zipline</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">zipline</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span>
 <span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">record</span>
 
 <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
@@ -916,9 +950,9 @@ magic.</p>
 <p>Note that we did not have to specify an input file as above since the
 magic will use the contents of the cell and look for your algorithm
 functions there. Also, instead of defining an output file we are
-specifying a variable name with <code class="docutils literal"><span class="pre">-o</span></code> that will be created in the name
-space and contain the performance <code class="docutils literal"><span class="pre">DataFrame</span></code> we looked at above.</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">_</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+specifying a variable name with <code class="docutils literal notranslate"><span class="pre">-o</span></code> that will be created in the name
+space and contain the performance <code class="docutils literal notranslate"><span class="pre">DataFrame</span></code> we looked at above.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
 </div>
 <div style="max-height: 1000px; max-width: 1500px; overflow: auto;">
@@ -1176,13 +1210,13 @@ space and contain the performance <code class="docutils literal"><span class="pr
 </table>
 </div></div>
 <div class="section" id="access-to-previous-prices-using-history">
-<h2>Access to Previous Prices Using <code class="docutils literal"><span class="pre">history</span></code><a class="headerlink" href="#access-to-previous-prices-using-history" title="Permalink to this headline">¶</a></h2>
+<h2>Access to Previous Prices Using <code class="docutils literal notranslate"><span class="pre">history</span></code><a class="headerlink" href="#access-to-previous-prices-using-history" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="working-example-dual-moving-average-cross-over">
 <h3>Working example: Dual Moving Average Cross-Over<a class="headerlink" href="#working-example-dual-moving-average-cross-over" title="Permalink to this headline">¶</a></h3>
-<p>The Dual Moving Average (DMA) is a classic momentum strategy. It&#8217;s
+<p>The Dual Moving Average (DMA) is a classic momentum strategy. It’s
 probably not used by any serious trader anymore but is still very
 instructive. The basic idea is that we compute two rolling or moving
-averages (mavg) &#8211; one with a longer window that is supposed to capture
+averages (mavg) – one with a longer window that is supposed to capture
 long-term trends and one shorter window that is supposed to capture
 short-term trends. Once the short-mavg crosses the long-mavg from below
 we assume that the stock price has upwards momentum and long the stock.
@@ -1190,18 +1224,18 @@ If the short-mavg crosses from above we exit the positions as we assume
 the stock to go down further.</p>
 <p>As we need to have access to previous prices to implement this strategy
 we need a new concept: History</p>
-<p><code class="docutils literal"><span class="pre">data.history()</span></code> is a convenience function that keeps a rolling window of
+<p><code class="docutils literal notranslate"><span class="pre">data.history()</span></code> is a convenience function that keeps a rolling window of
 data for you. The first argument is the number of bars you want to
-collect, the second argument is the unit (either <code class="docutils literal"><span class="pre">'1d'</span></code> or <code class="docutils literal"><span class="pre">'1m'</span></code>,
-but note that you need to have minute-level data for using <code class="docutils literal"><span class="pre">1m</span></code>). For
-a more detailed description of <code class="docutils literal"><span class="pre">history()</span></code>&#8216;s features, see the
+collect, the second argument is the unit (either <code class="docutils literal notranslate"><span class="pre">'1d'</span></code> or <code class="docutils literal notranslate"><span class="pre">'1m'</span></code>,
+but note that you need to have minute-level data for using <code class="docutils literal notranslate"><span class="pre">1m</span></code>). For
+a more detailed description of <code class="docutils literal notranslate"><span class="pre">history()</span></code>’s features, see the
 <a class="reference external" href="https://www.quantopian.com/help#ide-history">Quantopian docs</a>.
-Let&#8217;s look at the strategy which should make this clear:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">zipline</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2014</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span><span class="n">o</span> <span class="n">dma</span><span class="o">.</span><span class="n">pickle</span>
+Let’s look at the strategy which should make this clear:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">zipline</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2014</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span><span class="n">o</span> <span class="n">dma</span><span class="o">.</span><span class="n">pickle</span>
 
 
 <span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">order_target</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">symbol</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 
 <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
     <span class="n">context</span><span class="o">.</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
@@ -1258,19 +1292,19 @@ Let&#8217;s look at the strategy which should make this clear:</p>
 </pre></div>
 </div>
 <img alt="_images/tutorial_22_1.png" src="_images/tutorial_22_1.png" />
-<p>Here we are explicitly defining an <code class="docutils literal"><span class="pre">analyze()</span></code> function that gets
+<p>Here we are explicitly defining an <code class="docutils literal notranslate"><span class="pre">analyze()</span></code> function that gets
 automatically called once the backtest is done (this is not possible on
 Quantopian currently).</p>
-<p>Although it might not be directly apparent, the power of <code class="docutils literal"><span class="pre">history()</span></code>
+<p>Although it might not be directly apparent, the power of <code class="docutils literal notranslate"><span class="pre">history()</span></code>
 (pun intended) can not be under-estimated as most algorithms make use of
 prior market developments in one form or another. You could easily
 devise a strategy that trains a classifier with
 <a class="reference external" href="http://scikit-learn.org/stable/">scikit-learn</a> which tries to
 predict future market movements based on past prices (note, that most of
-the <code class="docutils literal"><span class="pre">scikit-learn</span></code> functions require <code class="docutils literal"><span class="pre">numpy.ndarray</span></code>s rather than
-<code class="docutils literal"><span class="pre">pandas.DataFrame</span></code>s, so you can simply pass the underlying
-<code class="docutils literal"><span class="pre">ndarray</span></code> of a <code class="docutils literal"><span class="pre">DataFrame</span></code> via <code class="docutils literal"><span class="pre">.values</span></code>).</p>
-<p>We also used the <code class="docutils literal"><span class="pre">order_target()</span></code> function above. This and other
+the <code class="docutils literal notranslate"><span class="pre">scikit-learn</span></code> functions require <code class="docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>s rather than
+<code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code>s, so you can simply pass the underlying
+<code class="docutils literal notranslate"><span class="pre">ndarray</span></code> of a <code class="docutils literal notranslate"><span class="pre">DataFrame</span></code> via <code class="docutils literal notranslate"><span class="pre">.values</span></code>).</p>
+<p>We also used the <code class="docutils literal notranslate"><span class="pre">order_target()</span></code> function above. This and other
 functions like it can make order management and portfolio rebalancing
 much easier. See the <a class="reference external" href="https://www.quantopian.com/help#api-order-methods">Quantopian documentation on order
 functions</a> for
@@ -1280,7 +1314,7 @@ more details.</p>
 <div class="section" id="conclusions">
 <h2>Conclusions<a class="headerlink" href="#conclusions" title="Permalink to this headline">¶</a></h2>
 <p>We hope that this tutorial gave you a little insight into the
-architecture, API, and features of <code class="docutils literal"><span class="pre">zipline</span></code>. For next steps, check
+architecture, API, and features of <code class="docutils literal notranslate"><span class="pre">zipline</span></code>. For next steps, check
 out some of the
 <a class="reference external" href="https://github.com/quantopian/zipline/tree/master/zipline/examples">examples</a>.</p>
 <p>Feel free to ask questions on <a class="reference external" href="https://groups.google.com/forum/#!forum/zipline">our mailing
@@ -1332,7 +1366,7 @@ and <a class="reference external" href="https://quantopian.com">checkout Quantop
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'1.3.0',
+            VERSION:'1.4.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
@@ -1341,6 +1375,7 @@ and <a class="reference external" href="https://quantopian.com">checkout Quantop
       <script type="text/javascript" src="_static/jquery.js"></script>
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="_static/language_data.js"></script>
 
   
 

@@ -28,8 +28,8 @@ new bundles. To see which bundles we have available, we may run the
 The output here shows that there are 3 bundles available:
 
 - ``my-custom-bundle`` (added by the user)
-- ``quandl`` (provided by zipline)
-- ``quantopian-quandl`` (provided by zipline)
+- ``quandl`` (provided by zipline, though deprecated)
+- ``quantopian-quandl`` (provided by zipline, the default bundle)
 
 The dates and times next to the name show the times when the data for this
 bundle was ingested. We have run three different ingestions for
@@ -42,20 +42,18 @@ ingestion for ``quantopian-quandl``.
 Ingesting Data
 ~~~~~~~~~~~~~~
 
-The first step to using a data bundle is to ingest the data. The ingestion
-process will invoke some custom bundle command and then write the data to a
-standard location that zipline can find. By default the location where ingested
-data will be written is ``$ZIPLINE_ROOT/data/<bundle>`` where by default
-``ZIPLINE_ROOT=~/.zipline``. The ingestion step may take some time as it could
-involve downloading and processing a lot of data. You'll need a
-`Quandl <https://docs.quandl.com/docs#section-authentication>`__ API key to ingest the default bundle. This can be run with:
+The first step to using a data bundle is to ingest the data.
+The ingestion process will invoke some custom bundle command and then write the data to a standard location that zipline can find.
+By default the location where ingested data will be written is ``$ZIPLINE_ROOT/data/<bundle>`` where by default ``ZIPLINE_ROOT=~/.zipline``.
+The ingestion step may take some time as it could involve downloading and processing a lot of data.
+To ingest a bundle, run:
 
 .. code-block:: bash
 
-   $ QUANDL_API_KEY=<yourkey> zipline ingest [-b <bundle>]
+   $ zipline ingest [-b <bundle>]
 
 
-where ``<bundle>`` is the name of the bundle to ingest, defaulting to ``quandl``.
+where ``<bundle>`` is the name of the bundle to ingest, defaulting to ``quantopian-quandl``.
 
 Old Data
 ~~~~~~~~
@@ -119,30 +117,22 @@ Default Data Bundles
 Quandl WIKI Bundle
 ``````````````````
 
-By default zipline comes with the ``quandl`` data bundle which uses quandl's
-`WIKI dataset <https://www.quandl.com/data/WIKI>`_. The quandl data bundle
-includes daily pricing data, splits, cash dividends, and asset metadata. To
-ingest the ``quandl`` data bundle we recommend creating an account on quandl.com
-to get an API key to be able to make more API requests per day. Once we have an
-API key we may run:
+By default zipline comes with the ``quantopian-quandl`` data bundle which uses quandl's `WIKI dataset <https://www.quandl.com/data/WIKI>`_.
+The quandl data bundle includes daily pricing data, splits, cash dividends, and asset metadata.
+Quantopian has ingested the data from quandl and rebundled it to make ingestion much faster.
+To ingest the ``quantopian-quandl`` data bundle, run either of the following commands:
 
 .. code-block:: bash
 
-   $ QUANDL_API_KEY=<api-key> zipline ingest -b quandl
+   $ zipline ingest -b quantopian-quandl
+   $ zipline ingest
 
-though we may still run ``ingest`` as an anonymous quandl user (with no API
-key). We may also set the ``QUANDL_DOWNLOAD_ATTEMPTS`` environment variable to
-an integer which is the number of attempts that should be made to download data
-from quandl's servers. By default ``QUANDL_DOWNLOAD_ATTEMPTS`` will be 5, meaning
-that we will retry each attempt 5 times.
+Either command should only take a few seconds to download the data.
 
 .. note::
 
-   ``QUANDL_DOWNLOAD_ATTEMPTS`` is not the total number of allowed failures,
-   just the number of allowed failures per request. The quandl loader will make
-   one request per 100 equities for the metadata followed by one request per
-   equity.
-
+   Quandl has discontinued this dataset.
+   The dataset is no longer updating, but is reasonable for trying out Zipline without setting up your own dataset.
 
 Writing a New Bundle
 ~~~~~~~~~~~~~~~~~~~~
