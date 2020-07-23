@@ -5,8 +5,8 @@
 #    pip-compile --no-index --output-file=etc/requirements_locked.txt etc/requirements.in etc/requirements_blaze.in etc/requirements_build.in etc/requirements_dev.in etc/requirements_docs.in etc/requirements_talib.in
 #
 -e git+git://github.com/quantopian/blaze.git@f26375a6708eab85b7acc7869d6c518df2f974eb#egg=blaze  # via -r etc/requirements_blaze.in
--e git+git://github.com/quantopian/datashape.git@cae16a85406ca4302ff1f985b74a3809be0a83a1#egg=datashape  # via -r etc/requirements_blaze.in
--e git+git://github.com/quantopian/odo.git@ba84238eb8dbcac4784ae7ebf62988d7e163c283#egg=odo  # via -r etc/requirements_blaze.in
+-e git+git://github.com/quantopian/datashape.git@cae16a85406ca4302ff1f985b74a3809be0a83a1#egg=datashape  # via -r etc/requirements_blaze.in, odo
+-e git+git://github.com/quantopian/odo.git@ba84238eb8dbcac4784ae7ebf62988d7e163c283#egg=odo  # via -r etc/requirements_blaze.in, blaze
 alabaster==0.7.12         # via sphinx
 alembic==0.7.7            # via -r etc/requirements.in
 argh==0.26.2              # via sphinx-autobuild, watchdog
@@ -66,7 +66,7 @@ partd==0.3.7              # via dask
 pathtools==0.1.2          # via sphinx-autobuild, watchdog
 patsy==0.4.0              # via -r etc/requirements.in
 pbr==4.3.0                # via mock
-pip-tools==4.5.1          # via -r etc/requirements_dev.in
+pip-tools==5.2.1          # via -r etc/requirements_dev.in
 port-for==0.3.1           # via sphinx-autobuild
 psutil==5.6.7             # via blaze
 pycodestyle==2.4.0        # via flake8
