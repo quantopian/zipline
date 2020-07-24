@@ -453,7 +453,7 @@ class AlphaBeta(object):
             ledger.daily_returns_array[:session_ix + 1],
             self._daily_returns_array[:session_ix + 1],
         )
-        if np.isnan(alpha):
+        if not np.isfinite(alpha):
             alpha = None
         if np.isnan(beta):
             beta = None
