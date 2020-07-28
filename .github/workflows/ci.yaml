@@ -34,7 +34,7 @@ jobs:
         ./configure
         make
         sudo make install
-        ldconfig
+        sudo ldconfig
     - name: Install TA lib (macOS)
       if: startsWith(matrix.os, 'macos')
       run: |
