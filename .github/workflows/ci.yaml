@@ -25,6 +25,15 @@ jobs:
       uses: actions/setup-python@v2.1.1
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Install TA lib (ubuntu)
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        wget https://s3.amazonaws.com/quantopian-orchestration/packages/ta-lib-0.4.0-src.tar.gz
+        tar xvfz ta-lib-0.4.0-src.tar.gz
+        cd ta-lib
+        ./configure
+        make
+        sudo make install
     # TODO: set up pip cache
     - name: Install requirements
       run: |
