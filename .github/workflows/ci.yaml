@@ -39,8 +39,8 @@ jobs:
       if: startsWith(matrix.os, 'macos')
       run: |
         brew install ta-lib
+    - uses: ilammy/msvc-dev-cmd@v1
     - name: Install TA lib (windows)
-      uses: ilammy/msvc-dev-cmd@v1
       if: startsWith(matrix.os, 'windows')
       run: |
         (New-Object Net.WebClient).DownloadFile('http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-msvc.zip', 'ta-lib-0.4.0-msvc.zip')
