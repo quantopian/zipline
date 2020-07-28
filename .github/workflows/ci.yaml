@@ -34,7 +34,8 @@ jobs:
         ./configure
         make
         sudo make install
-    - name: Install TA lib (ubuntu)
+        ldconfig
+    - name: Install TA lib (macOS)
       if: startsWith(matrix.os, 'macos')
       run: |
         brew install ta-lib
