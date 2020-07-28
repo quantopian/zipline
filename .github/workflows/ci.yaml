@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest]
         python-version: [3.5]
     steps:
     - uses: actions/checkout@v2
@@ -34,6 +34,10 @@ jobs:
         ./configure
         make
         sudo make install
+    - name: Install TA lib (ubuntu)
+      if: startsWith(matrix.os, 'macos')
+      run: |
+        brew install ta-lib
     # TODO: set up pip cache
     - name: Install requirements
       run: |
