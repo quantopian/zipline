@@ -264,7 +264,7 @@ if 'sdist' in sys.argv:
 
 setup(
     name='zipline',
-    url="http://zipline.io",
+    url="https://zipline.io",
     version=versioneer.get_version(),
     cmdclass=LazyBuildExtCommandClass(versioneer.get_cmdclass()),
     description='A backtester for financial algorithms.',

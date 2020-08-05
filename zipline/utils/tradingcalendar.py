@@ -217,7 +217,7 @@ def get_non_trading_days(start, end):
     non_trading_days = non_trading_ruleset.between(start, end, inc=True)
 
     # Add September 11th closings
-    # http://en.wikipedia.org/wiki/Aftermath_of_the_September_11_attacks
+    # https://en.wikipedia.org/wiki/Aftermath_of_the_September_11_attacks
     # Due to the terrorist attacks, the stock market did not open on 9/11/2001
     # It did not open again until 9/17/2001.
     #
@@ -235,7 +235,7 @@ def get_non_trading_days(start, end):
             datetime(2001, 9, day_num, tzinfo=pytz.utc))
 
     # Add closings due to Hurricane Sandy in 2012
-    # http://en.wikipedia.org/wiki/Hurricane_sandy
+    # https://en.wikipedia.org/wiki/Hurricane_sandy
     #
     # The stock exchange was closed due to Hurricane Sandy's
     # impact on New York.
@@ -282,7 +282,7 @@ trading_days = get_trading_days(start, end)
 
 def get_early_closes(start, end):
     # 1:00 PM close rules based on
-    # http://quant.stackexchange.com/questions/4083/nyse-early-close-rules-july-4th-and-dec-25th # noqa
+    # https://quant.stackexchange.com/questions/4083/nyse-early-close-rules-july-4th-and-dec-25th # noqa
     # and verified against http://www.nyse.com/pdfs/closings.pdf
 
     # These rules are valid starting in 1993
