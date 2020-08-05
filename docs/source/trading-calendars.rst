@@ -15,7 +15,7 @@ Why Should You Care About Trading Calendars?
 
 Let's say you want to buy a share of some equity on Tuesday, and then sell it on Saturday. If the exchange in which you're trading that equity is not open on Saturday, then in reality it would not be possible to trade that equity at that time, and you would have to wait until some other number of days past Saturday. Since you wouldn't be able to place the trade in reality, it would also be unreasonable for your backtest to place a trade on Saturday.
 
-In order for you to backtest your strategy, the dates in that are accounted for in your `data bundle <http://www.zipline.io/bundles.html>`__ and the dates in your ``TradingCalendar`` should match up; if the dates don't match up, then you you're going to see some errors along the way. This holds for both minutely and daily data.
+In order for you to backtest your strategy, the dates in that are accounted for in your `data bundle <https://www.zipline.io/bundles.html>`__ and the dates in your ``TradingCalendar`` should match up; if the dates don't match up, then you you're going to see some errors along the way. This holds for both minutely and daily data.
 
 
 The TradingCalendar Class
@@ -30,7 +30,7 @@ The ``TradingCalendar`` class has many properties we should be thinking about if
   - Regular & Ad hoc Holidays
   - Special Opens & Closes
 
-And several others. If you'd like to see all of the properties and methods available to you through the ``TradingCalendar`` API, please take a look at the `API Reference <http://www.zipline.io/appendix.html#trading-calendar-api>`__
+And several others. If you'd like to see all of the properties and methods available to you through the ``TradingCalendar`` API, please take a look at the `API Reference <https://www.zipline.io/appendix.html#trading-calendar-api>`__
 
 Now we'll take a look at the London Stock Exchange Calendar :class:`~zipline.utils.calendars.exchange_calendar_lse.LSEExchangeCalendar` as an example below:
 
@@ -88,7 +88,7 @@ Now we'll take a look at the London Stock Exchange Calendar :class:`~zipline.uti
       ])
 
 
-You can create the ``Holiday`` objects mentioned in ``def regular_holidays(self)` through the `pandas <http://pandas.pydata.org/pandas-docs/stable/>`__ module, ``pandas.tseries.holiday.Holiday``, and also take a look at the `LSEExchangeCalendar <https://github.com/quantopian/zipline/blob/master/zipline/utils/calendars/exchange_calendar_lse.py>`__ code as an example, or take a look at the code snippet below.
+You can create the ``Holiday`` objects mentioned in ``def regular_holidays(self)` through the `pandas <https://pandas.pydata.org/pandas-docs/stable/>`__ module, ``pandas.tseries.holiday.Holiday``, and also take a look at the `LSEExchangeCalendar <https://github.com/quantopian/zipline/blob/master/zipline/utils/calendars/exchange_calendar_lse.py>`__ code as an example, or take a look at the code snippet below.
 
 .. code-block:: python
 
@@ -185,4 +185,4 @@ And now we'll actually build this calendar, which we'll call ``TFSExchangeCalend
 Conclusions
 ~~~~~~~~~~~
 
-In order for you to run your algorithm with this calendar, you'll need have a data bundle in which your assets have dates that run through all days of the week. You can read about how to make your own data bundle in the `Writing a New Bundle <http://www.zipline.io/bundles.html#writing-a-new-bundle>`__ documentation, or use the `csvdir bundle <https://github.com/quantopian/zipline/blob/master/zipline/data/bundles/csvdir.py>`__ for creating a bundle from CSV files.
+In order for you to run your algorithm with this calendar, you'll need have a data bundle in which your assets have dates that run through all days of the week. You can read about how to make your own data bundle in the `Writing a New Bundle <https://www.zipline.io/bundles.html#writing-a-new-bundle>`__ documentation, or use the `csvdir bundle <https://github.com/quantopian/zipline/blob/master/zipline/data/bundles/csvdir.py>`__ for creating a bundle from CSV files.

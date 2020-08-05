@@ -87,10 +87,10 @@ html_show_copyright = True
 htmlhelp_basename = 'ziplinedoc'
 
 intersphinx_mapping = {
-    'http://docs.python.org/dev': None,
-    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
-    'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
-    'pandas': ('http://pandas.pydata.org/pandas-docs/stable/', None),
+    'https://docs.python.org/dev/': None,
+    'numpy': ('https://numpy.org/doc/stable/', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
+    'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
 }
 
 doctest_global_setup = "import zipline"

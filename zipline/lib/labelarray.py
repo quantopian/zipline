@@ -136,7 +136,7 @@ class LabelArray(ndarray):
 
     See Also
     --------
-    http://docs.scipy.org/doc/numpy-1.10.0/user/basics.subclassing.html
+    https://docs.scipy.org/doc/numpy-1.11.0/user/basics.subclassing.html
     """
     SUPPORTED_SCALAR_TYPES = (bytes, unicode, type(None))
     SUPPORTED_NON_NONE_SCALAR_TYPES = (bytes, unicode)

@@ -84,8 +84,8 @@ Style Guide & Running Tests
 
 We use `flake8`__ for checking style requirements and `nosetests`__ to run Zipline tests. Our `continuous integration`__ tools will run these commands.
 
-__ http://flake8.pycqa.org/en/latest/
-__ http://nose.readthedocs.io/en/latest/
+__ https://flake8.pycqa.org/en/latest/
+__ https://nose.readthedocs.io/en/latest/
 __ https://en.wikipedia.org/wiki/Continuous_integration
 
 Before submitting patches or pull requests, please ensure that your changes pass when running:
@@ -189,7 +189,7 @@ __ https://en.wikipedia.org/wiki/ReStructuredText
 
 We use `Sphinx`__ to generate documentation for Zipline, which you will need to install by running:
 
-__ http://www.sphinx-doc.org/en/stable/
+__ https://www.sphinx-doc.org/en/master/
 
 
 .. code-block:: bash

@@ -8,7 +8,7 @@ Highlights
 ~~~~~~~~~~
 
 * New documentation system with a new website at
-  `zipline.io <http://www.zipline.io>`__
+  `zipline.io <https://www.zipline.io>`__
 * Major performance enhancements.
 * Dynamic history.
 * New user defined method: ``before_trading_start``.

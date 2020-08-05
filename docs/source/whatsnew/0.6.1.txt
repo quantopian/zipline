@@ -300,7 +300,7 @@ Build
 ~~~~~
 
 * Added support for building and releasing via conda
-  For those who prefer building with http://conda.pydata.org/ to compiling
+  For those who prefer building with https://docs.conda.io/en/latest/ to compiling
   locally with pip.
   The following should install Zipline on many systems.
 
