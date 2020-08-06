@@ -254,6 +254,45 @@ class ALPACABroker(Broker):
             bars_map[symbol].bars[-1]._raw[field]
             for symbol in symbols
         ]
+      
+      
+    def _get_positions_from_broker(self):
+        """
+        get the positions from the broker and update zipline objects ( the ledger )
+        should be used once at startup and once every time we want to refresh the positions array
+        """
+        self._api.list_positions()
+
+        cur_pos_in_tracker = self.metrics_tracker.positions
+        positions = self._api.list_positions()
+        for symbol in positions:
+            ap_position = positions[symbol]
+            try:
+                z_position = zp.Position(zp.InnerPosition(symbol_lookup(symbol)))
+                editable_position = MutableView(z_position)
+            except SymbolNotFound:
+                # The symbol might not have been ingested to the db therefore
+                # it needs to be skipped.
+                log.warning('Wanted to subscribe to %s, but this asset is probably not ingested' % symbol)
+                continue
+            editable_position._underlying_position.amount = int(ap_position.qty)
+            editable_position._underlying_position.cost_basis = float(ap_position.cost_basis)
+            editable_position._underlying_position.last_sale_price = None
+            editable_position._underlying_position.last_sale_date = None
+            
+            self.metrics_tracker.update_position(z_position.asset,
+                                                 amount=z_position.amount,
+                                                 last_sale_price=z_position.last_sale_price,
+                                                 last_sale_date=z_position.last_sale_date,
+                                                 cost_basis=z_position.cost_basis)
+        for asset in cur_pos_in_tracker:
+            if asset.symbol not in self.positions:
+                # deleting object from the metrcs_tracker as its not in the portfolio
+                self.metrics_tracker.update_position(asset,
+                                                     amount=0)
+        # for some reason, the metrics tracker has self.positions AND self.portfolio.positions. let's make sure
+        # these objects are consistent
+        self.metrics_tracker._ledger._portfolio.positions = self.metrics_tracker.positions                                                 
 
     def get_realtime_bars(self, assets, data_frequency):
         # TODO: cache the result. The caller
