@@ -58,6 +58,9 @@ class ALPACABroker(Broker):
     def subscribed_assets(self):
         '''Do nothing to comply the interface'''
         return []
+      
+    def set_metrics_tracker(self, metrics_tracker):
+        self.metrics_tracker = metrics_tracker
 
     @property
     def positions(self):
