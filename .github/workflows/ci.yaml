@@ -40,11 +40,11 @@ jobs:
       run: |
         brew install ta-lib
     - name: Set Lockfile py 35
-      if: matrix.python_version == 3.5
+      if: matrix.python-version == 3.5
       run: |
         echo ::set-env name=PIP_CONSTRAINT::etc/requirements_locked.txt
     - name: Set Lockfile py36
-      if: matrix.python_version == 3.6
+      if: matrix.python-version == 3.6
       run: |
         echo ::set-env name=PIP_CONSTRAINT::etc/requirements_py36_locked.txt
     - name: Get pip cache dir
