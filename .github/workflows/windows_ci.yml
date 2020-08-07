@@ -52,4 +52,4 @@ jobs:
 
     - name: Run tests
       run: |
-        nosetests tests
+        nosetests -vv tests
