@@ -21,10 +21,6 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: 'recursive'
-    - uses: goanpeca/setup-miniconda@v1
-      with:
-        auto-update-conda: true
-        python-version: ${{ matrix.python-version }}
     # - name: pip cache
     #   uses: actions/cache@v2
     #   with:
@@ -37,7 +33,7 @@ jobs:
     #     python -m pip install -r etc/requirements_build.in -c etc/requirements_locked.txt
     - name: Install scientific python requirements
       run: |
-        conda install -y -vv pandas==0.22.0 numpy==1.19.1 scipy==1.5.0 cython==0.29.21
+        conda create --name test python={{matrix.python-version}} -y -vv pandas==0.22.0 numpy==1.19.1 scipy==1.5.0 cython==0.29.21
     - uses: ilammy/msvc-dev-cmd@v1
     - name: Install TA lib
       run: |
