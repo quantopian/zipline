@@ -45,7 +45,7 @@ jobs:
         Add-Type -AssemblyName System.IO.Compression.FileSystem;[System.IO.Compression.ZipFile]::ExtractToDirectory('ta-lib-0.4.0-msvc.zip', 'C:\')
         cd C:\ta-lib\c\make\cdr\win32\msvc
         nmake
-        conda install -c quantopian -vv ta-lib
+        pip install ta-lib
     - name: Install other requirements
       run: |
         pip install --no-binary=bcolz -e .[all] -c etc/requirements_py36_locked.txt
