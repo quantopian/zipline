@@ -31,6 +31,9 @@ jobs:
     # - name: Install requirements
     #   run: |
     #     python -m pip install -r etc/requirements_build.in -c etc/requirements_locked.txt
+    - name: Init Conda in Powershell
+      run: |
+        C:\Miniconda\condabin\conda.bat init powershell
     - name: Install scientific python requirements
       run: |
         conda create --name test python={{matrix.python-version}} -y -vv pandas==0.22.0 numpy==1.19.1 scipy==1.5.0 cython==0.29.21
