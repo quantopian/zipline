@@ -35,10 +35,10 @@ jobs:
     # - name: Install requirements
     #   run: |
     #     python -m pip install -r etc/requirements_build.in -c etc/requirements_locked.txt
-    - uses: ilammy/msvc-dev-cmd@v1
     - name: Install scientific python requirements
       run: |
         conda install -y -vv pandas==0.22.0 numpy==1.19.1 scipy==1.5.0 cython==0.29.21
+    - uses: ilammy/msvc-dev-cmd@v1
     - name: Install TA lib
       run: |
         (New-Object Net.WebClient).DownloadFile('http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-msvc.zip', 'ta-lib-0.4.0-msvc.zip')
