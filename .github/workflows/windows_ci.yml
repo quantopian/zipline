@@ -38,14 +38,14 @@ jobs:
     - uses: ilammy/msvc-dev-cmd@v1
     - name: Install scientific python requirements
       run: |
-        conda install -y pandas==0.22.0 numpy==1.19.1 scipy==1.5.0 cython==0.29.21
+        conda install -y -vv pandas==0.22.0 numpy==1.19.1 scipy==1.5.0 cython==0.29.21
     - name: Install TA lib
       run: |
         (New-Object Net.WebClient).DownloadFile('http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-msvc.zip', 'ta-lib-0.4.0-msvc.zip')
         Add-Type -AssemblyName System.IO.Compression.FileSystem;[System.IO.Compression.ZipFile]::ExtractToDirectory('ta-lib-0.4.0-msvc.zip', 'C:\')
         cd C:\ta-lib\c\make\cdr\win32\msvc
         nmake
-        conda install -c quantopian ta-lib
+        conda install -c quantopian -vv ta-lib
     - name: Install other requirements
       run: |
         pip install --no-binary=bcolz -e .[all] -c etc/requirements_py36_locked.txt
