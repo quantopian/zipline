@@ -37,7 +37,6 @@ jobs:
     - name: Install scientific python requirements
       run: |
         conda create -y -vv --name test python=${{matrix.python-version}} pandas=0.22.0 numpy=1.19.1 scipy=1.5.0 cython=0.29.21
-        conda activate test
     - uses: ilammy/msvc-dev-cmd@v1
     - name: Install TA lib
       run: |
@@ -45,9 +44,11 @@ jobs:
         Add-Type -AssemblyName System.IO.Compression.FileSystem;[System.IO.Compression.ZipFile]::ExtractToDirectory('ta-lib-0.4.0-msvc.zip', 'C:\')
         cd C:\ta-lib\c\make\cdr\win32\msvc
         nmake
+        conda activate test
         pip install ta-lib
     - name: Install other requirements
       run: |
+        conda activate test
         pip install --no-binary=bcolz -e .[all] -c etc/requirements_py36_locked.txt
 
     - name: Run tests
