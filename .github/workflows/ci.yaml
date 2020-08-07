@@ -61,7 +61,7 @@ jobs:
     - name: Install requirements
       run: |
         python -m pip install -r etc/requirements_build.in
-        python -m pip install --no-binary=bcolz -e .[all] -r etc/requirements_blaze.in
+        python -m pip install --no-binary=bcolz -e .[all]
     - name: Run tests
       run: |
         nosetests tests

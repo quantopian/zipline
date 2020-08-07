@@ -1,0 +1,47 @@
+name: Zipline CI (Unbutnu/macOS Using Pip)
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build-and-test:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+        python-version: [3.6]
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
+    - uses: goanpeca/setup-miniconda@v1
+      with:
+        auto-update-conda: true
+        python-version: ${{ matrix.python-version }}
+    - name: pip cache
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.pip-cache.outputs.dir }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('etc/requirements_py36_locked.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    # - name: Install requirements
+    #   run: |
+    #     python -m pip install -r etc/requirements_build.in -c etc/requirements_locked.txt
+
+    - name: Install requirements
+      run: |
+        conda install -y pandas==0.22.0 numpy==1.19.1 scipy==1.5.2 cython==0.29.21
+        conda install -c quantopian ta-lib
+        pip install --no-binary=bcolz -e .[all] -c etc/requirements_py36_locked.txt
+
+    - name: Run tests
+      run: |
+        nosetests tests
