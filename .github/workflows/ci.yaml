@@ -15,8 +15,8 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: [3.5]
+        os: [ubuntu-latest, macos-latest]
+        python-version: [3.5, 3.6]
     steps:
     - uses: actions/checkout@v2
       with:
@@ -39,14 +39,6 @@ jobs:
       if: startsWith(matrix.os, 'macos')
       run: |
         brew install ta-lib
-    - uses: ilammy/msvc-dev-cmd@v1
-    - name: Install TA lib (windows)
-      if: startsWith(matrix.os, 'windows')
-      run: |
-        (New-Object Net.WebClient).DownloadFile('http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-msvc.zip', 'ta-lib-0.4.0-msvc.zip')
-        Add-Type -AssemblyName System.IO.Compression.FileSystem;[System.IO.Compression.ZipFile]::ExtractToDirectory('ta-lib-0.4.0-msvc.zip', 'C:\')
-        cd C:\ta-lib\c\make\cdr\win32\msvc
-        nmake
     - name: Get pip cache dir
       id: pip-cache
       run: |
