@@ -54,4 +54,4 @@ jobs:
     - name: Run tests
       run: |
         conda activate test
-        nosetests -vv tests
+        nosetests tests
