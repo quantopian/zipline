@@ -34,6 +34,7 @@ jobs:
     - name: Install scientific python requirements
       run: |
         conda create --name test python={{matrix.python-version}} -y -vv pandas==0.22.0 numpy==1.19.1 scipy==1.5.0 cython==0.29.21
+        conda activate test
     - uses: ilammy/msvc-dev-cmd@v1
     - name: Install TA lib
       run: |
