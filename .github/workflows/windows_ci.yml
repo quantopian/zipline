@@ -25,13 +25,13 @@ jobs:
       with:
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
-    - name: pip cache
-      uses: actions/cache@v2
-      with:
-        path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-${{ hashFiles('etc/requirements_py36_locked.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+    # - name: pip cache
+    #   uses: actions/cache@v2
+    #   with:
+    #     path: ${{ steps.pip-cache.outputs.dir }}
+    #     key: ${{ runner.os }}-pip-${{ hashFiles('etc/requirements_py36_locked.txt') }}
+    #     restore-keys: |
+    #       ${{ runner.os }}-pip-
     # - name: Install requirements
     #   run: |
     #     python -m pip install -r etc/requirements_build.in -c etc/requirements_locked.txt
