@@ -38,7 +38,7 @@ jobs:
 
     - name: Install requirements
       run: |
-        conda install -y pandas==0.22.0 numpy==1.19.1 scipy==1.5.2 cython==0.29.21
+        conda install -y pandas==0.22.0 numpy==1.19.1 scipy==1.5.0 cython==0.29.21
         conda install -c quantopian ta-lib
         pip install --no-binary=bcolz -e .[all] -c etc/requirements_py36_locked.txt
 
