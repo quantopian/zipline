@@ -577,11 +577,20 @@ def assert_array_equal(result,
             "expected dtype: %s\n%s"
             % (result_dtype, expected_dtype, _fmt_path(path))
         )
-        f = partial(
-            np.testing.assert_array_compare,
-            compare_datetime_arrays,
-            header='Arrays are not equal',
-        )
+        try:
+            # Depending on the version of numpy testing func is in a different
+            # place
+            f = partial(
+                np.testing.utils.assert_array_compare,
+                compare_datetime_arrays,
+                header='Arrays are not equal',
+            )
+        except AttributeError:
+            f = partial(
+                np.testing.assert_array_compare,
+                compare_datetime_arrays,
+                header='Arrays are not equal',
+            )
     elif array_decimal is not None and expected_dtype.kind not in {'O', 'S'}:
         f = partial(
             np.testing.assert_array_almost_equal,
