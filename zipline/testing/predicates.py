@@ -578,7 +578,7 @@ def assert_array_equal(result,
             % (result_dtype, expected_dtype, _fmt_path(path))
         )
         f = partial(
-            np.testing.utils.assert_array_compare,
+            np.testing.assert_array_compare,
             compare_datetime_arrays,
             header='Arrays are not equal',
         )
