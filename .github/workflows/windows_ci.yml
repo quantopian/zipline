@@ -31,7 +31,6 @@ jobs:
     # - name: Install requirements
     #   run: |
     #     python -m pip install -r etc/requirements_build.in -c etc/requirements_locked.txt
-    - uses: microsoft/setup-msbuild@v1.0.1
     - name: Init Conda in Powershell
       run: |
         C:\Miniconda\condabin\conda.bat init powershell
@@ -39,6 +38,7 @@ jobs:
       run: |
         conda create -y --name test python=${{matrix.python-version}} pip pandas=0.22.0 numpy=1.19.1 scipy=1.5.0 cython=0.29.21
     - name: Install TA lib
+      uses: microsoft/setup-msbuild@v1.0.1
       run: |
         (New-Object Net.WebClient).DownloadFile('http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-msvc.zip', 'ta-lib-0.4.0-msvc.zip')
         Add-Type -AssemblyName System.IO.Compression.FileSystem;[System.IO.Compression.ZipFile]::ExtractToDirectory('ta-lib-0.4.0-msvc.zip', 'C:\')
