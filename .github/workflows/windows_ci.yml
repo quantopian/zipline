@@ -41,6 +41,7 @@ jobs:
       run: |
         conda activate test
         conda install -y -c quantopian ta-lib
+    - uses: ilammy/msvc-dev-cmd@v1
     - name: Install other requirements
       run: |
         conda activate test
