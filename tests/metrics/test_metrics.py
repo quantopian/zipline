@@ -1,4 +1,5 @@
 import unittest
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -116,7 +117,11 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         cls.closes.name = None
 
     def test_nop(self):
-        perf = self.run_algorithm()
+        # Filter out pandas `ix` DeprecationWarning causing tests to fail
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+
+            perf = self.run_algorithm()
 
         zeros = pd.Series(0.0, index=self.closes)
         all_zero_fields = [
@@ -446,10 +451,13 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             check_portfolio(context)
             context.bar_count += 1
 
-        perf = self.run_algorithm(
-            initialize=initialize,
-            handle_data=handle_data,
-        )
+        # Filter out pandas `ix` DeprecationWarning causing tests to fail
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            perf = self.run_algorithm(
+                initialize=initialize,
+                handle_data=handle_data,
+            )
 
         first_day_returns = -(
             abs(per_fill_commission.sum()) / self.SIM_PARAMS_CAPITAL_BASE
@@ -600,10 +608,13 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             # the portfolio on the bar of the order, only the following bars
             check_portfolio(context, first_bar)
 
-        perf = self.run_algorithm(
-            initialize=initialize,
-            handle_data=handle_data,
-        )
+        # Filter out pandas `ix` DeprecationWarning causing tests to fail
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            perf = self.run_algorithm(
+                initialize=initialize,
+                handle_data=handle_data,
+            )
 
         zeros = pd.Series(0.0, index=self.closes)
         all_zero_fields = [
@@ -1015,10 +1026,13 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             # the portfolio on the bar of the order, only the following bars
             check_portfolio(context, first_bar)
 
-        perf = self.run_algorithm(
-            initialize=initialize,
-            handle_data=handle_data,
-        )
+        # Filter out pandas `ix` DeprecationWarning causing tests to fail
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            perf = self.run_algorithm(
+                initialize=initialize,
+                handle_data=handle_data,
+            )
 
         zeros = pd.Series(0.0, index=self.closes)
         all_zero_fields = [
@@ -1571,10 +1585,14 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             # the portfolio on the bar of the order, only the following bars
             check_portfolio(data, context, first_bar)
 
-        perf = self.run_algorithm(
-            initialize=initialize,
-            handle_data=handle_data,
-        )
+        # Filter out pandas `ix` DeprecationWarning causing tests to fail
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+
+            perf = self.run_algorithm(
+                initialize=initialize,
+                handle_data=handle_data,
+            )
 
         zeros = pd.Series(0.0, index=self.equity_closes)
         all_zero_fields = [
@@ -1988,12 +2006,16 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             # the portfolio on the bar of the order, only the following bars
             check_portfolio(data, context, first_bar)
 
-        perf = self.run_algorithm(
-            initialize=initialize,
-            handle_data=handle_data,
-            trading_calendar=self.trading_calendars[Future],
-            data_portal=self.futures_data_portal,
-        )
+        # Filter out pandas `ix` DeprecationWarning causing tests to fail
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+
+            perf = self.run_algorithm(
+                initialize=initialize,
+                handle_data=handle_data,
+                trading_calendar=self.trading_calendars[Future],
+                data_portal=self.futures_data_portal,
+            )
 
         zeros = pd.Series(0.0, index=self.future_closes)
         all_zero_fields = [
