@@ -37,15 +37,10 @@ jobs:
     - name: Install scientific python requirements
       run: |
         conda create -y --name test python=${{matrix.python-version}} pip pandas=0.22.0 numpy=1.19.1 scipy=1.5.0 cython=0.29.21
-    - uses: microsoft/setup-msbuild@v1.0.1
     - name: Install TA lib
       run: |
-        (New-Object Net.WebClient).DownloadFile('http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-msvc.zip', 'ta-lib-0.4.0-msvc.zip')
-        Add-Type -AssemblyName System.IO.Compression.FileSystem;[System.IO.Compression.ZipFile]::ExtractToDirectory('ta-lib-0.4.0-msvc.zip', 'C:\')
-        cd C:\ta-lib\c\make\cdr\win32\msvc
-        nmake
         conda activate test
-        pip install ta-lib
+        conda install -y -c quantopian ta-lib
     - name: Install other requirements
       run: |
         conda activate test
