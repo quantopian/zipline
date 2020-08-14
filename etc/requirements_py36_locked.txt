@@ -16,7 +16,6 @@ bottleneck==1.3.2         # via -r etc/requirements.in
 certifi==2020.6.20        # via requests
 chardet==3.0.4            # via requests
 click==7.1.2              # via -r etc/requirements.in, flask, pip-tools
-contextlib2==0.6.0.post1  # via -r etc/requirements.in
 coverage==5.2.1           # via -r etc/requirements_dev.in
 cycler==0.10.0            # via matplotlib
 cython==0.29.21           # via -r etc/requirements_build.in

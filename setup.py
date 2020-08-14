@@ -167,7 +167,7 @@ def _filter_requirements(lines_iter, filter_names=None,
 REQ_PATTERN = re.compile(
     r"(?P<name>[^=<>;]+)((?P<comp>[<=>]{1,2})(?P<spec>[^;]+))?"
     r"(?:(;\W*python_version\W*(?P<pycomp>[<=>]{1,2})\W*"
-    r"(?P<pyspec>[0-9\.]+)))?"
+    r"(?P<pyspec>[0-9.]+)))?\W*"
 )
 
 
