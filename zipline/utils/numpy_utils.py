@@ -53,6 +53,12 @@ categorical_dtype = object_dtype
 make_datetime64ns = flip(datetime64, 'ns')
 make_datetime64D = flip(datetime64, 'D')
 
+# Array compare that works across versions of numpy
+try:
+    assert_array_compare = np.testing.utils.assert_array_compare
+except AttributeError:
+    assert_array_compare = np.testing.assert_array_compare
+
 NaTmap = {
     dtype('datetime64[%s]' % unit): datetime64('NaT', unit)
     for unit in ('ns', 'us', 'ms', 's', 'm', 'D')
