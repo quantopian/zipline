@@ -1,4 +1,4 @@
-name: Zipline CI (Unbutnu/macOS Using Pip)
+name: Zipline CI (Ubuntu/macOS)
 
 on:
   push:
