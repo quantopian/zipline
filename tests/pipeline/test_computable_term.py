@@ -245,7 +245,7 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
             f()
 
         message = str(e.exception)
-        assert expected_message in message
+        self.assertIn(expected_message, message)
 
     def test_bad_inputs(self):
         def dtype_for(o):
