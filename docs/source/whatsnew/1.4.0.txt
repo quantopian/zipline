@@ -15,7 +15,7 @@ This meant that simulations required an internet connection and stable APIs for 
 
 We removed the dependency on treasury curves, since they weren't actually being used anymore. And we replaced the implicit downloading of benchmark returns with explicit options:
 
-.. code-block:: bash
+.. code-block:: none
 
    --benchmark-file                The csv file that contains the benchmark
                                    returns (date, returns columns)
@@ -102,7 +102,7 @@ In the context of Pipeline, the domain specifies the set of assets and a corresp
 
 For example, the following pipeline returns the latest close price and volume for all Canadian equities, every day.
 
-.. code-block:: Python
+.. code-block:: python
 
    pipe = Pipeline(
        columns={

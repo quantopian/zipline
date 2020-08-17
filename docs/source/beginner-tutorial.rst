@@ -188,11 +188,9 @@ directory).
 Thus, to execute our algorithm from above and save the results to
 ``buyapple_out.pickle`` we would call ``zipline run`` as follows:
 
-.. code-block:: python
+.. code-block:: bash
 
-    zipline run -f ../../zipline/examples/buyapple.py --start 2016-1-1 --end 2018-1-1 -o buyapple_out.pickle
-        --no-benchmark
-
+    zipline run -f ../../zipline/examples/buyapple.py --start 2016-1-1 --end 2018-1-1 -o buyapple_out.pickle --no-benchmark
 
 .. parsed-literal::
 
