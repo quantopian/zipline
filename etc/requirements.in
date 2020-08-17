@@ -3,8 +3,6 @@ pip>=7.1.0
 # bcolz fails to install if this is not in the build_requires.
 setuptools>18.0
 
---no-binary bcolz
-
 Logbook>=0.12.5
 
 # Command line interface helper

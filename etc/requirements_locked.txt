@@ -4,8 +4,6 @@
 #
 #    pip-compile --no-index --output-file=etc/requirements_locked.txt etc/requirements.in etc/requirements_blaze.in etc/requirements_build.in etc/requirements_dev.in etc/requirements_docs.in etc/requirements_talib.in
 #
---no-binary bcolz
-
 -e git+git://github.com/quantopian/blaze.git@f26375a6708eab85b7acc7869d6c518df2f974eb#egg=blaze  # via -r etc/requirements_blaze.in
 -e git+git://github.com/quantopian/datashape.git@cae16a85406ca4302ff1f985b74a3809be0a83a1#egg=datashape  # via -r etc/requirements_blaze.in, odo
 -e git+git://github.com/quantopian/odo.git@ba84238eb8dbcac4784ae7ebf62988d7e163c283#egg=odo  # via -r etc/requirements_blaze.in, blaze

@@ -45,7 +45,7 @@
 #     - name: Install other requirements
 #       run: |
 #         conda activate test
-#         pip install -e .[dev] -c etc/requirements_py36_locked.txt
+#         pip install --no-binary=bcolz -e .[dev] -c etc/requirements_py36_locked.txt
 
 #     - name: Run tests
 #       run: |
