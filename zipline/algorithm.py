@@ -490,7 +490,7 @@ class TradingAlgorithm(object):
         """
         If the clock property is not set, then create one based on frequency.
         """
-        trading_o_and_c = self.trading_calendar.schedule.ix[
+        trading_o_and_c = self.trading_calendar.schedule.loc[
             self.sim_params.sessions]
         market_closes = trading_o_and_c['market_close']
         minutely_emission = False

@@ -7,6 +7,7 @@ from contextlib2 import ExitStack
 from logbook import NullHandler, Logger
 import numpy as np
 import pandas as pd
+from pandas.core.common import PerformanceWarning
 from six import with_metaclass, iteritems, itervalues, PY2
 import responses
 from toolz import flip, groupby, merge
@@ -530,21 +531,25 @@ class WithTradingCalendars(object):
         super(WithTradingCalendars, cls).init_class_fixtures()
 
         cls.trading_calendars = {}
+        # Silence `pandas.errors.PerformanceWarning: Non-vectorized DateOffset
+        # being applied to Series or DatetimeIndex` in trading calendar
+        # construction. This causes nosetest to fail.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", PerformanceWarning)
+            for cal_str in (
+                set(cls.TRADING_CALENDAR_STRS) |
+                {cls.TRADING_CALENDAR_PRIMARY_CAL}
+            ):
+                # Set name to allow aliasing.
+                calendar = get_calendar(cal_str)
+                setattr(cls,
+                        '{0}_calendar'.format(cal_str.lower()), calendar)
+                cls.trading_calendars[cal_str] = calendar
 
-        for cal_str in (
-            set(cls.TRADING_CALENDAR_STRS) |
-            {cls.TRADING_CALENDAR_PRIMARY_CAL}
-        ):
-            # Set name to allow aliasing.
-            calendar = get_calendar(cal_str)
-            setattr(cls,
-                    '{0}_calendar'.format(cal_str.lower()), calendar)
-            cls.trading_calendars[cal_str] = calendar
-
-        type_to_cal = iteritems(cls.TRADING_CALENDAR_FOR_ASSET_TYPE)
-        for asset_type, cal_str in type_to_cal:
-            calendar = get_calendar(cal_str)
-            cls.trading_calendars[asset_type] = calendar
+            type_to_cal = iteritems(cls.TRADING_CALENDAR_FOR_ASSET_TYPE)
+            for asset_type, cal_str in type_to_cal:
+                calendar = get_calendar(cal_str)
+                cls.trading_calendars[asset_type] = calendar
 
         cls.trading_calendar = (
             cls.trading_calendars[cls.TRADING_CALENDAR_PRIMARY_CAL]
@@ -1688,12 +1693,16 @@ class WithAdjustmentReader(WithBcolzEquityDailyBarReader):
     def init_class_fixtures(cls):
         super(WithAdjustmentReader, cls).init_class_fixtures()
         conn = sqlite3.connect(cls.make_adjustment_db_conn_str())
-        cls.make_adjustment_writer(conn).write(
-            splits=cls.make_splits_data(),
-            mergers=cls.make_mergers_data(),
-            dividends=cls.make_dividends_data(),
-            stock_dividends=cls.make_stock_dividends_data(),
-        )
+        # Silence numpy DeprecationWarnings which cause nosetest to fail
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+
+            cls.make_adjustment_writer(conn).write(
+                splits=cls.make_splits_data(),
+                mergers=cls.make_mergers_data(),
+                dividends=cls.make_dividends_data(),
+                stock_dividends=cls.make_stock_dividends_data(),
+            )
         cls.adjustment_reader = SQLiteAdjustmentReader(conn)
 
 

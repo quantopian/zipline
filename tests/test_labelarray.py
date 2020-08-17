@@ -328,7 +328,7 @@ class LabelArrayTestCase(ZiplineTestCase):
                         ret = func(labels, ints)
                     else:
                         self.fail("Who added a ternary ufunc !?!")
-                except TypeError:
+                except (TypeError, ValueError):
                     pass
                 else:
                     self.assertIs(ret, NotImplemented)
