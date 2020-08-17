@@ -41,8 +41,7 @@ Features
 Installation
 ============
 
-Zipline currently supports Python 2.7 and Python 3.5, and may be installed via
-either pip or conda.
+Zipline currently supports Python 3.6, and may be installed via either pip or conda.
 
 **Note:** Installing Zipline is slightly more involved than the average Python
 package. See the full `Zipline Install Documentation`_ for detailed
