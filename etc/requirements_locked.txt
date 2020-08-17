@@ -66,7 +66,7 @@ partd==0.3.7              # via dask
 pathtools==0.1.2          # via sphinx-autobuild, watchdog
 patsy==0.4.0              # via -r etc/requirements.in
 pbr==4.3.0                # via mock
-pip-tools==5.2.1          # via -r etc/requirements_dev.in
+pip-tools==5.3.1          # via -r etc/requirements_dev.in
 port-for==0.3.1           # via sphinx-autobuild
 psutil==5.6.7             # via blaze
 pycodestyle==2.4.0        # via flake8
