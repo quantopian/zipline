@@ -19,7 +19,6 @@ from datetime import tzinfo, time
 import logbook
 import pytz
 import pandas as pd
-from contextlib2 import ExitStack
 import numpy as np
 
 from itertools import chain, repeat
@@ -95,6 +94,7 @@ from zipline.utils.api_support import (
     require_not_initialized,
     ZiplineAPI,
     disallowed_in_before_trading_start)
+from zipline.utils.compat import ExitStack
 from zipline.utils.input_validation import (
     coerce_string,
     ensure_upper_case,

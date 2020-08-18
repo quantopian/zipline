@@ -3,7 +3,6 @@ import sqlite3
 from unittest import TestCase
 import warnings
 
-from contextlib2 import ExitStack
 from logbook import NullHandler, Logger
 import numpy as np
 import pandas as pd
@@ -32,6 +31,7 @@ from zipline.pipeline.domain import GENERIC, US_EQUITIES
 from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.protocol import BarData
+from zipline.utils.compat import ExitStack
 from zipline.utils.paths import ensure_directory, ensure_directory_containing
 from .core import (
     create_daily_bar_data,

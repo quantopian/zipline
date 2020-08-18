@@ -4,7 +4,6 @@ import os
 import shutil
 import warnings
 
-from contextlib2 import ExitStack
 import click
 from logbook import Logger
 import pandas as pd
@@ -24,7 +23,7 @@ from zipline.utils.cache import (
     working_dir,
     working_file,
 )
-from zipline.utils.compat import mappingproxy
+from zipline.utils.compat import ExitStack, mappingproxy
 from zipline.utils.input_validation import ensure_timestamp, optionally
 import zipline.utils.paths as pth
 from zipline.utils.preprocess import preprocess
