@@ -54,25 +54,20 @@ My First Algorithm
 Let's take a look at a very simple algorithm from the ``examples``
 directory, ``buyapple.py``:
 
-.. code-block:: python
+.. ipython::
 
-   from zipline.examples import buyapple
-   buyapple??
+    In [1]: from zipline.examples import buyapple
 
+    @verbatim
+    In [1]: buyapple??
 
-.. code-block:: python
+..
+    Don't actually execute above, since that inlines the file paths of the system
+    that generated the docs; instead:
 
-   from zipline.api import order, record, symbol
-
-
-   def initialize(context):
-       pass
-
-
-   def handle_data(context, data):
-       order(symbol('AAPL'), 10)
-       record(AAPL=data.current(symbol('AAPL'), 'price'))
-
+.. literalinclude:: ../../zipline/examples/buyapple.py
+    :language: python
+    :lines: 17-23,28-34
 
 As you can see, we first have to import some functions we would like to
 use. All functions commonly used in your algorithm can be found in
@@ -102,6 +97,13 @@ interfaces: A command-line interface, ``IPython Notebook`` magic, and
 Ingesting Data
 ^^^^^^^^^^^^^^
 If you haven't ingested the data, then run:
+
+.. ipython::
+    :suppress:
+
+    In [1]: !zipline ingest
+
+.. Show the bash instead:
 
 .. code-block:: bash
 
@@ -190,7 +192,7 @@ Thus, to execute our algorithm from above and save the results to
 
 .. code-block:: bash
 
-    zipline run -f ../zipline/examples/buyapple.py --start 2016-1-1 --end 2018-1-1 -o buyapple_out.pickle --no-benchmark
+    zipline run -f ../../zipline/examples/buyapple.py --start 2016-1-1 --end 2018-1-1 -o buyapple_out.pickle --no-benchmark
 
 .. parsed-literal::
 
@@ -199,6 +201,14 @@ Thus, to execute our algorithm from above and save the results to
     [2018-01-03 04:30:51.843598] INFO: Performance: first open: 2016-01-04 14:31:00+00:00
     [2018-01-03 04:30:51.843672] INFO: Performance: last close: 2017-12-29 21:00:00+00:00
 
+.. |
+    Executing this produces a lot of matplotlib warnings, so instead just show the bash and expected result,
+    executing it behind the scenes to generate the pickle output file.
+
+.. ipython::
+    :suppress:
+
+    In [1]: !MPLBACKEND=agg zipline run -f ../zipline/examples/buyapple.py --start 2016-1-1 --end 2018-1-1 -o buyapple_out.pickle --no-benchmark
 
 ``run`` first calls the ``initialize()`` function, and then
 streams the historical stock price day-by-day through ``handle_data()``.
@@ -215,274 +225,37 @@ slippage model that ``zipline`` uses, see the `Quantopian
 docs <https://www.quantopian.com/help#ide-slippage>`__ for more
 information).
 
+Reading Results
+^^^^^^^^^^^^^^^
+
 Let's take a quick look at the performance ``DataFrame``. For this, we
 use ``pandas`` from inside the IPython Notebook and print the first ten
 rows. Note that ``zipline`` makes heavy usage of ``pandas``, especially
 for data input and outputting so it's worth spending some time to learn
 it.
 
-.. code-block:: python
+.. |
+    The ipython styling is nicer for the code, but the jupyter styling is nicer
+    for the output (it supports widgets, etc).
+
+.. ipython::
+
+    In [1]: import pandas as pd
+
+    In [1]: perf = pd.read_pickle('buyapple_out.pickle')  # read in perf DataFrame
+
+    @verbatim
+    In [1]: perf.head()
+
+    @suppress
+    In [1]: perf.head()
+
+.. jupyter-execute::
+    :hide-code:
 
     import pandas as pd
-    perf = pd.read_pickle('buyapple_out.pickle') # read in perf DataFrame
+    perf = pd.read_pickle('buyapple_out.pickle')
     perf.head()
-
-.. raw:: html
-
-    <div style="max-height: 1000px; max-width: 1500px; overflow: auto;">
-    <table border="1" class="dataframe">
-    <thead>
-      <tr style="text-align: right;">
-        <th></th>
-        <th>AAPL</th>
-        <th>algo_volatility</th>
-        <th>algorithm_period_return</th>
-        <th>alpha</th>
-        <th>benchmark_period_return</th>
-        <th>benchmark_volatility</th>
-        <th>beta</th>
-        <th>capital_used</th>
-        <th>ending_cash</th>
-        <th>ending_exposure</th>
-        <th>ending_value</th>
-        <th>excess_return</th>
-        <th>gross_leverage</th>
-        <th>long_exposure</th>
-        <th>long_value</th>
-        <th>longs_count</th>
-        <th>max_drawdown</th>
-        <th>max_leverage</th>
-        <th>net_leverage</th>
-        <th>orders</th>
-        <th>period_close</th>
-        <th>period_label</th>
-        <th>period_open</th>
-        <th>pnl</th>
-        <th>portfolio_value</th>
-        <th>positions</th>
-        <th>returns</th>
-        <th>sharpe</th>
-        <th>short_exposure</th>
-        <th>short_value</th>
-        <th>shorts_count</th>
-        <th>sortino</th>
-        <th>starting_cash</th>
-        <th>starting_exposure</th>
-        <th>starting_value</th>
-        <th>trading_days</th>
-        <th>transactions</th>
-        <th>treasury_period_return</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <th>2016-01-04 21:00:00+00:00</th>
-        <td>105.35</td>
-        <td>NaN</td>
-        <td>0.000000e+00</td>
-        <td>NaN</td>
-        <td>-0.013983</td>
-        <td>NaN</td>
-        <td>NaN</td>
-        <td>0.0</td>
-        <td>10000000.0</td>
-        <td>0.0</td>
-        <td>0.0</td>
-        <td>0.0</td>
-        <td>0.000000</td>
-        <td>0.0</td>
-        <td>0.0</td>
-        <td>0</td>
-        <td>0.000000e+00</td>
-        <td>0.0</td>
-        <td>0.000000</td>
-        <td>[{\'dt\': 2016-01-04 21:00:00+00:00, \'reason\': N...</td>
-        <td>2016-01-04 21:00:00+00:00</td>
-        <td>2016-01</td>
-        <td>2016-01-04 14:31:00+00:00</td>
-        <td>0.0</td>
-        <td>10000000.0</td>
-        <td>[]</td>
-        <td>0.000000e+00</td>
-        <td>NaN</td>
-        <td>0</td>
-        <td>0</td>
-        <td>0</td>
-        <td>NaN</td>
-        <td>10000000.0</td>
-        <td>0.0</td>
-        <td>0.0</td>
-        <td>1</td>
-        <td>[]</td>
-        <td>0.0</td>
-      </tr>
-      <tr>
-        <th>2016-01-05 21:00:00+00:00</th>
-        <td>102.71</td>
-        <td>0.000001</td>
-        <td>-1.000000e-07</td>
-        <td>-0.000022</td>
-        <td>-0.012312</td>
-        <td>0.175994</td>
-        <td>-0.000006</td>
-        <td>-1028.1</td>
-        <td>9998971.9</td>
-        <td>1027.1</td>
-        <td>1027.1</td>
-        <td>0.0</td>
-        <td>0.000103</td>
-        <td>1027.1</td>
-        <td>1027.1</td>
-        <td>1</td>
-        <td>-1.000000e-07</td>
-        <td>0.0</td>
-        <td>0.000103</td>
-        <td>[{\'dt\': 2016-01-05 21:00:00+00:00, \'reason\': N...</td>
-        <td>2016-01-05 21:00:00+00:00</td>
-        <td>2016-01</td>
-        <td>2016-01-05 14:31:00+00:00</td>
-        <td>-1.0</td>
-        <td>9999999.0</td>
-        <td>[{\'sid\': Equity(8 [AAPL]), \'last_sale_price\': ...</td>
-        <td>-1.000000e-07</td>
-        <td>-11.224972</td>
-        <td>0</td>
-        <td>0</td>
-        <td>0</td>
-        <td>-11.224972</td>
-        <td>10000000.0</td>
-        <td>0.0</td>
-        <td>0.0</td>
-        <td>2</td>
-        <td>[{\'order_id\': \'4011063b5c094e82a5391527044098b...</td>
-        <td>0.0</td>
-      </tr>
-      <tr>
-        <th>2016-01-06 21:00:00+00:00</th>
-        <td>100.70</td>
-        <td>0.000019</td>
-        <td>-2.210000e-06</td>
-        <td>-0.000073</td>
-        <td>-0.024771</td>
-        <td>0.137853</td>
-        <td>0.000054</td>
-        <td>-1008.0</td>
-        <td>9997963.9</td>
-        <td>2014.0</td>
-        <td>2014.0</td>
-        <td>0.0</td>
-        <td>0.000201</td>
-        <td>2014.0</td>
-        <td>2014.0</td>
-        <td>1</td>
-        <td>-2.210000e-06</td>
-        <td>0.0</td>
-        <td>0.000201</td>
-        <td>[{\'dt\': 2016-01-06 21:00:00+00:00, \'reason\': N...</td>
-        <td>2016-01-06 21:00:00+00:00</td>
-        <td>2016-01</td>
-        <td>2016-01-06 14:31:00+00:00</td>
-        <td>-21.1</td>
-        <td>9999977.9</td>
-        <td>[{\'sid\': Equity(8 [AAPL]), \'last_sale_price\': ...</td>
-        <td>-2.110000e-06</td>
-        <td>-9.823839</td>
-        <td>0</td>
-        <td>0</td>
-        <td>0</td>
-        <td>-9.588756</td>
-        <td>9998971.9</td>
-        <td>1027.1</td>
-        <td>1027.1</td>
-        <td>3</td>
-        <td>[{\'order_id\': \'3bf9fe20cc46468d99f741474226c03...</td>
-        <td>0.0</td>
-      </tr>
-      <tr>
-        <th>2016-01-07 21:00:00+00:00</th>
-        <td>96.45</td>
-        <td>0.000064</td>
-        <td>-1.081000e-05</td>
-        <td>0.000243</td>
-        <td>-0.048168</td>
-        <td>0.167868</td>
-        <td>0.000300</td>
-        <td>-965.5</td>
-        <td>9996998.4</td>
-        <td>2893.5</td>
-        <td>2893.5</td>
-        <td>0.0</td>
-        <td>0.000289</td>
-        <td>2893.5</td>
-        <td>2893.5</td>
-        <td>1</td>
-        <td>-1.081000e-05</td>
-        <td>0.0</td>
-        <td>0.000289</td>
-        <td>[{\'dt\': 2016-01-07 21:00:00+00:00, \'reason\': N...</td>
-        <td>2016-01-07 21:00:00+00:00</td>
-        <td>2016-01</td>
-        <td>2016-01-07 14:31:00+00:00</td>
-        <td>-86.0</td>
-        <td>9999891.9</td>
-        <td>[{\'sid\': Equity(8 [AAPL]), \'last_sale_price\': ...</td>
-        <td>-8.600019e-06</td>
-        <td>-10.592737</td>
-        <td>0</td>
-        <td>0</td>
-        <td>0</td>
-        <td>-9.688947</td>
-        <td>9997963.9</td>
-        <td>2014.0</td>
-        <td>2014.0</td>
-        <td>4</td>
-        <td>[{\'order_id\': \'6af6aed9fbb44a6bba17e802051b94d...</td>
-        <td>0.0</td>
-      </tr>
-      <tr>
-        <th>2016-01-08 21:00:00+00:00</th>
-        <td>96.96</td>
-        <td>0.000063</td>
-        <td>-9.380000e-06</td>
-        <td>0.000466</td>
-        <td>-0.058601</td>
-        <td>0.145654</td>
-        <td>0.000311</td>
-        <td>-970.6</td>
-        <td>9996027.8</td>
-        <td>3878.4</td>
-        <td>3878.4</td>
-        <td>0.0</td>
-        <td>0.000388</td>
-        <td>3878.4</td>
-        <td>3878.4</td>
-        <td>1</td>
-        <td>-1.081000e-05</td>
-        <td>0.0</td>
-        <td>0.000388</td>
-        <td>[{\'dt\': 2016-01-08 21:00:00+00:00, \'reason\': N...</td>
-        <td>2016-01-08 21:00:00+00:00</td>
-        <td>2016-01</td>
-        <td>2016-01-08 14:31:00+00:00</td>
-        <td>14.3</td>
-        <td>9999906.2</td>
-        <td>[{\'sid\': Equity(8 [AAPL]), \'last_sale_price\': ...</td>
-        <td>1.430015e-06</td>
-        <td>-7.511729</td>
-        <td>0</td>
-        <td>0</td>
-        <td>0</td>
-        <td>-7.519659</td>
-        <td>9996998.4</td>
-        <td>2893.5</td>
-        <td>2893.5</td>
-        <td>5</td>
-        <td>[{\'order_id\': \'18f64975732449a18fca06e9c69bf5c...</td>
-        <td>0.0</td>
-      </tr>
-    </tbody>
-    </table>
-    </div>
 
 As you can see, there is a row for each trading day, starting on the
 first business day of 2016. In the columns you can find various
@@ -492,29 +265,21 @@ and allows us to plot the price of apple. For example, we could easily
 examine now how our portfolio value changed over time compared to the
 AAPL stock price.
 
-.. code-block:: python
+.. ipython::
+    :okwarning:
 
-    %pylab inline
-    figsize(12, 12)
-    import matplotlib.pyplot as plt
+    @verbatim
+    In [1]: %pylab inline
 
-    ax1 = plt.subplot(211)
-    perf.portfolio_value.plot(ax=ax1)
-    ax1.set_ylabel('Portfolio Value')
-    ax2 = plt.subplot(212, sharex=ax1)
-    perf.AAPL.plot(ax=ax2)
-    ax2.set_ylabel('AAPL Stock Price')
+    In [1]: import matplotlib.pyplot as plt
 
-.. parsed-literal::
-
-    Populating the interactive namespace from numpy and matplotlib
-
-.. parsed-literal::
-
-    <matplotlib.text.Text at 0x10c48c198>
-
-.. image:: tutorial_files/tutorial_11_2.png
-
+    @savefig tutorial_11_2.png
+    In [1]: ax1 = plt.subplot(211);
+       ...: ax1.set_ylabel('Portfolio Value');
+       ...: perf.portfolio_value.plot(ax=ax1);
+       ...: ax2 = plt.subplot(212, sharex=ax1);
+       ...: perf.AAPL.plot(ax=ax2);
+       ...: ax2.set_ylabel('AAPL Stock Price');
 
 As you can see, our algorithm performance as assessed by the
 ``portfolio_value`` closely matches that of the AAPL stock price. This
@@ -538,288 +303,30 @@ to run the algorithm from above with the same parameters we just have to
 execute the following cell after importing ``zipline`` to register the
 magic.
 
-.. code-block:: python
+.. ipython::
 
-   %load_ext zipline
+    In [1]: %load_ext zipline
 
-.. code-block:: python
-
-   %%zipline --start 2016-1-1 --end 2018-1-1
-   from zipline.api import symbol, order, record
-
-   def initialize(context):
-       pass
-
-   def handle_data(context, data):
-       order(symbol('AAPL'), 10)
-       record(AAPL=data[symbol('AAPL')].price)
+    In [1]: %%capture
+       ...: %%zipline --start 2016-1-1 --end 2018-1-1 --no-benchmark
+       ...:
+       ...: from zipline.api import symbol, order, record
+       ...:
+       ...: def initialize(context):
+       ...:     pass
+       ...:
+       ...: def handle_data(context, data):
+       ...:     order(symbol('AAPL'), 10)
+       ...:     record(AAPL=data[symbol('AAPL')].price)
 
 Note that we did not have to specify an input file as above since the
 magic will use the contents of the cell and look for your algorithm
-functions there. Also, instead of defining an output file we are
-specifying a variable name with ``-o`` that will be created in the name
-space and contain the performance ``DataFrame`` we looked at above.
+functions there. Also, instead of defining an output file, we leave the magic's
+default behavior of returning the performance ``DataFrame`` as its output.
 
-.. code-block:: python
+.. ipython::
 
-   _.head()
-
-.. raw:: html
-
-   <div style="max-height: 1000px; max-width: 1500px; overflow: auto;">
-   <table border="1" class="dataframe">
-    <thead>
-      <tr style="text-align: right;">
-        <th></th>
-        <th>AAPL</th>
-        <th>algo_volatility</th>
-        <th>algorithm_period_return</th>
-        <th>alpha</th>
-        <th>benchmark_period_return</th>
-        <th>benchmark_volatility</th>
-        <th>beta</th>
-        <th>capital_used</th>
-        <th>ending_cash</th>
-        <th>ending_exposure</th>
-        <th>ending_value</th>
-        <th>excess_return</th>
-        <th>gross_leverage</th>
-        <th>long_exposure</th>
-        <th>long_value</th>
-        <th>longs_count</th>
-        <th>max_drawdown</th>
-        <th>max_leverage</th>
-        <th>net_leverage</th>
-        <th>orders</th>
-        <th>period_close</th>
-        <th>period_label</th>
-        <th>period_open</th>
-        <th>pnl</th>
-        <th>portfolio_value</th>
-        <th>positions</th>
-        <th>returns</th>
-        <th>sharpe</th>
-        <th>short_exposure</th>
-        <th>short_value</th>
-        <th>shorts_count</th>
-        <th>sortino</th>
-        <th>starting_cash</th>
-        <th>starting_exposure</th>
-        <th>starting_value</th>
-        <th>trading_days</th>
-        <th>transactions</th>
-        <th>treasury_period_return</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <th>2016-01-04 21:00:00+00:00</th>
-        <td>105.35</td>
-        <td>NaN</td>
-        <td>0.000000e+00</td>
-        <td>NaN</td>
-        <td>-0.013983</td>
-        <td>NaN</td>
-        <td>NaN</td>
-        <td>0.00</td>
-        <td>10000000.00</td>
-        <td>0.0</td>
-        <td>0.0</td>
-        <td>0.0</td>
-        <td>0.000000</td>
-        <td>0.0</td>
-        <td>0.0</td>
-        <td>0</td>
-        <td>0.000000e+00</td>
-        <td>0.0</td>
-        <td>0.000000</td>
-        <td>[{\'created\': 2016-01-04 21:00:00+00:00, \'reaso...</td>
-        <td>2016-01-04 21:00:00+00:00</td>
-        <td>2016-01</td>
-        <td>2016-01-04 14:31:00+00:00</td>
-        <td>0.00</td>
-        <td>10000000.00</td>
-        <td>[]</td>
-        <td>0.000000e+00</td>
-        <td>NaN</td>
-        <td>0</td>
-        <td>0</td>
-        <td>0</td>
-        <td>NaN</td>
-        <td>10000000.00</td>
-        <td>0.0</td>
-        <td>0.0</td>
-        <td>1</td>
-        <td>[]</td>
-        <td>0.0</td>
-      </tr>
-      <tr>
-        <th>2016-01-05 21:00:00+00:00</th>
-        <td>102.71</td>
-        <td>1.122497e-08</td>
-        <td>-1.000000e-09</td>
-        <td>-2.247510e-07</td>
-        <td>-0.012312</td>
-        <td>0.175994</td>
-        <td>-6.378047e-08</td>
-        <td>-1027.11</td>
-        <td>9998972.89</td>
-        <td>1027.1</td>
-        <td>1027.1</td>
-        <td>0.0</td>
-        <td>0.000103</td>
-        <td>1027.1</td>
-        <td>1027.1</td>
-        <td>1</td>
-        <td>-9.999999e-10</td>
-        <td>0.0</td>
-        <td>0.000103</td>
-        <td>[{\'created\': 2016-01-04 21:00:00+00:00, \'reaso...</td>
-        <td>2016-01-05 21:00:00+00:00</td>
-        <td>2016-01</td>
-        <td>2016-01-05 14:31:00+00:00</td>
-        <td>-0.01</td>
-        <td>9999999.99</td>
-        <td>[{\'amount\': 10, \'cost_basis\': 102.711000000000...</td>
-        <td>-1.000000e-09</td>
-        <td>-11.224972</td>
-        <td>0</td>
-        <td>0</td>
-        <td>0</td>
-        <td>-11.224972</td>
-        <td>10000000.00</td>
-        <td>0.0</td>
-        <td>0.0</td>
-        <td>2</td>
-        <td>[{\'dt\': 2016-01-05 21:00:00+00:00, \'order_id\':...</td>
-        <td>0.0</td>
-      </tr>
-      <tr>
-        <th>2016-01-06 21:00:00+00:00</th>
-        <td>100.70</td>
-        <td>1.842654e-05</td>
-        <td>-2.012000e-06</td>
-        <td>-4.883861e-05</td>
-        <td>-0.024771</td>
-        <td>0.137853</td>
-        <td>5.744807e-05</td>
-        <td>-1007.01</td>
-        <td>9997965.88</td>
-        <td>2014.0</td>
-        <td>2014.0</td>
-        <td>0.0</td>
-        <td>0.000201</td>
-        <td>2014.0</td>
-        <td>2014.0</td>
-        <td>1</td>
-        <td>-2.012000e-06</td>
-        <td>0.0</td>
-        <td>0.000201</td>
-        <td>[{\'created\': 2016-01-05 21:00:00+00:00, \'reaso...</td>
-        <td>2016-01-06 21:00:00+00:00</td>
-        <td>2016-01</td>
-        <td>2016-01-06 14:31:00+00:00</td>
-        <td>-20.11</td>
-        <td>9999979.88</td>
-        <td>[{\'amount\': 20, \'cost_basis\': 101.706000000000...</td>
-        <td>-2.011000e-06</td>
-        <td>-9.171989</td>
-        <td>0</td>
-        <td>0</td>
-        <td>0</td>
-        <td>-9.169708</td>
-        <td>9998972.89</td>
-        <td>1027.1</td>
-        <td>1027.1</td>
-        <td>3</td>
-        <td>[{\'dt\': 2016-01-06 21:00:00+00:00, \'order_id\':...</td>
-        <td>0.0</td>
-      </tr>
-      <tr>
-        <th>2016-01-07 21:00:00+00:00</th>
-        <td>96.45</td>
-        <td>6.394658e-05</td>
-        <td>-1.051300e-05</td>
-        <td>2.633450e-04</td>
-        <td>-0.048168</td>
-        <td>0.167868</td>
-        <td>3.005102e-04</td>
-        <td>-964.51</td>
-        <td>9997001.37</td>
-        <td>2893.5</td>
-        <td>2893.5</td>
-        <td>0.0</td>
-        <td>0.000289</td>
-        <td>2893.5</td>
-        <td>2893.5</td>
-        <td>1</td>
-        <td>-1.051300e-05</td>
-        <td>0.0</td>
-        <td>0.000289</td>
-        <td>[{\'created\': 2016-01-06 21:00:00+00:00, \'reaso...</td>
-        <td>2016-01-07 21:00:00+00:00</td>
-        <td>2016-01</td>
-        <td>2016-01-07 14:31:00+00:00</td>
-        <td>-85.01</td>
-        <td>9999894.87</td>
-        <td>[{\'amount\': 30, \'cost_basis\': 99.9543333333335...</td>
-        <td>-8.501017e-06</td>
-        <td>-10.357397</td>
-        <td>0</td>
-        <td>0</td>
-        <td>0</td>
-        <td>-9.552189</td>
-        <td>9997965.88</td>
-        <td>2014.0</td>
-        <td>2014.0</td>
-        <td>4</td>
-        <td>[{\'dt\': 2016-01-07 21:00:00+00:00, \'order_id\':...</td>
-        <td>0.0</td>
-      </tr>
-      <tr>
-        <th>2016-01-08 21:00:00+00:00</th>
-        <td>96.96</td>
-        <td>6.275294e-05</td>
-        <td>-8.984000e-06</td>
-        <td>4.879306e-04</td>
-        <td>-0.058601</td>
-        <td>0.145654</td>
-        <td>3.118401e-04</td>
-        <td>-969.61</td>
-        <td>9996031.76</td>
-        <td>3878.4</td>
-        <td>3878.4</td>
-        <td>0.0</td>
-        <td>0.000388</td>
-        <td>3878.4</td>
-        <td>3878.4</td>
-        <td>1</td>
-        <td>-1.051300e-05</td>
-        <td>0.0</td>
-        <td>0.000388</td>
-        <td>[{\'created\': 2016-01-07 21:00:00+00:00, \'reaso...</td>
-        <td>2016-01-08 21:00:00+00:00</td>
-        <td>2016-01</td>
-        <td>2016-01-08 14:31:00+00:00</td>
-        <td>15.29</td>
-        <td>9999910.16</td>
-        <td>[{\'amount\': 40, \'cost_basis\': 99.2060000000002...</td>
-        <td>1.529016e-06</td>
-        <td>-7.215497</td>
-        <td>0</td>
-        <td>0</td>
-        <td>0</td>
-        <td>-7.301134</td>
-        <td>9997001.37</td>
-        <td>2893.5</td>
-        <td>2893.5</td>
-        <td>5</td>
-        <td>[{\'dt\': 2016-01-08 21:00:00+00:00, \'order_id\':...</td>
-        <td>0.0</td>
-      </tr>
-    </tbody>
-   </table>
-   </div>
+    In [1]: _.head()
 
 Access to Previous Prices Using ``history``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -846,70 +353,68 @@ collect, the second argument is the unit (either ``'1d'`` or ``'1m'``,
 but note that you need to have minute-level data for using ``1m``). For
 a more detailed description of ``history()``'s features, see the
 `Quantopian docs <https://www.quantopian.com/help#ide-history>`__.
-Let's look at the strategy which should make this clear:
+Let's look at the strategy which should make this clear :
 
-.. code-block:: python
+.. ipython::
+    :okwarning:
 
-   %%zipline --start 2014-1-1 --end 2018-1-1 -o dma.pickle
-
-
-   from zipline.api import order_target, record, symbol
-   import matplotlib.pyplot as plt
-
-   def initialize(context):
-       context.i = 0
-       context.asset = symbol('AAPL')
-
-
-   def handle_data(context, data):
-       # Skip first 300 days to get full windows
-       context.i += 1
-       if context.i < 300:
-           return
-
-       # Compute averages
-       # data.history() has to be called with the same params
-       # from above and returns a pandas dataframe.
-       short_mavg = data.history(context.asset, 'price', bar_count=100, frequency="1d").mean()
-       long_mavg = data.history(context.asset, 'price', bar_count=300, frequency="1d").mean()
-
-       # Trading logic
-       if short_mavg > long_mavg:
-           # order_target orders as many shares as needed to
-           # achieve the desired number of shares.
-           order_target(context.asset, 100)
-       elif short_mavg < long_mavg:
-           order_target(context.asset, 0)
-
-       # Save values for later inspection
-       record(AAPL=data.current(context.asset, 'price'),
-              short_mavg=short_mavg,
-              long_mavg=long_mavg)
-
-
-   def analyze(context, perf):
-       fig = plt.figure()
-       ax1 = fig.add_subplot(211)
-       perf.portfolio_value.plot(ax=ax1)
-       ax1.set_ylabel('portfolio value in $')
-
-       ax2 = fig.add_subplot(212)
-       perf['AAPL'].plot(ax=ax2)
-       perf[['short_mavg', 'long_mavg']].plot(ax=ax2)
-
-       perf_trans = perf.ix[[t != [] for t in perf.transactions]]
-       buys = perf_trans.ix[[t[0]['amount'] > 0 for t in perf_trans.transactions]]
-       sells = perf_trans.ix[
-           [t[0]['amount'] < 0 for t in perf_trans.transactions]]
-       ax2.plot(buys.index, perf.short_mavg.ix[buys.index],
-                '^', markersize=10, color='m')
-       ax2.plot(sells.index, perf.short_mavg.ix[sells.index],
-                'v', markersize=10, color='k')
-       ax2.set_ylabel('price in $')
-       plt.legend(loc=0)
-       plt.show()
-
-.. image:: tutorial_files/tutorial_22_1.png
+    @savefig tutorial_22_1.png
+    In [1]: %%capture
+       ...: %%zipline --start 2014-1-1 --end 2018-1-1 --no-benchmark -o dma.pickle
+       ...:
+       ...: from zipline.api import order_target, record, symbol
+       ...: import matplotlib.pyplot as plt
+       ...:
+       ...: def initialize(context):
+       ...:     context.i = 0
+       ...:     context.asset = symbol('AAPL')
+       ...:
+       ...: def handle_data(context, data):
+       ...:     # Skip first 300 days to get full windows
+       ...:     context.i += 1
+       ...:     if context.i < 300:
+       ...:         return
+       ...:
+       ...:     # Compute averages
+       ...:     # data.history() has to be called with the same params
+       ...:     # from above and returns a pandas dataframe.
+       ...:     short_mavg = data.history(context.asset, 'price', bar_count=100, frequency="1d").mean()
+       ...:     long_mavg = data.history(context.asset, 'price', bar_count=300, frequency="1d").mean()
+       ...:
+       ...:     # Trading logic
+       ...:     if short_mavg > long_mavg:
+       ...:         # order_target orders as many shares as needed to
+       ...:         # achieve the desired number of shares.
+       ...:         order_target(context.asset, 100)
+       ...:     elif short_mavg < long_mavg:
+       ...:         order_target(context.asset, 0)
+       ...:
+       ...:     # Save values for later inspection
+       ...:     record(AAPL=data.current(context.asset, 'price'),
+       ...:            short_mavg=short_mavg,
+       ...:            long_mavg=long_mavg)
+       ...:
+       ...: def analyze(context, perf):
+       ...:     fig = plt.figure()
+       ...:     ax1 = fig.add_subplot(211)
+       ...:     perf.portfolio_value.plot(ax=ax1)
+       ...:     ax1.set_ylabel('portfolio value in $')
+       ...:
+       ...:     ax2 = fig.add_subplot(212)
+       ...:     perf['AAPL'].plot(ax=ax2)
+       ...:     perf[['short_mavg', 'long_mavg']].plot(ax=ax2)
+       ...:
+       ...:     perf_trans = perf.ix[[t != [] for t in perf.transactions]]
+       ...:     buys = perf_trans.ix[[t[0]['amount'] > 0 for t in perf_trans.transactions]]
+       ...:     sells = perf_trans.ix[
+       ...:         [t[0]['amount'] < 0 for t in perf_trans.transactions]]
+       ...:     ax2.plot(buys.index, perf.short_mavg.ix[buys.index],
+       ...:              '^', markersize=10, color='m')
+       ...:     ax2.plot(sells.index, perf.short_mavg.ix[sells.index],
+       ...:              'v', markersize=10, color='k')
+       ...:     ax2.set_ylabel('price in $')
+       ...:     plt.legend(loc=0)
+       ...:     plt.show()
 
 Here we are explicitly defining an ``analyze()`` function that gets
 automatically called once the backtest is done (this is not possible on

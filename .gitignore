@@ -78,3 +78,8 @@ TAGS
 .gdb_history
 
 *.dSYM/
+
+# Output from ipython sphinx directives
+/docs/source/savefig/
+/docs/buyapple_out.pickle
+/docs/dma.pickle

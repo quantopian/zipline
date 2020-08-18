@@ -1,0 +1,4 @@
+div.output.text_html {
+    max-width: 1500px;
+    overflow: auto;
+}
