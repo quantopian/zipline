@@ -44,7 +44,7 @@ project = u'Zipline'
 copyright = u'2016, Quantopian Inc.'
 
 # The full version, including alpha/beta/rc tags, but excluding the commit hash
-release = version.split('+', 1)[0]
+version = release = version.split('+', 1)[0]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
