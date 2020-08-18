@@ -515,7 +515,8 @@ class BenchmarkSpec(object):
                 benchmark_returns = None
             except SymbolNotFound:
                 raise _RunAlgoError(
-                    "Symbol %s as a benchmark not found in this bundle."
+                    "Symbol %r as a benchmark not found in this bundle."
+                    % self.benchmark_symbol
                 )
         elif self.no_benchmark:
             benchmark_sid = None
