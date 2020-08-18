@@ -83,6 +83,7 @@ There are two primary ways to configure a custom blotter:
 An example usage of **(2)** might look like this:
 
 .. code-block:: python
+   :caption: ~/.zipline/extension.py
    :name: ~/.zipline/extension.py
 
    from zipline.extensions import register
