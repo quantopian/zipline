@@ -293,7 +293,7 @@ def run(ctx,
         benchmark_file=benchmark_file,
     )
 
-    perf = _run(
+    return _run(
         initialize=None,
         handle_data=None,
         before_trading_start=None,
@@ -316,13 +316,6 @@ def run(ctx,
         blotter=blotter,
         benchmark_spec=benchmark_spec,
     )
-
-    if output == '-':
-        click.echo(str(perf))
-    elif output != os.devnull:  # make the zipline magic not write any data
-        perf.to_pickle(output)
-
-    return perf
 
 
 def zipline_magic(line, cell=None):
