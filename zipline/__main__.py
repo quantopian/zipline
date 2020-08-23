@@ -112,6 +112,9 @@ def ipython_only(option):
     return d
 
 
+DEFAULT_BUNDLE = 'quantopian-quandl'
+
+
 @main.command()
 @click.option(
     '-f',
@@ -151,7 +154,7 @@ def ipython_only(option):
 @click.option(
     '-b',
     '--bundle',
-    default='quantopian-quandl',
+    default=DEFAULT_BUNDLE,
     metavar='BUNDLE-NAME',
     show_default=True,
     help='The data bundle to use for the simulation.',
@@ -355,7 +358,7 @@ def zipline_magic(line, cell=None):
 @click.option(
     '-b',
     '--bundle',
-    default='quandl',
+    default=DEFAULT_BUNDLE,
     metavar='BUNDLE-NAME',
     show_default=True,
     help='The data bundle to ingest.',
@@ -387,7 +390,7 @@ def ingest(bundle, assets_version, show_progress):
 @click.option(
     '-b',
     '--bundle',
-    default='quandl',
+    default=DEFAULT_BUNDLE,
     metavar='BUNDLE-NAME',
     show_default=True,
     help='The data bundle to clean.',

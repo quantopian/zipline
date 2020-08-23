@@ -101,15 +101,15 @@ interfaces: A command-line interface, ``IPython Notebook`` magic, and
 
 Ingesting Data
 ^^^^^^^^^^^^^^
-If you haven't ingested the data, you'll need a `Quandl <https://docs.quandl.com/docs#section-authentication>`__ API key to
-ingest the default bundle. Then run:
+If you haven't ingested the data, then run:
 
 .. code-block:: bash
 
-   $ QUANDL_API_KEY=<yourkey> zipline ingest [-b <bundle>]
+   $ zipline ingest [-b <bundle>]
 
 where ``<bundle>`` is the name of the bundle to ingest, defaulting to
-``quandl``.
+``quantopian-quandl``.
+
 
 you can check out the :ref:`ingesting data <ingesting-data>` section for
 more detail.
