@@ -467,7 +467,7 @@ class BenchmarkSpec(object):
             benchmark_file=None,
             benchmark_sid=None,
             benchmark_symbol=None,
-            no_benchmark=benchmark_returns is not None,
+            no_benchmark=benchmark_returns is None,
         )
 
     def resolve(self, asset_finder, start_date, end_date):
