@@ -966,7 +966,7 @@ class AssetFinder(object):
         ----------
         symbol : str
             The ticker symbol to resolve.
-        as_of_date : datetime or None
+        as_of_date : datetime.datetime or None
             Look up the last owner of this symbol as of this datetime.
             If ``as_of_date`` is None, then this can only resolve the equity
             if exactly one equity has ever owned the ticker.
