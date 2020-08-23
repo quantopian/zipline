@@ -586,8 +586,8 @@ def _make_bundle_core():
             def should_clean(name):
                 dt = from_bundle_ingest_dirname(name)
                 return (
-                    (before is not None and dt < before) or
-                    (after is not None and dt > after)
+                    (before is None or dt < before) and
+                    (after is None or dt > after)
                 )
 
         elif keep_last >= 0:
