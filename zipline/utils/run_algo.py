@@ -350,6 +350,8 @@ def run_algorithm(start,
     metrics_set : iterable[Metric] or str, optional
         The set of metrics to compute in the simulation. If a string is passed,
         resolve the set with :func:`zipline.finance.metrics.load`.
+    benchmark_returns : pd.Series, optional
+        Series of returns to use as the benchmark.
     default_extension : bool, optional
         Should the default zipline extension be loaded. This is found at
         ``$ZIPLINE_ROOT/extension.py``
@@ -465,7 +467,7 @@ class BenchmarkSpec(object):
             benchmark_file=None,
             benchmark_sid=None,
             benchmark_symbol=None,
-            no_benchmark=benchmark_returns is not None,
+            no_benchmark=benchmark_returns is None,
         )
 
     def resolve(self, asset_finder, start_date, end_date):
@@ -513,7 +515,8 @@ class BenchmarkSpec(object):
                 benchmark_returns = None
             except SymbolNotFound:
                 raise _RunAlgoError(
-                    "Symbol %s as a benchmark not found in this bundle."
+                    "Symbol %r as a benchmark not found in this bundle."
+                    % self.benchmark_symbol
                 )
         elif self.no_benchmark:
             benchmark_sid = None
