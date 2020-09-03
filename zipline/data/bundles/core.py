@@ -182,8 +182,9 @@ class BadClean(click.ClickException, ValueError):
     """
     def __init__(self, before, after, keep_last):
         super(BadClean, self).__init__(
-            'Cannot pass a combination of `before` and `after` with'
-            '`keep_last`. Got: before=%r, after=%r, keep_n=%r\n' % (
+            'Cannot pass a combination of `before` and `after` with '
+            '`keep_last`. Must pass one. '
+            'Got: before=%r, after=%r, keep_last=%r\n' % (
                 before,
                 after,
                 keep_last,
@@ -578,6 +579,9 @@ def _make_bundle_core():
             if e.errno != errno.ENOENT:
                 raise
             raise UnknownBundle(name)
+
+        if before is after is keep_last is None:
+            raise BadClean(before, after, keep_last)
         if ((before is not None or after is not None) and
                 keep_last is not None):
             raise BadClean(before, after, keep_last)
