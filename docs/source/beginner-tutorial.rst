@@ -51,7 +51,7 @@ Quantopian docs <https://www.quantopian.com/help#api-toplevel>`__.
 My First Algorithm
 ~~~~~~~~~~~~~~~~~~
 
-Lets take a look at a very simple algorithm from the ``examples``
+Let's take a look at a very simple algorithm from the ``examples``
 directory, ``buyapple.py``:
 
 .. code-block:: python
@@ -101,15 +101,15 @@ interfaces: A command-line interface, ``IPython Notebook`` magic, and
 
 Ingesting Data
 ^^^^^^^^^^^^^^
-If you haven't ingested the data, you'll need a `Quandl <https://docs.quandl.com/docs#section-authentication>`__ API key to
-ingest the default bundle. Then run:
+If you haven't ingested the data, then run:
 
 .. code-block:: bash
 
-   $ QUANDL_API_KEY=<yourkey> zipline ingest [-b <bundle>]
+   $ zipline ingest [-b <bundle>]
 
 where ``<bundle>`` is the name of the bundle to ingest, defaulting to
-``quandl``.
+``quantopian-quandl``.
+
 
 you can check out the :ref:`ingesting data <ingesting-data>` section for
 more detail.
@@ -186,13 +186,11 @@ supply the command line args all the time (see the .conf files in the examples
 directory).
 
 Thus, to execute our algorithm from above and save the results to
-``buyapple_out.pickle`` we would call ``zipline run`` as follows:
+``buyapple_out.pickle``, we call ``zipline run`` as follows:
 
-.. code-block:: python
+.. code-block:: bash
 
-    zipline run -f ../../zipline/examples/buyapple.py --start 2016-1-1 --end 2018-1-1 -o buyapple_out.pickle
-        --no-benchmark
-
+    zipline run -f ../zipline/examples/buyapple.py --start 2016-1-1 --end 2018-1-1 -o buyapple_out.pickle --no-benchmark
 
 .. parsed-literal::
 
@@ -217,7 +215,7 @@ slippage model that ``zipline`` uses, see the `Quantopian
 docs <https://www.quantopian.com/help#ide-slippage>`__ for more
 information).
 
-Lets take a quick look at the performance ``DataFrame``. For this, we
+Let's take a quick look at the performance ``DataFrame``. For this, we
 use ``pandas`` from inside the IPython Notebook and print the first ten
 rows. Note that ``zipline`` makes heavy usage of ``pandas``, especially
 for data input and outputting so it's worth spending some time to learn

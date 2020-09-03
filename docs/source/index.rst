@@ -1,3 +1,5 @@
+.. title:: Zipline
+
 .. include:: ../../README.rst
 
 .. toctree::

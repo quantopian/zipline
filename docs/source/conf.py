@@ -41,10 +41,10 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Zipline'
-copyright = u'2016, Quantopian Inc.'
+copyright = u'2020, Quantopian Inc.'
 
 # The full version, including alpha/beta/rc tags, but excluding the commit hash
-release = version.split('+', 1)[0]
+version = release = version.split('+', 1)[0]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -72,7 +72,7 @@ highlight_language = 'python'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['.static']
+html_static_path = []
 
 # If false, no index is generated.
 html_use_index = True

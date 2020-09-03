@@ -15,7 +15,7 @@ This meant that simulations required an internet connection and stable APIs for 
 
 We removed the dependency on treasury curves, since they weren't actually being used anymore. And we replaced the implicit downloading of benchmark returns with explicit options:
 
-.. code-block:: bash
+.. code-block:: none
 
    --benchmark-file                The csv file that contains the benchmark
                                    returns (date, returns columns)
@@ -36,8 +36,7 @@ New Built In Factors
 ````````````````````
 
 - :class:`~zipline.pipeline.factors.PercentChange`: Calculates the percent change over the given ``window_length``. Note: Percent change is calculated as ``(new - old) / abs(old)``. (:issue:`2506`)
-- :class:`~zipline.pipeline.factors.PeerCount`: Gives the number of occurrences of each distinct
-category in a classifier. (:issue:`2509`)
+- :class:`~zipline.pipeline.factors.PeerCount`: Gives the number of occurrences of each distinct category in a classifier. (:issue:`2509`)
 - :class:`~zipline.pipeline.mixins.ConstantMixin`: A mixin for creating a Pipeline term with a constant value. (:issue:`2697`)
 - :meth:`~zipline.pipeline.filters.Filter.if_else`: Allows users to create expressions that conditionally draw from the outputs of one of two terms. (:issue:`2697`)
 - :meth:`~zipline.pipeline.term.ComputableTerm.fillna`: Allows users to fill missing data with either a constant value, or values from another term. (:issue:`2697`)
@@ -102,7 +101,7 @@ In the context of Pipeline, the domain specifies the set of assets and a corresp
 
 For example, the following pipeline returns the latest close price and volume for all Canadian equities, every day.
 
-.. code-block:: Python
+.. code-block:: python
 
    pipe = Pipeline(
        columns={
