@@ -53,12 +53,14 @@ jobs:
         echo "::set-output name=dir::$(pip cache dir)"
     - name: pip cache
       uses: actions/cache@v2
+      id: cache
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: ${{ runner.os }}-pip-py${{matrix.python-version}}-${{ hashFiles('$PIP_CONSTRAINT') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Install requirements
+      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         python -m pip install -r etc/requirements_build.in
         python -m pip install --no-binary=bcolz -e .[all] -r etc/requirements_blaze.in
