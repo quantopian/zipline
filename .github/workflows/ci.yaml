@@ -55,11 +55,12 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-py${{matrix.python-version}}-${{ hashFiles('$PIP_CONSTRAINT') }}
+        key: ${{ runner.os }}-pip-py${{matrix.python-version}}-${{ hashFiles(env.PIP_CONSTRAINT) }}
         restore-keys: |
-          ${{ runner.os }}-pip-
+          ${{ runner.os }}-pip-py${{matrix.python-version}}-
     - name: Install requirements
       run: |
+        python -m pip install wheel
         python -m pip install -r etc/requirements_build.in
         python -m pip install --no-binary=bcolz -e .[all] -r etc/requirements_blaze.in
     - name: Run tests
