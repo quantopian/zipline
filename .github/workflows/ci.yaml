@@ -57,7 +57,7 @@ jobs:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: ${{ runner.os }}-pip-py${{matrix.python-version}}-${{ hashFiles(env.PIP_CONSTRAINT) }}
         restore-keys: |
-          ${{ runner.os }}-pip-
+          ${{ runner.os }}-pip-py${{matrix.python-version}}-
     - name: Install requirements
       run: |
         python -m pip install wheel
