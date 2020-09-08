@@ -55,7 +55,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-py${{matrix.python-version}}-${{ hashFiles('$PIP_CONSTRAINT') }}
+        key: ${{ runner.os }}-pip-py${{matrix.python-version}}-${{ hashFiles(env.PIP_CONSTRAINT) }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Install requirements
