@@ -152,7 +152,7 @@ by using the command
 
 .. code-block:: bash
 
-    $ source activate env_zipline
+    $ conda activate env_zipline
 
 You can install Zipline by running
 
@@ -164,4 +164,10 @@ To deactivate the ``conda`` environment:
 
 .. code-block:: bash
 
-    (env_zipline) $ source deactivate
+    (env_zipline) $ conda deactivate
+
+.. note::
+   ``conda activate`` and ``conda deactivate`` only work on conda 4.6 and later versions. For conda versions prior to 4.6, run:
+   
+      * Windows: ``activate`` or ``deactivate``
+      * Linux and macOS: ``source activate`` or ``source deactivate``
