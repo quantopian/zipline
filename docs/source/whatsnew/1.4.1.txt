@@ -10,7 +10,7 @@ and build/dependency enhancements.
 Bug Fixes
 ~~~~~~~~~
 
-- Fix for calling `run_algorithm` without `benchmark_returns` (:issue:`2762`)
+- Fix for calling ``run_algorithm`` without ``benchmark_returns`` (:issue:`2762`)
 
 Maintenance and Refactorings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -23,10 +23,10 @@ Build
 ~~~~~
 
 - CI with newer statsmodels and scipy (:issue:`2739`)
-- GitHub Actions CI on linux and macos (:issue:`2743`)
+- GitHub Actions CI on linux and macos (:issue:`2743`, :issue:`2767`)
 - Added conda packaging for zipline and its dependencies to conda-forge (:issue:`2665`)
 
 Documentation
 ~~~~~~~~~~~~~
 
-- Various documentation improvements (:issue:`2763`)
+- Various documentation improvements (:issue:`2763`, :issue:`2771`, :issue:`2776`, :issue:`2780`)
