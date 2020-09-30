@@ -110,12 +110,11 @@ dependencies.
 For instructions on how to install ``conda``, see the `Conda Installation
 Documentation <https://conda.io/projects/conda/en/latest/user-guide/install/index.html>`_
 
-Once ``conda`` has been set up you can install Zipline from our ``Quantopian``
-channel:
+Once ``conda`` has been set up you can install Zipline from the ``conda-forge`` channel:
 
 .. code-block:: bash
 
-    conda install -c Quantopian zipline
+    conda install -c conda-forge zipline
 
 .. _`Debian-derived`: https://www.debian.org/derivatives/
 .. _`RHEL-derived`: https://en.wikipedia.org/wiki/Red_Hat_Enterprise_Linux_derivatives
@@ -123,27 +122,21 @@ channel:
 .. _`Hitchhiker's Guide to Python` : https://docs.python-guide.org/en/latest/
 .. _`Homebrew` : https://brew.sh
 
+.. _managing-conda-environments:
+
 Managing ``conda`` environments
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 It is recommended to install Zipline in an isolated ``conda`` environment.
 Installing Zipline in ``conda`` environments will not interfere your default
 Python deployment or site-packages, which will prevent any possible conflict
 with your global libraries. For more information on ``conda`` environment, see
-the `Conda User Guide <https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html>`_
+the `Conda User Guide <https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html>`_.
 
 Assuming ``conda`` has been set up, you can create a ``conda`` environment:
 
-- Python 2.7:
-
 .. code-block:: bash
 
-    $ conda create -n env_zipline python=2.7
-
-- Python 3.5:
-
-.. code-block:: bash
-
-    $ conda create -n env_zipline python=3.5
+    $ conda create -n env_zipline python=3.6
 
 
 Now you have set up an isolated environment called ``env_zipline``, a sandbox-like
@@ -158,7 +151,18 @@ You can install Zipline by running
 
 .. code-block:: bash
 
-    (env_zipline) $ conda install -c Quantopian zipline
+    (env_zipline) $ conda install -c conda-forge zipline
+
+.. note::
+
+    The ``conda-forge`` channel so far only has zipline 1.4.0+ packages for python 3.6.
+    Conda packages for previous versions of zipline for pythons 2.7/3.5/3.6 are
+    still available on Quantopian's anaconda channel, but are not being updated.
+    They can be installed with:
+
+    .. code-block:: bash
+
+        (env_zipline35) $ conda install -c Quantopian zipline
 
 To deactivate the ``conda`` environment:
 
@@ -168,6 +172,6 @@ To deactivate the ``conda`` environment:
 
 .. note::
    ``conda activate`` and ``conda deactivate`` only work on conda 4.6 and later versions. For conda versions prior to 4.6, run:
-   
+
       * Windows: ``activate`` or ``deactivate``
       * Linux and macOS: ``source activate`` or ``source deactivate``
