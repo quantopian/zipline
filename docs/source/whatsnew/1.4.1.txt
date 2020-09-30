@@ -24,6 +24,7 @@ Build
 
 - CI with newer statsmodels and scipy (:issue:`2739`)
 - GitHub Actions CI on linux and macos (:issue:`2743`)
+- Added conda packaging for zipline and its dependencies to conda-forge (:issue:`2665`)
 
 Documentation
 ~~~~~~~~~~~~~
