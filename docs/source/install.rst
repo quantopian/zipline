@@ -122,6 +122,8 @@ Once ``conda`` has been set up you can install Zipline from the ``conda-forge`` 
 .. _`Hitchhiker's Guide to Python` : https://docs.python-guide.org/en/latest/
 .. _`Homebrew` : https://brew.sh
 
+.. _managing-conda-environments:
+
 Managing ``conda`` environments
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 It is recommended to install Zipline in an isolated ``conda`` environment.
