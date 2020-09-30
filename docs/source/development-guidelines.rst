@@ -196,6 +196,8 @@ __ https://www.sphinx-doc.org/en/master/
 
    $ pip install -r ./etc/requirements_docs.in -c ./etc/requirements_locked.txt
 
+If you would like to use Anaconda, please follow :ref:`the installation guide<managing-conda-environments>` to create and activate an environment, and then run the command above.
+
 To build and view the docs locally, run:
 
 .. code-block:: bash
