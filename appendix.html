@@ -1,64 +1,72 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8">
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>API Reference &mdash; Zipline 1.4.0 documentation</title>
+  <title>API Reference &mdash; Zipline 1.4.1 documentation</title>
   
 
   
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
   
 
   
-
-  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
     
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-
-  
-  
-    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  
-
-  
-
-  
-        <link rel="index" title="Index"
-              href="genindex.html"/>
-        <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="Zipline 1.4.0 documentation" href="index.html"/>
-        <link rel="next" title="Release Process" href="release-process.html"/>
-        <link rel="prev" title="Development Guidelines" href="development-guidelines.html"/> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Release Process" href="release-process.html" />
+    <link rel="prev" title="Development Guidelines" href="development-guidelines.html" /> 
 </head>
 
-<body class="wy-body-for-nav" role="document">
+<body class="wy-body-for-nav">
 
+   
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-nav-search">
-        
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
 
-        
-          <a href="index.html" class="icon icon-home"> Zipline
-        
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> Zipline
+          
 
-        
-        </a>
+          
+          </a>
 
-        
+          
+            
+            
+              <div class="version">
+                1.4.1
+              </div>
+            
+          
+
+          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -67,109 +75,24 @@
   </form>
 </div>
 
-        
-      </div>
+          
+        </div>
 
-      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
         
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
-          
+            
+            
+              
+            
+            
               <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="install.html">Install</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-pip">Installing with <code class="docutils literal notranslate"><span class="pre">pip</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="install.html#gnu-linux">GNU/Linux</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#osx">OSX</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#windows">Windows</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-conda">Installing with <code class="docutils literal notranslate"><span class="pre">conda</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="install.html#managing-conda-environments">Managing <code class="docutils literal notranslate"><span class="pre">conda</span></code> environments</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="beginner-tutorial.html">Zipline Beginner Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#basics">Basics</a></li>
-<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#my-first-algorithm">My First Algorithm</a></li>
-<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#running-the-algorithm">Running the Algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="beginner-tutorial.html#ingesting-data">Ingesting Data</a></li>
-<li class="toctree-l3"><a class="reference internal" href="beginner-tutorial.html#command-line-interface">Command Line Interface</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
-<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#access-to-previous-prices-using-history">Access to Previous Prices Using <code class="docutils literal notranslate"><span class="pre">history</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#conclusions">Conclusions</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="bundles.html">Data Bundles</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="bundles.html#discovering-available-bundles">Discovering Available Bundles</a></li>
-<li class="toctree-l2"><a class="reference internal" href="bundles.html#ingesting-data">Ingesting Data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="bundles.html#old-data">Old Data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="bundles.html#running-backtests-with-data-bundles">Running Backtests with Data Bundles</a></li>
-<li class="toctree-l2"><a class="reference internal" href="bundles.html#default-data-bundles">Default Data Bundles</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#quandl-wiki-bundle">Quandl WIKI Bundle</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="bundles.html#writing-a-new-bundle">Writing a New Bundle</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#environ"><code class="docutils literal notranslate"><span class="pre">environ</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#asset-db-writer"><code class="docutils literal notranslate"><span class="pre">asset_db_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#minute-bar-writer"><code class="docutils literal notranslate"><span class="pre">minute_bar_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#daily-bar-writer"><code class="docutils literal notranslate"><span class="pre">daily_bar_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#adjustment-writer"><code class="docutils literal notranslate"><span class="pre">adjustment_writer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#calendar"><code class="docutils literal notranslate"><span class="pre">calendar</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#start-session"><code class="docutils literal notranslate"><span class="pre">start_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#end-session"><code class="docutils literal notranslate"><span class="pre">end_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#cache"><code class="docutils literal notranslate"><span class="pre">cache</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#show-progress"><code class="docutils literal notranslate"><span class="pre">show_progress</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bundles.html#output-dir"><code class="docutils literal notranslate"><span class="pre">output_dir</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="bundles.html#ingesting-data-from-csv-files">Ingesting Data from .csv Files</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="trading-calendars.html">Trading Calendars</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#what-is-a-trading-calendar">What is a Trading Calendar?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#why-should-you-care-about-trading-calendars">Why Should You Care About Trading Calendars?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#the-tradingcalendar-class">The TradingCalendar Class</a></li>
-<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#building-a-custom-trading-calendar">Building a Custom Trading Calendar</a></li>
-<li class="toctree-l2"><a class="reference internal" href="trading-calendars.html#conclusions">Conclusions</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="risk-and-perf-metrics.html">Risk and Performance Metrics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#metrics-sets">Metrics Sets</a></li>
-<li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#selecting-the-metrics-set">Selecting the Metrics Set</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#command-line-and-ipython-magic">Command Line and IPython Magic</a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#run-algorithm"><code class="docutils literal notranslate"><span class="pre">run_algorithm</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#running-without-metrics">Running Without Metrics</a></li>
-<li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#defining-new-metrics">Defining New Metrics</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#start-of-simulation"><code class="docutils literal notranslate"><span class="pre">start_of_simulation</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-simulation"><code class="docutils literal notranslate"><span class="pre">end_of_simulation</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#start-of-session"><code class="docutils literal notranslate"><span class="pre">start_of_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-session"><code class="docutils literal notranslate"><span class="pre">end_of_session</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="risk-and-perf-metrics.html#end-of-bar"><code class="docutils literal notranslate"><span class="pre">end_of_bar</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="risk-and-perf-metrics.html#defining-new-metrics-sets">Defining New Metrics Sets</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="development-guidelines.html">Development Guidelines</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#creating-a-development-environment">Creating a Development Environment</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#development-with-docker">Development with Docker</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#style-guide-running-tests">Style Guide &amp; Running Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#continuous-integration">Continuous Integration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#packaging">Packaging</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#updating-dependencies">Updating dependencies</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#contributing-to-the-docs">Contributing to the Docs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#commit-messages">Commit messages</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#formatting-docstrings">Formatting Docstrings</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development-guidelines.html#updating-the-whatsnew">Updating the Whatsnew</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beginner-tutorial.html">Zipline Beginner Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bundles.html">Data Bundles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="trading-calendars.html">Trading Calendars</a></li>
+<li class="toctree-l1"><a class="reference internal" href="risk-and-perf-metrics.html">Risk and Performance Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development-guidelines.html">Development Guidelines</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#running-a-backtest">Running a Backtest</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#algorithm-api">Algorithm API</a><ul>
@@ -219,221 +142,72 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="release-process.html">Release Process</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-release-notes">Updating the Release Notes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-python-stub-files">Updating the Python stub files</a></li>
-<li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-version">Updating the <code class="docutils literal notranslate"><span class="pre">__version__</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="release-process.html#uploading-pypi-packages">Uploading PyPI packages</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="release-process.html#sdist"><code class="docutils literal notranslate"><span class="pre">sdist</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="release-process.html#bdist"><code class="docutils literal notranslate"><span class="pre">bdist</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="release-process.html#documentation">Documentation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="release-process.html#uploading-conda-packages">Uploading conda packages</a></li>
-<li class="toctree-l2"><a class="reference internal" href="release-process.html#next-commit">Next Commit</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-4-0">Release 1.4.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#highlights">Highlights</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#removed-implicit-dependency-on-benchmarks-and-treasury-returns">Removed Implicit Dependency on Benchmarks and Treasury Returns</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#new-built-in-factors">New Built In Factors</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#performance">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#miscellaneous">Miscellaneous</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#international-pipelines">International Pipelines</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#datasetfamily">DataSetFamily</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-3-0">Release 1.3.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id1">Highlights</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#support-for-newer-numpy-pandas-versions">Support for Newer Numpy/Pandas Versions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#standalone-trading-calendars-module">Standalone <code class="docutils literal notranslate"><span class="pre">trading_calendars</span></code> Module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#custom-blotters">Custom Blotters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#custom-command-line-arguments">Custom Command-Line Arguments</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id2">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id3">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id4">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id5">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#build">Build</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-2-0">Release 1.2.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id7">Highlights</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#extensible-risk-and-performance-metrics-2081">Extensible Risk and Performance Metrics (#2081)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#docs-trading-calendars-and-benchmarks">Docs, Trading Calendars, and Benchmarks</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id8">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id9">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id10">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id11">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id12">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id13">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#documentation">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id16">Miscellaneous</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-1">Release 1.1.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id17">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id18">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id19">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id20">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id21">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id22">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id23">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id24">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id25">Miscellaneous</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-1-0">Release 1.1.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id26">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id27">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id28">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id29">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id30">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id31">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id32">Miscellaneous</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-2">Release 1.0.2</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id33">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#experimental">Experimental</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id34">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id35">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id36">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id37">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#testing">Testing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#data-format-changes">Data Format Changes</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-1">Release 1.0.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id38">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id39">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id40">Documentation</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-0">Release 1.0.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id41">Highlights</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id42">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id43">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id44">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id45">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id46">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id47">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id48">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id49">Miscellaneous</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-9-0">Release 0.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id50">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id51">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id52">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id53">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id54">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id55">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id56">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id57">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id58">Miscellaneous</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-4">Release 0.8.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id59">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id60">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id61">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id62">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id63">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id64">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id65">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id66">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id67">Miscellaneous</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-3">Release 0.8.3</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-0">Release 0.8.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id68">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id69">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id70">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id71">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id72">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id73">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id74">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id75">Documentation</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id76">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id77">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id78">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id79">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id80">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id81">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#contributors">Contributors</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-6-1">Release 0.6.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id82">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id83">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id84">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id85">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id86">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id87">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id88">Contributors</a></li>
-</ul>
-</li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="release-process.html">Release Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a></li>
 </ul>
 
+            
           
+        </div>
         
       </div>
-      &nbsp;
     </nav>
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
 
       
-      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
-        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="index.html">Zipline</a>
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Zipline</a>
+        
       </nav>
 
 
-      
       <div class="wy-nav-content">
+        
         <div class="rst-content">
-          <div role="navigation" aria-label="breadcrumbs navigation">
-  <ul class="wy-breadcrumbs">
-    <li><a href="index.html">Docs</a> &raquo;</li>
-      
-    <li>API Reference</li>
-      <li class="wy-breadcrumbs-aside">
         
           
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>API Reference</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
             <a href="_sources/appendix.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
+    
   </ul>
+
+  
   <hr/>
 </div>
-          <div role="main" class="document">
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
             
   <div class="section" id="api-reference">
 <h1>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline">¶</a></h1>
@@ -468,6 +242,7 @@ current time.</p></li>
 <li><p><strong>trading_calendar</strong> (<a class="reference internal" href="#zipline.utils.calendars.TradingCalendar" title="zipline.utils.calendars.TradingCalendar"><em>TradingCalendar</em></a><em>, </em><em>optional</em>) – The trading calendar to use for your backtest.</p></li>
 <li><p><strong>metrics_set</strong> (<em>iterable</em><em>[</em><em>Metric</em><em>] or </em><a class="reference external" href="https://docs.python.org/dev/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><em>optional</em>) – The set of metrics to compute in the simulation. If a string is passed,
 resolve the set with <a class="reference internal" href="#zipline.finance.metrics.load" title="zipline.finance.metrics.load"><code class="xref py py-func docutils literal notranslate"><span class="pre">zipline.finance.metrics.load()</span></code></a>.</p></li>
+<li><p><strong>benchmark_returns</strong> (<em>pd.Series</em><em>, </em><em>optional</em>) – Series of returns to use as the benchmark.</p></li>
 <li><p><strong>default_extension</strong> (<a class="reference external" href="https://docs.python.org/dev/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a><em>, </em><em>optional</em>) – Should the default zipline extension be loaded. This is found at
 <code class="docutils literal notranslate"><span class="pre">$ZIPLINE_ROOT/extension.py</span></code></p></li>
 <li><p><strong>extensions</strong> (<em>iterable</em><em>[</em><a class="reference external" href="https://docs.python.org/dev/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>]</em><em>, </em><em>optional</em>) – The names of any other extensions to load. Each element may either be
@@ -1955,7 +1730,7 @@ symbols have been mapped.</p></li>
 datetime information to map the data.</p></li>
 <li><p><strong>date_format</strong> (<a class="reference external" href="https://docs.python.org/dev/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><em>optional</em>) – The format of the dates in the <code class="docutils literal notranslate"><span class="pre">date_column</span></code>. If not provided
 <code class="docutils literal notranslate"><span class="pre">fetch_csv</span></code> will attempt to infer the format. For information
-about the format of this string, see <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html#pandas.read_csv" title="(in pandas v1.0.5)"><code class="xref py py-func docutils literal notranslate"><span class="pre">pandas.read_csv()</span></code></a>.</p></li>
+about the format of this string, see <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html#pandas.read_csv" title="(in pandas v1.1.2)"><code class="xref py py-func docutils literal notranslate"><span class="pre">pandas.read_csv()</span></code></a>.</p></li>
 <li><p><strong>timezone</strong> (<em>tzinfo</em><em> or </em><a class="reference external" href="https://docs.python.org/dev/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><em>optional</em>) – The timezone for the datetime in the <code class="docutils literal notranslate"><span class="pre">date_column</span></code>.</p></li>
 <li><p><strong>symbol</strong> (<a class="reference external" href="https://docs.python.org/dev/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><em>optional</em>) – If the data is about a new asset or index then this string will
 be the name used to identify the values in <code class="docutils literal notranslate"><span class="pre">data</span></code>. For example,
@@ -1967,7 +1742,7 @@ argument is the name of the column in the preprocessed dataframe
 containing the symbols. This will be used along with the date
 information to map the sids in the asset finder.</p></li>
 <li><p><strong>country_code</strong> (<a class="reference external" href="https://docs.python.org/dev/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><em>optional</em>) – Country code to use to disambiguate symbol lookups.</p></li>
-<li><p><strong>**kwargs</strong> – Forwarded to <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html#pandas.read_csv" title="(in pandas v1.0.5)"><code class="xref py py-func docutils literal notranslate"><span class="pre">pandas.read_csv()</span></code></a>.</p></li>
+<li><p><strong>**kwargs</strong> – Forwarded to <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html#pandas.read_csv" title="(in pandas v1.1.2)"><code class="xref py py-func docutils literal notranslate"><span class="pre">pandas.read_csv()</span></code></a>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -2871,7 +2646,7 @@ distribution:</p>
 <p><code class="docutils literal notranslate"><span class="pre">demean()</span></code> is only supported on Factors of dtype float64.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.groupby.html#pandas.DataFrame.groupby" title="(in pandas v1.0.5)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pandas.DataFrame.groupby()</span></code></a></p>
+<p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.groupby.html#pandas.DataFrame.groupby" title="(in pandas v1.1.2)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pandas.DataFrame.groupby()</span></code></a></p>
 </div>
 </dd></dl>
 
@@ -2920,7 +2695,7 @@ values at the extremes of the distribution:</p>
 example of the semantics for <code class="docutils literal notranslate"><span class="pre">mask</span></code> and <code class="docutils literal notranslate"><span class="pre">groupby</span></code>.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.groupby.html#pandas.DataFrame.groupby" title="(in pandas v1.0.5)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pandas.DataFrame.groupby()</span></code></a></p>
+<p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.groupby.html#pandas.DataFrame.groupby" title="(in pandas v1.1.2)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pandas.DataFrame.groupby()</span></code></a></p>
 </div>
 </dd></dl>
 
@@ -2959,7 +2734,7 @@ description of the valid inputs to <cite>method</cite>.</p>
 given a rank of NaN for that day.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.rankdata.html#scipy.stats.rankdata" title="(in SciPy v1.5.1)"><code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.stats.rankdata()</span></code></a></p>
+<p><a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.rankdata.html#scipy.stats.rankdata" title="(in SciPy v1.5.2)"><code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.stats.rankdata()</span></code></a></p>
 </div>
 </dd></dl>
 
@@ -3017,7 +2792,7 @@ by doing the following:</p>
 </div>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.pearsonr.html#scipy.stats.pearsonr" title="(in SciPy v1.5.1)"><code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.stats.pearsonr()</span></code></a>, <a class="reference internal" href="#zipline.pipeline.factors.RollingPearsonOfReturns" title="zipline.pipeline.factors.RollingPearsonOfReturns"><code class="xref py py-class docutils literal notranslate"><span class="pre">zipline.pipeline.factors.RollingPearsonOfReturns</span></code></a>, <a class="reference internal" href="#zipline.pipeline.Factor.spearmanr" title="zipline.pipeline.Factor.spearmanr"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Factor.spearmanr()</span></code></a></p>
+<p><a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.pearsonr.html#scipy.stats.pearsonr" title="(in SciPy v1.5.2)"><code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.stats.pearsonr()</span></code></a>, <a class="reference internal" href="#zipline.pipeline.factors.RollingPearsonOfReturns" title="zipline.pipeline.factors.RollingPearsonOfReturns"><code class="xref py py-class docutils literal notranslate"><span class="pre">zipline.pipeline.factors.RollingPearsonOfReturns</span></code></a>, <a class="reference internal" href="#zipline.pipeline.Factor.spearmanr" title="zipline.pipeline.Factor.spearmanr"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Factor.spearmanr()</span></code></a></p>
 </div>
 </dd></dl>
 
@@ -3075,7 +2850,7 @@ by doing the following:</p>
 </div>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.spearmanr.html#scipy.stats.spearmanr" title="(in SciPy v1.5.1)"><code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.stats.spearmanr()</span></code></a>, <a class="reference internal" href="#zipline.pipeline.Factor.pearsonr" title="zipline.pipeline.Factor.pearsonr"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Factor.pearsonr()</span></code></a></p>
+<p><a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.spearmanr.html#scipy.stats.spearmanr" title="(in SciPy v1.5.2)"><code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.stats.spearmanr()</span></code></a>, <a class="reference internal" href="#zipline.pipeline.Factor.pearsonr" title="zipline.pipeline.Factor.pearsonr"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Factor.pearsonr()</span></code></a></p>
 </div>
 </dd></dl>
 
@@ -3131,7 +2906,7 @@ regression over 30 days. This can be achieved by doing the following:</p>
 </div>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.linregress.html#scipy.stats.linregress" title="(in SciPy v1.5.1)"><code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.stats.linregress()</span></code></a></p>
+<p><a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.linregress.html#scipy.stats.linregress" title="(in SciPy v1.5.2)"><code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.stats.linregress()</span></code></a></p>
 </div>
 </dd></dl>
 
@@ -3200,7 +2975,7 @@ given day could look like:</p>
 </div>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.mstats.winsorize.html#scipy.stats.mstats.winsorize" title="(in SciPy v1.5.1)"><code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.stats.mstats.winsorize()</span></code></a>, <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.groupby.html#pandas.DataFrame.groupby" title="(in pandas v1.0.5)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pandas.DataFrame.groupby()</span></code></a></p>
+<p><a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.mstats.winsorize.html#scipy.stats.mstats.winsorize" title="(in SciPy v1.5.2)"><code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.stats.mstats.winsorize()</span></code></a>, <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.groupby.html#pandas.DataFrame.groupby" title="(in pandas v1.1.2)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pandas.DataFrame.groupby()</span></code></a></p>
 </div>
 </dd></dl>
 
@@ -4370,7 +4145,7 @@ sequence:</p>
 </ul>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.ewm.html#pandas.DataFrame.ewm" title="(in pandas v1.0.5)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pandas.DataFrame.ewm()</span></code></a></p>
+<p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.ewm.html#pandas.DataFrame.ewm" title="(in pandas v1.1.2)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pandas.DataFrame.ewm()</span></code></a></p>
 </div>
 <dl class="py method">
 <dt id="zipline.pipeline.factors.ExponentialWeightedMovingAverage.compute">
@@ -4488,7 +4263,7 @@ their correlation with <cite>target</cite> computed each day.</p></li>
 </dl>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.pearsonr.html#scipy.stats.pearsonr" title="(in SciPy v1.5.1)"><code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.stats.pearsonr()</span></code></a>, <code class="xref py py-meth docutils literal notranslate"><span class="pre">Factor.pearsonr()</span></code>, <a class="reference internal" href="#zipline.pipeline.factors.RollingPearsonOfReturns" title="zipline.pipeline.factors.RollingPearsonOfReturns"><code class="xref py py-class docutils literal notranslate"><span class="pre">zipline.pipeline.factors.RollingPearsonOfReturns</span></code></a></p>
+<p><a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.pearsonr.html#scipy.stats.pearsonr" title="(in SciPy v1.5.2)"><code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.stats.pearsonr()</span></code></a>, <code class="xref py py-meth docutils literal notranslate"><span class="pre">Factor.pearsonr()</span></code>, <a class="reference internal" href="#zipline.pipeline.factors.RollingPearsonOfReturns" title="zipline.pipeline.factors.RollingPearsonOfReturns"><code class="xref py py-class docutils literal notranslate"><span class="pre">zipline.pipeline.factors.RollingPearsonOfReturns</span></code></a></p>
 </div>
 <p class="rubric">Notes</p>
 <p>Most users should call Factor.pearsonr rather than directly construct an
@@ -4525,7 +4300,7 @@ their correlation with <cite>target</cite> computed each day.</p></li>
 </dl>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.spearmanr.html#scipy.stats.spearmanr" title="(in SciPy v1.5.1)"><code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.stats.spearmanr()</span></code></a>, <code class="xref py py-meth docutils literal notranslate"><span class="pre">Factor.spearmanr()</span></code>, <a class="reference internal" href="#zipline.pipeline.factors.RollingSpearmanOfReturns" title="zipline.pipeline.factors.RollingSpearmanOfReturns"><code class="xref py py-class docutils literal notranslate"><span class="pre">zipline.pipeline.factors.RollingSpearmanOfReturns</span></code></a></p>
+<p><a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.spearmanr.html#scipy.stats.spearmanr" title="(in SciPy v1.5.2)"><code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.stats.spearmanr()</span></code></a>, <code class="xref py py-meth docutils literal notranslate"><span class="pre">Factor.spearmanr()</span></code>, <a class="reference internal" href="#zipline.pipeline.factors.RollingSpearmanOfReturns" title="zipline.pipeline.factors.RollingSpearmanOfReturns"><code class="xref py py-class docutils literal notranslate"><span class="pre">zipline.pipeline.factors.RollingSpearmanOfReturns</span></code></a></p>
 </div>
 <p class="rubric">Notes</p>
 <p>Most users should call Factor.spearmanr rather than directly construct an
@@ -5445,7 +5220,7 @@ Assets.</p>
 
 <dl class="py class">
 <dt id="zipline.utils.calendars.TradingCalendar">
-<em class="property">class </em><code class="sig-prename descclassname">zipline.utils.calendars.</code><code class="sig-name descname">TradingCalendar</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">start</span><span class="o">=</span><span class="default_value">Timestamp('1990-01-01 00:00:00+0000', tz='UTC')</span></em>, <em class="sig-param"><span class="n">end</span><span class="o">=</span><span class="default_value">Timestamp('2021-07-23 02:21:29.456875+0000', tz='UTC')</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/trading_calendars/trading_calendar.html#TradingCalendar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">zipline.utils.calendars.</code><code class="sig-name descname">TradingCalendar</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">start</span><span class="o">=</span><span class="default_value">Timestamp('1990-01-01 00:00:00+0000', tz='UTC')</span></em>, <em class="sig-param"><span class="n">end</span><span class="o">=</span><span class="default_value">Timestamp('2021-10-05 15:46:10.545413+0000', tz='UTC')</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/trading_calendars/trading_calendar.html#TradingCalendar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar" title="Permalink to this definition">¶</a></dt>
 <dd><p>An TradingCalendar represents the timing information of a single market
 exchange.</p>
 <p>The timing information is made up of two parts: sessions, and opens/closes.</p>
@@ -6269,7 +6044,7 @@ be read efficiently by BcolzDailyOHLCVReader.</p>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> (<em>iterable</em><em>[</em><a class="reference external" href="https://docs.python.org/dev/library/stdtypes.html#tuple" title="(in Python v3.10)"><em>tuple</em></a><em>[</em><a class="reference external" href="https://docs.python.org/dev/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>, </em><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.0.5)"><em>pandas.DataFrame</em></a><em> or </em><em>bcolz.ctable</em><em>]</em><em>]</em>) – The data chunks to write. Each chunk should be a tuple of sid
+<li><p><strong>data</strong> (<em>iterable</em><em>[</em><a class="reference external" href="https://docs.python.org/dev/library/stdtypes.html#tuple" title="(in Python v3.10)"><em>tuple</em></a><em>[</em><a class="reference external" href="https://docs.python.org/dev/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>, </em><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.2)"><em>pandas.DataFrame</em></a><em> or </em><em>bcolz.ctable</em><em>]</em><em>]</em>) – The data chunks to write. Each chunk should be a tuple of sid
 and the data for that asset.</p></li>
 <li><p><strong>assets</strong> (<a class="reference external" href="https://docs.python.org/dev/library/stdtypes.html#set" title="(in Python v3.10)"><em>set</em></a><em>[</em><a class="reference external" href="https://docs.python.org/dev/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>]</em><em>, </em><em>optional</em>) – The assets that should be in <code class="docutils literal notranslate"><span class="pre">data</span></code>. If this is provided
 we will check <code class="docutils literal notranslate"><span class="pre">data</span></code> against the assets and provide better
@@ -6351,7 +6126,7 @@ adjusts to the change in equity value due to upcoming dividend.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>splits</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.0.5)"><em>pandas.DataFrame</em></a><em>, </em><em>optional</em>) – <dl class="simple">
+<li><p><strong>splits</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.2)"><em>pandas.DataFrame</em></a><em>, </em><em>optional</em>) – <dl class="simple">
 <dt>Dataframe containing split data. The format of this dataframe is:</dt><dd><dl class="simple">
 <dt>effective_date<span class="classifier">int</span></dt><dd><p>The date, represented as seconds since Unix epoch, on which
 the adjustment should be applied.</p>
@@ -6366,7 +6141,7 @@ the ratio. Volume is divided by this value.</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>mergers</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.0.5)"><em>pandas.DataFrame</em></a><em>, </em><em>optional</em>) – <dl class="simple">
+<li><p><strong>mergers</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.2)"><em>pandas.DataFrame</em></a><em>, </em><em>optional</em>) – <dl class="simple">
 <dt>DataFrame containing merger data. The format of this dataframe is:</dt><dd><dl class="simple">
 <dt>effective_date<span class="classifier">int</span></dt><dd><p>The date, represented as seconds since Unix epoch, on which
 the adjustment should be applied.</p>
@@ -6381,7 +6156,7 @@ the ratio. Volume is unaffected.</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>dividends</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.0.5)"><em>pandas.DataFrame</em></a><em>, </em><em>optional</em>) – <dl class="simple">
+<li><p><strong>dividends</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.2)"><em>pandas.DataFrame</em></a><em>, </em><em>optional</em>) – <dl class="simple">
 <dt>DataFrame containing dividend data. The format of the dataframe is:</dt><dd><dl class="simple">
 <dt>sid<span class="classifier">int</span></dt><dd><p>The asset id associated with this adjustment.</p>
 </dd>
@@ -6403,7 +6178,7 @@ distribution of dividends.</p>
 <p>Dividend ratios are calculated as:
 <code class="docutils literal notranslate"><span class="pre">1.0</span> <span class="pre">-</span> <span class="pre">(dividend_value</span> <span class="pre">/</span> <span class="pre">&quot;close</span> <span class="pre">on</span> <span class="pre">day</span> <span class="pre">prior</span> <span class="pre">to</span> <span class="pre">ex_date&quot;)</span></code></p>
 </p></li>
-<li><p><strong>stock_dividends</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.0.5)"><em>pandas.DataFrame</em></a><em>, </em><em>optional</em>) – <p>DataFrame containing stock dividend data. The format of the
+<li><p><strong>stock_dividends</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.2)"><em>pandas.DataFrame</em></a><em>, </em><em>optional</em>) – <p>DataFrame containing stock dividend data. The format of the
 dataframe is:</p>
 <blockquote>
 <div><dl class="simple">
@@ -6694,7 +6469,7 @@ want to pass that value here.</p></li>
 <h3>Readers<a class="headerlink" href="#readers" title="Permalink to this headline">¶</a></h3>
 <dl class="py class">
 <dt id="zipline.data.minute_bars.BcolzMinuteBarReader">
-<em class="property">class </em><code class="sig-prename descclassname">zipline.data.minute_bars.</code><code class="sig-name descname">BcolzMinuteBarReader</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rootdir</span></em>, <em class="sig-param"><span class="n">sid_cache_sizes</span><span class="o">=</span><span class="default_value">mappingproxy({'high': 1550, 'low': 1550, 'volume': 1550, 'open': 1550, 'close': 3000})</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/minute_bars.html#BcolzMinuteBarReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.minute_bars.BcolzMinuteBarReader" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">zipline.data.minute_bars.</code><code class="sig-name descname">BcolzMinuteBarReader</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rootdir</span></em>, <em class="sig-param"><span class="n">sid_cache_sizes</span><span class="o">=</span><span class="default_value">mappingproxy({'close': 3000, 'open': 1550, 'high': 1550, 'low': 1550, 'volume': 1550})</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/minute_bars.html#BcolzMinuteBarReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.minute_bars.BcolzMinuteBarReader" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reader for data written by BcolzMinuteBarWriter</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -7130,7 +6905,7 @@ from int to datetime.</p>
 
 <dl class="py class">
 <dt id="zipline.assets.AssetFinder">
-<em class="property">class </em><code class="sig-prename descclassname">zipline.assets.</code><code class="sig-name descname">AssetFinder</code><span class="sig-paren">(</span><em class="sig-param">engine</em>, <em class="sig-param">future_chain_predicates={'AD': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'U'</em>, <em class="sig-param">'H'</em>, <em class="sig-param">'M'</em>, <em class="sig-param">'Z'})</em>, <em class="sig-param">'BP': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'U'</em>, <em class="sig-param">'H'</em>, <em class="sig-param">'M'</em>, <em class="sig-param">'Z'})</em>, <em class="sig-param">'CD': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'U'</em>, <em class="sig-param">'H'</em>, <em class="sig-param">'M'</em>, <em class="sig-param">'Z'})</em>, <em class="sig-param">'EL': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'U'</em>, <em class="sig-param">'H'</em>, <em class="sig-param">'M'</em>, <em class="sig-param">'Z'})</em>, <em class="sig-param">'GC': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'Q'</em>, <em class="sig-param">'M'</em>, <em class="sig-param">'Z'</em>, <em class="sig-param">'V'</em>, <em class="sig-param">'J'</em>, <em class="sig-param">'G'})</em>, <em class="sig-param">'JY': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'U'</em>, <em class="sig-param">'H'</em>, <em class="sig-param">'M'</em>, <em class="sig-param">'Z'})</em>, <em class="sig-param">'ME': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'U'</em>, <em class="sig-param">'H'</em>, <em class="sig-param">'M'</em>, <em class="sig-param">'Z'})</em>, <em class="sig-param">'PA': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'U'</em>, <em class="sig-param">'H'</em>, <em class="sig-param">'M'</em>, <em class="sig-param">'Z'})</em>, <em class="sig-param">'PL': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'J'</em>, <em class="sig-param">'N'</em>, <em class="sig-param">'V'</em>, <em class="sig-param">'F'})</em>, <em class="sig-param">'SV': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'U'</em>, <em class="sig-param">'N'</em>, <em class="sig-param">'H'</em>, <em class="sig-param">'K'</em>, <em class="sig-param">'Z'})</em>, <em class="sig-param">'XG': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'Q'</em>, <em class="sig-param">'M'</em>, <em class="sig-param">'Z'</em>, <em class="sig-param">'V'</em>, <em class="sig-param">'J'</em>, <em class="sig-param">'G'})</em>, <em class="sig-param">'YS': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'U'</em>, <em class="sig-param">'N'</em>, <em class="sig-param">'H'</em>, <em class="sig-param">'K'</em>, <em class="sig-param">'Z'})}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/assets/assets.html#AssetFinder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.assets.AssetFinder" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">zipline.assets.</code><code class="sig-name descname">AssetFinder</code><span class="sig-paren">(</span><em class="sig-param">engine</em>, <em class="sig-param">future_chain_predicates={'AD': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'U'</em>, <em class="sig-param">'M'</em>, <em class="sig-param">'Z'</em>, <em class="sig-param">'H'})</em>, <em class="sig-param">'BP': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'U'</em>, <em class="sig-param">'M'</em>, <em class="sig-param">'Z'</em>, <em class="sig-param">'H'})</em>, <em class="sig-param">'CD': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'U'</em>, <em class="sig-param">'M'</em>, <em class="sig-param">'Z'</em>, <em class="sig-param">'H'})</em>, <em class="sig-param">'EL': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'U'</em>, <em class="sig-param">'M'</em>, <em class="sig-param">'Z'</em>, <em class="sig-param">'H'})</em>, <em class="sig-param">'GC': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'Q'</em>, <em class="sig-param">'M'</em>, <em class="sig-param">'G'</em>, <em class="sig-param">'J'</em>, <em class="sig-param">'V'</em>, <em class="sig-param">'Z'})</em>, <em class="sig-param">'JY': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'U'</em>, <em class="sig-param">'M'</em>, <em class="sig-param">'Z'</em>, <em class="sig-param">'H'})</em>, <em class="sig-param">'ME': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'U'</em>, <em class="sig-param">'M'</em>, <em class="sig-param">'Z'</em>, <em class="sig-param">'H'})</em>, <em class="sig-param">'PA': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'U'</em>, <em class="sig-param">'M'</em>, <em class="sig-param">'Z'</em>, <em class="sig-param">'H'})</em>, <em class="sig-param">'PL': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'V'</em>, <em class="sig-param">'J'</em>, <em class="sig-param">'F'</em>, <em class="sig-param">'N'})</em>, <em class="sig-param">'SV': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'U'</em>, <em class="sig-param">'K'</em>, <em class="sig-param">'Z'</em>, <em class="sig-param">'N'</em>, <em class="sig-param">'H'})</em>, <em class="sig-param">'XG': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'Q'</em>, <em class="sig-param">'M'</em>, <em class="sig-param">'G'</em>, <em class="sig-param">'J'</em>, <em class="sig-param">'V'</em>, <em class="sig-param">'Z'})</em>, <em class="sig-param">'YS': functools.partial(&lt;built-in function delivery_predicate&gt;</em>, <em class="sig-param">{'U'</em>, <em class="sig-param">'K'</em>, <em class="sig-param">'Z'</em>, <em class="sig-param">'N'</em>, <em class="sig-param">'H'})}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/assets/assets.html#AssetFinder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.assets.AssetFinder" title="Permalink to this definition">¶</a></dt>
 <dd><p>An AssetFinder is an interface to a database of Asset metadata written by
 an <code class="docutils literal notranslate"><span class="pre">AssetDBWriter</span></code>.</p>
 <p>This class provides methods for looking up assets by unique integer id or
@@ -7339,7 +7114,7 @@ an iterable, <code class="docutils literal notranslate"><span class="pre">missin
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>symbol</strong> (<a class="reference external" href="https://docs.python.org/dev/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – The ticker symbol to resolve.</p></li>
-<li><p><strong>as_of_date</strong> (<em>datetime</em><em> or </em><a class="reference external" href="https://docs.python.org/dev/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – Look up the last owner of this symbol as of this datetime.
+<li><p><strong>as_of_date</strong> (<a class="reference external" href="https://docs.python.org/dev/library/datetime.html#datetime.datetime" title="(in Python v3.10)"><em>datetime.datetime</em></a><em> or </em><a class="reference external" href="https://docs.python.org/dev/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – Look up the last owner of this symbol as of this datetime.
 If <code class="docutils literal notranslate"><span class="pre">as_of_date</span></code> is None, then this can only resolve the equity
 if exactly one equity has ever owned the ticker.</p></li>
 <li><p><strong>fuzzy</strong> (<a class="reference external" href="https://docs.python.org/dev/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a><em>, </em><em>optional</em>) – Should fuzzy symbol matching be used? Fuzzy symbol matching
@@ -8829,15 +8604,17 @@ meaning it has as strong of guarantees as <code class="xref py py-func docutils 
 </div>
 
 
+           </div>
+           
           </div>
           <footer>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="release-process.html" class="btn btn-neutral float-right" title="Release Process" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="release-process.html" class="btn btn-neutral float-right" title="Release Process" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="development-guidelines.html" class="btn btn-neutral" title="Development Guidelines" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="development-guidelines.html" class="btn btn-neutral float-left" title="Development Guidelines" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -8846,10 +8623,19 @@ meaning it has as strong of guarantees as <code class="xref py py-func docutils 
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2016, Quantopian Inc..
+        
+        &copy; Copyright 2020, Quantopian Inc.
+
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
 
@@ -8861,37 +8647,15 @@ meaning it has as strong of guarantees as <code class="xref py py-func docutils 
   </div>
   
 
-
-  
-
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'1.4.0',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="_static/language_data.js"></script>
-
-  
-
-  
-  
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-  
-
-  
-  
   <script type="text/javascript">
       jQuery(function () {
-          SphinxRtdTheme.StickyNav.enable();
+          SphinxRtdTheme.Navigation.enable(true);
       });
   </script>
+
+  
+  
+    
    
 
 </body>

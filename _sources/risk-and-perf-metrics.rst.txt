@@ -57,7 +57,7 @@ helpful to skip these computations to speed up the debugging cycle. To disable
 the calculation and reporting of all metrics, users may select the built-in
 metrics set ``none``. For example:
 
-.. code-block:: python
+.. code-block:: bash
 
    $ zipline run algorithm.py -s 2014-01-01 -e 2014-02-01 --metrics-set none
 
