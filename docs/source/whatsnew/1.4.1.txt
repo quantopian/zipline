@@ -2,10 +2,14 @@ Release 1.4.1
 -------------
 
 :Release: 1.4.1
-:Date: TBD
+:Date: October 5, 2020
 
 This release includes a small number of bug fixes, documentation improvements,
 and build/dependency enhancements.
+
+Conda packages for zipline and its dependencies are now available for python
+3.6 on the 'conda-forge' Anaconda channel. They're also available on the
+'Quantopian' channel, but we'll stop updating those eventually.
 
 Bug Fixes
 ~~~~~~~~~
@@ -29,4 +33,4 @@ Build
 Documentation
 ~~~~~~~~~~~~~
 
-- Various documentation improvements (:issue:`2763`, :issue:`2771`, :issue:`2776`, :issue:`2780`)
+- Various documentation improvements (:issue:`2763`, :issue:`2771`, :issue:`2772`, :issue:`2776`, :issue:`2780`)
