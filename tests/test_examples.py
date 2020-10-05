@@ -17,12 +17,11 @@ from operator import itemgetter
 import tarfile
 
 import matplotlib
-from nose_parameterized import parameterized
 import pandas as pd
 
 from zipline import examples
 from zipline.data.bundles import register, unregister
-from zipline.testing import test_resource_path
+from zipline.testing import test_resource_path, parameter_space
 from zipline.testing.fixtures import (
     WithTmpDir,
     ZiplineTestCase,
@@ -61,10 +60,29 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             serialization='pickle',
         )
 
-        cls.benchmark_returns = read_checked_in_benchmark_data()
+        cls.no_benchmark_expected_perf = {
+            example_name: cls._no_benchmark_expectations_applied(
+                expected_perf.copy()
+            )
+            for example_name, expected_perf in cls.expected_perf.items()
+        }
 
-    @parameterized.expand(sorted(EXAMPLE_MODULES))
-    def test_example(self, example_name):
+    @staticmethod
+    def _no_benchmark_expectations_applied(expected_perf):
+        # With no benchmark, expect zero results for these metrics:
+        expected_perf[['alpha', 'beta']] = None
+        for col in ['benchmark_period_return', 'benchmark_volatility']:
+            expected_perf.loc[
+                ~pd.isnull(expected_perf[col]),
+                col,
+            ] = 0.0
+        return expected_perf
+
+    @parameter_space(
+        example_name=sorted(EXAMPLE_MODULES),
+        benchmark_returns=[read_checked_in_benchmark_data(), None]
+    )
+    def test_example(self, example_name, benchmark_returns):
         actual_perf = examples.run_example(
             EXAMPLE_MODULES,
             example_name,
@@ -73,9 +91,13 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             environ={
                 'ZIPLINE_ROOT': self.tmpdir.getpath('example_data/root'),
             },
-            benchmark_returns=self.benchmark_returns,
+            benchmark_returns=benchmark_returns,
         )
-        expected_perf = self.expected_perf[example_name]
+        if benchmark_returns is not None:
+            expected_perf = self.expected_perf[example_name]
+        else:
+            expected_perf = self.no_benchmark_expected_perf[example_name]
+
         # Exclude positions column as the positions do not always have the
         # same order
         columns = [column for column in examples._cols_to_check

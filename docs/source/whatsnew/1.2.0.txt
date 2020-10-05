@@ -2,7 +2,7 @@ Release 1.2.0
 -------------
 
 :Release: 1.2.0
-:Date: TBD
+:Date: April 4, 2018
 
 Highlights
 ~~~~~~~~~~
@@ -93,7 +93,7 @@ Build
 - Update conda tooling and remove Python 3.4 builds (:issue:`2009`)
 - Upgrade empyrical to 0.3.3 (:issue:`2014`)
 - Upgrade empyrical to 0.3.4 (:issue:`2098`)
-- Upgrade empyrical to 0.4.2 (:issue:`2125)
+- Upgrade empyrical to 0.4.2 (:issue:`2125`)
 
 Documentation
 ~~~~~~~~~~~~~

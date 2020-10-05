@@ -1,8 +1,8 @@
 {% set name = "empyrical" %}
-{% set version = "0.5.0" %}
+{% set version = "0.5.3" %}
 {% set file_ext = "tar.gz" %}
 {% set hash_type = "sha256" %}
-{% set hash_value = "21485df5261d0f78f4d1e1baa0a38888726a2054f0ba86997ac1b03853026fef" %}
+{% set hash_value = "8e2819417f691b5b136ccd5dc7cc0d73e12c39a156e54b080b271f159ee2bb5d" %}
 
 package:
   name: '{{ name|lower }}'
@@ -55,9 +55,9 @@ about:
 
     .. _Quantopian Inc: https://www.quantopian.com
 
-    .. _Zipline: http://zipline.io
+    .. _Zipline: https://www.zipline.io
 
-    .. _pyfolio: http://quantopian.github.io/pyfolio/
+    .. _pyfolio: https://quantopian.github.io/pyfolio/
 
     '
   doc_url: ''

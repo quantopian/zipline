@@ -113,6 +113,9 @@ def ipython_only(option):
     return d
 
 
+DEFAULT_BUNDLE = 'quantopian-quandl'
+
+
 @main.command()
 @click.option(
     '-f',
@@ -152,7 +155,7 @@ def ipython_only(option):
 @click.option(
     '-b',
     '--bundle',
-    default='quandl',
+    default=DEFAULT_BUNDLE,
     metavar='BUNDLE-NAME',
     show_default=True,
     help='The data bundle to use for the simulation.',
@@ -364,7 +367,7 @@ def run(ctx,
         benchmark_file=benchmark_file,
     )
 
-    perf = _run(
+    return _run(
         initialize=None,
         handle_data=None,
         before_trading_start=None,
@@ -394,13 +397,6 @@ def run(ctx,
         stop_execution_callback=None,
         execution_id=None
     )
-
-    if output == '-':
-        click.echo(str(perf))
-    elif output != os.devnull:  # make the zipline magic not write any data
-        perf.to_pickle(output)
-
-    return perf
 
 
 def zipline_magic(line, cell=None):
@@ -440,7 +436,7 @@ def zipline_magic(line, cell=None):
 @click.option(
     '-b',
     '--bundle',
-    default='quandl',
+    default=DEFAULT_BUNDLE,
     metavar='BUNDLE-NAME',
     show_default=True,
     help='The data bundle to ingest.',
@@ -472,7 +468,7 @@ def ingest(bundle, assets_version, show_progress):
 @click.option(
     '-b',
     '--bundle',
-    default='quandl',
+    default=DEFAULT_BUNDLE,
     metavar='BUNDLE-NAME',
     show_default=True,
     help='The data bundle to clean.',

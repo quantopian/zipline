@@ -58,7 +58,7 @@ class FetcherCSVRedirectError(ZiplineError):
 
 # The following optional arguments are supported for
 # requests backed data sources.
-# see http://docs.python-requests.org/en/latest/api/#main-interface
+# see https://requests.readthedocs.io/en/latest/api/#main-interface
 # for a full list.
 ALLOWED_REQUESTS_KWARGS = {
     'params',
@@ -70,7 +70,7 @@ ALLOWED_REQUESTS_KWARGS = {
 
 # The following optional arguments are supported for pandas' read_csv
 # function, and may be passed as kwargs to the datasource below.
-# see http://pandas.pydata.org/
+# see https://pandas.pydata.org/
 # pandas-docs/stable/generated/pandas.io.parsers.read_csv.html
 ALLOWED_READ_CSV_KWARGS = {
     'sep',

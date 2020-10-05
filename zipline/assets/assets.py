@@ -172,7 +172,7 @@ def build_grouped_ownership_map(table,
                                 value_from_row,
                                 group_key):
     """
-    Builds a dict mapping group keys to maps of keys to to lists of
+    Builds a dict mapping group keys to maps of keys to lists of
     OwnershipPeriods, from a db table.
     """
     grouped_rows = groupby(
@@ -966,7 +966,7 @@ class AssetFinder(object):
         ----------
         symbol : str
             The ticker symbol to resolve.
-        as_of_date : datetime or None
+        as_of_date : datetime.datetime or None
             Look up the last owner of this symbol as of this datetime.
             If ``as_of_date`` is None, then this can only resolve the equity
             if exactly one equity has ever owned the ticker.

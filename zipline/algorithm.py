@@ -19,7 +19,6 @@ from datetime import tzinfo, time, timedelta
 import logbook
 import pytz
 import pandas as pd
-from contextlib2 import ExitStack
 import numpy as np
 
 from itertools import chain, repeat
@@ -95,6 +94,7 @@ from zipline.utils.api_support import (
     require_not_initialized,
     ZiplineAPI,
     disallowed_in_before_trading_start)
+from zipline.utils.compat import ExitStack
 from zipline.utils.input_validation import (
     coerce_string,
     ensure_upper_case,
@@ -138,6 +138,13 @@ log = logbook.Logger("ZiplineLog")
 
 # For creating and storing pipeline instances
 AttachedPipeline = namedtuple('AttachedPipeline', 'pipe chunks eager')
+
+
+class NoBenchmark(ValueError):
+    def __init__(self):
+        super(NoBenchmark, self).__init__(
+            'Must specify either benchmark_sid or benchmark_returns.',
+        )
 
 
 class TradingAlgorithm(object):
@@ -509,7 +516,7 @@ class TradingAlgorithm(object):
         """
         If the clock property is not set, then create one based on frequency.
         """
-        trading_o_and_c = self.trading_calendar.schedule.ix[
+        trading_o_and_c = self.trading_calendar.schedule.loc[
             self.sim_params.sessions]
         market_closes = trading_o_and_c['market_close']
         minutely_emission = False
@@ -559,8 +566,7 @@ class TradingAlgorithm(object):
             benchmark_returns = None
         else:
             if self.benchmark_returns is None:
-                raise ValueError("Must specify either benchmark_sid "
-                                 "or benchmark_returns.")
+                raise NoBenchmark()
             benchmark_asset = None
             benchmark_returns = self.benchmark_returns
         return BenchmarkSource(

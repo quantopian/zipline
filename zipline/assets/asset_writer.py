@@ -15,7 +15,6 @@
 from collections import namedtuple
 import re
 
-from contextlib2 import ExitStack
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa
@@ -35,7 +34,7 @@ from zipline.assets.asset_db_schema import (
     metadata,
     version_info,
 )
-
+from zipline.utils.compat import ExitStack
 from zipline.utils.preprocess import preprocess
 from zipline.utils.range import from_tuple, intersecting_ranges
 from zipline.utils.sqlite_utils import coerce_string_to_eng

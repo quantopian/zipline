@@ -1,0 +1,242 @@
+Release 1.4.0
+-------------
+
+:Release: 1.4.0
+:Date: July 22, 2020
+
+Highlights
+~~~~~~~~~~
+
+Removed Implicit Dependency on Benchmarks and Treasury Returns
+``````````````````````````````````````````````````````````````
+
+Previously, Zipline implicitly fetched these required inputs from third party API sources if they were not provided by users: treasury data from the US Federal Reserve's API, and benchmarks from IEX.
+This meant that simulations required an internet connection and stable APIs for these data sources, neither of which were guaranteed for many users.
+
+We removed the dependency on treasury curves, since they weren't actually being used anymore. And we replaced the implicit downloading of benchmark returns with explicit options:
+
+.. code-block:: none
+
+   --benchmark-file                The csv file that contains the benchmark
+                                   returns (date, returns columns)
+   --benchmark-symbol              The instrument's symbol to be used as
+                                   a benchmark.
+                                   (should exist in the ingested bundle)
+   --benchmark-sid                 The sid of the instrument to be used as a
+                                   benchmark.
+                                   (should exist in the ingested bundle)
+   --no-benchmark                  This flag is used to set the benchmark to
+                                   zero. Alpha, beta and benchmark metrics
+                                   are not calculated
+
+(:issue:`2627`, :issue:`2642`)
+
+
+New Built In Factors
+````````````````````
+
+- :class:`~zipline.pipeline.factors.PercentChange`: Calculates the percent change over the given ``window_length``. Note: Percent change is calculated as ``(new - old) / abs(old)``. (:issue:`2506`)
+- :class:`~zipline.pipeline.factors.PeerCount`: Gives the number of occurrences of each distinct category in a classifier. (:issue:`2509`)
+- :class:`~zipline.pipeline.mixins.ConstantMixin`: A mixin for creating a Pipeline term with a constant value. (:issue:`2697`)
+- :meth:`~zipline.pipeline.filters.Filter.if_else`: Allows users to create expressions that conditionally draw from the outputs of one of two terms. (:issue:`2697`)
+- :meth:`~zipline.pipeline.term.ComputableTerm.fillna`: Allows users to fill missing data with either a constant value, or values from another term. (:issue:`2697`)
+- :meth:`~zipline.pipeline.factors.Factor.clip`: Allows users to constrain a factor's values to a given range. (:issue:`2708`)
+- :meth:`~zipline.pipeline.factor.Factor.mean`, :meth:`~zipline.pipeline.factor.Factor.stddev`, :meth:`~zipline.pipeline.factor.Factor.max`, :meth:`~zipline.pipeline.factor.Factor.min`, :meth:`~zipline.pipeline.factor.Factor.median`, :meth:`~zipline.pipeline.factor.Factor.sum`, :meth:`~zipline.pipeline.factor.Factor.notnull_count`: Summarize data across the entire domain into a scalar factor. (:issue:`2697`)
+
+Enhancements
+~~~~~~~~~~~~
+
+- Added International Pipelines (:issue:`2262`)
+- Added DataSetFamily (née MultiDimensionalDataSet) - a shorthand for creating a collection of regular DataSets that share the same columns. (:issue:`2402`)
+- Added :meth:`~zipline.pipeline.data.dataset.DataSetFamily.get_column` for looking up columns by name (:issue:`2210`)
+- Added :class:`~zipline.testing.pipeline_terms.CheckWindowsClassifier` that allows us to test lookback windows of categorical and string columns using Pipeline. (:issue:`2458`)
+- Added :class:`~zipline.pipeline.hooks.iface.PipelineHooks` which is now used to display Pipline progress bars (:issue:`2467`)
+- :class:`~zipline.pipeline.data.dataset.BoundColumn` comparisons will now result in an error.
+  This prevents writing ``EquityPricing.volume > 1000`` (silently returning bad data) insteads of ``EquityPricing.volume.latest > 1000``. (:issue:`2537`)
+- Added currency conversion support to Pipeline. (:issue:`2586`)
+- Added ``--benchmark-file`` and ``--benchmark-symbol`` command line arguments to make it easier to provide benchmark data. (:issue:`2642`)
+- Added support for Python 3.6 (:issue:`2643`)
+- Added ``mask`` argument to Factor.peer_count. (:issue:`2676`)
+- Added :meth:`~zipline.pipeline.filters.Filter.if_else` and :meth:`~zipline.pipeline.term.ComputableTerm.fillna` for allowing conditional logic in Pipelines. (:issue:`2691`)
+- Added daily summary methods to Factor for collecting summary statistics for the entire universe. (:issue:`2697`)
+- Added :meth:`~zipline.pipeline.factors.Factor.clip` method for clipping values to a range. (:issue:`2708`)
+- Added support for Pipeline term arithmetic with more than 32 terms. (:issue:`2727`)
+
+Bug Fixes
+~~~~~~~~~
+
+- Fixed support for non unique sid->exchange mappings. (:issue:`2289`)
+- Fixed crash on dividend warning. (:issue:`2323`)
+- Fixed ``week_start`` when Monday precedes the New Year. (:issue:`2394`)
+- Ensured correct dtypes when unpacking empty dataframes. (:issue:`2444`)
+- Fixed a bug where a Pipeline term with ``window_length=0`` would not copy the input before calling ``compute()`` which could cause incorrect results if the input was reused in the Pipeline. (:issue:`2723`)
+
+Performance
+~~~~~~~~~~~
+
+- Added :class:`~zipline.data.hdf5_daily_bars.HDF5DailyBarWriter`, which writes daily pricing in a new format as an HDF5 file. Each OHLCV field is stored as a 2D array in a chunked HDF5 dataset, with a row per sid and a column per day. The file also supports multiple countries. Added :class:`~zipline.data.hdf5_daily_bars.HDF5DailyBarReader`, which implements the BarReader interface and can read files written by HDF5DailyBarWriter. (:issue:`2295`)
+- Vectorized dividend ratio calculation (:issue:`2298`)
+- Improved performance of the :class:`~zipline.pipeline.factors.RollingPearson` and
+  :class:`~zipline.pipeline.factors.RollingPearsonOfReturns` pipeline factors. (:issue:`2071`)
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Made :func:`~zipline.testing.core.parameter_space` reset instance fixtures between runs (:issue:`2433`)
+- Removed unused treasury curves data handling. (:issue:`2626`)
+
+Miscellaneous
+~~~~~~~~~~~~~
+
+International Pipelines
+```````````````````````
+
+Pipeline now supports international data.
+
+Pipeline is a tool that allows you to define computations over a universe of assets and a period of time.
+In the past, you could only run pipelines on the US equity market.
+Now, you can now specify a domain over which a pipeline should be computed.
+The name "domain" refers to the mathematical concept of the "domain of a function", which is the set of potential inputs to a function.
+In the context of Pipeline, the domain specifies the set of assets and a corresponding trading calendar over which the expressions of a pipeline should be computed.
+
+For example, the following pipeline returns the latest close price and volume for all Canadian equities, every day.
+
+.. code-block:: python
+
+   pipe = Pipeline(
+       columns={
+           'price': EquityPricing.close.latest,
+           'volume': EquityPricing.volume.latest,
+           'mcap': factset.Fundamentals.mkt_val.latest,
+       },
+       domain=CA_EQUITIES,
+   )
+
+
+Another challenge related to currencies is the fact that some exchanges don't require stocks to be listed in local currency.
+For example, the London Stock Exchange only has about 75% of its listings denominated in GBP*.
+The other 25% are primarily listed in EUR or USD. This can make it hard to make cross sectional comparisons.
+
+To solve this problem, most people rely on currency conversions to bring price-based fields into the same currency.
+Pipeline columns now support an ``fx`` method for specifying what currency the data should be viewed as.
+This method is only available on terms which are "currency-aware", for example open or close, but not on terms that do not care about currency like volume.
+
+Currently, there is no way to load international data into a bundle.
+We are working on ways to make it easy to get international data into Zipline.
+
+(:issue:`2265`, :issue:`2262`, and many others)
+
+The domains that Zipline currently supports for running pipelines (using the latest `trading-calendars`_ package) are the following:
+
+- Argentina
+- Australia
+- Austria
+- Belgium
+- Brazil
+- Canada
+- Chile
+- China
+- Czech Republic
+- Colombia
+- Czechia
+- Finland
+- France
+- Germany
+- Greece
+- Hong Kong
+- Hungary
+- India
+- Indonesia
+- Ireland
+- Italy
+- Japan
+- Malaysia
+- Mexico
+- Netherlands
+- New Zealand
+- Norway
+- Pakistan
+- Peru
+- Philippines
+- Poland
+- Portugal
+- Russia
+- Singapore
+- Spain
+- Sweden
+- Taiwan
+- Thailand
+- Turkey
+- United Kingdom
+- United States
+- South Africa
+- South Korea
+- Switzerland
+
+(:issue:`2301`, :issue:`2333`, :issue:`2338`, :issue:`2355`, :issue:`2369`, :issue:`2550`, :issue:`2552`, :issue:`2559`)
+
+DataSetFamily
+`````````````
+
+ Dataset families are used to represent data where the unique identifier for
+ a row requires more than just asset and date coordinates. A
+ :class:`~zipline.pipeline.data.DataSetFamily` can also be thought of as a collection of
+ :class:`~zipline.pipeline.data.DataSet` objects, each of which has the same
+ columns, domain, and ndim.
+
+ :class:`~zipline.pipeline.data.DataSetFamily` objects are defined with one or more
+ :class:`~zipline.pipeline.data.Column` objects, plus one additional field:
+ ``extra_dims``.
+
+ The ``extra_dims`` field defines coordinates other than asset and date that
+ must be fixed to produce a logical timeseries. The column objects determine
+ columns that will be shared by slices of the family.
+
+ ``extra_dims`` are represented as an ordered dictionary where the keys are
+ the dimension name, and the values are a set of unique values along that
+ dimension.
+
+ To work with a :class:`~zipline.pipeline.data.DataSetFamily` in a pipeline expression, one must
+ choose a specific value for each of the extra dimensions using the
+ :meth:`~zipline.pipeline.data.DataSetFamily.slice` method.
+ For example, given a :class:`~zipline.pipeline.data.DataSetFamily`:
+
+ .. code-block:: python
+
+    class SomeDataSet(DataSetFamily):
+        extra_dims = [
+            ('dimension_0', {'a', 'b', 'c'}),
+            ('dimension_1', {'d', 'e', 'f'}),
+        ]
+
+        column_0 = Column(float)
+        column_1 = Column(bool)
+
+ This dataset might represent a table with the following columns:
+
+ ::
+
+   sid :: int64
+   asof_date :: datetime64[ns]
+   timestamp :: datetime64[ns]
+   dimension_0 :: str
+   dimension_1 :: str
+   column_0 :: float64
+   column_1 :: bool
+
+ Here we see the implicit ``sid``, ``asof_date`` and ``timestamp`` columns
+ as well as the extra dimensions columns.
+
+ This :class:`~zipline.pipeline.data.DataSetFamily` can be converted to a regular :class:`~zipline.pipeline.data.DataSet`
+ with:
+
+ .. code-block:: python
+
+    DataSetSlice = SomeDataSet.slice(dimension_0='a', dimension_1='e')
+
+ This sliced dataset represents the rows from the higher dimensional dataset
+ where ``(dimension_0 == 'a') & (dimension_1 == 'e')``.
+
+(:issue:`2402`, :issue:`2452`, :issue:`2456`)
+
+.. _`trading-calendars` : https://pypi.org/project/trading-calendars/

@@ -41,7 +41,7 @@ class LabelArrayTestCase(ZiplineTestCase):
         cls.strs = np.array([rotN(row, i) for i in range(3)], dtype=object)
 
     def test_fail_on_direct_construction(self):
-        # See http://docs.scipy.org/doc/numpy-1.10.0/user/basics.subclassing.html#simple-example-adding-an-extra-attribute-to-ndarray  # noqa
+        # See https://docs.scipy.org/doc/numpy-1.10.0/user/basics.subclassing.html#simple-example-adding-an-extra-attribute-to-ndarray  # noqa
 
         with self.assertRaises(TypeError) as e:
             np.ndarray.__new__(LabelArray, (5, 5))
@@ -328,7 +328,7 @@ class LabelArrayTestCase(ZiplineTestCase):
                         ret = func(labels, ints)
                     else:
                         self.fail("Who added a ternary ufunc !?!")
-                except TypeError:
+                except (TypeError, ValueError):
                     pass
                 else:
                     self.assertIs(ret, NotImplemented)
