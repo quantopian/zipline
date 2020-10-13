@@ -14,6 +14,7 @@ from trading_calendars import register_calendar
 # from trading_calendars.exchange_calendar_binance import BinanceExchangeCalendar
 import yaml
 from zipline.data.bundles import core as bundles
+from dateutil.parser import parse as date_parse
 
 user_home = str(Path.home())
 custom_data_path = join(user_home, '.zipline/custom_data')
@@ -78,6 +79,72 @@ def tickers_generator():
             ticker_pairs = pickle.load(f)[:]
 
     return (tuple((sid, ticker)) for sid, ticker in enumerate(ticker_pairs))
+
+
+def iso_date(date_str):
+    """
+    this method will make sure that dates are formatted properly
+    as with isoformat
+    :param date_str:
+    :return: YYYY-MM-DD date formatted
+    """
+    return date_parse(date_str).date().isoformat()
+
+
+def get_aggs_from_polygon(dataname,
+                          dtbegin,
+                          dtend,
+                          granularity,
+                          compression):
+    """
+    so polygon has a much more convenient api for this than alpaca because
+    we could insert the compression in to the api call and we don't need to
+    resample it. but, at this point in time, something is not working
+    properly and data is returned in segments. meaning, we have patches of
+    missing data. e.g we request data from 2020-03-01 to 2020-07-01 and we
+    get something like this: 2020-03-01:2020-03-15, 2020-06-25:2020-07-01
+    so that makes life difficult.. there's no way to know which patch will
+    be returned and which one we should try to get again.
+    so the solution must be, ask data in segments. I select an arbitrary
+    time window of 2 weeks, and split the calls until we get all required
+    data
+    """
+    def _clear_out_of_market_hours(df):
+        """
+        only interested in samples between 9:30, 16:00 NY time
+        """
+        return df.between_time("09:30", "16:00")
+
+    if granularity == 'day':
+        cdl = CLIENT.polygon.historic_agg_v2(
+            dataname,
+            compression,
+            granularity,
+            _from=iso_date(dtbegin.isoformat()),
+            to=iso_date(dtend.isoformat())).df
+    else:
+        cdl = pd.DataFrame()
+        segment_start = dtbegin
+        segment_end = segment_start + timedelta(weeks=2) if \
+            dtend - dtbegin >= timedelta(weeks=2) else dtend
+        while segment_end <= dtend and dtend not in cdl.index:
+            response = CLIENT.polygon.historic_agg_v2(
+                dataname,
+                compression,
+                granularity,
+                _from=iso_date(segment_start.isoformat()),
+                to=iso_date(segment_end.isoformat()))
+            # No result from the server, most likely error
+            if response.df.shape[0] == 0 and cdl.shape[0] == 0:
+                raise Exception("received empty response")
+            temp = response.df
+            cdl = pd.concat([cdl, temp])
+            cdl = cdl[~cdl.index.duplicated()]
+            segment_start = segment_end
+            segment_end = segment_start + timedelta(weeks=2) if \
+                dtend - dtbegin >= timedelta(weeks=2) else dtend
+        cdl = _clear_out_of_market_hours(cdl)
+    return cdl
 
 
 def df_generator(interval):
