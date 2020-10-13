@@ -212,8 +212,7 @@ def api_to_bundle(interval=['1m']):
         for _interval in interval:
             metadata = metadata_df()
             if _interval == '1d':
-                daily_bar_writer.write(
-                    daily_data_generator(), show_progress=True)
+                daily_bar_writer.write(daily_data_generator(), show_progress=True)
             elif _interval == '1m':
                 minute_bar_writer.write(
                     minute_data_generator(), show_progress=True)
