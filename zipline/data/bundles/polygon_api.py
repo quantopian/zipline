@@ -240,7 +240,7 @@ if __name__ == '__main__':
         # api_to_bundle(interval=['1d', '1m']),
         # api_to_bundle(interval=['1m']),
         api_to_bundle(interval=['1d']),
-        calendar_name='24/7',
+        calendar_name='NYSE',
     )
     assets_version = ((),)[0]  # just a weird way to create an empty tuple
     bundles_module.ingest(
