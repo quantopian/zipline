@@ -148,54 +148,29 @@ def get_aggs_from_polygon(dataname,
 
 
 def df_generator(interval):
-    start = '2020-7-14'  # Binance launch date
-    end = dt.utcnow().strftime('%Y-%m-%d')  # Current day
+    start = date_parse('2020-7-14')  # Binance launch date
+    end = dt.utcnow().date()  # Current day
+    exchange = 'NYSE'
 
-    for item in list_assets():
+    for sid, symbol in enumerate(list_assets()):
         try:
-            sid = item[0]
-            ticker_pair = item[1]
-            df = pd.DataFrame(
-                columns=['date', 'open', 'high', 'low', 'close', 'volume'])
-
-            symbol = ticker_pair
-            print(symbol, interval)
-            asset_name = ticker_pair
-            exchange = 'Binance'
-
-            klines = CLIENT.get_historical_klines_generator(
-                ticker_pair, interval, start, end)
-
-            for kline in klines:
-                line = kline[:]
-                del line[6:]
-                # Make a real copy of kline
-                # Binance API forbids the change of open time
-                line[0] = np.datetime64(line[0], 'ms')
-                line[0] = pd.Timestamp(line[0], 'ms')
-                df.loc[len(df)] = line
-
-            df['date'] = pd.to_datetime(df['date'])
-            df.set_index('date', inplace=True)
-            df = df.astype({'open': 'float64', 'high': 'float64',
-                            'low': 'float64', 'close': 'float64', 'volume': 'float64'})
-
+            df = get_aggs_from_polygon(symbol, start, end, 'day' if interval == '1d' else 'minute', 1)
             start_date = df.index[0]
             end_date = df.index[-1]
             first_traded = start_date
             auto_close_date = end_date + pd.Timedelta(days=1)
 
-            # Check if there is any missing session; skip the ticker pair otherwise
-            if interval == '1d' and len(df.index) - 1 != pd.Timedelta(end_date - start_date).days:
-                # print('Missing sessions found in {}. Skip importing'.format(ticker_pair))
-                continue
-            elif interval == '1m' and timedelta(minutes=(len(df.index) + 60)) != end_date - start_date:
-                # print('Missing sessions found in {}. Skip importing'.format(ticker_pair))
-                continue
+            # # Check if there is any missing session; skip the ticker pair otherwise
+            # if interval == '1d' and len(df.index) - 1 != pd.Timedelta(end_date - start_date).days:
+            #     # print('Missing sessions found in {}. Skip importing'.format(ticker_pair))
+            #     continue
+            # elif interval == '1m' and timedelta(minutes=(len(df.index) + 60)) != end_date - start_date:
+            #     # print('Missing sessions found in {}. Skip importing'.format(ticker_pair))
+            #     continue
 
-            yield (sid, df), symbol, asset_name, start_date, end_date, first_traded, auto_close_date, exchange
+            yield (sid, df), symbol, (sid, symbol), start_date, end_date, first_traded, auto_close_date, exchange
         except Exception as e:
-            print(f"error while processig {ticker_pair}: {e}")
+            print(f"error while processig {(sid, symbol)}: {e}")
 
 
 def metadata_df():
