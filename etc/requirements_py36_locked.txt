@@ -71,7 +71,7 @@ pycodestyle==2.6.0        # via flake8
 pyflakes==2.2.0           # via flake8
 pygments==2.6.1           # via sphinx
 pyparsing==2.4.7          # via matplotlib, packaging
-python-dateutil==2.8.1    # via alembic, datashape, matplotlib, pandas
+python-dateutil==2.8.1    # via -r etc/requirements.in, alembic, datashape, matplotlib, pandas
 python-editor==1.0.4      # via alembic
 python-interface==1.6.0   # via -r etc/requirements.in
 pytz==2020.1              # via -r etc/requirements.in, babel, pandas, trading-calendars
