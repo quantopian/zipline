@@ -71,7 +71,7 @@ pycodestyle==2.6.0        # via flake8
 pyflakes==2.2.0           # via flake8
 pygments==2.6.1           # via sphinx
 pyparsing==2.4.7          # via matplotlib, packaging
-python-dateutil==2.8.1    # via alembic, datashape, matplotlib, pandas
+python-dateutil==2.8.1    # via -r etc/requirements.in, alembic, datashape, matplotlib, pandas
 python-editor==1.0.4      # via alembic
 python-interface==1.6.0   # via -r etc/requirements.in
 pytz==2020.1              # via -r etc/requirements.in, babel, pandas, trading-calendars
@@ -79,6 +79,7 @@ pyyaml==5.3.1             # via sphinx-autobuild
 requests==2.24.0          # via -r etc/requirements.in, pandas-datareader, responses, sphinx
 responses==0.10.15        # via -r etc/requirements_dev.in
 scipy==1.5.2              # via -r etc/requirements.in, empyrical, statsmodels
+setuptools-scm==4.1.2     # via -r etc/requirements_build.in
 six==1.15.0               # via -r etc/requirements.in, cycler, flask-cors, h5py, livereload, multipledispatch, packaging, patsy, pip-tools, python-dateutil, python-interface, responses
 snowballstemmer==2.0.0    # via sphinx
 sortedcontainers==2.2.2   # via intervaltree
