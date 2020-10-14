@@ -79,6 +79,7 @@ pyyaml==5.3.1             # via sphinx-autobuild
 requests==2.24.0          # via -r etc/requirements.in, pandas-datareader, responses, sphinx
 responses==0.10.15        # via -r etc/requirements_dev.in
 scipy==1.5.2              # via -r etc/requirements.in, empyrical, statsmodels
+setuptools-scm==4.1.2     # via -r etc/requirements_build.in
 six==1.15.0               # via -r etc/requirements.in, cycler, flask-cors, h5py, livereload, multipledispatch, packaging, patsy, pip-tools, python-dateutil, python-interface, responses
 snowballstemmer==2.0.0    # via sphinx
 sortedcontainers==2.2.2   # via intervaltree

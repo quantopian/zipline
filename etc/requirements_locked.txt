@@ -69,6 +69,7 @@ requests-file==1.4.1      # via pandas-datareader
 requests==2.20.1          # via -r etc/requirements.in, pandas-datareader, requests-file, responses
 responses==0.9.0          # via -r etc/requirements_dev.in
 scipy==0.17.1             # via -r etc/requirements.in, empyrical
+setuptools-scm==4.1.2     # via -r etc/requirements_build.in
 six==1.11.0               # via -r etc/requirements.in, cycler, flask-cors, h5py, mock, multipledispatch, patsy, pip-tools, python-dateutil, python-interface, requests-file, responses, tables
 sortedcontainers==2.1.0   # via intervaltree
 sqlalchemy==1.3.11        # via -r etc/requirements.in, alembic, blaze
