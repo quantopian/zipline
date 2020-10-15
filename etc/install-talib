@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Download, compile, and install TA-Lib.
+
+set -x
+
+workdir="$(mktemp -d)"
+pushd "$workdir"
+
+url='https://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz'
+curl -sSL "$url" >ta-lib.tar.gz
+
+shasum --check <<EOF
+9ff41efcb1c011a4b4b6dfc91610b06e39b1d7973ed5d4dee55029a0ac4dc651  ta-lib.tar.gz
+EOF
+
+tar -xzf ta-lib.tar.gz
+cd ta-lib/
+
+./configure --prefix=/usr/local
+make
+make install
+
+popd
+rm -rf "$workdir"
