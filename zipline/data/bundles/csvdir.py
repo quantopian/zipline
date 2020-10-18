@@ -7,7 +7,6 @@ import sys
 from logbook import Logger, StreamHandler
 from numpy import empty
 from pandas import DataFrame, read_csv, Index, Timedelta, NaT
-from trading_calendars import register_calendar_alias
 
 from zipline.utils.cli import maybe_show_progress
 
@@ -152,13 +151,13 @@ def csvdir_bundle(environ,
             writer = daily_bar_writer
 
         writer.write(_pricing_iter(ddir, symbols, metadata,
-                     divs_splits, show_progress),
+                                   divs_splits, show_progress),
                      show_progress=show_progress)
 
-        # Hardcode the exchange to "CSVDIR" for all assets and (elsewhere)
-        # register "CSVDIR" to resolve to the NYSE calendar, because these
-        # are all equities and thus can use the NYSE calendar.
-        metadata['exchange'] = "CSVDIR"
+        if 'CSVDIR_EXCHANGE' in environ:
+            metadata['exchange'] = environ.get('CSVDIR_EXCHANGE')
+        else:
+            metadata['exchange'] = "XNYS"
 
         asset_db_writer.write(equities=metadata)
 
@@ -222,6 +221,3 @@ def _pricing_iter(csvdir, symbols, metadata, divs_splits, show_progress):
                 divs_splits['divs'] = divs.append(div)
 
             yield sid, dfr
-
-
-register_calendar_alias("CSVDIR", "NYSE")
