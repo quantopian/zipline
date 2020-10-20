@@ -20,6 +20,7 @@ from zipline.pipeline.factors import (
     MovingAverageConvergenceDivergenceSignal,
     AnnualizedVolatility,
     RSI,
+    FibonacciRetractment
 )
 from zipline.testing import check_allclose, parameter_space
 from zipline.testing.fixtures import ZiplineTestCase
@@ -663,3 +664,32 @@ class AnnualizedVolatilityTestCase(ZiplineTestCase):
             expected_vol,
             decimal=8
         )
+
+
+class FibonacciRetractmentTestCase(ZiplineTestCase):
+    """
+    Test FibonacciRetractment Calculation
+    """
+    def test_fibo(self):
+
+        fibo = FibonacciRetractment()
+
+        nassets = 3
+        today = np.datetime64(1, 'ns')
+        assets = np.arange(nassets)
+
+        np.random.seed(100)  # Seed so we get deterministic results.
+        test_data = np.abs(np.random.randn(15, nassets))
+
+        out = np.empty((6, nassets), dtype=float)
+        fibo.compute(today, assets, out, test_data)
+
+        expected = np.empty((6, 3), dtype=float)
+        expected[0] = [1.74976547,  1.69061683,  1.61898166]
+        expected[1] = [1.08414923,  1.14101903,  1.0217989]
+        expected[2] = [0.87854002,  0.97124798,  0.83732884]
+        expected[3] = [0.67293081,  0.80147694,  0.65285877]
+        expected[4] = [0.41853298,  0.59142123,  0.42461615]
+        expected[5] = [0.00731456,  0.25187914,  0.05567601]
+
+        np.testing.assert_almost_equal(out, expected, 7)

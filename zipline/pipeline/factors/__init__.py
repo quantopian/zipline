@@ -43,6 +43,7 @@ from .technical import (
     RateOfChangePercentage,
     RSI,
     TrueRange,
+    FibonacciRetractment,
 )
 
 __all__ = [
@@ -60,6 +61,7 @@ __all__ = [
     'ExponentialWeightedMovingStdDev',
     'Factor',
     'FastStochasticOscillator',
+    'FibonacciRetractment',
     'IchimokuKinkoHyo',
     'Latest',
     'LinearWeightedMovingAverage',
