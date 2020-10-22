@@ -917,7 +917,7 @@ class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
             0,
         ]
         for i, expected in enumerate(expected_position_count):
-            self.assertEqual(result.ix[i]['num_positions'], expected)
+            self.assertEqual(result.iloc[i]['num_positions'], expected)
 
     def test_noop_orders(self):
         asset = self.asset_finder.retrieve_asset(1)

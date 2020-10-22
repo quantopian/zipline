@@ -24,7 +24,7 @@ class TestClock(TestCase):
             pd.Timestamp("2016-07-19")
         )
 
-        trading_o_and_c = cls.nyse_calendar.schedule.ix[cls.sessions]
+        trading_o_and_c = cls.nyse_calendar.schedule.loc[cls.sessions]
         cls.opens = trading_o_and_c['market_open']
         cls.closes = trading_o_and_c['market_close']
 
