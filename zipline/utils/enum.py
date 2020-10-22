@@ -29,15 +29,15 @@ import pandas as pd
 from six.moves import range
 
 
-_inttypes_map = {
-    sizeof(t) - 1: t for t in {
+_inttypes_map = OrderedDict(sorted([
+    (sizeof(t) - 1, t) for t in {
         c_ubyte,
         c_uint,
         c_ulong,
         c_ulonglong,
         c_ushort
     }
-}
+]))
 _inttypes = list(
     pd.Series(_inttypes_map).reindex(
         range(max(_inttypes_map.keys())),
