@@ -169,8 +169,8 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
         expected_dividend_payouts = dividend_payouts.sort_values(
             payout_sort_key,
         )
-        expected_dividend_payouts = expected_dividend_payouts.reset_index(
-            drop=True,
+        expected_dividend_payouts.reset_index(
+            drop=True, inplace=True
         )
         assert_equal(dividend_payouts, expected_dividend_payouts)
 
@@ -179,10 +179,11 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
              [T(2), 0.90, 1]],
             columns=['effective_date', 'ratio', 'sid'],
         )
-        dividend_ratios = dividend_ratios.sort_values(
+        dividend_ratios.sort_values(
             ['effective_date', 'sid'],
+            inplace=True,
         )
-        dividend_ratios = dividend_ratios.reset_index(drop=True)
+        dividend_ratios.reset_index(drop=True, inplace=True)
         assert_equal(dividend_ratios, expected_dividend_ratios)
 
         self.assertTrue(self.log_handler.has_warning(
@@ -270,7 +271,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
         output = dfs.pop('stock_dividend_payouts').sort_values(sort_key)
         self.assert_all_empty(dfs)
 
-        assert_equal(output, input_)
+        assert_equal(output, input_[sorted(input_.columns)])
 
     @parameter_space(convert_dates=[True, False])
     def test_empty_frame_dtypes(self, convert_dates):

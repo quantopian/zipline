@@ -315,12 +315,14 @@ class SQLiteAdjustmentReader(object):
             self.conn,
             index_col='index',
             **kwargs
-        ).rename_axis(None)
+        )
+        dtypes = self._df_dtypes(table_name, convert_dates)
 
         if not len(result):
-            dtypes = self._df_dtypes(table_name, convert_dates)
             return empty_dataframe(*keysorted(dtypes))
 
+        result.rename_axis(None, inplace=True)
+        result = result[sorted(dtypes)]  # ensure expected order of columns
         return result
 
     def _df_dtypes(self, table_name, convert_dates):
