@@ -874,7 +874,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             pd.DatetimeIndex(df['timestamp'], tz='EST') +
             timedelta(hours=8, minutes=44)
         ).tz_convert('utc').tz_localize(None)
-        df.ix[3:5, 'timestamp'] = pd.Timestamp('2014-01-01 13:45')
+        df.iloc[3:5, df.columns.get_loc('timestamp')] = \
+            pd.Timestamp('2014-01-01 13:45')
         expr = bz.data(df, name='expr', dshape=self.dshape)
         loader = BlazeLoader()
         ds = from_blaze(
@@ -900,7 +901,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         expected['timestamp'] = expected['timestamp'].dt.normalize().astype(
             'datetime64[ns]',
         ).dt.tz_localize('utc')
-        expected.ix[3:5, 'timestamp'] += timedelta(days=1)
+        expected.iloc[3:5, expected.columns.get_loc('timestamp')] += \
+            timedelta(days=1)
         expected.set_index(['timestamp', 'sid'], inplace=True)
         expected.index = pd.MultiIndex.from_product((
             expected.index.levels[0],

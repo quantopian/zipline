@@ -193,9 +193,9 @@ class ClosesAndVolumes(WithMakeAlgo, ZiplineTestCase):
 
         # View of the data on/after the split.
         self.adj_closes = adj_closes = self.closes.copy()
-        adj_closes.ix[:self.split_date, self.split_asset] *= self.split_ratio
+        adj_closes.loc[:self.split_date, self.split_asset] *= self.split_ratio
         self.adj_volumes = adj_volumes = self.volumes.copy()
-        adj_volumes.ix[:self.split_date, self.split_asset] *= self.split_ratio
+        adj_volumes.loc[:self.split_date, self.split_asset] *= self.split_ratio
 
         self.pipeline_close_loader = DataFrameLoader(
             column=USEquityPricing.close,
