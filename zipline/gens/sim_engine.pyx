@@ -66,7 +66,7 @@ cdef class MinuteSimulationClock:
                 _nanos_in_minute
             )
             minutes_by_session[session_nano] = pd.to_datetime(
-                minutes_nanos, utc=True, box=True
+                minutes_nanos, utc=True
             )
         return minutes_by_session
 
