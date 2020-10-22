@@ -6,7 +6,6 @@ import warnings
 from logbook import NullHandler, Logger
 import numpy as np
 import pandas as pd
-from pandas.core.common import PerformanceWarning
 from six import with_metaclass, iteritems, itervalues, PY2
 import responses
 from toolz import flip, groupby, merge
@@ -80,6 +79,7 @@ from ..finance.trading import SimulationParameters
 from ..utils.classproperty import classproperty
 from ..utils.final import FinalMeta, final
 from ..utils.memoize import remember_last
+from ..utils.pandas_utils import PerformanceWarning
 
 
 zipline_dir = os.path.dirname(zipline.__file__)

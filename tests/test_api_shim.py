@@ -3,7 +3,6 @@ import warnings
 from mock import patch
 import numpy as np
 import pandas as pd
-from pandas.core.common import PerformanceWarning
 
 from zipline.finance.trading import SimulationParameters
 from zipline.testing import (
@@ -17,6 +16,7 @@ from zipline.testing.fixtures import (
     WithMakeAlgo,
     ZiplineTestCase,
 )
+from zipline.utils.pandas_utils import PerformanceWarning
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 simple_algo = """

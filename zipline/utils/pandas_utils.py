@@ -32,6 +32,12 @@ else:
     from pandas.tseries.tools import normalize_date  # noqa
 
 
+if pandas_version >= StrictVersion('0.23'):
+    from pandas.errors import PerformanceWarning
+else:
+    from pandas.core.common import PerformanceWarning
+
+
 def july_5th_holiday_observance(datetime_index):
     return datetime_index[datetime_index.year != 2013]
 
@@ -219,29 +225,33 @@ def ignore_pandas_nan_categorical_warning():
         yield
 
 
-_INDEXER_NAMES = [
-    '_' + name for (name, _) in pd.core.indexing.get_indexers_list()
-]
+if pandas_version < StrictVersion('1.0'):
+    _INDEXER_NAMES = [
+        '_' + name for (name, _) in pd.core.indexing.get_indexers_list()
+    ]
 
 
-def clear_dataframe_indexer_caches(df):
-    """
-    Clear cached attributes from a pandas DataFrame.
+    def clear_dataframe_indexer_caches(df):
+        """
+        Clear cached attributes from a pandas DataFrame.
 
-    By default pandas memoizes indexers (`iloc`, `loc`, `ix`, etc.) objects on
-    DataFrames, resulting in refcycles that can lead to unexpectedly long-lived
-    DataFrames. This function attempts to clear those cycles by deleting the
-    cached indexers from the frame.
+        By default pandas memoizes indexers (`iloc`, `loc`, `ix`, etc.) objects on
+        DataFrames, resulting in refcycles that can lead to unexpectedly long-lived
+        DataFrames. This function attempts to clear those cycles by deleting the
+        cached indexers from the frame.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-    """
-    for attr in _INDEXER_NAMES:
-        try:
-            delattr(df, attr)
-        except AttributeError:
-            pass
+        Parameters
+        ----------
+        df : pd.DataFrame
+        """
+        for attr in _INDEXER_NAMES:
+            try:
+                delattr(df, attr)
+            except AttributeError:
+                pass
+else:
+    def clear_dataframe_indexer_caches(df):
+        pass
 
 
 def categorical_df_concat(df_list, inplace=False):

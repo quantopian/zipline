@@ -1,6 +1,7 @@
 """
 Utilities for validating inputs to user-facing API functions.
 """
+import sys
 from textwrap import dedent
 from types import CodeType
 from uuid import uuid4
@@ -11,8 +12,18 @@ from six import viewkeys, exec_, PY3
 from zipline.utils.compat import getargspec, wraps
 
 
+if PY3:
+    if sys.version_info[0:2] >= (3, 8):
+        _code_argorder_head = (
+            'co_argcount', 'co_posonlyargcount', 'co_kwonlyargcount',
+        )
+    else:
+        _code_argorder_head = ('co_argcount', 'co_kwonlyargcount')
+else:
+    _code_argorder_head = ('co_argcount',)
+
 _code_argorder = (
-    ('co_argcount', 'co_kwonlyargcount') if PY3 else ('co_argcount',)
+    _code_argorder_head
 ) + (
     'co_nlocals',
     'co_stacksize',
