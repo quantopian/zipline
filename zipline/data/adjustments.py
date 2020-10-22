@@ -301,11 +301,8 @@ class SQLiteAdjustmentReader(object):
             )
 
         # Dates are stored in second resolution as ints in adj.db tables.
-        # Need to specifically convert them as UTC, not local time.
         kwargs = (
-            {'parse_dates': {col: {'unit': 's', 'utc': True}
-                             for col in date_cols}
-             }
+            {'parse_dates': {col: {'unit': 's'} for col in date_cols}}
             if convert_dates
             else {}
         )
