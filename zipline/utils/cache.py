@@ -207,7 +207,7 @@ class dataframe_cache(MutableMapping):
                  path=None,
                  lock=None,
                  clean_on_failure=True,
-                 serialization='msgpack'):
+                 serialization='pickle'):
         self.path = path if path is not None else mkdtemp()
         self.lock = lock if lock is not None else nop_context
         self.clean_on_failure = clean_on_failure
