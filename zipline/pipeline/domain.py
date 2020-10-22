@@ -194,7 +194,7 @@ class EquityCalendarDomain(Domain):
         return self.calendar.all_sessions
 
     def data_query_cutoff_for_sessions(self, sessions):
-        opens = self.calendar.opens.loc[sessions].values
+        opens = self.calendar.opens.reindex(sessions).values
         missing_mask = pd.isnull(opens)
         if missing_mask.any():
             missing_days = sessions[missing_mask]
