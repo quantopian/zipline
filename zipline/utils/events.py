@@ -14,6 +14,7 @@
 # limitations under the License.
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
+import inspect
 import six
 import warnings
 
@@ -787,7 +788,7 @@ def _check_if_not_called(v):
     try:
         name = _uncalled_rules[v]
     except KeyError:
-        if not issubclass(v, EventRule):
+        if not (inspect.isclass(v) and issubclass(v, EventRule)):
             return
 
         name = getattr(v, '__name__', None)
