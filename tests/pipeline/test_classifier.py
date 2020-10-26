@@ -464,11 +464,11 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
         errmsg = str(e.exception)
         expected = (
             "Expected `choices` to be an iterable of hashable values,"
-            " but got [{'a': 1}] instead.\n"
+            " but got \[{'a': 1}\] instead.\n"
             "This caused the following error: "
-            "TypeError(\"unhashable type: 'dict'\",)."
+            "TypeError\(\"unhashable type: 'dict'\",?\)."
         )
-        self.assertEqual(errmsg, expected)
+        self.assertRegex(errmsg, expected)
 
     @parameter_space(
         __fail_fast=True,
