@@ -87,14 +87,12 @@ def analyze(context=None, results=None):
         results['AAPL'].plot(ax=ax2)
         results[['short_mavg', 'long_mavg']].plot(ax=ax2)
 
-        trans = results.ix[[t != [] for t in results.transactions]]
-        buys = trans.ix[[t[0]['amount'] > 0 for t in
-                         trans.transactions]]
-        sells = trans.ix[
-            [t[0]['amount'] < 0 for t in trans.transactions]]
-        ax2.plot(buys.index, results.short_mavg.ix[buys.index],
+        trans = results[[t != [] for t in results.transactions]]
+        buys = trans[[t[0]['amount'] > 0 for t in trans.transactions]]
+        sells = trans[[t[0]['amount'] < 0 for t in trans.transactions]]
+        ax2.plot(buys.index, results.short_mavg.loc[buys.index],
                  '^', markersize=10, color='m')
-        ax2.plot(sells.index, results.short_mavg.ix[sells.index],
+        ax2.plot(sells.index, results.short_mavg.loc[sells.index],
                  'v', markersize=10, color='k')
         plt.legend(loc=0)
     else:
