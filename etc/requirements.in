@@ -64,3 +64,4 @@ iso4217>=1.6.20180829
 
 
 alpaca-trade-api>=0.51.0
+PyYAML==5.3.1
