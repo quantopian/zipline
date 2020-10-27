@@ -10,12 +10,12 @@ from pathlib import Path
 import pandas as pd
 import pickle
 import requests
-from trading_calendars import register_calendar
-# from trading_calendars.exchange_calendar_binance import BinanceExchangeCalendar
+from alpaca_trade_api.common import URL
+from dateutil import tz
+from trading_calendars import TradingCalendar
 import yaml
 from zipline.data.bundles import core as bundles
 from dateutil.parser import parse as date_parse
-
 user_home = str(Path.home())
 custom_data_path = join(user_home, '.zipline/custom_data')
 
