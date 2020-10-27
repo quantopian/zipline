@@ -211,7 +211,7 @@ def metadata_df():
     return metadata_df
 
 
-@bundles.register('binance_api', calendar_name="24/7", minutes_per_day=1440)
+@bundles.register('polygon_api', calendar_name="NYSE", minutes_per_day=390)
 def api_to_bundle(interval=['1m']):
     def ingest(environ,
                asset_db_writer,
