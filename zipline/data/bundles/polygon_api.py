@@ -230,10 +230,14 @@ def api_to_bundle(interval=['1m']):
 
 
         def minute_data_generator():
-            return (sid_df for (sid_df, *metadata.iloc[sid_df[0]]) in df_generator(interval='1m'))
+            return (sid_df for (sid_df, *metadata.iloc[sid_df[0]]) in df_generator(interval='1m',
+                                                                                   start=start_session,
+                                                                                   end=end_session))
 
         def daily_data_generator():
-            return (sid_df for (sid_df, *metadata.iloc[sid_df[0]]) in df_generator(interval='1d'))
+            return (sid_df for (sid_df, *metadata.iloc[sid_df[0]]) in df_generator(interval='1d',
+                                                                                   start=start_session,
+                                                                                   end=end_session))
         for _interval in interval:
             metadata = metadata_df()
             if _interval == '1d':
