@@ -286,7 +286,6 @@ if __name__ == '__main__':
     bundles_module.ingest(
         "polygon_api",
         os.environ,
-        pd.Timestamp.utcnow(),
-        assets_version,
-        True,
+        assets_versions=assets_version,
+        show_progress=True,
     )
