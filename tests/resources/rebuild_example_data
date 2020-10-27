@@ -9,9 +9,11 @@ import matplotlib
 import numpy as np
 import pandas as pd
 
+from tests.test_examples import EXAMPLE_MODULES
 from zipline import examples
 from zipline.data.bundles import register
 from zipline.testing import test_resource_path, tmp_dir
+from zipline.testing.fixtures import read_checked_in_benchmark_data
 from zipline.utils.cache import dataframe_cache
 
 
@@ -122,8 +124,13 @@ def main(ctx, rebuild_input):
             serialization='pickle:2',
         )
         with c:
-            for name in examples.EXAMPLE_MODULES:
-                c[name] = examples.run_example(name, environ=environ)
+            for name in EXAMPLE_MODULES:
+                c[name] = examples.run_example(
+                    EXAMPLE_MODULES,
+                    name,
+                    environ=environ,
+                    benchmark_returns=read_checked_in_benchmark_data(),
+                )
 
             correct_called = [False]
 
