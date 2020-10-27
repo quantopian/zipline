@@ -176,6 +176,8 @@ def df_generator(interval):
     for sid, symbol in enumerate(list_assets()):
         try:
             df = get_aggs_from_polygon(symbol, start, end, 'day' if interval == '1d' else 'minute', 1)
+            if df.empty:
+                continue
             start_date = df.index[0]
             end_date = df.index[-1]
             first_traded = start_date
