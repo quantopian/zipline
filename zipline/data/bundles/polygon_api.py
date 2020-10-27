@@ -1,15 +1,10 @@
-import bs4 as bs
 import alpaca_trade_api as tradeapi
-import csv
-from datetime import datetime as dt
 from datetime import timedelta
 import numpy as np
-from os import listdir, mkdir, remove
-from os.path import exists, isfile, join
+from os.path import isfile, join
 from pathlib import Path
 import pandas as pd
 import pickle
-import requests
 from alpaca_trade_api.common import URL
 from dateutil import tz
 from trading_calendars import TradingCalendar
@@ -21,6 +16,7 @@ custom_data_path = join(user_home, '.zipline/custom_data')
 
 CLIENT: tradeapi.REST = None
 NY = "America/New_York"
+
 
 def initialize_client():
     global CLIENT
@@ -41,31 +37,6 @@ def list_assets():
         # ASSETS = [_.ticker for _ in CLIENT.polygon.all_tickers()]
 
     return ASSETS[:20]
-
-
-def tickers():
-    """
-    Save Binance trading pair tickers to a pickle file
-    Return a list of trading ticker pairs
-    """
-    cmc_binance_url = 'https://coinmarketcap.com/exchanges/binance/'
-    response = requests.get(cmc_binance_url)
-    if response.ok:
-        soup = bs.BeautifulSoup(response.text, 'html.parser')
-        table = soup.find('table', {'id': 'exchange-markets'})
-        ticker_pairs = []
-
-        for row in table.findAll('tr')[1:]:
-            ticker_pair = row.findAll('td')[2].text
-            ticker_pairs.append(ticker_pair.strip().replace('/', ''))
-
-    if not exists(custom_data_path):
-        mkdir(custom_data_path)
-
-    with open(join(custom_data_path, 'binance_ticker_pairs.pickle'), 'wb') as f:
-        pickle.dump(ticker_pairs, f)
-
-    return ticker_pairs
 
 
 def tickers_generator():
