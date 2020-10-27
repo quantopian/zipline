@@ -199,7 +199,7 @@ def df_generator(interval):
 def metadata_df():
     metadata_dtype = [
         ('symbol', 'object'),
-        ('asset_name', 'object'),
+        # ('asset_name', 'object'),
         ('start_date', 'datetime64[ns]'),
         ('end_date', 'datetime64[ns]'),
         ('first_traded', 'datetime64[ns]'),
