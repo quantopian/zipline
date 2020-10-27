@@ -259,7 +259,17 @@ def api_to_bundle(interval=['1m']):
 if __name__ == '__main__':
     from zipline.data.bundles import register
     from zipline.data import bundles as bundles_module
+    import trading_calendars
     import os
+
+    cal: TradingCalendar = trading_calendars.get_calendar('NYSE')
+    start_date = pd.Timestamp('2019-08-03 0:00', tz='utc')
+    while not cal.is_session(start_date):
+        start_date += timedelta(days=1)
+    end_date = pd.Timestamp('now', tz='utc').date() - timedelta(days=1)
+    while not cal.is_session(end_date):
+        end_date -= timedelta(days=1)
+    end_date = pd.Timestamp(end_date, tz='utc')
 
     initialize_client()
 
@@ -269,6 +279,8 @@ if __name__ == '__main__':
         # api_to_bundle(interval=['1m']),
         api_to_bundle(interval=['1d']),
         calendar_name='NYSE',
+        start_session=start_date,
+        end_session=end_date
     )
     assets_version = ((),)[0]  # just a weird way to create an empty tuple
     bundles_module.ingest(
