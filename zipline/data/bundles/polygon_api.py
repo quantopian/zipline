@@ -37,8 +37,8 @@ ASSETS = None
 def list_assets():
     global ASSETS
     if not ASSETS:
-        # ASSETS = CLIENT.list_assets()
-        ASSETS = [_.ticker for _ in CLIENT.polygon.all_tickers()]
+        ASSETS = [_.symbol for _ in CLIENT.list_assets()]
+        # ASSETS = [_.ticker for _ in CLIENT.polygon.all_tickers()]
 
     return ASSETS[:20]
 
