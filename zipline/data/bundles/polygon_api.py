@@ -20,7 +20,7 @@ user_home = str(Path.home())
 custom_data_path = join(user_home, '.zipline/custom_data')
 
 CLIENT: tradeapi.REST = None
-
+NY = "America/New_York"
 
 def initialize_client():
     global CLIENT
