@@ -193,6 +193,8 @@ def df_generator(interval):
 
             yield (sid, df), symbol, (sid, symbol), start_date, end_date, first_traded, auto_close_date, exchange
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             print(f"error while processig {(sid, symbol)}: {e}")
 
 
