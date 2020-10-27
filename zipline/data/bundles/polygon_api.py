@@ -28,8 +28,10 @@ def initialize_client():
         o = yaml.safe_load(f)
         key = o["key_id"]
         secret = o["secret"]
+        base_url = o["base_url"]
     CLIENT = tradeapi.REST(key_id=key,
-                           secret_key=secret)
+                           secret_key=secret,
+                           base_url=URL(base_url))
 
 ASSETS = None
 def list_assets():
