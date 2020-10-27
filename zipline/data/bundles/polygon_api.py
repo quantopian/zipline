@@ -117,6 +117,24 @@ def get_aggs_from_polygon(dataname,
         """
         return df.between_time("09:30", "16:00")
 
+    def _fillna(df, granularity, start, end):
+        if granularity != 'day':
+            return df
+        if df.empty:
+            return df
+        calendar: TradingCalendar = trading_calendars.get_calendar("NYSE")
+        last_val = df.iloc[0]
+        current = start
+        while current <= end:
+            if calendar.is_session(current):
+                if current.replace(tzinfo=tz.gettz(NY)) in df.index:
+                    last_val = df.loc[current.replace(tzinfo=tz.gettz(NY))]
+                else:
+                    # df.loc[pytz.timezone(NY).localize(current)] = last_val
+                    df.loc[current.replace(tzinfo=tz.gettz(NY))] = last_val
+            current += timedelta(days=1)
+        return df
+
     if granularity == 'day':
         cdl = CLIENT.polygon.historic_agg_v2(
             dataname,
@@ -124,6 +142,7 @@ def get_aggs_from_polygon(dataname,
             granularity,
             _from=iso_date(dtbegin.isoformat()),
             to=iso_date(dtend.isoformat())).df
+        cdl = _fillna(cdl, granularity, dtbegin, dtend)
     else:
         cdl = pd.DataFrame()
         segment_start = dtbegin
