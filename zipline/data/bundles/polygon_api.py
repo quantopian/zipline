@@ -168,9 +168,7 @@ def get_aggs_from_polygon(dataname,
     return cdl
 
 
-def df_generator(interval):
-    start = date_parse('2020-7-14')  # Binance launch date
-    end = dt.utcnow().date()  # Current day
+def df_generator(interval, start, end):
     exchange = 'NYSE'
 
     for sid, symbol in enumerate(list_assets()):
@@ -180,8 +178,8 @@ def df_generator(interval):
                 continue
             start_date = df.index[0]
             end_date = df.index[-1]
-            first_traded = start_date
-            auto_close_date = end_date + pd.Timedelta(days=1)
+            first_traded = start
+            auto_close_date = end + pd.Timedelta(days=1)
 
             # # Check if there is any missing session; skip the ticker pair otherwise
             # if interval == '1d' and len(df.index) - 1 != pd.Timedelta(end_date - start_date).days:
@@ -282,6 +280,7 @@ if __name__ == '__main__':
         start_session=start_date,
         end_session=end_date
     )
+
     assets_version = ((),)[0]  # just a weird way to create an empty tuple
     bundles_module.ingest(
         "polygon_api",
