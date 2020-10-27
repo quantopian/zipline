@@ -191,7 +191,7 @@ def df_generator(interval):
             #     # print('Missing sessions found in {}. Skip importing'.format(ticker_pair))
             #     continue
 
-            yield (sid, df), symbol, (sid, symbol), start_date, end_date, first_traded, auto_close_date, exchange
+            yield (sid, df), symbol, start, end, first_traded, auto_close_date, exchange
         except Exception as e:
             import traceback
             traceback.print_exc()
