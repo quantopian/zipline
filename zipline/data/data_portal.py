@@ -1218,20 +1218,22 @@ class DataPortal(object):
         end_dt = trading_days[-1].value / 1e9
 
         dividends = self._adjustment_reader.conn.execute(
-            "SELECT * FROM stock_dividend_payouts WHERE sid = ? AND "
-            "ex_date > ? AND pay_date < ?", (int(sid), start_dt, end_dt,)).\
-            fetchall()
+            "SELECT declared_date, ex_date, pay_date, payment_sid, ratio, "
+            "record_date, sid FROM stock_dividend_payouts "
+            "WHERE sid = ? AND ex_date > ? AND pay_date < ?",
+            (int(sid), start_dt, end_dt,)
+        ).fetchall()
 
         dividend_info = []
         for dividend_tuple in dividends:
             dividend_info.append({
-                "declared_date": dividend_tuple[1],
-                "ex_date": pd.Timestamp(dividend_tuple[2], unit="s"),
-                "pay_date": pd.Timestamp(dividend_tuple[3], unit="s"),
-                "payment_sid": dividend_tuple[4],
-                "ratio": dividend_tuple[5],
-                "record_date": pd.Timestamp(dividend_tuple[6], unit="s"),
-                "sid": dividend_tuple[7]
+                "declared_date": pd.Timestamp(dividend_tuple[0], unit="s"),
+                "ex_date": pd.Timestamp(dividend_tuple[1], unit="s"),
+                "pay_date": pd.Timestamp(dividend_tuple[2], unit="s"),
+                "payment_sid": dividend_tuple[3],
+                "ratio": dividend_tuple[4],
+                "record_date": pd.Timestamp(dividend_tuple[5], unit="s"),
+                "sid": dividend_tuple[6],
             })
 
         return dividend_info
