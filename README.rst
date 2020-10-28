@@ -147,3 +147,4 @@ Feel free to ask questions on the `mailing list <https://groups.google.com/forum
    :target: https://coveralls.io/r/quantopian/zipline
 
 .. _`Zipline Install Documentation` : https://www.zipline.io/install
+[![Run on Repl.it](https://repl.it/badge/github/quantopian/zipline)](https://repl.it/github/quantopian/zipline)
