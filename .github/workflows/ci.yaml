@@ -48,15 +48,15 @@ jobs:
     - name: Set Lockfile py 35
       if: matrix.python-version == 3.5
       run: |
-        echo ::set-env name=PIP_CONSTRAINT::etc/requirements_locked.txt
+        echo "PIP_CONSTRAINT=etc/requirements_locked.txt" >> $GITHUB_ENV
     - name: Set Lockfile py36
       if: matrix.python-version == 3.6
       run: |
-        echo ::set-env name=PIP_CONSTRAINT::etc/requirements_py36_locked.txt
+        echo "PIP_CONSTRAINT=etc/requirements_py36_locked.txt" >> $GITHUB_ENV
     - name: Set Lockfile py38
       if: matrix.python-version == 3.8
       run: |
-        echo ::set-env name=PIP_CONSTRAINT::etc/requirements_py38_locked.txt
+        echo "PIP_CONSTRAINT=etc/requirements_py38_locked.txt" >> $GITHUB_ENV
     - name: Get pip cache dir
       id: pip-cache
       run: |
