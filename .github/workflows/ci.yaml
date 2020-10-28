@@ -40,6 +40,11 @@ jobs:
       if: startsWith(matrix.os, 'macos')
       run: |
         brew install ta-lib
+    - name: Install c-blosc (macOS)
+      if: startsWith(matrix.os, 'macos')
+      run: |
+        brew install c-blosc
+        echo "BLOSC_DIR=`brew --cellar`" >> $GITHUB_ENV
     - name: Set Lockfile py 35
       if: matrix.python-version == 3.5
       run: |
