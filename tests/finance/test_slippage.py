@@ -743,7 +743,7 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
                                     WithDataPortal,
                                     ZiplineTestCase):
 
-    ASSET_START_DATE = pd.Timestamp('2006-02-10')
+    ASSET_START_DATE = pd.Timestamp('2006-02-10', tz='utc')
 
     TRADING_CALENDAR_STRS = ('NYSE', 'us_futures')
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'

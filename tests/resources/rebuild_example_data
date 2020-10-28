@@ -19,20 +19,6 @@ from zipline.utils.cache import dataframe_cache
 
 matplotlib.use('Agg')
 
-INPUT_DATA_START_DATE = pd.Timestamp('2004-01-02')
-INPUT_DATA_END_DATE = pd.Timestamp('2014-12-31')
-INPUT_DATA_SYMBOLS = (
-    'AMD',
-    'CERN',
-    'COST',
-    'DELL',
-    'GPS',
-    'INTC',
-    'MMM',
-    'AAPL',
-    'MSFT',
-)
-
 banner = """
 Please verify that the new performance is more correct than the old
 performance.

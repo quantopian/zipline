@@ -134,8 +134,8 @@ class WithEstimates(WithTradingSessions, WithAdjustmentReader):
     """
 
     # Short window defined in order for test to run faster.
-    START_DATE = pd.Timestamp('2014-12-28')
-    END_DATE = pd.Timestamp('2015-02-04')
+    START_DATE = pd.Timestamp('2014-12-28', tz='utc')
+    END_DATE = pd.Timestamp('2015-02-04', tz='utc')
 
     @classmethod
     def make_loader(cls, events, columns):
@@ -465,7 +465,7 @@ class WithEstimatesTimeZero(WithEstimates):
         sid and for each column.
     """
     # Shorter date range for performance
-    END_DATE = pd.Timestamp('2015-01-28')
+    END_DATE = pd.Timestamp('2015-01-28', tz='utc')
 
     q1_knowledge_dates = [pd.Timestamp('2015-01-01'),
                           pd.Timestamp('2015-01-04'),
@@ -1046,7 +1046,7 @@ class WithEstimateWindows(WithEstimates):
         Tests that we overwrite values with the correct quarter's estimate at
         the correct dates when we have a factor that asks for a window of data.
     """
-    END_DATE = pd.Timestamp('2015-02-10')
+    END_DATE = pd.Timestamp('2015-02-10', tz='utc')
     window_test_start_date = pd.Timestamp('2015-01-05')
     critical_dates = [pd.Timestamp('2015-01-09', tz='utc'),
                       pd.Timestamp('2015-01-15', tz='utc'),
@@ -1972,7 +1972,7 @@ class WithSplitAdjustedMultipleEstimateColumns(WithEstimates):
         number of quarters out, and each asks for a different estimates column,
         we still split-adjust correctly.
     """
-    END_DATE = pd.Timestamp('2015-02-10')
+    END_DATE = pd.Timestamp('2015-02-10', tz='utc')
     test_start_date = pd.Timestamp('2015-01-06', tz='utc')
     test_end_date = pd.Timestamp('2015-01-12', tz='utc')
     split_adjusted_asof = pd.Timestamp('2015-01-08')
@@ -2291,12 +2291,12 @@ class WithAdjustmentBoundaries(WithEstimates):
         A dictionary of the expected output of the pipeline at each of the
         dates of interest.
     """
-    START_DATE = pd.Timestamp('2015-01-04')
+    START_DATE = pd.Timestamp('2015-01-04', tz='utc')
     # We want to run the pipeline starting from `START_DATE`, but the
     # pipeline results will start from the next day, which is
     # `test_start_date`.
     test_start_date = pd.Timestamp('2015-01-05')
-    END_DATE = test_end_date = pd.Timestamp('2015-01-12')
+    END_DATE = test_end_date = pd.Timestamp('2015-01-12', tz='utc')
     split_adjusted_before_start = (
         test_start_date - timedelta(days=1)
     )

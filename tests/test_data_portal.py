@@ -42,8 +42,8 @@ class DataPortalTestBase(WithDataPortal,
 
     ASSET_FINDER_EQUITY_SIDS = (1, 2, 3)
     DIVIDEND_ASSET_SID = 3
-    START_DATE = pd.Timestamp('2016-08-01')
-    END_DATE = pd.Timestamp('2016-08-08')
+    START_DATE = pd.Timestamp('2016-08-01', tz='utc')
+    END_DATE = pd.Timestamp('2016-08-08', tz='utc')
 
     TRADING_CALENDAR_STRS = ('NYSE', 'us_futures')
 
