@@ -43,7 +43,7 @@ def tickers_generator():
     """
     Return a tuple (sid, ticker_pair)
     """
-    tickers_file = join(custom_data_path, 'polygon_ticker_pairs.pickle')
+    tickers_file = join(custom_data_path, 'alpaca_ticker_pairs.pickle')
     if not isfile(tickers_file):
         ticker_pairs = list_assets()
 
