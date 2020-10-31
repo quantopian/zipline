@@ -20,7 +20,7 @@ NY = "America/New_York"
 
 def initialize_client():
     global CLIENT
-    with open("alpaca.yaml", mode='r') as f:
+    with open("polygon.yaml", mode='r') as f:
         o = yaml.safe_load(f)
         key = o["key_id"]
         secret = o["secret"]
