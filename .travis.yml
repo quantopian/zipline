@@ -4,6 +4,7 @@ python:
   - 2.7
   - 3.5
   - 3.6
+  - 3.7
 env:
   global:
     # 1. Generated a token for travis at https://anaconda.org/quantopian/settings/access with scope api:write.
@@ -25,6 +26,8 @@ matrix:
     - python: 2.7
       env: NEW_PANDAS=1
     - python: 3.6
+      env: OLD_PANDAS=1
+    - python: 3.7
       env: OLD_PANDAS=1
 #  include:
 #    # Workaround Travis OSX not natively supporting Python.

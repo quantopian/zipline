@@ -291,6 +291,7 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Operating System :: OS Independent',
         'Intended Audience :: Science/Research',
         'Topic :: Office/Business :: Financial',
