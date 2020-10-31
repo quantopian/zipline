@@ -69,6 +69,154 @@ def iso_date(date_str):
     return date_parse(date_str).date().isoformat()
 
 
+def get_aggs_from_alpaca(self,
+                         symbol,
+                         start,
+                         end,
+                         granularity,
+                         compression):
+    """
+    https://alpaca.markets/docs/api-documentation/api-v2/market-data/bars/
+    Alpaca API as a limit of 1000 records per api call. meaning, we need to
+    do multiple calls to get all the required data if the date range is
+    large.
+    also, the alpaca api does not support compression (or, you can't get
+    5 minute bars e.g) so we need to resample the received bars.
+    also, we need to drop out of market records.
+    this function does all of that.
+
+    note:
+    this was the old way of getting the data
+      response = self.oapi.get_aggs(dataname,
+                                    compression,
+                                    granularity,
+                                    self.iso_date(start_dt),
+                                    self.iso_date(end_dt))
+      the thing is get_aggs work nicely for days but not for minutes, and
+      it is not a documented API. barset on the other hand does
+      but we need to manipulate it to be able to work with it
+      smoothly and return data the same way polygon does
+    """
+
+    def _iterate_api_calls():
+        """
+        you could get max 1000 samples from the server. if we need more
+        than that we need to do several api calls.
+
+        currently the alpaca api supports also 5Min and 15Min so we could
+        optimize server communication time by addressing timeframes
+        """
+        got_all = False
+        curr = end
+        response = []
+        while not got_all:
+            if granularity == 'minute' and compression == 5:
+                timeframe = "5Min"
+            elif granularity == 'minute' and compression == 15:
+                timeframe = "15Min"
+            else:
+                timeframe = granularity
+            r = self.oapi.get_barset(symbol,
+                                     timeframe,
+                                     limit=1000,
+                                     end=curr.isoformat()
+                                     )[symbol]
+            if r:
+                earliest_sample = r[0].t
+                r = r._raw
+                r.extend(response)
+                response = r
+                if earliest_sample <= (pytz.timezone(NY).localize(
+                        start) if not start.tzname() else start):
+                    got_all = True
+                else:
+                    delta = timedelta(days=1) if granularity == "day" \
+                        else timedelta(minutes=1)
+                    curr = earliest_sample - delta
+            else:
+                # no more data is available, let's return what we have
+                break
+        return response
+
+    def _clear_out_of_market_hours(df):
+        """
+        only interested in samples between 9:30, 16:00 NY time
+        """
+        return df.between_time("09:30", "16:00")
+
+    def _drop_early_samples(df):
+        """
+        samples from server don't start at 9:30 NY time
+        let's drop earliest samples
+        """
+        for i, b in df.iterrows():
+            if i.time() >= dtime(9, 30):
+                return df[i:]
+
+    def _resample(df):
+        """
+        samples returned with certain window size (1 day, 1 minute) user
+        may want to work with different window size (5min)
+        """
+
+        if granularity == 'minute':
+            sample_size = f"{compression}Min"
+        else:
+            sample_size = f"{compression}D"
+        df = df.resample(sample_size).agg(
+            collections.OrderedDict([
+                ('open', 'first'),
+                ('high', 'max'),
+                ('low', 'min'),
+                ('close', 'last'),
+                ('volume', 'sum'),
+            ])
+        )
+        if granularity == 'minute':
+            return df.between_time("09:30", "16:00")
+        else:
+            return df
+
+    # def _back_to_aggs(df):
+    #     response = []
+    #     for i, v in df.iterrows():
+    #         response.append({
+    #             "o": v.open,
+    #             "h": v.high,
+    #             "l": v.low,
+    #             "c": v.close,
+    #             "v": v.volume,
+    #             "t": i.timestamp() * 1000,
+    #         })
+    #     return Aggs({"results": response})
+
+    if not start:
+        response = self.oapi.get_barset(symbol,
+                                        granularity,
+                                        limit=1000,
+                                        end=end)[symbol]._raw
+    else:
+        response = _iterate_api_calls()
+    for bar in response:
+        # Aggs are in milliseconds, we multiply by 1000 to
+        # change seconds to ms
+        bar['t'] *= 1000
+    response = Aggs({"results": response})
+
+    cdl = response.df
+    if granularity == 'minute':
+        cdl = _clear_out_of_market_hours(cdl)
+        cdl = _drop_early_samples(cdl)
+    if compression != 1:
+        response = _resample(cdl)
+    # response = _back_to_aggs(cdl)
+    else:
+        response = cdl
+    response = response.dropna()
+    response = response[~response.index.duplicated()]
+    return response
+
+
 def get_aggs_from_polygon(dataname,
                           dtbegin,
                           dtend,
@@ -149,7 +297,7 @@ def df_generator(interval, start, end):
 
     for sid, symbol in enumerate(list_assets()):
         try:
-            df = get_aggs_from_polygon(symbol, start, end, 'day' if interval == '1d' else 'minute', 1)
+            df = get_aggs_from_alpaca(symbol, start, end, 'day' if interval == '1d' else 'minute', 1)
             if df.empty:
                 continue
             start_date = df.index[0]
