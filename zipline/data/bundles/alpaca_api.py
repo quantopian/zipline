@@ -69,8 +69,7 @@ def iso_date(date_str):
     return date_parse(date_str).date().isoformat()
 
 
-def get_aggs_from_alpaca(self,
-                         symbol,
+def get_aggs_from_alpaca(symbol,
                          start,
                          end,
                          granularity,
@@ -87,7 +86,7 @@ def get_aggs_from_alpaca(self,
 
     note:
     this was the old way of getting the data
-      response = self.oapi.get_aggs(dataname,
+      response = CLIENT.get_aggs(dataname,
                                     compression,
                                     granularity,
                                     self.iso_date(start_dt),
@@ -116,11 +115,11 @@ def get_aggs_from_alpaca(self,
                 timeframe = "15Min"
             else:
                 timeframe = granularity
-            r = self.oapi.get_barset(symbol,
-                                     timeframe,
-                                     limit=1000,
-                                     end=curr.isoformat()
-                                     )[symbol]
+            r = CLIENT.get_barset(symbol,
+                                  timeframe,
+                                  limit=1000,
+                                  end=curr.isoformat()
+                                  )[symbol]
             if r:
                 earliest_sample = r[0].t
                 r = r._raw
@@ -191,10 +190,10 @@ def get_aggs_from_alpaca(self,
     #     return Aggs({"results": response})
 
     if not start:
-        response = self.oapi.get_barset(symbol,
-                                        granularity,
-                                        limit=1000,
-                                        end=end)[symbol]._raw
+        response = CLIENT.get_barset(symbol,
+                                     granularity,
+                                     limit=1000,
+                                     end=end)[symbol]._raw
     else:
         response = _iterate_api_calls()
     for bar in response:
