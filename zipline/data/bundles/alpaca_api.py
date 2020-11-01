@@ -231,6 +231,9 @@ def get_aggs_from_alpaca(symbol,
         response = cdl
     response = response.dropna()
     response = response[~response.index.duplicated()]
+    if granularity == 'day':
+        response = response[start:end]  # we only want data between dates
+        response = _fillna(response, granularity, start, end)
     return response
 
 
