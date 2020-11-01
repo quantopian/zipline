@@ -137,6 +137,24 @@ def get_aggs_from_alpaca(symbol,
                 break
         return response
 
+    def _fillna(df, granularity, start, end):
+        if granularity != 'day':
+            return df
+        if df.empty:
+            return df
+        calendar: TradingCalendar = trading_calendars.get_calendar("NYSE")
+        last_val = df.iloc[0]
+        current = start
+        while current <= end:
+            if calendar.is_session(current):
+                if current.replace(tzinfo=tz.gettz(NY)) in df.index:
+                    last_val = df.loc[current.replace(tzinfo=tz.gettz(NY))]
+                else:
+                    # df.loc[pytz.timezone(NY).localize(current)] = last_val
+                    df.loc[current.replace(tzinfo=tz.gettz(NY))] = last_val
+            current += timedelta(days=1)
+        return df
+
     def _clear_out_of_market_hours(df):
         """
         only interested in samples between 9:30, 16:00 NY time
