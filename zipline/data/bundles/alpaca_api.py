@@ -74,7 +74,7 @@ def get_aggs_from_alpaca(self,
                          start,
                          end,
                          granularity,
-                         compression):
+                         compression=1):
     """
     https://alpaca.markets/docs/api-documentation/api-v2/market-data/bars/
     Alpaca API as a limit of 1000 records per api call. meaning, we need to
@@ -221,7 +221,7 @@ def get_aggs_from_polygon(dataname,
                           dtbegin,
                           dtend,
                           granularity,
-                          compression):
+                          compression=1):
     """
     so polygon has a much more convenient api for this than alpaca because
     we could insert the compression in to the api call and we don't need to
