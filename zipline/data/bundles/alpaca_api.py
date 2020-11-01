@@ -355,7 +355,7 @@ def metadata_df():
     return metadata_df
 
 
-@bundles.register('polygon_api', calendar_name="NYSE", minutes_per_day=390)
+@bundles.register('alpaca_api', calendar_name="NYSE", minutes_per_day=390)
 def api_to_bundle(interval=['1m']):
     def ingest(environ,
                asset_db_writer,
@@ -416,7 +416,7 @@ if __name__ == '__main__':
     initialize_client()
 
     register(
-        'polygon_api',
+        'alpaca_api',
         # api_to_bundle(interval=['1d', '1m']),
         # api_to_bundle(interval=['1m']),
         api_to_bundle(interval=['1d']),
@@ -427,7 +427,7 @@ if __name__ == '__main__':
 
     assets_version = ((),)[0]  # just a weird way to create an empty tuple
     bundles_module.ingest(
-        "polygon_api",
+        "alpaca_api",
         os.environ,
         assets_versions=assets_version,
         show_progress=True,
