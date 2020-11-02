@@ -189,10 +189,13 @@ class ALPACABroker(Broker):
 
     @property
     def orders(self):
-        return {
-            o.client_order_id: self._order2zp(o)
-            for o in self._api.list_orders('all')
-        }
+        orders = {}
+        for o in self._api.list_orders('all'):
+            try:
+                orders[o.client_order_id] = self._order2zp(o)
+            except:
+                continue
+        return orders
 
     @property
     def transactions(self):
