@@ -91,8 +91,7 @@ class AssetDispatchBarReader(with_metaclass(ABCMeta)):
     def first_trading_day(self):
         return min(r.first_trading_day for r in self._readers.values())
 
-    def get_value(self, sid, dt, field):
-        asset = self._asset_finder.retrieve_asset(sid)
+    def get_value(self, asset, dt, field):
         r = self._readers[type(asset)]
         return r.get_value(asset, dt, field)
 

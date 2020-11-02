@@ -693,7 +693,7 @@ class DataPortal(object):
 
         if not ffill:
             try:
-                return reader.get_value(asset.sid, dt, column)
+                return reader.get_value(asset, dt, column)
             except NoDataOnDate:
                 if column != 'volume':
                     return np.nan
@@ -705,7 +705,7 @@ class DataPortal(object):
         try:
             # Optimize the best case scenario of a liquid asset
             # returning a valid price.
-            result = reader.get_value(asset.sid, dt, column)
+            result = reader.get_value(asset, dt, column)
             if not pd.isnull(result):
                 return result
         except NoDataOnDate:
@@ -721,7 +721,7 @@ class DataPortal(object):
             # no last traded dt, bail
             return np.nan
 
-        result = reader.get_value(asset.sid, query_dt, column)
+        result = reader.get_value(asset, query_dt, column)
 
         if (dt == query_dt) or (dt.date() == query_dt.date()):
             return result

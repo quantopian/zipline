@@ -159,12 +159,10 @@ class ContinuousFutureAdjustmentReader(object):
 
     def __init__(self,
                  trading_calendar,
-                 asset_finder,
                  bar_reader,
                  roll_finders,
                  frequency):
         self._trading_calendar = trading_calendar
-        self._asset_finder = asset_finder
         self._bar_reader = bar_reader
         self._roll_finders = roll_finders
         self._frequency = frequency
@@ -220,28 +218,30 @@ class ContinuousFutureAdjustmentReader(object):
         adjs = {}
 
         for front, back in sliding_window(2, rolls):
-            front_sid, roll_dt = front
-            back_sid = back[0]
+            front_contract, roll_dt = front
+            back_contract = back[0]
             dt = tc.previous_session_label(roll_dt)
             if self._frequency == 'minute':
                 dt = tc.open_and_close_for_session(dt)[1]
                 roll_dt = tc.open_and_close_for_session(roll_dt)[0]
-            partitions.append((front_sid,
-                               back_sid,
+            partitions.append((front_contract,
+                               back_contract,
                                dt,
                                roll_dt))
         for partition in partitions:
-            front_sid, back_sid, dt, roll_dt = partition
+            front_contract, back_contract, dt, roll_dt = partition
             last_front_dt = self._bar_reader.get_last_traded_dt(
-                self._asset_finder.retrieve_asset(front_sid), dt)
+                front_contract, dt
+            )
             last_back_dt = self._bar_reader.get_last_traded_dt(
-                self._asset_finder.retrieve_asset(back_sid), dt)
+                back_contract, dt
+            )
             if isnull(last_front_dt) or isnull(last_back_dt):
                 continue
             front_close = self._bar_reader.get_value(
-                front_sid, last_front_dt, 'close')
+                front_contract, last_front_dt, 'close')
             back_close = self._bar_reader.get_value(
-                back_sid, last_back_dt, 'close')
+                back_contract, last_back_dt, 'close')
             adj_loc = dts.searchsorted(roll_dt)
             end_loc = adj_loc - 1
             adj = self._make_adjustment(cf.adjustment,
@@ -324,7 +324,6 @@ class HistoryLoader(with_metaclass(ABCMeta)):
         if roll_finders:
             self._adjustment_readers[ContinuousFuture] =\
                 ContinuousFutureAdjustmentReader(trading_calendar,
-                                                 asset_finder,
                                                  reader,
                                                  roll_finders,
                                                  self._frequency)
