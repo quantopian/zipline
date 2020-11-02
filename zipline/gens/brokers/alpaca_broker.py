@@ -267,8 +267,6 @@ class ALPACABroker(Broker):
         get the positions from the broker and update zipline objects ( the ledger )
         should be used once at startup and once every time we want to refresh the positions array
         """
-        self._api.list_positions()
-
         cur_pos_in_tracker = self.metrics_tracker.positions
         positions = self._api.list_positions()
         for symbol in positions:
