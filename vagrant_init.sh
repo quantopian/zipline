@@ -28,7 +28,7 @@ echo "Updating apt-get caches..." | tee -a "$VAGRANT_LOG"
 apt-get -y update 2>&1 | tee -a "$VAGRANT_LOG"
 
 echo "Installing required system packages..." | tee -a "$VAGRANT_LOG"
-apt-get -y install python2.7 python-dev g++ make libfreetype6-dev libpng-dev libopenblas-dev liblapack-dev gfortran pkg-config git 2>&1 | tee -a "$VAGRANT_LOG"
+apt-get --yes --force-yes install python2.7 python-dev g++ make libfreetype6-dev libpng-dev libopenblas-dev liblapack-dev gfortran pkg-config git 2>&1 | tee -a "$VAGRANT_LOG"
 
 echo "Installing ta-lib..." | tee -a "$VAGRANT_LOG"
 wget https://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz --no-verbose -a "$VAGRANT_LOG"
