@@ -360,7 +360,7 @@ To finally ingest our data, we can run:
 	 Merging daily equity files:  [####################################]
 
 	 # optionally, we can pass the location of our csvs via the command line
-	 $ CSVDIR=/path/to/your/csvs zipline ingest -b custom-csvdir-bundle
+	 $ CSVDIR=/path/to/your/csvs zipline ingest -b csvdir
 
 
 If you would like to use equities that are not in the NYSE calendar, or the existing zipline calendars,
