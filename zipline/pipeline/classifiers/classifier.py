@@ -431,6 +431,7 @@ class Everything(Classifier):
     window_length = 0
     inputs = ()
     missing_value = -1
+    window_safe = True
 
     def _compute(self, arrays, dates, assets, mask):
         return where(
@@ -448,6 +449,7 @@ class Quantiles(SingleInputMixin, Classifier):
     dtype = int64_dtype
     window_length = 0
     missing_value = -1
+    window_safe = True
 
     def _compute(self, arrays, dates, assets, mask):
         data = arrays[0]
@@ -489,6 +491,7 @@ class Relabel(SingleInputMixin, Classifier):
             dtype=term.dtype,
             mask=term.mask,
             relabeler=relabeler,
+            window_safe=term.window_safe,
         )
 
     def _compute(self, arrays, dates, assets, mask):
