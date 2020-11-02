@@ -273,7 +273,7 @@ class ALPACABroker(Broker):
             ap_position = positions[symbol]
             try:
                 z_position = zp.Position(zp.InnerPosition(symbol_lookup(symbol)))
-                editable_position = MutableView(z_position)
+                editable_position = zp.MutableView(z_position)
             except SymbolNotFound:
                 # The symbol might not have been ingested to the db therefore
                 # it needs to be skipped.
