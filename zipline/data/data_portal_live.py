@@ -62,13 +62,7 @@ class DataPortalLive(DataPortal):
         realtime_bars = realtime_bars.swaplevel(0, 1, axis=1)
 
         ohlcv_field = 'close' if field == 'price' else field
-
-        # TODO: end_dt is ignored when historical & realtime bars are merged.
-        # Should not cause issues as end_dt is set to current time in live
-        # trading, but would be more proper if merge would make use of it.
-        combined_bars = historical_bars.combine_first(
-            realtime_bars[ohlcv_field])
-
+        realtime_bars = realtime_bars[ohlcv_field]
         if ffill and field == 'price':
             # Simple forward fill is not enough here as the last ingested
             # value might be outside of the requested time window. That case
@@ -76,10 +70,11 @@ class DataPortalLive(DataPortal):
             # To provide values for such cases we backward fill.
             # Backward fill as a second operation will have no effect if the
             # forward-fill was successful.
-            combined_bars.fillna(method='ffill', inplace=True)
-            combined_bars.fillna(method='bfill', inplace=True)
+            realtime_bars.fillna(method='ffill', inplace=True)
+            realtime_bars.fillna(method='bfill', inplace=True)
 
-        return combined_bars[-bar_count:]
+        realtime_bars.columns = assets
+        return realtime_bars[-bar_count:]
 
     def get_scalar_asset_spot_value(self, asset, field, dt, data_frequency):
         """
