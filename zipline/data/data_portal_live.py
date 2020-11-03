@@ -49,12 +49,12 @@ class DataPortalLive(DataPortal):
         # get_spot_value() will be used to fill the missing data - which is
         # always representing the current spot price presented by Broker.
 
-        historical_bars = super(DataPortalLive, self).get_history_window(
-            assets, end_dt, bar_count, frequency, field, data_frequency,
-            ffill=False)
-
-        realtime_bars = self.broker.get_realtime_bars(
-            assets, frequency)
+        if frequency == '1d':
+            historical_bars = super(DataPortalLive, self).get_history_window(
+                assets, end_dt, bar_count, frequency, field, data_frequency,
+                ffill=True)
+            return historical_bars
+        realtime_bars = self.broker.get_realtime_bars(assets, frequency)
 
         # Broker.get_realtime_history() returns the asset as level 0 column,
         # open, high, low, close, volume returned as level 1 columns.
