@@ -2268,7 +2268,6 @@ class TradingAlgorithm(object):
     # Pipeline API
     ##############
     @api_method
-    @require_not_initialized(AttachPipelineAfterInitialize())
     @expect_types(
         pipeline=Pipeline,
         name=string_types,
