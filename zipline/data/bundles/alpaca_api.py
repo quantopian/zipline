@@ -69,7 +69,7 @@ def iso_date(date_str):
     return date_parse(date_str).date().isoformat()
 
 
-def get_aggs_from_alpaca(symbol,
+def get_aggs_from_alpaca(symbols,
                          start,
                          end,
                          granularity,
@@ -107,7 +107,7 @@ def get_aggs_from_alpaca(symbol,
         """
         got_all = False
         curr = end
-        response = []
+        response: pd.DataFrame = pd.DataFrame([])
         while not got_all:
             if granularity == 'minute' and compression == 5:
                 timeframe = "5Min"
@@ -115,23 +115,21 @@ def get_aggs_from_alpaca(symbol,
                 timeframe = "15Min"
             else:
                 timeframe = granularity
-            r = CLIENT.get_barset(symbol,
+            r = CLIENT.get_barset(symbols,
                                   timeframe,
                                   limit=1000,
                                   end=curr.isoformat()
-                                  )[symbol]
+                                  )
             if r:
-                earliest_sample = r[0].t
-                r = r._raw
-                r.extend(response)
-                response = r
-                if earliest_sample <= (pytz.timezone(NY).localize(
+                response = r.df if response.empty else pd.concat([r.df, response])
+                response.sort_index(inplace=True)
+                if response.index[0] <= (pytz.timezone(NY).localize(
                         start) if not start.tzname() else start):
                     got_all = True
                 else:
                     delta = timedelta(days=1) if granularity == "day" \
                         else timedelta(minutes=1)
-                    curr = earliest_sample - delta
+                    curr = response.index[0] - delta
             else:
                 # no more data is available, let's return what we have
                 break
