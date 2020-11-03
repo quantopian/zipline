@@ -309,16 +309,7 @@ class ALPACABroker(Broker):
         else:
             symbols = [asset.symbol for asset in assets]
         timeframe = '1D' if is_daily else '1Min'
-
-        bars_list = self._api.list_bars(symbols, timeframe, limit=500)
-        bars_map = {a.symbol: a for a in bars_list}
-        dfs = []
-        for asset in assets if not assets_is_scalar else [assets]:
-            symbol = asset.symbol
-            df = bars_map[symbol].df.copy()
-            if df.index.tz is None:
-                df.index = df.index.tz_localize(
-                    'utc').tz_convert('America/New_York')
-            df.columns = pd.MultiIndex.from_product([[asset, ], df.columns])
-            dfs.append(df)
-        return pd.concat(dfs, axis=1)
+        df = self._api.get_barset(symbols, timeframe, limit=500).df
+        if not is_daily:
+            df = df.between_time("09:30", "16:00")
+        return df
