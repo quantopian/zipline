@@ -192,19 +192,6 @@ def get_aggs_from_alpaca(symbols,
         else:
             return df
 
-    # def _back_to_aggs(df):
-    #     response = []
-    #     for i, v in df.iterrows():
-    #         response.append({
-    #             "o": v.open,
-    #             "h": v.high,
-    #             "l": v.low,
-    #             "c": v.close,
-    #             "v": v.volume,
-    #             "t": i.timestamp() * 1000,
-    #         })
-    #     return Aggs({"results": response})
-
     if not start:
         response = CLIENT.get_barset(symbol,
                                      granularity,
