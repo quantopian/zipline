@@ -193,19 +193,14 @@ def get_aggs_from_alpaca(symbols,
             return df
 
     if not start:
-        response = CLIENT.get_barset(symbol,
+        response = CLIENT.get_barset(symbols,
                                      granularity,
                                      limit=1000,
-                                     end=end)[symbol]._raw
+                                     end=end).df
     else:
         response = _iterate_api_calls()
-    for bar in response:
-        # Aggs are in milliseconds, we multiply by 1000 to
-        # change seconds to ms
-        bar['t'] *= 1000
-    response = Aggs({"results": response})
 
-    cdl = response.df
+    cdl = response
     if granularity == 'minute':
         cdl = _clear_out_of_market_hours(cdl)
         cdl = _drop_early_samples(cdl)
