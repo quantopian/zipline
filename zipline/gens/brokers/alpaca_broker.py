@@ -302,7 +302,7 @@ class ALPACABroker(Broker):
         # TODO: cache the result. The caller
         # (DataPortalLive#get_history_window) makes use of only one
         # column at a time.
-        assets_is_scalar = not isinstance(assets, (list, set, tuple))
+        assets_is_scalar = not isinstance(assets, (list, set, tuple, pd.Index))
         is_daily = 'd' in data_frequency  # 'daily' or '1d'
         if assets_is_scalar:
             symbols = [assets.symbol]
