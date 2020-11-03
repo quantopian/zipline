@@ -209,17 +209,41 @@ def get_aggs_from_alpaca(symbols,
     # response = _back_to_aggs(cdl)
     else:
         response = cdl
-    response = response.dropna()
-    response = response[~response.index.duplicated()]
     if granularity == 'day':
         response = response[start:end]  # we only want data between dates
-        response = _fillna(response, granularity, start, end)
-    return response
+    processed = pd.DataFrame([], columns=response.columns)
+    for sym in response.columns.levels[0]:
+        df: pd.DataFrame = response[sym]
+        df = df.dropna()
+        df = _fillna(df, granularity, start, end)
+        if processed.empty and not df.empty:
+            processed = processed.reindex(df.index.values)
+        if not df.empty:
+            processed[sym] = df
+
+    return processed
 
 
 def df_generator(interval, start, end):
     exchange = 'NYSE'
+    asset_list = list_assets()
+    for i in range(len(asset_list[::200])):
+        partial = asset_list[200*i:200*(i+1)]
+        df: pd.DataFrame = get_aggs_from_alpaca(partial, start, end, 'day' if interval == '1d' else 'minute', 1)
+        for sid, symbol in enumerate(df.columns.levels[0]):
+            try:
+                first_traded = start
+                auto_close_date = end + pd.Timedelta(days=1)
 
+                yield (sid, df[symbol].sort_index()), symbol, start, end, first_traded, auto_close_date, exchange
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                print(f"error while processig {(sid, symbol)}: {e}")
+
+
+def df_generator2(interval, start, end):
+    exchange = 'NYSE'
     for sid, symbol in enumerate(list_assets()):
         try:
             df = get_aggs_from_alpaca(symbol, start, end, 'day' if interval == '1d' else 'minute', 1)
@@ -320,6 +344,11 @@ if __name__ == '__main__':
 
     initialize_client()
 
+
+    import time
+
+    start_time = time.time()
+
     register(
         'alpaca_api',
         # api_to_bundle(interval=['1d', '1m']),
@@ -337,3 +366,5 @@ if __name__ == '__main__':
         assets_versions=assets_version,
         show_progress=True,
     )
+
+    print("--- %s seconds ---" % (time.time() - start_time))
