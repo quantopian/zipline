@@ -212,6 +212,7 @@ def get_aggs_from_alpaca(symbols,
 def df_generator(interval, start, end):
     exchange = 'NYSE'
     asset_list = list_assets()
+    base_sid = 0
     for i in range(len(asset_list[::200])):
         partial = asset_list[200*i:200*(i+1)]
         df: pd.DataFrame = get_aggs_from_alpaca(partial, start, end, 'day' if interval == '1d' else 'minute', 1)
@@ -220,11 +221,12 @@ def df_generator(interval, start, end):
                 first_traded = start
                 auto_close_date = end + pd.Timedelta(days=1)
 
-                yield (sid, df[symbol].sort_index()), symbol, start, end, first_traded, auto_close_date, exchange
+                yield (sid + base_sid, df[symbol].sort_index()), symbol, start, end, first_traded, auto_close_date, exchange
             except Exception as e:
                 import traceback
                 traceback.print_exc()
-                print(f"error while processig {(sid, symbol)}: {e}")
+                print(f"error while processig {(sid + base_sid, symbol)}: {e}")
+        base_sid += 200
 
 
 def metadata_df():
@@ -292,7 +294,7 @@ if __name__ == '__main__':
     import os
 
     cal: TradingCalendar = trading_calendars.get_calendar('NYSE')
-    start_date = pd.Timestamp('2019-08-03 0:00', tz='utc')
+    start_date = pd.Timestamp('2020-10-03 0:00', tz='utc')
     while not cal.is_session(start_date):
         start_date += timedelta(days=1)
     end_date = pd.Timestamp('now', tz='utc').date() - timedelta(days=1)
