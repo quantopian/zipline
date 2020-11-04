@@ -250,16 +250,20 @@ class ALPACABroker(Broker):
                     for quote in quotes
                 ]
 
-        bars_list = self._api.list_bars(symbols, '1Min', limit=1)
-        if assets_is_scalar:
-            if len(bars_list) == 0:
-                return np.nan
-            return bars_list[0].bars[-1]._raw[field]
-        bars_map = {a.symbol: a for a in bars_list}
-        return [
-            bars_map[symbol].bars[-1]._raw[field]
-            for symbol in symbols
-        ]
+        bars = self._api.get_barset(symbols, '1Min', limit=1).df
+        if bars.empty:
+            return np.nan
+        if not np.isnan(bars[assets.symbol][field]).all():
+            return float(bars[assets.symbol][field])
+        # if assets_is_scalar:
+        #     if len(bars_list) == 0:
+        #         return np.nan
+        #     return bars_list[0].bars[-1]._raw[field]
+        # bars_map = {a.symbol: a for a in bars_list}
+        # return [
+        #     bars_map[symbol].bars[-1]._raw[field]
+        #     for symbol in symbols
+        # ]
       
       
     def _get_positions_from_broker(self):
