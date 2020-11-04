@@ -44,21 +44,6 @@ def list_assets():
     # return ['AAPL', 'AA', 'TSLA', 'GOOG', 'MSFT']
 
 
-def tickers_generator():
-    """
-    Return a tuple (sid, ticker_pair)
-    """
-    tickers_file = join(custom_data_path, 'alpaca_ticker_pairs.pickle')
-    if not isfile(tickers_file):
-        ticker_pairs = list_assets()
-
-    else:
-        with open(tickers_file, 'rb') as f:
-            ticker_pairs = pickle.load(f)[:]
-
-    return (tuple((sid, ticker)) for sid, ticker in enumerate(ticker_pairs))
-
-
 def iso_date(date_str):
     """
     this method will make sure that dates are formatted properly
