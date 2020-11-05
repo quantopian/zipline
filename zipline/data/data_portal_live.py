@@ -50,8 +50,14 @@ class DataPortalLive(DataPortal):
         # always representing the current spot price presented by Broker.
 
         if frequency == '1d':
-            historical_bars = super(DataPortalLive, self).get_history_window(
-                assets, end_dt, bar_count, frequency, field, data_frequency,
+            historical_bars = super(DataPortalLive,
+                                    self).get_history_window(
+                assets,
+                end_dt,
+                bar_count,
+                frequency,
+                field,
+                data_frequency,
                 ffill=True)
             return historical_bars
         realtime_bars = self.broker.get_realtime_bars(assets, frequency)
