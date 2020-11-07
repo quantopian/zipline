@@ -326,4 +326,4 @@ class LiveTradingAlgorithm(TradingAlgorithm):
         :param dt:
         :return:
         """
-        pass
+        self.broker.positions
