@@ -119,10 +119,10 @@ class DataPortalLive(DataPortal):
             data_frequency = '1d'
         prices = self.broker.get_realtime_bars([asset], data_frequency)
         if field == 'last_traded':
-            return pd.Timestamp(prices[asset][-1:].index.get_values()[0])
+            return pd.Timestamp(prices[asset.symbol][-1:].index.get_values()[0])
         elif field == 'volume':
-            return prices[asset][field][-1] * 100
+            return prices[asset.symbol][field][-1] * 100
         elif field == 'price':
-            return prices[asset]['close'][-1]
+            return prices[asset.symbol]['close'][-1]
         else:
-            return prices[asset][field][-1]
+            return prices[asset.symbol][field][-1]
