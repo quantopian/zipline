@@ -10,6 +10,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from datetime import timedelta
+
 import pandas as pd
 from zipline.data.data_portal import DataPortal
 
@@ -50,10 +52,11 @@ class DataPortalLive(DataPortal):
         # always representing the current spot price presented by Broker.
 
         if frequency == '1d':
+            # if you want today's open price - get minute data and filter the open time
             historical_bars = super(DataPortalLive,
                                     self).get_history_window(
                 assets,
-                end_dt,
+                end_dt - timedelta(days=1),
                 bar_count,
                 frequency,
                 field,
