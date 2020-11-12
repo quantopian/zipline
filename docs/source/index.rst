@@ -1,6 +1,6 @@
 .. title:: Zipline
 
-.. include:: ../../README.rst
+.. include:: summary.rst
 
 .. toctree::
    :maxdepth: 1
