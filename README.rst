@@ -9,11 +9,9 @@ zipline-trader
 
 Welcome to zipline-trader, the on-premise trading platform built on top of Quantopian's
 `zipline <https://github.com/quantopian/zipline>`_.
+This project is meant to be used for backtesting/paper/live trading with one the following brokers:
+* Interactive Brokers
+* Alpaca
 
-zipline-trader is based on:
-
-- `zipline <https://github.com/quantopian/zipline>`_ project.
-- `zipline-live <http://www.zipline-live.io>`_ project.
-- `zipline-live2 <https://github.com/shlomikushchi/zipline-live2>`_ project.
 
 Please `Read The Docs <https://zipline-trader.readthedocs.io/en/latest/index.html#>`_
