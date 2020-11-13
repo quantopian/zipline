@@ -1,0 +1,46 @@
+Zipline Trader Beginner Tutorial
+===================================
+
+
+zipline-trader is an open-source algorithmic trading simulator written in
+Python.
+
+The source can be found here: `source-code`_
+
+This tutorial assumes that you have zipline-trader correctly installed.
+
+Create Data Bundle
+---------------------------
+| Out of the box, I support Alpaca as a data source for data ingestion.
+| If you haven't created an account, start with that: https://app.alpaca.markets/signup.
+
+Alpaca Data Bundle
+))))))))))))))))))))))))))))))
+| I currently only support daily data but free minute data will soon follow.
+| To ingest daily data bundle using the alpaca api, you need to follow these steps:
+* The bundle is defined in this file: ``zipline/data/bundles/alpaca_api.py``
+* There a method called ``initialize_client()``, it relies on the fact that you define your
+  alpaca credentials in a file called ``alpaca.yaml`` in your root directory.
+  it should look like this:
+.. code-block:: yaml
+
+    key_id: "<YOUR-KEY>"
+    secret: "<YOUR-SECRET>"
+    base_url: https://paper-api.alpaca.markets
+..
+* you need to define your zipline root in an environment variable (This is where the
+  ingested data will be stored). should be something like this:
+.. code-block:: yaml
+
+    ZIPLINE_ROOT=~/.zipline
+..
+| It also means you could basically put it anywhere you want as long as you always use
+  that as your zipline root
+| It also means that different bundles could have different locations.
+
+
+The original zipline tutorial:
+
+.. include:: beginner-tutorial.rst
+
+
