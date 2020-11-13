@@ -35,5 +35,5 @@ in old zipline versions or any other bundle you create (how to create a bundle o
 Supported Brokers
 ------------------------
 Currently 2 brokers are supported:
- * Alapca
+ * Alpaca
  * IB
