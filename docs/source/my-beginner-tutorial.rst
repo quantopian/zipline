@@ -22,21 +22,25 @@ Alpaca Data Bundle
 * There a method called ``initialize_client()``, it relies on the fact that you define your
   alpaca credentials in a file called ``alpaca.yaml`` in your root directory.
   it should look like this:
-.. code-block:: yaml
+
+  .. code-block:: yaml
 
     key_id: "<YOUR-KEY>"
     secret: "<YOUR-SECRET>"
     base_url: https://paper-api.alpaca.markets
-..
+  ..
 * you need to define your zipline root in an environment variable (This is where the
   ingested data will be stored). should be something like this:
-.. code-block:: yaml
+
+  .. code-block:: yaml
 
     ZIPLINE_ROOT=~/.zipline
-..
+  ..
 | It also means you could basically put it anywhere you want as long as you always use
   that as your zipline root
 | It also means that different bundles could have different locations.
+
+
 
 
 The original zipline tutorial:
