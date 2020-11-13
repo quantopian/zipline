@@ -1,16 +1,14 @@
-.. title:: Zipline
+.. title:: Zipline Trader
 
-.. include:: summary.rst
+.. include:: abstract.rst
 
 .. toctree::
    :maxdepth: 1
 
    install
-   beginner-tutorial
+   my-beginner-tutorial
    bundles
    trading-calendars
    risk-and-perf-metrics
    development-guidelines
    appendix
-   release-process
-   releases
