@@ -5,8 +5,7 @@ If you use Python for anything other than Zipline, I **strongly** recommend
 that you install in a `virtualenv
 <https://virtualenv.readthedocs.org/en/latest>`_.
 
-The `Hitchhiker's Guide to
-Python`_ provides an `excellent tutorial on virtualenv
+The `Hitchhiker's Guide to Python`_ provides an `excellent tutorial on virtualenv
 <https://docs.python-guide.org/en/latest/dev/virtualenvs/>`_.
 
 
@@ -17,7 +16,8 @@ For now I support only installation through git clone(pip will be added soon). T
 
 The last step will install this project from source, giving you the ability to debug zipline-trader's code.
 
-There are two reasons for zipline-trader installation additional complexity:
+Installing zipline is a bit complicated, and therefore installing zipline-trader.
+There are two reasons for zipline installation additional complexity:
 
 1. Zipline ships several C extensions that require access to the CPython C API.
    In order to build the C extensions, ``pip`` needs access to the CPython
@@ -75,3 +75,11 @@ following brew packages:
 .. code-block:: bash
 
    $ brew install freetype pkg-config gcc openssl hdf5
+
+
+
+.. _`Debian-derived`: https://www.debian.org/misc/children-distros
+.. _`RHEL-derived`: https://en.wikipedia.org/wiki/Red_Hat_Enterprise_Linux_derivatives
+.. _`Arch Linux` : https://www.archlinux.org/
+.. _`Hitchhiker's Guide to Python` : http://docs.python-guide.org/en/latest/
+.. _`Homebrew` : http://brew.sh
