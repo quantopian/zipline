@@ -1,6 +1,6 @@
 
-Zipline Trader
-==============
+Zipline Trader - *Documentation under construction*
+==========================================================
 
 Welcome to zipline-trader, the on-premise trading platform built on top of Quantopian's
 `zipline <https://github.com/quantopian/zipline>`_.
