@@ -40,8 +40,13 @@ Alpaca Data Bundle
   that as your zipline root
 | It also means that different bundles could have different locations.
 
+* By defauilt the bundle ingests 30 days backwards, but you can change that under the
+  ``__main__`` section.
+| The ingestion process for daily data using Alpaca is extremely fast due to the Alpaca
+  API allowing to query 200 equities in one api call.
 
 
+-----------
 
 The original zipline tutorial:
 
