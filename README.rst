@@ -2,6 +2,8 @@
    :target: https://zipline-trader.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
 
+|
+
 .. image:: ./images/zipline-live2.small.png
     :target: https://github.com/shlomikushchi/zipline-trader
     :width: 212px
