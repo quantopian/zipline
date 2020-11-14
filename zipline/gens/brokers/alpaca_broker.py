@@ -239,20 +239,22 @@ class ALPACABroker(Broker):
         """
         cur_pos_in_tracker = self.metrics_tracker.positions
         positions = self._api.list_positions()
-        for symbol in positions:
-            ap_position = positions[symbol]
+        for ap_position in positions:
+            # ap_position = positions[symbol]
             try:
-                z_position = zp.Position(zp.InnerPosition(symbol_lookup(symbol)))
+                z_position = zp.Position(zp.InnerPosition(symbol_lookup(ap_position.symbol)))
                 editable_position = zp.MutableView(z_position)
             except SymbolNotFound:
                 # The symbol might not have been ingested to the db therefore
                 # it needs to be skipped.
-                log.warning('Wanted to subscribe to %s, but this asset is probably not ingested' % symbol)
+                log.warning('Wanted to subscribe to %s, but this asset is probably not ingested' % ap_position.symbol)
+                continue
+            if int(ap_position.qty) == 0:
                 continue
             editable_position._underlying_position.amount = int(ap_position.qty)
-            editable_position._underlying_position.cost_basis = float(ap_position.cost_basis)
-            editable_position._underlying_position.last_sale_price = None
-            editable_position._underlying_position.last_sale_date = None
+            editable_position._underlying_position.cost_basis = float(ap_position.avg_entry_price)
+            editable_position._underlying_position.last_sale_price = float(ap_position.current_price)
+            editable_position._underlying_position.last_sale_date = self._api.get_last_trade(ap_position.symbol).timestamp
             
             self.metrics_tracker.update_position(z_position.asset,
                                                  amount=z_position.amount,
