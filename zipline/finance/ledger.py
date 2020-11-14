@@ -82,6 +82,16 @@ class PositionTracker(object):
         if cost_basis is not None:
             position.cost_basis = cost_basis
 
+        if position.amount == 0:
+            del self.positions[asset]
+
+            try:
+                # if this position exists in our user-facing dictionary,
+                # remove it as well.
+                del self._positions_store[asset]
+            except KeyError:
+                pass
+
     def execute_transaction(self, txn):
         self._dirty_stats = True
 
