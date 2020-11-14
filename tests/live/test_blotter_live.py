@@ -7,7 +7,7 @@ except ImportError:                     # Python 2
     from itertools import izip_longest as zip_longest
 
 from mock import patch, sentinel, Mock, MagicMock
-# from ib.ext.Execution import Execution
+from ib.ext.Execution import Execution
 from zipline.finance.order import Order as ZPOrder
 from zipline.finance.blotter.blotter_live import BlotterLive
 from zipline.gens.brokers.broker import Broker
@@ -41,13 +41,13 @@ class TestBlotterLive(WithSimParams,
                 id=sentinel.order_id4),
         }
 
-    # @staticmethod
-    # def _get_execution(price, qty, dt):
-    #     execution = Execution()
-    #     execution.m_price = price
-    #     execution.m_cumQty = qty
-    #     execution.m_time = dt
-    #     return execution
+    @staticmethod
+    def _get_execution(price, qty, dt):
+        execution = Execution()
+        execution.m_price = price
+        execution.m_cumQty = qty
+        execution.m_time = dt
+        return execution
 
     def test_open_orders(self):
         broker = MagicMock(Broker)
