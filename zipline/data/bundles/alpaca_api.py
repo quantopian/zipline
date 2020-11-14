@@ -305,16 +305,20 @@ if __name__ == '__main__':
     import os
 
     cal: TradingCalendar = trading_calendars.get_calendar('NYSE')
-    start_date = pd.Timestamp('2020-10-03 0:00', tz='utc')
-    while not cal.is_session(start_date):
-        start_date += timedelta(days=1)
     end_date = pd.Timestamp('now', tz='utc').date() - timedelta(days=1)
     while not cal.is_session(end_date):
         end_date -= timedelta(days=1)
     end_date = pd.Timestamp(end_date, tz='utc')
 
-    initialize_client()
+    # start_date = pd.Timestamp('2020-10-03 0:00', tz='utc')
+    # while not cal.is_session(start_date):
+    #     start_date += timedelta(days=1)
 
+    start_date = end_date - timedelta(days=30)
+    while not cal.is_session(start_date):
+        start_date -= timedelta(days=1)
+
+    initialize_client()
 
     import time
 
