@@ -47,6 +47,10 @@ jobs:
       if: matrix.python-version == 3.6
       run: |
         echo ::set-env name=PIP_CONSTRAINT::etc/requirements_py36_locked.txt
+    - name: Set Lockfile py37
+      if: matrix.python-version == 3.7
+      run: |
+        echo ::set-env name=PIP_CONSTRAINT::etc/requirements_py36_locked.txt
     - name: Get pip cache dir
       id: pip-cache
       run: |
