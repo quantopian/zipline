@@ -211,21 +211,11 @@ class ALPACABroker(Broker):
         else:
             symbols = [asset.symbol for asset in assets]
         if field in ('price', 'last_traded'):
-            quotes = self._api.list_quotes(symbols)
-            if assets_is_scalar:
-                if field == 'price':
-                    if len(quotes) == 0:
-                        return np.nan
-                    return quotes[-1].last
-                else:
-                    if len(quotes) == 0:
-                        return pd.NaT
-                    return quotes[-1].last_timestamp
-            else:
-                return [
-                    quote.last if field == 'price' else quote.last_timestamp
-                    for quote in quotes
-                ]
+            try:
+                last_trade = self._api.get_last_trade(symbols[0])
+                return last_trade.price
+            except:
+                return np.nan
 
         bars = self._api.get_barset(symbols, '1Min', limit=1).df
         if bars.empty:
@@ -241,8 +231,7 @@ class ALPACABroker(Broker):
         #     bars_map[symbol].bars[-1]._raw[field]
         #     for symbol in symbols
         # ]
-      
-      
+
     def _get_positions_from_broker(self):
         """
         get the positions from the broker and update zipline objects ( the ledger )
