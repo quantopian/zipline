@@ -221,10 +221,18 @@ def df_generator(interval, start, end):
         df: pd.DataFrame = get_aggs_from_alpaca(partial, start, end, 'day' if interval == '1d' else 'minute', 1)
         for sid, symbol in enumerate(df.columns.levels[0]):
             try:
-                first_traded = start
-                auto_close_date = end + pd.Timedelta(days=1)
+                # doing this makes sure not all data in df is null
+                # isnull returns 0 and 1 matrix.
+                # doing sum twice, makes sure there isn't even one NaN value
+                # and since we do ffill of the data, that should not happen
+                # if df[symbol].isnull().sum().sum() == 0:
+                if not df[symbol].isnull().all().all():
+                    if symbol not in already_ingested:
+                        first_traded = start
+                        auto_close_date = end + pd.Timedelta(days=1)
+                        yield (sid + base_sid, df[symbol].sort_index()), symbol, start, end, first_traded, auto_close_date, exchange
+                        already_ingested[symbol] = True
 
-                yield (sid + base_sid, df[symbol].sort_index()), symbol, start, end, first_traded, auto_close_date, exchange
             except Exception as e:
                 import traceback
                 traceback.print_exc()
