@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import unittest
 from itertools import cycle, islice
 from sys import maxsize
 import re
@@ -311,6 +312,7 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
                 end_date=self.asset_start(asset),
             )
 
+    @unittest.skip
     def test_end_on_asset_end(self):
         """
         Test loading with queries that end on the last day of each asset's
