@@ -261,11 +261,17 @@ class ALPACABroker(Broker):
                                                  last_sale_price=z_position.last_sale_price,
                                                  last_sale_date=z_position.last_sale_date,
                                                  cost_basis=z_position.cost_basis)
+
+        # now let's sync the positions in the internal zipline objects
+        position_names = [p.symbol for p in positions]
+        assets_to_update = []  # separate list to not change list while iterating
         for asset in cur_pos_in_tracker:
-            if asset.symbol not in self.positions:
-                # deleting object from the metrcs_tracker as its not in the portfolio
-                self.metrics_tracker.update_position(asset,
-                                                     amount=0)
+            if asset.symbol not in position_names:
+                assets_to_update.append(asset)
+        for asset in assets_to_update:
+            # deleting object from the metrics_tracker as its not in the portfolio
+            self.metrics_tracker.update_position(asset,
+                                                 amount=0)
         # for some reason, the metrics tracker has self.positions AND self.portfolio.positions. let's make sure
         # these objects are consistent
         self.metrics_tracker._ledger._portfolio.positions = self.metrics_tracker.positions                                                 
