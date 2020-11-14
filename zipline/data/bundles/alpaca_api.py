@@ -208,13 +208,16 @@ def get_aggs_from_alpaca(symbols,
 
     return processed
 
-
+MAX_PER_REQUEST_AMOUNT = 200  # Alpaca max symbols per 1 http request
 def df_generator(interval, start, end):
     exchange = 'NYSE'
     asset_list = list_assets()
     base_sid = 0
-    for i in range(len(asset_list[::200])):
-        partial = asset_list[200*i:200*(i+1)]
+    # some symbols from alpaca are duplicated, which causes an issue with zipline
+    # ingest process. for now, we make sure we serve one of them (for now the first one)
+    already_ingested = {}
+    for i in range(len(asset_list[::MAX_PER_REQUEST_AMOUNT])):
+        partial = asset_list[MAX_PER_REQUEST_AMOUNT*i:MAX_PER_REQUEST_AMOUNT*(i+1)]
         df: pd.DataFrame = get_aggs_from_alpaca(partial, start, end, 'day' if interval == '1d' else 'minute', 1)
         for sid, symbol in enumerate(df.columns.levels[0]):
             try:
@@ -226,7 +229,7 @@ def df_generator(interval, start, end):
                 import traceback
                 traceback.print_exc()
                 print(f"error while processig {(sid + base_sid, symbol)}: {e}")
-        base_sid += 200
+        base_sid += MAX_PER_REQUEST_AMOUNT
 
 
 def metadata_df():
