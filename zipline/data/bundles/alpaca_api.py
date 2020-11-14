@@ -40,7 +40,7 @@ def list_assets():
         ASSETS = [_.symbol for _ in CLIENT.list_assets()]
         # ASSETS = [_.ticker for _ in CLIENT.polygon.all_tickers()]
 
-    return ASSETS
+    return list(set(ASSETS))
     # return ['AAPL', 'AA', 'TSLA', 'GOOG', 'MSFT']
 
 
