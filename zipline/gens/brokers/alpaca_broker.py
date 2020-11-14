@@ -64,32 +64,9 @@ class ALPACABroker(Broker):
 
     @property
     def positions(self):
-        z_positions = zp.Positions()
-        positions = self._api.list_positions()
-        position_map = {}
-        symbols = []
-        for pos in positions:
-            symbol = pos.symbol
-            try:
-                z_position = zp.Position(symbol_lookup(symbol))
-            except SymbolNotFound:
-                continue
-            z_position.amount = pos.qty
-            z_position.cost_basis = float(pos.cost_basis)
-            z_position.last_sale_price = None
-            z_position.last_sale_date = None
-            z_positions[symbol_lookup(symbol)] = z_position
-            symbols.append(symbol)
-            position_map[symbol] = z_position
+        self._get_positions_from_broker()
+        return self.metrics_tracker.positions
 
-        quotes = self._api.list_quotes(symbols)
-        for quote in quotes:
-            price = quote.last
-            dt = quote.last_timestamp
-            z_position = position_map[quote.symbol]
-            z_position.last_sale_price = float(price)
-            z_position.last_sale_date = dt
-        return z_positions
 
     @property
     def portfolio(self):
