@@ -129,7 +129,8 @@ class AlgorithmSimulator(object):
 
             for commission in new_commissions:
                 metrics_tracker.process_commission(commission)
-
+            if hasattr(algo, 'broker'):
+                algo.broker.positions
             handle_data(algo, current_data, dt_to_use)
 
             # grab any new orders from the blotter, then clear the list.
