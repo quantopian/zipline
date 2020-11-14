@@ -2,15 +2,11 @@ name: Zipline CI (Windows)
 
 on:
   push:
-    branches-ignore:
-      - '**'
-    # branches:
-    #   - master
+    branches:
+      - master
   pull_request:
-    branches-ignore:
-      - '**'
-    # branches:
-    #   - master
+    branches:
+      - master
 
 jobs:
   build-and-test:
