@@ -68,4 +68,4 @@ PyYAML==5.3.1
 IbPy2==0.8.0
 polling==0.3.1
 # try using exact version
-bcolz==0.12.1
+bcolz==1.2.1
