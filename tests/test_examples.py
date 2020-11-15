@@ -88,6 +88,7 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             ] = 0.0
         return expected_perf
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     @parameter_space(
         example_name=sorted(EXAMPLE_MODULES),
         benchmark_returns=[read_checked_in_benchmark_data(), None]

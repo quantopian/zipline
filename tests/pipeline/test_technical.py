@@ -32,8 +32,6 @@ from .base import BaseUSEquityPipelineTestCase
 
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BollingerBandsTestCase(BaseUSEquityPipelineTestCase):
-    if platform.system() != 'Windows':
-        import talib
     def closes(self, mask_last_sid):
         data = self.arange_data(dtype=np.float64)
         if mask_last_sid:
@@ -46,6 +44,8 @@ class BollingerBandsTestCase(BaseUSEquityPipelineTestCase):
 
         This uses talib.BBANDS to generate the expected data.
         """
+        import talib
+
         lower_cols = []
         middle_cols = []
         upper_cols = []
@@ -84,6 +84,7 @@ class BollingerBandsTestCase(BaseUSEquityPipelineTestCase):
         mask_last_sid={True, False},
         __fail_fast=True,
     )
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_bollinger_bands(self, window_length, k, mask_last_sid):
         closes = self.closes(mask_last_sid=mask_last_sid)
         mask = ~np.isnan(closes)

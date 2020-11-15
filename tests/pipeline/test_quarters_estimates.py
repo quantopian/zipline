@@ -654,11 +654,12 @@ class BlazeNextEstimateLoaderTestCase(NextEstimate):
     """
     Run the same tests as EventsLoaderTestCase, but using a BlazeEventsLoader.
     """
-    import blaze as bz
     @classmethod
     def make_loader(cls, events, columns):
+        import blaze as bz
+
         return BlazeNextEstimatesLoader(
-            cls.bz.data(events),
+            bz.data(events),
             columns,
         )
 
@@ -699,8 +700,10 @@ class BlazePreviousEstimateLoaderTestCase(PreviousEstimate):
 
     @classmethod
     def make_loader(cls, events, columns):
+        import blaze as bz
+
         return BlazePreviousEstimatesLoader(
-            cls.bz.data(events),
+            bz.data(events),
             columns,
         )
 
@@ -845,11 +848,12 @@ class NextEstimateMultipleQuarters(
 
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazeNextEstimateMultipleQuarters(NextEstimateMultipleQuarters):
-    import blaze as bz
     @classmethod
     def make_loader(cls, events, columns):
+        import blaze as bz
+
         return BlazeNextEstimatesLoader(
-            cls.bz.data(events),
+            bz.data(events),
             columns,
         )
 
@@ -896,11 +900,12 @@ class PreviousEstimateMultipleQuarters(
 
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazePreviousEstimateMultipleQuarters(PreviousEstimateMultipleQuarters):
-    import blaze as bz
     @classmethod
     def make_loader(cls, events, columns):
+        import blaze as bz
+
         return BlazePreviousEstimatesLoader(
-            cls.bz.data(events),
+            bz.data(events),
             columns,
         )
 
@@ -994,11 +999,11 @@ class PreviousVaryingNumEstimates(
 
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazePreviousVaryingNumEstimates(PreviousVaryingNumEstimates):
-    import blaze as bz
     @classmethod
     def make_loader(cls, events, columns):
+        import blaze as bz
         return BlazePreviousEstimatesLoader(
-            cls.bz.data(events),
+            bz.data(events),
             columns,
         )
 
@@ -1027,11 +1032,11 @@ class NextVaryingNumEstimates(
 
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazeNextVaryingNumEstimates(NextVaryingNumEstimates):
-    import blaze as bz
     @classmethod
     def make_loader(cls, events, columns):
+        import blaze as bz
         return BlazeNextEstimatesLoader(
-            cls.bz.data(events),
+            bz.data(events),
             columns,
         )
 
@@ -1275,10 +1280,10 @@ class PreviousEstimateWindows(WithEstimateWindows, ZiplineTestCase):
 
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazePreviousEstimateWindows(PreviousEstimateWindows):
-    import blaze as bz
     @classmethod
     def make_loader(cls, events, columns):
-        return BlazePreviousEstimatesLoader(cls.bz.data(events), columns)
+        import blaze as bz
+        return BlazePreviousEstimatesLoader(bz.data(events), columns)
 
 
 class NextEstimateWindows(WithEstimateWindows, ZiplineTestCase):
@@ -1390,10 +1395,10 @@ class NextEstimateWindows(WithEstimateWindows, ZiplineTestCase):
 
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazeNextEstimateWindows(NextEstimateWindows):
-    import blaze as bz
     @classmethod
     def make_loader(cls, events, columns):
-        return BlazeNextEstimatesLoader(cls.bz.data(events), columns)
+        import blaze as bz
+        return BlazeNextEstimatesLoader(bz.data(events), columns)
 
 
 class WithSplitAdjustedWindows(WithEstimateWindows):
@@ -1720,11 +1725,11 @@ class PreviousWithSplitAdjustedWindows(WithSplitAdjustedWindows,
 
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazePreviousWithSplitAdjustedWindows(PreviousWithSplitAdjustedWindows):
-    import blaze as bz
     @classmethod
     def make_loader(cls, events, columns):
+        import blaze as bz
         return BlazePreviousSplitAdjustedEstimatesLoader(
-            cls.bz.data(events),
+            bz.data(events),
             columns,
             split_adjustments_loader=cls.adjustment_reader,
             split_adjusted_column_names=['estimate'],
@@ -1945,11 +1950,11 @@ class NextWithSplitAdjustedWindows(WithSplitAdjustedWindows, ZiplineTestCase):
 
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazeNextWithSplitAdjustedWindows(NextWithSplitAdjustedWindows):
-    import blaze as bz
     @classmethod
     def make_loader(cls, events, columns):
+        import blaze as bz
         return BlazeNextSplitAdjustedEstimatesLoader(
-            cls.bz.data(events),
+            bz.data(events),
             columns,
             split_adjustments_loader=cls.adjustment_reader,
             split_adjusted_column_names=['estimate'],
@@ -2207,11 +2212,11 @@ class PreviousWithSplitAdjustedMultipleEstimateColumns(
 class BlazePreviousWithMultipleEstimateColumns(
     PreviousWithSplitAdjustedMultipleEstimateColumns
 ):
-    import blaze as bz
     @classmethod
     def make_loader(cls, events, columns):
+        import blaze as bz
         return BlazePreviousSplitAdjustedEstimatesLoader(
-            cls.bz.data(events),
+            bz.data(events),
             columns,
             split_adjustments_loader=cls.adjustment_reader,
             split_adjusted_column_names=['estimate1', 'estimate2'],
@@ -2285,11 +2290,12 @@ class NextWithSplitAdjustedMultipleEstimateColumns(
 class BlazeNextWithMultipleEstimateColumns(
     NextWithSplitAdjustedMultipleEstimateColumns
 ):
-    import blaze as bz
     @classmethod
     def make_loader(cls, events, columns):
+        import blaze as bz
+
         return BlazeNextSplitAdjustedEstimatesLoader(
-            cls.bz.data(events),
+            bz.data(events),
             columns,
             split_adjustments_loader=cls.adjustment_reader,
             split_adjusted_column_names=['estimate1', 'estimate2'],
@@ -2603,11 +2609,11 @@ class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries,
 
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazePreviousWithAdjustmentBoundaries(PreviousWithAdjustmentBoundaries):
-    import blaze as bz
     @classmethod
     def make_loader(cls, events, columns):
+        import blaze as bz
         return partial(BlazePreviousSplitAdjustedEstimatesLoader,
-                       cls.bz.data(events),
+                       bz.data(events),
                        columns,
                        split_adjustments_loader=cls.adjustment_reader,
                        split_adjusted_column_names=['estimate'])
@@ -2714,11 +2720,11 @@ class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries,
 
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazeNextWithAdjustmentBoundaries(NextWithAdjustmentBoundaries):
-    import blaze as bz
     @classmethod
     def make_loader(cls, events, columns):
+        import blaze as bz
         return partial(BlazeNextSplitAdjustedEstimatesLoader,
-                       cls.bz.data(events),
+                       bz.data(events),
                        columns,
                        split_adjustments_loader=cls.adjustment_reader,
                        split_adjusted_column_names=['estimate'])

@@ -12,8 +12,8 @@ from functools import partial
 from itertools import product, chain
 from unittest import skipIf
 import warnings
-
-from datashape import dshape, var, Record
+if platform.system() != 'Windows':
+    from datashape import dshape, var, Record
 from nose_parameterized import parameterized
 import numpy as np
 from numpy.testing.utils import assert_array_almost_equal
@@ -2169,6 +2169,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
     test_checkpoints_dates = pd.date_range('2013-12-31', '2014-01-04')
     test_checkpoints_expected_view_date = pd.Timestamp('2014-01-03')
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def _test_checkpoints_macro(self, checkpoints, ffilled_value=-1.0):
         """Simple checkpoints test that accepts a checkpoints dataframe and
         the expected value for 2014-01-03 for macro datasets.
@@ -2183,6 +2184,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             The value to be read on the third, if not provided, it will be the
             value in the base data that will be naturally ffilled there.
         """
+        import blaze as bz
+
         dates = self.test_checkpoints_dates[[1, -1]]
         asof_dates = dates - pd.Timedelta(days=1)
         timestamps = asof_dates + pd.Timedelta(hours=23)
@@ -2285,6 +2288,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             pd.concat([out_of_bounds, exact_query_time]),
         )
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def _test_checkpoints(self, checkpoints, ffilled_values=None):
         """Simple checkpoints test that accepts a checkpoints dataframe and
         the expected value for 2014-01-03.
@@ -2300,6 +2304,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             The value to be read on the third, if not provided, it will be the
             value in the base data that will be naturally ffilled there.
         """
+        import blaze as bz
+
         nassets = len(simple_asset_info)
 
         dates = self.test_checkpoints_dates[[1, -1]]
