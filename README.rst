@@ -1,8 +1,8 @@
 .. image:: https://readthedocs.org/projects/zipline-trader/badge/?version=latest
    :target: https://zipline-trader.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
-.. image:: https://github.com/shlomikushchi/zipline-trader/workflows/Zipline%20CI%20(Ubuntu/macOS)/badge.svg
-   :target: https://github.com/shlomikushchi/zipline-trader/workflows/Zipline%20CI%20(Ubuntu/macOS)/badge.svg
+.. image:: https://github.com/shlomikushchi/zipline-trader/workflows/Zipline%20CI%20(Ubuntu)/badge.svg
+   :target: https://github.com/shlomikushchi/zipline-trader/workflows/Zipline%20CI%20(Ubuntu)/badge.svg
    :alt: Github Actions
 .. image:: https://github.com/shlomikushchi/zipline-trader/workflows/Zipline%20CI%20(Windows)/badge.svg
    :target: https://github.com/shlomikushchi/zipline-trader/workflows/Zipline%20CI%20(Windows)/badge.svg
