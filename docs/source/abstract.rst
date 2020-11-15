@@ -2,7 +2,7 @@
 Zipline Trader - *Documentation under construction*
 ==========================================================
 
-Welcome to zipline-trader, the on-premise trading platform built on top of Quantopian's
+Welcome to `zipline-trader`_, the on-premise trading platform built on top of Quantopian's
 `zipline <https://github.com/quantopian/zipline>`_.
 
 
@@ -37,3 +37,6 @@ Supported Brokers
 Currently 2 brokers are supported:
  * Alpaca
  * IB
+
+
+.. _`zipline-trader` : https://github.com/shlomikushchi/zipline-trader
