@@ -300,8 +300,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             'no resources provided to compute expr',
         )
 
-    @parameter_space(metadata={'deltas', 'checkpoints'})
     @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
+    @parameter_space(metadata={'deltas', 'checkpoints'})
     def test_from_blaze_no_resources_metadata_expr(self, metadata):
         import blaze as bz
 
@@ -342,8 +342,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             'explicit and implicit resources provided to compute expr',
         )
 
-    @parameter_space(metadata={'deltas', 'checkpoints'})
     @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
+    @parameter_space(metadata={'deltas', 'checkpoints'})
     def test_from_blaze_mixed_resources_metadata_expr(self, metadata):
         import blaze as bz
 
@@ -366,8 +366,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             metadata,
         )
 
-    @parameter_space(deltas={True, False}, checkpoints={True, False})
     @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
+    @parameter_space(deltas={True, False}, checkpoints={True, False})
     def test_auto_metadata(self, deltas, checkpoints):
         import blaze as bz
 
@@ -404,8 +404,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             else:
                 self.assertIsNone(exprdata.checkpoints)
 
-    @parameter_space(deltas={True, False}, checkpoints={True, False})
     @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
+    @parameter_space(deltas={True, False}, checkpoints={True, False})
     def test_auto_metadata_fail_warn(self, deltas, checkpoints):
         import blaze as bz
 
@@ -428,8 +428,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             self.assertIsInstance(w, NoMetaDataWarning)
             self.assertIn(str(expr), str(w))
 
-    @parameter_space(deltas={True, False}, checkpoints={True, False})
     @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
+    @parameter_space(deltas={True, False}, checkpoints={True, False})
     def test_auto_metadata_fail_raise(self, deltas, checkpoints):
         import blaze as bz
 
