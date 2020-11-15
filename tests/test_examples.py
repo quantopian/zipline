@@ -20,7 +20,7 @@ import tarfile
 import platform
 import unittest
 if platform.system() == 'Windows':
-    raise unittest.skip("Don't run on Windows")
+    unittest.skip("Don't run on Windows")
 
 
 import matplotlib
