@@ -600,6 +600,7 @@ class BlazeEventsLoaderTestCase(EventsLoaderTestCase):
     """
 
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, next_value_columns, previous_value_columns):
         import blaze as bz
 

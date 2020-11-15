@@ -30,15 +30,16 @@ from zipline.pipeline import Pipeline, CustomFactor
 from zipline.pipeline.data import DataSet, BoundColumn, Column
 from zipline.pipeline.domain import EquitySessionDomain
 from zipline.pipeline.engine import SimplePipelineEngine
-from zipline.pipeline.loaders.blaze import (
-    from_blaze,
-    BlazeLoader,
-    NoMetaDataWarning,
-)
-from zipline.pipeline.loaders.blaze.core import (
-    ExprData,
-    NonPipelineField,
-)
+if platform.system() != 'Windows':
+    from zipline.pipeline.loaders.blaze import (
+        from_blaze,
+        BlazeLoader,
+        NoMetaDataWarning,
+    )
+    from zipline.pipeline.loaders.blaze.core import (
+        ExprData,
+        NonPipelineField,
+    )
 from zipline.testing import (
     ZiplineTestCase,
     parameter_space,
