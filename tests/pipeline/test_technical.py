@@ -78,13 +78,13 @@ class BollingerBandsTestCase(BaseUSEquityPipelineTestCase):
         lowers = np.column_stack(lower_cols)[where]
         return uppers, middles, lowers
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     @parameter_space(
         window_length={5, 10, 20},
         k={1.5, 2, 2.5},
         mask_last_sid={True, False},
         __fail_fast=True,
     )
-    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_bollinger_bands(self, window_length, k, mask_last_sid):
         closes = self.closes(mask_last_sid=mask_last_sid)
         mask = ~np.isnan(closes)

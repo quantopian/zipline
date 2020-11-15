@@ -17,7 +17,8 @@ if platform.system() != 'Windows':
 from nose_parameterized import parameterized
 import numpy as np
 from numpy.testing.utils import assert_array_almost_equal
-from odo import odo
+if platform.system() != 'Windows':
+    from odo import odo
 import pandas as pd
 import pytz
 from toolz import keymap, valmap, concatv
@@ -2011,7 +2012,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             )
 
     @with_extra_sid()
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_novel_deltas(self, asset_info):
+        import blaze as bz
+
         base_dates = pd.DatetimeIndex([
             pd.Timestamp('2013-12-31'),
             pd.Timestamp('2014-01-03')
@@ -2500,7 +2504,10 @@ class MiscTestCase(ZiplineTestCase):
             " checkpoints=checkpoints, odo_kwargs={'a': 'b'})",
         )
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_exprdata_eq(self):
+        import blaze as bz
+
         dshape = 'var * {sid: int64, asof_date: datetime, value: float64}'
         base_expr = bz.symbol('base', dshape)
         checkpoints_expr = bz.symbol('checkpoints', dshape)

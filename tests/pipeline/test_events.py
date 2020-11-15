@@ -21,7 +21,8 @@ from zipline.pipeline.common import (
 from zipline.pipeline.data import DataSet, Column
 from zipline.pipeline.domain import US_EQUITIES, EquitySessionDomain
 from zipline.pipeline.loaders.events import EventsLoader
-from zipline.pipeline.loaders.blaze.events import BlazeEventsLoader
+if platform.system() != 'Windows':
+    from zipline.pipeline.loaders.blaze.events import BlazeEventsLoader
 from zipline.pipeline.loaders.utils import (
     next_event_indexer,
     previous_event_indexer,

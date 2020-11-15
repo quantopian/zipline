@@ -51,6 +51,8 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
     # some columns contain values with unique ids that will not be the same
     if platform.system() != 'Windows':
         EXAMPLE_MODULES = examples.load_example_modules()
+    else:
+        EXAMPLE_MODULES = {}
 
     @classmethod
     def init_class_fixtures(cls):

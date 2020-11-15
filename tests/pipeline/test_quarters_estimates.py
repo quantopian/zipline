@@ -696,8 +696,6 @@ class BlazePreviousEstimateLoaderTestCase(PreviousEstimate):
     """
     Run the same tests as EventsLoaderTestCase, but using a BlazeEventsLoader.
     """
-    import blaze as bz
-
     @classmethod
     def make_loader(cls, events, columns):
         import blaze as bz
