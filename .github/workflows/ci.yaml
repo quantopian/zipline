@@ -1,4 +1,5 @@
-name: Zipline CI (Ubuntu/macOS)
+#name: Zipline CI (Ubuntu/macOS)
+name: Zipline CI (Ubuntu)
 
 on:
   push:
