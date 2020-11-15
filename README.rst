@@ -7,7 +7,7 @@
 .. image:: https://github.com/shlomikushchi/zipline-trader/workflows/Zipline%20CI%20(Windows)/badge.svg
    :target: https://github.com/shlomikushchi/zipline-trader/workflows/Zipline%20CI%20(Windows)/badge.svg
    :alt: Github Actions
-
+==============
 
 |
 
