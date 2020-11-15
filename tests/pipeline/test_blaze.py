@@ -88,6 +88,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
     END_DATE = pd.Timestamp('2015')
 
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def init_class_fixtures(cls):
         super(BlazeToPipelineTestCase, cls).init_class_fixtures()
         cls.dates = dates = pd.date_range('2014-01-01', '2014-01-03')
@@ -2481,6 +2482,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
 
 
 class MiscTestCase(ZiplineTestCase):
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_exprdata_repr(self):
         strd = set()
 
@@ -2561,6 +2563,7 @@ class MiscTestCase(ZiplineTestCase):
             hash(same_with_none_odo_kwargs),
         )
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_blaze_loader_lookup_failure(self):
         class D(DataSet):
             c = Column(dtype='float64')
