@@ -46,7 +46,7 @@ copyright = u'2020, Quantopian Inc.'
 
 # The full version, including alpha/beta/rc tags, but excluding the commit hash
 # version = release = version.split('+', 1)[0]
-version = release = "1.4.0"
+version = release = "1.4.1"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
