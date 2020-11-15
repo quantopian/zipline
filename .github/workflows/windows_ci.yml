@@ -37,11 +37,11 @@ jobs:
     - name: Install scientific python requirements
       run: |
         conda create -y --name test python=${{matrix.python-version}} pip pandas=0.22.0 numpy=1.19.1 scipy=1.5.0 cython=0.29.21
-    - name: Install TA lib
-      run: |
-        conda activate test
-        conda install -y -c quantopian ta-lib
-    - uses: ilammy/msvc-dev-cmd@v1
+#    - name: Install TA lib
+#      run: |
+#        conda activate test
+#        conda install -y -c quantopian ta-lib
+#    - uses: ilammy/msvc-dev-cmd@v1
     - name: Install other requirements
       run: |
         conda activate test
