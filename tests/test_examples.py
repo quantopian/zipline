@@ -49,7 +49,8 @@ import unittest
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class ExamplesTests(WithTmpDir, ZiplineTestCase):
     # some columns contain values with unique ids that will not be the same
-    EXAMPLE_MODULES = examples.load_example_modules()
+    if platform.system() != 'Windows':
+        EXAMPLE_MODULES = examples.load_example_modules()
 
     @classmethod
     def init_class_fixtures(cls):

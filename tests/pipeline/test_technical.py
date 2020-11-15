@@ -32,7 +32,8 @@ from .base import BaseUSEquityPipelineTestCase
 
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BollingerBandsTestCase(BaseUSEquityPipelineTestCase):
-    import talib
+    if platform.system() != 'Windows':
+        import talib
     def closes(self, mask_last_sid):
         data = self.arange_data(dtype=np.float64)
         if mask_last_sid:

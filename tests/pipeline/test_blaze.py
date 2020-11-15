@@ -5,8 +5,6 @@ from __future__ import division
 
 import platform
 import unittest
-if platform.system() == 'Windows':
-    raise unittest.skip("Don't run on Windows")
 
 from collections import OrderedDict
 from datetime import timedelta, time
@@ -15,7 +13,6 @@ from itertools import product, chain
 from unittest import skipIf
 import warnings
 
-import blaze as bz
 from datashape import dshape, var, Record
 from nose_parameterized import parameterized
 import numpy as np
@@ -83,6 +80,7 @@ def with_ignore_sid():
     )
 
 
+@unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
     START_DATE = pd.Timestamp(0)
     END_DATE = pd.Timestamp('2015')
@@ -139,7 +137,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             data_query_date_offset=data_query_date_offset,
         )
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_tabular(self):
+        import blaze as bz
+
         name = 'expr'
         expr = bz.data(self.df, name=name, dshape=self.dshape)
         ds = from_blaze(
@@ -170,7 +171,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             ds,
         )
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_column(self):
+        import blaze as bz
+
         exprname = 'expr'
         expr = bz.data(self.df, name=exprname, dshape=self.dshape)
         value = from_blaze(
@@ -219,7 +223,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         )
         self.assertEqual(value.dataset.__name__, exprname)
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_missing_asof(self):
+        import blaze as bz
+
         expr = bz.data(
             self.df.loc[:, ['sid', 'value', 'timestamp']],
             name='expr',
@@ -240,7 +247,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         self.assertIn("'asof_date'", str(e.exception))
         self.assertIn(repr(str(expr.dshape.measure)), str(e.exception))
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_missing_timestamp(self):
+        import blaze as bz
+
         expr = bz.data(
             self.df.loc[:, ['sid', 'value', 'asof_date']],
             name='expr',
@@ -269,7 +279,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 bz.transform(expr, timestamp=expr.asof_date),
             )
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_from_blaze_no_resources_dataset_expr(self):
+        import blaze as bz
+
         expr = bz.symbol('expr', self.dshape)
 
         with self.assertRaises(ValueError) as e:
@@ -286,7 +299,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         )
 
     @parameter_space(metadata={'deltas', 'checkpoints'})
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_from_blaze_no_resources_metadata_expr(self, metadata):
+        import blaze as bz
+
         expr = bz.data(self.df, name='expr', dshape=self.dshape)
         metadata_expr = bz.symbol('metadata', self.dshape)
 
@@ -304,7 +320,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             'no resources provided to compute %s' % metadata,
         )
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_from_blaze_mixed_resources_dataset_expr(self):
+        import blaze as bz
+
         expr = bz.data(self.df, name='expr', dshape=self.dshape)
 
         with self.assertRaises(ValueError) as e:
@@ -322,7 +341,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         )
 
     @parameter_space(metadata={'deltas', 'checkpoints'})
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_from_blaze_mixed_resources_metadata_expr(self, metadata):
+        import blaze as bz
+
         expr = bz.symbol('expr', self.dshape)
         metadata_expr = bz.data(self.df, name=metadata, dshape=self.dshape)
 
@@ -343,7 +365,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         )
 
     @parameter_space(deltas={True, False}, checkpoints={True, False})
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_auto_metadata(self, deltas, checkpoints):
+        import blaze as bz
+
         select_level = op.getitem(('ignore', 'raise'))
         m = {'ds': self.df}
         if deltas:
@@ -378,7 +403,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 self.assertIsNone(exprdata.checkpoints)
 
     @parameter_space(deltas={True, False}, checkpoints={True, False})
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_auto_metadata_fail_warn(self, deltas, checkpoints):
+        import blaze as bz
+
         select_level = op.getitem(('ignore', 'warn'))
         with warnings.catch_warnings(record=True) as ws:
             warnings.simplefilter('always')
@@ -399,7 +427,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             self.assertIn(str(expr), str(w))
 
     @parameter_space(deltas={True, False}, checkpoints={True, False})
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_auto_metadata_fail_raise(self, deltas, checkpoints):
+        import blaze as bz
+
         if not (deltas or checkpoints):
             # not a real case
             return
@@ -415,7 +446,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             )
         self.assertIn(str(expr), str(e.exception))
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_non_pipeline_field(self):
+        import blaze as bz
+
         expr = bz.data(
             [],
             dshape="""
@@ -439,6 +473,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         )
 
     @skipIf(new_pandas, skip_pipeline_new_pandas)
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_cols_with_all_missing_vals(self):
         """
         Tests that when there is no known data, we get output where the
@@ -483,6 +518,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             ('asof_date', 'datetime64[ns]'),
             ('timestamp', 'datetime64[ns]'),
         )
+        import blaze as bz
 
         expr = bz.data(
             df,
@@ -570,6 +606,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         )
 
     @skipIf(new_pandas, skip_pipeline_new_pandas)
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_cols_with_some_missing_vals(self):
         """
         Tests the following:
@@ -639,6 +676,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             'asof_date': dates - pd.Timedelta(days=2),
             'timestamp': dates - pd.Timedelta(days=1),
         })
+        import blaze as bz
 
         expr = bz.data(
             df,
@@ -713,7 +751,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             expected.columns,
         )
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_complex_expr(self):
+        import blaze as bz
+
         expr = bz.data(self.df, dshape=self.dshape, name='expr')
         # put an Add in the table
         expr_with_add = bz.transform(expr, value=expr.value + 1)
@@ -780,7 +821,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             " of some larger table",
         )
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def _test_id(self, df, dshape, expected, finder, add):
+        import blaze as bz
+
         expr = bz.data(df, name='expr', dshape=dshape)
         loader = BlazeLoader()
         domain = self.create_domain(self.dates)
@@ -806,9 +850,13 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             check_dtype=False,
         )
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def _test_id_macro(self, df, dshape, expected, finder, add, dates=None):
+        import blaze as bz
+
         if dates is None:
             dates = self.dates
+
         expr = bz.data(df, name='expr', dshape=dshape)
         loader = BlazeLoader()
         domain = self.create_domain(dates)
@@ -848,6 +896,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         engine = SimplePipelineEngine(loader, finder)
         engine.run_pipeline(p, dates[0], dates[-1])
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_custom_query_time_tz(self):
         """
         input (df):
@@ -874,6 +923,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                                   Equity(66 [B])          3    3.0
                                   Equity(67 [C])          4    4.0
         """
+        import blaze as bz
+
         df = self.df.copy()
         df['timestamp'] = (
             pd.DatetimeIndex(df['timestamp'], tz='EST') +
@@ -1362,7 +1413,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             )
 
     @with_ignore_sid()
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_deltas(self, asset_info, add_extra_sid):
+        import blaze as bz
+
         df = self.df.copy()
         if add_extra_sid:
             extra_sid_df = pd.DataFrame({
@@ -1429,7 +1483,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             )
 
     @with_ignore_sid()
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_deltas_before_index_0(self, asset_info, add_extra_sid):
+        import blaze as bz
+
         df = empty_dataframe(
             ('sid', 'int64'),
             ('value', 'float64'),
@@ -1511,7 +1568,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             )
 
     @with_ignore_sid()
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_deltas_on_same_ix_out_of_order(self, asset_info, add_extra_sid):
+        import blaze as bz
+
         df = empty_dataframe(
             ('sid', 'int64'),
             ('value', 'float64'),
@@ -1617,7 +1677,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             )
 
     @with_extra_sid()
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_deltas_only_one_delta_in_universe(self, asset_info):
+        import blaze as bz
+
         expr = bz.data(self.df, name='expr', dshape=self.dshape)
         deltas = pd.DataFrame({
             'sid': [65, 66],
@@ -1670,7 +1733,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 compute_fn=np.nanmax,
             )
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_deltas_macro(self):
+        import blaze as bz
+
         expr = bz.data(self.macro_df, name='expr', dshape=self.macro_dshape)
         deltas = bz.data(
             self.macro_df.iloc[:-1],
@@ -1715,7 +1781,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 compute_fn=np.nanmax,
             )
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_deltas_before_index_0_macro(self):
+        import blaze as bz
+
         df = empty_dataframe(
             ('value', 'float64'),
             ('asof_date', 'datetime64[ns]'),
@@ -1778,7 +1847,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 window_length=2,
             )
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_deltas_on_same_ix_out_of_order_macro(self):
+        import blaze as bz
+
         df = empty_dataframe(
             ('value', 'float64'),
             ('asof_date', 'datetime64[ns]'),
@@ -1866,6 +1938,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             )
 
     def test_stacked_deltas_macro(self):
+        import blaze as bz
+
         df = empty_dataframe(
             ('value', 'float64'),
             ('asof_date', 'datetime64[ns]'),

@@ -22,12 +22,14 @@ from zipline.pipeline.common import (
 from zipline.pipeline.data import DataSet
 from zipline.pipeline.data import Column
 from zipline.pipeline.domain import EquitySessionDomain
-from zipline.pipeline.loaders.blaze.estimates import (
-    BlazeNextEstimatesLoader,
-    BlazeNextSplitAdjustedEstimatesLoader,
-    BlazePreviousEstimatesLoader,
-    BlazePreviousSplitAdjustedEstimatesLoader,
-)
+import platform
+if platform.system() != 'Windows':
+    from zipline.pipeline.loaders.blaze.estimates import (
+        BlazeNextEstimatesLoader,
+        BlazeNextSplitAdjustedEstimatesLoader,
+        BlazePreviousEstimatesLoader,
+        BlazePreviousSplitAdjustedEstimatesLoader,
+    )
 from zipline.pipeline.loaders.earnings_estimates import (
     INVALID_NUM_QTRS_MESSAGE,
     NextEarningsEstimatesLoader,

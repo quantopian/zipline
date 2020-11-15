@@ -3,14 +3,11 @@ Tests for setting up an EventsLoader and a BlazeEventsLoader.
 """
 import platform
 import unittest
-if platform.system() == 'Windows':
-    raise unittest.skip("Don't run on Windows")
 
 from datetime import time
 from itertools import product
 from unittest import skipIf
 
-import blaze as bz
 import numpy as np
 import pandas as pd
 import pytz
@@ -595,6 +592,7 @@ class EventsLoaderTestCase(WithAssetFinder,
         self.assertEqual(msg, expected)
 
 
+@unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazeEventsLoaderTestCase(EventsLoaderTestCase):
     """
     Run the same tests as EventsLoaderTestCase, but using a BlazeEventsLoader.
@@ -602,6 +600,8 @@ class BlazeEventsLoaderTestCase(EventsLoaderTestCase):
 
     @classmethod
     def make_loader(cls, events, next_value_columns, previous_value_columns):
+        import blaze as bz
+
         return BlazeEventsLoader(
             bz.data(events),
             next_value_columns,

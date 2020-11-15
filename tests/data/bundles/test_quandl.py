@@ -24,8 +24,11 @@ from zipline.testing.predicates import (
     assert_equal,
 )
 from zipline.utils.functional import apply
+import platform
+import unittest
 
 
+@unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class QuandlBundleTestCase(WithResponses,
                            ZiplineTestCase):
     symbols = 'AAPL', 'BRK_A', 'MSFT', 'ZEN'
