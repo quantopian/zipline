@@ -2107,7 +2107,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 compute_fn=op.itemgetter(-1),
             )
 
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def test_novel_deltas_macro(self):
+        import blaze as bz
+
         base_dates = pd.DatetimeIndex([
             pd.Timestamp('2013-12-31'),
             pd.Timestamp('2014-01-03')
