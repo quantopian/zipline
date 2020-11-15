@@ -42,10 +42,13 @@ jobs:
 #        conda activate test
 #        conda install -y -c quantopian ta-lib
 #    - uses: ilammy/msvc-dev-cmd@v1
-    - name: Install other requirements
+    - name: Install requirements
       run: |
         conda activate test
         pip install --no-binary=bcolz -e .[dev] -c etc/requirements_py36_locked.txt
+        python -m pip install wheel
+        python -m pip install -r etc/requirements_build.in
+        python -m pip install --no-binary=bcolz -e .[all] -r etc/requirements_blaze.in
 
     - name: Run tests
       run: |
