@@ -16,6 +16,13 @@ from functools import partial
 from operator import itemgetter
 import tarfile
 
+
+import platform
+import unittest
+if platform.system() == 'Windows':
+    raise unittest.skip("Don't run on Windows")
+
+
 import matplotlib
 import pandas as pd
 

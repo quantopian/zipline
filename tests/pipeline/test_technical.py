@@ -152,10 +152,12 @@ class AroonTestCase(ZiplineTestCase):
         assert_equal(out, expected_out)
 
 
+@unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class TestFastStochasticOscillator(ZiplineTestCase):
     """
     Test the Fast Stochastic Oscillator
     """
+    import talib
 
     def test_fso_expected_basic(self):
         """
