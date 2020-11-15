@@ -1,6 +1,11 @@
 """
 Tests for setting up an EventsLoader and a BlazeEventsLoader.
 """
+import platform
+import unittest
+if platform.system() == 'Windows':
+    raise unittest.skip("Don't run on Windows")
+
 from datetime import time
 from itertools import product
 from unittest import skipIf

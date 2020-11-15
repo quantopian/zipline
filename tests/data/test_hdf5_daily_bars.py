@@ -1,3 +1,6 @@
+import platform
+import unittest
+
 import numpy as np
 import pandas as pd
 
@@ -10,6 +13,7 @@ import zipline.testing.fixtures as zp_fixtures
 from zipline.testing.predicates import assert_equal
 
 
+@unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class H5WriterTestCase(zp_fixtures.WithTmpDir,
                        zp_fixtures.ZiplineTestCase):
 

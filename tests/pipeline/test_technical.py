@@ -1,11 +1,14 @@
 from __future__ import division
 
+import unittest
+
 from nose_parameterized import parameterized
 from six.moves import range
 import numpy as np
 import pandas as pd
-import talib
+
 from numpy.random import RandomState
+import platform
 
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.pipeline.data import USEquityPricing
@@ -27,8 +30,9 @@ from zipline.testing.predicates import assert_equal
 from .base import BaseUSEquityPipelineTestCase
 
 
+@unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BollingerBandsTestCase(BaseUSEquityPipelineTestCase):
-
+    import talib
     def closes(self, mask_last_sid):
         data = self.arange_data(dtype=np.float64)
         if mask_last_sid:
@@ -53,7 +57,7 @@ class BollingerBandsTestCase(BaseUSEquityPipelineTestCase):
                 # ta-lib doesn't deal well with all nans.
                 upper, middle, lower = [np.full(ndates, np.nan)] * 3
             else:
-                upper, middle, lower = talib.BBANDS(
+                upper, middle, lower = self.talib.BBANDS(
                     close_col,
                     window_length,
                     k,
@@ -195,7 +199,7 @@ class TestFastStochasticOscillator(ZiplineTestCase):
 
         expected_out_k = []
         for i in range(nassets):
-            fastk, fastd = talib.STOCHF(
+            fastk, fastd = self.talib.STOCHF(
                 high=highs[:, i],
                 low=lows[:, i],
                 close=closes[:, i],

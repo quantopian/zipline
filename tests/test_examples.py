@@ -35,12 +35,14 @@ from zipline.utils.cache import dataframe_cache
 _multiprocess_can_split_ = False
 
 matplotlib.use('Agg')
+import platform
+import unittest
 
-EXAMPLE_MODULES = examples.load_example_modules()
 
-
+@unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class ExamplesTests(WithTmpDir, ZiplineTestCase):
     # some columns contain values with unique ids that will not be the same
+    EXAMPLE_MODULES = examples.load_example_modules()
 
     @classmethod
     def init_class_fixtures(cls):
@@ -84,7 +86,7 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
     )
     def test_example(self, example_name, benchmark_returns):
         actual_perf = examples.run_example(
-            EXAMPLE_MODULES,
+            self.EXAMPLE_MODULES,
             example_name,
             # This should match the invocation in
             # zipline/tests/resources/rebuild_example_data

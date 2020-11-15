@@ -3,6 +3,11 @@ Tests for the blaze interface to the pipeline api.
 """
 from __future__ import division
 
+import platform
+import unittest
+if platform.system() == 'Windows':
+    raise unittest.skip("Don't run on Windows")
+
 from collections import OrderedDict
 from datetime import timedelta, time
 from functools import partial
