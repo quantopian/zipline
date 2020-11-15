@@ -655,6 +655,7 @@ class BlazeNextEstimateLoaderTestCase(NextEstimate):
     Run the same tests as EventsLoaderTestCase, but using a BlazeEventsLoader.
     """
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         import blaze as bz
 
@@ -667,6 +668,7 @@ class BlazeNextEstimateLoaderTestCase(NextEstimate):
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class PreviousEstimate(WithEstimatesTimeZero, ZiplineTestCase):
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         return PreviousEarningsEstimatesLoader(events, columns)
 
@@ -697,6 +699,7 @@ class BlazePreviousEstimateLoaderTestCase(PreviousEstimate):
     Run the same tests as EventsLoaderTestCase, but using a BlazeEventsLoader.
     """
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         import blaze as bz
 
@@ -801,6 +804,7 @@ class NextEstimateMultipleQuarters(
     WithEstimateMultipleQuarters, ZiplineTestCase
 ):
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         return NextEarningsEstimatesLoader(events, columns)
 
@@ -847,6 +851,7 @@ class NextEstimateMultipleQuarters(
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazeNextEstimateMultipleQuarters(NextEstimateMultipleQuarters):
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         import blaze as bz
 
@@ -899,6 +904,7 @@ class PreviousEstimateMultipleQuarters(
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazePreviousEstimateMultipleQuarters(PreviousEstimateMultipleQuarters):
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         import blaze as bz
 
@@ -998,6 +1004,7 @@ class PreviousVaryingNumEstimates(
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazePreviousVaryingNumEstimates(PreviousVaryingNumEstimates):
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         import blaze as bz
         return BlazePreviousEstimatesLoader(
@@ -1031,6 +1038,7 @@ class NextVaryingNumEstimates(
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazeNextVaryingNumEstimates(NextVaryingNumEstimates):
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         import blaze as bz
         return BlazeNextEstimatesLoader(
@@ -1279,6 +1287,7 @@ class PreviousEstimateWindows(WithEstimateWindows, ZiplineTestCase):
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazePreviousEstimateWindows(PreviousEstimateWindows):
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         import blaze as bz
         return BlazePreviousEstimatesLoader(bz.data(events), columns)
@@ -1286,6 +1295,7 @@ class BlazePreviousEstimateWindows(PreviousEstimateWindows):
 
 class NextEstimateWindows(WithEstimateWindows, ZiplineTestCase):
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         return NextEarningsEstimatesLoader(events, columns)
 
@@ -1394,6 +1404,7 @@ class NextEstimateWindows(WithEstimateWindows, ZiplineTestCase):
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazeNextEstimateWindows(NextEstimateWindows):
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         import blaze as bz
         return BlazeNextEstimatesLoader(bz.data(events), columns)
@@ -1724,6 +1735,7 @@ class PreviousWithSplitAdjustedWindows(WithSplitAdjustedWindows,
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazePreviousWithSplitAdjustedWindows(PreviousWithSplitAdjustedWindows):
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         import blaze as bz
         return BlazePreviousSplitAdjustedEstimatesLoader(
@@ -1949,6 +1961,7 @@ class NextWithSplitAdjustedWindows(WithSplitAdjustedWindows, ZiplineTestCase):
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazeNextWithSplitAdjustedWindows(NextWithSplitAdjustedWindows):
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         import blaze as bz
         return BlazeNextSplitAdjustedEstimatesLoader(
@@ -2211,6 +2224,7 @@ class BlazePreviousWithMultipleEstimateColumns(
     PreviousWithSplitAdjustedMultipleEstimateColumns
 ):
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         import blaze as bz
         return BlazePreviousSplitAdjustedEstimatesLoader(
@@ -2226,6 +2240,7 @@ class NextWithSplitAdjustedMultipleEstimateColumns(
     WithSplitAdjustedMultipleEstimateColumns, ZiplineTestCase
 ):
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         return NextSplitAdjustedEarningsEstimatesLoader(
             events,
@@ -2289,6 +2304,7 @@ class BlazeNextWithMultipleEstimateColumns(
     NextWithSplitAdjustedMultipleEstimateColumns
 ):
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         import blaze as bz
 
@@ -2476,6 +2492,7 @@ class WithAdjustmentBoundaries(WithEstimates):
 class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries,
                                        ZiplineTestCase):
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         return partial(PreviousSplitAdjustedEarningsEstimatesLoader,
                        events,
@@ -2608,6 +2625,7 @@ class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries,
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazePreviousWithAdjustmentBoundaries(PreviousWithAdjustmentBoundaries):
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         import blaze as bz
         return partial(BlazePreviousSplitAdjustedEstimatesLoader,
@@ -2620,6 +2638,7 @@ class BlazePreviousWithAdjustmentBoundaries(PreviousWithAdjustmentBoundaries):
 class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries,
                                    ZiplineTestCase):
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         return partial(NextSplitAdjustedEarningsEstimatesLoader,
                        events,
@@ -2719,6 +2738,7 @@ class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries,
 @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
 class BlazeNextWithAdjustmentBoundaries(NextWithAdjustmentBoundaries):
     @classmethod
+    @unittest.skipIf(platform.system() == 'Windows', "Don't run test on windows")
     def make_loader(cls, events, columns):
         import blaze as bz
         return partial(BlazeNextSplitAdjustedEstimatesLoader,

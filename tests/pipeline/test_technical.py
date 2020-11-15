@@ -58,7 +58,7 @@ class BollingerBandsTestCase(BaseUSEquityPipelineTestCase):
                 # ta-lib doesn't deal well with all nans.
                 upper, middle, lower = [np.full(ndates, np.nan)] * 3
             else:
-                upper, middle, lower = self.talib.BBANDS(
+                upper, middle, lower = talib.BBANDS(
                     close_col,
                     window_length,
                     k,
@@ -159,8 +159,6 @@ class TestFastStochasticOscillator(ZiplineTestCase):
     """
     Test the Fast Stochastic Oscillator
     """
-    import talib
-
     def test_fso_expected_basic(self):
         """
         Simple test of expected output from fast stochastic oscillator
@@ -186,6 +184,7 @@ class TestFastStochasticOscillator(ZiplineTestCase):
         Test the output that is returned from the fast stochastic oscillator
         is the same as that from the ta-lib STOCHF function.
         """
+        import talib
         window_length = 14
         nassets = 6
         rng = np.random.RandomState(seed=seed)
@@ -203,7 +202,7 @@ class TestFastStochasticOscillator(ZiplineTestCase):
 
         expected_out_k = []
         for i in range(nassets):
-            fastk, fastd = self.talib.STOCHF(
+            fastk, fastd = talib.STOCHF(
                 high=highs[:, i],
                 low=lows[:, i],
                 close=closes[:, i],
