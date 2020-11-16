@@ -1,4 +1,4 @@
-name: Zipline CI (Ubuntu)
+name: Publish package to PyPI
 
 on:
   push:
@@ -17,7 +17,7 @@ jobs:
         os: [ubuntu-latest]
         python-version: [3.6]
     steps:
-      - name: Publish package to PyPI
+      - name: Publish
         uses: pypa/gh-action-pypi-publish@master
 #         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
         with:
