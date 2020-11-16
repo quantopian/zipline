@@ -45,7 +45,7 @@ alembic>=0.7.7
 # On disk storage format for pipeline data.
 # bcolz>=0.12.1
 # On disk storage format for pricing data.
-h5py>=2.7.1
+#h5py>=2.7.1
 tables>=3.4.3
 
 # Performance
@@ -69,3 +69,7 @@ IbPy2==0.8.0
 polling==0.3.1
 # try using exact version
 bcolz==1.2.1
+# v 3.0+ leads to: ERROR: Could not build wheels for h5py which use PEP 517 and cannot be installed directly. specify
+exact
+# version
+h5py==2.10.0
