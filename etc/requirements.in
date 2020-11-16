@@ -70,6 +70,5 @@ polling==0.3.1
 # try using exact version
 bcolz==1.2.1
 # v 3.0+ leads to: ERROR: Could not build wheels for h5py which use PEP 517 and cannot be installed directly. specify
-exact
-# version
+# exact version
 h5py==2.10.0
