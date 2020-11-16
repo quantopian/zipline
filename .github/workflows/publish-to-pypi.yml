@@ -2,11 +2,8 @@ name: Publish package to PyPI
 
 on:
   push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+    tags:
+      - '*'
 jobs:
   deploy:
     runs-on: ${{ matrix.os }}
