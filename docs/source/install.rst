@@ -9,12 +9,43 @@ The `Hitchhiker's Guide to Python`_ provides an `excellent tutorial on virtualen
 <https://docs.python-guide.org/en/latest/dev/virtualenvs/>`_.
 
 
-For now I support only installation through git clone(pip will be added soon). To achieve that do:
+For now I support only installation through git. You could do that in one of these ways:
+
+Installnig with git clone
+--------------------------
  * git clone https://github.com/shlomikushchi/zipline-trader.git
  * <create/activate a virtual env> - optional but recommended
  * pip install -e .
 
 The last step will install this project from source, giving you the ability to debug zipline-trader's code.
+
+Installing using pip dierectly from github
+----------------------------------------------
+You can install it with ability to debug it like this:
+
+.. code-block:: bash
+
+    pip install -e git://github.com/shlomikushchi/zipline-trader.git#egg=zipline-trader
+
+To install a specific version, you could do this (installing version 1.5.0):
+
+.. code-block:: bash
+
+    pip install -e git://github.com/shlomikushchi/zipline-trader.git@1.5.0#egg=zipline-trader
+
+Installing from pypi (coming soon)
+-----------------------------------
+The most known way of installing would be installing from pypi:
+
+.. code-block:: bash
+
+    pip install zipline-trader
+
+* Installing using Anaconda (Probably supported in the future)
+
+
+Notes
+----------
 
 Installing zipline is a bit complicated, and therefore installing zipline-trader.
 There are two reasons for zipline installation additional complexity:
@@ -33,7 +64,7 @@ Once you've installed the necessary additional dependencies (see below for
 your particular platform)
 
 GNU/Linux
-~~~~~~~~~
+))))))))))))))))
 
 On `Debian-derived`_ Linux distributions, you can acquire all the necessary
 binary dependencies from ``apt`` by running:
@@ -60,7 +91,7 @@ There are also AUR packages available for installing `ta-lib
 <https://aur.archlinux.org/packages/ta-lib/>`_, an optional Zipline dependency.
 
 OSX
-~~~
+))))))))))
 
 The version of Python shipped with OSX by default is generally out of date, and
 has a number of quirks because it's used directly by the operating system.  For
