@@ -6,6 +6,7 @@
    :maxdepth: 1
 
    install
+   alpaca-bundle-ingestion
    my-beginner-tutorial
    bundles
    trading-calendars
