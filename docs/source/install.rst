@@ -107,7 +107,16 @@ following brew packages:
 
    $ brew install freetype pkg-config gcc openssl hdf5
 
+..
 
+
+surround it with backticks: `a notebook link`_.
+
+.. _a notebook link: notebooks/tutorial.ipynb
+
+using a relative path to the local file: link_.
+
+.. _link: notebooks/zipline_basics.ipynb
 
 .. _`Debian-derived`: https://www.debian.org/misc/children-distros
 .. _`RHEL-derived`: https://en.wikipedia.org/wiki/Red_Hat_Enterprise_Linux_derivatives
