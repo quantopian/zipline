@@ -51,6 +51,9 @@ jobs:
 #         python -m pip install wheel
 #         python -m pip install -r etc/requirements_build.in
 #         python -m pip install --no-binary=bcolz -e .[all] -r etc/requirements_blaze.in
+    - name: install wheel
+      run: |
+        pip install wheel
     - name: Build
       run: |
         python setup.py sdist bdist_wheel
