@@ -51,12 +51,9 @@ jobs:
 #         python -m pip install wheel
 #         python -m pip install -r etc/requirements_build.in
 #         python -m pip install --no-binary=bcolz -e .[all] -r etc/requirements_blaze.in
-    - name: install wheel
-      run: |
-        pip install wheel
     - name: Build
       run: |
-        python setup.py sdist bdist_wheel
+        python setup.py sdist
     - name: Publish
       uses: pypa/gh-action-pypi-publish@master
 #       if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
