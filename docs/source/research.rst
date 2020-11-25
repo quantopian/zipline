@@ -21,3 +21,12 @@ Loading Your Data Bundle
 .. _Load Data Bundle: notebooks/LoadDataBundle.ipynb
 
 .. _`Jupyter.org` : https://jupyter.org/install
+
+Simple Pipeline
+--------------------------
+| You can work with pipeline just as it was on Quantopian, and in the following example
+  you could see hwo to create a simple pipeline and get the data:  `Simple Pipeline`_.
+
+.. _Simple Pipeline: notebooks/SimplePipeline.ipynb
+
+
