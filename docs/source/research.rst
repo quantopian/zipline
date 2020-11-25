@@ -20,3 +20,4 @@ Loading Your Data Bundle
 
 .. _Load Data Bundle: notebooks/LoadDataBundle.ipynb
 
+.. _`Jupyter.org` : https://jupyter.org/install
