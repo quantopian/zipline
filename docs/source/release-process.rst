@@ -1,11 +1,11 @@
 Release Process
----------------
+===========================================
 
 .. include:: dev-doc-message.txt
 
 
 Updating the Release Notes
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------
 
 When we are ready to ship a new release of zipline, edit the :doc:`releases`
 page. We will have been maintaining a ``whatsnew`` file while working on the release
@@ -36,7 +36,7 @@ To build and view the docs locally, run:
    $ {BROWSER} build/html/index.html
 
 Updating the Python stub files
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------
 
 PyCharm and other linters and type checkers can use `Python stub files
 <https://www.python.org/dev/peps/pep-0484/#stub-files>`__ for type hinting. For
@@ -62,7 +62,7 @@ the following to generate any stub files:
    should be added to that header.
 
 Updating the ``__version__``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------
 
 We use `versioneer <https://github.com/warner/python-versioneer>`__ to
 manage the ``__version__`` and ``setup.py`` version. This means that we pull
@@ -84,7 +84,7 @@ Next, click the "Draft a new release" button on the `zipline releases page
 choose the tag you just pushed, and publish the release.
 
 Uploading PyPI packages
-~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------
 
 ``sdist``
 ^^^^^^^^^
@@ -159,14 +159,14 @@ Now that we have tested locally and on PyPI test, it is time to upload to PyPI:
    $ twine upload dist/zipline-<version-number>.tar.gz
 
 ``bdist``
-^^^^^^^^^
+)))))))))))))))))))))))))))))
 
 Because zipline now supports multiple versions of numpy, we're not building
 binary wheels, since they are not tagged with the version of numpy with which
 they were compiled.
 
 Documentation
-~~~~~~~~~~~~~
+-------------------------------------
 
 To update `zipline.io <https://www.zipline.io>`__, checkout the
 latest master and run:
@@ -199,7 +199,7 @@ Once we are happy, push the updated docs to the GitHub ``gh-pages`` branch.
 `zipline.io <https://www.zipline.io>`__ will update in a few moments.
 
 Uploading conda packages
-~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------
 
 `Travis <https://travis-ci.org/quantopian/zipline>`__ and
 `AppVeyor <https://ci.appveyor.com/project/quantopian/zipline/branch/master>`__
@@ -231,7 +231,7 @@ If you would like to test this command by uploading to a different user, this
 may be specified with the ``--user`` flag.
 
 Next Commit
-~~~~~~~~~~~
+-------------------------------------
 
 Push a new commit post-release that adds the ``whatsnew`` for the next release,
 which should be titled according to a micro version increment. If that next

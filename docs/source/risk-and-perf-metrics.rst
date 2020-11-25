@@ -1,7 +1,7 @@
 .. _metrics:
 
 Risk and Performance Metrics
-----------------------------
+===========================================
 
 The risk and performance metrics are summarizing values calculated by Zipline
 when running a simulation. These metrics can be about the performance of an
@@ -11,7 +11,7 @@ of a simulation. A single metric may choose to report at multiple time-scales
 where appropriate.
 
 Metrics Sets
-~~~~~~~~~~~~
+-------------------------------------
 
 Zipline groups risk and performance metrics into collections called "metrics
 sets". A single metrics set defines all of the metrics to track during a single
@@ -20,14 +20,14 @@ scales. The default metrics set will compute a host of metrics, such as
 algorithm returns, volatility, Sharpe ratio, and beta.
 
 Selecting the Metrics Set
-~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------
 
 When running a simulation, the user may select the metrics set to report. How
 you select the metrics set depends on the interface being used to run the
 algorithm.
 
 Command Line and IPython Magic
-``````````````````````````````
+))))))))))))))))))))))))))))))))))
 
 When running with the command line or IPython magic interfaces, the metrics set
 may be selected by passing the ``--metrics-set`` argument. For example:
@@ -37,7 +37,7 @@ may be selected by passing the ``--metrics-set`` argument. For example:
    $ zipline run algorithm.py -s 2014-01-01 -e 2014-02-01 --metrics-set my-metrics-set
 
 ``run_algorithm``
-`````````````````
+)))))))))))))))))))))))))))))
 
 When running through the :func:`~zipline.run_algorithm` interface, the metrics
 set may be passed with the ``metrics_set`` argument. This may either be the name
@@ -49,7 +49,7 @@ of a registered metrics set, or a set of metric object. For example:
    run_algorithm(..., metrics_set={MyMetric(), MyOtherMetric(), ...})
 
 Running Without Metrics
-~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------
 
 Computing risk and performance metrics is not free, and contributes to the total
 runtime of a backtest. When actively developing an algorithm, it is often
@@ -62,7 +62,7 @@ metrics set ``none``. For example:
    $ zipline run algorithm.py -s 2014-01-01 -e 2014-02-01 --metrics-set none
 
 Defining New Metrics
-~~~~~~~~~~~~~~~~~~~~
+-------------------------------------
 
 A metric is any object that implements some subset of the following methods:
 
@@ -83,7 +83,7 @@ support multiple simulations at once, meaning that internal caches and data are
 consistent between ``start_of_simulation`` and ``end_of_simulation``.
 
 ``start_of_simulation``
-```````````````````````
+)))))))))))))))))))))))))))))
 
 The ``start_of_simulation`` method should be thought of as a per-simulation
 constructor. This method should initialize any caches needed for the duration of
@@ -123,7 +123,7 @@ interface to the returns of the benchmark specified by
 :func:`~zipline.api.set_benchmark`.
 
 ``end_of_simulation``
-`````````````````````
+)))))))))))))))))))))))))))))
 
 The ``end_of_simulation`` method should have the following signature:
 
@@ -161,7 +161,7 @@ interface to the returns of the benchmark specified by
 :func:`~zipline.api.set_benchmark`.
 
 ``start_of_session``
-````````````````````
+)))))))))))))))))))))))))))))
 
 The ``start_of_session`` method may see a slightly different view of the
 ``ledger`` or ``data_portal`` than the previous ``end_of_session`` if the price
@@ -189,7 +189,7 @@ session which is about to run.
 which is the metric's interface to pricing data.
 
 ``end_of_session``
-``````````````````
+)))))))))))))))))))))))))))))
 
 The ``end_of_session`` method should have the following signature:
 
@@ -223,7 +223,7 @@ returns through ``ledger.daily_returns_array[:session_ix + 1]``.
 which is the metric's interface to pricing data
 
 ``end_of_bar``
-``````````````
+)))))))))))))))))))))))))))))
 
 .. note::
 
@@ -261,7 +261,7 @@ returns through ``ledger.daily_returns_array[:session_ix + 1]``.
 which is the metric's interface to pricing data.
 
 Defining New Metrics Sets
-~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------
 
 Users may use :func:`zipline.finance.metrics.register` to register a new metrics
 set. This may be used to decorate a function taking no arguments which returns a

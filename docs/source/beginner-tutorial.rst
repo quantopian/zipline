@@ -1,8 +1,8 @@
 Zipline Beginner Tutorial
-------------------------------------
+====================================
 
 Basics
-))))))))))))))))))))))))
+------------
 
 Zipline is an open-source algorithmic trading simulator written in
 Python.
@@ -49,7 +49,7 @@ more information on these functions, see the `relevant part of the
 Quantopian docs <https://www.quantopian.com/help#api-toplevel>`__.
 
 My First Algorithm
-~~~~~~~~~~~~~~~~~~
+---------------------------
 
 Let's take a look at a very simple algorithm from the ``examples``
 directory, ``buyapple.py``:
@@ -93,29 +93,30 @@ AAPL stock in the ``data`` event frame (for more information see
 `here <https://www.quantopian.com/help#api-event-properties>`__).
 
 Running the Algorithm
-~~~~~~~~~~~~~~~~~~~~~
+---------------------------------
 
 To now test this algorithm on financial data, ``zipline`` provides three
 interfaces: A command-line interface, ``IPython Notebook`` magic, and
 :func:`~zipline.run_algorithm`.
 
 Ingesting Data
-^^^^^^^^^^^^^^
-If you haven't ingested the data, then run:
+)))))))))))))))))))))))))))))))
+
+If you haven't ingested the data, you'll need a `Quandl <https://docs.quandl.com/docs#section-authentication>`__ API key to
+ingest the default bundle. Then run:
 
 .. code-block:: bash
 
-   $ zipline ingest [-b <bundle>]
+   $ QUANDL_API_KEY=<yourkey> zipline ingest [-b <bundle>]
 
 where ``<bundle>`` is the name of the bundle to ingest, defaulting to
-``quantopian-quandl``.
-
+``quandl``.
 
 you can check out the :ref:`ingesting data <ingesting-data>` section for
 more detail.
 
 Command Line Interface
-^^^^^^^^^^^^^^^^^^^^^^
+))))))))))))))))))))))))))))))
 
 After you installed zipline you should be able to execute the following
 from your command line (e.g. ``cmd.exe`` on Windows, or the Terminal app
@@ -521,7 +522,7 @@ As you can see, our algorithm performance as assessed by the
 is not surprising as our algorithm only bought AAPL every chance it got.
 
 IPython Notebook
-~~~~~~~~~~~~~~~~
+--------------------------
 
 The `IPython Notebook <http://ipython.org/notebook.html>`__ is a very
 powerful browser-based interface to a Python interpreter (this tutorial
@@ -822,10 +823,10 @@ space and contain the performance ``DataFrame`` we looked at above.
    </div>
 
 Access to Previous Prices Using ``history``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------
 
 Working example: Dual Moving Average Cross-Over
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+)))))))))))))))))))))))))))))))))))))))))))))))))))))))))
 
 The Dual Moving Average (DMA) is a classic momentum strategy. It's
 probably not used by any serious trader anymore but is still very
@@ -932,7 +933,7 @@ functions <https://www.quantopian.com/help#api-order-methods>`__ for
 more details.
 
 Conclusions
-~~~~~~~~~~~
+--------------------------
 
 We hope that this tutorial gave you a little insight into the
 architecture, API, and features of ``zipline``. For next steps, check

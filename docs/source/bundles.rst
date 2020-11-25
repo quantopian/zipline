@@ -1,7 +1,7 @@
 .. _data-bundles:
 
 Data Bundles
-------------
+=============================
 
 A data bundle is a collection of pricing data, adjustment data, and an asset
 database. Bundles allow us to preload all of the data we will need to run
@@ -10,7 +10,7 @@ backtests and store the data for future runs.
 .. _bundles-command:
 
 Discovering Available Bundles
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------
 
 Zipline comes with a few bundles by default as well as the ability to register
 new bundles. To see which bundles we have available, we may run the
@@ -40,7 +40,7 @@ ingestion for ``quantopian-quandl``.
 .. _ingesting-data:
 
 Ingesting Data
-~~~~~~~~~~~~~~
+-----------------------
 
 The first step to using a data bundle is to ingest the data.
 The ingestion process will invoke some custom bundle command and then write the data to a standard location that zipline can find.
@@ -56,7 +56,7 @@ To ingest a bundle, run:
 where ``<bundle>`` is the name of the bundle to ingest, defaulting to ``quantopian-quandl``.
 
 Old Data
-~~~~~~~~
+------------
 
 When the ``ingest`` command is used it will write the new data to a subdirectory
 of ``$ZIPLINE_ROOT/data/<bundle>`` which is named with the current date. This
@@ -89,7 +89,7 @@ For example:
 
 
 Running Backtests with Data Bundles
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------
 
 Now that the data has been ingested we can use it to run backtests with the
 ``run`` command. The bundle to use can be specified with the ``--bundle`` option
@@ -110,12 +110,12 @@ have been available to us on that date. The ``bundle-timestamp`` defaults to
 the current day to use the most recent data.
 
 Default Data Bundles
-~~~~~~~~~~~~~~~~~~~~
+------------------------------
 
 .. _quandl-data-bundle:
 
 Quandl WIKI Bundle
-``````````````````
+))))))))))))))))))))))))))
 
 By default zipline comes with the ``quantopian-quandl`` data bundle which uses quandl's `WIKI dataset <https://www.quandl.com/data/WIKI>`_.
 The quandl data bundle includes daily pricing data, splits, cash dividends, and asset metadata.
@@ -135,7 +135,7 @@ Either command should only take a few seconds to download the data.
    The dataset is no longer updating, but is reasonable for trying out Zipline without setting up your own dataset.
 
 Writing a New Bundle
-~~~~~~~~~~~~~~~~~~~~
+-------------------------
 
 Data bundles exist to make it easy to use different data sources with
 zipline. To add a new bundle, one must implement an ``ingest`` function.
@@ -166,7 +166,7 @@ The signature of the ingest function should be:
           output_dir)
 
 ``environ``
-```````````
+))))))))))))
 
 ``environ`` is a mapping representing the environment variables to use. This is
 where any custom arguments needed for the ingestion should be passed, for
@@ -174,7 +174,7 @@ example: the ``quandl`` bundle uses the environment to pass the API key and the
 download retry attempt count.
 
 ``asset_db_writer``
-```````````````````
+)))))))))))))))))))))))))))
 
 ``asset_db_writer`` is an instance of :class:`~zipline.assets.AssetDBWriter`.
 This is the writer for the asset metadata which provides the asset lifetimes and
@@ -185,7 +185,7 @@ pieces of metadata. More information about the format of the data exists in the
 docs for write.
 
 ``minute_bar_writer``
-`````````````````````
+)))))))))))))))))))))))))))))
 
 ``minute_bar_writer`` is an instance of
 :class:`~zipline.data.minute_bars.BcolzMinuteBarWriter`. This writer is used to
@@ -208,7 +208,7 @@ to signal that there is no minutely data.
    as the dates are strictly increasing.
 
 ``daily_bar_writer``
-````````````````````
+)))))))))))))))))))))))))))))
 
 ``daily_bar_writer`` is an instance of
 :class:`~zipline.data.bcolz_daily_bars.BcolzDailyBarWriter`. This writer is
@@ -232,7 +232,7 @@ is provided, a daily rollup will happen to service daily history requests.
    iterable.
 
 ``adjustment_writer``
-`````````````````````
+)))))))))))))))))))))))))))))
 
 ``adjustment_writer`` is an instance of
 :class:`~zipline.data.adjustments.SQLiteAdjustmentWriter`. This writer is
@@ -243,26 +243,26 @@ these fields are optional, but the writer can accept as much of the data as you
 have.
 
 ``calendar``
-````````````
+)))))))))))))))))))))))))))))
 
 ``calendar`` is an instance of
 :class:`zipline.utils.calendars.TradingCalendar`. The calendar is provided to
 help some bundles generate queries for the days needed.
 
 ``start_session``
-`````````````````
+)))))))))))))))))))))))))))))
 
 ``start_session`` is a :class:`pandas.Timestamp` object indicating the first
 day that the bundle should load data for.
 
 ``end_session``
-```````````````
+)))))))))))))))))))))))))))))
 
 ``end_session`` is a :class:`pandas.Timestamp` object indicating the last day
 that the bundle should load data for.
 
 ``cache``
-`````````
+)))))))))))))))))))))))))))))
 
 ``cache`` is an instance of :class:`~zipline.utils.cache.dataframe_cache`. This
 object is a mapping from strings to dataframes. This object is provided in case
@@ -275,7 +275,7 @@ the parsing. If it is very fast to get the data, for example if it is coming
 from another local file, then there is no need to use this cache.
 
 ``show_progress``
-`````````````````
+)))))))))))))))))))))))))))))
 
 ``show_progress`` is a boolean indicating that the user would like to receive
 feedback about the ingest function's progress fetching and writing the
@@ -287,7 +287,7 @@ forwarded to ``minute_bar_writer.write`` and ``daily_bar_writer.write``.
 
 
 ``output_dir``
-``````````````
+)))))))))))))))))))))))))))))
 
 ``output_dir`` is a string representing the file path where all the data will be
 written. ``output_dir`` will be some subdirectory of ``$ZIPLINE_ROOT`` and will
@@ -297,7 +297,7 @@ it's own outputs without the writers. For example, the ``quantopian:quandl``
 bundle uses this to directly untar the bundle into the ``output_dir``.
 
 Ingesting Data from .csv Files
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------
 
 Zipline provides a bundle called ``csvdir``, which allows users to ingest data
 from ``.csv`` files. The format of the files should be in OHLCV format, with dates,
