@@ -9,7 +9,7 @@ The `Hitchhiker's Guide to Python`_ provides an `excellent tutorial on virtualen
 <https://docs.python-guide.org/en/latest/dev/virtualenvs/>`_.
 
 
-For now I support only installation through git. You could do that in one of these ways:
+For now I support only installation through github. You could do that in one of these ways:
 
 Installnig with git clone
 --------------------------
@@ -108,15 +108,6 @@ following brew packages:
    $ brew install freetype pkg-config gcc openssl hdf5
 
 ..
-
-
-surround it with backticks: `a notebook link`_.
-
-.. _a notebook link: notebooks/tutorial.ipynb
-
-using a relative path to the local file: link_.
-
-.. _link: notebooks/zipline_basics.ipynb
 
 .. _`Debian-derived`: https://www.debian.org/misc/children-distros
 .. _`RHEL-derived`: https://en.wikipedia.org/wiki/Red_Hat_Enterprise_Linux_derivatives
