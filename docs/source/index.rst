@@ -7,6 +7,7 @@
 
    install
    alpaca-bundle-ingestion
+   research
    my-beginner-tutorial
    bundles
    trading-calendars
