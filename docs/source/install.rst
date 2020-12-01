@@ -1,6 +1,6 @@
 Install
 =======
-Please use python 3.6+ and let's avoid unnecessary issues.
+Please use python 3.6 and let's avoid unnecessary issues.
 If you use Python for anything other than Zipline, I **strongly** recommend
 that you install in a `virtualenv
 <https://virtualenv.readthedocs.org/en/latest>`_.
