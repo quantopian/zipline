@@ -14,7 +14,7 @@ Research & backtesting in the Notebook environment
     jupyter notebook
 
 Working With The Research Environment
----------------------------------
+-----------------------------------------
 | This was one of Quantopian's strengths and now you could run it locally too.
 | In the next few examples we will see how to:
 * Load your Alpaca (or any other) data bundle
