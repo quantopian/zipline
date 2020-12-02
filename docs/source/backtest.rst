@@ -1,6 +1,6 @@
 Backtesting
 =============
-| Old Zipline users know the commnad line tool that used to run backtests. e.g:
+| Old Zipline users know the command line tool that used to run backtests. e.g:
 .. code-block::
 
     zipline --start 2014-1-1 --end 2018-1-1 -o dma.pickle
