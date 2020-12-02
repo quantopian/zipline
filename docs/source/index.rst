@@ -8,4 +8,6 @@
    install
    alpaca-bundle-ingestion
    research
+   backtest
    zipline-docs
+
