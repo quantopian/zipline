@@ -35,7 +35,7 @@ Algo Template
     import pandas_datareader.data as yahoo_reader
 
     from zipline.utils.calendars import get_calendar
-    from zipline.api import order_target
+    from zipline.api import order_target, symbol
     from zipline.data import bundles
     from zipline import run_algorithm
 
@@ -50,7 +50,7 @@ Algo Template
 
 
     def initialize(context):
-        context.equity = bundle_data.asset_finder.lookup_symbol("AMZN", end)
+        context.equity = symbol("AMZN")
 
 
     def handle_data(context, data):
@@ -104,6 +104,7 @@ Algo Template
         plt.legend(['Algo', 'Benchmark'])
         plt.ylabel("Returns", color='black', size=20)
         plt.show()
+
 
 ..
 
