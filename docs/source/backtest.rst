@@ -40,7 +40,7 @@ Algo Template
     from zipline import run_algorithm
 
 
-    def get_benchmark(symbol=None, start = None, end = None, other_file_path=None):
+    def get_benchmark(symbol=None, start=None, end=None):
         bm = yahoo_reader.DataReader(symbol,
                                      'yahoo',
                                      pd.Timestamp(start),
