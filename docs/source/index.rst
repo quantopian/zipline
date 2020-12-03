@@ -9,5 +9,6 @@
    alpaca-bundle-ingestion
    research
    backtest
+   going-live
    zipline-docs
 
