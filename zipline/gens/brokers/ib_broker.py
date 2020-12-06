@@ -143,7 +143,7 @@ class TWSConnection(EClientSocket, EWrapper):
                                                self.client_id))
         self.eConnect(self._host, self._port, self.client_id)
         timeout = _connection_timeout
-        while timeout and not self.isConnected():
+        while timeout > 0 and not self.isConnected():
             sleep(_poll_frequency)
             timeout -= _poll_frequency
         else:
