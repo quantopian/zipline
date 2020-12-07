@@ -10,5 +10,6 @@
    research
    backtest
    going-live
+   troubleshoot
    zipline-docs
 
