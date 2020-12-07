@@ -108,6 +108,6 @@ Algo Template
 
 ..
 
-.. _`install` : ../install.html
-.. _`Alpaca Data Bundle`: ../alpaca-bundle-ingestion.html
-.. _`Beginner Tutorial`: ../beginner-tutorial.html
+.. _`install` : ../latest/install.html
+.. _`Alpaca Data Bundle`: ../latest/alpaca-bundle-ingestion.html
+.. _`Beginner Tutorial`: ../latest/beginner-tutorial.html
