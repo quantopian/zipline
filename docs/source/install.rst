@@ -11,7 +11,7 @@ The `Hitchhiker's Guide to Python`_ provides an `excellent tutorial on virtualen
 
 For now I support only installation through github. You could do that in one of these ways:
 
-Installnig with git clone
+Installing with git clone
 --------------------------
  * git clone https://github.com/shlomikushchi/zipline-trader.git
  * <create/activate a virtual env> - optional but recommended
@@ -19,7 +19,7 @@ Installnig with git clone
 
 The last step will install this project from source, giving you the ability to debug zipline-trader's code.
 
-Installing using pip dierectly from github
+Installing using pip directly from github
 ----------------------------------------------
 You can install it with ability to debug it like this:
 
