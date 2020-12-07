@@ -4,7 +4,7 @@ Troubleshooting/FAQ
 
 | In this section I will put issues/questions users faced, so it might help new users too.
 
-Do And Donts
+Dos And Donts
 ----------------
 * Don't use this to ingest:
 
