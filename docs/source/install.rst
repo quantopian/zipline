@@ -1,8 +1,10 @@
 Install
 =======
-Please use python 3.6 and let's avoid unnecessary issues.
-If you use Python for anything other than Zipline, I **strongly** recommend
-that you install in a `virtualenv
+| Please use python 3.6 and let's avoid unnecessary issues.
+| Linux and Windows Installations are automatically tested. Mac OS users might have an issue with Bcolz.
+  For now, refer to the original zipline docs if you do. Fixing this issue is in the backlog.
+| If you use Python for anything other than Zipline, I **strongly** recommend
+  that you install in a `virtualenv
 <https://virtualenv.readthedocs.org/en/latest>`_.
 
 The `Hitchhiker's Guide to Python`_ provides an `excellent tutorial on virtualenv
