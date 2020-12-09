@@ -1022,7 +1022,7 @@ class IBBroker(Broker):
             ohlcv['volume'] = trade_sizes.resample(resample_freq).sum()
 
             # Add asset as level 0 column; ohlcv will be used as level 1 cols
-            ohlcv.columns = pd.MultiIndex.from_product([[asset, ],
+            ohlcv.columns = pd.MultiIndex.from_product([[symbol, ],
                                                         ohlcv.columns])
 
             df = pd.concat([df, ohlcv], axis=1)
