@@ -14,6 +14,7 @@ env:
     #   is sufficient: ["read:org", "user:email", "repo_deployment", "repo:status", "write:repo_hook"]
     #   See https://docs.travis-ci.com/api#external-apis.
     - secure: "MxLrJ0ry2NtZXp4zESb0KP+AUuVns96XfPyZgmxrMOjH4epqLiP5NxaY/5UF9oTEdNQDnPO3Rw7M8rH8vuX5dzOVzP2/miAc+ltFQmlaXuERY5fu2LYTST8MCxokiuD4fdaFPFiaCCSrk+zQZSX2uDn161vK+FqZyGAQ9EEJebQ="
+    - CONDA_ROOT_PYTHON_VERSION: "2.7"
   matrix:
     - OLD_PANDAS=1
     - NEW_PANDAS=1
@@ -21,13 +22,30 @@ matrix:
   exclude:
     - python: 3.6
       env: OLD_PANDAS=1
+#  include:
+#    # Workaround Travis OSX not natively supporting Python.
+#    - os: osx
+#      language: generic
+#      env: TRAVIS_PYTHON_VERSION=2.7 OLD_PANDAS=1
+#    - os: osx
+#      language: generic
+#      env: TRAVIS_PYTHON_VERSION=3.5 OLD_PANDAS=1
+#    - os: osx
+#      language: generic
+#      env: TRAVIS_PYTHON_VERSION=3.5 NEW_PANDAS=1
 
 cache:
-  pip: true
+  directories:
+    - $HOME/.cache/.pip/
 
 before_install:
   - source ./ci/travis/install_miniconda.sh
-  - NUMPY_VERSION=1.14.1 PANDAS_VERSION=0.22.0 SCIPY_VERSION=1.0.0 STATSMODELS_VERSION=0.9.0 PANDAS_DATAREADER_VERSION=0.4.0 DASK_VERSION=0.17.1
+  - |
+    if [ "$OLD_PANDAS" ]; then
+      NUMPY_VERSION=1.11.3 PANDAS_VERSION=0.18.1 SCIPY_VERSION=0.17.1
+    else
+      NUMPY_VERSION=1.14.1 PANDAS_VERSION=0.22.0 SCIPY_VERSION=1.0.0 STATSMODELS_VERSION=0.9.0 PANDAS_DATAREADER_VERSION=0.4.0 DASK_VERSION=0.17.1
+    fi
   - source ./ci/travis/overwrite_requirements.sh
   - cat etc/requirements_locked.txt
 
