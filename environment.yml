@@ -1,0 +1,66 @@
+name: zipline-dev
+channels:
+  - conda-forge
+dependencies:
+  - python=3.6
+  - cython
+  - setuptools<46
+  - numpy
+  - scipy
+  - statsmodels
+  - numexpr
+  - networkx<2.0
+
+  - empyrical
+
+  - pytz
+  - python-dateutil
+  - trading-calendars
+
+  - requests
+
+  - sqlalchemy
+  - alembic
+
+  - bcolz
+  - h5py
+
+  - lru-dict
+  - intervaltree
+  - bottleneck
+
+  - iso3166
+  - iso4217
+
+  - six
+  - contextlib2
+  - python-interface
+  - multipledispatch
+  - toolz
+
+  - click
+  - Logbook
+
+  - coverage
+  - nose
+  - nose-parameterized
+  - nose-timer
+
+  - mock
+  - testfixtures
+  - responses
+
+  - flake8
+
+  - matplotlib
+
+  - blaze
+
+  - pip
+  - pip:
+    - patsy
+    - tables
+    - python_version
+    - pandas-datareader<0.90
+    - nose-ignore-docstring
+    - pandas==0.22
