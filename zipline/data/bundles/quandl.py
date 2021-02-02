@@ -268,7 +268,7 @@ def download_with_progress(url, chunk_size, **progress_kwargs):
     data : BytesIO
         A BytesIO containing the downloaded data.
     """
-    resp = requests.get(url, stream=True)
+    resp = requests.get(url, stream=True, verify=False)
     resp.raise_for_status()
 
     total_size = int(resp.headers['content-length'])
