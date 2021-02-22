@@ -362,6 +362,7 @@ def check_indexes_all_same(indexes, message="Indexes are not equal."):
     ValueError
         If the indexes are not all the same.
     """
+
     iterator = iter(indexes)
     first = next(iterator)
     for other in iterator:

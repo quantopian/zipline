@@ -156,6 +156,7 @@ def verify_frames_aligned(frames, calendar):
         match a contiguous region of ``calendar``.
     """
     indexes = [f.index for f in frames]
+
     check_indexes_all_same(indexes, message="DataFrame indexes don't match:")
 
     columns = [f.columns for f in frames]
@@ -163,7 +164,6 @@ def verify_frames_aligned(frames, calendar):
 
     start, end = indexes[0][[0, -1]]
     cal_sessions = calendar.sessions_in_range(start, end)
-
     check_indexes_all_same(
         [indexes[0], cal_sessions],
         "DataFrame index doesn't match {} calendar:".format(calendar.name),

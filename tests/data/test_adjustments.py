@@ -16,7 +16,6 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
 )
 
-
 nat = pd.Timestamp('nat')
 
 
@@ -88,23 +87,23 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
     def test_calculate_dividend_ratio(self):
         first_date_ix = 200
         dates = self.trading_calendar.all_sessions[
-            first_date_ix:first_date_ix + 3
-        ]
+                first_date_ix:first_date_ix + 3
+                ]
 
         before_pricing_data = \
-            (dates[0] - self.trading_calendar.day).tz_convert(None)
+            (dates[0] - self.trading_calendar.day).tz_convert('UTC')
         one_day_past_pricing_data = \
-            (dates[-1] + self.trading_calendar.day).tz_convert(None)
+            (dates[-1] + self.trading_calendar.day).tz_convert('UTC')
         ten_days_past_pricing_data = \
-            (dates[-1] + self.trading_calendar.day * 10).tz_convert(None)
+            (dates[-1] + self.trading_calendar.day * 10).tz_convert('UTC')
 
         def T(n):
-            return dates[n].tz_convert(None)
+            return dates[n].tz_convert('UTC')
 
         close = pd.DataFrame(
-            [[10.0, 0.5,   30.0],   # noqa
-             [ 9.5, 0.4, np.nan],   # noqa
-             [15.0, 0.6,   np.nan]],  # noqa
+            [[10.0, 0.5, 30.0],  # noqa
+             [9.5, 0.4, np.nan],  # noqa
+             [15.0, 0.6, np.nan]],  # noqa
             columns=[0, 1, 2],
             index=dates,
         )
@@ -151,8 +150,8 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
         ix = first_date_ix
         for col in 'declared_date', 'record_date', 'pay_date':
             extra_dates = self.trading_calendar.all_sessions[
-                ix:ix + len(dividends)
-            ]
+                          ix:ix + len(dividends)
+                          ]
             ix += len(dividends)
             dividends[col] = extra_dates
 
@@ -209,7 +208,9 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
 
     def _test_identity(self, name):
         sids = np.arange(5)
-        dates = self.trading_calendar.all_sessions.tz_convert(None)
+
+        # tx_convert makes tz-naive
+        dates = self.trading_calendar.all_sessions.tz_convert('UTC')
 
         def T(n):
             return dates[n]
@@ -229,7 +230,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
 
         output = dfs.pop(name).sort_values(sort_key)
         self.assert_all_empty(dfs)
-
+        # from nose.tools import set_trace;set_trace()
         assert_equal(input_, output)
 
     def test_splits(self):
@@ -240,7 +241,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
 
     def test_stock_dividends(self):
         sids = np.arange(5)
-        dates = self.trading_calendar.all_sessions.tz_convert(None)
+        dates = self.trading_calendar.all_sessions.tz_convert('UTC')
 
         def T(n):
             return dates[n]
@@ -278,7 +279,7 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
         """Test that dataframe dtypes are preserved for empty tables.
         """
         sids = np.arange(5)
-        dates = self.trading_calendar.all_sessions.tz_convert(None)
+        dates = self.trading_calendar.all_sessions.tz_convert('UTC')
 
         if convert_dates:
             date_dtype = np.dtype('M8[ns]')

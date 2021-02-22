@@ -897,13 +897,13 @@ Let's look at the strategy which should make this clear:
        perf['AAPL'].plot(ax=ax2)
        perf[['short_mavg', 'long_mavg']].plot(ax=ax2)
 
-       perf_trans = perf.ix[[t != [] for t in perf.transactions]]
-       buys = perf_trans.ix[[t[0]['amount'] > 0 for t in perf_trans.transactions]]
-       sells = perf_trans.ix[
+       perf_trans = perf.loc[[t != [] for t in perf.transactions]]
+       buys = perf_trans.loc[[t[0]['amount'] > 0 for t in perf_trans.transactions]]
+       sells = perf_trans.loc[
            [t[0]['amount'] < 0 for t in perf_trans.transactions]]
-       ax2.plot(buys.index, perf.short_mavg.ix[buys.index],
+       ax2.plot(buys.index, perf.short_mavg.loc[buys.index],
                 '^', markersize=10, color='m')
-       ax2.plot(sells.index, perf.short_mavg.ix[sells.index],
+       ax2.plot(sells.index, perf.short_mavg.loc[sells.index],
                 'v', markersize=10, color='k')
        ax2.set_ylabel('price in $')
        plt.legend(loc=0)

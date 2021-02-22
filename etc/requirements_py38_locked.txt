@@ -49,7 +49,7 @@ mock==4.0.2               # via -r etc/requirements_dev.in
 multipledispatch==0.6.0   # via -r etc/requirements.in, datashape, odo
 networkx==1.11            # via -r etc/requirements.in, odo
 nose-ignore-docstring==0.2  # via -r etc/requirements_dev.in
-nose-parameterized==0.6.0  # via -r etc/requirements_dev.in
+parameterized==0.6.0  # via -r etc/requirements_dev.in
 nose-timer==1.0.0         # via -r etc/requirements_dev.in
 nose==1.3.7               # via -r etc/requirements_dev.in, nose-timer
 numexpr==2.7.1            # via -r etc/requirements.in, tables

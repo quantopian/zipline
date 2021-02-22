@@ -4,7 +4,7 @@ Tests for Downsampled Filters/Factors/Classifiers
 from functools import partial
 
 import pandas as pd
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal
 
 from zipline.errors import NoFurtherDataError
 from zipline.pipeline import (

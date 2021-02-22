@@ -25,7 +25,6 @@ from ._adjustments import load_adjustments_from_sqlite
 
 log = Logger(__name__)
 
-
 SQLITE_ADJUSTMENT_TABLENAMES = frozenset(['splits', 'dividends', 'mergers'])
 
 UNPAID_QUERY_TEMPLATE = """
@@ -45,13 +44,11 @@ StockDividend = namedtuple(
     ['asset', 'payment_asset', 'ratio', 'pay_date'],
 )
 
-
 SQLITE_ADJUSTMENT_COLUMN_DTYPES = {
     'effective_date': any_integer,
     'ratio': float64_dtype,
     'sid': any_integer,
 }
-
 
 SQLITE_DIVIDEND_PAYOUT_COLUMN_DTYPES = {
     'sid': any_integer,
@@ -61,7 +58,6 @@ SQLITE_DIVIDEND_PAYOUT_COLUMN_DTYPES = {
     'pay_date': any_integer,
     'amount': float,
 }
-
 
 SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMN_DTYPES = {
     'sid': any_integer,
@@ -256,8 +252,8 @@ class SQLiteAdjustmentReader(object):
 
             for row in rows:
                 stock_div = StockDividend(
-                    asset_finder.retrieve_asset(row[0]),    # asset
-                    asset_finder.retrieve_asset(row[1]),    # payment_asset
+                    asset_finder.retrieve_asset(row[0]),  # asset
+                    asset_finder.retrieve_asset(row[1]),  # payment_asset
                     row[2],
                     Timestamp(row[3], unit='s', tz='UTC'))
                 stock_divs.append(stock_div)
@@ -293,16 +289,14 @@ class SQLiteAdjustmentReader(object):
             date_cols = self._datetime_int_cols[table_name]
         except KeyError:
             raise ValueError(
-                "Requested table %s not found.\n"
-                "Available tables: %s\n" % (
-                    table_name,
-                    self._datetime_int_cols.keys(),
-                )
+                "Requested table {} not found.\n"
+                "Available tables: {}\n".format(table_name,
+                                                self._datetime_int_cols.keys())
             )
 
         # Dates are stored in second resolution as ints in adj.db tables.
         kwargs = (
-            {'parse_dates': {col: {'unit': 's'} for col in date_cols}}
+            {'parse_dates': {col: {'unit': 's', 'utc': True} for col in date_cols}}
             if convert_dates
             else {}
         )
@@ -533,17 +527,17 @@ class SQLiteAdjustmentWriter(object):
             dividend_payouts = None
         else:
             dividend_payouts = dividends.copy()
-            dividend_payouts['ex_date'] = dividend_payouts['ex_date'].values.\
+            dividend_payouts['ex_date'] = dividend_payouts['ex_date'].values. \
                 astype('datetime64[s]').astype(int64_dtype)
             dividend_payouts['record_date'] = \
-                dividend_payouts['record_date'].values.\
-                astype('datetime64[s]').astype(int64_dtype)
+                dividend_payouts['record_date'].values. \
+                    astype('datetime64[s]').astype(int64_dtype)
             dividend_payouts['declared_date'] = \
-                dividend_payouts['declared_date'].values.\
-                astype('datetime64[s]').astype(int64_dtype)
+                dividend_payouts['declared_date'].values. \
+                    astype('datetime64[s]').astype(int64_dtype)
             dividend_payouts['pay_date'] = \
-                dividend_payouts['pay_date'].values.astype('datetime64[s]').\
-                astype(int64_dtype)
+                dividend_payouts['pay_date'].values.astype('datetime64[s]'). \
+                    astype(int64_dtype)
 
         self.write_dividend_payouts(dividend_payouts)
 
@@ -553,17 +547,17 @@ class SQLiteAdjustmentWriter(object):
         else:
             stock_dividend_payouts = stock_dividends.copy()
             stock_dividend_payouts['ex_date'] = \
-                stock_dividend_payouts['ex_date'].values.\
-                astype('datetime64[s]').astype(int64_dtype)
+                stock_dividend_payouts['ex_date'].values. \
+                    astype('datetime64[s]').astype(int64_dtype)
             stock_dividend_payouts['record_date'] = \
-                stock_dividend_payouts['record_date'].values.\
-                astype('datetime64[s]').astype(int64_dtype)
+                stock_dividend_payouts['record_date'].values. \
+                    astype('datetime64[s]').astype(int64_dtype)
             stock_dividend_payouts['declared_date'] = \
-                stock_dividend_payouts['declared_date'].\
-                values.astype('datetime64[s]').astype(int64_dtype)
+                stock_dividend_payouts['declared_date']. \
+                    values.astype('datetime64[s]').astype(int64_dtype)
             stock_dividend_payouts['pay_date'] = \
-                stock_dividend_payouts['pay_date'].\
-                values.astype('datetime64[s]').astype(int64_dtype)
+                stock_dividend_payouts['pay_date']. \
+                    values.astype('datetime64[s]').astype(int64_dtype)
         self.write_stock_dividend_payouts(stock_dividend_payouts)
 
     def write_dividend_data(self, dividends, stock_dividends=None):

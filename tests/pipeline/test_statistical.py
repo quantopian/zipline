@@ -15,7 +15,7 @@ from pandas import (
     Int64Index,
     Timestamp,
 )
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal
 from scipy.stats import linregress, pearsonr, spearmanr
 
 from empyrical.stats import beta_aligned as empyrical_beta

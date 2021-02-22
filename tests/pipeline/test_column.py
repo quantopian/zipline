@@ -6,7 +6,7 @@ from unittest import skipIf
 
 from nose_parameterized import parameterized
 from pandas import Timestamp, DataFrame
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal
 
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import Pipeline
