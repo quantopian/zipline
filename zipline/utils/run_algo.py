@@ -79,6 +79,7 @@ def _run(handle_data,
          local_namespace,
          environ,
          blotter,
+         custom_loader,
          benchmark_spec):
     """Run a backtest for the given algorithm.
 
@@ -173,9 +174,12 @@ def _run(handle_data,
     def choose_loader(column):
         if column in USEquityPricing.columns:
             return pipeline_loader
-        raise ValueError(
-            "No PipelineLoader registered for column %s." % column
-        )
+        try:
+            return custom_loader.get(column)
+        except KeyError:
+            raise ValueError(
+                "No PipelineLoader registered for column {}.".format(column)
+            )
 
     if isinstance(metrics_set, six.string_types):
         try:
@@ -310,7 +314,8 @@ def run_algorithm(start,
                   extensions=(),
                   strict_extensions=True,
                   environ=os.environ,
-                  blotter='default'):
+                  blotter='default',
+                  custom_loader=None):
     """
     Run a trading algorithm.
 
@@ -407,6 +412,7 @@ def run_algorithm(start,
         environ=environ,
         blotter=blotter,
         benchmark_spec=benchmark_spec,
+        custom_loader=custom_loader
     )
 
 
