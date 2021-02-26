@@ -55,7 +55,7 @@ from zipline.errors import (
 from . import (
     Asset, Equity, Future,
 )
-from . continuous_futures import (
+from .continuous_futures import (
     ADJUSTMENT_STYLES,
     CHAIN_PREDICATES,
     ContinuousFuture,
@@ -230,11 +230,11 @@ SID_TYPE_IDS = {
 
 CONTINUOUS_FUTURE_ROLL_STYLE_IDS = {
     'calendar': 0,
-    'volume': 1,
+    'volume'  : 1,
 }
 
 CONTINUOUS_FUTURE_ADJUSTMENT_STYLE_IDS = {
-    None: 0,
+    None : 0,
     'div': 1,
     'add': 2,
 }
@@ -295,6 +295,7 @@ class AssetFinder(object):
     --------
     :class:`zipline.assets.AssetDBWriter`
     """
+
     @preprocess(engine=coerce_string_to_eng(require_exists=True))
     def __init__(self, engine, future_chain_predicates=CHAIN_PREDICATES):
         self.engine = engine
@@ -1099,8 +1100,8 @@ class AssetFinder(object):
 
         """
 
-        data = self._select_asset_by_symbol(self.futures_contracts, symbol)\
-                   .execute().fetchone()
+        data = self._select_asset_by_symbol(self.futures_contracts, symbol) \
+            .execute().fetchone()
 
         # If no data found, raise an exception
         if not data:
@@ -1202,7 +1203,7 @@ class AssetFinder(object):
                 list(sa.select((fc_cols.sid,)).where(
                     (fc_cols.root_symbol == root_symbol) &
                     (fc_cols.start_date != pd.NaT.value)).order_by(
-                        fc_cols.sid).execute().fetchall())]
+                    fc_cols.sid).execute().fetchall())]
 
     def _get_root_symbol_exchange(self, root_symbol):
         fc_cols = self.futures_root_symbols.c
@@ -1571,9 +1572,9 @@ def was_active(reference_date_value, asset):
         Whether or not the `asset` existed at the specified time.
     """
     return (
-        asset.start_date.value
-        <= reference_date_value
-        <= asset.end_date.value
+            asset.start_date.value
+            <= reference_date_value
+            <= asset.end_date.value
     )
 
 

@@ -30,7 +30,7 @@ def format_metadata_url(api_key):
     query_params = [('api_key', api_key), ('qopts.export', 'true')]
 
     return (
-        QUANDL_DATA_URL + urlencode(query_params)
+            QUANDL_DATA_URL + urlencode(query_params)
     )
 
 
@@ -65,7 +65,7 @@ def load_data_table(file,
 
     data_table.rename(
         columns={
-            'ticker': 'symbol',
+            'ticker'     : 'symbol',
             'ex-dividend': 'ex_dividend',
         },
         inplace=True,
@@ -141,7 +141,7 @@ def parse_splits(data, show_progress):
     data.rename(
         columns={
             'split_ratio': 'ratio',
-            'date': 'effective_date',
+            'date'       : 'effective_date',
         },
         inplace=True,
         copy=False,
@@ -157,7 +157,7 @@ def parse_dividends(data, show_progress):
     data.rename(
         columns={
             'ex_dividend': 'amount',
-            'date': 'ex_date',
+            'date'       : 'ex_date',
         },
         inplace=True,
         copy=False,
@@ -211,7 +211,11 @@ def quandl_bundle(environ,
         raw_data[['symbol', 'date']],
         show_progress
     )
-    asset_db_writer.write(asset_metadata)
+
+    exchanges = pd.DataFrame(data=[['QUANDL', 'QUANDL', 'US']],
+                             columns=['exchange', 'canonical_name', 'country_code'])
+    asset_db_writer.write(equities=asset_metadata,
+                          exchanges=exchanges)
 
     symbol_map = asset_metadata.symbol
     sessions = calendar.sessions_in_range(start_session, end_session)
@@ -318,7 +322,6 @@ def quantopian_quandl_bundle(environ,
                              cache,
                              show_progress,
                              output_dir):
-
     if show_progress:
         data = download_with_progress(
             QUANTOPIAN_QUANDL_URL,
