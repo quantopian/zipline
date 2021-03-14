@@ -12,13 +12,15 @@
 |appveyor status|
 |Coverage Status|
 
-Zipline is a Pythonic algorithmic trading library. It is an event-driven
-system for backtesting. Zipline was used as the backtesting and live-trading
-engine by Quantopian before it closed doors in late 2020 to  <https://www.quantopian.com>`_ -- a free,
-community-centered, hosted platform for building and executing trading
-strategies.
+Zipline is a Pythonic event-driven system for backtesting, used as the backtesting and live-trading
+engine by Quantopian before the company
+`closed down  <https://www.bizjournals.com/boston/news/2020/11/10/quantopian-shuts-down-cofounders-head-elsewhere.html>`_
+in late 2020. Since then, the domain that originally hosted these docs have expired. The library is used extensively in
+the book `Machine Larning for Algorithmic Trading <https://ml4trading.io>`_ by
+`Stefan Jansen <https://www.linkedin.com/in/applied-ai/>`_ who is trying to keep the library up to date and available
+to his readers and the wider Python algotrading community.
 
-- `Join our Community! <https://groups.google.com/forum/#!forum/zipline>`_
+- `Join our Community! <https://exchange.ml4trading.io>`_
 - `Documentation <https://stefan-jansen.github.io/zipline>`_
 
 Features
@@ -114,11 +116,11 @@ If you find a bug, feel free to `open an issue <https://github.com/stefan-jansen
    :target: https://pypi.python.org/pypi/zipline
 .. |pypi pyversion status| image:: https://img.shields.io/pypi/pyversions/zipline.svg
    :target: https://pypi.python.org/pypi/zipline
-.. |travis status| image:: https://travis-ci.org/quantopian/zipline.svg?branch=master
-   :target: https://travis-ci.org/quantopian/zipline
+.. |travis status| image:: https://travis-ci.org/stefan-jansen/zipline.svg?branch=master
+   :target: https://travis-ci.org/stefan-jansen/zipline
 .. |appveyor status| image:: https://ci.appveyor.com/api/projects/status/3dg18e6227dvstw6/branch/master?svg=true
-   :target: https://ci.appveyor.com/project/quantopian/zipline/branch/master
-.. |Coverage Status| image:: https://coveralls.io/repos/quantopian/zipline/badge.svg
-   :target: https://coveralls.io/r/quantopian/zipline
+   :target: https://ci.appveyor.com/project/stefan-jansen/zipline/branch/master
+.. |Coverage Status| image:: https://coveralls.io/repos/stefan-jansen/zipline/badge.svg
+   :target: https://coveralls.io/r/stefan-jansen/zipline
 
 .. _`Zipline Install Documentation` : https://www.zipline.io/install
