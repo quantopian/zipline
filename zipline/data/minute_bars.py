@@ -388,7 +388,7 @@ class BcolzMinuteBarWriter(object):
         compression ratios are not ideal.
 
         Defaults to supporting 15 years of NYSE equity market data.
-        see: http://bcolz.blosc.org/opt-tips.html#informing-about-the-length-of-your-carrays # noqa
+        see: https://bcolz.blosc.org/opt-tips.html#informing-about-the-length-of-your-carrays # noqa
     write_metadata : bool, optional
         If True, writes the minute bar metadata (on init of the writer).
         If False, no metadata is written (existing metadata is
