@@ -318,6 +318,7 @@ def run(ctx,
         environ=os.environ,
         blotter=blotter,
         benchmark_spec=benchmark_spec,
+        custom_loader=None,
     )
 
 

@@ -1,28 +1,27 @@
 .. image:: https://media.quantopian.com/logos/open_source/zipline-logo-03_.png
-    :target: https://www.zipline.io
+    :target: https://stefan-jansen.github.io/zipline
     :width: 212px
     :align: center
     :alt: Zipline
 
 =============
 
-|Gitter|
 |pypi version status|
 |pypi pyversion status|
 |travis status|
 |appveyor status|
 |Coverage Status|
 
-Zipline is a Pythonic algorithmic trading library. It is an event-driven
-system for backtesting. Zipline is currently used in production as the backtesting and live-trading
-engine powering `Quantopian <https://www.quantopian.com>`_ -- a free,
-community-centered, hosted platform for building and executing trading
-strategies. Quantopian also offers a `fully managed service for professionals <https://factset.quantopian.com>`_
-that includes Zipline, Alphalens, Pyfolio, FactSet data, and more.
+Zipline is a Pythonic event-driven system for backtesting, used as the backtesting and live-trading
+engine by Quantopian before the company
+`closed down  <https://www.bizjournals.com/boston/news/2020/11/10/quantopian-shuts-down-cofounders-head-elsewhere.html>`_
+in late 2020. Since then, the domain that originally hosted these docs have expired. The library is used extensively in
+the book `Machine Larning for Algorithmic Trading <https://ml4trading.io>`_ by
+`Stefan Jansen <https://www.linkedin.com/in/applied-ai/>`_ who is trying to keep the library up to date and available
+to his readers and the wider Python algotrading community.
 
-- `Join our Community! <https://groups.google.com/forum/#!forum/zipline>`_
-- `Documentation <https://www.zipline.io>`_
-- Want to Contribute? See our `Development Guidelines <https://www.zipline.io/development-guidelines>`_
+- `Join our Community! <https://exchange.ml4trading.io>`_
+- `Documentation <https://stefan-jansen.github.io/zipline>`_
 
 Features
 ========
@@ -55,7 +54,7 @@ activate a virtualenv, then run the ``etc/dev-install`` script.
 Quickstart
 ==========
 
-See our `getting started tutorial <https://www.zipline.io/beginner-tutorial>`_.
+See our `getting started tutorial <https://stefan-jansen.github.io/zipline/beginner-tutorial>`_.
 
 The following code implements a simple dual moving average algorithm.
 
@@ -110,40 +109,18 @@ You can find other examples in the ``zipline/examples`` directory.
 Questions?
 ==========
 
-If you find a bug, feel free to `open an issue <https://github.com/quantopian/zipline/issues/new>`_ and fill out the issue template.
-
-Contributing
-============
-
-All contributions, bug reports, bug fixes, documentation improvements, enhancements, and ideas are welcome. Details on how to set up a development environment can be found in our `development guidelines <https://www.zipline.io/development-guidelines>`_.
-
-If you are looking to start working with the Zipline codebase, navigate to the GitHub `issues` tab and start looking through interesting issues. Sometimes there are issues labeled as `Beginner Friendly <https://github.com/quantopian/zipline/issues?q=is%3Aissue+is%3Aopen+label%3A%22Beginner+Friendly%22>`_ or `Help Wanted <https://github.com/quantopian/zipline/issues?q=is%3Aissue+is%3Aopen+label%3A%22Help+Wanted%22>`_.
-
-Feel free to ask questions on the `mailing list <https://groups.google.com/forum/#!forum/zipline>`_ or on `Gitter <https://gitter.im/quantopian/zipline>`_.
-
-.. note::
-
-   Please note that Zipline is not a community-led project. Zipline is
-   maintained by the Quantopian engineering team, and we are quite small and
-   often busy.
-
-   Because of this, we want to warn you that we may not attend to your pull
-   request, issue, or direct mention in months, or even years. We hope you
-   understand, and we hope that this note might help reduce any frustration or
-   wasted time.
+If you find a bug, feel free to `open an issue <https://github.com/stefan-jansen/zipline/issues/new>`_ and fill out the issue template.
 
 
-.. |Gitter| image:: https://badges.gitter.im/Join%20Chat.svg
-   :target: https://gitter.im/quantopian/zipline?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 .. |pypi version status| image:: https://img.shields.io/pypi/v/zipline.svg
    :target: https://pypi.python.org/pypi/zipline
 .. |pypi pyversion status| image:: https://img.shields.io/pypi/pyversions/zipline.svg
    :target: https://pypi.python.org/pypi/zipline
-.. |travis status| image:: https://travis-ci.org/quantopian/zipline.svg?branch=master
-   :target: https://travis-ci.org/quantopian/zipline
+.. |travis status| image:: https://travis-ci.org/stefan-jansen/zipline.svg?branch=master
+   :target: https://travis-ci.org/stefan-jansen/zipline
 .. |appveyor status| image:: https://ci.appveyor.com/api/projects/status/3dg18e6227dvstw6/branch/master?svg=true
-   :target: https://ci.appveyor.com/project/quantopian/zipline/branch/master
-.. |Coverage Status| image:: https://coveralls.io/repos/quantopian/zipline/badge.svg
-   :target: https://coveralls.io/r/quantopian/zipline
+   :target: https://ci.appveyor.com/project/stefan-jansen/zipline/branch/master
+.. |Coverage Status| image:: https://coveralls.io/repos/stefan-jansen/zipline/badge.svg
+   :target: https://coveralls.io/r/stefan-jansen/zipline
 
 .. _`Zipline Install Documentation` : https://www.zipline.io/install

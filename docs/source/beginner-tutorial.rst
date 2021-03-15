@@ -523,7 +523,7 @@ is not surprising as our algorithm only bought AAPL every chance it got.
 IPython Notebook
 ~~~~~~~~~~~~~~~~
 
-The `IPython Notebook <http://ipython.org/notebook.html>`__ is a very
+The `IPython Notebook <https://ipython.org/notebook.html>`__ is a very
 powerful browser-based interface to a Python interpreter (this tutorial
 was written in it). As it is already the de-facto interface for most
 quantitative researchers ``zipline`` provides an easy way to run your
@@ -919,7 +919,7 @@ Although it might not be directly apparent, the power of ``history()``
 (pun intended) can not be under-estimated as most algorithms make use of
 prior market developments in one form or another. You could easily
 devise a strategy that trains a classifier with
-`scikit-learn <http://scikit-learn.org/stable/>`__ which tries to
+`scikit-learn <https://scikit-learn.org/stable/>`__ which tries to
 predict future market movements based on past prices (note, that most of
 the ``scikit-learn`` functions require ``numpy.ndarray``\ s rather than
 ``pandas.DataFrame``\ s, so you can simply pass the underlying

@@ -221,7 +221,7 @@ def weak_lru_cache(maxsize=100):
     View the cache statistics named tuple (hits, misses, maxsize, currsize)
     with f.cache_info().  Clear the cache and statistics with f.cache_clear().
 
-    See:  http://en.wikipedia.org/wiki/Cache_algorithms#Least_Recently_Used
+    See:  https://en.wikipedia.org/wiki/Cache_algorithms#Least_Recently_Used
 
     """
     class desc(lazyval):

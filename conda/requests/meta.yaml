@@ -44,7 +44,7 @@ test:
 #    - pytest-xdist
 
 about:
-  home: http://python-requests.org
+  home: https://requests.readthedocs.io
   license: Apache Software License
   license_family: APACHE
   license_file: ''

@@ -21,8 +21,8 @@ extensions = [
 
 
 extlinks = {
-    'issue': ('https://github.com/quantopian/zipline/issues/%s', '#'),
-    'commit': ('https://github.com/quantopian/zipline/commit/%s', ''),
+    'issue': ('https://github.com/stefan-jansen/zipline/issues/%s', '#'),
+    'commit': ('https://github.com/stefan-jansen/zipline/commit/%s', ''),
 }
 
 # -- Docstrings ---------------------------------------------------------------

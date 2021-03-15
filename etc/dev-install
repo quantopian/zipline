@@ -24,12 +24,12 @@ python -m pip install pip==19.2.2 'setuptools<46' $@
 # Install external requirements first: if they share any of our
 # transitive dependencies, we want our pinned versions to win.
 if [ "${EXTERNAL_REQUIREMENTS:-}" ]; then
-    # Note: If EXTERNAL_REQUIREMENTS is unset, the expression in the
-    # above test expands to the empty string, which fails the test.
-    # (Simply expanding $EXTERNAL_REQUIREMENTS causes an error with the
-    # -u option, which helps prevent many other kinds of errors.)
-    echo "Installing additional packages: $EXTERNAL_REQUIREMENTS"
-    python -m pip install "$EXTERNAL_REQUIREMENTS" $@
+  # Note: If EXTERNAL_REQUIREMENTS is unset, the expression in the
+  # above test expands to the empty string, which fails the test.
+  # (Simply expanding $EXTERNAL_REQUIREMENTS causes an error with the
+  # -u option, which helps prevent many other kinds of errors.)
+  echo "Installing additional packages: $EXTERNAL_REQUIREMENTS"
+  python -m pip install "$EXTERNAL_REQUIREMENTS" $@
 fi
 
 # These have to be installed first so that the other requirements can be
