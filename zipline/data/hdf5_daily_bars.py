@@ -898,10 +898,9 @@ class MultiCountryDailyBarReader(CurrencyAwareSessionBarReader):
         return viewkeys(self._readers)
 
     def _country_code_for_assets(self, assets):
-        country_codes = self._country_map.get(assets)
+        country_codes = self._country_map.reindex(assets)
 
-        # In some versions of pandas (observed in 0.22), Series.get()
-        # returns None if none of the labels are in the index.
+        # Series.get() returns None if none of the labels are in the index.
         if country_codes is not None:
             unique_country_codes = country_codes.dropna().unique()
             num_countries = len(unique_country_codes)

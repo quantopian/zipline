@@ -78,5 +78,5 @@ TAGS
 .gdb_history
 
 *.dSYM/
-ml4t_test
+revision
 src
