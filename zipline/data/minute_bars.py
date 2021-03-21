@@ -45,7 +45,6 @@ from zipline.utils.cli import maybe_show_progress
 from zipline.utils.compat import mappingproxy
 from zipline.utils.memoize import lazyval
 
-
 logger = logbook.Logger('MinuteBars')
 
 US_EQUITIES_MINUTES_PER_DAY = 390
@@ -261,14 +260,14 @@ class BcolzMinuteBarMetadata(object):
             )
 
     def __init__(
-        self,
-        default_ohlc_ratio,
-        ohlc_ratios_per_sid,
-        calendar,
-        start_session,
-        end_session,
-        minutes_per_day,
-        version=FORMAT_VERSION,
+            self,
+            default_ohlc_ratio,
+            ohlc_ratios_per_sid,
+            calendar,
+            start_session,
+            end_session,
+            minutes_per_day,
+            version=FORMAT_VERSION,
     ):
         self.calendar = calendar
         self.start_session = start_session
@@ -330,21 +329,21 @@ class BcolzMinuteBarMetadata(object):
         market_closes = schedule.market_close
 
         metadata = {
-            'version': self.version,
-            'ohlc_ratio': self.default_ohlc_ratio,
+            'version'            : self.version,
+            'ohlc_ratio'         : self.default_ohlc_ratio,
             'ohlc_ratios_per_sid': self.ohlc_ratios_per_sid,
-            'minutes_per_day': self.minutes_per_day,
-            'calendar_name': self.calendar.name,
-            'start_session': str(self.start_session.date()),
-            'end_session': str(self.end_session.date()),
+            'minutes_per_day'    : self.minutes_per_day,
+            'calendar_name'      : self.calendar.name,
+            'start_session'      : str(self.start_session.date()),
+            'end_session'        : str(self.end_session.date()),
             # Write these values for backwards compatibility
-            'first_trading_day': str(self.start_session.date()),
-            'market_opens': (
+            'first_trading_day'  : str(self.start_session.date()),
+            'market_opens'       : (
                 market_opens.values.astype('datetime64[m]').
-                astype(np.int64).tolist()),
-            'market_closes': (
+                    astype(np.int64).tolist()),
+            'market_closes'      : (
                 market_closes.values.astype('datetime64[m]').
-                astype(np.int64).tolist()),
+                    astype(np.int64).tolist()),
         }
         with open(self.metadata_path(rootdir), 'w+') as fp:
             json.dump(metadata, fp)
@@ -719,10 +718,10 @@ class BcolzMinuteBarWriter(object):
             index : DatetimeIndex of market minutes.
         """
         cols = {
-            'open': df.open.values,
-            'high': df.high.values,
-            'low': df.low.values,
-            'close': df.close.values,
+            'open'  : df.open.values,
+            'high'  : df.high.values,
+            'low'   : df.low.values,
+            'close' : df.close.values,
             'volume': df.volume.values,
         }
         dts = df.index.values
@@ -797,7 +796,12 @@ class BcolzMinuteBarWriter(object):
 
         all_minutes = self._minute_index
         # Get the latest minute we wish to write to the ctable
-        last_minute_to_write = pd.Timestamp(dts[-1], tz='UTC')
+        try:
+            # ensure tz-aware Timestamp has tz UTC
+            last_minute_to_write = pd.Timestamp(dts[-1]).tz_convert(tz='UTC')
+        except TypeError:
+            # if naive, instead convert timestamp to UTC
+            last_minute_to_write = pd.Timestamp(dts[-1]).tz_localize(tz='UTC')
 
         # In the event that we've already written some minutely data to the
         # ctable, guard against overwriting that data.
@@ -900,10 +904,10 @@ class BcolzMinuteBarReader(MinuteBarReader):
     """
     FIELDS = ('open', 'high', 'low', 'close', 'volume')
     DEFAULT_MINUTELY_SID_CACHE_SIZES = {
-        'close': 3000,
-        'open': 1550,
-        'high': 1550,
-        'low': 1550,
+        'close' : 3000,
+        'open'  : 1550,
+        'high'  : 1550,
+        'low'   : 1550,
         'volume': 1550,
     }
     assert set(FIELDS) == set(DEFAULT_MINUTELY_SID_CACHE_SIZES), \
@@ -930,10 +934,10 @@ class BcolzMinuteBarReader(MinuteBarReader):
         )
         self._schedule = self.calendar.schedule[slicer]
         self._market_opens = self._schedule.market_open
-        self._market_open_values = self._market_opens.values.\
+        self._market_open_values = self._market_opens.values. \
             astype('datetime64[m]').astype(np.int64)
         self._market_closes = self._schedule.market_close
-        self._market_close_values = self._market_closes.values.\
+        self._market_close_values = self._market_closes.values. \
             astype('datetime64[m]').astype(np.int64)
 
         self._default_ohlc_inverse = 1.0 / metadata.default_ohlc_ratio
@@ -1035,11 +1039,11 @@ class BcolzMinuteBarReader(MinuteBarReader):
         for market_open, early_close in self._minutes_to_exclude():
             start_pos = self._find_position_of_minute(early_close) + 1
             end_pos = (
-                self._find_position_of_minute(market_open)
-                +
-                self._minutes_per_day
-                -
-                1
+                    self._find_position_of_minute(market_open)
+                    +
+                    self._minutes_per_day
+                    -
+                    1
             )
             data = (start_pos, end_pos)
             itree[start_pos:end_pos + 1] = data
@@ -1276,7 +1280,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
                 if indices_to_exclude is not None:
                     for excl_start, excl_stop in indices_to_exclude[::-1]:
                         excl_slice = np.s_[
-                            excl_start - start_idx:excl_stop - start_idx + 1]
+                                     excl_start - start_idx:excl_stop - start_idx + 1]
                         values = np.delete(values, excl_slice)
 
                 where = values != 0
@@ -1284,7 +1288,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
                 # written data for all the minutes requested
                 if field != 'volume':
                     out[:len(where), i][where] = (
-                        values[where] * self._ohlc_ratio_inverse_for_sid(sid))
+                            values[where] * self._ohlc_ratio_inverse_for_sid(sid))
                 else:
                     out[:len(where), i][where] = values[where]
 
@@ -1339,9 +1343,9 @@ class H5MinuteBarUpdateWriter(object):
 
     def __init__(self, path, complevel=None, complib=None):
         self._complevel = complevel if complevel \
-            is not None else self._COMPLEVEL
+                                       is not None else self._COMPLEVEL
         self._complib = complib if complib \
-            is not None else self._COMPLIB
+                                   is not None else self._COMPLIB
         self._path = path
 
     def write(self, frames):
@@ -1373,6 +1377,7 @@ class H5MinuteBarUpdateReader(MinuteBarUpdateReader):
     path : str
         The path of the HDF5 file from which to source data.
     """
+
     def __init__(self, path):
         try:
             self._panel = pd.read_hdf(path)
