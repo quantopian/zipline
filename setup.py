@@ -38,10 +38,11 @@ class LazyBuildExtCommandClass(dict):
     Lazy command class that defers operations requiring Cython and numpy until
     they've actually been downloaded and installed by setup_requires.
     """
+
     def __contains__(self, key):
         return (
-            key == 'build_ext'
-            or super(LazyBuildExtCommandClass, self).__contains__(key)
+                key == 'build_ext'
+                or super(LazyBuildExtCommandClass, self).__contains__(key)
         )
 
     def __setitem__(self, key, value):
@@ -62,6 +63,7 @@ class LazyBuildExtCommandClass(dict):
             Custom build_ext command that lazily adds numpy's include_dir to
             extensions.
             """
+
             def build_extensions(self):
                 """
                 Lazily append numpy's include directory to Extension includes.
@@ -75,22 +77,21 @@ class LazyBuildExtCommandClass(dict):
                     ext.include_dirs.append(numpy_incl)
 
                 super(build_ext, self).build_extensions()
+
         return build_ext
 
 
 def window_specialization(typename):
     """Make an extension for an AdjustedArrayWindow specialization."""
-    return Extension(
-        'zipline.lib._{name}window'.format(name=typename),
-        ['zipline/lib/_{name}window.pyx'.format(name=typename)],
-        depends=['zipline/lib/_windowtemplate.pxi'],
-    )
+    return Extension('zipline.lib._{name}window'.format(name=typename),
+                     ['zipline/lib/_{name}window.pyx'.format(name=typename)],
+                     depends=['zipline/lib/_windowtemplate.pxi'],
+                     )
 
 
 ext_modules = [
     Extension('zipline.assets._assets', ['zipline/assets/_assets.pyx']),
-    Extension('zipline.assets.continuous_futures',
-              ['zipline/assets/continuous_futures.pyx']),
+    Extension('zipline.assets.continuous_futures', ['zipline/assets/continuous_futures.pyx']),
     Extension('zipline.lib.adjustment', ['zipline/lib/adjustment.pyx']),
     Extension('zipline.lib._factorize', ['zipline/lib/_factorize.pyx']),
     window_specialization('float64'),
@@ -102,33 +103,21 @@ ext_modules = [
     Extension('zipline.data._equities', ['zipline/data/_equities.pyx']),
     Extension('zipline.data._adjustments', ['zipline/data/_adjustments.pyx']),
     Extension('zipline._protocol', ['zipline/_protocol.pyx']),
-    Extension(
-        'zipline.finance._finance_ext',
-        ['zipline/finance/_finance_ext.pyx'],
-    ),
+    Extension('zipline.finance._finance_ext', ['zipline/finance/_finance_ext.pyx'], ),
     Extension('zipline.gens.sim_engine', ['zipline/gens/sim_engine.pyx']),
-    Extension(
-        'zipline.data._minute_bar_internal',
-        ['zipline/data/_minute_bar_internal.pyx']
-    ),
-    Extension(
-        'zipline.data._resample',
-        ['zipline/data/_resample.pyx']
-    ),
-    Extension(
-        'zipline.pipeline.loaders.blaze._core',
-        ['zipline/pipeline/loaders/blaze/_core.pyx'],
-        depends=['zipline/lib/adjustment.pxd'],
-    ),
+    Extension('zipline.data._minute_bar_internal', ['zipline/data/_minute_bar_internal.pyx']),
+    Extension('zipline.data._resample', ['zipline/data/_resample.pyx']),
+    Extension('zipline.pipeline.loaders.blaze._core', ['zipline/pipeline/loaders/blaze/_core.pyx'],
+              depends=['zipline/lib/adjustment.pxd'],
+              ),
 ]
 
-
 STR_TO_CMP = {
-    '<': lt,
+    '<' : lt,
     '<=': le,
-    '=': eq,
+    '=' : eq,
     '==': eq,
-    '>': gt,
+    '>' : gt,
     '>=': ge,
 }
 
@@ -205,8 +194,7 @@ def read_requirements(path,
     """
     real_path = join(dirname(abspath(__file__)), path)
     with open(real_path) as f:
-        reqs = _filter_requirements(f.readlines(), filter_names=filter_names,
-                                    filter_sys_version=not conda_format)
+        reqs = _filter_requirements(f.readlines(), filter_names=filter_names, filter_sys_version=not conda_format)
 
         if conda_format:
             reqs = map(_conda_format, reqs)
@@ -220,8 +208,7 @@ def install_requires(conda_format=False):
 
 def extras_requires(conda_format=False):
     extras = {
-        extra: read_requirements('etc/requirements_{0}.in'.format(extra),
-                                 conda_format=conda_format)
+        extra: read_requirements('etc/requirements_{0}.in'.format(extra), conda_format=conda_format)
         for extra in ('dev', 'talib')
     }
     extras['all'] = [req for reqs in extras.values() for req in reqs]
@@ -229,8 +216,8 @@ def extras_requires(conda_format=False):
     return extras
 
 
-def setup_requirements(requirements_path, module_names,
-                       conda_format=False):
+def setup_requirements(requirements_path, module_names, conda_format=False):
+
     module_names = set(module_names)
     module_lines = read_requirements(requirements_path,
                                      conda_format=conda_format,
@@ -261,7 +248,6 @@ if 'sdist' in sys.argv:
     with open('README.rst') as f:
         conditional_arguments['long_description'] = f.read()
 
-
 setup(
     name='zipline',
     url="https://zipline.io",
@@ -279,7 +265,7 @@ setup(
     ext_modules=ext_modules,
     include_package_data=True,
     package_data={root.replace(os.sep, '.'):
-                  ['*.pyi', '*.pyx', '*.pxi', '*.pxd']
+                      ['*.pyi', '*.pyx', '*.pxi', '*.pxd']
                   for root, dirnames, filenames in os.walk('zipline')
                   if '__pycache__' not in root},
     license='Apache 2.0',

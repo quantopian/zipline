@@ -542,7 +542,7 @@ class MinuteResampleSessionBarReader(SessionBarReader):
                 start_session,
                 end_session,
             )
-            close_ilocs = minutes.searchsorted(session_closes.values)
+            close_ilocs = minutes.searchsorted(session_closes.to_numpy())
 
         results = []
         shape = (len(close_ilocs), len(assets))

@@ -81,13 +81,13 @@ from ..utils.final import FinalMeta, final
 from ..utils.memoize import remember_last
 from ..utils.pandas_utils import PerformanceWarning
 
-
 zipline_dir = os.path.dirname(zipline.__file__)
 
 
 class DebugMROMeta(FinalMeta):
     """Metaclass that helps debug MRO resolution errors.
     """
+
     def __new__(mcls, name, bases, clsdict):
         try:
             return super(DebugMROMeta, mcls).__new__(
@@ -449,7 +449,7 @@ class WithAssetFinder(WithDefaultDateBounds):
             ]
             if exchange_names:
                 exchanges = pd.DataFrame({
-                    'exchange': pd.concat(exchange_names).unique(),
+                    'exchange'    : pd.concat(exchange_names).unique(),
                     'country_code': cls.ASSET_FINDER_COUNTRY_CODE,
                 })
 
@@ -521,7 +521,7 @@ class WithTradingCalendars(object):
     """
     TRADING_CALENDAR_STRS = ('NYSE',)
     TRADING_CALENDAR_FOR_ASSET_TYPE = {Equity: 'NYSE', Future: 'us_futures'}
-    # For backwards compatibility, exisitng tests and fixtures refer to
+    # For backwards compatibility, existing tests and fixtures refer to
     # `trading_calendar` with the assumption that the value is the NYSE
     # calendar.
     TRADING_CALENDAR_PRIMARY_CAL = 'NYSE'
@@ -536,14 +536,10 @@ class WithTradingCalendars(object):
         # construction. This causes nosetest to fail.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", PerformanceWarning)
-            for cal_str in (
-                set(cls.TRADING_CALENDAR_STRS) |
-                {cls.TRADING_CALENDAR_PRIMARY_CAL}
-            ):
+            for cal_str in (set(cls.TRADING_CALENDAR_STRS) | {cls.TRADING_CALENDAR_PRIMARY_CAL}):
                 # Set name to allow aliasing.
                 calendar = get_calendar(cal_str)
-                setattr(cls,
-                        '{0}_calendar'.format(cal_str.lower()), calendar)
+                setattr(cls, '{0}_calendar'.format(cal_str.lower()), calendar)
                 cls.trading_calendars[cal_str] = calendar
 
             type_to_cal = iteritems(cls.TRADING_CALENDAR_FOR_ASSET_TYPE)
@@ -1555,7 +1551,6 @@ class WithBcolzFutureMinuteBarReader(WithFutureMinuteBarData, WithTmpDir):
 
 
 class WithConstantEquityMinuteBarData(WithEquityMinuteBarData):
-
     EQUITY_MINUTE_CONSTANT_LOW = 3.0
     EQUITY_MINUTE_CONSTANT_OPEN = 4.0
     EQUITY_MINUTE_CONSTANT_CLOSE = 5.0
@@ -1573,10 +1568,10 @@ class WithConstantEquityMinuteBarData(WithEquityMinuteBarData):
         )
         frame = pd.DataFrame(
             {
-                'open': cls.EQUITY_MINUTE_CONSTANT_OPEN,
-                'high': cls.EQUITY_MINUTE_CONSTANT_HIGH,
-                'low': cls.EQUITY_MINUTE_CONSTANT_LOW,
-                'close': cls.EQUITY_MINUTE_CONSTANT_CLOSE,
+                'open'  : cls.EQUITY_MINUTE_CONSTANT_OPEN,
+                'high'  : cls.EQUITY_MINUTE_CONSTANT_HIGH,
+                'low'   : cls.EQUITY_MINUTE_CONSTANT_LOW,
+                'close' : cls.EQUITY_MINUTE_CONSTANT_CLOSE,
                 'volume': cls.EQUITY_MINUTE_CONSTANT_VOLUME,
             },
             index=minutes,
@@ -1586,7 +1581,6 @@ class WithConstantEquityMinuteBarData(WithEquityMinuteBarData):
 
 
 class WithConstantFutureMinuteBarData(WithFutureMinuteBarData):
-
     FUTURE_MINUTE_CONSTANT_LOW = 3.0
     FUTURE_MINUTE_CONSTANT_OPEN = 4.0
     FUTURE_MINUTE_CONSTANT_CLOSE = 5.0
@@ -1604,10 +1598,10 @@ class WithConstantFutureMinuteBarData(WithFutureMinuteBarData):
         )
         frame = pd.DataFrame(
             {
-                'open': cls.FUTURE_MINUTE_CONSTANT_OPEN,
-                'high': cls.FUTURE_MINUTE_CONSTANT_HIGH,
-                'low': cls.FUTURE_MINUTE_CONSTANT_LOW,
-                'close': cls.FUTURE_MINUTE_CONSTANT_CLOSE,
+                'open'  : cls.FUTURE_MINUTE_CONSTANT_OPEN,
+                'high'  : cls.FUTURE_MINUTE_CONSTANT_HIGH,
+                'low'   : cls.FUTURE_MINUTE_CONSTANT_LOW,
+                'close' : cls.FUTURE_MINUTE_CONSTANT_CLOSE,
                 'volume': cls.FUTURE_MINUTE_CONSTANT_VOLUME,
             },
             index=minutes,
@@ -1663,6 +1657,7 @@ class WithAdjustmentReader(WithBcolzEquityDailyBarReader):
     --------
     zipline.testing.MockDailyBarReader
     """
+
     @classmethod
     def _make_data(cls):
         return None
@@ -1901,11 +1896,11 @@ class WithDataPortal(WithAdjustmentReader,
             if self.DATA_PORTAL_USE_MINUTE_DATA:
                 self.DATA_PORTAL_FIRST_TRADING_DAY = (
                     self.bcolz_equity_minute_bar_reader.
-                    first_trading_day)
+                        first_trading_day)
             elif self.DATA_PORTAL_USE_DAILY_DATA:
                 self.DATA_PORTAL_FIRST_TRADING_DAY = (
                     self.bcolz_equity_daily_bar_reader.
-                    first_trading_day)
+                        first_trading_day)
 
         return DataPortal(
             self.asset_finder,
@@ -1940,9 +1935,9 @@ class WithDataPortal(WithAdjustmentReader,
             last_available_session=self.DATA_PORTAL_LAST_AVAILABLE_SESSION,
             last_available_minute=self.DATA_PORTAL_LAST_AVAILABLE_MINUTE,
             minute_history_prefetch_length=self.
-            DATA_PORTAL_MINUTE_HISTORY_PREFETCH,
+                DATA_PORTAL_MINUTE_HISTORY_PREFETCH,
             daily_history_prefetch_length=self.
-            DATA_PORTAL_DAILY_HISTORY_PREFETCH,
+                DATA_PORTAL_DAILY_HISTORY_PREFETCH,
         )
 
     def init_instance_fixtures(self):
@@ -1959,6 +1954,7 @@ class WithResponses(object):
     a new `responses.RequestsMock` object. Users may add new endpoints to this
     with the `self.responses.add` method.
     """
+
     def init_instance_fixtures(self):
         super(WithResponses, self).init_instance_fixtures()
         self.responses = self.enter_instance_context(
@@ -1967,7 +1963,6 @@ class WithResponses(object):
 
 
 class WithCreateBarData(WithDataPortal):
-
     CREATE_BARDATA_DATA_FREQUENCY = 'minute'
 
     def create_bardata(self, simulation_dt_func, restrictions=None):
@@ -2045,8 +2040,8 @@ class WithMakeAlgo(WithBenchmarkReturns,
             overrides.setdefault('benchmark_returns', self.BENCHMARK_RETURNS)
         return merge(
             {
-                'sim_params': self.sim_params,
-                'data_portal': self.data_portal,
+                'sim_params'   : self.sim_params,
+                'data_portal'  : self.data_portal,
                 'benchmark_sid': self.BENCHMARK_SID,
             },
             overrides,
