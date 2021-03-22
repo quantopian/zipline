@@ -295,7 +295,7 @@ def make_bar_data(asset_info, calendar, holes=None):
         data[:, :5] += arange(5, dtype=uint32) * 1000
 
         # Add days since Jan 1 2001 for OHLCV columns.
-        data[:, :5] += (datetimes - PSEUDO_EPOCH).days[:, None].astype(uint32)
+        data[:, :5] += array((datetimes - PSEUDO_EPOCH).days)[:, None].astype(uint32)
 
         frame = DataFrame(
             data,

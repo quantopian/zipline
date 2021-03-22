@@ -72,7 +72,7 @@ SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMN_DTYPES = {
 
 def specialize_any_integer(d):
     out = {}
-    for k, v in six.iteritems(d):
+    for k, v in d.items():
         if v is any_integer:
             out[k] = int64_dtype
         else:
@@ -391,7 +391,7 @@ class SQLiteAdjustmentWriter(object):
                 )
 
             actual_dtypes = frame.dtypes
-            for colname, expected in six.iteritems(expected_dtypes):
+            for colname, expected in expected_dtypes.items():
                 actual = actual_dtypes[colname]
                 if not np.issubdtype(actual, expected):
                     raise TypeError(

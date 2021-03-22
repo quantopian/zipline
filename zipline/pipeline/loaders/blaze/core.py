@@ -131,9 +131,7 @@ Using our Pipeline DataSets and Columns
 ---------------------------------------
 
 Once we have mapped our blaze expressions into Pipeline API objects, we may
-use them just like any other datasets or columns. For more information on how
-to run a pipeline or using the Pipeline API, see:
-www.quantopian.com/help#pipeline-api
+use them just like any other datasets or columns.
 """
 from __future__ import division, absolute_import
 

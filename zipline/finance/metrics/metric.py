@@ -678,6 +678,7 @@ class _ClassicRiskMetrics(object):
         if months.size < months_per:
             return
 
+        tzinfo = end_date.tzinfo
         end_date = end_date.tz_convert(None)
         for period_timestamp in months:
             period = period_timestamp.to_period(freq='%dM' % months_per)
@@ -685,8 +686,8 @@ class _ClassicRiskMetrics(object):
                 break
 
             yield cls.risk_metric_period(
-                start_session=period.start_time,
-                end_session=min(period.end_time, end_session),
+                start_session=period.start_time.tz_localize(tzinfo),
+                end_session=min(period.end_time, end_session).tz_localize(tzinfo),
                 algorithm_returns=algorithm_returns,
                 benchmark_returns=benchmark_returns,
                 algorithm_leverages=algorithm_leverages,

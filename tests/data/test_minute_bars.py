@@ -65,7 +65,6 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
                              WithAssetFinder,
                              WithInstanceTmpDir,
                              ZiplineTestCase):
-
     ASSET_FINDER_EQUITY_SIDS = 1, 2
 
     @classmethod
@@ -73,11 +72,11 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         super(BcolzMinuteBarTestCase, cls).init_class_fixtures()
 
         cal = cls.trading_calendar.schedule.loc[
-            TEST_CALENDAR_START:TEST_CALENDAR_STOP
-        ]
+              TEST_CALENDAR_START:TEST_CALENDAR_STOP
+              ]
 
-        cls.market_opens = cal.market_open
-        cls.market_closes = cal.market_close
+        cls.market_opens = cal.market_open.dt.tz_localize('UTC')
+        cls.market_closes = cal.market_close.dt.tz_localize('UTC')
 
         cls.test_calendar_start = cls.market_opens.index[0]
         cls.test_calendar_stop = cls.market_opens.index[-1]
@@ -113,10 +112,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         sid = 1
         data = DataFrame(
             data={
-                'open': [10.0],
-                'high': [20.0],
-                'low': [30.0],
-                'close': [40.0],
+                'open'  : [10.0],
+                'high'  : [20.0],
+                'low'   : [30.0],
+                'close' : [40.0],
                 'volume': [50.0]
             },
             index=[minute])
@@ -150,10 +149,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         sid = 1
         data = DataFrame(
             data={
-                'open': [130.23],
-                'high': [130.23],
-                'low': [130.23],
-                'close': [130.23],
+                'open'  : [130.23],
+                'high'  : [130.23],
+                'low'   : [130.23],
+                'close' : [130.23],
                 'volume': [1000]
             },
             index=[minute])
@@ -179,10 +178,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         sid = 1
         data = DataFrame(
             data={
-                'open': [10.0],
-                'high': [20.0],
-                'low': [30.0],
-                'close': [40.0],
+                'open'  : [10.0],
+                'high'  : [20.0],
+                'low'   : [30.0],
+                'close' : [40.0],
                 'volume': [50.0],
             },
             index=[minute],
@@ -221,10 +220,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         sid = 1
         data = DataFrame(
             data={
-                'open': [10.0, 11.0],
-                'high': [20.0, 21.0],
-                'low': [30.0, 31.0],
-                'close': [40.0, 41.0],
+                'open'  : [10.0, 11.0],
+                'high'  : [20.0, 21.0],
+                'low'   : [30.0, 31.0],
+                'close' : [40.0, 41.0],
                 'volume': [50.0, 51.0]
             },
             index=[minute_0, minute_1])
@@ -271,15 +270,15 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         self.assertEquals(51.0, volume_price)
 
     def test_write_on_second_day(self):
-        second_day = self.test_calendar_start + 1
+        second_day = self.test_calendar_start + timedelta(days=1)
         minute = self.market_opens[second_day]
         sid = 1
         data = DataFrame(
             data={
-                'open': [10.0],
-                'high': [20.0],
-                'low': [30.0],
-                'close': [40.0],
+                'open'  : [10.0],
+                'high'  : [20.0],
+                'low'   : [30.0],
+                'close' : [40.0],
                 'volume': [50.0]
             },
             index=[minute])
@@ -310,10 +309,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         sid = 1
         data = DataFrame(
             data={
-                'open': [0],
-                'high': [0],
-                'low': [0],
-                'close': [0],
+                'open'  : [0],
+                'high'  : [0],
+                'low'   : [0],
+                'close' : [0],
                 'volume': [0]
             },
             index=[minute])
@@ -343,8 +342,8 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
 
         tds = self.market_opens.index
         days = tds[tds.slice_indexer(
-            start=self.test_calendar_start + 1,
-            end=self.test_calendar_start + 3
+            start=self.test_calendar_start + timedelta(days=1),
+            end=self.test_calendar_start + timedelta(days=3)
         )]
         minutes = DatetimeIndex([
             self.market_opens[days[0]] + timedelta(minutes=60),
@@ -353,10 +352,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         sid = 1
         data = DataFrame(
             data={
-                'open': [10.0, 11.0],
-                'high': [20.0, 21.0],
-                'low': [30.0, 31.0],
-                'close': [40.0, 41.0],
+                'open'  : [10.0, 11.0],
+                'high'  : [20.0, 21.0],
+                'low'   : [30.0, 31.0],
+                'close' : [40.0, 41.0],
                 'volume': [50.0, 51.0]
             },
             index=minutes)
@@ -411,10 +410,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         sid = 1
         data = DataFrame(
             data={
-                'open': [10.0],
-                'high': [20.0],
-                'low': [30.0],
-                'close': [40.0],
+                'open'  : [10.0],
+                'high'  : [20.0],
+                'low'   : [30.0],
+                'close' : [40.0],
                 'volume': [50.0]
             },
             index=[minute])
@@ -432,10 +431,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         first_minute = self.market_opens[TEST_CALENDAR_START]
         data = DataFrame(
             data={
-                'open': [10.0],
-                'high': [20.0],
-                'low': [30.0],
-                'close': [40.0],
+                'open'  : [10.0],
+                'high'  : [20.0],
+                'low'   : [30.0],
+                'close' : [40.0],
                 'volume': [50.0]
             },
             index=[first_minute])
@@ -445,10 +444,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         second_minute = first_minute + Timedelta(minutes=1)
         new_data = DataFrame(
             data={
-                'open': [5.0],
-                'high': [10.0],
-                'low': [3.0],
-                'close': [7.0],
+                'open'  : [5.0],
+                'high'  : [10.0],
+                'low'   : [3.0],
+                'close' : [7.0],
                 'volume': [10.0]
             },
             index=[second_minute])
@@ -469,10 +468,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         sid = 1
 
         ohlcv = {
-            'open': [2.0],
-            'high': [3.0],
-            'low': [1.0],
-            'close': [2.0],
+            'open'  : [2.0],
+            'high'  : [3.0],
+            'low'   : [1.0],
+            'close' : [2.0],
             'volume': [10.0]
         }
 
@@ -537,10 +536,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         sids = [1, 2]
         data = DataFrame(
             data={
-                'open': [15.0],
-                'high': [17.0],
-                'low': [11.0],
-                'close': [15.0],
+                'open'  : [15.0],
+                'high'  : [17.0],
+                'low'   : [11.0],
+                'close' : [15.0],
                 'volume': [100.0]
             },
             index=[minute])
@@ -548,10 +547,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
 
         data = DataFrame(
             data={
-                'open': [25.0],
-                'high': [27.0],
-                'low': [21.0],
-                'close': [25.0],
+                'open'  : [25.0],
+                'high'  : [27.0],
+                'low'   : [21.0],
+                'close' : [25.0],
                 'volume': [200.0]
             },
             index=[minute])
@@ -620,10 +619,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
 
         data = DataFrame(
             data={
-                'open': [15.0],
-                'high': [17.0],
-                'low': [11.0],
-                'close': [15.0],
+                'open'  : [15.0],
+                'high'  : [17.0],
+                'low'   : [11.0],
+                'close' : [15.0],
                 'volume': [100.0]
             },
             index=[minute])
@@ -676,10 +675,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         minutes = date_range(minute, periods=9, freq='min')
         data = DataFrame(
             data={
-                'open': full(9, nan),
-                'high': full(9, nan),
-                'low': full(9, nan),
-                'close': full(9, nan),
+                'open'  : full(9, nan),
+                'high'  : full(9, nan),
+                'low'   : full(9, nan),
+                'close' : full(9, nan),
                 'volume': full(9, 0.0),
             },
             index=minutes)
@@ -715,14 +714,14 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         minutes = date_range(minute, periods=9, freq='min')
         data = DataFrame(
             data={
-                'open': ((0b11111111111 << 52) + arange(1, 10, dtype=int64)).
-                view(float64),
-                'high': ((0b11111111111 << 52) + arange(11, 20, dtype=int64)).
-                view(float64),
-                'low': ((0b11111111111 << 52) + arange(21, 30, dtype=int64)).
-                view(float64),
-                'close': ((0b11111111111 << 52) + arange(31, 40, dtype=int64)).
-                view(float64),
+                'open'  : ((0b11111111111 << 52) + arange(1, 10, dtype=int64)).
+                    view(float64),
+                'high'  : ((0b11111111111 << 52) + arange(11, 20, dtype=int64)).
+                    view(float64),
+                'low'   : ((0b11111111111 << 52) + arange(21, 30, dtype=int64)).
+                    view(float64),
+                'close' : ((0b11111111111 << 52) + arange(31, 40, dtype=int64)).
+                    view(float64),
                 'volume': full(9, 0.0),
             },
             index=minutes)
@@ -745,10 +744,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         minute_1 = minute_0 + timedelta(minutes=1)
         sid = 1
         cols = {
-            'open': array([10.0, 11.0]),
-            'high': array([20.0, 21.0]),
-            'low': array([30.0, 31.0]),
-            'close': array([40.0, 41.0]),
+            'open'  : array([10.0, 11.0]),
+            'high'  : array([20.0, 21.0]),
+            'low'   : array([30.0, 31.0]),
+            'close' : array([40.0, 41.0]),
             'volume': array([50.0, 51.0])
         }
         dts = array([minute_0, minute_1], dtype='datetime64[s]')
@@ -799,10 +798,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
                          periods=2, freq='min').asi8.astype('datetime64[s]')
         sid = 1
         cols = {
-            'open': array([10.0, 11.0, 12.0]),
-            'high': array([20.0, 21.0]),
-            'low': array([30.0, 31.0, 33.0, 34.0]),
-            'close': array([40.0, 41.0]),
+            'open'  : array([10.0, 11.0, 12.0]),
+            'high'  : array([20.0, 21.0]),
+            'low'   : array([30.0, 31.0, 33.0, 34.0]),
+            'close' : array([40.0, 41.0]),
             'volume': array([50.0, 51.0, 52.0])
         }
         with self.assertRaises(BcolzMinuteWriterColumnMismatch):
@@ -819,10 +818,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         sids = [1, 2]
         data_1 = DataFrame(
             data={
-                'open': [15.0, nan, 15.1],
-                'high': [17.0, nan, 17.1],
-                'low': [11.0, nan, 11.1],
-                'close': [14.0, nan, 14.1],
+                'open'  : [15.0, nan, 15.1],
+                'high'  : [17.0, nan, 17.1],
+                'low'   : [11.0, nan, 11.1],
+                'close' : [14.0, nan, 14.1],
                 'volume': [1000, 0, 1001]
             },
             index=minutes)
@@ -830,10 +829,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
 
         data_2 = DataFrame(
             data={
-                'open': [25.0, nan, 25.1],
-                'high': [27.0, nan, 27.1],
-                'low': [21.0, nan, 21.1],
-                'close': [24.0, nan, 24.1],
+                'open'  : [25.0, nan, 25.1],
+                'high'  : [27.0, nan, 27.1],
+                'low'   : [21.0, nan, 21.1],
+                'close' : [24.0, nan, 24.1],
                 'volume': [2000, 0, 2001]
             },
             index=minutes)
@@ -870,11 +869,11 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         sids = [1, 2]
         data_1 = DataFrame(
             data={
-                'open': [
+                'open'  : [
                     15.0, 15.1, 15.2],
-                'high': [17.0, 17.1, 17.2],
-                'low': [11.0, 11.1, 11.3],
-                'close': [14.0, 14.1, 14.2],
+                'high'  : [17.0, 17.1, 17.2],
+                'low'   : [11.0, 11.1, 11.3],
+                'close' : [14.0, 14.1, 14.2],
                 'volume': [1000, 1001, 1002],
             },
             index=minutes)
@@ -882,10 +881,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
 
         data_2 = DataFrame(
             data={
-                'open': [25.0, 25.1, 25.2],
-                'high': [27.0, 27.1, 27.2],
-                'low': [21.0, 21.1, 21.2],
-                'close': [24.0, 24.1, 24.2],
+                'open'  : [25.0, 25.1, 25.2],
+                'high'  : [27.0, 27.1, 27.2],
+                'low'   : [21.0, 21.1, 21.2],
+                'close' : [24.0, 24.1, 24.2],
                 'volume': [2000, 2001, 2002],
             },
             index=minutes)
@@ -920,10 +919,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
 
         sid = 1
         cols = {
-            'open': arange(1, 781),
-            'high': arange(1, 781),
-            'low': arange(1, 781),
-            'close': arange(1, 781),
+            'open'  : arange(1, 781),
+            'high'  : arange(1, 781),
+            'low'   : arange(1, 781),
+            'close' : arange(1, 781),
             'volume': arange(1, 781)
         }
         dts = array(self.trading_calendar.minutes_for_sessions_in_range(
@@ -967,10 +966,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
 
         sid = 1
         cols = {
-            'open': arange(1, 601),
-            'high': arange(1, 601),
-            'low': arange(1, 601),
-            'close': arange(1, 601),
+            'open'  : arange(1, 601),
+            'high'  : arange(1, 601),
+            'low'   : arange(1, 601),
+            'close' : arange(1, 601),
             'volume': arange(1, 601)
         }
         dts = array(
@@ -1025,8 +1024,8 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         end_day = Timestamp('2015-06-02', tz='UTC')
         attrs = {
             'start_day': start_day.value / int(1e9),
-            'end_day': end_day.value / int(1e9),
-            'factor': 100,
+            'end_day'  : end_day.value / int(1e9),
+            'factor'   : 100,
         }
 
         # Write the attributes
@@ -1039,8 +1038,8 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
 
         tds = self.market_opens.index
         days = tds[tds.slice_indexer(
-            start=self.test_calendar_start + 1,
-            end=self.test_calendar_start + 3
+            start=self.test_calendar_start + timedelta(days=1),
+            end=self.test_calendar_start + timedelta(days=3)
         )]
         minutes = DatetimeIndex([
             self.market_opens[days[0]] + timedelta(minutes=60),
@@ -1049,10 +1048,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         sid = 1
         data = DataFrame(
             data={
-                'open': [10.0, 11.0],
-                'high': [20.0, 21.0],
-                'low': [30.0, 31.0],
-                'close': [40.0, 41.0],
+                'open'  : [10.0, 11.0],
+                'high'  : [20.0, 21.0],
+                'low'   : [30.0, 31.0],
+                'close' : [40.0, 41.0],
                 'volume': [50.0, 51.0]
             },
             index=minutes)
@@ -1100,8 +1099,8 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
 
         tds = self.market_opens.index
         days = tds[tds.slice_indexer(
-            start=self.test_calendar_start + 1,
-            end=self.test_calendar_start + 3
+            start=self.test_calendar_start + timedelta(days=1),
+            end=self.test_calendar_start + timedelta(days=3)
         )]
         minutes = DatetimeIndex([
             self.market_opens[days[0]] + timedelta(minutes=60),
@@ -1110,10 +1109,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         sid = 1
         data = DataFrame(
             data={
-                'open': [10.0, 11.0],
-                'high': [20.0, 21.0],
-                'low': [30.0, 31.0],
-                'close': [40.0, 41.0],
+                'open'  : [10.0, 11.0],
+                'high'  : [20.0, 21.0],
+                'low'   : [30.0, 31.0],
+                'close' : [40.0, 41.0],
                 'volume': [50.0, 51.0]
             },
             index=minutes)
@@ -1152,18 +1151,16 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         # close (ideally, this should not occur in datasets, but guards
         # against consumers of the minute bar writer, which do not filter
         # out after close minutes.
-        minutes = [
-            before_early_close,
-            after_early_close,
-            minute,
-        ]
+        minutes = [before_early_close,
+                   after_early_close,
+                   minute]
         sid = 1
         data = DataFrame(
             data={
-                'open': [10.0, 11.0, nan],
-                'high': [20.0, 21.0, nan],
-                'low': [30.0, 31.0, nan],
-                'close': [40.0, 41.0, nan],
+                'open'  : [10.0, 11.0, nan],
+                'high'  : [20.0, 21.0, nan],
+                'low'   : [30.0, 31.0, nan],
+                'close' : [40.0, 41.0, nan],
                 'volume': [50, 51, 0]
             },
             index=minutes)
@@ -1208,20 +1205,20 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         sids = [1, 2]
         data_1 = DataFrame(
             data={
-                'open': [15.0, nan, 15.1],
-                'high': [17.0, nan, 17.1],
-                'low': [11.0, nan, 11.1],
-                'close': [14.0, nan, 14.1],
+                'open'  : [15.0, nan, 15.1],
+                'high'  : [17.0, nan, 17.1],
+                'low'   : [11.0, nan, 11.1],
+                'close' : [14.0, nan, 14.1],
                 'volume': [1000, 0, 1001]
             },
             index=minutes)
 
         data_2 = DataFrame(
             data={
-                'open': [25.0, nan, 25.1],
-                'high': [27.0, nan, 27.1],
-                'low': [21.0, nan, 21.1],
-                'close': [24.0, nan, 24.1],
+                'open'  : [25.0, nan, 25.1],
+                'high'  : [27.0, nan, 27.1],
+                'low'   : [21.0, nan, 21.1],
+                'close' : [24.0, nan, 24.1],
                 'volume': [2000, 0, 2001]
             },
             index=minutes)
