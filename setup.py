@@ -85,32 +85,48 @@ def window_specialization(typename):
     """Make an extension for an AdjustedArrayWindow specialization."""
     return Extension('zipline.lib._{name}window'.format(name=typename),
                      ['zipline/lib/_{name}window.pyx'.format(name=typename)],
-                     depends=['zipline/lib/_windowtemplate.pxi'],
-                     )
+                     depends=['zipline/lib/_windowtemplate.pxi'])
 
 
+ext_options = dict(compiler_directives=dict(profile=True, language_level="3"),
+                   annotate=True)
 ext_modules = [
-    Extension('zipline.assets._assets', ['zipline/assets/_assets.pyx']),
-    Extension('zipline.assets.continuous_futures', ['zipline/assets/continuous_futures.pyx']),
-    Extension('zipline.lib.adjustment', ['zipline/lib/adjustment.pyx']),
-    Extension('zipline.lib._factorize', ['zipline/lib/_factorize.pyx']),
+    Extension(name='zipline.assets._assets',
+              sources=['zipline/assets/_assets.pyx']),
+    Extension(name='zipline.assets.continuous_futures',
+              sources=['zipline/assets/continuous_futures.pyx']),
+    Extension(name='zipline.lib.adjustment',
+              sources=['zipline/lib/adjustment.pyx']),
+    Extension(name='zipline.lib._factorize',
+              sources=['zipline/lib/_factorize.pyx']),
     window_specialization('float64'),
     window_specialization('int64'),
     window_specialization('int64'),
     window_specialization('uint8'),
     window_specialization('label'),
-    Extension('zipline.lib.rank', ['zipline/lib/rank.pyx']),
-    Extension('zipline.data._equities', ['zipline/data/_equities.pyx']),
-    Extension('zipline.data._adjustments', ['zipline/data/_adjustments.pyx']),
-    Extension('zipline._protocol', ['zipline/_protocol.pyx']),
-    Extension('zipline.finance._finance_ext', ['zipline/finance/_finance_ext.pyx'], ),
-    Extension('zipline.gens.sim_engine', ['zipline/gens/sim_engine.pyx']),
-    Extension('zipline.data._minute_bar_internal', ['zipline/data/_minute_bar_internal.pyx']),
-    Extension('zipline.data._resample', ['zipline/data/_resample.pyx']),
-    Extension('zipline.pipeline.loaders.blaze._core', ['zipline/pipeline/loaders/blaze/_core.pyx'],
-              depends=['zipline/lib/adjustment.pxd'],
-              ),
+    Extension(name='zipline.lib.rank',
+              sources=['zipline/lib/rank.pyx']),
+    Extension(name='zipline.data._equities',
+              sources=['zipline/data/_equities.pyx']),
+    Extension(name='zipline.data._adjustments',
+              sources=['zipline/data/_adjustments.pyx']),
+    Extension(name='zipline._protocol',
+              sources=['zipline/_protocol.pyx']),
+    Extension(name='zipline.finance._finance_ext',
+              sources=['zipline/finance/_finance_ext.pyx']),
+    Extension(name='zipline.gens.sim_engine',
+              sources=['zipline/gens/sim_engine.pyx']),
+    Extension(name='zipline.data._minute_bar_internal',
+              sources=['zipline/data/_minute_bar_internal.pyx']),
+    Extension(name='zipline.data._resample',
+              sources=['zipline/data/_resample.pyx']),
+    Extension(name='zipline.pipeline.loaders.blaze._core',
+              sources=['zipline/pipeline/loaders/blaze/_core.pyx'],
+              depends=['zipline/lib/adjustment.pxd']),
 ]
+for ext_module in ext_modules:
+    ext_module.cython_directives = dict(language_level="3")
+
 
 STR_TO_CMP = {
     '<' : lt,
@@ -176,9 +192,8 @@ def _conda_format(req):
         pycomp, pyspec = m.group('pycomp', 'pyspec')
         if pyspec:
             # Compare the two-digit string versions as ints.
-            selector = ' # [int(py) %s int(%s)]' % (
-                pycomp, ''.join(pyspec.split('.')[:2]).ljust(2, '0')
-            )
+            selector = ' # [int(py) {} int({})]'.format(pycomp,
+                                                        ''.join(pyspec.split('.')[:2]).ljust(2, '0'))
             return formatted + selector
 
         return formatted
@@ -194,7 +209,9 @@ def read_requirements(path,
     """
     real_path = join(dirname(abspath(__file__)), path)
     with open(real_path) as f:
-        reqs = _filter_requirements(f.readlines(), filter_names=filter_names, filter_sys_version=not conda_format)
+        reqs = _filter_requirements(f.readlines(),
+                                    filter_names=filter_names,
+                                    filter_sys_version=not conda_format)
 
         if conda_format:
             reqs = map(_conda_format, reqs)
@@ -203,12 +220,14 @@ def read_requirements(path,
 
 
 def install_requires(conda_format=False):
-    return read_requirements('etc/requirements.in', conda_format=conda_format)
+    return read_requirements('etc/requirements.in',
+                             conda_format=conda_format)
 
 
 def extras_requires(conda_format=False):
     extras = {
-        extra: read_requirements('etc/requirements_{0}.in'.format(extra), conda_format=conda_format)
+        extra: read_requirements('etc/requirements_{0}.in'.format(extra),
+                                 conda_format=conda_format)
         for extra in ('dev', 'talib')
     }
     extras['all'] = [req for reqs in extras.values() for req in reqs]
@@ -217,7 +236,6 @@ def extras_requires(conda_format=False):
 
 
 def setup_requirements(requirements_path, module_names, conda_format=False):
-
     module_names = set(module_names)
     module_lines = read_requirements(requirements_path,
                                      conda_format=conda_format,
@@ -250,17 +268,17 @@ if 'sdist' in sys.argv:
 
 setup(
     name='zipline',
-    url="https://zipline.io",
+    url="https://zipline.ml4trading.io",
     version=versioneer.get_version(),
     cmdclass=LazyBuildExtCommandClass(versioneer.get_cmdclass()),
-    description='A backtester for financial algorithms.',
+    description='A backtester for trading algorithms.',
     entry_points={
         'console_scripts': [
             'zipline = zipline.__main__:main',
         ],
     },
     author='Quantopian Inc.',
-    author_email='opensource@quantopian.com',
+    author_email='pm@ml4trading.io',
     packages=find_packages(include=['zipline', 'zipline.*']),
     ext_modules=ext_modules,
     include_package_data=True,
@@ -274,9 +292,9 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Operating System :: OS Independent',
         'Intended Audience :: Science/Research',
         'Topic :: Office/Business :: Financial',
