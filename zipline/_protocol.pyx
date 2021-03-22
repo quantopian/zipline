@@ -32,10 +32,8 @@ from zipline.assets.continuous_futures import ContinuousFuture
 from zipline.utils.pandas_utils import normalize_date
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
-
 cdef bool _is_iterable(obj):
     return isinstance(obj, Iterable) and not isinstance(obj, string_types)
-
 
 if PY2:
     def no_wraps_py2(f):
@@ -46,7 +44,6 @@ if PY2:
         return dec
 else:
     no_wraps_py2 = wraps
-
 
 cdef class check_parameters(object):
     """
@@ -94,10 +91,10 @@ cdef class check_parameters(object):
                         else ', '.join([type_.__name__ for type_ in expected_type])
 
                     raise TypeError("Expected %s argument to be of type %s%s" %
-                        (self.keyword_names[i],
-                         'or iterable of type ' if i in (0, 1) else '',
-                         expected_type_name)
-                    )
+                                    (self.keyword_names[i],
+                                     'or iterable of type ' if i in (0, 1) else '',
+                                     expected_type_name)
+                                    )
 
             # verify type of each kwarg
             for keyword, arg in iteritems(kwargs):
@@ -109,19 +106,18 @@ cdef class check_parameters(object):
                     expected_type = self.keys_to_types[keyword].__name__ \
                         if not _is_iterable(self.keys_to_types[keyword]) \
                         else ', '.join([type_.__name__ for type_ in
-                            self.keys_to_types[keyword]])
+                                        self.keys_to_types[keyword]])
 
                     raise TypeError("Expected %s argument to be of type %s%s" %
                                     (keyword,
                                      'or iterable of type ' if keyword in
-                                     ('assets', 'fields') else '',
+                                                               ('assets', 'fields') else '',
                                      expected_type)
-                    )
+                                    )
 
             return func(*args, **kwargs)
 
         return assert_keywords_and_call
-
 
 @contextmanager
 def handle_non_market_minutes(bar_data):
@@ -130,7 +126,6 @@ def handle_non_market_minutes(bar_data):
         yield
     finally:
         bar_data._handle_non_market_minutes = False
-
 
 cdef class BarData:
     """
@@ -209,7 +204,7 @@ cdef class BarData:
         """
         try:
             self._warn_deprecated("`data[sid(N)]` is deprecated. Use "
-                            "`data.current`.")
+                                  "`data.current`.")
             view = self._views[asset]
         except KeyError:
             try:
@@ -357,22 +352,22 @@ cdef class BarData:
                 if not self._adjust_minutes:
                     return pd.Series(data={
                         field: self.data_portal.get_spot_value(
-                                    asset,
-                                    field,
-                                    self._get_current_minute(),
-                                    self.data_frequency
-                               )
+                            asset,
+                            field,
+                            self._get_current_minute(),
+                            self.data_frequency
+                        )
                         for field in fields
                     }, index=fields, name=assets.symbol)
                 else:
                     return pd.Series(data={
                         field: self.data_portal.get_adjusted_value(
-                                    asset,
-                                    field,
-                                    self._get_current_minute(),
-                                    self.simulation_dt_func(),
-                                    self.data_frequency
-                               )
+                            asset,
+                            field,
+                            self._get_current_minute(),
+                            self.simulation_dt_func(),
+                            self.data_frequency
+                        )
                         for field in fields
                     }, index=fields, name=assets.symbol)
         else:
@@ -384,24 +379,24 @@ cdef class BarData:
                 if not self._adjust_minutes:
                     return pd.Series(data={
                         asset: self.data_portal.get_spot_value(
-                                    asset,
-                                    field,
-                                    self._get_current_minute(),
-                                    self.data_frequency
-                               )
+                            asset,
+                            field,
+                            self._get_current_minute(),
+                            self.data_frequency
+                        )
                         for asset in assets
-                        }, index=assets, name=fields)
+                    }, index=assets, name=fields)
                 else:
                     return pd.Series(data={
                         asset: self.data_portal.get_adjusted_value(
-                                    asset,
-                                    field,
-                                    self._get_current_minute(),
-                                    self.simulation_dt_func(),
-                                    self.data_frequency
-                               )
+                            asset,
+                            field,
+                            self._get_current_minute(),
+                            self.simulation_dt_func(),
+                            self.data_frequency
+                        )
                         for asset in assets
-                        }, index=assets, name=fields)
+                    }, index=assets, name=fields)
 
             else:
                 # both assets and fields are iterable
@@ -411,26 +406,26 @@ cdef class BarData:
                     for field in fields:
                         series = pd.Series(data={
                             asset: self.data_portal.get_spot_value(
-                                        asset,
-                                        field,
-                                        self._get_current_minute(),
-                                        self.data_frequency
-                                   )
+                                asset,
+                                field,
+                                self._get_current_minute(),
+                                self.data_frequency
+                            )
                             for asset in assets
-                            }, index=assets, name=field)
+                        }, index=assets, name=field)
                         data[field] = series
                 else:
                     for field in fields:
                         series = pd.Series(data={
                             asset: self.data_portal.get_adjusted_value(
-                                        asset,
-                                        field,
-                                        self._get_current_minute(),
-                                        self.simulation_dt_func(),
-                                        self.data_frequency
-                                   )
+                                asset,
+                                field,
+                                self._get_current_minute(),
+                                self.simulation_dt_func(),
+                                self.data_frequency
+                            )
                             for asset in assets
-                            }, index=assets, name=field)
+                        }, index=assets, name=field)
                         data[field] = series
 
                 return pd.DataFrame(data)
@@ -580,13 +575,13 @@ cdef class BarData:
             })
 
     cdef bool _is_stale_for_asset(self, asset, dt, adjusted_dt, data_portal):
-        session_label = normalize_date(dt) # FIXME
+        session_label = normalize_date(dt)  # FIXME
 
         if not asset.is_alive_for_session(session_label):
             return False
 
         current_volume = data_portal.get_spot_value(
-            asset, "volume",  adjusted_dt, self.data_frequency
+            asset, "volume", adjusted_dt, self.data_frequency
         )
 
         if current_volume > 0:
@@ -601,18 +596,15 @@ cdef class BarData:
 
             return not (last_traded_dt is pd.NaT)
 
-    @check_parameters(('assets', 'fields', 'bar_count',
-                       'frequency'),
+    @check_parameters(('assets', 'fields', 'bar_count', 'frequency'),
                       ((Asset, ContinuousFuture) + string_types, string_types,
                        int,
                        string_types))
     def history(self, assets, fields, bar_count, frequency):
         """
-        Returns a trailing window of length ``bar_count`` containing data for
-        the given assets, fields, and frequency.
-
-        Returned data is adjusted for splits, dividends, and mergers as of the
-        current simulation time.
+        Returns a trailing window of length ``bar_count`` with data for
+        the given assets, fields, and frequency, adjusted for splits, dividends,
+        and mergers as of the current simulation time.
 
         The semantics for missing data are identical to the ones described in
         the notes for :meth:`current`.
@@ -655,25 +647,24 @@ cdef class BarData:
           :class:`pd.DatetimeIndex`, and its columns will be ``assets``.
 
         - If multiple assets and multiple fields are requested, the returned
-          value is a :class:`pd.Panel` with shape
-          ``(len(fields), bar_count, len(assets))``. The axes of the returned
-          panel will be:
+          value is a :class:`pd.DataFrame` with a pd.MultiIndex containing pairs of
+           :class:`pd.DatetimeIndex`, and ``assets``, while the columns while contain the field(s).
+           It has shape``(bar_count * len(assets), len(fields))``. The names of the pd.MultiIndex are
+            - ``date`` if frequency == '1d'`` or ``date_time`` if frequency == '1m``, and
+            - ``asset``
 
-          - ``panel.items`` : ``fields``
-          - ``panel.major_axis`` : :class:`pd.DatetimeIndex` of length ``bar_count``
-          - ``panel.minor_axis`` : ``assets``
-
-        If the current simulation time is not a valid market time, we use the
-        last market close instead.
+        If the current simulation time is not a valid market time, we use the last market close instead.
         """
-        if isinstance(fields, string_types):
-            single_asset = isinstance(assets, PricingDataAssociable)
 
-            if single_asset:
-                asset_list = [assets]
-            else:
-                asset_list = assets
+        single_field = isinstance(fields, string_types)
 
+        single_asset = isinstance(assets, PricingDataAssociable)
+        if single_asset:
+            asset_list = [assets]
+        else:
+            asset_list = assets
+
+        if single_field:  # for one or more assets:
             df = self.data_portal.get_history_window(
                 asset_list,
                 self._get_current_minute(),
@@ -685,7 +676,7 @@ cdef class BarData:
 
             if self._adjust_minutes:
                 adjs = self.data_portal.get_adjustments(
-                    assets,
+                    asset_list,
                     fields,
                     self._get_current_minute(),
                     self.simulation_dt_func()
@@ -694,76 +685,85 @@ cdef class BarData:
                 df = df * adjs
 
             if single_asset:
-                # single asset, single field, return a series.
-                return df[assets]
+                # single asset, single field: return pd.Series with pd.DateTimeIndex
+                return df.loc[:, assets]
             else:
-                # multiple assets, single field, return a dataframe whose
-                # columns are the assets, indexed by dt.
+                # multiple assets, single field: return DataFrame with pd.DateTimeIndex
+                # and assets in columns.
                 return df
-        else:
-            if isinstance(assets, PricingDataAssociable):
-                # one asset, multiple fields. for now, just make multiple
-                # history calls, one per field, then stitch together the
-                # results. this can definitely be optimized!
+        else:  # multiple fields
+            # if single_asset:
+            # todo: optimize by querying multiple fields
+            # Make multiple history calls, one per field, then combine results
 
-                df_dict = {
-                    field: self.data_portal.get_history_window(
-                        [assets],
-                        self._get_current_minute(),
-                        bar_count,
-                        frequency,
-                        field,
-                        self.data_frequency,
-                    )[assets] for field in fields
-                }
+            df_dict = {
+                field: self.data_portal.get_history_window(asset_list,
+                                                           self._get_current_minute(),
+                                                           bar_count,
+                                                           frequency,
+                                                           field,
+                                                           self.data_frequency,
+                                                           ).loc[:, asset_list]
+                for field in fields
+            }
 
-                if self._adjust_minutes:
-                    adjs = {
-                        field: self.data_portal.get_adjustments(
-                            assets,
-                            field,
-                            self._get_current_minute(),
-                            self.simulation_dt_func()
-                        )[0] for field in fields
-                    }
-
-                    df_dict = {field: df * adjs[field]
-                               for field, df in iteritems(df_dict)}
-
-                # returned dataframe whose columns are the fields, indexed by
-                # dt.
-                return pd.DataFrame(df_dict)
-
-            else:
-                df_dict = {
-                    field: self.data_portal.get_history_window(
+            if self._adjust_minutes:
+                adjs = {
+                    field: self.data_portal.get_adjustments(
                         assets,
-                        self._get_current_minute(),
-                        bar_count,
-                        frequency,
                         field,
-                        self.data_frequency,
-                    ) for field in fields
+                        self._get_current_minute(),
+                        self.simulation_dt_func()
+                    )[0] for field in fields
                 }
 
-                if self._adjust_minutes:
-                    adjs = {
-                        field: self.data_portal.get_adjustments(
-                            assets,
-                            field,
-                            self._get_current_minute(),
-                            self.simulation_dt_func()
-                        ) for field in fields
-                    }
+                df_dict = {field: df * adjs[field]
+                           for field, df in df_dict.items()}
 
-                    df_dict = {field: df * adjs[field]
-                               for field, df in iteritems(df_dict)}
+            dt_label = 'date' if frequency == '1d' else 'date_time'
+            df = (pd.concat(df_dict,
+                            keys=df_dict.keys(),
+                            names=['fields', dt_label])
+                  .stack(dropna=False) # ensure we return all fields & dates despite missing values
+                  .unstack(level='fields'))
+            df.index.set_names([dt_label, 'asset'])
+            return df.sort_index()
 
-                # returned panel has:
-                # items: fields
-                # major axis: dt
-                # minor axis: assets
-                return pd.Panel(df_dict)
+            #     # return pd.DataFrame with pd.DateTimeIndex, fields in columns.
+            #     return pd.DataFrame(df_dict)
+            #
+            # else:  # multiple assets, multiple fields
+            #     df_dict = {
+            #         field: self.data_portal.get_history_window(
+            #             asset_list,
+            #             self._get_current_minute(),
+            #             bar_count,
+            #             frequency,
+            #             field,
+            #             self.data_frequency,
+            #         ).loc[:, asset_list] for field in fields
+            #     }
+            #
+            #     if self._adjust_minutes:
+            #         adjs = {
+            #             field: self.data_portal.get_adjustments(
+            #                 asset_list,
+            #                 field,
+            #                 self._get_current_minute(),
+            #                 self.simulation_dt_func()
+            #             ) for field in fields
+            #         }
+            #
+            #         df_dict = {field: df * adjs[field]
+            #                    for field, df in df_dict.items()}
+            #
+            #     # returned DataFrame has a pd.MultiIndex
+            #     dt_label = 'date' if frequency == '1d' else 'date_time'
+            #     df = pd.concat(df_dict,
+            #                    keys=df_dict.keys(),
+            #                    names=['fields', dt_label]).stack().unstack(level='fields')
+            #     df.index.set_names([dt_label, 'asset'])
+            #     return df
 
     property current_dt:
         def __get__(self):
@@ -800,7 +800,6 @@ cdef class BarData:
         simulation_dt = self.simulation_dt_func()
         if self._last_calculated_universe is None or \
                 self._universe_last_updated_at != simulation_dt:
-
             self._last_calculated_universe = self._universe_func()
             self._universe_last_updated_at = simulation_dt
 
@@ -808,36 +807,36 @@ cdef class BarData:
 
     def __iter__(self):
         self._warn_deprecated("Iterating over the assets in `data` is "
-                        "deprecated.")
+                              "deprecated.")
         for asset in self._calculate_universe():
             yield asset
 
     def __contains__(self, asset):
         self._warn_deprecated("Checking whether an asset is in data is "
-                        "deprecated.")
+                              "deprecated.")
         universe = self._calculate_universe()
         return asset in universe
 
     def items(self):
         self._warn_deprecated("Iterating over the assets in `data` is "
-                        "deprecated.")
+                              "deprecated.")
         return [(asset, self[asset]) for asset in self._calculate_universe()]
 
     def iteritems(self):
         self._warn_deprecated("Iterating over the assets in `data` is "
-                        "deprecated.")
+                              "deprecated.")
         for asset in self._calculate_universe():
             yield asset, self[asset]
 
     def __len__(self):
         self._warn_deprecated("Iterating over the assets in `data` is "
-                        "deprecated.")
+                              "deprecated.")
 
         return len(self._calculate_universe())
 
     def keys(self):
         self._warn_deprecated("Iterating over the assets in `data` is "
-                        "deprecated.")
+                              "deprecated.")
 
         return list(self._calculate_universe())
 
@@ -966,7 +965,6 @@ cdef class SidView:
             stacklevel=1
         )
 
-
 cdef class InnerPosition:
     """The real values of a position.
 
@@ -988,13 +986,13 @@ cdef class InnerPosition:
 
     def __repr__(self):
         return (
-            '%s(asset=%r, amount=%r, cost_basis=%r,'
-            ' last_sale_price=%r, last_sale_date=%r)' % (
-                type(self).__name__,
-                self.asset,
-                self.amount,
-                self.cost_basis,
-                self.last_sale_price,
-                self.last_sale_date,
-            )
+                '%s(asset=%r, amount=%r, cost_basis=%r,'
+                ' last_sale_price=%r, last_sale_date=%r)' % (
+                    type(self).__name__,
+                    self.asset,
+                    self.amount,
+                    self.cost_basis,
+                    self.last_sale_price,
+                    self.last_sale_date,
+                )
         )

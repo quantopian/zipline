@@ -1362,8 +1362,9 @@ class H5MinuteBarUpdateWriter(object):
         with HDFStore(self._path, 'w',
                       complevel=self._complevel, complib=self._complib) \
                 as store:
-            panel = pd.Panel.from_dict(dict(frames))
-            panel.to_hdf(store, 'updates')
+            data = pd.concat([frame.assign(sid=i) for i, frame in frames.items()]).set_index('sid', append=True)
+            # panel = pd.Panel.from_dict(dict(frames))
+            data.to_hdf(store, 'updates')
         with tables.open_file(self._path, mode='r+') as h5file:
             h5file.set_node_attr('/', 'version', 0)
 

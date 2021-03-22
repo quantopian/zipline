@@ -93,7 +93,7 @@ def rebalance_portfolio(algo, data, desired_port):
         positions_value = algo.portfolio.starting_cash
     else:
         positions_value = algo.portfolio.positions_value + \
-            algo.portfolio.cash
+                          algo.portfolio.cash
 
     for i, sid in enumerate(algo.sids):
         current_amount[i] = algo.portfolio.positions[sid].amount
@@ -164,5 +164,5 @@ def _test_args():
 
     return {
         'start': pd.Timestamp('2004', tz='utc'),
-        'end': pd.Timestamp('2008', tz='utc'),
+        'end'  : pd.Timestamp('2008', tz='utc'),
     }

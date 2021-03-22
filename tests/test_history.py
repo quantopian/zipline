@@ -35,7 +35,6 @@ from zipline.testing import (
 )
 import zipline.testing.fixtures as zf
 
-
 OHLC = ['open', 'high', 'low', 'close']
 OHLCP = OHLC + ['price']
 ALL_FIELDS = OHLCP + ['volume']
@@ -53,6 +52,7 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
     MERGER_ASSET_SID = 6
     HALF_DAY_TEST_ASSET_SID = 7
     SHORT_ASSET_SID = 8
+
     # asset1:
     # - 2014-03-01 (rounds up to TRADING_START_DT) to 2016-01-29.
     # - every minute/day.
@@ -113,53 +113,53 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
 
         return pd.DataFrame.from_dict(
             {
-                1: {
+                1                          : {
                     'start_date': pd.Timestamp('2014-01-03', tz='UTC'),
-                    'end_date': cls.TRADING_END_DT,
-                    'symbol': 'ASSET1',
-                    'exchange': "TEST",
+                    'end_date'  : cls.TRADING_END_DT,
+                    'symbol'    : 'ASSET1',
+                    'exchange'  : "TEST",
                 },
-                2: {
+                2                          : {
                     'start_date': jan_5_2015,
-                    'end_date': day_after_12312015,
-                    'symbol': 'ASSET2',
-                    'exchange': "TEST",
+                    'end_date'  : day_after_12312015,
+                    'symbol'    : 'ASSET2',
+                    'exchange'  : "TEST",
                 },
-                3: {
+                3                          : {
                     'start_date': jan_5_2015,
-                    'end_date': day_after_12312015,
-                    'symbol': 'ASSET3',
-                    'exchange': "TEST",
+                    'end_date'  : day_after_12312015,
+                    'symbol'    : 'ASSET3',
+                    'exchange'  : "TEST",
                 },
-                cls.SPLIT_ASSET_SID: {
+                cls.SPLIT_ASSET_SID        : {
                     'start_date': jan_5_2015,
-                    'end_date': day_after_12312015,
-                    'symbol': 'SPLIT_ASSET',
-                    'exchange': "TEST",
+                    'end_date'  : day_after_12312015,
+                    'symbol'    : 'SPLIT_ASSET',
+                    'exchange'  : "TEST",
                 },
-                cls.DIVIDEND_ASSET_SID: {
+                cls.DIVIDEND_ASSET_SID     : {
                     'start_date': jan_5_2015,
-                    'end_date': day_after_12312015,
-                    'symbol': 'DIVIDEND_ASSET',
-                    'exchange': "TEST",
+                    'end_date'  : day_after_12312015,
+                    'symbol'    : 'DIVIDEND_ASSET',
+                    'exchange'  : "TEST",
                 },
-                cls.MERGER_ASSET_SID: {
+                cls.MERGER_ASSET_SID       : {
                     'start_date': jan_5_2015,
-                    'end_date': day_after_12312015,
-                    'symbol': 'MERGER_ASSET',
-                    'exchange': "TEST",
+                    'end_date'  : day_after_12312015,
+                    'symbol'    : 'MERGER_ASSET',
+                    'exchange'  : "TEST",
                 },
                 cls.HALF_DAY_TEST_ASSET_SID: {
                     'start_date': pd.Timestamp('2014-07-02', tz='UTC'),
-                    'end_date': day_after_12312015,
-                    'symbol': 'HALF_DAY_TEST_ASSET',
-                    'exchange': "TEST",
+                    'end_date'  : day_after_12312015,
+                    'symbol'    : 'HALF_DAY_TEST_ASSET',
+                    'exchange'  : "TEST",
                 },
-                cls.SHORT_ASSET_SID: {
+                cls.SHORT_ASSET_SID        : {
                     'start_date': pd.Timestamp('2015-01-05', tz='UTC'),
-                    'end_date': pd.Timestamp('2015-01-06', tz='UTC'),
-                    'symbol': 'SHORT_ASSET',
-                    'exchange': "TEST",
+                    'end_date'  : pd.Timestamp('2015-01-06', tz='UTC'),
+                    'symbol'    : 'SHORT_ASSET',
+                    'exchange'  : "TEST",
                 }
             },
             orient='index',
@@ -170,13 +170,13 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
         return pd.DataFrame([
             {
                 'effective_date': str_to_seconds('2015-01-06'),
-                'ratio': 0.25,
-                'sid': cls.SPLIT_ASSET_SID,
+                'ratio'         : 0.25,
+                'sid'           : cls.SPLIT_ASSET_SID,
             },
             {
                 'effective_date': str_to_seconds('2015-01-07'),
-                'ratio': 0.5,
-                'sid': cls.SPLIT_ASSET_SID,
+                'ratio'         : 0.5,
+                'sid'           : cls.SPLIT_ASSET_SID,
             },
         ])
 
@@ -185,13 +185,13 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
         return pd.DataFrame([
             {
                 'effective_date': str_to_seconds('2015-01-06'),
-                'ratio': 0.25,
-                'sid': cls.MERGER_ASSET_SID,
+                'ratio'         : 0.25,
+                'sid'           : cls.MERGER_ASSET_SID,
             },
             {
                 'effective_date': str_to_seconds('2015-01-07'),
-                'ratio': 0.5,
-                'sid': cls.MERGER_ASSET_SID,
+                'ratio'         : 0.5,
+                'sid'           : cls.MERGER_ASSET_SID,
             }
         ])
 
@@ -200,28 +200,28 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
         return pd.DataFrame([
             {
                 # only care about ex date, the other dates don't matter here
-                'ex_date':
+                'ex_date'      :
                     pd.Timestamp('2015-01-06', tz='UTC').to_datetime64(),
-                'record_date':
+                'record_date'  :
                     pd.Timestamp('2015-01-06', tz='UTC').to_datetime64(),
                 'declared_date':
                     pd.Timestamp('2015-01-06', tz='UTC').to_datetime64(),
-                'pay_date':
+                'pay_date'     :
                     pd.Timestamp('2015-01-06', tz='UTC').to_datetime64(),
-                'amount': 2.0,
-                'sid': cls.DIVIDEND_ASSET_SID,
+                'amount'       : 2.0,
+                'sid'          : cls.DIVIDEND_ASSET_SID,
             },
             {
-                'ex_date':
+                'ex_date'      :
                     pd.Timestamp('2015-01-07', tz='UTC').to_datetime64(),
-                'record_date':
+                'record_date'  :
                     pd.Timestamp('2015-01-07', tz='UTC').to_datetime64(),
                 'declared_date':
                     pd.Timestamp('2015-01-07', tz='UTC').to_datetime64(),
-                'pay_date':
+                'pay_date'     :
                     pd.Timestamp('2015-01-07', tz='UTC').to_datetime64(),
-                'amount': 4.0,
-                'sid': cls.DIVIDEND_ASSET_SID,
+                'amount'       : 4.0,
+                'sid'          : cls.DIVIDEND_ASSET_SID,
             }],
             columns=[
                 'ex_date',
@@ -356,7 +356,7 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
                     # be a baseline of 11 (then adjusted for the individual
                     # field), thus the rounding down to the nearest 10.
                     value_for_asset3 = (((idx + 1) // 10) * 10) + \
-                        MINUTE_FIELD_INFO[field] + 1
+                                       MINUTE_FIELD_INFO[field] + 1
 
                     if field in OHLC:
                         asset3_answer_key = np.full(10, np.nan)
@@ -427,7 +427,7 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
                             # Second part begins on the session after
                             # `position_from_end` on the NYSE calendar.
                             second_begin = (
-                                dt - equity_cal.day * (position_from_end - 1)
+                                    dt - equity_cal.day * (position_from_end - 1)
                             )
 
                             # First part goes up until the start of the
@@ -492,7 +492,7 @@ def check_internal_consistency(bar_data, assets, fields, bar_count, freq):
         for field in fields
     }
 
-    panel = bar_data.history(asset_list, field_list, bar_count, freq)
+    df = bar_data.history(asset_list, field_list, bar_count, freq)
 
     for field in field_list:
         # make sure all the different query forms are internally
@@ -512,7 +512,7 @@ def check_internal_consistency(bar_data, assets, fields, bar_count, freq):
 
             np.testing.assert_array_equal(
                 series,
-                panel[field][asset]
+                df.loc[pd.IndexSlice[:, asset], field]
             )
 
 
@@ -520,19 +520,18 @@ def check_internal_consistency(bar_data, assets, fields, bar_count, freq):
 # for example, the open is always 1 higher than the close, the high
 # is always 2 higher than the close, etc.
 MINUTE_FIELD_INFO = {
-    'open': 1,
-    'high': 2,
-    'low': -1,
-    'close': 0,
-    'price': 0,
-    'volume': 0,      # unused, later we'll multiply by 100
+    'open'  : 1,
+    'high'  : 2,
+    'low'   : -1,
+    'close' : 0,
+    'price' : 0,
+    'volume': 0,  # unused, later we'll multiply by 100
 }
 
 
 class MinuteEquityHistoryTestCase(WithHistory,
                                   zf.WithMakeAlgo,
                                   zf.ZiplineTestCase):
-
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = True
     DATA_PORTAL_FIRST_TRADING_DAY = zf.alias('TRADING_START_DT')
 
@@ -1190,26 +1189,25 @@ class MinuteEquityHistoryTestCase(WithHistory,
         )
 
         adj_expected = {
-            'open': np.arange(8381, 8391) / 4.0,
-            'high': np.arange(8382, 8392) / 4.0,
-            'low': np.arange(8379, 8389) / 4.0,
-            'close': np.arange(8380, 8390) / 4.0,
-            'volume': np.arange(8380, 8390) * 100 * 4.0,
-            'price': np.arange(8380, 8390) / 4.0,
+            'open'  : np.arange(8381, 8391) / 4,
+            'high'  : np.arange(8382, 8392) / 4,
+            'low'   : np.arange(8379, 8389) / 4,
+            'close' : np.arange(8380, 8390) / 4,
+            'volume': np.arange(8380, 8390) * 100 * 4,
+            'price' : np.arange(8380, 8390) / 4,
         }
 
         expected = {
-            'open': np.arange(383, 393) / 2.0,
-            'high': np.arange(384, 394) / 2.0,
-            'low': np.arange(381, 391) / 2.0,
-            'close': np.arange(382, 392) / 2.0,
-            'volume': np.arange(382, 392) * 100 * 2.0,
-            'price': np.arange(382, 392) / 2.0,
+            'open'  : np.arange(383, 393) / 2,
+            'high'  : np.arange(384, 394) / 2,
+            'low'   : np.arange(381, 391) / 2,
+            'close' : np.arange(382, 392) / 2,
+            'volume': np.arange(382, 392) * 100 * 2,
+            'price' : np.arange(382, 392) / 2,
         }
 
         # Use a window looking back to 3:51pm from 8:45am the following day.
-        # This contains the last ten minutes of the equity session for
-        # 2015-01-05.
+        # This contains the last ten minutes of the equity session for 2015-01-05.
         window_start = pd.Timestamp('2015-01-05 20:51', tz='UTC')
         window_end = pd.Timestamp('2015-01-06 13:44', tz='UTC')
         window_length = len(
@@ -1258,20 +1256,20 @@ class MinuteEquityHistoryTestCase(WithHistory,
                 '1m',
             )
             np.testing.assert_array_equal(
-                values.open[self.SPLIT_ASSET].values[:10],
+                values.loc[pd.IndexSlice[:, self.SPLIT_ASSET], 'open'].values[:10],
                 adj_expected['open']
             )
             np.testing.assert_array_equal(
-                values.volume[self.SPLIT_ASSET].values[:10],
+                values.loc[pd.IndexSlice[:, self.SPLIT_ASSET], 'volume'].values[:10],
                 adj_expected['volume']
             )
             np.testing.assert_array_equal(
-                values.open[self.ASSET2].values[:10],
-                expected['open'] * 2
+                values.loc[pd.IndexSlice[:, self.ASSET2], 'open'].values[:10],
+                expected['open'] / 2
             )
             np.testing.assert_array_equal(
-                values.volume[self.ASSET2].values[:10],
-                expected['volume'] / 2
+                values.loc[pd.IndexSlice[:, self.ASSET2], 'volume'].values[:10],
+                expected['volume'] * 2
             )
 
     def test_minute_early_close(self):
@@ -1617,34 +1615,33 @@ class MinuteEquityHistoryTestCase(WithHistory,
                 # dedupe when session_minutes are same as equity_minutes
                 minutes_to_test = OrderedDict([
                     (session_minutes[0], np.nan),  # No volume yet on first day
-                    (equity_minutes[0], np.nan),   # No volume yet on first day
-                    (equity_minutes[1], np.nan),   # ...
-                    (equity_minutes[8], np.nan),   # Minute before > 0 volume
-                    (equity_minutes[9], 11.0),     # We have a price!
-                    (equity_minutes[10], 11.0),    # ffill
-                    (equity_minutes[-2], 381.0),   # ...
-                    (equity_minutes[-1], 391.0),   # Last minute of exchange
+                    (equity_minutes[0], np.nan),  # No volume yet on first day
+                    (equity_minutes[1], np.nan),  # ...
+                    (equity_minutes[8], np.nan),  # Minute before > 0 volume
+                    (equity_minutes[9], 11.0),  # We have a price!
+                    (equity_minutes[10], 11.0),  # ffill
+                    (equity_minutes[-2], 381.0),  # ...
+                    (equity_minutes[-1], 391.0),  # Last minute of exchange
                     (session_minutes[-1], 391.0),  # Last minute of day
                 ])
             elif day_idx == 1:
                 minutes_to_test = OrderedDict([
-                    (session_minutes[0], 391.0),   # ffill from yesterday
-                    (equity_minutes[0], 391.0),    # ...
-                    (equity_minutes[8], 391.0),    # ...
-                    (equity_minutes[9], 401.0),    # New price today
-                    (equity_minutes[-1], 781.0),   # Last minute of exchange
+                    (session_minutes[0], 391.0),  # ffill from yesterday
+                    (equity_minutes[0], 391.0),  # ...
+                    (equity_minutes[8], 391.0),  # ...
+                    (equity_minutes[9], 401.0),  # New price today
+                    (equity_minutes[-1], 781.0),  # Last minute of exchange
                     (session_minutes[-1], 781.0),  # Last minute of day
                 ])
             else:
                 minutes_to_test = OrderedDict([
                     (session_minutes[0], 1951.0),  # ffill from previous week
-                    (equity_minutes[0], 1951.0),   # ...
-                    (equity_minutes[8], 1951.0),   # ...
-                    (equity_minutes[9], 1961.0),   # New price today
+                    (equity_minutes[0], 1951.0),  # ...
+                    (equity_minutes[8], 1951.0),  # ...
+                    (equity_minutes[9], 1961.0),  # New price today
                 ])
 
             for minute, expected in minutes_to_test.items():
-
                 window = self.data_portal.get_history_window(
                     [self.ASSET3],
                     minute,
@@ -1658,7 +1655,7 @@ class MinuteEquityHistoryTestCase(WithHistory,
                     len(window),
                     bar_count,
                     "Unexpected window length at {}. Expected {}, but was {}."
-                    .format(minute, bar_count, len(window))
+                        .format(minute, bar_count, len(window))
                 )
                 np.testing.assert_allclose(
                     window[-1],
@@ -1714,10 +1711,10 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
 
         df = pd.DataFrame(
             {
-                'open': sessions_arr + 1,
-                'high': sessions_arr + 2,
-                'low': sessions_arr - 1,
-                'close': sessions_arr,
+                'open'  : sessions_arr + 1,
+                'high'  : sessions_arr + 2,
+                'low'   : sessions_arr - 1,
+                'close' : sessions_arr,
                 'volume': 100 * sessions_arr,
             },
             index=sessions,
@@ -1825,17 +1822,11 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
 
         # days has 1/7, 1/8
         for idx, day in enumerate(days):
-            bar_data = self.create_bardata(
-                simulation_dt_func=lambda: day,
-            )
-            check_internal_consistency(
-                bar_data, self.SHORT_ASSET, ALL_FIELDS, 2, '1d'
-            )
+            bar_data = self.create_bardata(simulation_dt_func=lambda: day)
+            check_internal_consistency(bar_data, self.SHORT_ASSET, ALL_FIELDS, 2, '1d')
 
             for field in ALL_FIELDS:
-                asset_series = bar_data.history(
-                    self.SHORT_ASSET, field, 2, '1d'
-                )
+                asset_series = bar_data.history(self.SHORT_ASSET, field, 2, '1d')
 
                 if idx == 0:
                     # one value, then one NaN.  base value for 1/6 is 3.
