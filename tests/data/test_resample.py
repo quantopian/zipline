@@ -41,7 +41,6 @@ from zipline.testing.fixtures import (
 OHLC = ['open', 'high', 'low', 'close']
 OHLCV = OHLC + ['volume']
 
-
 NYSE_MINUTES = OrderedDict((
     ('day_0_front', pd.date_range('2016-03-15 9:31',
                                   '2016-03-15 9:33',
@@ -60,7 +59,6 @@ NYSE_MINUTES = OrderedDict((
                                  freq='min',
                                  tz='US/Eastern').tz_convert('UTC')),
 ))
-
 
 FUT_MINUTES = OrderedDict((
     ('day_0_front', pd.date_range('2016-03-15 18:01',
@@ -81,7 +79,6 @@ FUT_MINUTES = OrderedDict((
                                  tz='US/Eastern').tz_convert('UTC')),
 ))
 
-
 SCENARIOS = OrderedDict((
     ('none_missing', array([
         [101.5, 101.9, 101.1, 101.3, 1001],
@@ -94,18 +91,18 @@ SCENARIOS = OrderedDict((
         [nan, nan, nan, nan, 0],
     ])),
     ('missing_first', array([
-        [nan,     nan,   nan,   nan,     0],
-        [103.5, 103.9, 103.1, 103.3,  1003],
-        [102.5, 102.9, 102.1, 102.3,  1002],
+        [nan, nan, nan, nan, 0],
+        [103.5, 103.9, 103.1, 103.3, 1003],
+        [102.5, 102.9, 102.1, 102.3, 1002],
     ])),
     ('missing_last', array([
-        [107.5, 107.9, 107.1, 107.3,  1007],
-        [108.5, 108.9, 108.1, 108.3,  1008],
-        [nan,     nan,   nan,   nan,     0],
+        [107.5, 107.9, 107.1, 107.3, 1007],
+        [108.5, 108.9, 108.1, 108.3, 1008],
+        [nan, nan, nan, nan, 0],
     ])),
     ('missing_middle', array([
         [103.5, 103.9, 103.1, 103.3, 1003],
-        [nan,     nan,   nan,   nan,    0],
+        [nan, nan, nan, nan, 0],
         [102.5, 102.5, 102.1, 102.3, 1002],
     ])),
 ))
@@ -132,7 +129,7 @@ EQUITY_CASES = OrderedDict()
 
 for sid, combos in _EQUITY_CASES:
     frames = [DataFrame(SCENARIOS[s], columns=OHLCV).
-              set_index(NYSE_MINUTES[m])
+                  set_index(NYSE_MINUTES[m])
               for s, m in combos]
     EQUITY_CASES[sid] = pd.concat(frames)
 
@@ -151,90 +148,89 @@ FUTURE_CASES = OrderedDict()
 
 for sid, combos in _FUTURE_CASES:
     frames = [DataFrame(SCENARIOS[s], columns=OHLCV).
-              set_index(FUT_MINUTES[m])
+                  set_index(FUT_MINUTES[m])
               for s, m in combos]
     FUTURE_CASES[sid] = pd.concat(frames)
 
-
 EXPECTED_AGGREGATION = {
-    1: DataFrame({
-        'open': [101.5, 101.5, 101.5, 101.5, 101.5, 101.5],
-        'high': [101.9, 103.9, 103.9, 107.9, 108.9, 108.9],
-        'low': [101.1, 101.1, 101.1, 101.1, 101.1, 101.1],
-        'close': [101.3, 103.3, 102.3, 107.3, 108.3, 108.3],
+    1   : DataFrame({
+        'open'  : [101.5, 101.5, 101.5, 101.5, 101.5, 101.5],
+        'high'  : [101.9, 103.9, 103.9, 107.9, 108.9, 108.9],
+        'low'   : [101.1, 101.1, 101.1, 101.1, 101.1, 101.1],
+        'close' : [101.3, 103.3, 102.3, 107.3, 108.3, 108.3],
         'volume': [1001, 2004, 3006, 4013, 5021, 5021],
     }, columns=OHLCV),
-    2: DataFrame({
-        'open': [nan, 103.5, 103.5, 103.5, 103.5, 103.5],
-        'high': [nan, 103.9, 103.9, 103.9, 103.9, 103.9],
-        'low': [nan, 103.1, 102.1, 101.1, 101.1, 101.1],
-        'close': [nan, 103.3, 102.3, 101.3, 103.3, 102.3],
+    2   : DataFrame({
+        'open'  : [nan, 103.5, 103.5, 103.5, 103.5, 103.5],
+        'high'  : [nan, 103.9, 103.9, 103.9, 103.9, 103.9],
+        'low'   : [nan, 103.1, 102.1, 101.1, 101.1, 101.1],
+        'close' : [nan, 103.3, 102.3, 101.3, 103.3, 102.3],
         'volume': [0, 1003, 2005, 3006, 4009, 5011],
     }, columns=OHLCV),
     # Equity 3 straddles two days.
-    3: DataFrame({
-        'open': [107.5, 107.5, 107.5, nan, 103.5, 103.5],
-        'high': [107.9, 108.9, 108.9, nan, 103.9, 103.9],
-        'low': [107.1, 107.1, 107.1, nan, 103.1, 102.1],
-        'close': [107.3, 108.3, 108.3, nan, 103.3, 102.3],
+    3   : DataFrame({
+        'open'  : [107.5, 107.5, 107.5, nan, 103.5, 103.5],
+        'high'  : [107.9, 108.9, 108.9, nan, 103.9, 103.9],
+        'low'   : [107.1, 107.1, 107.1, nan, 103.1, 102.1],
+        'close' : [107.3, 108.3, 108.3, nan, 103.3, 102.3],
         'volume': [1007, 2015, 2015, 0, 1003, 2005],
     }, columns=OHLCV),
     # Equity 4 straddles two days and is not active the first day.
-    4: DataFrame({
-        'open': [nan, nan, nan, 101.5, 101.5, 101.5],
-        'high': [nan, nan, nan, 101.9, 103.9, 103.9],
-        'low': [nan, nan, nan, 101.1, 101.1, 101.1],
-        'close': [nan, nan, nan, 101.3, 103.3, 102.3],
+    4   : DataFrame({
+        'open'  : [nan, nan, nan, 101.5, 101.5, 101.5],
+        'high'  : [nan, nan, nan, 101.9, 103.9, 103.9],
+        'low'   : [nan, nan, nan, 101.1, 101.1, 101.1],
+        'close' : [nan, nan, nan, 101.3, 103.3, 102.3],
         'volume': [0, 0, 0, 1001, 2004, 3006],
     }, columns=OHLCV),
     # Equity 5 straddles two days and does not have data the first day.
-    5: DataFrame({
-        'open': [nan, nan, nan, 101.5, 101.5, 101.5],
-        'high': [nan, nan, nan, 101.9, 103.9, 103.9],
-        'low': [nan, nan, nan, 101.1, 101.1, 101.1],
-        'close': [nan, nan, nan, 101.3, 103.3, 102.3],
+    5   : DataFrame({
+        'open'  : [nan, nan, nan, 101.5, 101.5, 101.5],
+        'high'  : [nan, nan, nan, 101.9, 103.9, 103.9],
+        'low'   : [nan, nan, nan, 101.1, 101.1, 101.1],
+        'close' : [nan, nan, nan, 101.3, 103.3, 102.3],
         'volume': [0, 0, 0, 1001, 2004, 3006],
     }, columns=OHLCV),
     1001: DataFrame({
-        'open': [101.5, 101.5, 101.5, 101.5, 101.5, 101.5],
-        'high': [101.9, 103.9, 103.9, 103.9, 103.9, 103.9],
-        'low': [101.1, 101.1, 101.1, 101.1, 101.1, 101.1],
-        'close': [101.3, 103.3, 102.3, 101.3, 103.3, 102.3],
+        'open'  : [101.5, 101.5, 101.5, 101.5, 101.5, 101.5],
+        'high'  : [101.9, 103.9, 103.9, 103.9, 103.9, 103.9],
+        'low'   : [101.1, 101.1, 101.1, 101.1, 101.1, 101.1],
+        'close' : [101.3, 103.3, 102.3, 101.3, 103.3, 102.3],
         'volume': [1001, 2004, 3006, 4007, 5010, 6012],
     }, columns=OHLCV),
     1002: DataFrame({
-        'open': [nan, 103.5, 103.5, 103.5, 103.5, 103.5],
-        'high': [nan, 103.9, 103.9, 103.9, 103.9, 103.9],
-        'low': [nan, 103.1, 102.1, 101.1, 101.1, 101.1],
-        'close': [nan, 103.3, 102.3, 101.3, 103.3, 102.3],
+        'open'  : [nan, 103.5, 103.5, 103.5, 103.5, 103.5],
+        'high'  : [nan, 103.9, 103.9, 103.9, 103.9, 103.9],
+        'low'   : [nan, 103.1, 102.1, 101.1, 101.1, 101.1],
+        'close' : [nan, 103.3, 102.3, 101.3, 103.3, 102.3],
         'volume': [0, 1003, 2005, 3006, 4009, 5011],
     }, columns=OHLCV),
     1003: DataFrame({
-        'open': [107.5, 107.5, 107.5, nan, 103.5, 103.5],
-        'high': [107.9, 108.9, 108.9, nan, 103.9, 103.9],
-        'low': [107.1, 107.1, 107.1, nan, 103.1, 102.1],
-        'close': [107.3, 108.3, 108.3, nan, 103.3, 102.3],
+        'open'  : [107.5, 107.5, 107.5, nan, 103.5, 103.5],
+        'high'  : [107.9, 108.9, 108.9, nan, 103.9, 103.9],
+        'low'   : [107.1, 107.1, 107.1, nan, 103.1, 102.1],
+        'close' : [107.3, 108.3, 108.3, nan, 103.3, 102.3],
         'volume': [1007, 2015, 2015, 0, 1003, 2005],
     }, columns=OHLCV),
     1004: DataFrame({
-        'open': [nan, nan, nan, 101.5, 101.5, 101.5],
-        'high': [nan, nan, nan, 101.9, 103.9, 103.9],
-        'low': [nan, nan, nan, 101.1, 101.1, 101.1],
-        'close': [nan, nan, nan, 101.3, 103.3, 102.3],
+        'open'  : [nan, nan, nan, 101.5, 101.5, 101.5],
+        'high'  : [nan, nan, nan, 101.9, 103.9, 103.9],
+        'low'   : [nan, nan, nan, 101.1, 101.1, 101.1],
+        'close' : [nan, nan, nan, 101.3, 103.3, 102.3],
         'volume': [0, 0, 0, 1001, 2004, 3006],
     }, columns=OHLCV),
 }
 
 EXPECTED_SESSIONS = {
-    1: DataFrame([EXPECTED_AGGREGATION[1].iloc[-1].values],
-                 columns=OHLCV,
-                 index=pd.to_datetime(['2016-03-15'], utc=True)),
-    2: DataFrame([EXPECTED_AGGREGATION[2].iloc[-1].values],
-                 columns=OHLCV,
-                 index=pd.to_datetime(['2016-03-15'], utc=True)),
-    3: DataFrame(EXPECTED_AGGREGATION[3].iloc[[2, 5]].values,
-                 columns=OHLCV,
-                 index=pd.to_datetime(['2016-03-15', '2016-03-16'], utc=True)),
+    1   : DataFrame([EXPECTED_AGGREGATION[1].iloc[-1].values],
+                    columns=OHLCV,
+                    index=pd.to_datetime(['2016-03-15'], utc=True)),
+    2   : DataFrame([EXPECTED_AGGREGATION[2].iloc[-1].values],
+                    columns=OHLCV,
+                    index=pd.to_datetime(['2016-03-15'], utc=True)),
+    3   : DataFrame(EXPECTED_AGGREGATION[3].iloc[[2, 5]].values,
+                    columns=OHLCV,
+                    index=pd.to_datetime(['2016-03-15', '2016-03-16'], utc=True)),
     1001: DataFrame([EXPECTED_AGGREGATION[1001].iloc[-1].values],
                     columns=OHLCV,
                     index=pd.to_datetime(['2016-03-16'], utc=True)),
@@ -255,7 +251,6 @@ EXPECTED_SESSIONS = {
 class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
                                        WithBcolzFutureMinuteBarReader,
                                        ZiplineTestCase):
-
     #    March 2016
     # Su Mo Tu We Th Fr Sa
     #        1  2  3  4  5
@@ -296,8 +291,8 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
 
         for future_sid in cls.ASSET_FINDER_FUTURE_SIDS:
             future_dict[future_sid] = {
-                'multiplier': 1000,
-                'exchange': 'CMES',
+                'multiplier' : 1000,
+                'exchange'   : 'CMES',
                 'root_symbol': "ABC"
             }
 
@@ -358,11 +353,11 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
         )
 
     def _test_contiguous_minutes_individual(
-        self,
-        field,
-        asset,
-        minutes,
-        aggregator,
+            self,
+            field,
+            asset,
+            minutes,
+            aggregator,
     ):
         # First test each minute in order.
         method_name = field + 's'
@@ -526,7 +521,6 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
 
 class TestMinuteToSession(WithEquityMinuteBarData,
                           ZiplineTestCase):
-
     #    March 2016
     # Su Mo Tu We Th Fr Sa
     #        1  2  3  4  5
@@ -566,7 +560,6 @@ class TestMinuteToSession(WithEquityMinuteBarData,
 
 class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
                               ZiplineTestCase):
-
     TRADING_CALENDAR_STRS = ('us_futures',)
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
@@ -582,8 +575,8 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
 
         for future_sid in cls.ASSET_FINDER_FUTURE_SIDS:
             future_dict[future_sid] = {
-                'multiplier': 1000,
-                'exchange': 'CMES',
+                'multiplier' : 1000,
+                'exchange'   : 'CMES',
                 'root_symbol': "ABC"
             }
 
@@ -643,7 +636,11 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
         for sid in self.ASSET_FINDER_FUTURE_SIDS:
             expected = EXPECTED_SESSIONS[sid]
             for dt_str, values in expected.iterrows():
-                dt = pd.Timestamp(dt_str, tz='UTC')
+                try:
+                    dt = pd.Timestamp(dt_str, tz='UTC')
+                except ValueError:
+                    dt = dt_str.tz_convert(tz='UTC')
+
                 for col in OHLCV:
                     result = session_bar_reader.get_value(sid, dt, col)
                     assert_almost_equal(result,
@@ -668,7 +665,6 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
 
 class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader,
                             ZiplineTestCase):
-
     TRADING_CALENDAR_STRS = ('us_futures', 'NYSE')
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
@@ -737,7 +733,6 @@ class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader,
 
 class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
                              ZiplineTestCase):
-
     TRADING_CALENDAR_STRS = ('us_futures', 'NYSE')
     TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
@@ -747,6 +742,7 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
     # us_futures.
     START_DATE = pd.Timestamp('2015-11-02', tz='UTC')
     END_DATE = pd.Timestamp('2015-11-30', tz='UTC')
+
     #     November 2015
     # Su Mo Tu We Th Fr Sa
     #  1  2  3  4  5  6  7
@@ -797,7 +793,7 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
             nan,
             opens[1][tday_loc],
             err_msg="2015-11-26 should be `nan`, since Thanksgiving is a "
-            "holiday in the reader's calendar.")
+                    "holiday in the reader's calendar.")
 
         # Thanksgiving, 2015-11-26.
         # Is a holiday in NYSE, but not in us_futures.
@@ -807,7 +803,7 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
             nan,
             opens[1][tday_loc],
             err_msg="2015-11-26 should be `nan`, since Thanksgiving is a "
-            "holiday in the reader's calendar.")
+                    "holiday in the reader's calendar.")
 
     def test_load_raw_arrays_holiday_start(self):
         tday = pd.Timestamp('2015-11-26', tz='UTC')
@@ -859,7 +855,7 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
         assert_almost_equal(self.reader.get_value(1, self.START_DATE, 'open'),
                             10.0,
                             err_msg="The open of the fixture data on the "
-                            "first session should be 10.")
+                                    "first session should be 10.")
         tday = pd.Timestamp('2015-11-26', tz='UTC')
 
         self.assertTrue(isnan(self.reader.get_value(1, tday, 'close')))
