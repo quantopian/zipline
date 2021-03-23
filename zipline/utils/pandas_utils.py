@@ -14,8 +14,8 @@ from trading_calendars.utils.pandas_utils import days_at_time  # noqa: reexport
 
 pandas_version = StrictVersion(pd.__version__)
 new_pandas = pandas_version >= StrictVersion('0.19')
-skip_pipeline_new_pandas = \
-    'Pipeline categoricals are not yet compatible with pandas >=0.19'
+skip_pipeline_new_pandas = 'Pipeline categoricals are not yet compatible with pandas >=0.19'
+skip_pipeline_blaze = "Blaze doesn't play nicely with Pandas >=1.0"
 
 if pandas_version >= StrictVersion('0.20'):
     def normalize_date(dt):
