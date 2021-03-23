@@ -1615,7 +1615,7 @@ class MaximumRegressionTest(zf.WithSeededRandomPipelineEngine,
         pipeline_max = (result.factor[result.maximum]
                         .reset_index(level=1, drop=True))
 
-        assert_equal(groupby_max, pipeline_max)
+        assert_equal(groupby_max.to_numpy(), pipeline_max.to_numpy())
 
 
 class ResolveDomainTestCase(zf.ZiplineTestCase):
