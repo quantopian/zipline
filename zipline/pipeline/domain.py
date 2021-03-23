@@ -86,7 +86,7 @@ class IDomain(Interface):
         -------
         pd.Timestamp
         """
-        dt = pd.Timestamp(dt, tz='UTC')
+        dt = pd.Timestamp(dt).tz_convert('UTC')
 
         trading_days = self.all_sessions()
         try:
