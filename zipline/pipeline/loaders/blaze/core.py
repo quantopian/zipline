@@ -492,7 +492,7 @@ def _ad_as_ts(expr):
 def _ensure_timestamp_field(dataset_expr, deltas, checkpoints):
     """Verify that the baseline and deltas expressions have a timestamp field.
 
-    If there is not a ``TS_FIELD_NAME`` on either of the expressions, it will
+    If there is not a ``TS_FIELD_NAME`` in either of the expressions, it will
     be copied from the ``AD_FIELD_NAME``. If one is provided, then we will
     verify that it is the correct dshape.
 
@@ -869,7 +869,7 @@ class BlazeLoader(implements(PipelineLoader)):
                          deltas=None,
                          checkpoints=None,
                          odo_kwargs=None):
-        """Explicitly map a datset to a collection of blaze expressions.
+        """Explicitly map a dataset to a collection of blaze expressions.
 
         Parameters
         ----------

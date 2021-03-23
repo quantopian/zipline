@@ -182,8 +182,8 @@ cdef _array_for_column_impl(object dtype,
                             column_type missing_value,
                             bint is_missing(column_type, column_type),
                             AsArrayKind _array_kind):
-    """This is the core algorithm for formatting raw blaze data into the
-    baseline adjustments format required for consumption by the Pipeline API.
+    """The core algorithm for formatting raw blaze data into the
+    baseline adjustments format required by the Pipeline API.
 
     For performance reasons, we represent input data with parallel arrays.
     Logically, however, we think of each row of the input data as representing
@@ -194,23 +194,20 @@ cdef _array_for_column_impl(object dtype,
       sid       - The sid to which the event pertains.
       value     - The value of the column being updated by the event.
 
-    The essential idea of this algorithm is to process events in
-    timestamp-sorted order, updating our worldview as each new event
-    arrives. This models how we would actually process events in real time.
+    This algorithm processes events in timestamp-sorted order and updates 
+    our worldview as each new event arrives. This models how we would actually 
+    process events in real time.
 
-    When we process a new event, we first check if the event should be
-    processed:
+    Before we process a new event, we check if it should be processed:
 
     - We skip events pertaining to sids that weren't requested.
-    - We skip events for which timestamp is after all the dates we're
-      interested in.
-    - We skip events whose `value` field is missing.
+    - We skip events with a timestamp after the dates we're interested in.
+    - We skip events with empty `value` field.
 
-    Once we've decided an event is relevant, there are two possible cases:
+    For events to be processed, there are two cases:
 
-    1. The event is **novel**, meaning that its asof_date is greater than or
-       equal to the asof_date of all events with the same sid that have been
-       processed so far.
+    1. The event is **novel**, meaning that its `asof_date` is greater than or
+       equal to the `asof_date` of all events with the same `sid` processed so far.
 
     2. The event is **stale**, meaning that we've already processed an event
        with the same sid and a later asof_date.
