@@ -94,7 +94,8 @@ def create_expected_df_for_factor_compute(start_date,
                                'knowledge_date'])
     df = df.pivot_table(columns=SID_FIELD_NAME,
                         values='estimate',
-                        index='knowledge_date')
+                        index='knowledge_date',
+                        dropna=False)
     df = df.reindex(
         pd.date_range(start_date, end_date)
     )
@@ -770,11 +771,11 @@ class NextEstimateMultipleQuarters(
         # Fill columns for 1 Q out
         for raw_name in cls.columns.values():
             expected.loc[
-            pd.Timestamp('2015-01-01'):pd.Timestamp('2015-01-11'),
+            pd.Timestamp('2015-01-01', tz='UTC'):pd.Timestamp('2015-01-11', tz='UTC'),
             raw_name + '1'
             ] = cls.events[raw_name].iloc[0]
             expected.loc[
-            pd.Timestamp('2015-01-11'):pd.Timestamp('2015-01-20'),
+            pd.Timestamp('2015-01-11', tz='UTC'):pd.Timestamp('2015-01-20', tz='UTC'),
             raw_name + '1'
             ] = cls.events[raw_name].iloc[1]
 
@@ -784,21 +785,21 @@ class NextEstimateMultipleQuarters(
         # out.
         for col_name in ['estimate', 'event_date']:
             expected.loc[
-            pd.Timestamp('2015-01-06'):pd.Timestamp('2015-01-10'),
+            pd.Timestamp('2015-01-06', tz='UTC'):pd.Timestamp('2015-01-10', tz='UTC'),
             col_name + '2'
             ] = cls.events[col_name].iloc[1]
         # But we know what FQ and FY we'd need in both Q1 and Q2
         # because we know which FQ is next and can calculate from there
         expected.loc[
-        pd.Timestamp('2015-01-01'):pd.Timestamp('2015-01-09'),
+        pd.Timestamp('2015-01-01', tz='UTC'):pd.Timestamp('2015-01-09', tz='UTC'),
         FISCAL_QUARTER_FIELD_NAME + '2'
         ] = 2
         expected.loc[
-        pd.Timestamp('2015-01-12'):pd.Timestamp('2015-01-20'),
+        pd.Timestamp('2015-01-12', tz='UTC'):pd.Timestamp('2015-01-20', tz='UTC'),
         FISCAL_QUARTER_FIELD_NAME + '2'
         ] = 3
         expected.loc[
-        pd.Timestamp('2015-01-01'):pd.Timestamp('2015-01-20'),
+        pd.Timestamp('2015-01-01', tz='UTC'):pd.Timestamp('2015-01-20', tz='UTC'),
         FISCAL_YEAR_FIELD_NAME + '2'
         ] = 2015
 
@@ -819,29 +820,29 @@ class PreviousEstimateMultipleQuarters(
         # Fill columns for 1 Q out
         for raw_name in cls.columns.values():
             expected[raw_name + '1'].loc[
-            pd.Timestamp('2015-01-12'):pd.Timestamp('2015-01-19')
+            pd.Timestamp('2015-01-12', tz='UTC'):pd.Timestamp('2015-01-19', tz='UTC')
             ] = cls.events[raw_name].iloc[0]
             expected[raw_name + '1'].loc[
-            pd.Timestamp('2015-01-20'):
+            pd.Timestamp('2015-01-20', tz='UTC'):
             ] = cls.events[raw_name].iloc[1]
 
         # Fill columns for 2 Q out
         for col_name in ['estimate', 'event_date']:
             expected[col_name + '2'].loc[
-            pd.Timestamp('2015-01-20'):
+            pd.Timestamp('2015-01-20', tz='UTC'):
             ] = cls.events[col_name].iloc[0]
         expected[
             FISCAL_QUARTER_FIELD_NAME + '2'
-            ].loc[pd.Timestamp('2015-01-12'):pd.Timestamp('2015-01-20')] = 4
+            ].loc[pd.Timestamp('2015-01-12', tz='UTC'):pd.Timestamp('2015-01-20', tz='UTC')] = 4
         expected[
             FISCAL_YEAR_FIELD_NAME + '2'
-            ].loc[pd.Timestamp('2015-01-12'):pd.Timestamp('2015-01-20')] = 2014
+            ].loc[pd.Timestamp('2015-01-12', tz='UTC'):pd.Timestamp('2015-01-20', tz='UTC')] = 2014
         expected[
             FISCAL_QUARTER_FIELD_NAME + '2'
-            ].loc[pd.Timestamp('2015-01-20'):] = 1
+            ].loc[pd.Timestamp('2015-01-20', tz='UTC'):] = 1
         expected[
             FISCAL_YEAR_FIELD_NAME + '2'
-            ].loc[pd.Timestamp('2015-01-20'):] = 2015
+            ].loc[pd.Timestamp('2015-01-20', tz='UTC'):] = 2015
         return expected
 
 
@@ -2165,7 +2166,7 @@ class WithAdjustmentBoundaries(WithEstimates):
     # We want to run the pipeline starting from `START_DATE`, but the
     # pipeline results will start from the next day, which is
     # `test_start_date`.
-    test_start_date = pd.Timestamp('2015-01-05')
+    test_start_date = pd.Timestamp('2015-01-05', tz='UTC')
     END_DATE = test_end_date = pd.Timestamp('2015-01-12', tz='utc')
     split_adjusted_before_start = (
             test_start_date - timedelta(days=1)
@@ -2329,20 +2330,21 @@ class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries,
                 'estimate'    : np.NaN,
             }, index=pd.date_range(
                 cls.test_start_date,
-                pd.Timestamp('2015-01-08'),
+                pd.Timestamp('2015-01-08', tz='UTC'),
                 tz='utc'
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s0,
                 'estimate'    : 10.,
             }, index=pd.date_range(
-                pd.Timestamp('2015-01-09'), cls.test_end_date, tz='utc'
+                pd.Timestamp('2015-01-09', tz='UTC'),
+                cls.test_end_date, tz='utc'
             )),
-            pd.DataFrame({
-                SID_FIELD_NAME: cls.s1,
-                'estimate'    : 11.,
-            }, index=pd.date_range(cls.test_start_date, cls.test_end_date,
-                                   tz='utc')),
+            pd.DataFrame({SID_FIELD_NAME: cls.s1,
+                          'estimate'    : 11., },
+                         index=pd.date_range(cls.test_start_date,
+                                             cls.test_end_date,
+                                             tz='utc')),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s2,
                 'estimate'    : np.NaN
@@ -2382,13 +2384,13 @@ class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries,
                 SID_FIELD_NAME: cls.s0,
                 'estimate'    : np.NaN,
             }, index=pd.date_range(
-                cls.test_start_date, pd.Timestamp('2015-01-08'), tz='utc'
+                cls.test_start_date, pd.Timestamp('2015-01-08', tz='UTC'), tz='utc'
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s0,
                 'estimate'    : 10.,
             }, index=pd.date_range(
-                pd.Timestamp('2015-01-09'), cls.test_end_date, tz='utc'
+                pd.Timestamp('2015-01-09', tz='UTC'), cls.test_end_date, tz='utc'
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s1,

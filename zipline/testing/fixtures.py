@@ -698,10 +698,21 @@ class WithTradingSessions(WithDefaultDateBounds, WithTradingCalendars):
 
         cls.trading_sessions = {}
 
+        def make_tz_aware(ts):
+            try:
+                # needs UTC tz
+                return ts.tz_localize('UTC')
+            except:  # throws generic Exception in some case
+                # already tz-aware
+                return ts.tz_convert('UTC')
+
         for cal_str in cls.TRADING_CALENDAR_STRS:
             trading_calendar = cls.trading_calendars[cal_str]
-            sessions = trading_calendar.sessions_in_range(cls.DATA_MIN_DAY.tz_localize('UTC'),
-                                                          cls.DATA_MAX_DAY.tz_localize('UTC'))
+            start_session_label = make_tz_aware(cls.DATA_MIN_DAY)
+            end_session_label = make_tz_aware(cls.DATA_MAX_DAY)
+
+            sessions = trading_calendar.sessions_in_range(start_session_label=start_session_label,
+                                                          end_session_label=end_session_label)
             # Set name for aliasing.
             setattr(cls,
                     '{0}_sessions'.format(cal_str.lower()), sessions)

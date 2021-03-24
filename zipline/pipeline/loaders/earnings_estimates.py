@@ -654,11 +654,17 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
                 #                        fill_value=col.missing_value,
                 #                        dtype=col.dtype)
                 # overwrite the missing value with values from the computed data
-                # try:
-                output_array = (requested_qtr_data[column_name]
-                                .reindex(sids, axis=1)
-                                .to_numpy()
-                                .astype(col.dtype))
+                try:
+                    output_array = (requested_qtr_data[column_name]
+                                    .reindex(sids, axis=1)
+                                    .to_numpy()
+                                    .astype(col.dtype))
+                except:
+                    output_array = (requested_qtr_data[column_name]
+                                    .reindex(sids, axis=1)
+                                    .to_numpy(na_value=col.missing_value)
+                                    .astype(col.dtype))
+
                 # except ValueError:
                 #     np.copyto(output_array[:, asset_indexer],
                 #               requested_qtr_data[column_name].to_numpy(na_value=output_array.dtype),
